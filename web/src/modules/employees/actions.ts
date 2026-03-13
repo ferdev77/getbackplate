@@ -30,14 +30,11 @@ async function findAuthUserByEmail(email: string) {
   return { id: data };
 }
 
-export async function createEmployeeAction(formData: FormData) {
+export async function createEmployeeAction(prevState: any, formData: FormData) {
   const tenant = await requireTenantContext();
 
   if (tenant.roleCode !== "company_admin" && tenant.roleCode !== "manager") {
-    redirect(
-      "/app/employees?status=error&message=" +
-        qs("No tienes permisos para crear empleados con tu rol actual"),
-    );
+    return { success: false, message: "No tienes permisos para crear empleados con tu rol actual" };
   }
 
   const firstName = String(formData.get("first_name") ?? "").trim();
@@ -53,16 +50,13 @@ export async function createEmployeeAction(formData: FormData) {
   const createWithAccount = createMode === "with_account";
 
   if (!firstName || !lastName) {
-    redirect("/app/employees?status=error&message=" + qs("Nombre y apellido son obligatorios"));
+    return { success: false, message: "Nombre y apellido son obligatorios" };
   }
 
   try {
     await assertPlanLimitForEmployees(tenant.organizationId, 1);
   } catch (error) {
-    redirect(
-      "/app/employees?status=error&message=" +
-        qs(getPlanLimitErrorMessage(error, "Limite de empleados alcanzado. Actualiza tu plan para continuar.")),
-    );
+    return { success: false, message: getPlanLimitErrorMessage(error, "Limite de empleados alcanzado. Actualiza tu plan para continuar.") };
   }
 
   let linkedUserId: string | null = null;
@@ -72,17 +66,11 @@ export async function createEmployeeAction(formData: FormData) {
     const loginEmail = accountEmailInput || (contactEmail ? contactEmail.toLowerCase() : "");
 
     if (!loginEmail) {
-      redirect(
-        "/app/employees?status=error&message=" +
-          qs("Para crear cuenta, completa el email de acceso"),
-      );
+      return { success: false, message: "Para crear cuenta, completa el email de acceso" };
     }
 
     if (accountPassword.length < 8) {
-      redirect(
-        "/app/employees?status=error&message=" +
-          qs("La contrasena de acceso debe tener al menos 8 caracteres"),
-      );
+      return { success: false, message: "La contrasena de acceso debe tener al menos 8 caracteres" };
     }
 
     const admin = createSupabaseAdminClient();
@@ -94,10 +82,7 @@ export async function createEmployeeAction(formData: FormData) {
       .single();
 
     if (roleError || !role) {
-      redirect(
-        "/app/employees?status=error&message=" +
-          qs("No existe el rol employee en la base"),
-      );
+      return { success: false, message: "No existe el rol employee en la base" };
     }
 
     const { data: createdUser, error: createUserError } = await admin.auth.admin.createUser({
@@ -120,20 +105,14 @@ export async function createEmployeeAction(formData: FormData) {
         createUserError.message.toLowerCase().includes("registered");
 
       if (!alreadyExists) {
-        redirect(
-          "/app/employees?status=error&message=" +
-            qs(`No se pudo crear cuenta del empleado: ${createUserError.message}`),
-        );
+        return { success: false, message: `No se pudo crear cuenta del empleado: ${createUserError.message}` };
       }
 
       const existingUser = await findAuthUserByEmail(loginEmail);
       linkedUserId = existingUser?.id ?? null;
 
     if (!linkedUserId) {
-        redirect(
-          "/app/employees?status=error&message=" +
-            qs("El email ya existe pero no se pudo recuperar el usuario"),
-        );
+        return { success: false, message: "El email ya existe pero no se pudo recuperar el usuario" };
       }
     }
 
@@ -148,10 +127,7 @@ export async function createEmployeeAction(formData: FormData) {
       try {
         await assertPlanLimitForUsers(tenant.organizationId, 1);
       } catch (error) {
-        redirect(
-          "/app/employees?status=error&message=" +
-            qs(getPlanLimitErrorMessage(error, "Limite de usuarios alcanzado. Actualiza tu plan para continuar.")),
-        );
+        return { success: false, message: getPlanLimitErrorMessage(error, "Limite de usuarios alcanzado. Actualiza tu plan para continuar.") };
       }
     }
 
@@ -167,10 +143,7 @@ export async function createEmployeeAction(formData: FormData) {
     );
 
     if (membershipError) {
-      redirect(
-        "/app/employees?status=error&message=" +
-          qs(`No se pudo asignar acceso al empleado: ${membershipError.message}`),
-      );
+      return { success: false, message: `No se pudo asignar acceso al empleado: ${membershipError.message}` };
     }
 
     employeeEmail = loginEmail;
@@ -199,7 +172,7 @@ export async function createEmployeeAction(formData: FormData) {
         ? "No tienes permisos para crear empleados con tu rol actual"
         : `No se pudo crear el empleado: ${error.message}`;
 
-    redirect("/app/employees?status=error&message=" + qs(message));
+    return { success: false, message };
   }
 
   await logAuditEvent({
@@ -223,24 +196,18 @@ export async function createEmployeeAction(formData: FormData) {
   });
 
   revalidatePath("/app/employees");
-  redirect(
-    "/app/employees?status=success&message=" +
-      qs(
-        createWithAccount
-          ? "Empleado y cuenta creados correctamente"
-          : "Empleado creado correctamente",
-      ),
-  );
+  return {
+    success: true,
+    message: createWithAccount ? "Empleado y cuenta creados correctamente" : "Empleado creado correctamente",
+    timestamp: Date.now()
+  };
 }
 
-export async function createUserAccountAction(formData: FormData) {
+export async function createUserAccountAction(prevState: any, formData: FormData) {
   const tenant = await requireTenantContext();
 
   if (tenant.roleCode !== "company_admin" && tenant.roleCode !== "manager") {
-    redirect(
-      "/app/employees?status=error&message=" +
-        qs("No tienes permisos para crear usuarios con tu rol actual"),
-    );
+    return { success: false, message: "No tienes permisos para crear usuarios con tu rol actual" };
   }
 
   const fullName = String(formData.get("full_name") ?? "").trim();
@@ -253,17 +220,11 @@ export async function createUserAccountAction(formData: FormData) {
   const accessStatus = String(formData.get("access_status") ?? "active").trim();
 
   if (!fullName || !email) {
-    redirect(
-      "/app/employees?status=error&message=" +
-        qs("Nombre completo y correo corporativo son obligatorios"),
-    );
+    return { success: false, message: "Nombre completo y correo corporativo son obligatorios" };
   }
 
   if (password.length < 8) {
-    redirect(
-      "/app/employees?status=error&message=" +
-        qs("La contrasena debe tener al menos 8 caracteres"),
-    );
+    return { success: false, message: "La contrasena debe tener al menos 8 caracteres" };
   }
 
   const roleCode =
@@ -283,7 +244,7 @@ export async function createUserAccountAction(formData: FormData) {
       .eq("id", branchId)
       .maybeSingle();
     if (!branch) {
-      redirect("/app/employees?status=error&message=" + qs("Locacion invalida para esta empresa"));
+      return { success: false, message: "Locacion invalida para esta empresa" };
     }
   }
 
@@ -297,7 +258,7 @@ export async function createUserAccountAction(formData: FormData) {
       .maybeSingle();
 
     if (!department) {
-      redirect("/app/employees?status=error&message=" + qs("Departamento invalido para esta empresa"));
+      return { success: false, message: "Departamento invalido para esta empresa" };
     }
 
     departmentName = department.name;
@@ -313,11 +274,11 @@ export async function createUserAccountAction(formData: FormData) {
       .maybeSingle();
 
     if (!position) {
-      redirect("/app/employees?status=error&message=" + qs("Puesto invalido para esta empresa"));
+      return { success: false, message: "Puesto invalido para esta empresa" };
     }
 
     if (departmentId && departmentId !== position.department_id) {
-      redirect("/app/employees?status=error&message=" + qs("El puesto no pertenece al departamento seleccionado"));
+      return { success: false, message: "El puesto no pertenece al departamento seleccionado" };
     }
 
     departmentId = position.department_id;
@@ -332,7 +293,7 @@ export async function createUserAccountAction(formData: FormData) {
       .maybeSingle();
 
     if (!department) {
-      redirect("/app/employees?status=error&message=" + qs("Departamento invalido para el puesto seleccionado"));
+      return { success: false, message: "Departamento invalido para el puesto seleccionado" };
     }
 
     departmentName = department.name;
@@ -344,9 +305,7 @@ export async function createUserAccountAction(formData: FormData) {
     .single();
 
   if (roleError || !role) {
-    redirect(
-      "/app/employees?status=error&message=" + qs("No se encontro el rol seleccionado"),
-    );
+    return { success: false, message: "No se encontro el rol seleccionado" };
   }
 
   let userId: string | null = null;
@@ -371,10 +330,7 @@ export async function createUserAccountAction(formData: FormData) {
       createUserError.message.toLowerCase().includes("registered");
 
     if (!alreadyExists) {
-      redirect(
-        "/app/employees?status=error&message=" +
-          qs(`No se pudo crear usuario: ${createUserError.message}`),
-      );
+      return { success: false, message: `No se pudo crear usuario: ${createUserError.message}` };
     }
 
     const existingUser = await findAuthUserByEmail(email);
@@ -382,10 +338,7 @@ export async function createUserAccountAction(formData: FormData) {
   }
 
   if (!userId) {
-    redirect(
-      "/app/employees?status=error&message=" +
-        qs("No se pudo recuperar usuario para asignar acceso"),
-    );
+    return { success: false, message: "No se pudo recuperar usuario para asignar acceso" };
   }
 
   const { data: existingMembership } = await admin
@@ -399,10 +352,7 @@ export async function createUserAccountAction(formData: FormData) {
     try {
       await assertPlanLimitForUsers(tenant.organizationId, 1);
     } catch (error) {
-      redirect(
-        "/app/employees?status=error&message=" +
-          qs(getPlanLimitErrorMessage(error, "Limite de usuarios alcanzado. Actualiza tu plan para continuar.")),
-      );
+      return { success: false, message: getPlanLimitErrorMessage(error, "Limite de usuarios alcanzado. Actualiza tu plan para continuar.") };
     }
   }
 
@@ -418,10 +368,7 @@ export async function createUserAccountAction(formData: FormData) {
   );
 
   if (membershipError) {
-    redirect(
-      "/app/employees?status=error&message=" +
-        qs(`No se pudo asignar membresia: ${membershipError.message}`),
-    );
+    return { success: false, message: `No se pudo asignar membresia: ${membershipError.message}` };
   }
 
   const nameParts = fullName.split(/\s+/).filter(Boolean);
@@ -438,10 +385,7 @@ export async function createUserAccountAction(formData: FormData) {
     try {
       await assertPlanLimitForEmployees(tenant.organizationId, 1);
     } catch (error) {
-      redirect(
-        "/app/employees?status=error&message=" +
-          qs(getPlanLimitErrorMessage(error, "Limite de empleados alcanzado. Actualiza tu plan para continuar.")),
-      );
+      return { success: false, message: getPlanLimitErrorMessage(error, "Limite de empleados alcanzado. Actualiza tu plan para continuar.") };
     }
   }
 
@@ -486,5 +430,5 @@ export async function createUserAccountAction(formData: FormData) {
   });
 
   revalidatePath("/app/employees");
-  redirect("/app/employees?status=success&message=" + qs("Usuario creado correctamente"));
+  return { success: true, message: "Usuario creado correctamente", timestamp: Date.now() };
 }

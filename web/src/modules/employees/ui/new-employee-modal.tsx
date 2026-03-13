@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+
+import { createEmployeeAction } from "@/modules/employees/actions";
 
 type ModalBranch = { id: string; name: string };
 type ModalDocument = { id: string; title: string; created_at: string };
@@ -90,6 +93,22 @@ export function NewEmployeeModal({ open, branches, documents, departments, posit
     setSlotFileNames({});
   }, [open, initialEmployee]);
 
+  const [actionState, formAction, isActionPending] = useActionState(createEmployeeAction, { success: false, message: "" });
+
+  useEffect(() => {
+    if (actionState?.message) {
+      if (actionState.success) {
+        toast.success(actionState.message);
+        const closeLink = document.getElementById("close-employee-modal-link");
+        if (closeLink) (closeLink as HTMLAnchorElement).click();
+      } else {
+        toast.error(actionState.message);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionState]);
+
+
   if (!open) return null;
 
   function onSlotFileChange(slotKey: string, event: React.ChangeEvent<HTMLInputElement>) {
@@ -97,7 +116,7 @@ export function NewEmployeeModal({ open, branches, documents, departments, posit
     setSlotFileNames((prev) => ({ ...prev, [slotKey]: fileName }));
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleEditSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
     try {
@@ -108,14 +127,17 @@ export function NewEmployeeModal({ open, branches, documents, departments, posit
       });
       const data = await response.json();
       if (!response.ok) {
-        window.location.href = `/app/employees?status=error&message=${encodeURIComponent(data.error || "No se pudo guardar")}`;
+        const { toast: t } = await import("sonner");
+        t.error(data.error || "No se pudo guardar");
         return;
       }
-      window.location.href =
-        "/app/employees?status=success&message=" +
-        encodeURIComponent(mode === "edit" ? "Empleado actualizado correctamente" : "Empleado guardado correctamente");
+      const { toast: t } = await import("sonner");
+      t.success("Empleado actualizado correctamente");
+      const closeLink = document.getElementById("close-employee-modal-link");
+      if (closeLink) (closeLink as HTMLAnchorElement).click();
     } catch {
-      window.location.href = "/app/employees?status=error&message=" + encodeURIComponent("Error inesperado guardando empleado");
+      const { toast: t } = await import("sonner");
+      t.error("Error inesperado actualizando empleado");
     } finally {
       setSaving(false);
     }
@@ -136,10 +158,18 @@ export function NewEmployeeModal({ open, branches, documents, departments, posit
             </span>
             <p className="font-serif text-[15px] font-bold text-[#111]">{mode === "edit" ? "Editar Empleado" : "Nuevo Empleado"}</p>
           </div>
-          <Link href="/app/employees" className="inline-flex h-[30px] w-[30px] items-center justify-center rounded-md text-[20px] text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111]">✕</Link>
+          <Link
+            id="close-employee-modal-link"
+            href="/app/employees"
+            className="inline-flex h-[30px] w-[30px] items-center justify-center rounded-md text-[20px] text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111]"
+          >✕</Link>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <form
+          action={mode === "create" ? formAction : undefined}
+          onSubmit={mode === "edit" ? handleEditSubmit : undefined}
+          className="flex min-h-0 flex-1 flex-col"
+        >
           {mode === "edit" && initialEmployee ? <input type="hidden" name="employee_id" value={initialEmployee.id} /> : null}
           <input type="hidden" name="position_id" value={selectedPositionId} />
           <div className="flex shrink-0 border-b-[1.5px] border-[#f0f0f0] px-6">
@@ -384,8 +414,8 @@ export function NewEmployeeModal({ open, branches, documents, departments, posit
 
           <div className="flex shrink-0 items-center justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-3.5">
             <Link href="/app/employees" className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]">Cancelar</Link>
-            <button type="submit" disabled={saving} className="rounded-lg bg-[#111] px-5 py-2 text-sm font-bold text-white hover:bg-[#c0392b] disabled:cursor-not-allowed disabled:opacity-60">
-              {saving ? (mode === "edit" ? "Actualizando..." : "Guardando...") : (mode === "edit" ? "Actualizar Empleado" : "Guardar Empleado")}
+            <button type="submit" disabled={isActionPending || saving} className="rounded-lg bg-[#111] px-5 py-2 text-sm font-bold text-white hover:bg-[#c0392b] disabled:cursor-not-allowed disabled:opacity-60">
+              {(isActionPending || saving) ? (mode === "edit" ? "Actualizando..." : "Guardando...") : (mode === "edit" ? "Actualizar Empleado" : "Guardar Empleado")}
             </button>
           </div>
         </form>
