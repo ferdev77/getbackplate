@@ -7,7 +7,7 @@ import {
   normalizeOrganizationId,
 } from "@/shared/lib/tenant-selection-shared";
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const response = await updateSupabaseSession(request);
   const organizationIdFromUrl = normalizeOrganizationId(
     request.nextUrl.searchParams.get("org"),
