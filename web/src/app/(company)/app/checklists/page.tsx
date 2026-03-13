@@ -189,26 +189,32 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
   if (scopedUsers.some((row) => row.first_name === "Usuario" && row.user_id)) {
     try {
       const admin = createSupabaseAdminClient();
-      const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-      const adminUserById = new Map((data?.users ?? []).map((row) => [row.id, row]));
-
-      for (const user of scopedUsers) {
-        if (!user.user_id || user.first_name !== "Usuario") continue;
-        const authUser = adminUserById.get(user.user_id);
-        if (!authUser) continue;
-
-        const fullName = typeof authUser.user_metadata?.full_name === "string" ? authUser.user_metadata.full_name.trim() : "";
-        if (fullName) {
-          const [firstName = "Usuario", ...rest] = fullName.split(/\s+/);
-          user.first_name = firstName;
-          user.last_name = rest.join(" ");
-        } else {
-          user.first_name = authUser.email ?? user.first_name;
-          user.last_name = "";
-        }
-      }
+      // Only fetch the specific users that need enrichment — not all 1000
+      const unnamedUsers = scopedUsers.filter((u) => u.user_id && u.first_name === "Usuario");
+      await Promise.all(
+        unnamedUsers.map(async (user) => {
+          try {
+            const { data } = await admin.auth.admin.getUserById(user.user_id!);
+            if (!data?.user) return;
+            const fullName =
+              typeof data.user.user_metadata?.full_name === "string"
+                ? data.user.user_metadata.full_name.trim()
+                : "";
+            if (fullName) {
+              const [firstName = "Usuario", ...rest] = fullName.split(/\s+/);
+              user.first_name = firstName;
+              user.last_name = rest.join(" ");
+            } else {
+              user.first_name = data.user.email ?? user.first_name;
+              user.last_name = "";
+            }
+          } catch {
+            // fallback silencioso por usuario individual
+          }
+        }),
+      );
     } catch {
-      // fallback silencioso a nombre generico si no hay service role
+      // fallback silencioso
     }
   }
 
