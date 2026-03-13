@@ -11,13 +11,16 @@ export default async function CompanyLayout({
   const tenant = await requireCompanyAccess();
   const supabase = await createSupabaseServerClient();
 
-  const [user, { data: organization }, { data: orgSettings }, { data: preferences }, { data: plans }] = await Promise.all([
+  const [user, { data: organization }] = await Promise.all([
     getCurrentUser(),
     supabase
       .from("organizations")
       .select("name, plan_id")
       .eq("id", tenant.organizationId)
       .maybeSingle(),
+  ]);
+
+  const [{ data: orgSettings }, { data: preferences }, { data: plans }] = await Promise.all([
     supabase
       .from("organization_settings")
       .select(
@@ -25,13 +28,16 @@ export default async function CompanyLayout({
       )
       .eq("organization_id", tenant.organizationId)
       .maybeSingle(),
-    supabase
-      .from("user_preferences")
-      .select(
-        "theme, language, date_format, timezone_mode, timezone_manual, analytics_enabled, two_factor_enabled, two_factor_method",
-      )
-      .eq("organization_id", tenant.organizationId)
-      .maybeSingle(),
+    user
+      ? supabase
+          .from("user_preferences")
+          .select(
+            "theme, language, date_format, timezone_mode, timezone_manual, analytics_enabled, two_factor_enabled, two_factor_method",
+          )
+          .eq("user_id", user.id)
+          .eq("organization_id", tenant.organizationId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
     supabase
       .from("plans")
       .select("id, code, name, price_amount, billing_period, is_active, max_branches, max_users, max_employees, max_storage_mb")
