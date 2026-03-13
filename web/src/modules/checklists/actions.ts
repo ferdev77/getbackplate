@@ -67,33 +67,29 @@ export async function createChecklistTemplateAction(formData: FormData) {
 
   if (sectionsPayloadRaw) {
     try {
-      const parsed = JSON.parse(sectionsPayloadRaw) as Array<{ name?: unknown; items?: unknown }>;
-      normalizedSections = (Array.isArray(parsed) ? parsed : [])
-        .map((section) => {
-          const name = typeof section.name === "string" && section.name.trim() ? section.name.trim() : "General";
-          const items = Array.isArray(section.items)
-            ? section.items
-                .map((item) => (typeof item === "string" ? item.trim() : ""))
-                .filter(Boolean)
-            : [];
-
-          return { name, items };
-        })
-        .filter((section) => section.items.length > 0)
-        .slice(0, 20);
+      const parsed = JSON.parse(sectionsPayloadRaw);
+      if (Array.isArray(parsed)) {
+        normalizedSections = parsed
+          .map((section: any) => ({
+            name: typeof section?.name === "string" && section.name.trim() ? section.name.trim() : "General",
+            items: Array.isArray(section?.items)
+              ? section.items.map((item: any) => String(item).trim()).filter(Boolean)
+              : [],
+          }))
+          .filter((section) => section.items.length > 0)
+          .slice(0, 20);
+      }
     } catch {
-      normalizedSections = [];
+      redirect("/app/checklists?status=error&message=" + qs("Formato de secciones (JSON) invalido"));
     }
-  }
-
-  if (!normalizedSections.length) {
+  } else if (itemsInput) {
     const fallbackItems = itemsInput
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean)
       .slice(0, 80);
 
-    if (fallbackItems.length) {
+    if (fallbackItems.length > 0) {
       normalizedSections = [{ name: "General", items: fallbackItems }];
     }
   }

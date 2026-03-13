@@ -19,30 +19,15 @@ function qs(message: string) {
 
 async function findAuthUserByEmail(email: string) {
   const supabase = createSupabaseAdminClient();
-  let page = 1;
-  const perPage = 200;
+  const { data, error } = await supabase.rpc("get_user_id_by_email", {
+    lookup_email: email.toLowerCase(),
+  });
 
-  while (true) {
-    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
-
-    if (error) {
-      return null;
-    }
-
-    const found = data.users.find(
-      (user) => user.email?.toLowerCase() === email.toLowerCase(),
-    );
-
-    if (found) {
-      return found;
-    }
-
-    if (data.users.length < perPage) {
-      return null;
-    }
-
-    page += 1;
+  if (error || !data) {
+    return null;
   }
+
+  return { id: data };
 }
 
 export async function createEmployeeAction(formData: FormData) {

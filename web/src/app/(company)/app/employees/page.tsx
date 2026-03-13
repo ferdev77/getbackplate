@@ -40,10 +40,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       .eq("is_active", true)
       .order("name"),
     supabase
-      .from("memberships")
-      .select("id, user_id, role_id, branch_id, status, created_at")
-      .eq("organization_id", tenant.organizationId)
-      .order("created_at", { ascending: false })
+      .rpc("get_company_users", { lookup_organization_id: tenant.organizationId })
       .limit(100),
     supabase
       .from("roles")
@@ -91,25 +88,6 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   );
 
   const admin = createSupabaseAdminClient();
-  const ids = [...new Set((memberships ?? []).map((row) => row.user_id))].filter(Boolean) as string[];
-  let authById = new Map<string, { email: string; fullName: string }>();
-  if (ids.length) {
-    const { data: usersData } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    authById = new Map(
-      (usersData?.users ?? [])
-        .filter((row) => ids.includes(row.id))
-        .map((row) => [
-          row.id,
-          {
-            email: row.email ?? "",
-            fullName:
-              (typeof row.user_metadata?.full_name === "string" && row.user_metadata.full_name) ||
-              row.email ||
-              "Usuario",
-          },
-        ]),
-    );
-  }
 
   const latestContractByEmployee = new Map<
     string,
@@ -187,13 +165,12 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
     };
   });
 
-  const userRows = (memberships ?? []).map((member) => {
-    const user = authById.get(member.user_id);
+  const userRows = (memberships ?? []).map((member: any) => {
     return {
       membershipId: member.id,
       userId: member.user_id,
-      fullName: employeeByUserId.get(member.user_id) ?? user?.fullName ?? "Usuario",
-      email: user?.email || "",
+      fullName: employeeByUserId.get(member.user_id) ?? member.full_name ?? "Usuario",
+      email: member.email || "",
       roleCode: roleById.get(member.role_id) ?? "employee",
       status: member.status,
       branchId: member.branch_id,
