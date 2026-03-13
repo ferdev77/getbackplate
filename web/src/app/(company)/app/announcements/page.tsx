@@ -1,0 +1,266 @@
+import Link from "next/link";
+import { Bell, BellPlus, CalendarClock, Pencil, Pin } from "lucide-react";
+
+import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
+import { parseAnnouncementScope } from "@/modules/announcements/lib/scope";
+import {
+  deleteAnnouncementAction,
+  toggleAnnouncementFeaturedAction,
+} from "@/modules/announcements/actions";
+import { requireTenantModule } from "@/shared/lib/access";
+import { AnnouncementCreateModal } from "@/shared/ui/announcement-create-modal";
+import { ConfirmSubmitButton } from "@/shared/ui/confirm-submit-button";
+
+type CompanyAnnouncementsPageProps = {
+  searchParams: Promise<{
+    status?: string;
+    message?: string;
+    action?: string;
+    announcementId?: string;
+  }>;
+};
+
+function kindLabel(kind: string) {
+  if (kind === "urgent") return "Urgente";
+  if (kind === "reminder") return "Recordatorio";
+  if (kind === "celebration") return "Celebracion";
+  return "General";
+}
+
+function kindClass(kind: string) {
+  if (kind === "urgent") return "border-rose-200 bg-rose-50 text-rose-700";
+  if (kind === "reminder") return "border-amber-200 bg-amber-50 text-amber-700";
+  if (kind === "celebration") return "border-blue-200 bg-blue-50 text-blue-700";
+  return "border-emerald-200 bg-emerald-50 text-emerald-700";
+}
+
+export default async function CompanyAnnouncementsPage({ searchParams }: CompanyAnnouncementsPageProps) {
+  const tenant = await requireTenantModule("announcements");
+  const params = await searchParams;
+  const action = String(params.action ?? "").trim().toLowerCase();
+  const openCreateModal = action === "create" || action === "edit";
+  const supabase = await createSupabaseServerClient();
+  const { data: authData } = await supabase.auth.getUser();
+
+  const [
+    { data: announcements },
+    { data: branches },
+    { data: employees },
+    { data: departments },
+    { data: positions },
+    { data: audiences },
+  ] = await Promise.all([
+    supabase
+      .from("announcements")
+      .select("id, title, body, kind, is_featured, publish_at, expires_at, branch_id, target_scope, created_by")
+      .eq("organization_id", tenant.organizationId)
+      .order("publish_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("branches")
+      .select("id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("name"),
+    supabase
+      .from("employees")
+      .select("id, user_id, first_name, last_name")
+      .eq("organization_id", tenant.organizationId)
+      .not("user_id", "is", null)
+      .order("first_name"),
+    supabase
+      .from("organization_departments")
+      .select("id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("name"),
+    supabase
+      .from("department_positions")
+      .select("id, department_id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("name"),
+    supabase
+      .from("announcement_audiences")
+      .select("announcement_id, branch_id, user_id")
+      .eq("organization_id", tenant.organizationId),
+  ]);
+
+  const branchNameMap = new Map((branches ?? []).map((row) => [row.id, row.name]));
+  const departmentNameMap = new Map((departments ?? []).map((row) => [row.id, row.name]));
+  const employeeNameByUserId = new Map(
+    (employees ?? [])
+      .filter((row) => row.user_id)
+      .map((row) => [row.user_id as string, `${row.first_name ?? ""} ${row.last_name ?? ""}`.trim()]),
+  );
+  const positionNameMap = new Map((positions ?? []).map((row) => [row.id, row.name]));
+
+  const audienceByAnnouncement = new Map<string, Array<{ branch_id: string | null; user_id: string | null }>>();
+  for (const row of audiences ?? []) {
+    const list = audienceByAnnouncement.get(row.announcement_id) ?? [];
+    list.push({ branch_id: row.branch_id, user_id: row.user_id });
+    audienceByAnnouncement.set(row.announcement_id, list);
+  }
+
+  const now = new Date();
+  const in7Days = new Date(now);
+  in7Days.setDate(in7Days.getDate() + 7);
+  const porVencer = (announcements ?? []).filter((row) => {
+    if (!row.expires_at) return false;
+    const exp = new Date(row.expires_at);
+    return exp >= now && exp <= in7Days;
+  }).length;
+
+  const latestAnnouncement = (announcements ?? [])[0] ?? null;
+  const latestDate = latestAnnouncement?.publish_at;
+  const today = new Date().toISOString().slice(0, 10);
+
+  const editingAnnouncement = action === "edit"
+    ? (announcements ?? []).find((row) => row.id === params.announcementId)
+    : null;
+
+  const publisherName =
+    (typeof authData.user?.user_metadata?.full_name === "string" && authData.user.user_metadata.full_name.trim()) ||
+    (typeof authData.user?.user_metadata?.name === "string" && authData.user.user_metadata.name.trim()) ||
+    authData.user?.email ||
+    "Administrador";
+
+  return (
+    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
+      <section className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex items-center gap-2 text-[#1f1a17]">
+          <Bell className="h-4 w-4" />
+          <h1 className="text-[18px] font-bold">Avisos</h1>
+        </div>
+        <Link href="/app/announcements?action=create" className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[#111] px-3 text-xs font-bold text-white hover:bg-[#c0392b]"><BellPlus className="h-3.5 w-3.5" /> Nuevo Aviso</Link>
+      </section>
+
+      {params.message ? (
+        <section className={`mb-5 rounded-xl border px-4 py-3 text-sm ${params.status === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-rose-200 bg-rose-50 text-rose-800"}`}>
+          {params.message}
+        </section>
+      ) : null}
+
+      <section className="mb-5 grid gap-3 sm:grid-cols-4">
+        <article className="rounded-xl border border-[#e7e0dc] bg-white p-4"><p className="text-xs text-[#8a817b]">Avisos activos</p><p className="mt-1 text-2xl font-bold">{announcements?.length ?? 0}</p><p className="text-[11px] text-[#a7a09a]">En todas las locaciones</p></article>
+        <article className="rounded-xl border border-[#e7e0dc] bg-white p-4"><p className="text-xs text-[#8a817b]">Fijados</p><p className="mt-1 text-2xl font-bold">{(announcements ?? []).filter((row) => row.is_featured).length}</p><p className="text-[11px] text-[#a7a09a]">Visible al top</p></article>
+        <article className="rounded-xl border border-[#e7e0dc] bg-white p-4"><p className="text-xs text-[#8a817b]">Por vencer</p><p className="mt-1 text-2xl font-bold">{porVencer}</p><p className="text-[11px] text-[#a7a09a]">Esta semana</p></article>
+        <article className="rounded-xl border border-[#e7e0dc] bg-white p-4"><p className="text-xs text-[#8a817b]">Ultima publicacion</p><p className="mt-1 text-2xl font-bold">{latestDate ? new Date(latestDate).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }) : "-"}</p><p className="text-[11px] text-[#a7a09a]">{latestAnnouncement ? employeeNameByUserId.get(latestAnnouncement.created_by ?? "") || "Direccion General" : "Sin avisos"}</p></article>
+      </section>
+
+      <p className="mb-2 text-[11px] font-bold tracking-[0.11em] text-[#9c938d] uppercase">Avisos publicados</p>
+
+      <section className="space-y-3">
+        {(announcements ?? []).map((ann) => {
+          const target = parseAnnouncementScope(ann.target_scope);
+          const scopedLocations = target.locations;
+          const scopedDepartments = target.department_ids;
+          const scopedPositions = target.position_ids;
+          const scopedUsers = target.users;
+          const hasAudience =
+            scopedLocations.length > 0 || scopedDepartments.length > 0 || scopedPositions.length > 0 || scopedUsers.length > 0;
+
+          return (
+            <article key={ann.id} className={`rounded-xl border-[1.5px] bg-white px-5 py-4 ${ann.is_featured ? "border-[#e8e8e8] border-l-[3.5px] border-l-[#c0392b]" : "border-[#e8e8e8]"}`}>
+              <div className="mb-2 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[14px] font-bold text-[#111]">{ann.title}</p>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-[#aaa]">
+                    <span>📅 {ann.publish_at ? new Date(ann.publish_at).toLocaleDateString("es-AR") : "-"} · {employeeNameByUserId.get(ann.created_by ?? "") || "Direccion General"}</span>
+                    {ann.expires_at ? (
+                      (() => {
+                        const datePart = ann.expires_at.slice(0, 10);
+                        const badgeClass =
+                          datePart < today
+                            ? "border-[#ffd7d1] bg-[#fff1ef] text-[#bf3e31]"
+                            : datePart === today
+                              ? "border-[#f1dfb3] bg-[#fff9ec] text-[#9f7010]"
+                              : "border-[#d8e7ff] bg-[#eef4ff] text-[#2a4f87]";
+                        const prefix = datePart < today ? "Vencio" : datePart === today ? "Vence hoy" : "Por vencer";
+                        return <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${badgeClass}`}><CalendarClock className="h-3 w-3" /> {prefix}: {new Date(ann.expires_at).toLocaleDateString("es-AR")}</span>;
+                      })()
+                    ) : null}
+                  </div>
+                </div>
+                {ann.is_featured ? <span className="inline-flex items-center gap-1 rounded-full border border-[#f3cbc4] bg-[#fff2f0] px-2 py-0.5 text-[10px] font-semibold text-[#b63a2f]"><Pin className="h-3 w-3" /> FIJADO</span> : null}
+              </div>
+
+              <p className="text-[13px] leading-6 text-[#777]">{ann.body}</p>
+
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-semibold text-[#888]">Para:</span>
+                {!hasAudience ? <span className="rounded-full border border-[#e8dfda] bg-[#faf7f5] px-2 py-0.5 text-[11px] text-[#6f6864]">Todos los empleados</span> : null}
+                {scopedLocations.map((id) => <span key={`${ann.id}-loc-${id}`} className="rounded-full border border-[#d6e2f4] bg-[#eef4ff] px-2 py-0.5 text-[11px] text-[#2a4f87]">{branchNameMap.get(id) ?? "Sucursal"}</span>)}
+                {scopedDepartments.map((id) => <span key={`${ann.id}-dep-${id}`} className="rounded-full border border-[#f0e3d0] bg-[#fff7eb] px-2 py-0.5 text-[11px] text-[#9b6a1e]">{departmentNameMap.get(id) ?? "Departamento"}</span>)}
+                {scopedPositions.map((id) => <span key={`${ann.id}-pos-${id}`} className="rounded-full border border-[#e6d9f9] bg-[#f6f1ff] px-2 py-0.5 text-[11px] text-[#6f46b7]">{positionNameMap.get(id) ?? "Puesto"}</span>)}
+                {scopedUsers.slice(0, 3).map((id) => <span key={`${ann.id}-user-${id}`} className="rounded-full border border-[#f0d5d0] bg-[#fff5f3] px-2 py-0.5 text-[11px] text-[#b63a2f]">{employeeNameByUserId.get(id) ?? "Usuario"}</span>)}
+                {scopedUsers.length > 3 ? <span className="rounded-full border border-[#ececec] bg-[#f8f8f8] px-2 py-0.5 text-[11px] text-[#777]">+{scopedUsers.length - 3}</span> : null}
+              </div>
+
+              <div className="mt-3 flex items-center justify-between">
+                <span className={`rounded-full border px-2 py-0.5 text-[11px] ${kindClass(ann.kind)}`}>{kindLabel(ann.kind)}</span>
+                <div className="flex items-center gap-1">
+                  <form action={toggleAnnouncementFeaturedAction}>
+                    <input type="hidden" name="announcement_id" value={ann.id} />
+                    <input type="hidden" name="next_featured" value={String(!ann.is_featured)} />
+                    <button className={`inline-flex h-7 w-7 items-center justify-center rounded-md border ${ann.is_featured ? "border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f]" : "border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]"}`} type="submit" title={ann.is_featured ? "Quitar fijado" : "Fijar"}><Pin className="h-3.5 w-3.5" /></button>
+                  </form>
+                  <Link href={`/app/announcements?action=edit&announcementId=${ann.id}`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Editar"><Pencil className="h-3.5 w-3.5" /></Link>
+                  <form action={deleteAnnouncementAction}>
+                    <input type="hidden" name="announcement_id" value={ann.id} />
+                    <ConfirmSubmitButton
+                      label="🗑"
+                      confirmTitle="Eliminar anuncio"
+                      confirmDescription="Se eliminara el anuncio y su audiencia. Esta accion no se puede deshacer."
+                      confirmLabel="Eliminar"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4]"
+                    />
+                  </form>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+
+        {!announcements?.length ? (
+          <div className="rounded-xl border border-dashed border-[#dccfca] bg-[#fffdfa] px-4 py-8 text-center text-sm text-[#8b817c]">Aun no hay anuncios cargados.</div>
+        ) : null}
+      </section>
+
+      {openCreateModal ? (
+        <AnnouncementCreateModal
+          branches={branches ?? []}
+          departments={departments ?? []}
+          positions={positions ?? []}
+          users={(employees ?? []).map((user) => ({
+            id: user.id,
+            user_id: user.user_id,
+            first_name: user.first_name ?? "",
+            last_name: user.last_name ?? "",
+          }))}
+          publisherName={publisherName}
+          mode={action === "edit" ? "edit" : "create"}
+          initial={
+            editingAnnouncement
+              ? (() => {
+                  const target = parseAnnouncementScope(editingAnnouncement.target_scope);
+                  return {
+                    id: editingAnnouncement.id,
+                    kind: editingAnnouncement.kind,
+                    title: editingAnnouncement.title,
+                    body: editingAnnouncement.body,
+                    expires_at: editingAnnouncement.expires_at,
+                    is_featured: editingAnnouncement.is_featured,
+                    location_scope: target.locations,
+                    department_scope: target.department_ids,
+                    position_scope: target.position_ids,
+                    user_scope: target.users,
+                  };
+                })()
+              : undefined
+          }
+        />
+      ) : null}
+    </main>
+  );
+}
