@@ -61,8 +61,6 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
     { data: authData },
     { data: branches },
     { data: templates },
-    { data: sections },
-    { data: items },
     { data: employees },
     { data: departments },
     { data: positions },
@@ -83,15 +81,6 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
       .eq("is_active", true)
       .order("created_at", { ascending: false })
       .limit(80),
-    supabase
-      .from("checklist_template_sections")
-      .select("id, template_id, name, sort_order")
-      .eq("organization_id", tenant.organizationId),
-    supabase
-      .from("checklist_template_items")
-      .select("id, section_id, label, priority, sort_order")
-      .eq("organization_id", tenant.organizationId)
-      .order("sort_order"),
     supabase
       .from("employees")
       .select("id, user_id, first_name, last_name")
@@ -120,6 +109,27 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
       .select("id, code")
       .in("code", ["company_admin", "manager", "employee"]),
   ]);
+
+  const templateIds = (templates ?? []).map((t) => t.id);
+
+  const { data: sections } = templateIds.length > 0
+    ? await supabase
+        .from("checklist_template_sections")
+        .select("id, template_id, name, sort_order")
+        .eq("organization_id", tenant.organizationId)
+        .in("template_id", templateIds)
+    : { data: [] };
+
+  const sectionIds = (sections ?? []).map((s) => s.id);
+
+  const { data: items } = sectionIds.length > 0
+    ? await supabase
+        .from("checklist_template_items")
+        .select("id, section_id, label, priority, sort_order")
+        .eq("organization_id", tenant.organizationId)
+        .in("section_id", sectionIds)
+        .order("sort_order")
+    : { data: [] };
 
   const roleLabelByCode: Record<string, string> = {
     company_admin: "Admin",

@@ -9,10 +9,11 @@ import { NewEmployeeModal } from "@/modules/employees/ui/new-employee-modal";
 import { NewUserModal } from "@/modules/employees/ui/new-user-modal";
 import { UserDepartmentPositionFields } from "@/modules/employees/ui/user-department-position-fields";
 import { UsersTableWorkspace } from "@/modules/employees/ui/users-table-workspace";
+import { getEmployeeDirectoryView } from "@/modules/employees/services";
 import { requireTenantModule } from "@/shared/lib/access";
 
 type CompanyEmployeesPageProps = {
-  searchParams: Promise<{ status?: string; message?: string; action?: string; tab?: string; employeeId?: string }>;
+  searchParams: Promise<{ status?: string; message?: string; action?: string; tab?: string; employeeId?: string; limit?: string }>;
 };
 
 const ROLE_OPTIONS = [
@@ -26,165 +27,44 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   const params = await searchParams;
   const supabase = await createSupabaseServerClient();
   const tab = params.tab === "users" ? "users" : "employees";
+  const limitStr = params.limit as string | undefined;
+  const pageLimit = limitStr ? parseInt(limitStr, 10) : 1000;
 
-  const [{ data: employees }, { data: branches }, { data: memberships }, { data: roles }, { data: documents }, { data: departments }, { data: positions }, { data: contracts }, { data: employeeDocs }] = await Promise.all([
-    supabase
-      .from("employees")
-      .select("id, user_id, first_name, last_name, email, phone, phone_country_code, position, department, department_id, status, branch_id, hired_at, birth_date, sex, nationality, address_line1, address_city, address_state, address_postal_code, address_country, emergency_contact_name, emergency_contact_phone, emergency_contact_email, created_at, personal_email, document_id, document_number")
-      .eq("organization_id", tenant.organizationId)
-      .order("created_at", { ascending: false })
-      .limit(50),
-    supabase
-      .from("branches")
-      .select("id, name")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("name"),
-    supabase
-      .rpc("get_company_users", { lookup_organization_id: tenant.organizationId })
-      .limit(100),
-    supabase
-      .from("roles")
-      .select("id, code"),
-    supabase
-      .from("documents")
-      .select("id, title, created_at")
-      .eq("organization_id", tenant.organizationId)
-      .order("created_at", { ascending: false })
-      .limit(50),
-    supabase
-      .from("organization_departments")
-      .select("id, name")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("name"),
-    supabase
-      .from("department_positions")
-      .select("id, department_id, name, is_active")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("name"),
-    supabase
-      .from("employee_contracts")
-      .select("employee_id, contract_type, contract_status, start_date, end_date, notes, signer_name, salary_amount, salary_currency, payment_frequency, signed_at, created_at")
-      .eq("organization_id", tenant.organizationId)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("employee_documents")
-      .select("employee_id, document_id, status")
-      .eq("organization_id", tenant.organizationId),
-  ]);
+  const viewData = await getEmployeeDirectoryView(supabase, tenant.organizationId, pageLimit);
 
-  const roleById = new Map((roles ?? []).map((row) => [row.id, row.code]));
-  const branchById = new Map((branches ?? []).map((row) => [row.id, row.name]));
-  const departmentById = new Map((departments ?? []).map((row) => [row.id, row.name]));
-  const positionIdByDepartmentAndName = new Map<string, string>();
-  for (const position of positions ?? []) {
-    positionIdByDepartmentAndName.set(`${position.department_id}::${position.name.toLowerCase()}`, position.id);
+  let allowedBranches = viewData.branches;
+  if (tenant.roleCode === "manager" && tenant.branchId) {
+    allowedBranches = allowedBranches.filter((b) => b.id === tenant.branchId);
   }
-  const employeeByUserId = new Map(
-    (employees ?? [])
-      .filter((row) => row.user_id)
-      .map((row) => [row.user_id as string, `${row.first_name} ${row.last_name}`]),
-  );
 
   const admin = createSupabaseAdminClient();
+  const { data: organization } = await admin
+    .from("organizations")
+    .select("plan_id")
+    .eq("id", tenant.organizationId)
+    .single();
 
-  const latestContractByEmployee = new Map<
-    string,
-    {
-      contract_status: string;
-      contract_type: string | null;
-      start_date: string | null;
-      end_date: string | null;
-      notes: string | null;
-      signer_name: string | null;
-      salary_amount: number | null;
-      salary_currency: string | null;
-      payment_frequency: string | null;
-      signed_at: string | null;
-    }
-  >();
-  for (const row of contracts ?? []) {
-    if (!latestContractByEmployee.has(row.employee_id)) {
-      latestContractByEmployee.set(row.employee_id, {
-        contract_status: row.contract_status,
-        contract_type: row.contract_type,
-        start_date: row.start_date,
-        end_date: row.end_date,
-        notes: row.notes,
-        signer_name: row.signer_name,
-        salary_amount: row.salary_amount,
-        salary_currency: row.salary_currency,
-        payment_frequency: row.payment_frequency,
-        signed_at: row.signed_at,
-      });
-    }
-  }
+  const { data: currentPlan } = organization?.plan_id
+    ? await admin
+        .from("plans")
+        .select("max_employees, max_users")
+        .eq("id", organization.plan_id)
+        .single()
+    : { data: null };
 
-  const pendingDocsByEmployee = new Map<string, number>();
-  const linkedDocsByEmployee = new Map<string, string[]>();
-  for (const row of employeeDocs ?? []) {
-    const list = linkedDocsByEmployee.get(row.employee_id) ?? [];
-    list.push(row.document_id);
-    linkedDocsByEmployee.set(row.employee_id, list);
+  const currentUsersCount = viewData.users.filter((u: any) => u.status === "active").length;
+  const currentEmployeesCount = viewData.employees.filter((e: any) => e.status === "active").length;
 
-    if (row.status === "pending") {
-      pendingDocsByEmployee.set(row.employee_id, (pendingDocsByEmployee.get(row.employee_id) ?? 0) + 1);
-    }
-  }
-
-  const employeeRows = (employees ?? []).map((emp) => {
-    const contract = latestContractByEmployee.get(emp.id);
-    return {
-      id: emp.id,
-      firstName: emp.first_name,
-      lastName: emp.last_name,
-      email: emp.email,
-      phone: emp.phone,
-      position: emp.position,
-      status: emp.status,
-      hiredAt: emp.hired_at,
-      branchName: emp.branch_id ? branchById.get(emp.branch_id) ?? "Sucursal" : "Global",
-      departmentName: (emp.department_id ? departmentById.get(emp.department_id) : null) ?? emp.department ?? "Sin departamento",
-      salaryAmount: contract?.salary_amount ?? null,
-      salaryCurrency: contract?.salary_currency ?? null,
-      paymentFrequency: contract?.payment_frequency ?? null,
-      contractStatus: contract?.contract_status ?? null,
-      contractSignedAt: contract?.signed_at ?? null,
-      birthDate: emp.birth_date,
-      sex: emp.sex,
-      nationality: emp.nationality,
-      addressLine1: emp.address_line1,
-      addressCity: emp.address_city,
-      addressState: emp.address_state,
-      addressCountry: emp.address_country,
-      emergencyName: emp.emergency_contact_name,
-      emergencyPhone: emp.emergency_contact_phone,
-      emergencyEmail: emp.emergency_contact_email,
-      pendingDocuments: pendingDocsByEmployee.get(emp.id) ?? 0,
-    };
-  });
-
-  const userRows = (memberships ?? []).map((member: any) => {
-    return {
-      membershipId: member.id,
-      userId: member.user_id,
-      fullName: employeeByUserId.get(member.user_id) ?? member.full_name ?? "Usuario",
-      email: member.email || "",
-      roleCode: roleById.get(member.role_id) ?? "employee",
-      status: member.status,
-      branchId: member.branch_id,
-      branchName: member.branch_id ? branchById.get(member.branch_id) ?? "Sucursal" : "Todas",
-      createdAt: member.created_at,
-    };
-  });
+  const usersLimitReached = currentPlan?.max_users ? currentUsersCount >= currentPlan.max_users : false;
+  const employeesLimitReached = currentPlan?.max_employees
+    ? currentEmployeesCount >= currentPlan.max_employees
+    : false;
 
   const editEmployee = params.action === "edit"
-    ? (employees ?? []).find((item) => item.id === params.employeeId)
+    ? viewData.employees.find((item) => item.id === params.employeeId)
     : null;
   const openEmployeeModal = params.action === "create" || (params.action === "edit" && Boolean(editEmployee));
-  const editContract = editEmployee ? latestContractByEmployee.get(editEmployee.id) : null;
+  const editContract = editEmployee ? (editEmployee.contracts?.[0] ?? null) : null;
 
   const { data: authData } = await supabase.auth.getUser();
   const publisherName =
@@ -196,27 +76,26 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   const initialEmployeeData = editEmployee
     ? {
         id: editEmployee.id,
-        first_name: editEmployee.first_name,
-        last_name: editEmployee.last_name,
-        birth_date: editEmployee.birth_date,
+        first_name: editEmployee.firstName,
+        last_name: editEmployee.lastName,
+        birth_date: editEmployee.birthDate,
         sex: editEmployee.sex,
         nationality: editEmployee.nationality,
-        phone_country_code: editEmployee.phone_country_code,
+        phone_country_code: editEmployee.phoneCountryCode,
         phone: editEmployee.phone,
-        email: editEmployee.email, // Correo laboral
-        personal_email: editEmployee.personal_email,
-        document_id: editEmployee.document_id,
-        document_number: editEmployee.document_number,
-        address: editEmployee.address_line1,
-        branch_id: editEmployee.branch_id ?? "",
+        email: editEmployee.email,
+        personal_email: editEmployee.personalEmail,
+        document_id: editEmployee.documentId,
+        document_number: editEmployee.documentNumber,
+        address: editEmployee.addressLine1,
+        branch_id: editEmployee.branchId ?? "",
         position: editEmployee.position,
-        position_id:
-          editEmployee.department_id && editEmployee.position
-            ? positionIdByDepartmentAndName.get(`${editEmployee.department_id}::${editEmployee.position.toLowerCase()}`) ?? ""
+        position_id: editEmployee.departmentId && editEmployee.position 
+            ? (viewData.positions.find(p => p.department_id === editEmployee.departmentId && p.name.toLowerCase() === editEmployee.position?.toLowerCase())?.id ?? "")
             : "",
-        department_id: editEmployee.department_id ?? "",
+        department_id: editEmployee.departmentId ?? "",
         status: editEmployee.status,
-        hire_date: editEmployee.hired_at,
+        hire_date: editEmployee.hiredAt,
         contract_type: editContract?.contract_type ?? null,
         contract_status: editContract?.contract_status ?? null,
         contract_start_date: editContract?.start_date ?? null,
@@ -230,6 +109,38 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       }
     : undefined;
   const openUserModal = params.action === "create-user";
+
+  const employeeRows = viewData.employees.map((emp) => {
+    const defaultContract = emp.contracts?.[0];
+    return {
+      id: emp.id,
+      firstName: emp.firstName,
+      lastName: emp.lastName,
+      email: emp.email,
+      phone: emp.phone,
+      position: emp.position,
+      status: emp.status,
+      hiredAt: emp.hiredAt,
+      branchName: emp.branchName,
+      departmentName: (emp.departmentId ? viewData.departments.find(d => d.id === emp.departmentId)?.name : null) ?? emp.department ?? "Sin departamento",
+      salaryAmount: defaultContract?.salary_amount ?? null,
+      salaryCurrency: defaultContract?.salary_currency ?? null,
+      paymentFrequency: defaultContract?.payment_frequency ?? null,
+      contractStatus: defaultContract?.contract_status ?? null,
+      contractSignedAt: defaultContract?.signed_at ?? null,
+      birthDate: emp.birthDate,
+      sex: emp.sex,
+      nationality: emp.nationality,
+      addressLine1: emp.addressLine1,
+      addressCity: emp.addressCity,
+      addressState: emp.addressState,
+      addressCountry: emp.addressCountry,
+      emergencyName: emp.emergencyContactName,
+      emergencyPhone: emp.emergencyContactPhone,
+      emergencyEmail: emp.emergencyContactEmail,
+      pendingDocuments: emp.pendingDocuments?.length ?? 0,
+    };
+  });
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8">
@@ -261,9 +172,9 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
         <EmployeesTableWorkspace employees={employeeRows} />
       ) : (
         <UsersTableWorkspace
-          users={userRows}
+          users={viewData.users}
           roleOptions={ROLE_OPTIONS}
-          branchOptions={(branches ?? []).map((branch) => ({ id: branch.id, name: branch.name }))}
+          branchOptions={viewData.branches.map((branch) => ({ id: branch.id, name: branch.name }))}
         />
       )}
 
@@ -271,19 +182,19 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
         open={openEmployeeModal}
         mode={params.action === "edit" ? "edit" : "create"}
         initialEmployee={initialEmployeeData}
-        branches={branches ?? []}
-        recentDocuments={documents ?? []}
-        departments={departments ?? []}
-        positions={positions ?? []}
+        branches={viewData.branches}
+        recentDocuments={viewData.documents}
+        departments={viewData.departments}
+        positions={viewData.positions}
         publisherName={publisherName}
       />
 
       <NewUserModal
         open={openUserModal}
-        branches={branches ?? []}
+        branches={viewData.branches}
         roleOptions={ROLE_OPTIONS}
-        departments={departments ?? []}
-        positions={positions ?? []}
+        departments={viewData.departments}
+        positions={viewData.positions}
       />
     </main>
   );
