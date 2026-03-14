@@ -53,13 +53,17 @@ export default async function CompanyLayout({
   const activePlans = plans ?? [];
   const inferredCurrentPlan = currentPlanById ?? activePlans.find((plan) => plan.code === "starter") ?? null;
 
-  const { data: moduleSettings } = await supabase
-    .from("organization_module_settings")
-    .select("module_code, is_enabled")
-    .eq("organization_id", tenant.organizationId);
+  const { data: enabledModuleRows } = await supabase
+    .from("organization_modules")
+    .select("module_catalog!inner(code)")
+    .eq("organization_id", tenant.organizationId)
+    .eq("is_enabled", true);
 
   const enabledModuleCodes = new Set(
-    (moduleSettings ?? []).filter((m) => m.is_enabled).map((m) => m.module_code),
+    (enabledModuleRows ?? []).map((row) => {
+      const catalog = (row.module_catalog as unknown as { code: string } | null);
+      return catalog?.code ?? "";
+    }),
   );
 
   const enabledModules = [
