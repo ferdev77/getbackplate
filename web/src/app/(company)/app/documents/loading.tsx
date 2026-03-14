@@ -1,12 +1,16 @@
 export default function DocumentsLoading() {
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 animate-pulse">
-      <div className="mb-5 h-10 w-48 rounded-xl bg-[#f0ebe7]" />
-      <div className="grid gap-3 sm:grid-cols-3">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="h-20 rounded-xl bg-[#f0ebe7]" />
+    <div className="space-y-5 animate-pulse">
+      <div className="flex items-center justify-between">
+        <div className="h-8 w-44 rounded-xl bg-gray-200" />
+        <div className="h-10 w-36 rounded-xl bg-gray-200" />
+      </div>
+      {/* Card grid */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="h-40 rounded-2xl bg-gray-200" />
         ))}
       </div>
-    </main>
+    </div>
   );
 }

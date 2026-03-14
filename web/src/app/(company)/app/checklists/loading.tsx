@@ -1,16 +1,21 @@
 export default function ChecklistsLoading() {
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 animate-pulse">
-      <div className="mb-5 h-28 rounded-2xl bg-[#f0ebe7]" />
-      <div className="mb-5 grid gap-3 sm:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-20 rounded-xl bg-[#f0ebe7]" />
+    <div className="space-y-5 animate-pulse">
+      <div className="flex items-center justify-between">
+        <div className="h-8 w-44 rounded-xl bg-gray-200" />
+        <div className="h-10 w-36 rounded-xl bg-gray-200" />
+      </div>
+      {/* List rows */}
+      <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden">
+        <div className="h-12 bg-gray-50 border-b border-gray-100" />
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="flex gap-4 items-center px-4 h-14 border-b border-gray-50">
+            <div className="h-4 w-56 rounded bg-gray-200" />
+            <div className="h-4 w-20 rounded bg-gray-100 ml-auto" />
+            <div className="h-4 w-24 rounded bg-gray-100" />
+          </div>
         ))}
       </div>
-      <div className="h-12 rounded-xl bg-[#f0ebe7] mb-4" />
-      {[...Array(5)].map((_, i) => (
-        <div key={i} className="mb-2 h-12 rounded-xl bg-[#f0ebe7]" />
-      ))}
-    </main>
+    </div>
   );
 }

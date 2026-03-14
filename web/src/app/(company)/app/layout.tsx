@@ -53,39 +53,24 @@ export default async function CompanyLayout({
   const activePlans = plans ?? [];
   const inferredCurrentPlan = currentPlanById ?? activePlans.find((plan) => plan.code === "starter") ?? null;
 
-  const [employeesEnabled, documentsEnabled, announcementsEnabled, checklistsEnabled, reportsEnabled] =
-    await Promise.all([
-      supabase.rpc("is_module_enabled", {
-        org_id: tenant.organizationId,
-        module_code: "employees",
-      }),
-      supabase.rpc("is_module_enabled", {
-        org_id: tenant.organizationId,
-        module_code: "documents",
-      }),
-      supabase.rpc("is_module_enabled", {
-        org_id: tenant.organizationId,
-        module_code: "announcements",
-      }),
-      supabase.rpc("is_module_enabled", {
-        org_id: tenant.organizationId,
-        module_code: "checklists",
-      }),
-      supabase.rpc("is_module_enabled", {
-        org_id: tenant.organizationId,
-        module_code: "reports",
-      }),
-    ]);
+  const { data: moduleSettings } = await supabase
+    .from("organization_module_settings")
+    .select("module_code, is_enabled")
+    .eq("organization_id", tenant.organizationId);
+
+  const enabledModuleCodes = new Set(
+    (moduleSettings ?? []).filter((m) => m.is_enabled).map((m) => m.module_code),
+  );
 
   const enabledModules = [
     "company_portal",
     "dashboard",
     "settings",
-    ...(employeesEnabled.data ? ["employees"] : []),
-    ...(documentsEnabled.data ? ["documents"] : []),
-    ...(announcementsEnabled.data ? ["announcements"] : []),
-    ...(checklistsEnabled.data ? ["checklists"] : []),
-    ...(reportsEnabled.data ? ["reports"] : []),
+    ...(enabledModuleCodes.has("employees") ? ["employees"] : []),
+    ...(enabledModuleCodes.has("documents") ? ["documents"] : []),
+    ...(enabledModuleCodes.has("announcements") ? ["announcements"] : []),
+    ...(enabledModuleCodes.has("checklists") ? ["checklists"] : []),
+    ...(enabledModuleCodes.has("reports") ? ["reports"] : []),
   ];
 
   const roleLabelByCode: Record<string, string> = {
