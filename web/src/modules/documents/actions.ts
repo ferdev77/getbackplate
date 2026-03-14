@@ -216,8 +216,6 @@ export async function uploadOrganizationDocumentAction(prevState: any, formData:
     return { success: false, message: "Ruta de archivo invalida para esta empresa" };
   }
 
-  const supabaseAdmin = createSupabaseAdminClient();
-
   try {
     await assertPlanLimitForStorage(tenant.organizationId, file.size);
   } catch (error) {
@@ -228,7 +226,7 @@ export async function uploadOrganizationDocumentAction(prevState: any, formData:
   }
 
   if (!existingDuplicate) {
-    const { error: uploadError } = await supabaseAdmin.storage
+    const { error: uploadError } = await supabase.storage
       .from(BUCKET_NAME)
       .upload(path, file, {
         contentType: analysis.normalizedMime,
@@ -265,7 +263,7 @@ export async function uploadOrganizationDocumentAction(prevState: any, formData:
 
   if (documentError) {
     if (!existingDuplicate) {
-      await supabaseAdmin.storage.from(BUCKET_NAME).remove([path]);
+      await supabase.storage.from(BUCKET_NAME).remove([path]);
     }
     return {
       success: false,

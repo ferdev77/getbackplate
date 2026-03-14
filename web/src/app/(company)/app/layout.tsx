@@ -1,5 +1,11 @@
-import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { getCurrentUser } from "@/modules/memberships/queries";
+import { 
+  getOrganizationById, 
+  getOrganizationSettings, 
+  getActivePlans, 
+  getUserPreferences, 
+  getEnabledModules 
+} from "@/modules/organizations/queries";
 import { requireCompanyAccess } from "@/shared/lib/access";
 import { CompanyShell } from "@/shared/ui/company-shell";
 import { FadeIn } from "@/shared/ui/animations";
@@ -10,61 +16,24 @@ export default async function CompanyLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const tenant = await requireCompanyAccess();
-  const supabase = await createSupabaseServerClient();
 
-  const [user, { data: organization }] = await Promise.all([
+  const [user, organization] = await Promise.all([
     getCurrentUser(),
-    supabase
-      .from("organizations")
-      .select("name, plan_id")
-      .eq("id", tenant.organizationId)
-      .maybeSingle(),
+    getOrganizationById(tenant.organizationId),
   ]);
 
-  const [{ data: orgSettings }, { data: preferences }, { data: plans }] = await Promise.all([
-    supabase
-      .from("organization_settings")
-      .select(
-        "billing_plan, billing_period, billed_to, billing_email, payment_last4, invoice_emails_enabled",
-      )
-      .eq("organization_id", tenant.organizationId)
-      .maybeSingle(),
-    user
-      ? supabase
-          .from("user_preferences")
-          .select(
-            "theme, language, date_format, timezone_mode, timezone_manual, analytics_enabled, two_factor_enabled, two_factor_method",
-          )
-          .eq("user_id", user.id)
-          .eq("organization_id", tenant.organizationId)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
-    supabase
-      .from("plans")
-      .select("id, code, name, price_amount, billing_period, is_active, max_branches, max_users, max_employees, max_storage_mb")
-      .eq("is_active", true)
-      .order("price_amount", { ascending: true, nullsFirst: false }),
+  const [orgSettings, preferences, activePlans, enabledModuleCodes] = await Promise.all([
+    getOrganizationSettings(tenant.organizationId),
+    user ? getUserPreferences(user.id, tenant.organizationId) : Promise.resolve(null),
+    getActivePlans(),
+    getEnabledModules(tenant.organizationId),
   ]);
 
   const currentPlanById = organization?.plan_id
-    ? (plans ?? []).find((p) => p.id === organization.plan_id) ?? null
+    ? activePlans.find((p) => p.id === organization.plan_id) ?? null
     : null;
 
-  const activePlans = plans ?? [];
   const inferredCurrentPlan = currentPlanById ?? activePlans.find((plan) => plan.code === "starter") ?? null;
-
-  const { data: enabledModuleRows } = await supabase
-    .from("organization_modules")
-    .select("module_catalog!inner(code)")
-    .eq("organization_id", tenant.organizationId)
-    .eq("is_enabled", true);
-
-  const enabledModuleCodes = new Set(
-    (enabledModuleRows ?? []).map((row) => {
-      const catalog = (row.module_catalog as unknown as { code: string } | null);
-      return catalog?.code ?? "";
-    }),
-  );
 
   const enabledModules = [
     "company_portal",
@@ -118,7 +87,7 @@ export default async function CompanyLayout({
         twoFactorEnabled: preferences?.two_factor_enabled ?? false,
         twoFactorMethod: preferences?.two_factor_method ?? "app",
       }}
-      availablePlans={(plans ?? []).map((plan) => ({
+      availablePlans={activePlans.map((plan) => ({
         id: plan.id,
         code: plan.code,
         name: plan.name,

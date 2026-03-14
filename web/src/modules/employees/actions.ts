@@ -17,18 +17,7 @@ function qs(message: string) {
   return encodeURIComponent(message);
 }
 
-async function findAuthUserByEmail(email: string) {
-  const supabase = createSupabaseAdminClient();
-  const { data, error } = await supabase.rpc("get_user_id_by_email", {
-    lookup_email: email.toLowerCase(),
-  });
 
-  if (error || !data) {
-    return null;
-  }
-
-  return { id: data };
-}
 
 export async function createEmployeeAction(prevState: any, formData: FormData) {
   const tenant = await requireTenantContext();
@@ -108,12 +97,8 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
         return { success: false, message: `No se pudo crear cuenta del empleado: ${createUserError.message}` };
       }
 
-      const existingUser = await findAuthUserByEmail(loginEmail);
-      linkedUserId = existingUser?.id ?? null;
-
-    if (!linkedUserId) {
-        return { success: false, message: "El email ya existe pero no se pudo recuperar el usuario" };
-      }
+      // Privacy Fix: Do not auto-link existing users. They must be invited.
+      return { success: false, message: "Este correo ya está registrado en la plataforma. El usuario debe ser invitado formalmente." };
     }
 
     const { data: existingMembership } = await admin
@@ -333,12 +318,8 @@ export async function createUserAccountAction(prevState: any, formData: FormData
       return { success: false, message: `No se pudo crear usuario: ${createUserError.message}` };
     }
 
-    const existingUser = await findAuthUserByEmail(email);
-    userId = existingUser?.id ?? null;
-  }
-
-  if (!userId) {
-    return { success: false, message: "No se pudo recuperar usuario para asignar acceso" };
+    // Privacy Fix: Do not auto-link existing users. They must be invited.
+    return { success: false, message: "Este correo ya está registrado en la plataforma. El usuario debe ser invitado formalmente." };
   }
 
   const { data: existingMembership } = await admin

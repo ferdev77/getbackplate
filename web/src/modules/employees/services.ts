@@ -1,0 +1,183 @@
+import { SupabaseClient } from "@supabase/supabase-js";
+
+export async function getEmployeeDirectoryView(supabase: SupabaseClient, organizationId: string, limit: number = 1000) {
+  const [{ data: employees }, { data: branches }, { data: memberships }, { data: roles }, { data: departments }, { data: positions }] = await Promise.all([
+    supabase
+      .from("employees")
+      .select("id, user_id, first_name, last_name, email, phone, phone_country_code, position, department, department_id, status, branch_id, hired_at, birth_date, sex, nationality, address_line1, address_city, address_state, address_postal_code, address_country, emergency_contact_name, emergency_contact_phone, emergency_contact_email, created_at, personal_email, document_id, document_number")
+      .eq("organization_id", organizationId)
+      .order("created_at", { ascending: false })
+      .limit(limit),
+    supabase
+      .from("branches")
+      .select("id, name")
+      .eq("organization_id", organizationId)
+      .eq("is_active", true)
+      .order("name"),
+    supabase
+      .rpc("get_company_users", { lookup_organization_id: organizationId })
+      .limit(limit * 2), // Buffer for generic users
+    supabase
+      .from("roles")
+      .select("id, code"),
+    supabase
+      .from("organization_departments")
+      .select("id, name")
+      .eq("organization_id", organizationId)
+      .eq("is_active", true)
+      .order("name"),
+    supabase
+      .from("department_positions")
+      .select("id, department_id, name, is_active")
+      .eq("organization_id", organizationId)
+      .eq("is_active", true)
+      .order("name"),
+  ]);
+
+  const employeeIds = (employees ?? []).map((emp) => emp.id);
+
+  const [{ data: documents }, { data: contracts }, { data: employeeDocs }] = await Promise.all([
+    supabase
+      .from("documents")
+      .select("id, title, created_at")
+      .eq("organization_id", organizationId)
+      .order("created_at", { ascending: false })
+      .limit(50), 
+    employeeIds.length > 0 
+      ? supabase
+          .from("employee_contracts")
+          .select("employee_id, contract_type, contract_status, start_date, end_date, notes, signer_name, salary_amount, salary_currency, payment_frequency, signed_at, created_at")
+          .eq("organization_id", organizationId)
+          .in("employee_id", employeeIds)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [] }),
+    employeeIds.length > 0
+      ? supabase
+          .from("employee_documents")
+          .select("employee_id, document_id, status")
+          .eq("organization_id", organizationId)
+          .in("employee_id", employeeIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const roleById = new Map((roles ?? []).map((row) => [row.id, row.code]));
+  const branchById = new Map((branches ?? []).map((row) => [row.id, row.name]));
+  const departmentById = new Map((departments ?? []).map((row) => [row.id, row.name]));
+  const positionById = new Map((positions ?? []).map((row) => [row.id, row.name]));
+
+  const documentById = new Map((documents ?? []).map((row) => [row.id, row]));
+  const docsByEmployee = new Map<string, any[]>();
+
+  for (const ed of employeeDocs ?? []) {
+    const docData = documentById.get(ed.document_id);
+    if (!docData) continue;
+    
+    if (!docsByEmployee.has(ed.employee_id)) {
+      docsByEmployee.set(ed.employee_id, []);
+    }
+    docsByEmployee.get(ed.employee_id)!.push({
+      ...docData,
+      status: ed.status,
+      employee_id: ed.employee_id
+    });
+  }
+
+  const contractsByEmployee = new Map<string, any[]>();
+  for (const c of contracts ?? []) {
+    if (!contractsByEmployee.has(c.employee_id)) {
+      contractsByEmployee.set(c.employee_id, []);
+    }
+    contractsByEmployee.get(c.employee_id)!.push(c);
+  }
+
+  const roleByUser = new Map<string, string>();
+  for (const mb of memberships ?? []) {
+    if (mb.role_id) {
+      const roleCode = roleById.get(mb.role_id);
+      if (roleCode) {
+        roleByUser.set(mb.user_id, roleCode);
+      }
+    }
+  }
+
+  // Pre-process employees for mapping
+  const mappedEmployees = (employees ?? []).map((emp) => {
+    let positionName = emp.position;
+    let departmentName = emp.department;
+
+    if (!positionName && emp.department_id) {
+      const positionMatches = (positions ?? []).filter(p => p.department_id === emp.department_id);
+      if (positionMatches.length === 1) {
+        positionName = positionMatches[0].name;
+      }
+    }
+
+    if (!departmentName && emp.department_id) {
+      departmentName = departmentById.get(emp.department_id) ?? undefined;
+    } else if (positionName && !departmentName) {
+      const matchingPos = (positions ?? []).find(p => p.name === positionName);
+      if (matchingPos?.department_id) {
+        departmentName = departmentById.get(matchingPos.department_id) ?? undefined;
+      }
+    }
+
+    return {
+      id: emp.id,
+      userId: emp.user_id,
+      firstName: emp.first_name,
+      lastName: emp.last_name,
+      email: emp.email,
+      phone: emp.phone,
+      phoneCountryCode: emp.phone_country_code,
+      position: positionName,
+      department: departmentName,
+      departmentId: emp.department_id,
+      status: emp.status,
+      branchId: emp.branch_id,
+      branchName: emp.branch_id ? branchById.get(emp.branch_id) : undefined,
+      roleCode: emp.user_id ? roleByUser.get(emp.user_id) : undefined,
+      hiredAt: emp.hired_at,
+      birthDate: emp.birth_date,
+      sex: emp.sex,
+      nationality: emp.nationality,
+      addressLine1: emp.address_line1,
+      addressCity: emp.address_city,
+      addressState: emp.address_state,
+      addressPostalCode: emp.address_postal_code,
+      addressCountry: emp.address_country,
+      emergencyContactName: emp.emergency_contact_name,
+      emergencyContactPhone: emp.emergency_contact_phone,
+      emergencyContactEmail: emp.emergency_contact_email,
+      createdAt: emp.created_at,
+      personalEmail: emp.personal_email,
+      documentId: emp.document_id,
+      documentNumber: emp.document_number,
+      contracts: contractsByEmployee.get(emp.id) ?? [],
+      pendingDocuments: (docsByEmployee.get(emp.id) ?? []).filter(d => d.status === "pending" || d.status === "rejected"),
+      completedDocumentsCount: (docsByEmployee.get(emp.id) ?? []).filter(d => d.status === "signed" || d.status === "approved").length,
+    };
+  });
+
+  // Pre-process mapped generic system users
+  const mappedUsers = (memberships ?? []).map((row: any) => {
+    const roleCode = roleById.get(row.role_id);
+    return {
+      id: row.user_id,
+      fullName: row.full_name,
+      email: row.email,
+      roleCode: roleCode ?? "employee",
+      status: row.status,
+      branchId: row.branch_id,
+      branchName: row.branch_id ? branchById.get(row.branch_id) : undefined,
+    };
+  });
+
+  return {
+    employees: mappedEmployees,
+    users: mappedUsers,
+    documents: documents ?? [],
+    branches: branches ?? [],
+    departments: departments ?? [],
+    positions: positions ?? []
+  };
+}

@@ -1,0 +1,59 @@
+import { cache } from "react";
+import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
+
+export const getOrganizationById = cache(async function getOrganizationById(organizationId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("organizations")
+    .select("id, name, slug, status, plan_id")
+    .eq("id", organizationId)
+    .maybeSingle();
+  return data;
+});
+
+export const getOrganizationSettings = cache(async function getOrganizationSettings(organizationId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("organization_settings")
+    .select("billing_plan, billing_period, billed_to, billing_email, payment_last4, invoice_emails_enabled, dashboard_note")
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+  return data;
+});
+
+export const getEnabledModules = cache(async function getEnabledModules(organizationId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("organization_modules")
+    .select("module_catalog!inner(code)")
+    .eq("organization_id", organizationId)
+    .eq("is_enabled", true);
+  
+  return new Set(
+    (data ?? []).map((row) => {
+      const catalog = row.module_catalog as unknown as { code: string } | null;
+      return catalog?.code ?? "";
+    })
+  );
+});
+
+export const getActivePlans = cache(async function getActivePlans() {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("plans")
+    .select("id, code, name, price_amount, billing_period, is_active, max_branches, max_users, max_employees, max_storage_mb")
+    .eq("is_active", true)
+    .order("price_amount", { ascending: true, nullsFirst: false });
+  return data ?? [];
+});
+
+export const getUserPreferences = cache(async function getUserPreferences(userId: string, organizationId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("user_preferences")
+    .select("theme, language, date_format, timezone_mode, timezone_manual, analytics_enabled, two_factor_enabled, two_factor_method")
+    .eq("user_id", userId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+  return data;
+});
