@@ -23,7 +23,7 @@ function normalizeKind(kind: string) {
   return "general";
 }
 
-export async function createAnnouncementAction(formData: FormData) {
+export async function createAnnouncementAction(prevState: any, formData: FormData) {
   const tenant = await requireTenantModule("announcements");
 
   const announcementId = String(formData.get("announcement_id") ?? "").trim() || null;
@@ -40,10 +40,7 @@ export async function createAnnouncementAction(formData: FormData) {
   const notifyChannels = formData.getAll("notify_channel").map(String);
 
   if (!title || !body) {
-    redirect(
-      "/app/announcements?status=error&message=" +
-        qs("Titulo y contenido son obligatorios"),
-    );
+    return { success: false, message: "Titulo y contenido son obligatorios" };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -57,7 +54,7 @@ export async function createAnnouncementAction(formData: FormData) {
       .in("id", locationScopes);
 
     if (scopeBranchesError || (scopeBranches?.length ?? 0) !== locationScopes.length) {
-      redirect("/app/announcements?status=error&message=" + qs("Hay locaciones invalidas en la audiencia"));
+      return { success: false, message: "Hay locaciones invalidas en la audiencia" };
     }
   }
 
@@ -70,7 +67,7 @@ export async function createAnnouncementAction(formData: FormData) {
       .in("id", departmentScopes);
 
     if (scopeDepartmentsError || (scopeDepartments?.length ?? 0) !== departmentScopes.length) {
-      redirect("/app/announcements?status=error&message=" + qs("Hay departamentos invalidos en la audiencia"));
+      return { success: false, message: "Hay departamentos invalidos en la audiencia" };
     }
   }
 
@@ -83,7 +80,7 @@ export async function createAnnouncementAction(formData: FormData) {
       .in("id", positionScopes);
 
     if (scopedPositionsError || (scopedPositions?.length ?? 0) !== positionScopes.length) {
-      redirect("/app/announcements?status=error&message=" + qs("Hay puestos invalidos en la audiencia"));
+      return { success: false, message: "Hay puestos invalidos en la audiencia" };
     }
   }
 
@@ -95,7 +92,7 @@ export async function createAnnouncementAction(formData: FormData) {
       .in("user_id", userScopes);
 
     if (scopeUsersError || (scopeUsers?.length ?? 0) !== userScopes.length) {
-      redirect("/app/announcements?status=error&message=" + qs("Hay usuarios invalidos en la audiencia"));
+      return { success: false, message: "Hay usuarios invalidos en la audiencia" };
     }
   }
 
@@ -108,7 +105,7 @@ export async function createAnnouncementAction(formData: FormData) {
       .maybeSingle();
 
     if (!existing) {
-      redirect("/app/announcements?status=error&message=" + qs("No se encontro el aviso a editar"));
+      return { success: false, message: "No se encontro el aviso a editar" };
     }
   }
 
@@ -149,10 +146,7 @@ export async function createAnnouncementAction(formData: FormData) {
   const { data: announcement, error } = announcementMutation;
 
   if (error || !announcement) {
-    redirect(
-      "/app/announcements?status=error&message=" +
-        qs(`No se pudo crear anuncio: ${error?.message ?? "error"}`),
-    );
+    return { success: false, message: `No se pudo crear anuncio: ${error?.message ?? "error"}` };
   }
 
   if (announcementId) {
@@ -168,10 +162,7 @@ export async function createAnnouncementAction(formData: FormData) {
   const { error: audienceError } = await supabase.from("announcement_audiences").insert(audiencePayload);
 
   if (audienceError) {
-    redirect(
-      "/app/announcements?status=error&message=" +
-        qs(`Anuncio creado pero audiencia fallo: ${audienceError.message}`),
-    );
+    return { success: false, message: `Anuncio creado pero audiencia fallo: ${audienceError.message}` };
   }
 
   if (notifyChannels.length) {
@@ -198,13 +189,14 @@ export async function createAnnouncementAction(formData: FormData) {
 
   revalidatePath("/app/announcements");
   revalidatePath("/portal/home");
-  redirect(
-    "/app/announcements?status=success&message=" +
-      qs(announcementId ? "Anuncio actualizado correctamente" : "Anuncio creado correctamente"),
-  );
+  return { 
+    success: true, 
+    message: announcementId ? "Anuncio actualizado correctamente" : "Anuncio creado correctamente" 
+  };
 }
 
-export async function toggleAnnouncementFeaturedAction(formData: FormData) {
+export async function toggleAnnouncementFeaturedAction(arg1: any, arg2?: FormData) {
+  const formData = arg2 || (arg1 as FormData);
   const tenant = await requireTenantModule("announcements");
 
   const announcementId = String(formData.get("announcement_id") ?? "").trim();
@@ -247,7 +239,8 @@ export async function toggleAnnouncementFeaturedAction(formData: FormData) {
   );
 }
 
-export async function deleteAnnouncementAction(formData: FormData) {
+export async function deleteAnnouncementAction(arg1: any, arg2?: FormData) {
+  const formData = arg2 || (arg1 as FormData);
   const tenant = await requireTenantModule("announcements");
 
   const announcementId = String(formData.get("announcement_id") ?? "").trim();

@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Eye, Pencil, Search, Share2, Trash2, ChevronRight, Folder } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
+import { FadeIn, SlideUp, AnimatedList, AnimatedItem } from "@/shared/ui/animations";
 
 type FolderRow = {
   id: string;
@@ -427,92 +429,98 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
         scope.locations.length || scope.departments.length || scope.positions.length || scope.users.length ? "Segmentado" : "Todos";
 
       const row = (
-        <div key={folder.id} className="border-b border-[#f0f0f0]">
-          <div
-            className={`grid grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] items-center px-4 py-2.5 hover:bg-[#fafafa] ${dropFolderId === folder.id ? "bg-[#fff5f3]" : ""}`}
-            draggable
-            onDragStart={(event) => {
-              event.dataTransfer.setData("application/x-folder-id", folder.id);
-              event.dataTransfer.effectAllowed = "move";
-            }}
-            onDragOver={(event) => {
-              event.preventDefault();
-              setDropFolderId(folder.id);
-            }}
-            onDragLeave={() => setDropFolderId((prev) => (prev === folder.id ? null : prev))}
-            onDrop={(event) => {
-              event.preventDefault();
-              const draggedDocId = event.dataTransfer.getData("application/x-document-id");
-              const draggedFolderId = event.dataTransfer.getData("application/x-folder-id");
-              if (draggedDocId) {
-                void moveDocumentToFolder(draggedDocId, folder.id);
-                return;
-              }
-              if (draggedFolderId && draggedFolderId !== folder.id) {
-                void moveFolderToFolder(draggedFolderId, folder.id);
-              }
-            }}
-          >
-            <button
-              type="button"
-              onClick={() =>
-                setOpenFolders((prev) => {
-                  const next = new Set(prev);
-                  if (next.has(folder.id)) next.delete(folder.id);
-                  else next.add(folder.id);
-                  return next;
-                })
-              }
-              className="flex min-w-0 items-center gap-1.5 text-left"
-              style={{ paddingLeft: `${depth * 18}px` }}
+        <AnimatedItem key={folder.id}>
+          <div className="border-b border-[#f0f0f0]">
+            <div
+              className={`grid grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] items-center px-4 py-2.5 hover:bg-[#fafafa] transition-colors ${dropFolderId === folder.id ? "bg-[#fff5f3]" : ""}`}
+              draggable
+              onDragStart={(event) => {
+                event.dataTransfer.setData("application/x-folder-id", folder.id);
+                event.dataTransfer.effectAllowed = "move";
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setDropFolderId(folder.id);
+              }}
+              onDragLeave={() => setDropFolderId((prev) => (prev === folder.id ? null : prev))}
+              onDrop={(event) => {
+                event.preventDefault();
+                const draggedDocId = event.dataTransfer.getData("application/x-document-id");
+                const draggedFolderId = event.dataTransfer.getData("application/x-folder-id");
+                if (draggedDocId) {
+                  void moveDocumentToFolder(draggedDocId, folder.id);
+                  return;
+                }
+                if (draggedFolderId && draggedFolderId !== folder.id) {
+                  void moveFolderToFolder(draggedFolderId, folder.id);
+                }
+              }}
             >
-              <ChevronRight className={`h-4 w-4 text-[#888] transition ${isOpen ? "rotate-90" : ""}`} />
-              <Folder className="h-4 w-4 text-[#888]" />
-              <span className="truncate text-[13px] font-semibold text-[#111]">{folder.name}</span>
-              <span className="text-[11px] text-[#bbb]">({docList.length})</span>
-            </button>
-            <p className="text-xs text-[#888]">{locLabel}</p>
-            <p className="text-xs text-[#888]">{deptLabel}</p>
-            <p className="text-xs text-[#888]">{sharedLabel}</p>
-            <p className="text-xs text-[#888]">{formatDate(folder.created_at)}</p>
-            <div className="flex items-center justify-end gap-1">
-              <button type="button" onClick={() => setEditFolderId(folder.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Editar carpeta"><Pencil className="h-3.5 w-3.5" /></button>
-              <button type="button" onClick={() => setShareFolderId(folder.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
-              <button type="button" onClick={() => setDeleteFolderId(folder.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4]" title="Eliminar carpeta"><Trash2 className="h-3.5 w-3.5" /></button>
+              <button
+                type="button"
+                onClick={() =>
+                  setOpenFolders((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(folder.id)) next.delete(folder.id);
+                    else next.add(folder.id);
+                    return next;
+                  })
+                }
+                className="flex min-w-0 items-center gap-1.5 text-left"
+                style={{ paddingLeft: `${depth * 18}px` }}
+              >
+                <ChevronRight className={`h-4 w-4 text-[#888] transition ${isOpen ? "rotate-90" : ""}`} />
+                <Folder className="h-4 w-4 text-[#888]" />
+                <span className="truncate text-[13px] font-semibold text-[#111]">{folder.name}</span>
+                <span className="text-[11px] text-[#bbb]">({docList.length})</span>
+              </button>
+              <p className="text-xs text-[#888]">{locLabel}</p>
+              <p className="text-xs text-[#888]">{deptLabel}</p>
+              <p className="text-xs text-[#888]">{sharedLabel}</p>
+              <p className="text-xs text-[#888]">{formatDate(folder.created_at)}</p>
+              <div className="flex items-center justify-end gap-1">
+                <button type="button" onClick={() => setEditFolderId(folder.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6] transition-opacity" title="Editar carpeta"><Pencil className="h-3.5 w-3.5" /></button>
+                <button type="button" onClick={() => setShareFolderId(folder.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6] transition-opacity" title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
+                <button type="button" onClick={() => setDeleteFolderId(folder.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4] transition-opacity" title="Eliminar carpeta"><Trash2 className="h-3.5 w-3.5" /></button>
+              </div>
             </div>
-          </div>
-          {isOpen ? (
-            <div className="border-l-[3px] border-[#e8e8e8]">
-              {docList.map((doc) => {
-                const docScope = parseScope(doc.access_scope);
-                const docLoc = doc.branch_id ? branchMap.get(doc.branch_id) ?? "Locacion" : docScope.locations[0] ? branchMap.get(docScope.locations[0]) ?? "Locacion" : "Global";
-                const docDept = docScope.departments[0] ? deptMap.get(docScope.departments[0]) ?? "Departamento" : "-";
-                const docShared = docScope.locations.length || docScope.departments.length || docScope.positions.length || docScope.users.length ? "Segmentado" : "Todos";
+            <AnimatePresence>
+              {isOpen && (
+                <FadeIn delay={0.05}>
+                  <div className="border-l-[3px] border-[#e8e8e8]">
+                    {docList.map((doc) => {
+                      const docScope = parseScope(doc.access_scope);
+                      const docLoc = doc.branch_id ? branchMap.get(doc.branch_id) ?? "Locacion" : docScope.locations[0] ? branchMap.get(docScope.locations[0]) ?? "Locacion" : "Global";
+                      const docDept = docScope.departments[0] ? deptMap.get(docScope.departments[0]) ?? "Departamento" : "-";
+                      const docShared = docScope.locations.length || docScope.departments.length || docScope.positions.length || docScope.users.length ? "Segmentado" : "Todos";
 
-                return (
-                  <div key={doc.id} className="grid grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] items-center border-t border-[#f3f3f3] px-4 py-2.5 hover:bg-[#fcfcfc]" draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; }}>
-                    <div className="min-w-0 pl-8">
-                      <p className="truncate text-[12px] font-medium text-[#222]">{doc.title}</p>
-                      <p className="text-[11px] text-[#bbb]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p>
-                    </div>
-                    <p className="text-xs text-[#888]">{docLoc}</p>
-                    <p className="text-xs text-[#888]">{docDept}</p>
-                    <p className="text-xs text-[#888]">{docShared}</p>
-                    <p className="text-xs text-[#888]">{formatDate(doc.created_at)}</p>
-                    <div className="flex items-center justify-end gap-1">
-                      <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Ver/Descargar"><Eye className="h-3.5 w-3.5" /></a>
-                      <button type="button" onClick={() => setEditDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
-                      <button type="button" onClick={() => setShareDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
-                      <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Descargar"><Download className="h-3.5 w-3.5" /></a>
-                      <button type="button" onClick={() => setDeleteDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4]" title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
-                    </div>
+                      return (
+                        <div key={doc.id} className="grid grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] items-center border-t border-[#f3f3f3] px-4 py-2.5 hover:bg-[#fcfcfc] transition-colors" draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; }}>
+                          <div className="min-w-0 pl-8">
+                            <p className="truncate text-[12px] font-medium text-[#222]">{doc.title}</p>
+                            <p className="text-[11px] text-[#bbb]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p>
+                          </div>
+                          <p className="text-xs text-[#888]">{docLoc}</p>
+                          <p className="text-xs text-[#888]">{docDept}</p>
+                          <p className="text-xs text-[#888]">{docShared}</p>
+                          <p className="text-xs text-[#888]">{formatDate(doc.created_at)}</p>
+                          <div className="flex items-center justify-end gap-1">
+                            <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Ver/Descargar"><Eye className="h-3.5 w-3.5" /></a>
+                            <button type="button" onClick={() => setEditDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
+                            <button type="button" onClick={() => setShareDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
+                            <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Descargar"><Download className="h-3.5 w-3.5" /></a>
+                            <button type="button" onClick={() => setDeleteDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4]" title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {renderFolderTree(folder.id, depth + 1)}
                   </div>
-                );
-              })}
-              {renderFolderTree(folder.id, depth + 1)}
-            </div>
-          ) : null}
-        </div>
+                </FadeIn>
+              )}
+            </AnimatePresence>
+          </div>
+        </AnimatedItem>
       );
 
       return [row];
@@ -530,12 +538,12 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
 
   return (
     <>
-      <section className="mb-5 grid gap-3 sm:grid-cols-4">
-        <article className="rounded-xl border border-[#e5ddd8] bg-white p-4"><p className="text-xs text-[#8d847f]">Carpetas</p><p className="mt-1 text-2xl font-bold text-[#251f1b]">{folderRows.length}</p><p className="text-[11px] text-[#a7a09a]">Con permisos activos</p></article>
-        <article className="rounded-xl border border-[#e5ddd8] bg-white p-4"><p className="text-xs text-[#8d847f]">Total Documentos</p><p className="mt-1 text-2xl font-bold text-[#251f1b]">{totalDocuments}</p><p className="text-[11px] text-[#a7a09a]"><span className="text-[#2d8f4f]">+{Math.max(0, docsThisMonth - docsPrevMonth)}</span> este mes</p></article>
-        <article className="rounded-xl border border-[#e5ddd8] bg-white p-4"><p className="text-xs text-[#8d847f]">Descargas (mes)</p><p className="mt-1 text-2xl font-bold text-[#251f1b]">{downloadsMonth}</p><p className="text-[11px] text-[#a7a09a]"><span className="text-[#2d8f4f]">↑ {downloadsTrend}%</span> vs anterior</p></article>
-        <article className="rounded-xl border border-[#e5ddd8] bg-white p-4"><p className="text-xs text-[#8d847f]">Usuarios Activos</p><p className="mt-1 text-2xl font-bold text-[#251f1b]">{activeUsers}</p><p className="text-[11px] text-[#a7a09a]">{branches.length} locaciones</p></article>
-      </section>
+      <AnimatedList className="mb-5 grid gap-3 sm:grid-cols-4">
+        <AnimatedItem><article className="rounded-xl border border-[#e5ddd8] bg-white p-4 h-full"><p className="text-xs text-[#8d847f]">Carpetas</p><p className="mt-1 text-2xl font-bold text-[#251f1b]">{folderRows.length}</p><p className="text-[11px] text-[#a7a09a]">Con permisos activos</p></article></AnimatedItem>
+        <AnimatedItem><article className="rounded-xl border border-[#e5ddd8] bg-white p-4 h-full"><p className="text-xs text-[#8d847f]">Total Documentos</p><p className="mt-1 text-2xl font-bold text-[#251f1b]">{totalDocuments}</p><p className="text-[11px] text-[#a7a09a]"><span className="text-[#2d8f4f]">+{Math.max(0, docsThisMonth - docsPrevMonth)}</span> este mes</p></article></AnimatedItem>
+        <AnimatedItem><article className="rounded-xl border border-[#e5ddd8] bg-white p-4 h-full"><p className="text-xs text-[#8d847f]">Descargas (mes)</p><p className="mt-1 text-2xl font-bold text-[#251f1b]">{downloadsMonth}</p><p className="text-[11px] text-[#a7a09a]"><span className="text-[#2d8f4f]">↑ {downloadsTrend}%</span> vs anterior</p></article></AnimatedItem>
+        <AnimatedItem><article className="rounded-xl border border-[#e5ddd8] bg-white p-4 h-full"><p className="text-xs text-[#8d847f]">Usuarios Activos</p><p className="mt-1 text-2xl font-bold text-[#251f1b]">{activeUsers}</p><p className="text-[11px] text-[#a7a09a]">{branches.length} locaciones</p></article></AnimatedItem>
+      </AnimatedList>
 
       <section className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#e7e0dc] bg-white p-3">
         <div className="relative">
@@ -548,49 +556,55 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
         <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"><option value="date-desc">Mas recientes primero</option><option value="date-asc">Mas antiguos primero</option><option value="name-asc">Nombre A-Z</option><option value="name-desc">Nombre Z-A</option><option value="size-desc">Mayor tamano</option><option value="size-asc">Menor tamano</option></select>
       </section>
 
-      <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white">
-        <div className="grid grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] bg-[#fafafa] px-4 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase">
-          <p>Nombre</p><p>Locacion</p><p>Departamento</p><p>Compartido</p><p>Actualizacion</p><p className="text-right">Acciones</p>
-        </div>
-        <div
-          onDragOver={(event) => event.preventDefault()}
-          onDrop={(event) => {
-            const draggedDocId = event.dataTransfer.getData("application/x-document-id");
-            const draggedFolderId = event.dataTransfer.getData("application/x-folder-id");
-            if (draggedDocId) {
-              void moveDocumentToFolder(draggedDocId, null);
-              return;
-            }
-            if (draggedFolderId) {
-              void moveFolderToFolder(draggedFolderId, null);
-            }
-          }}
-        >
-          {renderFolderTree(null)}
-          {rootDocuments.map((doc) => {
-            const scope = parseScope(doc.access_scope);
-            const loc = doc.branch_id ? branchMap.get(doc.branch_id) ?? "Locacion" : scope.locations[0] ? branchMap.get(scope.locations[0]) ?? "Locacion" : "Global";
-            const dept = scope.departments[0] ? deptMap.get(scope.departments[0]) ?? "Departamento" : "-";
-            const shared = scope.locations.length || scope.departments.length || scope.positions.length || scope.users.length ? "Segmentado" : "Todos";
-            return (
-              <div key={doc.id} className="grid grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] items-center border-t border-[#f0f0f0] px-4 py-2.5 hover:bg-[#fcfcfc]" draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; }}>
-                <div className="min-w-0"><p className="truncate text-[12px] font-medium text-[#222]">{doc.title}</p><p className="text-[11px] text-[#bbb]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p></div>
-                <p className="text-xs text-[#888]">{loc}</p>
-                <p className="text-xs text-[#888]">{dept}</p>
-                <p className="text-xs text-[#888]">{shared}</p>
-                <p className="text-xs text-[#888]">{formatDate(doc.created_at)}</p>
-                <div className="flex items-center justify-end gap-1">
-                  <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Ver"><Eye className="h-3.5 w-3.5" /></a>
-                  <button type="button" onClick={() => setEditDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
-                  <button type="button" onClick={() => setShareDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
-                  <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Descargar"><Download className="h-3.5 w-3.5" /></a>
-                  <button type="button" onClick={() => setDeleteDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4]" title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+      <SlideUp delay={0.2}>
+        <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white">
+          <div className="grid grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] bg-[#fafafa] px-4 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase">
+            <p>Nombre</p><p>Locacion</p><p>Departamento</p><p>Compartido</p><p>Actualizacion</p><p className="text-right">Acciones</p>
+          </div>
+          <div
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              const draggedDocId = event.dataTransfer.getData("application/x-document-id");
+              const draggedFolderId = event.dataTransfer.getData("application/x-folder-id");
+              if (draggedDocId) {
+                void moveDocumentToFolder(draggedDocId, null);
+                return;
+              }
+              if (draggedFolderId) {
+                void moveFolderToFolder(draggedFolderId, null);
+              }
+            }}
+          >
+            {renderFolderTree(null)}
+            <AnimatePresence>
+              {rootDocuments.map((doc) => {
+                const scope = parseScope(doc.access_scope);
+                const loc = doc.branch_id ? branchMap.get(doc.branch_id) ?? "Locacion" : scope.locations[0] ? branchMap.get(scope.locations[0]) ?? "Locacion" : "Global";
+                const dept = scope.departments[0] ? deptMap.get(scope.departments[0]) ?? "Departamento" : "-";
+                const shared = scope.locations.length || scope.departments.length || scope.positions.length || scope.users.length ? "Segmentado" : "Todos";
+                return (
+                  <AnimatedItem key={doc.id}>
+                    <div className="grid grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] items-center border-t border-[#f0f0f0] px-4 py-2.5 hover:bg-[#fcfcfc] transition-colors" draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; }}>
+                      <div className="min-w-0"><p className="truncate text-[12px] font-medium text-[#222]">{doc.title}</p><p className="text-[11px] text-[#bbb]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p></div>
+                      <p className="text-xs text-[#888]">{loc}</p>
+                      <p className="text-xs text-[#888]">{dept}</p>
+                      <p className="text-xs text-[#888]">{shared}</p>
+                      <p className="text-xs text-[#888]">{formatDate(doc.created_at)}</p>
+                      <div className="flex items-center justify-end gap-1">
+                        <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Ver"><Eye className="h-3.5 w-3.5" /></a>
+                        <button type="button" onClick={() => setEditDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
+                        <button type="button" onClick={() => setShareDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
+                        <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Descargar"><Download className="h-3.5 w-3.5" /></a>
+                        <button type="button" onClick={() => setDeleteDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4]" title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
+                      </div>
+                    </div>
+                  </AnimatedItem>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+        </section>
+      </SlideUp>
 
       {editDocument ? (
         <EditDocumentModal
@@ -662,7 +676,9 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
         />
       ) : null}
 
-      {toast ? <div className="fixed bottom-6 left-1/2 z-[1100] -translate-x-1/2 rounded-lg bg-[#111] px-4 py-2 text-sm font-semibold text-white">{toast}</div> : null}
+      <AnimatePresence>
+        {toast ? <FadeIn className="fixed bottom-6 left-1/2 z-[1100] -translate-x-1/2 rounded-lg bg-[#111] px-4 py-2 text-sm font-semibold text-white shadow-lg">{toast}</FadeIn> : null}
+      </AnimatePresence>
     </>
   );
 }

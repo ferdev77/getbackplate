@@ -32,7 +32,7 @@ async function ensureBucketExists() {
   });
 }
 
-export async function createDocumentFolderAction(formData: FormData) {
+export async function createDocumentFolderAction(prevState: any, formData: FormData) {
   const tenant = await requireTenantModule("documents");
 
   const name = String(formData.get("name") ?? "").trim();
@@ -43,7 +43,7 @@ export async function createDocumentFolderAction(formData: FormData) {
   const userScopes = normalizeScopeSelection(formData.getAll("user_scope").map(String));
 
   if (!name) {
-    redirect("/app/documents?status=error&message=" + qs("Nombre de carpeta requerido"));
+    return { success: false, message: "Nombre de carpeta requerido" };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -58,7 +58,7 @@ export async function createDocumentFolderAction(formData: FormData) {
       .maybeSingle();
 
     if (parentError || !parent) {
-      redirect("/app/documents?status=error&message=" + qs("Carpeta padre invalida para esta empresa"));
+      return { success: false, message: "Carpeta padre invalida para esta empresa" };
     }
   }
 
@@ -78,11 +78,8 @@ export async function createDocumentFolderAction(formData: FormData) {
       departments: "Hay departamentos invalidos en el alcance",
       positions: "Hay puestos invalidos en el alcance",
       users: "Hay usuarios invalidos en el alcance",
-    } as const;
-    redirect(
-      "/app/documents?status=error&message=" +
-        qs(messageByField[folderScopeValidation.field]),
-    );
+    } as any;
+    return { success: false, message: messageByField[folderScopeValidation.field] || "Error en el alcance" };
   }
 
   const { data, error } = await supabase
@@ -103,10 +100,7 @@ export async function createDocumentFolderAction(formData: FormData) {
     .single();
 
   if (error) {
-    redirect(
-      "/app/documents?status=error&message=" +
-        qs(`No se pudo crear carpeta: ${error.message}`),
-    );
+    return { success: false, message: `No se pudo crear carpeta: ${error.message}` };
   }
 
   await logAuditEvent({
@@ -121,10 +115,10 @@ export async function createDocumentFolderAction(formData: FormData) {
   });
 
   revalidatePath("/app/documents");
-  redirect("/app/documents?status=success&message=" + qs("Carpeta creada"));
+  return { success: true, message: "Carpeta creada" };
 }
 
-export async function uploadOrganizationDocumentAction(formData: FormData) {
+export async function uploadOrganizationDocumentAction(prevState: any, formData: FormData) {
   const tenant = await requireTenantModule("documents");
 
   const titleInput = String(formData.get("title") ?? "").trim();
@@ -142,14 +136,11 @@ export async function uploadOrganizationDocumentAction(formData: FormData) {
   const userScopes = normalizeScopeSelection(rawUserScopes, { allowAllToken: true });
 
   if (!(file instanceof File) || file.size === 0) {
-    redirect("/app/documents?status=error&message=" + qs("Selecciona un archivo"));
+    return { success: false, message: "Selecciona un archivo" };
   }
 
   if (file.size > MAX_FILE_SIZE_BYTES) {
-    redirect(
-      "/app/documents?status=error&message=" +
-        qs("El archivo supera el limite de 10MB"),
-    );
+    return { success: false, message: "El archivo supera el limite de 10MB" };
   }
 
   await ensureBucketExists();
@@ -158,10 +149,7 @@ export async function uploadOrganizationDocumentAction(formData: FormData) {
   try {
     analysis = await analyzeUploadedFile(file);
   } catch (error) {
-    redirect(
-      "/app/documents?status=error&message=" +
-        qs(error instanceof Error ? error.message : "Archivo invalido"),
-    );
+    return { success: false, message: error instanceof Error ? error.message : "Archivo invalido" };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -176,7 +164,7 @@ export async function uploadOrganizationDocumentAction(formData: FormData) {
       .maybeSingle();
 
     if (folderError || !folder) {
-      redirect("/app/documents?status=error&message=" + qs("Carpeta invalida para esta empresa"));
+      return { success: false, message: "Carpeta invalida para esta empresa" };
     }
   }
 
@@ -189,7 +177,7 @@ export async function uploadOrganizationDocumentAction(formData: FormData) {
       .maybeSingle();
 
     if (branchError || !branch) {
-      redirect("/app/documents?status=error&message=" + qs("Locacion invalida para esta empresa"));
+      return { success: false, message: "Locacion invalida para esta empresa" };
     }
   }
 
@@ -209,11 +197,8 @@ export async function uploadOrganizationDocumentAction(formData: FormData) {
       departments: "Hay departamentos invalidos en el alcance",
       positions: "Hay puestos invalidos en el alcance",
       users: "Hay usuarios invalidos en el alcance",
-    } as const;
-    redirect(
-      "/app/documents?status=error&message=" +
-        qs(messageByField[uploadScopeValidation.field]),
-    );
+    } as any;
+    return { success: false, message: messageByField[uploadScopeValidation.field] || "Error de alcance" };
   }
 
   const { data: existingDuplicate } = await supabase
@@ -228,7 +213,7 @@ export async function uploadOrganizationDocumentAction(formData: FormData) {
   const path = existingDuplicate?.file_path ?? `${tenant.organizationId}/${Date.now()}-${analysis.safeName}`;
 
   if (!isSafeTenantStoragePath(path, tenant.organizationId)) {
-    redirect("/app/documents?status=error&message=" + qs("Ruta de archivo invalida para esta empresa"));
+    return { success: false, message: "Ruta de archivo invalida para esta empresa" };
   }
 
   const supabaseAdmin = createSupabaseAdminClient();
@@ -236,10 +221,10 @@ export async function uploadOrganizationDocumentAction(formData: FormData) {
   try {
     await assertPlanLimitForStorage(tenant.organizationId, file.size);
   } catch (error) {
-    redirect(
-      "/app/documents?status=error&message=" +
-        qs(getPlanLimitErrorMessage(error, "Limite de almacenamiento alcanzado. Actualiza tu plan para continuar.")),
-    );
+    return {
+      success: false,
+      message: getPlanLimitErrorMessage(error, "Limite de almacenamiento alcanzado. Actualiza tu plan para continuar.")
+    };
   }
 
   if (!existingDuplicate) {
@@ -251,10 +236,7 @@ export async function uploadOrganizationDocumentAction(formData: FormData) {
       });
 
     if (uploadError) {
-      redirect(
-        "/app/documents?status=error&message=" +
-          qs(`No se pudo subir archivo: ${uploadError.message}`),
-      );
+      return { success: false, message: `No se pudo subir archivo: ${uploadError.message}` };
     }
   }
 
@@ -285,10 +267,10 @@ export async function uploadOrganizationDocumentAction(formData: FormData) {
     if (!existingDuplicate) {
       await supabaseAdmin.storage.from(BUCKET_NAME).remove([path]);
     }
-    redirect(
-      "/app/documents?status=error&message=" +
-        qs(`No se pudo registrar documento: ${documentError.message}`),
-    );
+    return {
+      success: false,
+      message: `No se pudo registrar documento: ${documentError.message}`
+    };
   }
 
   if (file.size >= ASYNC_POST_PROCESS_THRESHOLD_BYTES && document?.id) {
@@ -318,5 +300,5 @@ export async function uploadOrganizationDocumentAction(formData: FormData) {
   });
 
   revalidatePath("/app/documents");
-  redirect("/app/documents?status=success&message=" + qs("Documento subido"));
+  return { success: true, message: "Documento subido" };
 }

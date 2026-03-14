@@ -3,13 +3,10 @@ import { ClipboardPlus, Eye, MapPin, Pencil, Trash2 } from "lucide-react";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import {
-  createChecklistTemplateAction,
-  deleteChecklistTemplateAction,
-} from "@/modules/checklists/actions";
-import { ChecklistItemsBuilder } from "@/modules/checklists/ui/checklist-items-builder";
+import { ChecklistUpsertModal } from "@/modules/checklists/ui/checklist-upsert-modal";
+import { ChecklistDeleteModal } from "@/modules/checklists/ui/checklist-delete-modal";
 import { requireTenantModule } from "@/shared/lib/access";
-import { ScopeSelector } from "@/shared/ui/scope-selector";
+import { SlideUp, AnimatedList, AnimatedItem } from "@/shared/ui/animations";
 
 type CompanyChecklistsPageProps = {
   searchParams: Promise<{
@@ -189,7 +186,6 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
   if (scopedUsers.some((row) => row.first_name === "Usuario" && row.user_id)) {
     try {
       const admin = createSupabaseAdminClient();
-      // Only fetch the specific users that need enrichment — not all 1000
       const unnamedUsers = scopedUsers.filter((u) => u.user_id && u.first_name === "Usuario");
       await Promise.all(
         unnamedUsers.map(async (user) => {
@@ -209,12 +205,12 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
               user.last_name = "";
             }
           } catch {
-            // fallback silencioso por usuario individual
+            // fallback
           }
         }),
       );
     } catch {
-      // fallback silencioso
+      // fallback
     }
   }
 
@@ -312,65 +308,82 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
-      <section className="mb-5 rounded-2xl border border-[#e7e0dc] bg-[#fffdfa] p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold tracking-[0.14em] text-[#9d948f] uppercase">Operacion diaria</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight">Mis Checklists</h1>
-            <p className="mt-1 text-sm text-[#67605b]">Replica funcional del tablero final: plantillas, ejecuciones e incidencias.</p>
-          </div>
-          <Link href="/app/checklists?action=create" className="inline-flex items-center gap-1 rounded-lg bg-[#111] px-3 py-2 text-sm font-semibold text-white hover:bg-[#c0392b]"><ClipboardPlus className="h-4 w-4" /> Nuevo Checklist</Link>
-        </div>
-      </section>
-
-      {firstParam(params.message) ? (
-        <section className={`mb-5 rounded-xl border px-4 py-3 text-sm ${firstParam(params.status) === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-rose-200 bg-rose-50 text-rose-800"}`}>{firstParam(params.message)}</section>
-      ) : null}
-
-      <section className="mb-5 grid gap-3 sm:grid-cols-4">
-        <article className="rounded-xl border border-[#e7e0dc] bg-white p-4"><p className="text-xs text-[#8a817b]">Total Checklists</p><p className="mt-1 text-2xl font-bold">{totalTemplates}</p></article>
-        <article className="rounded-xl border border-[#e7e0dc] bg-white p-4"><p className="text-xs text-[#8a817b]">Activos hoy</p><p className="mt-1 text-2xl font-bold">{activeTemplates}</p></article>
-        <article className="rounded-xl border border-[#e7e0dc] bg-white p-4"><p className="text-xs text-[#8a817b]">Completados</p><p className="mt-1 text-2xl font-bold">{completed}</p></article>
-        <article className="rounded-xl border border-[#e7e0dc] bg-white p-4"><p className="text-xs text-[#8a817b]">Pendientes</p><p className="mt-1 text-2xl font-bold">{pending}</p></article>
-      </section>
-
-      <form className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#e7e0dc] bg-white p-3" method="get">
-        <input name="q" defaultValue={q} className="h-[34px] w-[240px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs" placeholder="Buscar checklist..." />
-        <select name="type" defaultValue={typeFilter} className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"><option value="">Todos los tipos</option><option value="opening">Apertura</option><option value="closing">Cierre</option><option value="prep">Prep</option><option value="custom">Custom</option></select>
-        <select name="loc" defaultValue={locFilter} className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"><option value="">Todas las locaciones</option>{(branches ?? []).map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select>
-        <button type="submit" className="h-[34px] rounded-lg bg-[#111] px-4 text-xs font-semibold text-white hover:bg-[#c0392b]">Filtrar</button>
-      </form>
-
-      <section className="overflow-hidden rounded-xl border border-[#e7e0dc] bg-white">
-        <div className="grid grid-cols-[minmax(180px,2fr)_100px_110px_130px_130px_90px_120px] gap-x-3 border-b-[1.5px] border-[#e8e8e8] bg-[#fafafa] px-4 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase">
-          <p>Checklist</p><p>Tipo</p><p>Shift</p><p>Locacion</p><p>Departamento</p><p>Estado</p><p>Acciones</p>
-        </div>
-        <div>
-          {filteredTemplates.map((template) => (
-            <div key={template.id} className="grid grid-cols-[minmax(180px,2fr)_100px_110px_130px_130px_90px_120px] items-center gap-x-3 border-b border-[#f0f0f0] px-4 py-3">
-              <div>
-                <p className="text-[13px] font-semibold text-[#111]">{template.name}</p>
-                <p className="text-[11px] text-[#aaa]">{template.itemsCount} items</p>
-              </div>
-              <p className="text-xs text-[#666]">{typeLabel(template.checklist_type)}</p>
-              <p className="text-xs text-[#666]">{template.shift || "-"}</p>
-              <p className="inline-flex items-center gap-1 text-xs text-[#666]"><MapPin className="h-3.5 w-3.5" />{template.branchName}</p>
-              <p className="text-xs text-[#666]">{template.departmentName}</p>
-              <span className={`inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] ${template.is_active ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-neutral-200 bg-neutral-100 text-neutral-600"}`}>{template.is_active ? "Activa" : "Inactiva"}</span>
-              <div className="flex gap-1">
-                <Link href={`/app/checklists?preview=${template.id}`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#d6e9dc] bg-[#eff8f2] text-[#2f6b45] hover:bg-[#e6f3ea]" title="Vista previa"><Eye className="h-3.5 w-3.5" /></Link>
-                <Link href={`/app/checklists?action=edit&templateId=${template.id}`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Editar"><Pencil className="h-3.5 w-3.5" /></Link>
-                <Link href={`/app/checklists?delete=${template.id}`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f0d7d3] bg-[#fff3f1] text-[#a44a3f] hover:bg-[#ffe9e5]" title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></Link>
-              </div>
+      <SlideUp>
+        <section className="mb-5 rounded-2xl border border-[#e7e0dc] bg-[#fffdfa] p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold tracking-[0.14em] text-[#9d948f] uppercase">Operacion diaria</p>
+              <h1 className="mt-1 text-2xl font-bold tracking-tight">Mis Checklists</h1>
+              <p className="mt-1 text-sm text-[#67605b]">Replica funcional del tablero final: plantillas, ejecuciones e incidencias.</p>
             </div>
-          ))}
-          {!filteredTemplates.length ? <div className="px-4 py-10 text-center text-sm text-[#8b817c]">No hay checklists para los filtros seleccionados.</div> : null}
-        </div>
-      </section>
+            <Link href="/app/checklists?action=create" className="inline-flex items-center gap-1 rounded-lg bg-[#111] px-3 py-2 text-sm font-semibold text-white hover:bg-[#c0392b]"><ClipboardPlus className="h-4 w-4" /> Nuevo Checklist</Link>
+          </div>
+        </section>
+      </SlideUp>
+
+      <AnimatedList className="mb-5 grid gap-3 sm:grid-cols-4">
+        <AnimatedItem className="h-full">
+          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full"><p className="text-xs text-[#8a817b]">Total Checklists</p><p className="mt-1 text-2xl font-bold">{totalTemplates}</p></article>
+        </AnimatedItem>
+        <AnimatedItem className="h-full">
+          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full"><p className="text-xs text-[#8a817b]">Activos hoy</p><p className="mt-1 text-2xl font-bold">{activeTemplates}</p></article>
+        </AnimatedItem>
+        <AnimatedItem className="h-full">
+          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full"><p className="text-xs text-[#8a817b]">Completados</p><p className="mt-1 text-2xl font-bold">{completed}</p></article>
+        </AnimatedItem>
+        <AnimatedItem className="h-full">
+          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full"><p className="text-xs text-[#8a817b]">Pendientes</p><p className="mt-1 text-2xl font-bold">{pending}</p></article>
+        </AnimatedItem>
+      </AnimatedList>
+
+      <SlideUp delay={0.1}>
+        <form className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#e7e0dc] bg-white p-3" method="get">
+          <input name="q" defaultValue={q} className="h-[34px] w-[240px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs" placeholder="Buscar checklist..." />
+          <select name="type" defaultValue={typeFilter} className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"><option value="">Todos los tipos</option><option value="opening">Apertura</option><option value="closing">Cierre</option><option value="prep">Prep</option><option value="custom">Custom</option></select>
+          <select name="loc" defaultValue={locFilter} className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"><option value="">Todas las locaciones</option>{(branches ?? []).map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select>
+          <button type="submit" className="h-[34px] rounded-lg bg-[#111] px-4 text-xs font-semibold text-white hover:bg-[#c0392b]">Filtrar</button>
+        </form>
+      </SlideUp>
+
+      <SlideUp delay={0.2}>
+        <section className="overflow-hidden rounded-xl border border-[#e7e0dc] bg-white">
+          <div className="grid grid-cols-[minmax(180px,2fr)_100px_110px_130px_130px_90px_120px] gap-x-3 border-b-[1.5px] border-[#e8e8e8] bg-[#fafafa] px-4 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase">
+            <p>Checklist</p><p>Tipo</p><p>Shift</p><p>Locacion</p><p>Departamento</p><p>Estado</p><p>Acciones</p>
+          </div>
+          <div>
+            {filteredTemplates && filteredTemplates.length > 0 ? (
+              <AnimatedList>
+                {filteredTemplates.map((template) => (
+                  <AnimatedItem key={template.id}>
+                    <div className="grid grid-cols-[minmax(180px,2fr)_100px_110px_130px_130px_90px_120px] items-center gap-x-3 border-b border-[#f0f0f0] px-4 py-3">
+                      <div>
+                        <p className="text-[13px] font-semibold text-[#111]">{template.name}</p>
+                        <p className="text-[11px] text-[#aaa]">{template.itemsCount} items</p>
+                      </div>
+                      <p className="text-xs text-[#666]">{typeLabel(template.checklist_type)}</p>
+                      <p className="text-xs text-[#666]">{template.shift || "-"}</p>
+                      <p className="inline-flex items-center gap-1 text-xs text-[#666]"><MapPin className="h-3.5 w-3.5" />{template.branchName}</p>
+                      <p className="text-xs text-[#666]">{template.departmentName}</p>
+                      <span className={`inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] ${template.is_active ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-neutral-200 bg-neutral-100 text-neutral-600"}`}>{template.is_active ? "Activa" : "Inactiva"}</span>
+                      <div className="flex gap-1">
+                        <Link href={`/app/checklists?preview=${template.id}`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#d6e9dc] bg-[#eff8f2] text-[#2f6b45] hover:bg-[#e6f3ea]" title="Vista previa"><Eye className="h-3.5 w-3.5" /></Link>
+                        <Link href={`/app/checklists?action=edit&templateId=${template.id}`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Editar"><Pencil className="h-3.5 w-3.5" /></Link>
+                        <Link href={`/app/checklists?delete=${template.id}`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f0d7d3] bg-[#fff3f1] text-[#a44a3f] hover:bg-[#ffe9e5]" title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></Link>
+                      </div>
+                    </div>
+                  </AnimatedItem>
+                ))}
+              </AnimatedList>
+            ) : (
+              <div className="px-4 py-10 text-center text-sm text-[#8b817c]">No hay checklists para los filtros seleccionados.</div>
+            )}
+          </div>
+        </section>
+      </SlideUp>
 
       {previewTemplate ? (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
-          <div className="flex max-h-[88vh] w-[720px] max-w-[95vw] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]">
+          <SlideUp className="flex max-h-[88vh] w-[720px] max-w-[95vw] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]">
             <div className="flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5">
               <p className="font-serif text-[15px] font-bold text-[#111]">Vista previa · {previewTemplate.name}</p>
               <Link href="/app/checklists" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111]">✕</Link>
@@ -438,76 +451,23 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
             <div className="flex justify-end border-t-[1.5px] border-[#f0f0f0] px-6 py-4">
               <Link href="/app/checklists" className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]">Cerrar</Link>
             </div>
-          </div>
+          </SlideUp>
         </div>
       ) : null}
 
       {deletingTemplate ? (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
-          <div className="w-[520px] max-w-[95vw] rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-            <div className="border-b-[1.5px] border-[#f0f0f0] px-6 py-5">
-              <p className="font-serif text-[15px] font-bold text-[#111]">Eliminar checklist</p>
-              <p className="mt-1 text-sm text-[#6d6460]">Esta accion elimina la plantilla. Si tiene historial, se archivara automaticamente.</p>
-            </div>
-            <div className="px-6 py-4 text-sm text-[#2f2b28]">Checklist: <strong>{deletingTemplate.name}</strong></div>
-            <div className="flex justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4">
-              <Link href="/app/checklists" className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]">Cancelar</Link>
-              <form action={deleteChecklistTemplateAction}>
-                <input type="hidden" name="template_id" value={deletingTemplate.id} />
-                <button type="submit" className="rounded-lg bg-[#8c2e24] px-4 py-2 text-sm font-bold text-white hover:bg-[#6f251e]">Eliminar</button>
-              </form>
-            </div>
-          </div>
-        </div>
+        <ChecklistDeleteModal template={deletingTemplate} />
       ) : null}
 
       {openCreateModal ? (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
-          <div className="flex max-h-[90vh] w-[680px] max-w-[95vw] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-            <div className="flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 pb-4 pt-5">
-              <p className="font-serif text-[15px] font-bold text-[#111]">{action === "edit" ? "Editar Checklist" : "Nuevo Checklist"}</p>
-              <Link href="/app/checklists" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111]">✕</Link>
-            </div>
-            <form action={createChecklistTemplateAction}>
-              {editingTemplate ? <input type="hidden" name="template_id" value={editingTemplate.id} /> : null}
-              <div className="max-h-[68vh] overflow-y-auto px-6 py-5">
-                <h3 className="mb-3 border-b-[1.5px] border-[#f0f0f0] pb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Informacion general</h3>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="grid gap-1.5 sm:col-span-2"><span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Nombre del checklist</span><input name="name" required defaultValue={editingTemplate?.name ?? ""} placeholder="Ej: Apertura Cocina - Turno Manana" className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm" /></label>
-                  <label className="grid gap-1.5"><span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Tipo de checklist</span><select name="checklist_type" defaultValue={editingTemplate?.checklist_type ?? "opening"} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm"><option value="opening">Apertura</option><option value="closing">Cierre</option><option value="prep">Prep</option><option value="custom">Otro</option></select></label>
-                  <label className="grid gap-1.5"><span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Shift</span><select name="shift" defaultValue={editingTemplate?.shift ?? "1er Shift"} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm"><option>1er Shift</option><option>2do Shift</option><option>3er Shift</option></select></label>
-                  <label className="grid gap-1.5"><span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Frecuencia</span><select name="repeat_every" defaultValue={editingTemplate?.repeat_every ?? "daily"} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm"><option value="daily">Diario</option><option value="weekly">Semanal</option><option value="monthly">Mensual</option></select></label>
-                  <label className="grid gap-1.5"><span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Estado</span><select name="template_status" defaultValue={editingTemplate?.is_active ? "active" : "draft"} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm"><option value="active">Activo</option><option value="draft">Borrador</option></select></label>
-                </div>
-                <h3 className="mb-3 mt-6 border-b-[1.5px] border-[#f0f0f0] pb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Visible para</h3>
-                <ScopeSelector
-                  namespace="checklist"
-                  branches={branches ?? []}
-                  departments={departments ?? []}
-                  positions={positions ?? []}
-                  users={scopedUsers}
-                  locationInputName="location_scope"
-                  departmentInputName="department_scope"
-                  positionInputName="position_scope"
-                  userInputName="user_scope"
-                  initialLocations={Array.isArray((editingTemplate?.target_scope as Record<string, string[]> | undefined)?.locations) ? ((editingTemplate?.target_scope as Record<string, string[]>).locations ?? []) : []}
-                  initialDepartments={Array.isArray((editingTemplate?.target_scope as Record<string, string[]> | undefined)?.department_ids) ? ((editingTemplate?.target_scope as Record<string, string[]>).department_ids ?? []) : []}
-                  initialPositions={Array.isArray((editingTemplate?.target_scope as Record<string, string[]> | undefined)?.position_ids) ? ((editingTemplate?.target_scope as Record<string, string[]>).position_ids ?? []) : []}
-                  initialUsers={Array.isArray((editingTemplate?.target_scope as Record<string, string[]> | undefined)?.users) ? ((editingTemplate?.target_scope as Record<string, string[]>).users ?? []) : []}
-                />
-                <h3 className="mb-3 mt-6 border-b-[1.5px] border-[#f0f0f0] pb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Items del checklist</h3>
-                <ChecklistItemsBuilder
-                  initialSections={
-                    editingTemplate?.templateSections?.length
-                      ? editingTemplate.templateSections
-                      : [{ name: "General", items: editingTemplate?.templateItems.map((item) => item.label) ?? [""] }]
-                  }
-                />
-              </div>
-              <div className="flex justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4"><Link href="/app/checklists" className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]">Cancelar</Link><button className="rounded-lg bg-[#111] px-5 py-2 text-sm font-bold text-white hover:bg-[#c0392b]" type="submit">{editingTemplate ? "Actualizar Checklist" : "Guardar Checklist"}</button></div>
-            </form>
-          </div>
-        </div>
+        <ChecklistUpsertModal 
+          branches={branches ?? []}
+          departments={departments ?? []}
+          positions={positions ?? []}
+          users={scopedUsers}
+          action={action}
+          editingTemplate={editingTemplate}
+        />
       ) : null}
     </main>
   );

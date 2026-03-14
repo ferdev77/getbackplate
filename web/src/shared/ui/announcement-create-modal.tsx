@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { MessageSquare, Pin, Smartphone, Clock3 } from "lucide-react";
-import { useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { createAnnouncementAction } from "@/modules/announcements/actions";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
+import { SubmitButton } from "@/shared/ui/submit-button";
 
 type BranchOption = {
   id: string;
@@ -53,9 +56,24 @@ type AnnouncementCreateModalProps = {
 };
 
 export function AnnouncementCreateModal({ branches, departments, positions, users, publisherName, mode = "create", initial }: AnnouncementCreateModalProps) {
+  const router = useRouter();
+  const [state, formAction, isPending] = useActionState(createAnnouncementAction, { success: false, message: "" });
   const [notifyWhatsapp, setNotifyWhatsapp] = useState(false);
   const [notifySms, setNotifySms] = useState(false);
   const [hasExpiry, setHasExpiry] = useState(Boolean(initial?.expires_at));
+
+  useEffect(() => {
+    if (state.message) {
+      if (state.success) {
+        toast.success(state.message);
+        router.refresh();
+        // Redirect to main list after success
+        router.push("/app/announcements");
+      } else {
+        toast.error(state.message);
+      }
+    }
+  }, [state, router]);
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
@@ -70,7 +88,7 @@ export function AnnouncementCreateModal({ branches, departments, positions, user
           </Link>
         </div>
 
-        <form action={createAnnouncementAction}>
+        <form action={formAction}>
           {mode === "edit" && initial ? <input type="hidden" name="announcement_id" value={initial.id} /> : null}
           <div className="max-h-[68vh] overflow-y-auto px-6 py-5">
             <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#888]">Tipo de aviso</label>
@@ -200,9 +218,12 @@ export function AnnouncementCreateModal({ branches, departments, positions, user
             >
               Cancelar
             </Link>
-            <button className="rounded-lg bg-[#111] px-5 py-2 text-sm font-bold text-white hover:bg-[#c0392b]" type="submit">
-              {mode === "edit" ? "Guardar cambios" : "Publicar Aviso"}
-            </button>
+            <SubmitButton
+              label={mode === "edit" ? "Guardar cambios" : "Publicar Aviso"}
+              pendingLabel={mode === "edit" ? "Guardando..." : "Publicando..."}
+              pending={isPending}
+              className="px-5 py-2 text-sm font-bold"
+            />
           </div>
         </form>
       </div>

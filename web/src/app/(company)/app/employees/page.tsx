@@ -30,7 +30,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   const [{ data: employees }, { data: branches }, { data: memberships }, { data: roles }, { data: documents }, { data: departments }, { data: positions }, { data: contracts }, { data: employeeDocs }] = await Promise.all([
     supabase
       .from("employees")
-      .select("id, user_id, first_name, last_name, email, phone, phone_country_code, position, department, department_id, status, branch_id, hired_at, birth_date, sex, nationality, address_line1, address_city, address_state, address_postal_code, address_country, emergency_contact_name, emergency_contact_phone, emergency_contact_email, created_at")
+      .select("id, user_id, first_name, last_name, email, phone, phone_country_code, position, department, department_id, status, branch_id, hired_at, birth_date, sex, nationality, address_line1, address_city, address_state, address_postal_code, address_country, emergency_contact_name, emergency_contact_phone, emergency_contact_email, created_at, personal_email, document_id, document_number")
       .eq("organization_id", tenant.organizationId)
       .order("created_at", { ascending: false })
       .limit(50),
@@ -186,6 +186,13 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   const openEmployeeModal = params.action === "create" || (params.action === "edit" && Boolean(editEmployee));
   const editContract = editEmployee ? latestContractByEmployee.get(editEmployee.id) : null;
 
+  const { data: authData } = await supabase.auth.getUser();
+  const publisherName =
+    (typeof authData.user?.user_metadata?.full_name === "string" && authData.user.user_metadata.full_name.trim()) ||
+    (typeof authData.user?.user_metadata?.name === "string" && authData.user.user_metadata.name.trim()) ||
+    authData.user?.email ||
+    "Administrador";
+
   const initialEmployeeData = editEmployee
     ? {
         id: editEmployee.id,
@@ -196,24 +203,20 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
         nationality: editEmployee.nationality,
         phone_country_code: editEmployee.phone_country_code,
         phone: editEmployee.phone,
-        email: editEmployee.email,
-        address_line1: editEmployee.address_line1,
-        address_city: editEmployee.address_city,
-        address_state: editEmployee.address_state,
-        address_postal_code: editEmployee.address_postal_code,
-        address_country: editEmployee.address_country,
-        emergency_contact_name: editEmployee.emergency_contact_name,
-        emergency_contact_phone: editEmployee.emergency_contact_phone,
-        emergency_contact_email: editEmployee.emergency_contact_email,
-        branch_id: editEmployee.branch_id,
+        email: editEmployee.email, // Correo laboral
+        personal_email: editEmployee.personal_email,
+        document_id: editEmployee.document_id,
+        document_number: editEmployee.document_number,
+        address: editEmployee.address_line1,
+        branch_id: editEmployee.branch_id ?? "",
         position: editEmployee.position,
         position_id:
           editEmployee.department_id && editEmployee.position
-            ? positionIdByDepartmentAndName.get(`${editEmployee.department_id}::${editEmployee.position.toLowerCase()}`) ?? null
-            : null,
-        department_id: editEmployee.department_id,
+            ? positionIdByDepartmentAndName.get(`${editEmployee.department_id}::${editEmployee.position.toLowerCase()}`) ?? ""
+            : "",
+        department_id: editEmployee.department_id ?? "",
         status: editEmployee.status,
-        hired_at: editEmployee.hired_at,
+        hire_date: editEmployee.hired_at,
         contract_type: editContract?.contract_type ?? null,
         contract_status: editContract?.contract_status ?? null,
         contract_start_date: editContract?.start_date ?? null,
@@ -224,7 +227,6 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
         salary_amount: editContract?.salary_amount ?? null,
         payment_frequency: editContract?.payment_frequency ?? null,
         salary_currency: editContract?.salary_currency ?? null,
-        linked_document_ids: linkedDocsByEmployee.get(editEmployee.id) ?? [],
       }
     : undefined;
   const openUserModal = params.action === "create-user";
@@ -270,9 +272,10 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
         mode={params.action === "edit" ? "edit" : "create"}
         initialEmployee={initialEmployeeData}
         branches={branches ?? []}
-        documents={documents ?? []}
+        recentDocuments={documents ?? []}
         departments={departments ?? []}
         positions={positions ?? []}
+        publisherName={publisherName}
       />
 
       <NewUserModal

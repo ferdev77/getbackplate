@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { getCurrentUser } from "@/modules/memberships/queries";
 import { requireCompanyAccess } from "@/shared/lib/access";
 import { CompanyShell } from "@/shared/ui/company-shell";
+import { FadeIn } from "@/shared/ui/animations";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,6 @@ export default async function CompanyLayout({
       .order("price_amount", { ascending: true, nullsFirst: false }),
   ]);
 
-  // Derive current plan from the already-fetched list — no extra round-trip needed
   const currentPlanById = organization?.plan_id
     ? (plans ?? []).find((p) => p.id === organization.plan_id) ?? null
     : null;
@@ -133,7 +133,9 @@ export default async function CompanyLayout({
       currentPlanName={inferredCurrentPlan?.name ?? "Sin plan"}
       enabledModules={enabledModules}
     >
-      {children}
+      <FadeIn>
+        {children}
+      </FadeIn>
     </CompanyShell>
   );
 }
