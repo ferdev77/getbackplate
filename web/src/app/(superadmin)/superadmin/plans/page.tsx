@@ -6,7 +6,16 @@ import {
   PencilLine,
   Plus,
   ShieldCheck,
+  Zap,
+  Layers,
+  HardDrive,
+  Users2,
+  AlertCircle,
+  X,
+  Trash2,
 } from "lucide-react";
+import * as motion from "framer-motion/client";
+import { AnimatePresence } from "framer-motion";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import {
@@ -16,9 +25,10 @@ import {
 } from "@/modules/plans/actions";
 import { ConfirmSubmitButton } from "@/shared/ui/confirm-submit-button";
 import { SuperadminInputField, SuperadminSelectField } from "@/shared/ui/superadmin-form-fields";
+import { DetailsCloseButton } from "@/shared/ui/details-close-button";
 
 type SuperadminPlansPageProps = {
-  searchParams: Promise<{ status?: string; message?: string }>;
+  searchParams: Promise<{ status?: string; message?: string; action?: string; plan?: string }>;
 };
 
 function money(amount: number | null, currency = "USD") {
@@ -26,7 +36,7 @@ function money(amount: number | null, currency = "USD") {
   return new Intl.NumberFormat("es-AR", {
     style: "currency",
     currency,
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 0,
   }).format(amount);
 }
 
@@ -35,36 +45,34 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
   const params = await searchParams;
   const status = params.status;
   const message = params.message;
+  const action = typeof params.action === "string" ? params.action : "";
 
   const [
     { data: plans, error: plansError },
-    { data: orgPlans, count: organizationsUsingPlans },
+    { data: orgsWithPlans },
     { data: modulesCatalog },
     { data: planModules },
-  ] =
-    await Promise.all([
-      supabase
-        .from("plans")
-        .select(
-          "id, code, name, description, is_active, price_amount, currency_code, billing_period, max_branches, max_users, max_storage_mb, max_employees, created_at",
-        )
-        .order("name"),
-      supabase
-        .from("organizations")
-        .select("plan_id", { count: "exact" })
-        .not("plan_id", "is", null),
-      supabase
-        .from("module_catalog")
-        .select("id, code, name, is_core")
-        .order("name"),
-      supabase
-        .from("plan_modules")
-        .select("plan_id, module_id, is_enabled")
-        .eq("is_enabled", true),
-    ]);
+  ] = await Promise.all([
+    supabase
+      .from("plans")
+      .select("id, code, name, description, is_active, price_amount, currency_code, billing_period, max_branches, max_users, max_storage_mb, max_employees, created_at")
+      .order("price_amount", { ascending: true }),
+    supabase
+      .from("organizations")
+      .select("plan_id")
+      .not("plan_id", "is", null),
+    supabase
+      .from("module_catalog")
+      .select("id, code, name, is_core")
+      .order("name"),
+    supabase
+      .from("plan_modules")
+      .select("plan_id, module_id, is_enabled")
+      .eq("is_enabled", true),
+  ]);
 
   const usageMap = new Map<string, number>();
-  for (const row of orgPlans ?? []) {
+  for (const row of orgsWithPlans ?? []) {
     const key = row.plan_id as string;
     usageMap.set(key, (usageMap.get(key) ?? 0) + 1);
   }
@@ -76,234 +84,326 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
     planModuleMap.set(row.plan_id, existing);
   }
 
-  const plansErrorMessage = plansError
-    ? plansError.message.includes("Could not find the table 'public.plans'")
-      ? "No existe la tabla plans en la base. Ejecuta migraciones: 20260311_0001_base_saas.sql y luego 202603110002_plan_pricing.sql."
-      : plansError.message
-    : null;
+  const totalOrgsInAnyPlan = orgsWithPlans?.length ?? 0;
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8">
-      <section className="rounded-2xl border border-[#e5ddd8] bg-[#fffdfa] p-6">
-        <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-[#9c938d] uppercase">Superadmin</p>
-        <h1 className="mb-1 text-2xl font-bold tracking-tight text-[#241f1c]">Planes comerciales</h1>
-        <p className="text-sm text-[#6b635e]">
-          Gestiona precio, periodo y estado de cada plan con una vista compacta y profesional.
-        </p>
+    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
+      <section className="relative overflow-hidden rounded-[2.5rem] border border-[#2d2622] bg-[#171311] p-8 text-white shadow-xl">
+        <div className="pointer-events-none absolute -right-20 -bottom-20 h-64 w-64 rounded-full bg-brand/20 blur-3xl" />
+        <div className="relative z-10">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-light/60">Monetización & Escala</p>
+          <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Planes Maestros</h1>
+          <p className="mt-4 max-w-2xl text-base text-[#c7bbb3]/80 leading-relaxed">
+            Estructura tu propuesta comercial. Define límites técnicos, precios y capacidades modulares para cada segmento de clientes.
+          </p>
+        </div>
       </section>
 
-      {message ? (
-        <section
-          className={`rounded-xl border px-4 py-3 text-sm ${
+      {message && (
+        <motion.section
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className={`rounded-[1.25rem] border px-6 py-4 text-sm font-medium shadow-sm ${
             status === "success"
               ? "border-emerald-200 bg-emerald-50 text-emerald-800"
               : "border-rose-200 bg-rose-50 text-rose-800"
           }`}
         >
           {message}
-        </section>
-      ) : null}
-
-      {plansErrorMessage ? (
-        <section className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          No se pudieron cargar los planes: {plansErrorMessage}
-        </section>
-      ) : null}
+        </motion.section>
+      )}
 
       <section className="grid gap-4 sm:grid-cols-3">
-        <article className="rounded-xl border border-[#e5ddd8] bg-white p-4">
-          <p className="text-xs text-[#8d847f]">Planes cargados</p>
-          <p className="mt-1 text-2xl font-bold text-[#251f1b]">{plans?.length ?? 0}</p>
-        </article>
-        <article className="rounded-xl border border-[#e5ddd8] bg-white p-4">
-          <p className="text-xs text-[#8d847f]">Empresas con plan</p>
-          <p className="mt-1 text-2xl font-bold text-[#251f1b]">{organizationsUsingPlans ?? 0}</p>
-        </article>
-        <article className="rounded-xl border border-[#e5ddd8] bg-white p-4">
-          <p className="text-xs text-[#8d847f]">Planes activos</p>
-          <p className="mt-1 text-2xl font-bold text-[#251f1b]">{(plans ?? []).filter((p) => p.is_active).length}</p>
-        </article>
+        {[
+          { label: "Planes Definidos", val: plans?.length ?? 0, icon: BadgeDollarSign, color: "text-[#251f1b]", bg: "bg-white" },
+          { label: "Empresas en Producción", val: totalOrgsInAnyPlan, icon: Building2, color: "text-emerald-700", bg: "bg-emerald-50/50" },
+          { label: "Planes Publicados", val: (plans ?? []).filter(p => p.is_active).length, icon: ShieldCheck, color: "text-blue-700", bg: "bg-blue-50/50" },
+        ].map((stat, idx) => (
+          <motion.article 
+            key={stat.label}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.1 }}
+            className={`rounded-3xl border border-line/60 ${stat.bg} p-5 shadow-sm`}
+          >
+            <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <stat.icon className="h-3.5 w-3.5" /> {stat.label}
+            </p>
+            <p className={`mt-2 font-serif text-3xl font-medium ${stat.color}`}>{stat.val}</p>
+          </motion.article>
+        ))}
       </section>
 
-      <details className="group rounded-2xl border border-[#e5ddd8] bg-white p-4 sm:p-5">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl border border-[#e6ddd8] bg-[#fffdfa] px-4 py-3 hover:bg-[#faf6f4]">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#f2cdc6] bg-[#fff1ef] text-[#b63a2f]">
-              <Plus className="h-4 w-4" />
-            </span>
+      <section className="rounded-[2.5rem] border border-line/60 bg-white p-6 shadow-sm overflow-hidden">
+        <div className="mb-8 flex items-center justify-between px-2">
             <div>
-              <p className="text-sm font-semibold text-[#2b2521] sm:text-base">Agregar nuevo plan</p>
-              <p className="text-xs text-[#7b726d] sm:text-sm">Carga datos comerciales y define el periodo de cobro.</p>
+               <h2 className="text-xl font-bold tracking-tight text-foreground">Gestión de Oferta Comercial</h2>
+               <p className="text-xs text-muted-foreground mt-1">Configure los parámetros de crecimiento y costos operativos.</p>
             </div>
-          </div>
-          <ChevronDown className="h-5 w-5 text-[#8b827d] transition group-open:rotate-180" />
-        </summary>
-
-        <form action={createPlanAction} className="mt-4 grid gap-3 md:grid-cols-6">
-          <SuperadminInputField label="Code" name="code" required spellCheck={false} autoCorrect="off" autoCapitalize="off" placeholder="growth" />
-          <SuperadminInputField label="Nombre" name="name" required spellCheck={false} autoCorrect="off" placeholder="Nombre" />
-          <SuperadminInputField label="Descripcion" name="description" placeholder="Descripcion" className="md:col-span-2" />
-          <SuperadminInputField label="Precio" name="price_amount" type="number" min="0" step="0.01" placeholder="0.00" />
-          <SuperadminInputField label="Moneda" name="currency_code" defaultValue="USD" placeholder="USD" />
-          <SuperadminSelectField label="Periodo" name="billing_period" defaultValue="monthly">
-            <option value="monthly">Mensual</option>
-            <option value="yearly">Anual</option>
-            <option value="one_time">Unico pago</option>
-            <option value="custom">Custom</option>
-          </SuperadminSelectField>
-          <SuperadminInputField label="Max sucursales" name="max_branches" type="number" min="0" placeholder="Ej: 10" />
-          <SuperadminInputField label="Max usuarios" name="max_users" type="number" min="0" placeholder="Ej: 25" />
-          <SuperadminInputField label="Max empleados" name="max_employees" type="number" min="0" placeholder="Ej: 80" />
-          <SuperadminInputField label="Max storage MB" name="max_storage_mb" type="number" min="0" placeholder="Ej: 500" />
-          <div className="md:col-span-6 rounded-xl border border-[#eee6e1] bg-[#fffdfa] p-3">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#7a706a]">Modulos incluidos en el plan</p>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {(modulesCatalog ?? []).map((module) => (
-                <label key={module.id} className="inline-flex items-center gap-2 text-sm text-[#4f4843]">
-                  <input
-                    type="checkbox"
-                    name="module_ids"
-                    value={module.id}
-                    defaultChecked={module.is_core}
-                    disabled={module.is_core}
-                    className="h-4 w-4"
-                  />
-                  <span>
-                    {module.name}
-                    {module.is_core ? " (core)" : ""}
-                  </span>
-                </label>
-              ))}
-            </div>
-            <p className="mt-2 text-xs text-[#7f756f]">Los modulos core siempre se incluyen y no pueden desmarcarse.</p>
-          </div>
-          <label className="inline-flex items-center gap-2 text-sm text-[#4f4843]">
-            <input type="checkbox" name="is_active" defaultChecked className="h-4 w-4" /> Activo
-          </label>
-          <button type="submit" className="rounded-lg bg-[#b63a2f] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8f2e26] md:w-fit">
-            Crear plan
-          </button>
-        </form>
-      </details>
-
-      <section className="space-y-3">
-        {(plans ?? []).map((plan) => {
-          const usedBy = usageMap.get(plan.id) ?? 0;
-          const selectedModules = planModuleMap.get(plan.id) ?? new Set<string>();
-          const includedModules = (modulesCatalog ?? []).filter((module) => selectedModules.has(module.id));
-
-          return (
-            <details key={plan.id} className="group rounded-2xl border border-[#e5ddd8] bg-white p-4" open={plan.code === "starter"}>
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
-                <div className="grid flex-1 gap-3 sm:grid-cols-[1.6fr_1fr_1fr_1fr] sm:items-center">
-                  <div className="min-w-0">
-                    <p className="truncate text-base font-semibold text-[#2a2420]">{plan.name}</p>
-                    <p className="truncate text-xs text-[#837a75]">{plan.code}</p>
-                  </div>
-                  <div className="flex items-center gap-1 text-sm text-[#4f4843]">
-                    <BadgeDollarSign className="h-4 w-4 text-[#b63a2f]" />
-                    <span>{money(plan.price_amount, plan.currency_code ?? "USD")}</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-sm text-[#4f4843]">
-                    <Building2 className="h-4 w-4 text-[#5e5752]" />
-                    <span>{usedBy} empresas</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[#e6ddd8] bg-[#faf6f4] px-2 py-0.5 text-xs text-[#5f5752]">
-                      <CalendarClock className="h-3.5 w-3.5" /> {plan.billing_period ?? "monthly"}
-                    </span>
-                    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${plan.is_active ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-neutral-200 bg-neutral-100 text-neutral-600"}`}>
-                      <ShieldCheck className="h-3.5 w-3.5" /> {plan.is_active ? "Activo" : "Inactivo"}
-                    </span>
-                  </div>
+            <details className="relative">
+              <summary className="list-none">
+                <div className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand px-6 py-3 text-xs font-bold text-white shadow-lg shadow-brand/20 transition-all hover:bg-brand-dark hover:scale-[1.02]">
+                  <Plus className="h-4 w-4" /> Nuevo Plan
                 </div>
-                <div className="mt-2 flex flex-wrap gap-1 text-[11px] text-[#7a706a]">
-                  <span className="rounded-full border border-[#e8ded8] bg-[#faf6f4] px-2 py-0.5">Suc: {plan.max_branches ?? "-"}</span>
-                  <span className="rounded-full border border-[#e8ded8] bg-[#faf6f4] px-2 py-0.5">Usr: {plan.max_users ?? "-"}</span>
-                  <span className="rounded-full border border-[#e8ded8] bg-[#faf6f4] px-2 py-0.5">Emp: {plan.max_employees ?? "-"}</span>
-                  <span className="rounded-full border border-[#e8ded8] bg-[#faf6f4] px-2 py-0.5">Storage: {plan.max_storage_mb ?? "-"} MB</span>
-                  <span className="rounded-full border border-[#e8ded8] bg-[#faf6f4] px-2 py-0.5">Modulos: {includedModules.length}</span>
-                </div>
-                <ChevronDown className="h-5 w-5 text-[#8b827d] transition group-open:rotate-180" />
               </summary>
+              <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+                 <div className="relative z-10 w-full max-w-4xl rounded-[2.5rem] bg-white p-8 shadow-2xl border border-line/40">
+                   <div className="mb-6 flex items-center justify-between border-b border-line/20 pb-6">
+                      <h3 className="text-2xl font-bold text-foreground">Configurar Nueva Propuesta</h3>
+                      <DetailsCloseButton />
+                   </div>
+                   <form action={createPlanAction} className="grid gap-6 md:grid-cols-6 max-h-[70vh] overflow-y-auto pr-4 scrollbar-hide">
+                      <SuperadminInputField label="Identificador (Slug)" name="code" required placeholder="p.ej: premium-anual" className="md:col-span-2" />
+                      <SuperadminInputField label="Nombre Público" name="name" required placeholder="p.ej: Premium" className="md:col-span-2" />
+                      <div className="md:col-span-2 grid grid-cols-2 gap-4">
+                         <SuperadminInputField label="Precio" name="price_amount" type="number" min="0" step="0.01" placeholder="0.00" />
+                         <SuperadminInputField label="Moneda" name="currency_code" defaultValue="USD" />
+                      </div>
+                      <SuperadminInputField label="Descripción Breve" name="description" placeholder="Resumen de beneficios" className="md:col-span-4" />
+                      <SuperadminSelectField label="Ciclo de Cobro" name="billing_period" defaultValue="monthly" className="md:col-span-2">
+                        <option value="monthly">Mensual</option>
+                        <option value="yearly">Anual</option>
+                        <option value="one_time">Pago Único</option>
+                      </SuperadminSelectField>
+                      
+                      <div className="md:col-span-6 bg-muted/20 rounded-2xl p-6 border border-line/20">
+                         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand mb-6">Restricciones Técnicas (0 = Ilimitado)</p>
+                         <div className="grid gap-4 sm:grid-cols-4">
+                           <SuperadminInputField label="Sucursales" name="max_branches" type="number" min="0" defaultValue="0" />
+                           <SuperadminInputField label="Usuarios Adm" name="max_users" type="number" min="0" defaultValue="0" />
+                           <SuperadminInputField label="Colaboradores" name="max_employees" type="number" min="0" defaultValue="0" />
+                           <SuperadminInputField label="Storage (MB)" name="max_storage_mb" type="number" min="0" defaultValue="0" />
+                         </div>
+                      </div>
 
-              <div className="mt-4 border-t border-[#eee6e1] pt-4">
-                <form action={updatePlanAction} className="grid gap-2 md:grid-cols-6">
-                  <input type="hidden" name="plan_id" value={plan.id} />
-                  <SuperadminInputField label="Nombre" name="name" defaultValue={plan.name} spellCheck={false} autoCorrect="off" />
-                  <SuperadminInputField label="Descripcion" name="description" defaultValue={plan.description ?? ""} className="md:col-span-2" />
-                  <SuperadminInputField label="Precio" name="price_amount" type="number" min="0" step="0.01" defaultValue={plan.price_amount ?? ""} />
-                  <SuperadminInputField label="Moneda" name="currency_code" defaultValue={plan.currency_code ?? "USD"} />
-                  <SuperadminSelectField label="Periodo" name="billing_period" defaultValue={plan.billing_period ?? "monthly"}>
-                    <option value="monthly">Mensual</option>
-                    <option value="yearly">Anual</option>
-                    <option value="one_time">Unico pago</option>
-                    <option value="custom">Custom</option>
-                  </SuperadminSelectField>
-                  <SuperadminInputField label="Max sucursales" name="max_branches" type="number" min="0" defaultValue={plan.max_branches ?? ""} placeholder="Ej: 10" />
-                  <SuperadminInputField label="Max usuarios" name="max_users" type="number" min="0" defaultValue={plan.max_users ?? ""} placeholder="Ej: 25" />
-                  <SuperadminInputField label="Max empleados" name="max_employees" type="number" min="0" defaultValue={plan.max_employees ?? ""} placeholder="Ej: 80" />
-                  <SuperadminInputField label="Max storage MB" name="max_storage_mb" type="number" min="0" defaultValue={plan.max_storage_mb ?? ""} placeholder="Ej: 500" />
-                  <div className="md:col-span-6 rounded-xl border border-[#eee6e1] bg-[#fffdfa] p-3">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#7a706a]">Modulos del plan</p>
-                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                      {(modulesCatalog ?? []).map((module) => {
-                        const checked = selectedModules.has(module.id);
-                        return (
-                          <label key={module.id} className="inline-flex items-center gap-2 text-sm text-[#4f4843]">
-                            <input
-                              type="checkbox"
-                              name="module_ids"
-                              value={module.id}
-                              defaultChecked={checked || module.is_core}
-                              disabled={module.is_core}
-                              className="h-4 w-4"
-                            />
-                            <span>
-                              {module.name}
-                              {module.is_core ? " (core)" : ""}
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                    <p className="mt-2 text-xs text-[#7f756f]">Los modulos core se mantienen incluidos automaticamente.</p>
-                  </div>
-                  <label className="inline-flex items-center gap-2 text-sm text-[#4f4843]">
-                    <input type="checkbox" name="is_active" defaultChecked={plan.is_active} className="h-4 w-4" /> Activo
-                  </label>
-                  <button type="submit" className="inline-flex items-center gap-1 rounded-lg border border-[#ddd3ce] bg-white px-3 py-2 text-sm text-[#4f4843] hover:bg-[#f8f3f1] md:w-fit">
-                    <PencilLine className="h-4 w-4" /> Guardar cambios
-                  </button>
-                </form>
+                      <div className="md:col-span-6 rounded-2xl border border-line/40 p-6">
+                        <p className="mb-4 text-xs font-bold uppercase tracking-widest text-[#7a706a]">Infraestructura de Módulos Incluidos</p>
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                          {(modulesCatalog ?? []).map((module) => (
+                            <label key={module.id} className="group flex cursor-pointer items-center justify-between rounded-xl border border-line/40 bg-[#fffdfa] px-4 py-3 transition-all hover:bg-white hover:border-brand/40">
+                              <span className="text-sm font-bold text-foreground/80">
+                                {module.name}
+                                {module.is_core && <span className="ml-2 text-[9px] uppercase tracking-tighter text-brand">Core</span>}
+                              </span>
+                              <input
+                                type="checkbox"
+                                name="module_ids"
+                                value={module.id}
+                                defaultChecked={module.is_core}
+                                disabled={module.is_core}
+                                className="h-5 w-5 rounded-lg accent-brand"
+                              />
+                            </label>
+                          ))}
+                        </div>
+                      </div>
 
-                <form action={deletePlanAction} className="mt-3">
-                  <input type="hidden" name="plan_id" value={plan.id} />
-                  <ConfirmSubmitButton
-                    label={usedBy > 0 ? "No se puede borrar (en uso)" : "Borrar plan"}
-                    disabled={usedBy > 0}
-                    confirmTitle="Confirmar eliminacion de plan"
-                    confirmDescription={`Se eliminara el plan ${plan.name}. Esta accion no se puede deshacer.`}
-                    confirmLabel="Si, borrar"
-                    className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm ${
-                      usedBy > 0
-                        ? "cursor-not-allowed border border-neutral-200 bg-neutral-100 text-neutral-400"
-                        : "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
-                    }`}
-                  />
-                </form>
+                      <div className="md:col-span-6 flex items-center justify-between border-t border-line/20 pt-6">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                           <input type="checkbox" name="is_active" defaultChecked className="h-6 w-11 rounded-full accent-brand" />
+                           <span className="text-sm font-bold text-foreground">Publicar Inmediatamente</span>
+                        </label>
+                        <div className="flex gap-3">
+                           <DetailsCloseButton className="rounded-xl border border-line px-6 py-2.5 text-sm font-bold text-muted-foreground">
+                             Cancelar
+                           </DetailsCloseButton>
+                           <button type="submit" className="rounded-xl bg-brand px-10 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/20">Registrar Plan</button>
+                        </div>
+                      </div>
+                   </form>
+                 </div>
               </div>
             </details>
-          );
-        })}
+        </div>
+
+        <div className="grid gap-6">
+          {(plans ?? []).map((plan) => {
+            const usedCount = usageMap.get(plan.id) ?? 0;
+            const selectedSet = planModuleMap.get(plan.id) ?? new Set<string>();
+            const activeModules = (modulesCatalog ?? []).filter(m => selectedSet.has(m.id));
+
+            return (
+              <motion.article 
+                key={plan.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="group relative overflow-hidden rounded-[2rem] border border-line/40 bg-[#fffdfa]/50 p-6 transition-all hover:bg-white hover:shadow-xl sm:p-8"
+              >
+                <div className="absolute right-0 top-0 h-2 w-full bg-gradient-to-r from-transparent via-brand/10 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                
+                <div className="flex flex-col gap-8 lg:flex-row lg:items-center">
+                  <div className="flex-1 space-y-4">
+                    <div className="flex items-center justify-between">
+                       <div className="flex items-center gap-3">
+                          <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-sm ${plan.is_active ? 'bg-brand/5 text-brand' : 'bg-muted text-muted-foreground'}`}>
+                             <Zap className="h-6 w-6" />
+                          </div>
+                          <div>
+                             <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
+                             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">{plan.code}</p>
+                          </div>
+                       </div>
+                       <span className={`rounded-xl border px-3 py-1 text-[11px] font-black uppercase tracking-tighter ${plan.is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-line bg-muted/20 text-muted-foreground'}`}>
+                          {plan.is_active ? 'Status: Publicado' : 'Status: Borrador'}
+                       </span>
+                    </div>
+                    <p className="text-sm text-foreground/60 line-clamp-2 italic">{plan.description || 'Sin descripción comercial definida.'}</p>
+                    
+                    <div className="flex flex-wrap gap-6 pt-2">
+                       <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                          <BadgeDollarSign className="h-5 w-5 text-brand" />
+                          <span>{money(plan.price_amount, plan.currency_code ?? "USD")}</span>
+                          <span className="text-[10px] uppercase text-muted-foreground font-normal">/ {plan.billing_period}</span>
+                       </div>
+                       <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                          <Building2 className="h-5 w-5 text-muted-foreground" />
+                          <span>{usedCount} <span className="text-[10px] font-normal uppercase opacity-60">Clientes</span></span>
+                       </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
+                     {[
+                       { label: 'Sucursales', val: plan.max_branches, icon: Building2 },
+                       { label: 'Administradores', val: plan.max_users, icon: Users2 },
+                       { label: 'Colaboradores', val: plan.max_employees, icon: Layers },
+                       { label: 'Storage (MB)', val: plan.max_storage_mb, icon: HardDrive },
+                     ].map(limit => (
+                        <div key={limit.label} className="rounded-2xl border border-line/20 bg-muted/10 p-4 text-center">
+                           <limit.icon className="mx-auto mb-2 h-4 w-4 text-muted-foreground opacity-40" />
+                           <p className="text-[10px] font-bold uppercase tracking-tight text-muted-foreground/60">{limit.label}</p>
+                           <p className="mt-1 text-lg font-black text-foreground">{limit.val || '∞'}</p>
+                        </div>
+                     ))}
+                  </div>
+
+                  <div className="flex flex-col gap-3 lg:w-48">
+                    <details className="group/details">
+                       <summary className="flex items-center justify-between rounded-xl border border-line/40 bg-white px-4 py-3 text-xs font-bold text-foreground cursor-pointer transition-colors hover:border-brand/40">
+                          <span>{activeModules.length} Módulos</span>
+                          <ChevronDown className="h-4 w-4 transition-transform group-open/details:rotate-180" />
+                       </summary>
+                       <div className="absolute right-6 top-full mt-2 z-50 w-64 rounded-[1.5rem] border border-line/40 bg-white p-4 shadow-2xl backdrop-blur-xl">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-brand mb-3">Capacidades del Plan</p>
+                          <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-hide">
+                            {activeModules.map(m => (
+                               <div key={m.id} className="flex items-center gap-2 text-[11px] font-medium text-foreground/80">
+                                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                  {m.name}
+                               </div>
+                            ))}
+                          </div>
+                       </div>
+                    </details>
+                    
+                    <details className="group/edit">
+                       <summary className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-700 cursor-pointer hover:bg-amber-100">
+                          <PencilLine className="h-4 w-4" /> Editar Plan
+                       </summary>
+                       <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+                          <div className="relative z-10 w-full max-w-4xl rounded-[2.5rem] bg-white p-8 shadow-2xl border border-line/40">
+                            <div className="mb-6 flex items-center justify-between border-b border-line/20 pb-6">
+                               <h3 className="text-2xl font-bold text-foreground">Ajustar Propuesta Comercial</h3>
+                               <DetailsCloseButton />
+                            </div>
+                            <form action={updatePlanAction} className="grid gap-6 md:grid-cols-6 max-h-[70vh] overflow-y-auto pr-4 scrollbar-hide">
+                               <input type="hidden" name="plan_id" value={plan.id} />
+                               <SuperadminInputField label="Nombre Público" name="name" defaultValue={plan.name} className="md:col-span-3" />
+                               <div className="md:col-span-3 grid grid-cols-2 gap-4">
+                                  <SuperadminInputField label="Precio" name="price_amount" type="number" min="0" step="0.01" defaultValue={plan.price_amount ?? ""} />
+                                  <SuperadminInputField label="Moneda" name="currency_code" defaultValue={plan.currency_code ?? "USD"} />
+                               </div>
+                               <SuperadminInputField label="Descripción" name="description" defaultValue={plan.description ?? ""} className="md:col-span-4" />
+                               <SuperadminSelectField label="Ciclo" name="billing_period" defaultValue={plan.billing_period ?? "monthly"} className="md:col-span-2">
+                                 <option value="monthly">Mensual</option>
+                                 <option value="yearly">Anual</option>
+                                 <option value="one_time">Pago Único</option>
+                               </SuperadminSelectField>
+                               
+                               <div className="md:col-span-6 bg-muted/20 rounded-2xl p-6">
+                                  <div className="grid gap-4 sm:grid-cols-4">
+                                    <SuperadminInputField label="Sucursales" name="max_branches" type="number" min="0" defaultValue={plan.max_branches ?? "0"} />
+                                    <SuperadminInputField label="Usuarios Adm" name="max_users" type="number" min="0" defaultValue={plan.max_users ?? "0"} />
+                                    <SuperadminInputField label="Colaboradores" name="max_employees" type="number" min="0" defaultValue={plan.max_employees ?? "0"} />
+                                    <SuperadminInputField label="Storage (MB)" name="max_storage_mb" type="number" min="0" defaultValue={plan.max_storage_mb ?? "0"} />
+                                  </div>
+                               </div>
+
+                               <div className="md:col-span-6 rounded-2xl border border-line/40 p-6 bg-[#fcfaf8]">
+                                 <p className="mb-4 text-xs font-bold uppercase tracking-widest text-foreground">Matriz de Módulos Activos</p>
+                                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                   {(modulesCatalog ?? []).map((module) => {
+                                      const isChecked = selectedSet.has(module.id);
+                                      return (
+                                        <label key={module.id} className="group flex cursor-pointer items-center justify-between rounded-xl border border-line/40 bg-white px-4 py-3 hover:border-brand/40">
+                                          <span className="text-sm font-bold text-foreground/80">
+                                            {module.name}
+                                            {module.is_core && <span className="ml-2 text-[9px] uppercase tracking-tighter text-brand">Core</span>}
+                                          </span>
+                                          <input
+                                            type="checkbox"
+                                            name="module_ids"
+                                            value={module.id}
+                                            defaultChecked={isChecked || module.is_core}
+                                            disabled={module.is_core}
+                                            className="h-5 w-5 rounded-lg accent-brand"
+                                          />
+                                        </label>
+                                      );
+                                   })}
+                                 </div>
+                               </div>
+
+                               <div className="md:col-span-6 flex items-center justify-between border-t border-line/20 pt-6">
+                                 <label className="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" name="is_active" defaultChecked={plan.is_active} className="h-6 w-11 rounded-full accent-brand" />
+                                    <span className="text-sm font-bold text-foreground">Estado del Plan (Habilitado)</span>
+                                 </label>
+                                 <div className="flex gap-3">
+                                    <DetailsCloseButton className="rounded-xl border border-line px-6 py-2.5 text-sm font-bold text-muted-foreground">
+                                      Cancelar
+                                    </DetailsCloseButton>
+                                    <button type="submit" className="rounded-xl bg-foreground px-10 py-2.5 text-sm font-bold text-white shadow-lg shadow-black/10">Sincronizar Cambios</button>
+                                 </div>
+                               </div>
+                            </form>
+                          </div>
+                       </div>
+                    </details>
+
+                    <form action={deletePlanAction}>
+                       <input type="hidden" name="plan_id" value={plan.id} />
+                       <ConfirmSubmitButton
+                         label=""
+                         disabled={usedCount > 0}
+                         confirmTitle="Protocolo de Destrucción de Plan"
+                         confirmDescription={`Está a punto de eliminar el plan "${plan.name}". Esta acción es irreversible y solo permitida si no hay clientes asociados.`}
+                         confirmLabel="Confirmar Eliminación"
+                         className={`w-full h-11 rounded-xl flex items-center justify-center transition-all ${
+                            usedCount > 0 
+                            ? 'bg-muted/50 text-muted-foreground cursor-not-allowed border border-line/20' 
+                            : 'bg-red-50 text-red-600 border border-red-100 hover:bg-red-100'
+                         }`}
+                       >
+                         <Trash2 className="h-4 w-4" />
+                       </ConfirmSubmitButton>
+                    </form>
+                  </div>
+                </div>
+              </motion.article>
+            );
+          })}
+        </div>
       </section>
 
-      <section className="rounded-2xl border border-[#e5ddd8] bg-[#fffdfa] p-4 text-sm text-[#6d645f]">
-        <p className="mb-1 font-semibold text-[#2f2925]">Politica de eliminacion</p>
-        <p>
-          Para proteger integridad de datos, un plan no se borra si tiene empresas
-          asignadas. Primero debes reasignarlas a otro plan o dejarlas sin plan.
-        </p>
+      <section className="flex items-center gap-4 rounded-[1.5rem] border border-amber-100 bg-amber-50/50 p-6 text-amber-800">
+        <AlertCircle className="h-6 w-6 shrink-0" />
+        <div>
+          <p className="text-sm font-bold">Integridad de Relaciones comerciales</p>
+          <p className="text-xs opacity-80 mt-1">
+            Los planes con empresas activas no pueden eliminarse. Para dar de baja un plan, primero migre a sus suscriptores a una propuesta de servicio alternativa.
+          </p>
+        </div>
       </section>
     </main>
   );

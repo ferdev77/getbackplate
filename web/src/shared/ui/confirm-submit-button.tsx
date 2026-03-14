@@ -11,6 +11,7 @@ type ConfirmSubmitButtonProps = {
   cancelLabel?: string;
   className?: string;
   disabled?: boolean;
+  children?: React.ReactNode;
 };
 
 export function ConfirmSubmitButton({
@@ -21,6 +22,7 @@ export function ConfirmSubmitButton({
   cancelLabel = "Cancelar",
   className,
   disabled,
+  children,
 }: ConfirmSubmitButtonProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -42,7 +44,7 @@ export function ConfirmSubmitButton({
         onClick={() => setOpen(true)}
         disabled={disabled}
       >
-        {label}
+        {children || label}
       </button>
 
       {open ? (

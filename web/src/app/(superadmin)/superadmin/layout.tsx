@@ -10,22 +10,26 @@ export default async function SuperadminLayout({
   await requireSuperadmin();
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f8f5f2_0%,#f5f4f0_42%,#f3f1ee_100%)]">
-      <header className="sticky top-0 z-40 border-b border-[#e6dfda] bg-white/92 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-3.5">
+    <div className="min-h-screen bg-[linear-gradient(180deg,#fcfaf8_0%,#f8f6f2_42%,#f5f3ef_100%)]">
+      <header className="sticky top-0 z-40 border-b border-line/40 bg-white/70 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-2.5">
           <SuperadminTopbar />
 
-          <form action={logoutAction}>
-            <button
-              type="submit"
-              className="rounded-xl border border-[#ddd2cc] bg-white px-3.5 py-1.5 text-sm font-medium text-[#5d544f] transition hover:border-[#c9bbb4] hover:bg-[#f8f4f2] hover:text-[#2f2925]"
-            >
-              Cerrar sesion
-            </button>
-          </form>
+          <div className="hidden md:block">
+            <form action={logoutAction}>
+              <button
+                type="submit"
+                className="rounded-xl border border-line bg-white px-4 py-2 text-sm font-bold text-muted-foreground transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-600 shadow-sm"
+              >
+                Cerrar sesión
+              </button>
+            </form>
+          </div>
         </div>
       </header>
-      {children}
+      <div className="mx-auto w-full max-w-7xl animate-in fade-in slide-in-from-bottom-2 duration-500">
+        {children}
+      </div>
     </div>
   );
 }
