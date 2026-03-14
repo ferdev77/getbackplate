@@ -76,7 +76,7 @@ export async function GET(_request: Request, { params }: Context) {
 
   const { data: employeeRow } = await supabase
     .from("employees")
-    .select("id, department_id, position")
+    .select("id, department_id, position, branch_id")
     .eq("organization_id", document.organization_id)
     .eq("user_id", userId)
     .maybeSingle();
@@ -107,16 +107,26 @@ export async function GET(_request: Request, { params }: Context) {
     isDirectlyAssigned = Boolean(link);
   }
 
-  const roleCode = roleCodeById.get(membership.role_id) ?? "";
-  const canRead = canReadDocumentInTenant({
-    roleCode,
-    userId,
-    branchId: membership.branch_id,
-    departmentId: employeeRow?.department_id ?? null,
-    positionIds: employeePositionIds,
-    isDirectlyAssigned,
-    accessScope: document.access_scope,
-  });
+  const orgMemberships = (memberships ?? []).filter((row) => row.organization_id === document.organization_id);
+
+  let canRead = false;
+  for (const membership of orgMemberships) {
+    const roleCode = roleCodeById.get(membership.role_id) ?? "";
+    const isAllowed = canReadDocumentInTenant({
+      roleCode,
+      userId,
+      branchId: membership.branch_id ?? employeeRow?.branch_id ?? null,
+      departmentId: employeeRow?.department_id ?? null,
+      positionIds: employeePositionIds,
+      isDirectlyAssigned,
+      accessScope: document.access_scope,
+    });
+
+    if (isAllowed) {
+      canRead = true;
+      break;
+    }
+  }
 
   if (!canRead) {
     return NextResponse.json({ error: "Sin acceso a este documento" }, { status: 403 });
