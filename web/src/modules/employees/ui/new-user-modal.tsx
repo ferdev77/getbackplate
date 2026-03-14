@@ -5,6 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { UserDepartmentPositionFields } from "./user-department-position-fields";
 import { createUserAccountAction } from "@/modules/employees/actions";
+import { SubmitButton } from "@/shared/ui/submit-button";
 
 type NewUserModalProps = {
   open: boolean;
@@ -117,13 +118,12 @@ export function NewUserModal({ open, branches, roleOptions, departments, positio
             >
               Cancelar
             </Link>
-            <button
-              disabled={isPending}
-              className="rounded-lg bg-[#111] px-5 py-2 text-sm font-bold text-white hover:bg-[#c0392b] disabled:opacity-50"
-              type="submit"
-            >
-              {isPending ? "Creando..." : "Crear Usuario"}
-            </button>
+            <SubmitButton
+              label="Crear Usuario"
+              pendingLabel="Creando..."
+              pending={isPending}
+              className="px-5 py-2 text-sm font-bold"
+            />
           </div>
         </form>
       </div>

@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { selectOrganizationAction } from "@/modules/auth/actions";
 import { getCurrentUserMemberships } from "@/modules/memberships/queries";
+import { SubmitButton } from "@/shared/ui/submit-button";
+
 
 export const metadata: Metadata = {
   title: "Seleccionar empresa | GetBackplate",
@@ -80,9 +82,7 @@ export default async function SelectOrganizationPage({ searchParams }: SelectOrg
                   </div>
                 </div>
 
-                <button type="submit" className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark">
-                  Entrar
-                </button>
+                <SubmitButton label="Entrar" pendingLabel="Entrando..." />
               </div>
             </form>
           ))}

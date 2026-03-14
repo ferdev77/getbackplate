@@ -39,7 +39,7 @@ function normalizePriority(value: string) {
   return "medium";
 }
 
-export async function createChecklistTemplateAction(formData: FormData) {
+export async function createChecklistTemplateAction(prevState: any, formData: FormData) {
   const tenant = await requireTenantModule("checklists");
   const supabase = await createSupabaseServerClient();
 
@@ -80,7 +80,7 @@ export async function createChecklistTemplateAction(formData: FormData) {
           .slice(0, 20);
       }
     } catch {
-      redirect("/app/checklists?status=error&message=" + qs("Formato de secciones (JSON) invalido"));
+      return { success: false, message: "Formato de secciones (JSON) invalido" };
     }
   } else if (itemsInput) {
     const fallbackItems = itemsInput
@@ -97,11 +97,11 @@ export async function createChecklistTemplateAction(formData: FormData) {
   const totalItems = normalizedSections.reduce((acc, section) => acc + section.items.length, 0);
 
   if (!name) {
-    redirect("/app/checklists?status=error&message=" + qs("Nombre de plantilla obligatorio"));
+    return { success: false, message: "Nombre de plantilla obligatorio" };
   }
 
   if (!totalItems) {
-    redirect("/app/checklists?status=error&message=" + qs("Agrega al menos un item de checklist"));
+    return { success: false, message: "Agrega al menos un item de checklist" };
   }
 
   if (branchId) {
@@ -113,7 +113,7 @@ export async function createChecklistTemplateAction(formData: FormData) {
       .maybeSingle();
 
     if (branchError || !branch) {
-      redirect("/app/checklists?status=error&message=" + qs("Locacion base invalida para esta empresa"));
+      return { success: false, message: "Locacion base invalida para esta empresa" };
     }
   }
 
@@ -127,7 +127,7 @@ export async function createChecklistTemplateAction(formData: FormData) {
       .maybeSingle();
 
     if (departmentError || !departmentRow) {
-      redirect("/app/checklists?status=error&message=" + qs("Departamento base invalido para esta empresa"));
+      return { success: false, message: "Departamento base invalido para esta empresa" };
     }
 
     department = departmentRow.name;
@@ -188,7 +188,7 @@ export async function createChecklistTemplateAction(formData: FormData) {
       .maybeSingle();
 
     if (!existingTemplate) {
-      redirect("/app/checklists?status=error&message=" + qs("No se encontro la plantilla a editar"));
+      return { success: false, message: "No se encontro la plantilla a editar" };
     }
 
     const { data: hasSubmissions } = await supabase
@@ -247,10 +247,7 @@ export async function createChecklistTemplateAction(formData: FormData) {
   }
 
   if (templateError || !template) {
-    redirect(
-      "/app/checklists?status=error&message=" +
-        qs(`No se pudo crear plantilla: ${templateError?.message ?? "error"}`),
-    );
+    return { success: false, message: `No se pudo crear plantilla: ${templateError?.message ?? "error"}` };
   }
 
   const { data: oldSections } = await supabase
@@ -288,10 +285,10 @@ export async function createChecklistTemplateAction(formData: FormData) {
       .single();
 
     if (sectionError || !sectionRow) {
-      redirect(
-        "/app/checklists?status=error&message=" +
-          qs(`Plantilla ${templateId ? "actualizada" : "creada"} pero seccion fallo: ${sectionError?.message ?? "error"}`),
-      );
+      return {
+        success: false,
+        message: `Plantilla ${templateId ? "actualizada" : "creada"} pero seccion fallo: ${sectionError?.message ?? "error"}`
+      };
     }
 
     const itemsPayload = section.items.map((label, index) => ({
@@ -308,10 +305,10 @@ export async function createChecklistTemplateAction(formData: FormData) {
       .insert(itemsPayload);
 
     if (itemsError) {
-      redirect(
-        "/app/checklists?status=error&message=" +
-          qs(`Plantilla ${templateId ? "actualizada" : "creada"} pero items fallaron: ${itemsError.message}`),
-      );
+      return {
+        success: false,
+        message: `Plantilla ${templateId ? "actualizada" : "creada"} pero items fallaron: ${itemsError.message}`
+      };
     }
   }
 
@@ -342,26 +339,24 @@ export async function createChecklistTemplateAction(formData: FormData) {
 
   revalidatePath("/app/checklists");
   revalidatePath("/app/reports");
-  redirect(
-    "/app/checklists?status=success&message=" +
-      qs(
-        templateId
-          ? preservedHistory
-            ? "Checklist actualizado creando nueva version (se preservo historial)"
-            : "Checklist actualizado correctamente"
-          : "Plantilla creada correctamente",
-      ),
-  );
+  return {
+    success: true,
+    message: templateId
+      ? preservedHistory
+        ? "Checklist actualizado creando nueva version (se preservo historial)"
+        : "Checklist actualizado correctamente"
+      : "Plantilla creada correctamente"
+  };
 }
 
-export async function submitChecklistRunAction(formData: FormData) {
+export async function submitChecklistRunAction(prevState: any, formData: FormData) {
   const tenant = await requireTenantModule("checklists");
   const supabase = await createSupabaseServerClient();
   const { data: authData } = await supabase.auth.getUser();
 
   const templateId = String(formData.get("template_id") ?? "").trim();
   if (!templateId) {
-    redirect("/app/checklists?status=error&message=" + qs("Plantilla invalida"));
+    return { success: false, message: "Plantilla invalida" };
   }
 
   const { data: template, error: templateError } = await supabase
@@ -372,7 +367,7 @@ export async function submitChecklistRunAction(formData: FormData) {
     .maybeSingle();
 
   if (templateError || !template) {
-    redirect("/app/checklists?status=error&message=" + qs("No se encontro la plantilla"));
+    return { success: false, message: "No se encontro la plantilla" };
   }
 
   const userId = authData.user?.id;
@@ -398,7 +393,7 @@ export async function submitChecklistRunAction(formData: FormData) {
   });
 
   if (!canUseTemplate) {
-    redirect("/app/checklists?status=error&message=" + qs("No tienes acceso a esta plantilla"));
+    return { success: false, message: "No tienes acceso a esta plantilla" };
   }
 
   const { data: sections } = await supabase
@@ -416,7 +411,7 @@ export async function submitChecklistRunAction(formData: FormData) {
     .order("sort_order");
 
   if (!items?.length) {
-    redirect("/app/checklists?status=error&message=" + qs("La plantilla no tiene items"));
+    return { success: false, message: "La plantilla no tiene items" };
   }
 
   const { data: submission, error: submissionError } = await supabase
@@ -433,10 +428,10 @@ export async function submitChecklistRunAction(formData: FormData) {
     .single();
 
   if (submissionError || !submission) {
-    redirect(
-      "/app/checklists?status=error&message=" +
-        qs(`No se pudo registrar ejecucion: ${submissionError?.message ?? "error"}`),
-    );
+    return {
+      success: false,
+      message: `No se pudo registrar ejecucion: ${submissionError?.message ?? "error"}`
+    };
   }
 
   let flaggedCount = 0;
@@ -458,10 +453,10 @@ export async function submitChecklistRunAction(formData: FormData) {
       .single();
 
     if (itemError || !submissionItem) {
-      redirect(
-        "/app/checklists?status=error&message=" +
-          qs(`Error guardando items: ${itemError?.message ?? "error"}`),
-      );
+      return {
+        success: false,
+        message: `Error guardando items: ${itemError?.message ?? "error"}`
+      };
     }
 
     if (isFlagged) {
@@ -475,10 +470,7 @@ export async function submitChecklistRunAction(formData: FormData) {
       });
 
       if (flagError) {
-        redirect(
-          "/app/checklists?status=error&message=" +
-            qs(`Error guardando incidencia: ${flagError.message}`),
-        );
+        return { success: false, message: `Error guardando incidencia: ${flagError.message}` };
       }
     }
   }
@@ -497,24 +489,24 @@ export async function submitChecklistRunAction(formData: FormData) {
 
   revalidatePath("/app/checklists");
   revalidatePath("/app/reports");
-  redirect(
-    "/app/checklists?status=success&message=" +
-      qs(`Checklist enviado (${items.length} items, ${flaggedCount} incidencias)`),
-  );
+  return {
+    success: true,
+    message: `Checklist enviado (${items.length} items, ${flaggedCount} incidencias)`
+  };
 }
 
-export async function reviewChecklistSubmissionAction(formData: FormData) {
+export async function reviewChecklistSubmissionAction(prevState: any, formData: FormData) {
   const tenant = await requireTenantModule("checklists");
   const supabase = await createSupabaseServerClient();
   const { data: authData } = await supabase.auth.getUser();
 
   if (tenant.roleCode !== "company_admin" && tenant.roleCode !== "manager") {
-    redirect("/app/checklists?status=error&message=" + qs("No tienes permisos para revisar ejecuciones"));
+    return { success: false, message: "No tienes permisos para revisar ejecuciones" };
   }
 
   const submissionId = String(formData.get("submission_id") ?? "").trim();
   if (!submissionId) {
-    redirect("/app/checklists?status=error&message=" + qs("Ejecucion invalida"));
+    return { success: false, message: "Ejecucion invalida" };
   }
 
   const { error } = await supabase
@@ -528,10 +520,7 @@ export async function reviewChecklistSubmissionAction(formData: FormData) {
     .eq("organization_id", tenant.organizationId);
 
   if (error) {
-    redirect(
-      "/app/checklists?status=error&message=" +
-        qs(`No se pudo revisar ejecucion: ${error.message}`),
-    );
+    return { success: false, message: `No se pudo revisar ejecucion: ${error.message}` };
   }
 
   await logAuditEvent({
@@ -546,20 +535,20 @@ export async function reviewChecklistSubmissionAction(formData: FormData) {
 
   revalidatePath("/app/checklists");
   revalidatePath("/app/reports");
-  redirect("/app/checklists?status=success&message=" + qs("Checklist marcado como revisado"));
+  return { success: true, message: "Checklist marcado como revisado" };
 }
 
-export async function deleteChecklistTemplateAction(formData: FormData) {
+export async function deleteChecklistTemplateAction(prevState: any, formData: FormData) {
   const tenant = await requireTenantModule("checklists");
   const supabase = await createSupabaseServerClient();
 
   if (tenant.roleCode !== "company_admin" && tenant.roleCode !== "manager") {
-    redirect("/app/checklists?status=error&message=" + qs("No tienes permisos para eliminar checklists"));
+    return { success: false, message: "No tienes permisos para eliminar checklists" };
   }
 
   const templateId = String(formData.get("template_id") ?? "").trim();
   if (!templateId) {
-    redirect("/app/checklists?status=error&message=" + qs("Checklist invalido"));
+    return { success: false, message: "Checklist invalido" };
   }
 
   const { data: template } = await supabase
@@ -570,7 +559,7 @@ export async function deleteChecklistTemplateAction(formData: FormData) {
     .maybeSingle();
 
   if (!template) {
-    redirect("/app/checklists?status=error&message=" + qs("Checklist no encontrado"));
+    return { success: false, message: "Checklist no encontrado" };
   }
 
   const { count: submissionsCount } = await supabase
@@ -587,7 +576,7 @@ export async function deleteChecklistTemplateAction(formData: FormData) {
       .eq("id", templateId);
 
     if (archiveError) {
-      redirect("/app/checklists?status=error&message=" + qs(`No se pudo archivar checklist: ${archiveError.message}`));
+      return { success: false, message: `No se pudo archivar checklist: ${archiveError.message}` };
     }
 
     await logAuditEvent({
@@ -604,7 +593,7 @@ export async function deleteChecklistTemplateAction(formData: FormData) {
 
     revalidatePath("/app/checklists");
     revalidatePath("/app/reports");
-    redirect("/app/checklists?status=success&message=" + qs("Checklist archivado (tiene historial de ejecuciones)"));
+    return { success: true, message: "Checklist archivado (tiene historial de ejecuciones)" };
   }
 
   const { data: sections } = await supabase
@@ -622,7 +611,7 @@ export async function deleteChecklistTemplateAction(formData: FormData) {
       .in("section_id", sectionIds);
 
     if (itemsDeleteError) {
-      redirect("/app/checklists?status=error&message=" + qs(`No se pudieron eliminar items: ${itemsDeleteError.message}`));
+      return { success: false, message: `No se pudieron eliminar items: ${itemsDeleteError.message}` };
     }
 
     const { error: sectionsDeleteError } = await supabase
@@ -632,7 +621,7 @@ export async function deleteChecklistTemplateAction(formData: FormData) {
       .eq("template_id", templateId);
 
     if (sectionsDeleteError) {
-      redirect("/app/checklists?status=error&message=" + qs(`No se pudieron eliminar secciones: ${sectionsDeleteError.message}`));
+      return { success: false, message: `No se pudieron eliminar secciones: ${sectionsDeleteError.message}` };
     }
   }
 
@@ -643,7 +632,7 @@ export async function deleteChecklistTemplateAction(formData: FormData) {
     .eq("id", templateId);
 
   if (templateDeleteError) {
-    redirect("/app/checklists?status=error&message=" + qs(`No se pudo eliminar checklist: ${templateDeleteError.message}`));
+    return { success: false, message: `No se pudo eliminar checklist: ${templateDeleteError.message}` };
   }
 
   await logAuditEvent({
@@ -660,5 +649,5 @@ export async function deleteChecklistTemplateAction(formData: FormData) {
 
   revalidatePath("/app/checklists");
   revalidatePath("/app/reports");
-  redirect("/app/checklists?status=success&message=" + qs("Checklist eliminado"));
+  return { success: true, message: "Checklist eliminado" };
 }

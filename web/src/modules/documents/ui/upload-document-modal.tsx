@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { ScopeSelector } from "@/shared/ui/scope-selector";
+import { SubmitButton } from "@/shared/ui/submit-button";
 
 type Folder = { id: string; name: string };
 type Branch = { id: string; name: string };
@@ -35,8 +37,6 @@ export function UploadDocumentModal({
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [selectedFileName, setSelectedFileName] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [isClosing, setIsClosing] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
 
@@ -49,8 +49,6 @@ export function UploadDocumentModal({
     const form = event.currentTarget;
     const formData = new FormData(form);
 
-    setError("");
-    setSuccess("");
     setProgress(0);
     setShowSuccessOverlay(false);
     setIsClosing(false);
@@ -88,14 +86,14 @@ export function UploadDocumentModal({
     });
 
     if (!result.ok) {
-      setError(result.message);
+      toast.error(result.message);
       setIsUploading(false);
       setProgress(0);
       return;
     }
 
     setProgress(100);
-    setSuccess("Carga exitosa. El documento ya esta disponible segun el alcance definido.");
+    toast.success("Documento subido con éxito");
     setShowSuccessOverlay(true);
     setIsUploading(false);
 
@@ -104,7 +102,7 @@ export function UploadDocumentModal({
     }, 550);
 
     setTimeout(() => {
-      router.push("/app/documents?status=success&message=Documento%20subido");
+      router.push("/app/documents");
       router.refresh();
     }, 900);
   }
@@ -158,9 +156,6 @@ export function UploadDocumentModal({
                     <div className="h-2 w-full overflow-hidden rounded-full bg-[#efe3de]"><div className="h-full rounded-full bg-[#c0392b] transition-all duration-300" style={{ width: `${progress}%` }} /></div>
                   </div>
                 ) : null}
-
-                {success ? <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{success}</div> : null}
-                {error ? <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</div> : null}
               </div>
 
               <aside className="rounded-xl border border-[#ece3de] bg-[#fffcfb] p-4">
@@ -181,7 +176,18 @@ export function UploadDocumentModal({
               </aside>
             </div>
           </div>
-          <div className="flex justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4"><Link href="/app/documents" className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]">Cancelar</Link><button className="rounded-lg bg-[#111] px-5 py-2 text-sm font-bold text-white hover:bg-[#c0392b] disabled:opacity-60" type="submit" disabled={isUploading || showSuccessOverlay}>{isUploading ? "Subiendo..." : "Subir Archivo"}</button></div>
+          <div className="flex justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4">
+            <Link href="/app/documents" className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]">
+              Cancelar
+            </Link>
+            <SubmitButton 
+              label="Subir Archivo" 
+              pendingLabel="Subiendo..." 
+              pending={isUploading} 
+              disabled={showSuccessOverlay}
+              className="px-5 py-2 text-sm font-bold"
+            />
+          </div>
         </form>
 
         {showSuccessOverlay ? (
