@@ -1,16 +1,21 @@
 import Link from "next/link";
 import {
+  AlertTriangle,
   BadgeCheck,
   Building2,
+  CircleOff,
   Eye,
   LayoutGrid,
   Pencil,
   Plus,
+  Search,
   Settings2,
   Trash2,
   User,
   X,
 } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
+import * as motion from "framer-motion/client";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import {
@@ -50,10 +55,6 @@ function statusTone(status: string) {
   if (status === "active") return "border-emerald-200 bg-emerald-50 text-emerald-700";
   if (status === "paused") return "border-amber-200 bg-amber-50 text-amber-700";
   return "border-rose-200 bg-rose-50 text-rose-700";
-}
-
-function modalRoute() {
-  return "/superadmin/organizations";
 }
 
 function usagePercent(used: number, limit: number | null | undefined) {
@@ -172,269 +173,335 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
     : null;
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-6 py-8">
-      <section className="rounded-3xl border border-[#2d2622] bg-[#171311] px-6 py-6 text-white">
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#b8aaa2]">Superadmin</p>
-        <h1 className="mb-1 font-serif text-[31px] leading-none">Organizaciones</h1>
-        <p className="text-sm text-[#c7bbb3]">Gestion centralizada de empresa, plan, limites y modulos habilitados.</p>
+    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
+      <section className="relative overflow-hidden rounded-[2.5rem] border border-[#2d2622] bg-[#171311] p-8 text-white shadow-xl">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand/20 blur-3xl" />
+        <div className="relative z-10">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-light/60">Superadmin Control</p>
+          <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Organizaciones</h1>
+          <p className="mt-4 max-w-2xl text-base text-[#c7bbb3]/80 leading-relaxed">
+            Gestión centralizada de infraestructura multi-tenant. Administra planes, límites y capacidades para cada empresa en la plataforma.
+          </p>
+        </div>
       </section>
 
-      {params.message ? (
-        <section
-          className={`rounded-xl border px-4 py-3 text-sm ${
+      {params.message && (
+        <motion.section
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className={`rounded-[1.25rem] border px-6 py-4 text-sm font-medium shadow-sm ${
             params.status === "success"
               ? "border-emerald-200 bg-emerald-50 text-emerald-800"
               : "border-rose-200 bg-rose-50 text-rose-800"
           }`}
         >
           {params.message}
-        </section>
-      ) : null}
+        </motion.section>
+      )}
 
-      <section className="grid gap-3 sm:grid-cols-3">
-        <article className="rounded-2xl border border-[#e5ddd8] bg-white p-4">
-          <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.1em] text-[#8d847f]"><Building2 className="h-3.5 w-3.5" />Organizaciones</p>
-          <p className="mt-1 font-serif text-3xl text-[#251f1b]">{totalOrgs}</p>
-        </article>
-        <article className="rounded-2xl border border-[#d7eedf] bg-[#f4fbf6] p-4">
-          <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.1em] text-[#5a7c65]"><BadgeCheck className="h-3.5 w-3.5" />Activas</p>
-          <p className="mt-1 font-serif text-3xl text-[#1f6b3a]">{activeOrgs}</p>
-        </article>
-        <article className="rounded-2xl border border-[#f2d6d0] bg-[#fff7f5] p-4">
-          <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.1em] text-[#9b564a]"><Settings2 className="h-3.5 w-3.5" />Pausadas/Suspendidas</p>
-          <p className="mt-1 font-serif text-3xl text-[#b63a2f]">{pausedOrSuspended}</p>
-        </article>
+      <section className="grid gap-4 sm:grid-cols-3">
+        {[
+          { label: "Total Empresas", val: totalOrgs, icon: Building2, color: "text-[#251f1b]", bg: "bg-white" },
+          { label: "Operacionales", val: activeOrgs, icon: BadgeCheck, color: "text-emerald-700", bg: "bg-emerald-50/50" },
+          { label: "Pausas / Alertas", val: pausedOrSuspended, icon: Settings2, color: "text-red-700", bg: "bg-red-50/50" },
+        ].map((stat, idx) => (
+          <motion.article 
+            key={stat.label}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.1 }}
+            className={`rounded-3xl border border-line/60 ${stat.bg} p-5 shadow-sm`}
+          >
+            <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <stat.icon className="h-3.5 w-3.5" /> {stat.label}
+            </p>
+            <p className={`mt-2 font-serif text-3xl font-medium ${stat.color}`}>{stat.val}</p>
+          </motion.article>
+        ))}
       </section>
 
-      <section className="rounded-2xl border border-[#e5ddd8] bg-white p-4 shadow-[0_8px_24px_rgba(0,0,0,.04)]">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm font-semibold text-[#2f2925]">Listado de empresas</p>
-          <Link href="/superadmin/organizations?action=create" className="inline-flex items-center gap-1.5 rounded-lg bg-[#b63a2f] px-3 py-2 text-xs font-semibold text-white hover:bg-[#8f2e26]">
-            <Plus className="h-4 w-4" /> Agregar
+      <section className="rounded-[2rem] border border-line/60 bg-white p-6 shadow-sm">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-bold tracking-tight text-foreground">Directorio Organizado</h2>
+            <div className="flex items-center gap-2 rounded-xl bg-muted/30 px-3 py-1.5 border border-line/20">
+               <Search className="h-3.5 w-3.5 text-muted-foreground" />
+               <input type="text" placeholder="Buscar..." className="bg-transparent text-xs outline-none w-24 placeholder:text-muted-foreground/60" />
+            </div>
+          </div>
+          <Link href="/superadmin/organizations?action=create" className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-brand/20 transition-all hover:bg-brand-dark hover:scale-[1.02] active:scale-[0.98]">
+            <Plus className="h-4 w-4" /> Nueva Organización
           </Link>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           {(organizations ?? []).map((org) => {
             const selectedPlan = org.plan_id ? planById.get(org.plan_id) : null;
             const enabledCount = (modules ?? []).filter((m) => moduleMap.get(`${org.id}:${m.id}`)).length;
             const adminCount = adminCountByOrg.get(org.id) ?? 0;
             return (
-              <article key={org.id} className="grid items-center gap-3 rounded-xl border border-[#eee6e1] bg-[#fffdfa] px-4 py-3 sm:grid-cols-[1.6fr_1fr_1fr_1fr_auto]">
+              <motion.article 
+                key={org.id} 
+                className="group relative grid items-center gap-4 rounded-2xl border border-line/40 bg-[#fffdfa]/50 px-5 py-4 transition-all hover:bg-white hover:shadow-xl hover:shadow-black/5 sm:grid-cols-[2fr_1.5fr_1fr_1fr_auto]"
+              >
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-[#2a2420]">{org.name}</p>
-                  <p className="truncate text-xs text-[#837a75]">{org.slug}</p>
+                  <p className="truncate text-base font-bold text-foreground">{org.name}</p>
+                  <p className="truncate text-[11px] font-medium tracking-wide uppercase text-muted-foreground/60">{org.slug}</p>
                 </div>
-                <p className="text-xs text-[#5f5752]"><span className="font-semibold">Plan:</span> {selectedPlan ? selectedPlan.name : "Sin plan"}</p>
-                <p className="text-xs text-[#5f5752]"><span className="font-semibold">Modulos:</span> {enabledCount}</p>
                 <div>
-                  <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs ${statusTone(org.status)}`}>{org.status}</span>
-                  <p className="mt-1 text-[11px] text-[#8a817b]">{adminCount} admin(s)</p>
+                   <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-1">Plan contratado</p>
+                   <p className="text-sm font-bold text-foreground/80">{selectedPlan ? selectedPlan.name : "Sin plan"}</p>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Link href={`/superadmin/organizations?action=view&org=${org.id}`} title="Ver" className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#dfe6f1] bg-[#eff4ff] text-[#3f5f9a] hover:bg-[#e6eeff]"><Eye className="h-4 w-4" /></Link>
-                  <Link href={`/superadmin/organizations?action=edit&org=${org.id}`} title="Editar" className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#f0d5d0] bg-[#fff5f3] text-[#b63a2f] hover:bg-[#ffece8]"><Pencil className="h-4 w-4" /></Link>
-                  <Link href={`/superadmin/organizations?action=delete&org=${org.id}`} title="Eliminar" className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#f2d7d2] bg-[#fff4f2] text-[#b23a2d] hover:bg-[#ffe9e5]"><Trash2 className="h-4 w-4" /></Link>
+                <div>
+                   <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-1">Módulos</p>
+                   <p className="text-sm font-bold text-foreground/80">{enabledCount} <span className="text-[10px] font-normal opacity-60">activos</span></p>
                 </div>
-              </article>
+                <div className="flex flex-col items-start gap-1">
+                  <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-tighter ${statusTone(org.status)}`}>
+                    {org.status}
+                  </span>
+                  <p className="text-[11px] font-medium text-muted-foreground/60">{adminCount} administrador(es)</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Link href={`/superadmin/organizations?action=view&org=${org.id}`} title="Ver" className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600 transition-colors hover:bg-blue-100 hover:scale-105"><Eye className="h-4 w-4" /></Link>
+                  <Link href={`/superadmin/organizations?action=edit&org=${org.id}`} title="Editar" className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-amber-100 bg-amber-50 text-amber-600 transition-colors hover:bg-amber-100 hover:scale-105"><Pencil className="h-4 w-4" /></Link>
+                  <Link href={`/superadmin/organizations?action=delete&org=${org.id}`} title="Eliminar" className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-600 transition-colors hover:bg-red-100 hover:scale-105"><Trash2 className="h-4 w-4" /></Link>
+                </div>
+              </motion.article>
             );
           })}
         </div>
       </section>
 
-      {action === "create" ? (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 p-4">
-          <Link href={modalRoute()} className="absolute inset-0" aria-label="Cerrar" />
-          <div className="relative z-10 w-full max-w-3xl rounded-2xl border border-[#e5ddd8] bg-white p-5 shadow-[0_24px_80px_rgba(0,0,0,.2)]">
-            <div className="mb-4 flex items-center justify-between">
-              <p className="text-base font-semibold text-[#2f2925]">Agregar organizacion</p>
-              <Link href={modalRoute()} className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#e5ddd8] text-[#7a716b] hover:bg-[#f7f2ef]"><X className="h-4 w-4" /></Link>
-            </div>
-            <form action={createOrganizationAction} autoComplete="off" className="grid gap-3 sm:grid-cols-2">
-              <SuperadminInputField label="Empresa" name="name" required placeholder="Nombre comercial" className="sm:col-span-2" />
-              <SuperadminSelectField label="Plan" name="plan_id" defaultValue="" className="sm:col-span-2">
-                  <option value="">Sin plan</option>
-                  {(plans ?? []).map((plan) => (
-                    <option key={plan.id} value={plan.id}>{plan.name} ({plan.code})</option>
-                  ))}
-              </SuperadminSelectField>
-              <SuperadminInputField label="Nombre admin" name="admin_full_name" required placeholder="Nombre y apellido" className="sm:col-span-2" />
-              <SuperadminInputField label="Email admin" name="admin_email" type="email" autoComplete="off" required placeholder="admin@empresa.com" />
-              <SuperadminInputField label="Contrasena admin" name="admin_password" type="password" autoComplete="new-password" required minLength={8} placeholder="Min. 8 caracteres" />
-              <div className="sm:col-span-2 flex justify-end gap-2">
-                <Link href={modalRoute()} className="rounded-lg border border-[#ddd3ce] bg-white px-3 py-2 text-sm text-[#635b56] hover:bg-[#f6f1ef]">Cancelar</Link>
-                <button type="submit" className="rounded-lg bg-[#b63a2f] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8f2e26]">Crear empresa</button>
+      {/* Modals with premium styling */}
+      <AnimatePresence>
+        {action && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[120] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+          >
+            <Link href="/superadmin/organizations" className="absolute inset-0 cursor-default" />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className={`relative z-10 w-full rounded-[2.5rem] border border-line/40 bg-white p-8 shadow-2xl ${action === 'edit' ? 'max-w-4xl' : 'max-w-2xl'}`}
+            >
+              <div className="mb-6 flex items-center justify-between border-b border-line/20 pb-6">
+                <div>
+                   <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 mb-1">Operación Superadmin</p>
+                   <h3 className="text-2xl font-bold tracking-tight text-foreground">
+                    {action === 'create' && 'Registrar Nueva Organización'}
+                    {action === 'view' && 'Detalles de la Organización'}
+                    {action === 'edit' && 'Gestión de Capacidades'}
+                    {action === 'delete' && 'Protocolo de Eliminación'}
+                   </h3>
+                </div>
+                <Link href="/superadmin/organizations" className="group rounded-full bg-muted/40 p-2 text-muted-foreground transition-all hover:bg-muted hover:text-foreground">
+                  <X className="h-5 w-5 transition-transform group-hover:rotate-90" />
+                </Link>
               </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
 
-      {action === "view" && selectedOrg ? (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 p-4">
-          <Link href={modalRoute()} className="absolute inset-0" aria-label="Cerrar" />
-          <div className="relative z-10 w-full max-w-2xl rounded-2xl border border-[#e5ddd8] bg-white p-5 shadow-[0_24px_80px_rgba(0,0,0,.2)]">
-            <div className="mb-4 flex items-center justify-between">
-              <p className="text-base font-semibold text-[#2f2925]">Ver organizacion</p>
-              <Link href={modalRoute()} className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#e5ddd8] text-[#7a716b] hover:bg-[#f7f2ef]"><X className="h-4 w-4" /></Link>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 text-sm">
-              <div className="rounded-lg border border-[#eee6e1] bg-[#fffdfa] p-3"><p className="text-xs text-[#8b817b]">Nombre</p><p className="font-semibold text-[#2f2925]">{selectedOrg.name}</p></div>
-              <div className="rounded-lg border border-[#eee6e1] bg-[#fffdfa] p-3"><p className="text-xs text-[#8b817b]">Admin de empresa</p><p className="font-semibold text-[#2f2925]">{selectedAdmins[0] ?? "Sin admin"}</p></div>
-              <div className="rounded-lg border border-[#eee6e1] bg-[#fffdfa] p-3"><p className="text-xs text-[#8b817b]">Estado</p><p className="font-semibold text-[#2f2925]">{selectedOrg.status}</p></div>
-              <div className="rounded-lg border border-[#eee6e1] bg-[#fffdfa] p-3"><p className="text-xs text-[#8b817b]">Plan</p><p className="font-semibold text-[#2f2925]">{selectedOrg.plan_id ? planById.get(selectedOrg.plan_id)?.name ?? "-" : "Sin plan"}</p></div>
-            </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border border-[#eee6e1] bg-[#fffdfa] p-3">
-                <p className="mb-2 text-xs text-[#8b817b]">Limites y consumo real</p>
-                <div className="space-y-2 text-xs text-[#5f5752]">
-                  {[
-                    { label: "Sucursales", used: selectedUsage?.branches ?? 0, limit: selectedLimit?.max_branches ?? null },
-                    { label: "Usuarios", used: selectedUsage?.users ?? 0, limit: selectedLimit?.max_users ?? null },
-                    { label: "Empleados", used: selectedUsage?.employees ?? 0, limit: selectedLimit?.max_employees ?? null },
-                    { label: "Storage MB", used: selectedUsage?.storageMb ?? 0, limit: selectedLimit?.max_storage_mb ?? null },
-                  ].map((row) => {
-                    const pct = usagePercent(Number(row.used), row.limit);
-                    return (
-                      <div key={row.label}>
-                        <div className="mb-1 flex items-center justify-between">
-                          <span>{row.label}</span>
-                          <span className="font-semibold text-[#2f2925]">{row.used}/{row.limit ?? "Sin limite"}</span>
-                        </div>
-                        <div className="h-1.5 overflow-hidden rounded-full bg-[#efe8e4]">
-                          <div
-                            className={`h-full rounded-full ${pct == null ? "bg-[#b6aca7]" : pct >= 90 ? "bg-[#c0392b]" : pct >= 75 ? "bg-[#d97706]" : "bg-[#2f6f44]"}`}
-                            style={{ width: `${pct ?? 35}%` }}
-                          />
+              {action === "create" && (
+                <form action={createOrganizationAction} autoComplete="off" className="grid gap-6 sm:grid-cols-2">
+                  <SuperadminInputField label="Organización" name="name" required placeholder="Nombre comercial de la empresa" className="sm:col-span-2" />
+                  <SuperadminSelectField label="Plan Inicial" name="plan_id" defaultValue="" className="sm:col-span-2">
+                      <option value="">Sin plan asignado</option>
+                      {(plans ?? []).map((plan) => (
+                        <option key={plan.id} value={plan.id}>{plan.name} ({plan.code})</option>
+                      ))}
+                  </SuperadminSelectField>
+                  <div className="sm:col-span-2 space-y-4">
+                     <p className="text-[10px] font-bold uppercase tracking-widest text-brand mb-2">Credenciales del Administrador</p>
+                     <SuperadminInputField label="Nombre Completo" name="admin_full_name" required placeholder="Nombre del responsable" />
+                     <div className="grid gap-4 sm:grid-cols-2">
+                        <SuperadminInputField label="Email Corporativo" name="admin_email" type="email" autoComplete="off" required placeholder="admin@empresa.com" />
+                        <SuperadminInputField label="Contraseña" name="admin_password" type="password" autoComplete="new-password" required minLength={8} placeholder="••••••••" />
+                     </div>
+                  </div>
+                  <div className="sm:col-span-2 flex justify-end gap-3 mt-4">
+                    <Link href="/superadmin/organizations" className="rounded-xl border border-line bg-white px-6 py-2.5 text-sm font-bold text-muted-foreground transition-all hover:bg-muted">Cancelar</Link>
+                    <button type="submit" className="rounded-xl bg-brand px-8 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/20 transition-all hover:bg-brand-dark">Confirmar Registro</button>
+                  </div>
+                </form>
+              )}
+
+              {action === "view" && selectedOrg && (
+                <div className="space-y-8">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-line/40 bg-muted/20 p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">Razón Social</p>
+                      <p className="text-lg font-bold text-foreground">{selectedOrg.name}</p>
+                    </div>
+                    <div className="rounded-2xl border border-line/40 bg-muted/20 p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">Administrador</p>
+                      <p className="text-lg font-bold text-foreground truncate">{selectedAdmins[0] ?? "- No asignado -"}</p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-brand mb-4">Métricas de Consumo y Límites</h4>
+                    <div className="grid gap-6 sm:grid-cols-2">
+                      <div className="space-y-4 rounded-2xl border border-line/40 p-6">
+                        {[
+                          { label: "Sucursales", used: selectedUsage?.branches ?? 0, limit: selectedLimit?.max_branches ?? null },
+                          { label: "Usuarios", used: selectedUsage?.users ?? 0, limit: selectedLimit?.max_users ?? null },
+                          { label: "Colaboradores", used: selectedUsage?.employees ?? 0, limit: selectedLimit?.max_employees ?? null },
+                          { label: "Almacenamiento (MB)", used: selectedUsage?.storageMb ?? 0, limit: selectedLimit?.max_storage_mb ?? null },
+                        ].map((row) => {
+                          const pct = usagePercent(Number(row.used), row.limit);
+                          return (
+                            <div key={row.label}>
+                              <div className="mb-2 flex items-baseline justify-between">
+                                <span className="text-sm font-medium text-muted-foreground">{row.label}</span>
+                                <span className="text-sm font-bold text-foreground">{row.used}<span className="text-muted-foreground/60 font-normal"> / {row.limit ?? "∞"}</span></span>
+                              </div>
+                              <div className="h-2 overflow-hidden rounded-full bg-muted/60">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${pct ?? 35}%` }}
+                                  className={`h-full rounded-full ${pct == null ? "bg-muted-foreground/30" : pct >= 90 ? "bg-red-500" : pct >= 75 ? "bg-amber-500" : "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]"}`}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      <div className="rounded-2xl border border-line/40 bg-muted/10 p-6">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-4">Capacidades Habilitadas</p>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedEnabledModules.length > 0 ? (
+                            selectedEnabledModules.map((mod) => (
+                              <span key={mod.id} className="flex items-center gap-1.5 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">
+                                <BadgeCheck className="h-3.5 w-3.5" /> {mod.name}
+                              </span>
+                            ))
+                          ) : (
+                            <div className="flex flex-col items-center justify-center py-6 w-full text-muted-foreground">
+                               <CircleOff className="h-8 w-8 opacity-20 mb-2" />
+                               <p className="text-xs italic">Sin módulos habilitados</p>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    );
-                  })}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="rounded-lg border border-[#eee6e1] bg-[#fffdfa] p-3"><p className="text-xs text-[#8b817b]">Modulos habilitados ({selectedEnabledModules.length})</p><div className="mt-2 flex flex-wrap gap-1">{selectedEnabledModules.length ? selectedEnabledModules.map((mod) => <span key={mod.id} className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] text-emerald-700">{mod.name}</span>) : <span className="text-xs text-[#8b817b]">Sin modulos</span>}</div></div>
-            </div>
-          </div>
-        </div>
-      ) : null}
+              )}
 
-      {action === "edit" && selectedOrg ? (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 p-4">
-          <Link href={modalRoute()} className="absolute inset-0" aria-label="Cerrar" />
-          <div className="relative z-10 w-full max-w-4xl rounded-2xl border border-[#e5ddd8] bg-white p-5 shadow-[0_24px_80px_rgba(0,0,0,.2)]">
-            <div className="mb-4 flex items-center justify-between">
-              <p className="text-base font-semibold text-[#2f2925]">Editar organizacion</p>
-              <Link href={modalRoute()} className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#e5ddd8] text-[#7a716b] hover:bg-[#f7f2ef]"><X className="h-4 w-4" /></Link>
-            </div>
-
-            <div className="grid gap-4">
-              <form action={updateOrganizationAction} className="rounded-xl border border-[#e8dfda] bg-[#fcfaf8] p-4">
-                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#342e2a]"><Settings2 className="h-4 w-4" /> Datos generales</h3>
-                <input type="hidden" name="organization_id" value={selectedOrg.id} />
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <SuperadminInputField
-                    label="Nombre"
-                    name="name"
-                    defaultValue={selectedOrg.name}
-                    placeholder="Nombre comercial"
-                    spellCheck={false}
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    className="sm:col-span-2"
-                    labelBgClassName="bg-[#fcfaf8]"
-                  />
-                  <SuperadminSelectField label="Estado" name="status" defaultValue={selectedOrg.status} labelBgClassName="bg-[#fcfaf8]">
-                      <option value="active">active</option>
-                      <option value="paused">paused</option>
-                      <option value="suspended">suspended</option>
-                  </SuperadminSelectField>
-                  <SuperadminSelectField label="Plan" name="plan_id" defaultValue={selectedOrg.plan_id ?? ""} labelBgClassName="bg-[#fcfaf8]">
-                      <option value="">Sin plan</option>
-                      {(plans ?? []).map((plan) => <option key={plan.id} value={plan.id}>{plan.name} ({plan.code})</option>)}
-                  </SuperadminSelectField>
-                </div>
-                <button type="submit" className="mt-3 rounded-lg border border-[#ddd3ce] bg-white px-3 py-1.5 text-sm font-medium text-[#564f4a] hover:bg-[#f6f1ef]">Guardar datos</button>
-                <p className="mt-2 text-xs text-[#7f756f]">Si cambias el plan, se sincronizan automaticamente los limites de la organizacion con ese plan.</p>
-              </form>
-            </div>
-
-            <div className="mt-4 rounded-xl border border-[#e8dfda] p-4">
-              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#342e2a]"><LayoutGrid className="h-4 w-4" /> Modulos habilitados</h3>
-              <div className="flex flex-wrap gap-2">
-                {(modules ?? []).map((module) => {
-                  const isEnabled = moduleMap.get(`${selectedOrg.id}:${module.id}`) ?? false;
-                  const isCoreLocked = module.is_core;
-                  return (
-                    <form key={module.id} action={toggleOrganizationModuleAction}>
+              {action === "edit" && selectedOrg && (
+                <div className="grid gap-8 lg:grid-cols-2">
+                  <div className="space-y-6">
+                    <form action={updateOrganizationAction} className="rounded-3xl border border-line/40 bg-muted/10 p-6">
+                      <h4 className="mb-6 flex items-center gap-2 text-sm font-bold text-foreground"><Settings2 className="h-5 w-5 text-brand" /> Configuración General</h4>
                       <input type="hidden" name="organization_id" value={selectedOrg.id} />
-                      <input type="hidden" name="module_id" value={module.id} />
-                      <input type="hidden" name="next_enabled" value={String(isCoreLocked ? true : !isEnabled)} />
-                      <button
-                        type="submit"
-                        disabled={isCoreLocked}
-                        title={isCoreLocked ? "Modulo core no desactivable" : undefined}
-                        className={`rounded-full border px-2.5 py-1 text-xs ${
-                          isEnabled
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                            : "border-neutral-200 bg-neutral-50 text-neutral-500"
-                        } ${isCoreLocked ? "cursor-not-allowed opacity-70" : ""}`}
-                      >
-                        {module.name}
-                        {module.is_core ? " (core)" : ""}
+                      <div className="space-y-5">
+                        <SuperadminInputField label="Nombre" name="name" defaultValue={selectedOrg.name} labelBgClassName="bg-[#fcfaf8]" />
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <SuperadminSelectField label="Estado" name="status" defaultValue={selectedOrg.status}>
+                            <option value="active">Activo</option>
+                            <option value="paused">Pausado</option>
+                            <option value="suspended">Suspendido</option>
+                          </SuperadminSelectField>
+                          <SuperadminSelectField label="Plan de Servicio" name="plan_id" defaultValue={selectedOrg.plan_id ?? ""}>
+                            <option value="">Sin plan</option>
+                            {(plans ?? []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                          </SuperadminSelectField>
+                        </div>
+                      </div>
+                      <button type="submit" className="mt-6 w-full rounded-xl bg-foreground px-4 py-3 text-sm font-bold text-white transition-all hover:bg-black active:scale-[0.98]">
+                        Actualizar Organización
                       </button>
                     </form>
-                  );
-                })}
-              </div>
-            </div>
+                    
+                    <div className="rounded-3xl border border-line/40 bg-white p-6">
+                       <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-foreground"><User className="h-5 w-5 text-brand" /> Responsable</h4>
+                       <div className="p-3 bg-muted/30 rounded-xl border border-line/20">
+                         <p className="text-sm font-bold text-foreground">{selectedAdmins[0] ?? "- No asignado -"}</p>
+                         <p className="text-[11px] text-muted-foreground mt-1">El administrador principal solo puede ser cambiado mediante consola de seguridad.</p>
+                       </div>
+                    </div>
+                  </div>
 
-            <div className="mt-4 rounded-xl border border-[#e8dfda] p-4">
-              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#342e2a]"><User className="h-4 w-4" /> Admin de empresa</h3>
-              <p className="text-sm text-[#4f4843]">{selectedAdmins[0] ?? "Sin admin"}</p>
-              <p className="mt-1 text-xs text-[#8a807a]">El admin se define en el alta de la organizacion.</p>
-            </div>
-          </div>
-        </div>
-      ) : null}
+                  <div className="rounded-3xl border border-line/40 bg-white p-6 shadow-sm">
+                    <h4 className="mb-6 flex items-center gap-2 text-sm font-bold text-foreground"><LayoutGrid className="h-5 w-5 text-brand" /> Catálogo de Módulos</h4>
+                    <p className="mb-6 text-xs leading-relaxed text-muted-foreground">Habilite o deshabilite funcionalidades específicas para esta organización. Los módulos CORE son obligatorios.</p>
+                    <div className="grid gap-3">
+                      {(modules ?? []).map((module) => {
+                        const isEnabled = moduleMap.get(`${selectedOrg.id}:${module.id}`) ?? false;
+                        const isCoreLocked = module.is_core;
+                        return (
+                          <form key={module.id} action={toggleOrganizationModuleAction} className="flex items-center justify-between group">
+                            <input type="hidden" name="organization_id" value={selectedOrg.id} />
+                            <input type="hidden" name="module_id" value={module.id} />
+                            <input type="hidden" name="next_enabled" value={String(isCoreLocked ? true : !isEnabled)} />
+                            
+                            <div className="flex flex-col">
+                              <span className={`text-[13px] font-bold transition-colors ${isEnabled ? 'text-foreground' : 'text-muted-foreground/60'}`}>
+                                {module.name}
+                                {module.is_core && <span className="ml-1.5 text-[10px] uppercase tracking-widest text-brand opacity-60">Core</span>}
+                              </span>
+                            </div>
 
-      {action === "delete" && selectedOrg ? (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 p-4">
-          <Link href={modalRoute()} className="absolute inset-0" aria-label="Cerrar" />
-          <div className="relative z-10 w-full max-w-xl rounded-2xl border border-[#f0d5d0] bg-white p-5 shadow-[0_24px_80px_rgba(0,0,0,.2)]">
-            <div className="mb-4 flex items-center justify-between">
-              <p className="text-base font-semibold text-[#2f2925]">Eliminar organizacion</p>
-              <Link href={modalRoute()} className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#e5ddd8] text-[#7a716b] hover:bg-[#f7f2ef]"><X className="h-4 w-4" /></Link>
-            </div>
+                            <button
+                              type="submit"
+                              disabled={isCoreLocked}
+                              className={`relative h-6 w-11 rounded-full transition-all duration-300 ${isCoreLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${isEnabled ? 'bg-brand shadow-lg shadow-brand/20' : 'bg-muted'}`}
+                            >
+                               <span className={`absolute top-1 left-1.5 h-4 w-4 rounded-full bg-white transition-all duration-300 ${isEnabled ? 'translate-x-[18px]' : ''}`} />
+                            </button>
+                          </form>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
 
-            <div className="rounded-xl border border-[#f3d5cf] bg-[#fff6f4] p-3 text-sm text-[#7a3a32]">
-              Esta accion eliminara la empresa y todos sus datos relacionados (sucursales, empleados, documentos, checklists, anuncios, auditoria y configuraciones).
-            </div>
+              {action === "delete" && selectedOrg && (
+                <div className="space-y-6">
+                  <div className="rounded-[2rem] border border-red-200 bg-red-50 p-6 text-center shadow-inner">
+                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-red-100 text-red-600">
+                       <AlertTriangle className="h-8 w-8" />
+                    </div>
+                    <h4 className="text-xl font-bold text-red-900">Advertencia Crítica</h4>
+                    <p className="mt-3 text-sm leading-relaxed text-red-800/80">
+                      Esta operación es <span className="font-extrabold underline">irreversible</span> e impactará a todos los servicios asociados. Se eliminarán permanentemente bases de datos de sucursales, colaboradores, documentos históricos y configuraciones de seguridad.
+                    </p>
+                  </div>
 
-            <p className="mt-3 text-sm text-[#4f4843]">
-              Para confirmar, escribe el slug exacto: <span className="font-semibold">{selectedOrg.slug}</span>
-            </p>
-
-            <form action={deleteOrganizationAction} className="mt-3 space-y-3">
-              <input type="hidden" name="organization_id" value={selectedOrg.id} />
-              <SuperadminInputField
-                label="Slug de confirmacion"
-                name="confirm_slug"
-                required
-                placeholder={selectedOrg.slug}
-                spellCheck={false}
-                autoCorrect="off"
-                autoCapitalize="off"
-              />
-              <div className="flex justify-end gap-2">
-                <Link href={modalRoute()} className="rounded-lg border border-[#ddd3ce] bg-white px-3 py-2 text-sm text-[#635b56] hover:bg-[#f6f1ef]">Cancelar</Link>
-                <button type="submit" className="rounded-lg bg-[#b63a2f] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8f2e26]">
-                  Eliminar empresa
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
+                  <div className="p-6 bg-muted/20 rounded-[2rem] border border-line/20">
+                    <p className="text-sm text-muted-foreground text-center mb-6">
+                      Para proceder con la baja del tenant, ingrese el slug de confirmación:
+                    </p>
+                    <div className="max-w-xs mx-auto">
+                        <div className="text-center mb-4">
+                           <span className="inline-block rounded-xl bg-white px-4 py-1.5 text-lg font-mono font-black border border-line/40 shadow-sm">{selectedOrg.slug}</span>
+                        </div>
+                        <form action={deleteOrganizationAction} className="space-y-4">
+                          <input type="hidden" name="organization_id" value={selectedOrg.id} />
+                          <SuperadminInputField
+                            label=""
+                            name="confirm_slug"
+                            required
+                            placeholder="Ingrese el slug aquí"
+                            className="text-center"
+                          />
+                          <button type="submit" className="w-full rounded-2xl bg-red-600 py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-xl shadow-red-200 transition-all hover:bg-red-700 active:scale-[0.98]">
+                            Confirmar Destrucción de Datos
+                          </button>
+                        </form>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
