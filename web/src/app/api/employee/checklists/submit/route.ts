@@ -121,7 +121,7 @@ export async function POST(request: Request) {
 
   const { data: employeeRow } = await supabase
     .from("employees")
-    .select("department_id, position")
+    .select("department_id, position, branch_id")
     .eq("organization_id", tenant.organizationId)
     .eq("user_id", userId)
     .maybeSingle();
@@ -154,7 +154,7 @@ export async function POST(request: Request) {
   const canUse = canUseChecklistTemplateInTenant({
     roleCode: tenant.roleCode,
     userId,
-    branchId: tenant.branchId,
+    branchId: tenant.branchId ?? employeeRow?.branch_id ?? null,
     departmentId: employeeRow?.department_id ?? null,
     positionIds: employeePositionIds,
     templateBranchId: template.branch_id,
