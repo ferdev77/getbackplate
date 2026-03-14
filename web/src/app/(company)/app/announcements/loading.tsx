@@ -1,12 +1,13 @@
 export default function AnnouncementsLoading() {
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 animate-pulse">
-      <div className="mb-5 h-20 rounded-2xl bg-[#f0ebe7]" />
-      <div className="grid gap-4 sm:grid-cols-2">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-32 rounded-xl bg-[#f0ebe7]" />
-        ))}
+    <div className="space-y-5 animate-pulse">
+      <div className="flex items-center justify-between">
+        <div className="h-8 w-44 rounded-xl bg-gray-200" />
+        <div className="h-10 w-36 rounded-xl bg-gray-200" />
       </div>
-    </main>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="h-24 rounded-2xl bg-gray-200" />
+      ))}
+    </div>
   );
 }
