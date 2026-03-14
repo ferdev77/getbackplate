@@ -1,4 +1,6 @@
-import { type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 
 import { updateSupabaseSession } from "@/infrastructure/supabase/client/middleware";
 import {
@@ -7,7 +9,41 @@ import {
   normalizeOrganizationId,
 } from "@/shared/lib/tenant-selection-shared";
 
+let ratelimit: Ratelimit | null = null;
+
+if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+  ratelimit = new Ratelimit({
+    redis: new Redis({
+      url: process.env.KV_REST_API_URL,
+      token: process.env.KV_REST_API_TOKEN,
+    }),
+    limiter: Ratelimit.slidingWindow(20, "10 s"),
+    analytics: true,
+  });
+}
+
 export async function proxy(request: NextRequest) {
+  // Rate limit API and auth routes
+  const path = request.nextUrl.pathname;
+  if (ratelimit && (path.startsWith("/api/") || path.startsWith("/auth/"))) {
+    const ip = request.headers.get("x-forwarded-for") ?? "127.0.0.1";
+    const { success, limit, reset, remaining } = await ratelimit.limit(ip);
+
+    if (!success) {
+      return NextResponse.json(
+        { error: "Too Many Requests" },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": limit.toString(),
+            "X-RateLimit-Remaining": remaining.toString(),
+            "X-RateLimit-Reset": reset.toString(),
+          },
+        },
+      );
+    }
+  }
+
   const response = await updateSupabaseSession(request);
   const organizationIdFromUrl = normalizeOrganizationId(
     request.nextUrl.searchParams.get("org"),
