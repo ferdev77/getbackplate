@@ -12,6 +12,7 @@ const ITEMS = [
   { href: "/superadmin/organizations", label: "Organizaciones" },
   { href: "/superadmin/modules", label: "Módulos" },
   { href: "/superadmin/plans", label: "Planes" },
+  { href: "/superadmin/guide", label: "Guía" },
 ];
 
 function isActive(pathname: string, href: string) {
