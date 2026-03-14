@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { hasPublicSupabaseEnv } from "@/shared/lib/env";
 
@@ -71,7 +72,7 @@ export function resolvePreferredMembership(
   };
 }
 
-export async function getCurrentUser() {
+export const getCurrentUser = cache(async function getCurrentUser() {
   if (!hasPublicSupabaseEnv()) {
     return null;
   }
@@ -79,9 +80,9 @@ export async function getCurrentUser() {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getUser();
   return data.user ?? null;
-}
+});
 
-export async function getCurrentUserMemberships() {
+export const getCurrentUserMemberships = cache(async function getCurrentUserMemberships() {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -91,28 +92,20 @@ export async function getCurrentUserMemberships() {
   const supabase = await createSupabaseServerClient();
   const { data: memberships } = await supabase
     .from("memberships")
-    .select("id, organization_id, role_id, branch_id, created_at")
+    .select("id, organization_id, role_id, branch_id, created_at, roles!inner(code)")
     .eq("user_id", user.id)
     .eq("status", "active")
     .order("created_at", { ascending: false });
-
-  const roleIds = [...new Set((memberships ?? []).map((row) => row.role_id))];
-  const { data: roles } = await supabase
-    .from("roles")
-    .select("id, code")
-    .in("id", roleIds);
-
-  const roleCodeById = new Map((roles ?? []).map((role) => [role.id, role.code]));
 
   return (memberships ?? []).map((row) => ({
     membershipId: row.id,
     organizationId: row.organization_id,
     roleId: row.role_id,
     branchId: row.branch_id,
-    roleCode: roleCodeById.get(row.role_id) ?? "",
+    roleCode: Array.isArray(row.roles) ? row.roles[0]?.code ?? "" : (row.roles as any)?.code ?? "",
     createdAt: row.created_at,
   }));
-}
+});
 
 export async function getTenantContext(preferredOrganizationId?: string | null) {
   const memberships = await getCurrentUserMemberships();
