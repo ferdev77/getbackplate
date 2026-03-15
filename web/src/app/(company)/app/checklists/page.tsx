@@ -118,14 +118,14 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
       : Promise.resolve({ data: [] }),
   ]);
 
-  const templateIds = (templates ?? []).map((t) => t.id);
+  const targetTemplateId = previewTemplateId || (action === "edit" ? templateId : null);
 
-  const { data: sections } = templateIds.length > 0
+  const { data: sections } = targetTemplateId
     ? await supabase
         .from("checklist_template_sections")
         .select("id, template_id, name, sort_order")
         .eq("organization_id", tenant.organizationId)
-        .in("template_id", templateIds)
+        .eq("template_id", targetTemplateId)
     : { data: [] };
 
   const sectionIds = (sections ?? []).map((s) => s.id);
@@ -251,16 +251,24 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
   }
 
   const templateRows = (templates ?? []).map((template) => {
-    const templateSections = sectionsByTemplate.get(template.id) ?? [];
-    const templateItems = templateSections.flatMap((section) => itemsBySection.get(section.id) ?? []);
-    const sectionViews = templateSections.map((section) => ({
-      id: section.id,
-      name: section.name,
-      items: (itemsBySection.get(section.id) ?? []).map((item) => item.label),
-    }));
+    let templateItems: Array<{ id: string; label: string; priority: string; sort_order: number }> = [];
+    let sectionViews: Array<{ id: string; name: string; items: string[] }> = [];
+    let itemsCount: number | null = null;
+    
+    if (template.id === targetTemplateId) {
+      const templateSections = sectionsByTemplate.get(template.id) ?? [];
+      templateItems = templateSections.flatMap((section) => itemsBySection.get(section.id) ?? []);
+      sectionViews = templateSections.map((section) => ({
+        id: section.id,
+        name: section.name,
+        items: (itemsBySection.get(section.id) ?? []).map((item) => item.label),
+      }));
+      itemsCount = templateItems.length;
+    }
+
     return {
       ...template,
-      itemsCount: templateItems.length,
+      itemsCount,
       templateItems,
       templateSections: sectionViews,
       branchName: template.branch_id ? branchNameMap.get(template.branch_id) ?? "Sucursal" : "Global",
@@ -376,7 +384,9 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
                     <div className="grid grid-cols-[minmax(180px,2fr)_100px_110px_130px_130px_90px_120px] items-center gap-x-3 border-b border-[#f0f0f0] px-4 py-3">
                       <div>
                         <p className="text-[13px] font-semibold text-[#111]">{template.name}</p>
-                        <p className="text-[11px] text-[#aaa]">{template.itemsCount} items</p>
+                        {template.itemsCount !== null && (
+                          <p className="text-[11px] text-[#aaa]">{template.itemsCount} items</p>
+                        )}
                       </div>
                       <p className="text-xs text-[#666]">{typeLabel(template.checklist_type)}</p>
                       <p className="text-xs text-[#666]">{template.shift || "-"}</p>

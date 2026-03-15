@@ -25,14 +25,30 @@ const ROLE_OPTIONS = [
 
 export default async function CompanyEmployeesPage({ searchParams }: CompanyEmployeesPageProps) {
   const tenant = await requireTenantModule("employees");
-  const params = await searchParams;
   const supabase = await createSupabaseServerClient();
-  const tab = params.tab === "users" ? "users" : "employees";
-  const limitStr = params.limit as string | undefined;
-  const pageLimit = limitStr ? parseInt(limitStr, 10) : 1000;
+  const rawTab = String((await searchParams).tab ?? "").trim().toLowerCase();
+  const tab = rawTab === "users" ? "users" : "directory";
+  const action = String((await searchParams).action ?? "").trim().toLowerCase();
+  const openEmployeeModal = action === "create" || action === "edit" || action === "create-employee" || action === "edit-employee";
+  const openUserModal = action === "create-user" || action === "edit-user";
 
-  const viewData = await getEmployeeDirectoryView(supabase, tenant.organizationId, pageLimit);
+  const editEmployeeId = (await searchParams).employeeId;
+  const statusParam = (await searchParams).status;
+  const messageParam = (await searchParams).message;
 
+  const pageLimit = tab === "directory" ? 100 : 50;
+  
+  const viewData = await getEmployeeDirectoryView(
+    supabase, 
+    tenant.organizationId, 
+    pageLimit,
+    {
+      includeModalsData: openEmployeeModal || openUserModal,
+      includeUsersTab: tab === "users" || openUserModal
+    }
+  );
+
+  const { data: authData } = await supabase.auth.getUser();
   let allowedBranches = viewData.branches;
   if (tenant.roleCode === "manager" && tenant.branchId) {
     allowedBranches = allowedBranches.filter((b) => b.id === tenant.branchId);
@@ -56,43 +72,34 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   const currentUsersCount = viewData.users.filter((u: any) => u.status === "active").length;
   const currentEmployeesCount = viewData.employees.filter((e: any) => e.status === "active").length;
 
-  const usersLimitReached = currentPlan?.max_users ? currentUsersCount >= currentPlan.max_users : false;
-  const employeesLimitReached = currentPlan?.max_employees
-    ? currentEmployeesCount >= currentPlan.max_employees
-    : false;
-
-  const editEmployee = params.action === "edit"
-    ? viewData.employees.find((item) => item.id === params.employeeId)
-    : null;
-  const openEmployeeModal = params.action === "create" || (params.action === "edit" && Boolean(editEmployee));
-  const editContract = editEmployee ? (editEmployee.contracts?.[0] ?? null) : null;
-
-  const { data: authData } = await supabase.auth.getUser();
   const publisherName = extractDisplayName(authData.user);
+
+  const editEmployee = (action === "edit" || action === "edit-employee") && editEmployeeId
+    ? viewData.employees.find((item) => item.id === editEmployeeId)
+    : null;
+  const editContract = editEmployee ? (editEmployee.contracts?.[0] ?? null) : null;
 
   const initialEmployeeData = editEmployee
     ? {
         id: editEmployee.id,
-        first_name: editEmployee.firstName,
-        last_name: editEmployee.lastName,
-        birth_date: editEmployee.birthDate,
-        sex: editEmployee.sex,
-        nationality: editEmployee.nationality,
-        phone_country_code: editEmployee.phoneCountryCode,
-        phone: editEmployee.phone,
-        email: editEmployee.email,
-        personal_email: editEmployee.personalEmail,
-        document_id: editEmployee.documentId,
-        document_number: editEmployee.documentNumber,
-        address: editEmployee.addressLine1,
+        first_name: editEmployee.firstName ?? "",
+        last_name: editEmployee.lastName ?? "",
+        birth_date: editEmployee.birthDate ?? null,
+        sex: editEmployee.sex ?? null,
+        nationality: editEmployee.nationality ?? null,
+        phone_country_code: editEmployee.phoneCountryCode ?? null,
+        phone: editEmployee.phone ?? null,
+        email: editEmployee.email ?? "",
+        personal_email: editEmployee.personalEmail ?? null,
+        document_id: editEmployee.documentId ?? null,
+        document_number: editEmployee.documentNumber ?? null,
+        address: editEmployee.addressLine1 ?? null,
         branch_id: editEmployee.branchId ?? "",
-        position: editEmployee.position,
-        position_id: editEmployee.departmentId && editEmployee.position 
-            ? (viewData.positions.find(p => p.department_id === editEmployee.departmentId && p.name.toLowerCase() === editEmployee.position?.toLowerCase())?.id ?? "")
-            : "",
+        position: editEmployee.position ?? "",
+        position_id: editEmployee.positionId ?? "",
         department_id: editEmployee.departmentId ?? "",
-        status: editEmployee.status,
-        hire_date: editEmployee.hiredAt,
+        status: editEmployee.status ?? "",
+        hire_date: editEmployee.hiredAt ?? null,
         contract_type: editContract?.contract_type ?? null,
         contract_status: editContract?.contract_status ?? null,
         contract_start_date: editContract?.start_date ?? null,
@@ -105,7 +112,6 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
         salary_currency: editContract?.salary_currency ?? null,
       }
     : undefined;
-  const openUserModal = params.action === "create-user";
 
   const employeeRows = viewData.employees.map((emp) => {
     const defaultContract = emp.contracts?.[0];
@@ -119,7 +125,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       status: emp.status,
       hiredAt: emp.hiredAt,
       branchName: emp.branchName,
-      departmentName: (emp.departmentId ? viewData.departments.find(d => d.id === emp.departmentId)?.name : null) ?? emp.department ?? "Sin departamento",
+      departmentName: emp.department ?? "Sin departamento",
       salaryAmount: defaultContract?.salary_amount ?? null,
       salaryCurrency: defaultContract?.salary_currency ?? null,
       paymentFrequency: defaultContract?.payment_frequency ?? null,
@@ -148,7 +154,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
             <h1 className="mb-1 text-2xl font-bold tracking-tight text-[#241f1c]">Empleados</h1>
             <p className="text-sm text-[#6b635e]">Gestion de plantilla, cuentas y estado laboral.</p>
             <div className="mt-3 inline-flex rounded-lg border border-[#e5ddd8] bg-white p-1 text-xs">
-              <Link href="/app/employees" className={`rounded-md px-3 py-1.5 ${tab === "employees" ? "bg-[#111] text-white" : "text-[#5f5853]"}`}>Empleados</Link>
+              <Link href="/app/employees" className={`rounded-md px-3 py-1.5 ${tab === "directory" ? "bg-[#111] text-white" : "text-[#5f5853]"}`}>Empleados</Link>
               <Link href="/app/employees?tab=users" className={`rounded-md px-3 py-1.5 ${tab === "users" ? "bg-[#111] text-white" : "text-[#5f5853]"}`}>Usuarios</Link>
             </div>
           </div>
@@ -159,13 +165,13 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
         </div>
       </section>
 
-      {params.message ? (
-        <section className={`rounded-xl border px-4 py-3 text-sm ${params.status === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-rose-200 bg-rose-50 text-rose-800"}`}>
-          {params.message}
+      {messageParam ? (
+        <section className={`rounded-xl border px-4 py-3 text-sm ${statusParam === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-rose-200 bg-rose-50 text-rose-800"}`}>
+          {messageParam}
         </section>
       ) : null}
 
-      {tab === "employees" ? (
+      {tab === "directory" ? (
         <EmployeesTableWorkspace employees={employeeRows} />
       ) : (
         <UsersTableWorkspace
@@ -177,7 +183,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
 
       <NewEmployeeModal
         open={openEmployeeModal}
-        mode={params.action === "edit" ? "edit" : "create"}
+        mode={(action === "edit" || action === "edit-employee") ? "edit" : "create"}
         initialEmployee={initialEmployeeData}
         branches={viewData.branches}
         recentDocuments={viewData.documents}
