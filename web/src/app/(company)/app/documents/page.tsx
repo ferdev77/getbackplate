@@ -40,24 +40,28 @@ export default async function CompanyDocumentsPage({
         .eq("organization_id", tenant.organizationId)
         .eq("is_active", true)
         .order("name"),
-      supabase
-        .from("employees")
-        .select("id, user_id, first_name, last_name")
-        .eq("organization_id", tenant.organizationId)
-        .not("user_id", "is", null)
-        .order("first_name"),
+      (openFolderModal || openUploadModal) 
+        ? supabase
+            .from("employees")
+            .select("id, user_id, first_name, last_name")
+            .eq("organization_id", tenant.organizationId)
+            .not("user_id", "is", null)
+            .order("first_name")
+        : Promise.resolve({ data: [] }),
       supabase
         .from("organization_departments")
         .select("id, name")
         .eq("organization_id", tenant.organizationId)
         .eq("is_active", true)
         .order("name"),
-      supabase
-        .from("department_positions")
-        .select("id, department_id, name")
-        .eq("organization_id", tenant.organizationId)
-        .eq("is_active", true)
-        .order("name"),
+      (openFolderModal || openUploadModal)
+        ? supabase
+            .from("department_positions")
+            .select("id, department_id, name")
+            .eq("organization_id", tenant.organizationId)
+            .eq("is_active", true)
+            .order("name")
+        : Promise.resolve({ data: [] }),
     ]);
 
   return (

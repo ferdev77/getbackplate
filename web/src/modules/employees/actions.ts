@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
@@ -26,21 +27,32 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
     return { success: false, message: "No tienes permisos para crear empleados con tu rol actual" };
   }
 
-  const firstName = String(formData.get("first_name") ?? "").trim();
-  const lastName = String(formData.get("last_name") ?? "").trim();
+  const formDataObj = Object.fromEntries(formData.entries());
+
+  const createEmployeeSchema = z.object({
+    first_name: z.string().min(1, "Nombre es obligatorio").max(100, "Nombre muy largo"),
+    last_name: z.string().min(1, "Apellido es obligatorio").max(100, "Apellido muy largo"),
+  });
+
+  const parsed = createEmployeeSchema.safeParse({
+    first_name: formDataObj.first_name ? String(formDataObj.first_name).trim() : "",
+    last_name: formDataObj.last_name ? String(formDataObj.last_name).trim() : "",
+  });
+
+  if (!parsed.success) {
+    return { success: false, message: parsed.error.issues[0].message };
+  }
+
+  const firstName = parsed.data.first_name;
+  const lastName = parsed.data.last_name;
+
   const contactEmail = String(formData.get("email") ?? "").trim() || null;
   const position = String(formData.get("position") ?? "").trim() || null;
   const department = String(formData.get("department") ?? "").trim() || null;
   const createMode = String(formData.get("create_mode") ?? "without_account").trim();
-  const accountEmailInput = String(formData.get("account_email") ?? "")
-    .trim()
-    .toLowerCase();
+  const accountEmailInput = String(formData.get("account_email") ?? "").trim().toLowerCase();
   const accountPassword = String(formData.get("account_password") ?? "");
   const createWithAccount = createMode === "with_account";
-
-  if (!firstName || !lastName) {
-    return { success: false, message: "Nombre y apellido son obligatorios" };
-  }
 
   try {
     await assertPlanLimitForEmployees(tenant.organizationId, 1);

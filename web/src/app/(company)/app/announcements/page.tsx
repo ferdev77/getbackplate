@@ -11,6 +11,7 @@ import { requireTenantModule } from "@/shared/lib/access";
 import { AnnouncementCreateModal } from "@/shared/ui/announcement-create-modal";
 import { ConfirmSubmitButton } from "@/shared/ui/confirm-submit-button";
 import {SlideUp, AnimatedList, AnimatedItem} from "@/shared/ui/animations";
+import { extractDisplayName } from "@/shared/lib/user";
 
 type CompanyAnnouncementsPageProps = {
   searchParams: Promise<{
@@ -43,48 +44,79 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
   const supabase = await createSupabaseServerClient();
   const { data: authData } = await supabase.auth.getUser();
 
+  const { data: announcements, error: annError } = await supabase
+    .from("announcements")
+    .select("id, title, body, kind, is_featured, publish_at, expires_at, branch_id, target_scope, created_by")
+    .eq("organization_id", tenant.organizationId)
+    .order("publish_at", { ascending: false })
+    .limit(100);
+
+  if (annError) {
+    console.error("Error fetching announcements:", annError);
+  }
+
+  // Optimize payload: Only fetch what we need for the listed announcements, unless opening the form modal
+  const uniqueBranchIds = new Set<string>();
+  const uniqueDepartmentIds = new Set<string>();
+  const uniquePositionIds = new Set<string>();
+  const uniqueUserIds = new Set<string>();
+
+  for (const ann of announcements || []) {
+    if (ann.created_by) uniqueUserIds.add(ann.created_by);
+    const scope = parseAnnouncementScope(ann.target_scope);
+    scope.locations.forEach(id => uniqueBranchIds.add(id));
+    scope.department_ids.forEach(id => uniqueDepartmentIds.add(id));
+    scope.position_ids.forEach(id => uniquePositionIds.add(id));
+    scope.users.forEach(id => uniqueUserIds.add(id));
+  }
+
+  const branchIdsArr = Array.from(uniqueBranchIds);
+  const deptIdsArr = Array.from(uniqueDepartmentIds);
+  const posIdsArr = Array.from(uniquePositionIds);
+  const userIdsArr = Array.from(uniqueUserIds);
+
+  const branchesQuery = supabase
+    .from("branches")
+    .select("id, name")
+    .eq("organization_id", tenant.organizationId)
+    .eq("is_active", true);
+
+  const employeesQuery = supabase
+    .from("employees")
+    .select("id, user_id, first_name, last_name")
+    .eq("organization_id", tenant.organizationId)
+    .not("user_id", "is", null);
+
+  const departmentsQuery = supabase
+    .from("organization_departments")
+    .select("id, name")
+    .eq("organization_id", tenant.organizationId)
+    .eq("is_active", true);
+
+  const positionsQuery = supabase
+    .from("department_positions")
+    .select("id, department_id, name")
+    .eq("organization_id", tenant.organizationId)
+    .eq("is_active", true);
+
+  if (!openCreateModal) {
+    // Only fetch needed references for performance
+    if (branchIdsArr.length > 0) branchesQuery.in("id", branchIdsArr); else branchesQuery.in("id", ["00000000-0000-0000-0000-000000000000"]);
+    if (userIdsArr.length > 0) employeesQuery.in("user_id", userIdsArr); else employeesQuery.in("user_id", ["00000000-0000-0000-0000-000000000000"]);
+    if (deptIdsArr.length > 0) departmentsQuery.in("id", deptIdsArr); else departmentsQuery.in("id", ["00000000-0000-0000-0000-000000000000"]);
+    if (posIdsArr.length > 0) positionsQuery.in("id", posIdsArr); else positionsQuery.in("id", ["00000000-0000-0000-0000-000000000000"]);
+  }
+
   const [
-    { data: announcements },
     { data: branches },
     { data: employees },
     { data: departments },
     { data: positions },
-    { data: audiences },
   ] = await Promise.all([
-    supabase
-      .from("announcements")
-      .select("id, title, body, kind, is_featured, publish_at, expires_at, branch_id, target_scope, created_by")
-      .eq("organization_id", tenant.organizationId)
-      .order("publish_at", { ascending: false })
-      .limit(100),
-    supabase
-      .from("branches")
-      .select("id, name")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("name"),
-    supabase
-      .from("employees")
-      .select("id, user_id, first_name, last_name")
-      .eq("organization_id", tenant.organizationId)
-      .not("user_id", "is", null)
-      .order("first_name"),
-    supabase
-      .from("organization_departments")
-      .select("id, name")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("name"),
-    supabase
-      .from("department_positions")
-      .select("id, department_id, name")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("name"),
-    supabase
-      .from("announcement_audiences")
-      .select("announcement_id, branch_id, user_id")
-      .eq("organization_id", tenant.organizationId),
+    branchesQuery,
+    employeesQuery,
+    departmentsQuery,
+    positionsQuery,
   ]);
 
   const branchNameMap = new Map((branches ?? []).map((row) => [row.id, row.name]));
@@ -95,13 +127,6 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
       .map((row) => [row.user_id as string, `${row.first_name ?? ""} ${row.last_name ?? ""}`.trim()]),
   );
   const positionNameMap = new Map((positions ?? []).map((row) => [row.id, row.name]));
-
-  const audienceByAnnouncement = new Map<string, Array<{ branch_id: string | null; user_id: string | null }>>();
-  for (const row of audiences ?? []) {
-    const list = audienceByAnnouncement.get(row.announcement_id) ?? [];
-    list.push({ branch_id: row.branch_id, user_id: row.user_id });
-    audienceByAnnouncement.set(row.announcement_id, list);
-  }
 
   const now = new Date();
   const in7Days = new Date(now);
@@ -120,11 +145,7 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
     ? (announcements ?? []).find((row) => row.id === params.announcementId)
     : null;
 
-  const publisherName =
-    (typeof authData.user?.user_metadata?.full_name === "string" && authData.user.user_metadata.full_name.trim()) ||
-    (typeof authData.user?.user_metadata?.name === "string" && authData.user.user_metadata.name.trim()) ||
-    authData.user?.email ||
-    "Administrador";
+  const publisherName = extractDisplayName(authData.user);
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">

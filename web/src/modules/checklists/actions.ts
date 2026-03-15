@@ -39,29 +39,81 @@ function normalizePriority(value: string) {
   return "medium";
 }
 
+import { z } from "zod";
+
+const createChecklistSchema = z.object({
+  template_id: z.string().trim().optional().transform(v => v || null),
+  name: z.string().trim().min(1, "Nombre de plantilla obligatorio"),
+  checklist_type: z.enum(["opening", "closing", "prep", "custom"]).catch("custom"),
+  checklist_type_other: z.string().trim().optional(),
+  branch_id: z.string().trim().optional().transform(v => v || null),
+  shift: z.string().trim().optional().transform(v => v || null),
+  department_id: z.string().trim().optional().transform(v => v || null),
+  department: z.string().trim().optional().transform(v => v || null),
+  repeat_every: z.string().trim().default("daily").transform(v => v || "daily"),
+  template_status: z.enum(["active", "draft"]).catch("active"),
+  notify_via: z.array(z.enum(["whatsapp", "sms"])).default([]),
+  location_scope: z.array(z.string()).default([]),
+  department_scope: z.array(z.string()).default([]),
+  position_scope: z.array(z.string()).default([]),
+  user_scope: z.array(z.string()).default([]),
+  sections_payload: z.string().trim().optional(),
+  items: z.string().trim().optional(),
+});
+
 export async function createChecklistTemplateAction(prevState: any, formData: FormData) {
   const tenant = await requireTenantModule("checklists");
   const supabase = await createSupabaseServerClient();
 
   const { data: authData } = await supabase.auth.getUser();
-  const templateId = String(formData.get("template_id") ?? "").trim() || null;
 
-  const name = String(formData.get("name") ?? "").trim();
-  const checklistType = normalizeChecklistType(String(formData.get("checklist_type") ?? "custom"));
-  const checklistTypeOther = String(formData.get("checklist_type_other") ?? "").trim();
-  const branchId = String(formData.get("branch_id") ?? "").trim() || null;
-  const shift = String(formData.get("shift") ?? "").trim() || null;
-  const departmentId = String(formData.get("department_id") ?? "").trim() || null;
-  let department: string | null = String(formData.get("department") ?? "").trim() || null;
-  const repeatEvery = String(formData.get("repeat_every") ?? "daily").trim() || "daily";
-  const templateStatus = normalizeTemplateStatus(String(formData.get("template_status") ?? "active"));
-  const notifyVia = unique(formData.getAll("notify_via").map(String).filter((value) => value === "whatsapp" || value === "sms"));
-  const locationScopes = normalizeScopeSelection(formData.getAll("location_scope").map(String));
-  const departmentScopes = normalizeScopeSelection(formData.getAll("department_scope").map(String));
-  const positionScopes = normalizeScopeSelection(formData.getAll("position_scope").map(String));
-  const userScopes = normalizeScopeSelection(formData.getAll("user_scope").map(String));
-  const sectionsPayloadRaw = String(formData.get("sections_payload") ?? "").trim();
-  const itemsInput = String(formData.get("items") ?? "").trim();
+  const notifyViaRaw = formData.getAll("notify_via").map(String);
+  const validNotifyVia = notifyViaRaw.filter(v => v === "whatsapp" || v === "sms");
+
+  const parsed = createChecklistSchema.safeParse({
+    template_id: formData.get("template_id"),
+    name: formData.get("name"),
+    checklist_type: formData.get("checklist_type"),
+    checklist_type_other: formData.get("checklist_type_other"),
+    branch_id: formData.get("branch_id"),
+    shift: formData.get("shift"),
+    department_id: formData.get("department_id"),
+    department: formData.get("department"),
+    repeat_every: formData.get("repeat_every"),
+    template_status: formData.get("template_status"),
+    notify_via: validNotifyVia,
+    location_scope: formData.getAll("location_scope").map(String),
+    department_scope: formData.getAll("department_scope").map(String),
+    position_scope: formData.getAll("position_scope").map(String),
+    user_scope: formData.getAll("user_scope").map(String),
+    sections_payload: formData.get("sections_payload"),
+    items: formData.get("items"),
+  });
+
+  if (!parsed.success) {
+    return { success: false, message: parsed.error.issues[0]?.message || "Datos invalidos" };
+  }
+
+  const {
+    template_id: templateId,
+    name,
+    checklist_type: checklistType,
+    checklist_type_other: checklistTypeOther,
+    branch_id: branchId,
+    shift,
+    department_id: departmentId,
+    repeat_every: repeatEvery,
+    template_status: templateStatus,
+    notify_via: notifyVia,
+    sections_payload: sectionsPayloadRaw,
+    items: itemsInput,
+  } = parsed.data;
+  let department = parsed.data.department;
+
+  const locationScopes = normalizeScopeSelection(parsed.data.location_scope);
+  const departmentScopes = normalizeScopeSelection(parsed.data.department_scope);
+  const positionScopes = normalizeScopeSelection(parsed.data.position_scope);
+  const userScopes = normalizeScopeSelection(parsed.data.user_scope);
 
   let normalizedSections: Array<{ name: string; items: string[] }> = [];
 

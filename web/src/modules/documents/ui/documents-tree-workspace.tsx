@@ -793,6 +793,23 @@ function ShareAccessModal({
   onSave: (scope: { locations: string[]; departments: string[]; positions: string[]; users: string[] }) => void;
 }) {
   const scopeFormId = `share-scope-form-${title.toLowerCase().replace(/\s+/g, "-")}`;
+  const [dynamicUsers, setDynamicUsers] = useState<User[]>(users);
+  const [dynamicPositions, setDynamicPositions] = useState<Position[]>(positions);
+  const [loading, setLoading] = useState(users.length === 0 || positions.length === 0);
+
+  useEffect(() => {
+    if (users.length === 0 || positions.length === 0) {
+      import('@/modules/documents/actions').then((mod) => {
+        mod.getShareScopesCatalogsAction()
+          .then((data) => {
+            setDynamicUsers(data.employees);
+            setDynamicPositions(data.positions);
+            setLoading(false);
+          })
+          .catch(() => setLoading(false));
+      });
+    }
+  }, [users.length, positions.length]);
 
   return (
     <div className="fixed inset-0 z-[1060] flex items-center justify-center bg-black/45 p-5">
@@ -818,21 +835,27 @@ function ShareAccessModal({
               <p className="text-sm font-semibold text-[#111]">{itemName}</p>
             </div>
 
-            <ScopeSelector
-              namespace={`share-${title.toLowerCase().replace(/\s+/g, "-")}`}
-              branches={branches}
-              departments={departments}
-              positions={positions}
-              users={users}
-              locationInputName="_scope_location"
-              departmentInputName="_scope_department"
-              positionInputName="_scope_position"
-              userInputName="_scope_user"
-              initialLocations={initialScope.locations}
-              initialDepartments={initialScope.departments}
-              initialPositions={initialScope.positions}
-              initialUsers={initialScope.users}
-            />
+            {loading ? (
+              <div className="flex items-center justify-center p-12">
+                <span className="text-xs font-semibold text-[#888] animate-pulse">Cargando permisos...</span>
+              </div>
+            ) : (
+              <ScopeSelector
+                namespace={`share-${title.toLowerCase().replace(/\s+/g, "-")}`}
+                branches={branches}
+                departments={departments}
+                positions={dynamicPositions}
+                users={dynamicUsers}
+                locationInputName="_scope_location"
+                departmentInputName="_scope_department"
+                positionInputName="_scope_position"
+                userInputName="_scope_user"
+                initialLocations={initialScope.locations}
+                initialDepartments={initialScope.departments}
+                initialPositions={initialScope.positions}
+                initialUsers={initialScope.users}
+              />
+            )}
           </div>
           <div className="flex justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4"><button type="button" onClick={onCancel} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777]">Cancelar</button><button type="submit" disabled={busy} className="rounded-lg bg-[#111] px-5 py-2 text-sm font-bold text-white hover:bg-[#c0392b] disabled:opacity-60">{busy ? "Guardando..." : "Guardar permisos"}</button></div>
         </form>

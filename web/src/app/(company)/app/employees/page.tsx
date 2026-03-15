@@ -11,6 +11,7 @@ import { UserDepartmentPositionFields } from "@/modules/employees/ui/user-depart
 import { UsersTableWorkspace } from "@/modules/employees/ui/users-table-workspace";
 import { getEmployeeDirectoryView } from "@/modules/employees/services";
 import { requireTenantModule } from "@/shared/lib/access";
+import { extractDisplayName } from "@/shared/lib/user";
 
 type CompanyEmployeesPageProps = {
   searchParams: Promise<{ status?: string; message?: string; action?: string; tab?: string; employeeId?: string; limit?: string }>;
@@ -67,11 +68,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   const editContract = editEmployee ? (editEmployee.contracts?.[0] ?? null) : null;
 
   const { data: authData } = await supabase.auth.getUser();
-  const publisherName =
-    (typeof authData.user?.user_metadata?.full_name === "string" && authData.user.user_metadata.full_name.trim()) ||
-    (typeof authData.user?.user_metadata?.name === "string" && authData.user.user_metadata.name.trim()) ||
-    authData.user?.email ||
-    "Administrador";
+  const publisherName = extractDisplayName(authData.user);
 
   const initialEmployeeData = editEmployee
     ? {
