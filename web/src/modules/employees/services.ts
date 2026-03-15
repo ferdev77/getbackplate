@@ -1,7 +1,19 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
-export async function getEmployeeDirectoryView(supabase: SupabaseClient, organizationId: string, limit: number = 1000) {
-  const [{ data: employees }, { data: branches }, { data: memberships }, { data: roles }, { data: departments }, { data: positions }] = await Promise.all([
+export async function getEmployeeDirectoryView(
+  supabase: SupabaseClient, 
+  organizationId: string, 
+  limit: number = 1000,
+  options: { includeModalsData?: boolean; includeUsersTab?: boolean } = {}
+) {
+  const [
+    { data: employees }, 
+    { data: branches }, 
+    { data: memberships }, 
+    { data: roles }, 
+    { data: departments }, 
+    { data: positions }
+  ] = await Promise.all([
     supabase
       .from("employees")
       .select(`
@@ -12,41 +24,51 @@ export async function getEmployeeDirectoryView(supabase: SupabaseClient, organiz
       .eq("organization_id", organizationId)
       .order("created_at", { ascending: false })
       .limit(limit),
-    supabase
-      .from("branches")
-      .select("id, name")
-      .eq("organization_id", organizationId)
-      .eq("is_active", true)
-      .order("name"),
-    supabase
-      .rpc("get_company_users", { lookup_organization_id: organizationId })
-      .limit(limit * 2), // Buffer for generic users
-    supabase
-      .from("roles")
-      .select("id, code"),
-    supabase
-      .from("organization_departments")
-      .select("id, name")
-      .eq("organization_id", organizationId)
-      .eq("is_active", true)
-      .order("name"),
-    supabase
-      .from("department_positions")
-      .select("id, department_id, name, is_active")
-      .eq("organization_id", organizationId)
-      .eq("is_active", true)
-      .order("name"),
+    (options.includeModalsData || options.includeUsersTab)
+      ? supabase
+          .from("branches")
+          .select("id, name")
+          .eq("organization_id", organizationId)
+          .eq("is_active", true)
+          .order("name")
+      : Promise.resolve({ data: [] }),
+    options.includeUsersTab
+      ? supabase
+          .rpc("get_company_users", { lookup_organization_id: organizationId })
+          .limit(limit * 2) // Buffer for generic users
+      : Promise.resolve({ data: [] }),
+    options.includeUsersTab
+      ? supabase.from("roles").select("id, code")
+      : Promise.resolve({ data: [] }),
+    options.includeModalsData
+      ? supabase
+          .from("organization_departments")
+          .select("id, name")
+          .eq("organization_id", organizationId)
+          .eq("is_active", true)
+          .order("name")
+      : Promise.resolve({ data: [] }),
+    options.includeModalsData
+      ? supabase
+          .from("department_positions")
+          .select("id, department_id, name, is_active")
+          .eq("organization_id", organizationId)
+          .eq("is_active", true)
+          .order("name")
+      : Promise.resolve({ data: [] }),
   ]);
 
   const employeeIds = (employees ?? []).map((emp) => emp.id);
 
   const [{ data: documents }, { data: contracts }, { data: employeeDocs }] = await Promise.all([
-    supabase
-      .from("documents")
-      .select("id, title, created_at")
-      .eq("organization_id", organizationId)
-      .order("created_at", { ascending: false })
-      .limit(50), 
+    options.includeModalsData
+      ? supabase
+          .from("documents")
+          .select("id, title, created_at")
+          .eq("organization_id", organizationId)
+          .order("created_at", { ascending: false })
+          .limit(50)
+      : Promise.resolve({ data: [] }),
     employeeIds.length > 0 
       ? supabase
           .from("employee_contracts")
@@ -125,6 +147,12 @@ export async function getEmployeeDirectoryView(supabase: SupabaseClient, organiz
       }
     }
 
+    let positionId = undefined;
+    if (positionName && departmentName && options.includeModalsData) {
+       const matchingPos = (positions ?? []).find(p => p.name.toLowerCase() === positionName.toLowerCase() && p.department_id === emp.department_id);
+       if (matchingPos) positionId = matchingPos.id;
+    }
+
     return {
       id: emp.id,
       userId: emp.user_id,
@@ -134,6 +162,7 @@ export async function getEmployeeDirectoryView(supabase: SupabaseClient, organiz
       phone: emp.phone,
       phoneCountryCode: emp.phone_country_code,
       position: positionName,
+      positionId,
       department: departmentName,
       departmentId: emp.department_id,
       status: emp.status,
