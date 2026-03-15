@@ -32,15 +32,38 @@ async function ensureBucketExists() {
   });
 }
 
+import { z } from "zod";
+
+const createFolderSchema = z.object({
+  name: z.string().trim().min(1, "Nombre de carpeta requerido"),
+  parent_id: z.string().trim().optional().transform(v => v || null),
+  location_scope: z.array(z.string()).default([]),
+  department_scope: z.array(z.string()).default([]),
+  position_scope: z.array(z.string()).default([]),
+  user_scope: z.array(z.string()).default([]),
+});
+
 export async function createDocumentFolderAction(prevState: any, formData: FormData) {
   const tenant = await requireTenantModule("documents");
 
-  const name = String(formData.get("name") ?? "").trim();
-  const parentId = String(formData.get("parent_id") ?? "").trim() || null;
-  const locationScopes = normalizeScopeSelection(formData.getAll("location_scope").map(String));
-  const departmentScopes = normalizeScopeSelection(formData.getAll("department_scope").map(String));
-  const positionScopes = normalizeScopeSelection(formData.getAll("position_scope").map(String));
-  const userScopes = normalizeScopeSelection(formData.getAll("user_scope").map(String));
+  const parsed = createFolderSchema.safeParse({
+    name: formData.get("name"),
+    parent_id: formData.get("parent_id"),
+    location_scope: formData.getAll("location_scope").map(String),
+    department_scope: formData.getAll("department_scope").map(String),
+    position_scope: formData.getAll("position_scope").map(String),
+    user_scope: formData.getAll("user_scope").map(String),
+  });
+
+  if (!parsed.success) {
+    return { success: false, message: parsed.error.issues[0]?.message || "Datos de carpeta invalidos" };
+  }
+
+  const { name, parent_id: parentId } = parsed.data;
+  const locationScopes = normalizeScopeSelection(parsed.data.location_scope);
+  const departmentScopes = normalizeScopeSelection(parsed.data.department_scope);
+  const positionScopes = normalizeScopeSelection(parsed.data.position_scope);
+  const userScopes = normalizeScopeSelection(parsed.data.user_scope);
 
   if (!name) {
     return { success: false, message: "Nombre de carpeta requerido" };
@@ -118,22 +141,42 @@ export async function createDocumentFolderAction(prevState: any, formData: FormD
   return { success: true, message: "Carpeta creada" };
 }
 
+const uploadDocumentSchema = z.object({
+  title: z.string().trim().optional(),
+  folder_id: z.string().trim().optional().transform(v => v || null),
+  branch_id: z.string().trim().optional().transform(v => v || null),
+  location_scope: z.array(z.string()).default([]),
+  department_scope: z.array(z.string()).default([]),
+  position_scope: z.array(z.string()).default([]),
+  user_scope: z.array(z.string()).default([]),
+});
+
 export async function uploadOrganizationDocumentAction(prevState: any, formData: FormData) {
   const tenant = await requireTenantModule("documents");
 
-  const titleInput = String(formData.get("title") ?? "").trim();
-  const folderId = String(formData.get("folder_id") ?? "").trim() || null;
-  const branchId = String(formData.get("branch_id") ?? "").trim() || null;
-  const file = formData.get("file");
-  const rawLocationScopes = formData.getAll("location_scope").map(String);
-  const rawDepartmentScopes = formData.getAll("department_scope").map(String);
-  const rawPositionScopes = formData.getAll("position_scope").map(String);
-  const rawUserScopes = formData.getAll("user_scope").map(String);
+  const parsed = uploadDocumentSchema.safeParse({
+    title: formData.get("title"),
+    folder_id: formData.get("folder_id"),
+    branch_id: formData.get("branch_id"),
+    location_scope: formData.getAll("location_scope").map(String),
+    department_scope: formData.getAll("department_scope").map(String),
+    position_scope: formData.getAll("position_scope").map(String),
+    user_scope: formData.getAll("user_scope").map(String),
+  });
 
-  const locationScopes = normalizeScopeSelection(rawLocationScopes, { allowAllToken: true });
-  const departmentScopes = normalizeScopeSelection(rawDepartmentScopes, { allowAllToken: true });
-  const positionScopes = normalizeScopeSelection(rawPositionScopes, { allowAllToken: true });
-  const userScopes = normalizeScopeSelection(rawUserScopes, { allowAllToken: true });
+  if (!parsed.success) {
+    return { success: false, message: parsed.error.issues[0]?.message || "Datos de documento invalidos" };
+  }
+
+  const titleInput = parsed.data.title;
+  const folderId = parsed.data.folder_id;
+  const branchId = parsed.data.branch_id;
+  const file = formData.get("file");
+
+  const locationScopes = normalizeScopeSelection(parsed.data.location_scope, { allowAllToken: true });
+  const departmentScopes = normalizeScopeSelection(parsed.data.department_scope, { allowAllToken: true });
+  const positionScopes = normalizeScopeSelection(parsed.data.position_scope, { allowAllToken: true });
+  const userScopes = normalizeScopeSelection(parsed.data.user_scope, { allowAllToken: true });
 
   if (!(file instanceof File) || file.size === 0) {
     return { success: false, message: "Selecciona un archivo" };
@@ -299,4 +342,32 @@ export async function uploadOrganizationDocumentAction(prevState: any, formData:
 
   revalidatePath("/app/documents");
   return { success: true, message: "Documento subido" };
+}
+
+export async function getShareScopesCatalogsAction() {
+  const tenant = await requireTenantModule("documents");
+  const supabase = await createSupabaseServerClient();
+
+  const [
+    { data: employees },
+    { data: positions }
+  ] = await Promise.all([
+    supabase
+      .from("employees")
+      .select("id, user_id, first_name, last_name")
+      .eq("organization_id", tenant.organizationId)
+      .not("user_id", "is", null)
+      .order("first_name"),
+    supabase
+      .from("department_positions")
+      .select("id, department_id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("name"),
+  ]);
+
+  return {
+    employees: employees ?? [],
+    positions: positions ?? [],
+  };
 }

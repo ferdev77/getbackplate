@@ -4,7 +4,11 @@ export async function getEmployeeDirectoryView(supabase: SupabaseClient, organiz
   const [{ data: employees }, { data: branches }, { data: memberships }, { data: roles }, { data: departments }, { data: positions }] = await Promise.all([
     supabase
       .from("employees")
-      .select("id, user_id, first_name, last_name, email, phone, phone_country_code, position, department, department_id, status, branch_id, hired_at, birth_date, sex, nationality, address_line1, address_city, address_state, address_postal_code, address_country, emergency_contact_name, emergency_contact_phone, emergency_contact_email, created_at, personal_email, document_id, document_number")
+      .select(`
+        id, user_id, first_name, last_name, email, phone, phone_country_code, position, department, department_id, status, branch_id, hired_at, birth_date, sex, nationality, address_line1, address_city, address_state, address_postal_code, address_country, emergency_contact_name, emergency_contact_phone, emergency_contact_email, created_at, personal_email, document_id, document_number,
+        branch:branches ( id, name ),
+        dept:organization_departments ( id, name )
+      `)
       .eq("organization_id", organizationId)
       .order("created_at", { ascending: false })
       .limit(limit),
@@ -101,9 +105,9 @@ export async function getEmployeeDirectoryView(supabase: SupabaseClient, organiz
   }
 
   // Pre-process employees for mapping
-  const mappedEmployees = (employees ?? []).map((emp) => {
+  const mappedEmployees = (employees ?? []).map((emp: any) => {
     let positionName = emp.position;
-    let departmentName = emp.department;
+    let departmentName = emp.dept?.name || emp.department;
 
     if (!positionName && emp.department_id) {
       const positionMatches = (positions ?? []).filter(p => p.department_id === emp.department_id);
@@ -134,7 +138,7 @@ export async function getEmployeeDirectoryView(supabase: SupabaseClient, organiz
       departmentId: emp.department_id,
       status: emp.status,
       branchId: emp.branch_id,
-      branchName: emp.branch_id ? branchById.get(emp.branch_id) : undefined,
+      branchName: emp.branch?.name || (emp.branch_id ? branchById.get(emp.branch_id) : undefined),
       roleCode: emp.user_id ? roleByUser.get(emp.user_id) : undefined,
       hiredAt: emp.hired_at,
       birthDate: emp.birth_date,

@@ -81,33 +81,41 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
       .eq("is_active", true)
       .order("created_at", { ascending: false })
       .limit(80),
-    supabase
-      .from("employees")
-      .select("id, user_id, first_name, last_name")
-      .eq("organization_id", tenant.organizationId)
-      .not("user_id", "is", null)
-      .order("first_name"),
+    (openCreateModal || previewTemplateId)
+      ? supabase
+          .from("employees")
+          .select("id, user_id, first_name, last_name")
+          .eq("organization_id", tenant.organizationId)
+          .not("user_id", "is", null)
+          .order("first_name")
+      : Promise.resolve({ data: [] }),
     supabase
       .from("organization_departments")
       .select("id, name")
       .eq("organization_id", tenant.organizationId)
       .eq("is_active", true)
       .order("name"),
-    supabase
-      .from("department_positions")
-      .select("id, department_id, name")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("name"),
-    supabase
-      .from("memberships")
-      .select("user_id, role_id")
-      .eq("organization_id", tenant.organizationId)
-      .eq("status", "active"),
-    supabase
-      .from("roles")
-      .select("id, code")
-      .in("code", ["company_admin", "manager", "employee"]),
+    (openCreateModal || previewTemplateId)
+      ? supabase
+          .from("department_positions")
+          .select("id, department_id, name")
+          .eq("organization_id", tenant.organizationId)
+          .eq("is_active", true)
+          .order("name")
+      : Promise.resolve({ data: [] }),
+    openCreateModal
+      ? supabase
+          .from("memberships")
+          .select("user_id, role_id")
+          .eq("organization_id", tenant.organizationId)
+          .eq("status", "active")
+      : Promise.resolve({ data: [] }),
+    openCreateModal
+      ? supabase
+          .from("roles")
+          .select("id, code")
+          .in("code", ["company_admin", "manager", "employee"])
+      : Promise.resolve({ data: [] }),
   ]);
 
   const templateIds = (templates ?? []).map((t) => t.id);

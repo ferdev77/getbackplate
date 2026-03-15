@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
+import { z } from "zod";
 import {
   buildAnnouncementAudienceRows,
   readAnnouncementScopeFromFormData,
@@ -26,9 +27,26 @@ function normalizeKind(kind: string) {
 export async function createAnnouncementAction(prevState: any, formData: FormData) {
   const tenant = await requireTenantModule("announcements");
 
+  const formDataObj = Object.fromEntries(formData.entries());
+  
+  const createAnnouncementSchema = z.object({
+    title: z.string().min(1, "Titulo es obligatorio").max(100, "El título es muy largo"),
+    body: z.string().min(1, "Contenido es obligatorio").max(3000, "El contenido es muy largo"),
+  });
+
+  const parsed = createAnnouncementSchema.safeParse({
+    title: formDataObj.title ? String(formDataObj.title).trim() : "",
+    body: formDataObj.body ? String(formDataObj.body).trim() : "",
+  });
+
+  if (!parsed.success) {
+    return { success: false, message: parsed.error.issues[0].message };
+  }
+
+  const title = parsed.data.title;
+  const body = parsed.data.body;
+
   const announcementId = String(formData.get("announcement_id") ?? "").trim() || null;
-  const title = String(formData.get("title") ?? "").trim();
-  const body = String(formData.get("body") ?? "").trim();
   const kind = normalizeKind(String(formData.get("kind") ?? "general"));
   const expiresAt = String(formData.get("expires_at") ?? "").trim() || null;
   const isFeatured = String(formData.get("is_featured") ?? "") === "on";
@@ -38,10 +56,6 @@ export async function createAnnouncementAction(prevState: any, formData: FormDat
   const positionScopes = scope.position_ids;
   const userScopes = scope.users;
   const notifyChannels = formData.getAll("notify_channel").map(String);
-
-  if (!title || !body) {
-    return { success: false, message: "Titulo y contenido son obligatorios" };
-  }
 
   const supabase = await createSupabaseServerClient();
   const { data: authData } = await supabase.auth.getUser();
