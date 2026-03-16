@@ -607,18 +607,16 @@ export function CompanyShell({
                     <div className="flex items-center justify-between py-1.5"><span className="text-white/55">Extra Users</span><button type="button" onClick={() => setToast("Proximamente")} className="rounded-md border border-[#60a5fa]/35 bg-[#60a5fa]/15 px-2 py-1 text-[10px] font-semibold text-[#9fc2ff]">Add Users</button></div>
                   </div>
                   <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-                    <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Payment</p>
-                    <div><span className="text-white/55">Billed To</span><input value={billedTo} onChange={(event) => setBilledTo(event.target.value)} className="mt-1 w-full rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-white" /></div>
-                    <div className="mt-2"><span className="text-white/55">Billing Email</span><input value={billingEmail} onChange={(event) => setBillingEmail(event.target.value)} className="mt-1 w-full rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-white" /></div>
-                    <div className="mt-2"><span className="text-white/55">Payment Method</span><input value={paymentLast4} onChange={(event) => setPaymentLast4(event.target.value)} className="mt-1 w-full rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-white" placeholder="4242" /></div>
-                    <label className="mt-2 inline-flex items-center gap-2"><input type="checkbox" checked={invoiceEmailsEnabled} onChange={(event) => setInvoiceEmailsEnabled(event.target.checked)} /><span>Invoice Emails</span></label>
+                    <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Pago y Facturación</p>
+                    <p className="text-[11px] text-white/65 mb-3">
+                      Gestiona tus métodos de pago, datos de facturación y descarga tus facturas de forma segura a través del portal de Stripe.
+                    </p>
+                    <form action="/api/stripe/billing-portal" method="POST">
+                      <button type="submit" className="w-full rounded-md bg-white px-2 py-2 font-semibold text-[#111] transition hover:bg-gray-200">
+                        Abrir Portal de Pagos
+                      </button>
+                    </form>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-                    <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Invoices</p>
-                    <div className="flex items-center justify-between border-b border-white/5 py-1.5 text-white/70"><span>Upcoming Invoice</span><span>Apr 1, 2026 · $0</span></div>
-                    <div className="mt-1 space-y-1 text-[11px] text-white/65"><div className="flex items-center justify-between border-b border-white/5 py-1"><span>Mar 1, 2026</span><span className="font-semibold text-white/85">$0.00</span></div><div className="flex items-center justify-between border-b border-white/5 py-1"><span>Feb 1, 2026</span><span className="font-semibold text-white/85">$0.00</span></div><div className="flex items-center justify-between py-1"><span>Jan 1, 2026</span><span className="font-semibold text-white/85">$0.00</span></div></div>
-                  </div>
-                  <button type="button" disabled={busy} onClick={() => saveSettings("billing", { billingPlan, billingPeriod, billedTo, billingEmail, paymentLast4, invoiceEmailsEnabled })} className="w-full rounded-md bg-white px-2 py-2 font-semibold text-[#111] disabled:opacity-60">Guardar billing</button>
                 </div>
               </div>
             ) : null}

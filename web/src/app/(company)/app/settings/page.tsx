@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, MapPin, Plus, Settings2, Users2 } from "lucide-react";
+import { Building2, MapPin, Plus, Settings2, Users2, CreditCard } from "lucide-react";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import {
@@ -39,7 +39,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
   ] = await Promise.all([
     supabase
       .from("organizations")
-      .select("name")
+      .select("name, plan_id, plans(name)")
       .eq("id", tenant.organizationId)
       .maybeSingle(),
     supabase

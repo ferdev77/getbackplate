@@ -3,6 +3,10 @@
     {
       "path": "/api/internal/cron/documents/process",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/internal/cron/deliveries",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

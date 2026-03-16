@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { requireSuperadmin } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { stripe } from "@/infrastructure/stripe/client";
 
 function normalizePlanCode(input: string) {
   return input
@@ -107,13 +108,25 @@ export async function createPlanAction(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim() || null;
   const isActive = String(formData.get("is_active") ?? "") === "on";
-  const priceAmount = parsePriceAmount(formData.get("price_amount"));
-  const currencyCode = normalizeCurrencyCode(String(formData.get("currency_code") ?? "USD")) || "USD";
   const billingPeriod = normalizeBillingPeriod(String(formData.get("billing_period") ?? "monthly"));
   const maxBranches = toNullableInt(formData.get("max_branches"));
   const maxUsers = toNullableInt(formData.get("max_users"));
   const maxEmployees = toNullableInt(formData.get("max_employees"));
   const maxStorageMb = toNullableInt(formData.get("max_storage_mb"));
+  const stripePriceId = String(formData.get("stripe_price_id") ?? "").trim() || null;
+
+  let priceAmount = parsePriceAmount(formData.get("price_amount"));
+  let currencyCode = normalizeCurrencyCode(String(formData.get("currency_code") ?? "USD")) || "USD";
+
+  if (stripePriceId) {
+    try {
+      const price = await stripe.prices.retrieve(stripePriceId);
+      priceAmount = price.unit_amount ? price.unit_amount / 100 : 0;
+      currencyCode = price.currency.toUpperCase();
+    } catch (err: any) {
+      redirect("/superadmin/plans?status=error&message=" + qs(`Stripe Price ID inválido: ${err.message}`));
+    }
+  }
 
   if (!code || !name) {
     redirect("/superadmin/plans?status=error&message=" + qs("Completa codigo y nombre del plan"));
@@ -149,6 +162,7 @@ export async function createPlanAction(formData: FormData) {
       max_users: maxUsers,
       max_employees: maxEmployees,
       max_storage_mb: maxStorageMb,
+      stripe_price_id: stripePriceId,
     })
     .select("id")
     .single();
@@ -205,13 +219,26 @@ export async function updatePlanAction(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim() || null;
   const isActive = String(formData.get("is_active") ?? "") === "on";
-  const priceAmount = parsePriceAmount(formData.get("price_amount"));
-  const currencyCode = normalizeCurrencyCode(String(formData.get("currency_code") ?? "USD")) || "USD";
   const billingPeriod = normalizeBillingPeriod(String(formData.get("billing_period") ?? "monthly"));
   const maxBranches = toNullableInt(formData.get("max_branches"));
   const maxUsers = toNullableInt(formData.get("max_users"));
   const maxEmployees = toNullableInt(formData.get("max_employees"));
   const maxStorageMb = toNullableInt(formData.get("max_storage_mb"));
+  const stripePriceId = String(formData.get("stripe_price_id") ?? "").trim() || null;
+
+  let priceAmount = parsePriceAmount(formData.get("price_amount"));
+  let currencyCode = normalizeCurrencyCode(String(formData.get("currency_code") ?? "USD")) || "USD";
+
+  if (stripePriceId) {
+    try {
+      const price = await stripe.prices.retrieve(stripePriceId);
+      priceAmount = price.unit_amount ? price.unit_amount / 100 : 0;
+      currencyCode = price.currency.toUpperCase();
+    } catch (err: any) {
+      redirect("/superadmin/plans?status=error&message=" + qs(`Stripe Price ID inválido: ${err.message}`));
+    }
+  }
+
   const selectedModuleIds = new Set(
     formData
       .getAll("module_ids")
@@ -245,6 +272,7 @@ export async function updatePlanAction(formData: FormData) {
       max_users: maxUsers,
       max_employees: maxEmployees,
       max_storage_mb: maxStorageMb,
+      stripe_price_id: stripePriceId,
     })
     .eq("id", planId);
 
