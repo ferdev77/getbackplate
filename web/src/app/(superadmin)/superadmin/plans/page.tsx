@@ -55,7 +55,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
   ] = await Promise.all([
     supabase
       .from("plans")
-      .select("id, code, name, description, is_active, price_amount, currency_code, billing_period, max_branches, max_users, max_storage_mb, max_employees, created_at")
+      .select("id, code, name, description, is_active, price_amount, currency_code, billing_period, max_branches, max_users, max_storage_mb, max_employees, stripe_price_id, created_at")
       .order("price_amount", { ascending: true }),
     supabase
       .from("organizations")
@@ -156,7 +156,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                       <SuperadminInputField label="Identificador (Slug)" name="code" required placeholder="p.ej: premium-anual" className="md:col-span-2" />
                       <SuperadminInputField label="Nombre Público" name="name" required placeholder="p.ej: Premium" className="md:col-span-2" />
                       <div className="md:col-span-2 grid grid-cols-2 gap-4">
-                         <SuperadminInputField label="Precio" name="price_amount" type="number" min="0" step="0.01" placeholder="0.00" />
+                         <SuperadminInputField label="Precio" name="price_amount" type="number" min="0" step="0.01" placeholder="Dejar en 0 si usa Stripe ID" />
                          <SuperadminInputField label="Moneda" name="currency_code" defaultValue="USD" />
                       </div>
                       <SuperadminInputField label="Descripción Breve" name="description" placeholder="Resumen de beneficios" className="md:col-span-4" />
@@ -165,13 +165,14 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                         <option value="yearly">Anual</option>
                         <option value="one_time">Pago Único</option>
                       </SuperadminSelectField>
-                      
+                      <SuperadminInputField label="Stripe Price ID" name="stripe_price_id" placeholder="Opcional. ej: price_1Pxxxxxxxx" className="md:col-span-6" />
+
                       <div className="md:col-span-6 bg-muted/20 rounded-2xl p-6 border border-line/20">
                          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand mb-6">Restricciones Técnicas (0 = Ilimitado)</p>
                          <div className="grid gap-4 sm:grid-cols-4">
                            <SuperadminInputField label="Sucursales" name="max_branches" type="number" min="0" defaultValue="0" />
-                           <SuperadminInputField label="Usuarios Adm" name="max_users" type="number" min="0" defaultValue="0" />
-                           <SuperadminInputField label="Colaboradores" name="max_employees" type="number" min="0" defaultValue="0" />
+                           <SuperadminInputField label="Cant. Usuarios" name="max_users" type="number" min="0" defaultValue="0" />
+                           <SuperadminInputField label="Cant. Empleados" name="max_employees" type="number" min="0" defaultValue="0" />
                            <SuperadminInputField label="Storage (MB)" name="max_storage_mb" type="number" min="0" defaultValue="0" />
                          </div>
                       </div>
@@ -259,14 +260,25 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                           <Building2 className="h-5 w-5 text-muted-foreground" />
                           <span>{usedCount} <span className="text-[10px] font-normal uppercase opacity-60">Clientes</span></span>
                        </div>
+                       {plan.stripe_price_id ? (
+                         <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-600" title={`ID: ${plan.stripe_price_id}`}>
+                           <BadgeDollarSign className="h-4 w-4" />
+                           <span className="font-bold">Enlazado a Stripe</span>
+                         </div>
+                       ) : (
+                         <div className="flex items-center gap-1.5 text-[11px] font-medium text-amber-500">
+                           <AlertCircle className="h-4 w-4" />
+                           <span>Sin vincular a Stripe</span>
+                         </div>
+                       )}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
                      {[
                        { label: 'Sucursales', val: plan.max_branches, icon: Building2 },
-                       { label: 'Administradores', val: plan.max_users, icon: Users2 },
-                       { label: 'Colaboradores', val: plan.max_employees, icon: Layers },
+                       { label: 'Usuarios', val: plan.max_users, icon: Users2 },
+                       { label: 'Empleados', val: plan.max_employees, icon: Layers },
                        { label: 'Storage (MB)', val: plan.max_storage_mb, icon: HardDrive },
                      ].map(limit => (
                         <div key={limit.label} className="rounded-2xl border border-line/20 bg-muted/10 p-4 text-center">
@@ -310,7 +322,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                                <input type="hidden" name="plan_id" value={plan.id} />
                                <SuperadminInputField label="Nombre Público" name="name" defaultValue={plan.name} className="md:col-span-3" />
                                <div className="md:col-span-3 grid grid-cols-2 gap-4">
-                                  <SuperadminInputField label="Precio" name="price_amount" type="number" min="0" step="0.01" defaultValue={plan.price_amount ?? ""} />
+                                  <SuperadminInputField label="Precio" name="price_amount" type="number" min="0" step="0.01" defaultValue={plan.price_amount ?? ""} placeholder="Auto si hay Stripe ID" />
                                   <SuperadminInputField label="Moneda" name="currency_code" defaultValue={plan.currency_code ?? "USD"} />
                                </div>
                                <SuperadminInputField label="Descripción" name="description" defaultValue={plan.description ?? ""} className="md:col-span-4" />
@@ -319,12 +331,14 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                                  <option value="yearly">Anual</option>
                                  <option value="one_time">Pago Único</option>
                                </SuperadminSelectField>
+
+                       <SuperadminInputField label="Stripe Price ID" name="stripe_price_id" defaultValue={plan.stripe_price_id ?? ""} placeholder="price_1Pxxxxxxxx" className="md:col-span-6" />
                                
                                <div className="md:col-span-6 bg-muted/20 rounded-2xl p-6">
                                   <div className="grid gap-4 sm:grid-cols-4">
                                     <SuperadminInputField label="Sucursales" name="max_branches" type="number" min="0" defaultValue={plan.max_branches ?? "0"} />
-                                    <SuperadminInputField label="Usuarios Adm" name="max_users" type="number" min="0" defaultValue={plan.max_users ?? "0"} />
-                                    <SuperadminInputField label="Colaboradores" name="max_employees" type="number" min="0" defaultValue={plan.max_employees ?? "0"} />
+                                    <SuperadminInputField label="Cant. Usuarios" name="max_users" type="number" min="0" defaultValue={plan.max_users ?? "0"} />
+                                    <SuperadminInputField label="Cant. Empleados" name="max_employees" type="number" min="0" defaultValue={plan.max_employees ?? "0"} />
                                     <SuperadminInputField label="Storage (MB)" name="max_storage_mb" type="number" min="0" defaultValue={plan.max_storage_mb ?? "0"} />
                                   </div>
                                </div>

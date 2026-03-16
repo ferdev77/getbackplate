@@ -1,0 +1,94 @@
+# Verificación Final: Integración de WhatsApp y SMS
+
+He completado la infraestructura del backend para enviar mensajes de **WhatsApp** y **SMS** a través de Twilio, y he configurado el procesamiento automatizado de la cola de envíos.
+
+### Qué se hizo:
+
+1. **Cliente de Twilio ([client.ts](file:///c:/Users/pikachu/Downloads/saasresto/web/src/infrastructure/twilio/client.ts))**
+   - Implementé un cliente robusto de Twilio que resuelve dinámicamente los remitentes de WhatsApp y SMS en base a variables de entorno.
+   - Formatea los números para cumplir con los estrictos requisitos de Twilio (añadiendo el prefijo `whatsapp:`).
+
+2. **Procesador de la Cola de Envíos ([deliveries.ts](file:///c:/Users/pikachu/Downloads/saasresto/web/src/modules/announcements/services/deliveries.ts))**
+   - Creé la función [processAnnouncementDeliveries()](file:///c:/Users/pikachu/Downloads/saasresto/web/src/modules/announcements/services/deliveries.ts#5-112) que toma los mensajes "encolados" (`queued`) de la base de datos.
+   - Construí un potente motor de resolución de audiencias que filtra a los empleados activos con base en el alcance específico del aviso (Sucursales, Departamentos, Puestos, Usuarios).
+   - Formatea los códigos internacionales de teléfono automáticamente y recorre la audiencia para despachar los mensajes vía Twilio.
+   - Registra los fallos y estados de éxito directamente en la tabla `announcement_deliveries`.
+
+3. **Trabajo en Segundo Plano (CRON Route & Vercel.json)**
+   - Creé la ruta interna `GET /api/internal/cron/deliveries`, protegida a través de la variable de entorno `CRON_SECRET`.
+   - Actualicé el archivo [vercel.json](file:///c:/Users/pikachu/Downloads/saasresto/web/vercel.json) para indicarle a Vercel que ejecute este endpoint automáticamente cada 5 minutos (`"*/5 * * * *"`).
+
+4. **Interfaz Visual (UI)**
+   - Verifiqué que el modal de creación de anuncios ([AnnouncementCreateModal](file:///c:/Users/pikachu/Downloads/saasresto/web/src/shared/ui/announcement-create-modal.tsx#58-233)) soporte nativamente el guardado de los canales `whatsapp` y `sms` en la base de datos al seleccionar esas opciones.
+
+### Cómo probarlo:
+
+1. **Configurar Variables de Entorno**: Asegúrate de agregar lo siguiente a tu proyecto en Vercel (y en tu archivo `.env.local` si pruebas en local):
+   - `TWILIO_ACCOUNT_SID`
+   - `TWILIO_AUTH_TOKEN`
+   - `TWILIO_PHONE_NUMBER`
+   - `TWILIO_WHATSAPP_NUMBER`
+   - `CRON_SECRET` (Puedes inventar cualquier cadena de texto aquí, como "super-secreto-123").
+
+2. **Ejecución manual del CRON (Pruebas Locales)**:
+   - Inicia tu entorno local (`npm run dev`).
+   - Crea un aviso en el Dashboard a través de la interfaz y marca la opción "WhatsApp".
+   - Usando Postman o cURL, haz una petición GET a la siguiente URL:
+     `http://localhost:3000/api/internal/cron/deliveries`
+     Incluyendo el encabezado ("Header"): `Authorization: Bearer TU_CRON_SECRET`
+   - Deberías ver en la terminal cómo se ejecuta Twilio, y el estado del envío en Supabase cambiará de `queued` (encolado) a `sent` (enviado).
+
+---
+
+# Verificación Final: Integración de Pagos B2B (EEUU) con Stripe
+
+He completado el diseño e implementación de la pasarela de pagos B2B automatizada pensada específicamente para el mercado de Estados Unidos, que requiere validación de ZIP Codes y soporta Billing Portals (autoservicio).
+
+### Qué se hizo:
+
+1. **Tablas de Base de Datos para Suscripciones**
+   - Agregué una nueva migración SQL ([202603160001_stripe_billing.sql](file:///c:/Users/pikachu/Downloads/saasresto/supabase/migrations/202603160001_stripe_billing.sql)) que crea las tablas `stripe_customers` y `subscriptions`.
+   - Estas tablas se sincronizan automáticamente con Stripe para que no tengas que estar haciendo peticiones a su API cada vez que cargas una página (lo que haría la app muy lenta).
+   - Ahora, cada Organización (`organization_id`) tiene su propio estado de pago en vivo cacheado en Supabase.
+
+2. **API de Checkout Automático (EEUU)**
+   - Creé la ruta `POST /api/stripe/checkout`.
+   - Esta ruta sabe exactamente qué usuario hizo clic y qué empresa (`organization`) tiene activa.
+   - Pide explícitamente a Stripe activar el **Stripe Tax** (`automatic_tax: { enabled: true }`) y exige el **ZIP Code** (`billing_address_collection: 'required'`) para que Estados Unidos te calcule los impuestos (Sales Tax) automáticamente sin problemas legales.
+
+3. **Portal de Autoservicio (Billing Portal)**
+   - Creé la ruta `POST /api/stripe/billing-portal`.
+   - A las empresas de USA les encanta gestionar todo por sí mismas (cambiar tarjetas vencidas, descargar las Invoices/facturas pasadas para deducir impuestos).
+   - Este endpoint genera un link seguro y mágico hacia el panel blanco de Stripe para que el gerente del restaurante haga todo eso sin contactar a tu soporte técnico.
+
+4. **El "Webhook" Inmortal**
+   - Creé la ruta `POST /api/stripe/webhook` que recibe todos los avisos de Stripe en segundo plano.
+   - Tan pronto un cliente paga su plan exitosamente, esta ruta inserta la suscripción como **activa** en la base de datos de forma silenciosa.
+   - Lo mismo sucede si deciden cancelar el plan, se marcará la columna `status` a `'canceled'`.
+
+5. **Actualización Visual (Landing Page)**
+   - Modifiqué la sección de Precios Públicos ([LandingPricing](file:///c:/Users/pikachu/Downloads/saasresto/web/src/shared/ui/landing-components.tsx#193-323)).
+   - Ahora, al darle clic en "Empezar Ahora" en cualquier plan, el botón despliega un estado de "cargando", llama a la API de Stripe Checkout de tu cuenta, y redirige limpiamente al gerente del restaurante hacia Stripe para que ponga su tarjeta y pague.
+
+### Cómo probarlo:
+
+1. **Configurar tu Dashboard de Stripe**:
+   - Entra a tu cuenta de Stripe y asegúrate de tener el switch de **"Test Mode"** (Modo de Prueba) encendido.
+   - Ve a "Productos" y crea al menos un producto (por ejemplo, "Plan Premium - $99/mo"). Copia su `Price ID` (empieza con `price_xxxxxx`).
+   - En tu Supabase local, abre la tabla `plans` y pégale ese `price_xxxxxx` al plan que desees probar, en la columna `stripe_price_id` (nuestra tabla `plans` recibe el webhook opcionalmente).
+
+2. **Variables de Entorno**:
+   - Agrega a tu archivo `.env.local`:
+     - `STRIPE_SECRET_KEY=sk_test_...`
+     - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...`
+     - `STRIPE_WEBHOOK_SECRET=whsec_...` (Para local, descargas la app de Stripe por terminal y escribes: `stripe listen --forward-to localhost:3000/api/stripe/webhook`).
+
+3. **Simular una Compra**:
+   - Inicia sesión como administrador de un restaurante de prueba en el Dashboard.
+   - Asegúrate de estar ejecutando `npm run dev` y la escucha de Stripe (`stripe listen...`) en dos terminales separadas.
+   - Luego, en la pantalla pública de precios (la Landing Page en la que trabajamos), presiona el botón "Empezar Ahora" de uno de los planes "PRO".
+   - Verás la ruleta de cargando y serás devuelto a la interfaz de pago de Stripe gringa.
+   - Usa el número de tarjeta de prueba mágico: `4242 4242 4242 4242` (cualquier fecha, cualquier CVC), usa un ZIP Code falso estadounidense (ej "90210"), y paga.
+   - Serás devuelto a la app como ganador, y en el fondo, verás en la consola de tu terminal cómo el Webhook guardó el nuevo pago exitoso dentro de tu tabla `subscriptions` en Supabase.
+
+¡La base para que cobres a restaurantes Americanos de forma B2B legal está terminada!

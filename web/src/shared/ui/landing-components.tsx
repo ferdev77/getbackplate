@@ -5,6 +5,7 @@ import { MoveRight, CheckCircle2, Menu, X, Globe, Shield, Users, FileText, Bell 
 import { useState } from "react";
 import { FadeIn, SlideUp, AnimatedList, AnimatedItem, AnimatedButton, Interactive } from "@/shared/ui/animations";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 export function LandingNavbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -189,7 +190,48 @@ export function LandingFeatures() {
   );
 }
 
-export function LandingPricing({ plans }: { plans: any[] }) {
+export function LandingPricing({ plans, highlightPlanId, compact }: { plans: any[], highlightPlanId?: string, compact?: boolean }) {
+  const router = useRouter();
+  const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null);
+
+  const handleCheckout = async (priceId: string, planId: string) => {
+    if (!priceId) return;
+    
+    setLoadingPriceId(priceId);
+    try {
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ priceId, planId }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        if (data.error === 'AuthRequired' || response.status === 401) {
+           // Redirect to register, passing the plan info so we can auto-checkout after they register
+           router.push(`/auth/register?priceId=${priceId}&planId=${planId}`);
+           return;
+        }
+        throw new Error(data.message || data.error || "Error initiating checkout");
+      }
+
+      if (data.url) {
+        window.location.href = data.url; // Redirects to Stripe Checkout Hosted Page
+      } else {
+        console.error("No checkout URL returned", data);
+        alert(data.error || "Error initiating checkout");
+      }
+    } catch (error: any) {
+      console.error("Checkout Request Failed", error);
+      alert(error.message || "Something went wrong");
+    } finally {
+        setLoadingPriceId(null);
+    }
+  };
+
   if (!plans || plans.length === 0) return null;
 
   const formattedPlans = plans.map((plan) => {
@@ -213,7 +255,9 @@ export function LandingPricing({ plans }: { plans: any[] }) {
     }
 
     // Logic for highlighting the "PRO" or highest plan (excluding enterprise usually)
-    const isPro = plan.code?.toLowerCase().includes('pro') || plan.name?.toLowerCase().includes('pro');
+    const isPro = highlightPlanId 
+        ? plan.plan_id === highlightPlanId || plan.id === highlightPlanId
+        : (plan.code?.toLowerCase().includes('pro') || plan.name?.toLowerCase().includes('pro'));
     
     return {
       name: plan.name,
@@ -223,12 +267,15 @@ export function LandingPricing({ plans }: { plans: any[] }) {
       features,
       highlight: isPro,
       modules_count: plan.modules_count || 0,
-      cta: plan.price_amount ? "Empezar Ahora" : "Contactar Ventas"
+      cta: plan.price_amount ? "Empezar Ahora" : "Contactar Ventas",
+      price_id: plan.stripe_price_id || "", 
+      plan_id: plan.id,
+      price_amount: plan.price_amount
     };
   });
 
   return (
-    <section id="pricing" className="py-24 md:py-32">
+    <section id="pricing" className={compact ? "py-8" : "py-24 md:py-32"}>
       <div className="mx-auto max-w-7xl px-6">
         <div className="mb-16 text-center">
           <FadeIn>
@@ -259,7 +306,7 @@ export function LandingPricing({ plans }: { plans: any[] }) {
                 </div>
                 <div className="flex-1">
                   <ul className="space-y-4">
-                    {plan.features.map((f, i) => (
+                    {plan.features.map((f: string, i: number) => (
                       <li key={i} className="flex items-center gap-3 text-sm text-foreground">
                         <CheckCircle2 className="h-5 w-5 text-brand flex-shrink-0" />
                         {f}
@@ -267,8 +314,14 @@ export function LandingPricing({ plans }: { plans: any[] }) {
                     ))}
                   </ul>
                 </div>
-                <button className={`mt-10 w-full rounded-2xl py-4 font-bold transition-all ${plan.highlight ? 'bg-brand text-white hover:bg-brand-dark shadow-lg shadow-brand/20' : 'bg-line/30 text-foreground hover:bg-line/50 font-semibold'}`}>
-                  {plan.cta}
+                <button 
+                  onClick={() => plan.price_amount && handleCheckout(plan.price_id, plan.plan_id)}
+                  disabled={loadingPriceId === plan.price_id}
+                  className={`mt-10 w-full rounded-2xl py-4 font-bold transition-all flex justify-center items-center ${plan.highlight ? 'bg-brand text-white hover:bg-brand-dark shadow-lg shadow-brand/20' : 'bg-line/30 text-foreground hover:bg-line/50 font-semibold'} ${loadingPriceId === plan.price_id ? 'opacity-70 cursor-wait' : ''}`}
+                >
+                  {loadingPriceId === plan.price_id ? (
+                    <span className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                  ) : plan.cta}
                 </button>
               </div>
             </FadeIn>

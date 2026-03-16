@@ -3,7 +3,7 @@ import { requireTenantModule } from "@/shared/lib/access";
 import { CompanyDashboardWorkspace } from "@/shared/ui/company-dashboard-workspace";
 
 type CompanyDashboardPageProps = {
-  searchParams: Promise<{ branch?: string; q?: string }>;
+  searchParams: Promise<{ branch?: string; q?: string; selectPlanId?: string }>;
 };
 
 export default async function CompanyDashboardPage({ searchParams }: CompanyDashboardPageProps) {
@@ -160,25 +160,43 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
     { code: "employees", label: "Empleados", enabled: isEmployeesEnabled },
   ];
 
+  const selectPlanId = params?.selectPlanId;
+  const plans = selectPlanId ? await import("@/modules/plans/queries").then(m => m.getActivePlans()) : [];
+  const LandingPricing = selectPlanId ? (await import("@/shared/ui/landing-components")).LandingPricing : null;
+
   return (
-    <CompanyDashboardWorkspace
-      organizationName={organization?.name ?? "Panel de empresa"}
-      organizationSlug={organization?.slug ?? "-"}
-      organizationStatus={organization?.status ?? "active"}
-      employeesCount={employeesCount ?? 0}
-      branchesCount={branchesCount ?? 0}
-      checklistTodayCount={todayChecklistCount ?? 0}
-      checklistWeekCount={weekChecklistCount ?? 0}
-      pendingReviewCount={pendingReviewCount ?? 0}
-      openFlagsCount={openFlagsCount ?? 0}
-      announcements={filteredAnnouncements}
-      recentDocuments={filteredDocuments}
-      branchNameMap={branchNameMap}
-      branches={branches ?? []}
-      branchFilter={branchFilter}
-      searchTerm={searchTerm}
-      dashboardNote={orgSettings?.dashboard_note ?? ""}
-      moduleStatus={moduleStatus}
-    />
+    <>
+      {selectPlanId && LandingPricing ? (
+         <div className="mx-auto max-w-7xl pt-8 px-4 sm:px-6">
+           <div className="rounded-2xl bg-brand/5 border border-brand/20 p-6 text-center shadow-sm">
+             <h2 className="text-xl font-bold text-brand mb-2">¡Cuenta creada con éxito!</h2>
+             <p className="text-sm text-foreground mb-1">Para habilitar tu organización, necesitas completar la suscripción de tu plan.</p>
+             <p className="text-xs text-muted-foreground">Tu progreso ha sido guardado automáticamente.</p>
+           </div>
+           {/* Render compact version of pricing with the selected plan highlighted */}
+           <LandingPricing plans={plans} highlightPlanId={selectPlanId as string} compact={true} />
+         </div>
+      ) : null}
+      
+      <CompanyDashboardWorkspace
+        organizationName={organization?.name ?? "Panel de empresa"}
+        organizationSlug={organization?.slug ?? "-"}
+        organizationStatus={organization?.status ?? "active"}
+        employeesCount={employeesCount ?? 0}
+        branchesCount={branchesCount ?? 0}
+        checklistTodayCount={todayChecklistCount ?? 0}
+        checklistWeekCount={weekChecklistCount ?? 0}
+        pendingReviewCount={pendingReviewCount ?? 0}
+        openFlagsCount={openFlagsCount ?? 0}
+        announcements={filteredAnnouncements}
+        recentDocuments={filteredDocuments}
+        branchNameMap={branchNameMap}
+        branches={branches ?? []}
+        branchFilter={branchFilter}
+        searchTerm={searchTerm}
+        dashboardNote={orgSettings?.dashboard_note ?? ""}
+        moduleStatus={moduleStatus}
+      />
+    </>
   );
 }
