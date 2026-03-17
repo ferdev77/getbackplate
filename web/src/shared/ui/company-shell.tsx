@@ -58,6 +58,7 @@ type CompanyShellProps = {
     maxUsers: number | null;
     maxEmployees: number | null;
     maxStorageMb: number | null;
+    stripePriceId?: string | null;
   }>;
   currentPlanCode: string | null;
   currentPlanName: string;
@@ -303,6 +304,25 @@ export function CompanyShell({
     } catch (error) {
       setToast(error instanceof Error ? error.message : "Error al guardar");
     } finally {
+      setBusy(false);
+    }
+  }
+
+  async function startCheckout(planId: string, priceId: string) {
+    setBusy(true);
+    try {
+      const response = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ planId, priceId }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Error al conectar con Stripe");
+      
+      // Redirect out softly to Stripe Checkout URL
+      window.location.href = data.url;
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "Falló la conexión de pagos");
       setBusy(false);
     }
   }
@@ -701,12 +721,24 @@ export function CompanyShell({
                         <span className="rounded-full bg-white/10 px-2 py-[2px] text-[10px] font-semibold text-white/80">{formatPlanPrice(plan)}</span>
                       </div>
                       <p className="mt-1 text-[11px] text-white/60">{plan.code.toUpperCase()} · {plan.billingPeriod === "yearly" || plan.billingPeriod === "annual" ? "Anual" : "Mensual"}</p>
-                      <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-white/60">
+                      <div className="mb-2 mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-white/60">
                         <span>Sucursales: {plan.maxBranches ?? "-"}</span>
                         <span>Usuarios: {plan.maxUsers ?? "-"}</span>
                         <span>Empleados: {plan.maxEmployees ?? "-"}</span>
                         <span>Storage MB: {plan.maxStorageMb ?? "-"}</span>
                       </div>
+                      {!isCurrent ? (
+                        <button
+                          type="button"
+                          disabled={busy || !plan.stripePriceId}
+                          onClick={() => startCheckout(plan.id, plan.stripePriceId!)}
+                          className="mt-2 w-full rounded-md border border-white/20 bg-white/5 py-1.5 text-[10px] font-semibold text-white transition-colors hover:bg-white/10 disabled:opacity-50"
+                        >
+                          {busy ? "Procesando..." : "Elegir Plan"}
+                        </button>
+                      ) : (
+                        <div className="mt-2 w-full rounded-md bg-[#f0b060]/20 py-1.5 text-center text-[10px] font-semibold text-[#f0b060]">Plan Actual</div>
+                      )}
                     </div>
                   );
                 })}
@@ -714,7 +746,7 @@ export function CompanyShell({
             </div>
 
             <div className="mx-3.5 mb-3 mt-2 grid gap-2">
-              <button type="button" onClick={() => { setPlanOpen(false); setSettingsOpen(true); setSettingsView("billing"); }} className="w-full rounded-lg bg-[#f0b060] px-3 py-2 text-xs font-bold text-[#111] hover:opacity-90">Ver billing -&gt;</button>
+              <button type="button" onClick={() => { setPlanOpen(false); setSettingsOpen(true); setSettingsView("billing"); }} className="w-full rounded-lg bg-[#f0b060] px-3 py-2 text-xs font-bold text-[#111] hover:opacity-90">Administrar mis métodos de pago -&gt;</button>
             </div>
           </div>
         </div>
