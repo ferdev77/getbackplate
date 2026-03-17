@@ -11,21 +11,13 @@ type NewUserModalProps = {
   open: boolean;
   branches: { id: string; name: string }[];
   roleOptions: { value: string; label: string }[];
-  departments: { id: string; name: string }[];
-  positions: { id: string; department_id: string; name: string; is_active: boolean }[];
 };
 
 const initialState = { success: false, message: "" };
 
-export function NewUserModal({ open, branches, departments, positions }: NewUserModalProps) {
+export function NewUserModal({ open, branches }: NewUserModalProps) {
   const [state, formAction, isPending] = useActionState(createUserAccountAction, initialState);
-  const [selectedDept, setSelectedDept] = useState("");
   const router = useRouter();
-
-  const filteredPositions = useMemo(
-    () => positions.filter((p) => p.department_id === selectedDept && p.is_active),
-    [positions, selectedDept]
-  );
 
   useEffect(() => {
     if (state?.message) {
@@ -114,34 +106,6 @@ export function NewUserModal({ open, branches, departments, positions }: NewUser
                 <option key={branch.id} value={branch.id}>
                   {branch.name}
                 </option>
-              ))}
-            </select>
-
-            {/* Departamento */}
-            <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">
-              Departamento
-            </label>
-            <select
-              name="department_id"
-              defaultValue=""
-              value={selectedDept}
-              onChange={(e) => setSelectedDept(e.target.value)}
-              className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm"
-            >
-              <option value="">Sin departamento</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
-            </select>
-
-            {/* Puesto */}
-            <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">
-              Puesto
-            </label>
-            <select name="position_id" defaultValue="" className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm">
-              <option value="">{selectedDept ? "Sin puesto" : "Selecciona departamento primero"}</option>
-              {filteredPositions.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
 

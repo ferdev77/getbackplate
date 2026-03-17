@@ -71,8 +71,6 @@ export default async function CompanyUsersPage({ searchParams }: CompanyUsersPag
         open={openUserModal}
         branches={viewData.branches}
         roleOptions={ROLE_OPTIONS}
-        departments={viewData.departments}
-        positions={viewData.positions}
       />
     </main>
   );
