@@ -3,11 +3,6 @@ import { stripe } from '@/infrastructure/stripe/client';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
 
 export async function POST(req: Request) {
   const body = await req.text();
