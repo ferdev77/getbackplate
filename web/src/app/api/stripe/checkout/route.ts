@@ -10,6 +10,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing priceId' }, { status: 400 });
     }
 
+    // Construir la URL base dinámicamente desde los headers de la request
+    const headersList = request.headers;
+    const host = headersList.get('host') || 'localhost:3000';
+    const protocol = headersList.get('x-forwarded-proto') || 'http';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
+
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -60,8 +66,8 @@ export async function POST(request: Request) {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/app/dashboard?session_id={CHECKOUT_SESSION_ID}&success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/app/dashboard?canceled=true`,
+      success_url: `${baseUrl}/app/dashboard?session_id={CHECKOUT_SESSION_ID}&success=true`,
+      cancel_url: `${baseUrl}/app/dashboard?canceled=true`,
       
       // TAX settings for the US Market (requires Stripe Tax to be active in dashboard)
       // automatic_tax: { enabled: true },
