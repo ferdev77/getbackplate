@@ -97,6 +97,7 @@ export default async function CompanyLayout({
         maxUsers: plan.max_users,
         maxEmployees: plan.max_employees,
         maxStorageMb: plan.max_storage_mb,
+        stripePriceId: plan.stripe_price_id ?? null,
       }))}
       currentPlanCode={inferredCurrentPlan?.code ?? null}
       currentPlanName={inferredCurrentPlan?.name ?? "Sin plan"}

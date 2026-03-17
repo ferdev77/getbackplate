@@ -41,7 +41,7 @@ export const getActivePlans = cache(async function getActivePlans() {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("plans")
-    .select("id, code, name, price_amount, billing_period, is_active, max_branches, max_users, max_employees, max_storage_mb")
+    .select("id, code, name, price_amount, billing_period, is_active, max_branches, max_users, max_employees, max_storage_mb, stripe_price_id")
     .eq("is_active", true)
     .order("price_amount", { ascending: true, nullsFirst: false });
   return data ?? [];
