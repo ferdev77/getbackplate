@@ -58,6 +58,13 @@ export default async function CheckoutRedirectPage({
         userId: user.id,
         planId: planId || "",
       },
+      subscription_data: {
+        metadata: {
+          organizationId: organizationId,
+          userId: user.id,
+          planId: planId || "",
+        }
+      }
     };
 
     const session = await stripe.checkout.sessions.create(sessionConfig);
