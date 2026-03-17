@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { UserPlus } from "lucide-react";
 
+import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { getEmployeeDirectoryView } from "@/modules/employees/services";
 import { requireTenantModule } from "@/shared/lib/access";
 import { UsersTableWorkspace } from "@/modules/employees/ui/users-table-workspace";
 import { NewUserModal } from "@/modules/employees/ui/new-user-modal";
+
 
 type CompanyUsersPageProps = {
   searchParams: Promise<{ status?: string; message?: string; action?: string; limit?: string }>;
@@ -21,7 +23,8 @@ export const revalidate = 0;
 
 export default async function CompanyUsersPage({ searchParams }: CompanyUsersPageProps) {
   const tenant = await requireTenantModule("employees");
-  const supabase = await createSupabaseServerClient();
+  // Use admin client to bypass RLS — tenant auth is already verified via requireTenantModule
+  const admin = createSupabaseAdminClient();
   const action = String((await searchParams).action ?? "").trim().toLowerCase();
   const openUserModal = action === "create-user" || action === "edit-user";
 
@@ -31,7 +34,7 @@ export default async function CompanyUsersPage({ searchParams }: CompanyUsersPag
   const pageLimit = 50;
   
   const viewData = await getEmployeeDirectoryView(
-    supabase, 
+    admin, 
     tenant.organizationId, 
     pageLimit,
     {

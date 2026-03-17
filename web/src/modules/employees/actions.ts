@@ -31,7 +31,7 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
 
   const createEmployeeSchema = z.object({
     first_name: z.string().min(1, "Nombre es obligatorio").max(100, "Nombre muy largo"),
-    last_name: z.string().min(1, "Apellido es obligatorio").max(100, "Apellido muy largo"),
+    last_name: z.string().max(100, "Apellido muy largo").optional().or(z.literal("")),
   });
 
   const parsed = createEmployeeSchema.safeParse({
@@ -44,7 +44,7 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
   }
 
   const firstName = parsed.data.first_name;
-  const lastName = parsed.data.last_name;
+  const lastName = parsed.data.last_name && parsed.data.last_name !== "-" ? parsed.data.last_name : "";
 
   const contactEmail = String(formData.get("email") ?? "").trim() || null;
   const position = String(formData.get("position") ?? "").trim() || null;

@@ -9,6 +9,7 @@ import { getEmployeeDirectoryView } from "@/modules/employees/services";
 import { requireTenantModule } from "@/shared/lib/access";
 import { extractDisplayName } from "@/shared/lib/user";
 
+
 type CompanyEmployeesPageProps = {
   searchParams: Promise<{ status?: string; message?: string; action?: string; employeeId?: string; limit?: string }>;
 };
@@ -18,7 +19,9 @@ export const revalidate = 0;
 
 export default async function CompanyEmployeesPage({ searchParams }: CompanyEmployeesPageProps) {
   const tenant = await requireTenantModule("employees");
+  // Use server client only to get auth user; use admin client for data queries to bypass RLS
   const supabase = await createSupabaseServerClient();
+  const admin = createSupabaseAdminClient();
   const action = String((await searchParams).action ?? "").trim().toLowerCase();
   const openEmployeeModal = action === "create" || action === "edit" || action === "create-employee" || action === "edit-employee";
 
@@ -28,8 +31,9 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
 
   const pageLimit = 100;
   
+  // Use admin client to bypass RLS — this is a server-side page with tenant auth already verified
   const viewData = await getEmployeeDirectoryView(
-    supabase, 
+    admin, 
     tenant.organizationId, 
     pageLimit,
     {
@@ -44,7 +48,6 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
     allowedBranches = allowedBranches.filter((b) => b.id === tenant.branchId);
   }
 
-  const admin = createSupabaseAdminClient();
   const { data: organization } = await admin
     .from("organizations")
     .select("plan_id")
