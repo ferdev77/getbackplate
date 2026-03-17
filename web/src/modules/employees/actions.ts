@@ -167,7 +167,6 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
       position,
       department,
       department_id: departmentId,
-      position_id: positionId,
     })
     .select("id")
     .single();
