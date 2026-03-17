@@ -88,6 +88,10 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
   const [selectedStatus, setSelectedStatus] = useState("active");
   const [busyStatus, setBusyStatus] = useState(false);
 
+  useEffect(() => {
+    setRows(employees);
+  }, [employees]);
+
   const locationOptions = useMemo(
     () => [...new Set(rows.map((item) => item.branchName).filter(Boolean))].sort(),
     [rows],
