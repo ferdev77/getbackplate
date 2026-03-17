@@ -272,6 +272,17 @@ export function CompanyShell({
     setBillingPlan(currentPlanName || settingsSnapshot.billingPlan);
   }, [currentPlanName, settingsSnapshot.billingPlan]);
 
+  // Show success toast after plan upgrade/change redirect
+  useEffect(() => {
+    const upgraded = searchParams.get('upgraded');
+    const success = searchParams.get('success');
+    if (upgraded === 'true') {
+      setToast('¡Plan actualizado exitosamente! 🎉');
+    } else if (success === 'true') {
+      setToast('¡Suscripción activada exitosamente! 🎉');
+    }
+  }, [searchParams]);
+
   const currentLabel = useMemo(() => {
     for (const section of visibleSections) {
       const found = section.items.find((item) => isActive(pathname, searchParams, item.href));
