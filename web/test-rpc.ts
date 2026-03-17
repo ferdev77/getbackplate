@@ -8,9 +8,15 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function main() {
-  const { data, error } = await supabase.rpc("get_company_users", {
-    org_id: "864f494d-2f5f-4d2e-9e3a-965220e4e0f7"
-  }).catch(e => ({ error: e, data: null }));
+  let results;
+  try {
+    results = await supabase.rpc("get_company_users", {
+      org_id: "864f494d-2f5f-4d2e-9e3a-965220e4e0f7"
+    });
+  } catch (e) {
+    results = { error: e, data: null };
+  }
+  const { data, error } = results;
   console.log("Normal call:", data ? "Success" : error);
 
   // Instead of querying functions directly (which we can't do via PostgREST),
