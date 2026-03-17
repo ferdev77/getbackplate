@@ -195,15 +195,18 @@ export async function getEmployeeDirectoryView(
   const mappedUsers = (memberships ?? []).map((row: any) => {
     const roleCode = roleById.get(row.role_id);
     return {
-      id: row.user_id,
-      fullName: row.full_name,
-      email: row.email,
+      membershipId: row.id,
+      userId: row.user_id,
+      fullName: row.full_name ?? "",
+      email: row.email ?? "",
       roleCode: roleCode ?? "employee",
-      status: row.status,
-      branchId: row.branch_id,
-      branchName: row.branch_id ? branchById.get(row.branch_id) : undefined,
+      status: row.status ?? "active",
+      branchId: row.branch_id ?? null,
+      branchName: row.branch_id ? (branchById.get(row.branch_id) ?? "Sin locación") : "Sin locación",
+      createdAt: row.created_at ?? "",
     };
   });
+
 
   return {
     employees: mappedEmployees,
