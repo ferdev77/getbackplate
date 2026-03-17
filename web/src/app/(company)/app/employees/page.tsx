@@ -1,26 +1,17 @@
 import Link from "next/link";
-import { Plus, UserPlus } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { createUserAccountAction } from "@/modules/employees/actions";
 import { EmployeesTableWorkspace } from "@/modules/employees/ui/employees-table-workspace";
 import { NewEmployeeModal } from "@/modules/employees/ui/new-employee-modal";
-import { NewUserModal } from "@/modules/employees/ui/new-user-modal";
-import { UserDepartmentPositionFields } from "@/modules/employees/ui/user-department-position-fields";
-import { UsersTableWorkspace } from "@/modules/employees/ui/users-table-workspace";
 import { getEmployeeDirectoryView } from "@/modules/employees/services";
 import { requireTenantModule } from "@/shared/lib/access";
 import { extractDisplayName } from "@/shared/lib/user";
 
 type CompanyEmployeesPageProps = {
-  searchParams: Promise<{ status?: string; message?: string; action?: string; tab?: string; employeeId?: string; limit?: string }>;
+  searchParams: Promise<{ status?: string; message?: string; action?: string; employeeId?: string; limit?: string }>;
 };
-
-const ROLE_OPTIONS = [
-  { value: "employee", label: "Empleado" },
-  { value: "company_admin", label: "Administrador" },
-];
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -28,25 +19,22 @@ export const revalidate = 0;
 export default async function CompanyEmployeesPage({ searchParams }: CompanyEmployeesPageProps) {
   const tenant = await requireTenantModule("employees");
   const supabase = await createSupabaseServerClient();
-  const rawTab = String((await searchParams).tab ?? "").trim().toLowerCase();
-  const tab = rawTab === "users" ? "users" : "directory";
   const action = String((await searchParams).action ?? "").trim().toLowerCase();
   const openEmployeeModal = action === "create" || action === "edit" || action === "create-employee" || action === "edit-employee";
-  const openUserModal = action === "create-user" || action === "edit-user";
 
   const editEmployeeId = (await searchParams).employeeId;
   const statusParam = (await searchParams).status;
   const messageParam = (await searchParams).message;
 
-  const pageLimit = tab === "directory" ? 100 : 50;
+  const pageLimit = 100;
   
   const viewData = await getEmployeeDirectoryView(
     supabase, 
     tenant.organizationId, 
     pageLimit,
     {
-      includeModalsData: openEmployeeModal || openUserModal,
-      includeUsersTab: tab === "users" || openUserModal
+      includeModalsData: openEmployeeModal,
+      includeUsersTab: false
     }
   );
 
@@ -66,13 +54,10 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   const { data: currentPlan } = organization?.plan_id
     ? await admin
         .from("plans")
-        .select("max_employees, max_users")
+        .select("max_employees")
         .eq("id", organization.plan_id)
         .single()
     : { data: null };
-
-  const currentUsersCount = viewData.users.filter((u: any) => u.status === "active").length;
-  const currentEmployeesCount = viewData.employees.filter((e: any) => e.status === "active").length;
 
   const publisherName = extractDisplayName(authData.user);
 
@@ -154,14 +139,9 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
           <div>
             <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-[#9c938d] uppercase">Recursos Humanos</p>
             <h1 className="mb-1 text-2xl font-bold tracking-tight text-[#241f1c]">Empleados</h1>
-            <p className="text-sm text-[#6b635e]">Gestion de plantilla, cuentas y estado laboral.</p>
-            <div className="mt-3 inline-flex rounded-lg border border-[#e5ddd8] bg-white p-1 text-xs">
-              <Link href="/app/employees" className={`rounded-md px-3 py-1.5 ${tab === "directory" ? "bg-[#111] text-white" : "text-[#5f5853]"}`}>Empleados</Link>
-              <Link href="/app/employees?tab=users" className={`rounded-md px-3 py-1.5 ${tab === "users" ? "bg-[#111] text-white" : "text-[#5f5853]"}`}>Usuarios</Link>
-            </div>
+            <p className="text-sm text-[#6b635e]">Gestión de plantilla y estado laboral.</p>
           </div>
           <div className="flex gap-2">
-            <Link href="/app/employees?action=create-user" className="inline-flex items-center gap-1 rounded-lg border border-[#ddd5d0] bg-white px-3 py-2 text-sm text-[#4f4843] hover:bg-[#f7f3f1]"><UserPlus className="h-4 w-4" /> Nuevo Usuario</Link>
             <Link href="/app/employees?action=create" className="inline-flex items-center gap-1 rounded-lg bg-[#111111] px-3 py-2 text-sm font-semibold text-white hover:bg-[#c0392b]"><Plus className="h-4 w-4" /> Nuevo Empleado</Link>
           </div>
         </div>
@@ -173,15 +153,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
         </section>
       ) : null}
 
-      {tab === "directory" ? (
-        <EmployeesTableWorkspace employees={employeeRows} />
-      ) : (
-        <UsersTableWorkspace
-          users={viewData.users}
-          roleOptions={ROLE_OPTIONS}
-          branchOptions={viewData.branches.map((branch) => ({ id: branch.id, name: branch.name }))}
-        />
-      )}
+      <EmployeesTableWorkspace employees={employeeRows} />
 
       <NewEmployeeModal
         open={openEmployeeModal}
@@ -192,14 +164,6 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
         departments={viewData.departments}
         positions={viewData.positions}
         publisherName={publisherName}
-      />
-
-      <NewUserModal
-        open={openUserModal}
-        branches={viewData.branches}
-        roleOptions={ROLE_OPTIONS}
-        departments={viewData.departments}
-        positions={viewData.positions}
       />
     </main>
   );

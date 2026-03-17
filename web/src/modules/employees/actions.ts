@@ -202,6 +202,7 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
   });
 
   revalidatePath("/app/employees");
+  revalidatePath("/app/users");
   return {
     success: true,
     message: createWithAccount ? "Empleado y cuenta creados correctamente" : "Empleado creado correctamente",
@@ -432,5 +433,6 @@ export async function createUserAccountAction(prevState: any, formData: FormData
   });
 
   revalidatePath("/app/employees");
+  revalidatePath("/app/users");
   return { success: true, message: "Usuario creado correctamente", timestamp: Date.now() };
 }
