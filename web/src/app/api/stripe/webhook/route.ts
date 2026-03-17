@@ -108,9 +108,16 @@ export async function POST(req: Request) {
         const cancelAtPeriodEnd = subscription.cancel_at_period_end;
         
         // Stripe uses `current_period_start` and `current_period_end`
+        let currentPeriodStart = new Date().toISOString();
+        let currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // Default +30 days fallback
+        
         const subAny = subscription as any;
-        const currentPeriodStart = new Date(subAny.current_period_start * 1000).toISOString();
-        const currentPeriodEnd = new Date(subAny.current_period_end * 1000).toISOString();
+        if (subAny.current_period_start) {
+            try { currentPeriodStart = new Date(subAny.current_period_start * 1000).toISOString(); } catch(e) {}
+        }
+        if (subAny.current_period_end) {
+            try { currentPeriodEnd = new Date(subAny.current_period_end * 1000).toISOString(); } catch(e) {}
+        }
         
         // Fetch the corresponding internal plan_id using the price_id
         const { data: plan } = await supabase
