@@ -43,7 +43,6 @@ begin
         organization_id in (
           select organization_id from memberships where user_id = auth.uid() and status = 'active'
         )
-        or exists (select 1 from public.superadmins where user_id = auth.uid())
       );
   end if;
 end $$;
@@ -58,7 +57,6 @@ begin
         organization_id in (
           select organization_id from memberships where user_id = auth.uid() and status = 'active'
         )
-        or exists (select 1 from public.superadmins where user_id = auth.uid())
       );
   end if;
 end $$;
