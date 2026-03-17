@@ -232,7 +232,10 @@ export async function POST(req: Request) {
                 .maybeSingle();
 
             if (planData) {
+                // Update org plan
                 await supabase.from('organizations').update({ plan_id: planData.id }).eq('id', organizationId);
+
+                // Sync limits
                 await supabase.from('organization_limits').upsert({
                     organization_id: organizationId,
                     max_branches: planData.max_branches ?? null,
@@ -240,8 +243,31 @@ export async function POST(req: Request) {
                     max_storage_mb: planData.max_storage_mb ?? null,
                     max_employees: planData.max_employees ?? null,
                 }, { onConflict: 'organization_id' });
+
+                // Sync modules for the new plan
+                const { data: allModules } = await supabase.from('module_catalog').select('id, is_core');
+                const { data: planModules } = await supabase.from('plan_modules').select('module_id').eq('plan_id', planData.id).eq('is_enabled', true);
+                const planModuleIds = new Set((planModules || []).map((m: any) => m.module_id));
+
+                if (allModules?.length) {
+                    const { error: modErr } = await supabase.from('organization_modules').upsert(
+                        allModules.map((mod: any) => {
+                            const shouldEnable = Boolean(mod.is_core) || planModuleIds.has(mod.id);
+                            return {
+                                organization_id: organizationId,
+                                module_id: mod.id,
+                                is_enabled: shouldEnable,
+                                enabled_at: shouldEnable ? new Date().toISOString() : null,
+                            };
+                        }),
+                        { onConflict: 'organization_id,module_id' }
+                    );
+                    if (modErr) console.error('[Webhook] Error syncing modules on upgrade:', modErr);
+                    else console.log('[Webhook] Modules synced on plan upgrade OK');
+                }
             }
         }
+
 
         await supabase.from('subscriptions').upsert({
             organization_id: organizationId,
