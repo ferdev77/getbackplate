@@ -28,132 +28,110 @@ export async function POST(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
+  console.log(`[Webhook] Received event: ${event.type} (id: ${event.id})`);
+
   try {
     switch (event.type) {
+
+      // -------------------------------------------------------
+      // PRIMARY HANDLER: Process everything when checkout is done
+      // This is more reliable than subscription.created because
+      // we have full context (session metadata, customer, etc.)
+      // -------------------------------------------------------
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        
-        let organizationId = session.client_reference_id as string | null;
-        
-        // Sometimes client_reference_id gets lost or is 'guest', fallback to metadata
-        if (!organizationId || organizationId === 'guest') {
-            organizationId = session.metadata?.organizationId || null;
-        }
+
+        console.log(`[Webhook] checkout.session.completed - customer: ${session.customer}, subscription: ${session.subscription}`);
+
+        let organizationId = session.metadata?.organizationId || (session.client_reference_id as string | null);
+        let planId = session.metadata?.planId || null;
 
         if (!organizationId) {
-            console.error('No organization ID found in checkout session metadata. Cannot link customer.');
+            console.error('[Webhook] No organizationId found in checkout session metadata or client_reference_id. Aborting.');
             break;
         }
 
         const stripeCustomerId = session.customer as string;
+        const stripeSubscriptionId = session.subscription as string;
 
-        // 1. Ensure the Customer is Mapped
-        const { error: customerError } = await supabase
+        // 1. Map the stripe customer to our organization
+        const { error: custErr } = await supabase
           .from('stripe_customers')
           .upsert(
             { organization_id: organizationId, stripe_customer_id: stripeCustomerId },
             { onConflict: 'organization_id' }
           );
+        if (custErr) console.error('[Webhook] Error linking stripe customer:', custErr);
+        else console.log('[Webhook] stripe_customers upserted OK');
 
-        if (customerError) {
-            console.error('Error linking Stripe customer to Organization:', customerError);
-        }
-        
-        // 2. We can optionally fetch the subscription here, but 'customer.subscription.created/updated' 
-        // will also fire right after checkout, so we can let those handlers do the work of creating the `subscriptions` row.
-
-        break;
-      }
-      
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated':
-      case 'customer.subscription.deleted': {
-        const subscription = event.data.object as Stripe.Subscription;
-        const stripeCustomerId = subscription.customer as string;
-        
-        // 1. Try to get organizationId from subscription METADATA first!
-        // This solves race conditions if subscription.created arrives before checkout.session.completed mapped the customer.
-        let organizationId = subscription.metadata?.organizationId;
-
-        if (!organizationId) {
-          // 2. Fallback to our database mapping if metadata is missing
-          const { data: customerMapping } = await supabase
-              .from('stripe_customers')
-              .select('organization_id')
-              .eq('stripe_customer_id', stripeCustomerId)
-              .single();
-              
-          if (customerMapping) {
-              organizationId = customerMapping.organization_id;
-          }
-        }
-            
-        if (!organizationId) {
-            console.error(`Received subscription update for unknown customer ${stripeCustomerId} and no metadata`);
+        // 2. Fetch the full subscription object from Stripe to get pricing and status
+        if (!stripeSubscriptionId) {
+            console.log('[Webhook] No subscription in session (maybe one-time payment). Skipping subscription sync.');
             break;
         }
-        
-        // Create or update mapping if we got it from metadata
-        const { error: customerError } = await supabase
-          .from('stripe_customers')
-          .upsert(
-            { organization_id: organizationId, stripe_customer_id: stripeCustomerId },
-            { onConflict: 'organization_id' }
-          );
-        
-        // Extract useful data
+
+        const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
         const status = subscription.status;
         const priceId = subscription.items.data[0].price.id;
         const quantity = subscription.items.data[0].quantity || 1;
         const cancelAtPeriodEnd = subscription.cancel_at_period_end;
-        
-        // Stripe API v2026-02-25 removed `current_period_start/end` from subscription objects.
-        // Use `start_date` for period start, and `billing_cycle_anchor` for period end approximation.
+
+        // Handle dates — Stripe API v2026-02-25 uses start_date/billing_cycle_anchor
         const subAny = subscription as any;
         const periodStartRaw = subAny.current_period_start ?? subAny.start_date ?? subAny.billing_cycle_anchor;
         const periodEndRaw = subAny.current_period_end ?? null;
-        
         let currentPeriodStart = new Date().toISOString();
-        let currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // Default +30 days fallback
-        
-        if (periodStartRaw) {
-            try { currentPeriodStart = new Date(periodStartRaw * 1000).toISOString(); } catch(e) {}
+        let currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        if (periodStartRaw) { try { currentPeriodStart = new Date(periodStartRaw * 1000).toISOString(); } catch(e) {} }
+        if (periodEndRaw) { try { currentPeriodEnd = new Date(periodEndRaw * 1000).toISOString(); } catch(e) {} }
+
+        console.log(`[Webhook] Subscription status: ${status}, priceId: ${priceId}`);
+
+        // 3. Look up the internal plan via price_id (or use the one from metadata)
+        if (!planId) {
+            const { data: planData } = await supabase
+                .from('plans')
+                .select('id, max_branches, max_users, max_storage_mb, max_employees')
+                .eq('stripe_price_id', priceId)
+                .maybeSingle();
+            if (planData) planId = planData.id;
         }
-        if (periodEndRaw) {
-            try { currentPeriodEnd = new Date(periodEndRaw * 1000).toISOString(); } catch(e) {}
-        }
-        
-        // Fetch the corresponding internal plan_id using the price_id
-        const { data: plan } = await supabase
-            .from('plans')
-            .select('id, max_branches, max_users, max_storage_mb, max_employees')
-            .eq('stripe_price_id', priceId)
-            .maybeSingle();
 
         const isActive = ['active', 'trialing'].includes(status);
 
-        if (plan && isActive) {
-            const planId = plan.id;
-            
-            // 1. Update organization plan
-            await supabase.from('organizations').update({ plan_id: planId }).eq('id', organizationId);
-            
-            // 2. Sync Plan Limits
-            await supabase.from('organization_limits').upsert({
-                organization_id: organizationId,
-                max_branches: plan.max_branches ?? null,
-                max_users: plan.max_users ?? null,
-                max_storage_mb: plan.max_storage_mb ?? null,
-                max_employees: plan.max_employees ?? null,
-            }, { onConflict: 'organization_id' });
+        if (planId && isActive) {
+            // 4. Fetch full plan data for limits
+            const { data: planData } = await supabase
+                .from('plans')
+                .select('id, max_branches, max_users, max_storage_mb, max_employees')
+                .eq('id', planId)
+                .maybeSingle();
 
-            // 3. Sync Plan Modules
+            // 5. Update organization plan
+            const { error: orgErr } = await supabase.from('organizations').update({ plan_id: planId }).eq('id', organizationId);
+            if (orgErr) console.error('[Webhook] Error updating org plan:', orgErr);
+            else console.log('[Webhook] Organization plan updated OK');
+
+            // 6. Sync plan limits
+            if (planData) {
+                const { error: limErr } = await supabase.from('organization_limits').upsert({
+                    organization_id: organizationId,
+                    max_branches: planData.max_branches ?? null,
+                    max_users: planData.max_users ?? null,
+                    max_storage_mb: planData.max_storage_mb ?? null,
+                    max_employees: planData.max_employees ?? null,
+                }, { onConflict: 'organization_id' });
+                if (limErr) console.error('[Webhook] Error syncing limits:', limErr);
+                else console.log('[Webhook] organization_limits upserted OK');
+            }
+
+            // 7. Sync modules
             const { data: modules } = await supabase.from('module_catalog').select('id, is_core');
             const { data: planModules } = await supabase.from('plan_modules').select('module_id').eq('plan_id', planId).eq('is_enabled', true);
             const planModuleIds = new Set((planModules || []).map((m: any) => m.module_id));
 
             if (modules?.length) {
-                await supabase.from('organization_modules').upsert(
+                const { error: modErr } = await supabase.from('organization_modules').upsert(
                     modules.map((mod: any) => {
                         const shouldEnable = Boolean(mod.is_core) || planModuleIds.has(mod.id);
                         return {
@@ -165,30 +143,12 @@ export async function POST(req: Request) {
                     }),
                     { onConflict: 'organization_id,module_id' }
                 );
+                if (modErr) console.error('[Webhook] Error syncing modules:', modErr);
+                else console.log('[Webhook] organization_modules upserted OK');
             }
-        } else if (status === 'canceled' || status === 'unpaid' || status === 'incomplete_expired') {
-             // Revert Plan to null if subscription dies
-             await supabase.from('organizations').update({ plan_id: null }).eq('id', organizationId);
-             
-             // Sync modules down to just core
-             const { data: modules } = await supabase.from('module_catalog').select('id, is_core');
-             if (modules?.length) {
-                await supabase.from('organization_modules').upsert(
-                    modules.map((mod: any) => {
-                        const shouldEnable = Boolean(mod.is_core);
-                        return {
-                            organization_id: organizationId,
-                            module_id: mod.id,
-                            is_enabled: shouldEnable,
-                            enabled_at: shouldEnable ? new Date().toISOString() : null,
-                        };
-                    }),
-                    { onConflict: 'organization_id,module_id' }
-                );
-             }
         }
-        
-        // Upsert into `subscriptions` table
+
+        // 8. Upsert subscription record
         const { error: subError } = await supabase
             .from('subscriptions')
             .upsert({
@@ -202,21 +162,110 @@ export async function POST(req: Request) {
                 current_period_start: currentPeriodStart,
                 current_period_end: currentPeriodEnd
             }, { onConflict: 'stripe_subscription_id' });
-            
-        if (subError) {
-            console.error('Error upserting subscription:', subError);
-        }
+
+        if (subError) console.error('[Webhook] Error upserting subscription:', subError);
+        else console.log('[Webhook] subscriptions upserted OK');
 
         break;
       }
 
-      default:
-        console.log(`Unhandled event type ${event.type}`);
-    }
+      // -------------------------------------------------------
+      // SECONDARY HANDLER: Handle subscription updates/cancellations
+      // (not initial creation — that's handled in checkout.session.completed)
+      // -------------------------------------------------------
+      case 'customer.subscription.updated':
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as Stripe.Subscription;
+        const stripeCustomerId = subscription.customer as string;
 
-    return NextResponse.json({ received: true });
+        let organizationId = subscription.metadata?.organizationId;
+
+        if (!organizationId) {
+          const { data: customerMapping } = await supabase
+              .from('stripe_customers')
+              .select('organization_id')
+              .eq('stripe_customer_id', stripeCustomerId)
+              .single();
+          if (customerMapping) organizationId = customerMapping.organization_id;
+        }
+
+        if (!organizationId) {
+            console.error(`[Webhook] No organizationId for subscription event on customer ${stripeCustomerId}`);
+            break;
+        }
+
+        const status = subscription.status;
+        const priceId = subscription.items.data[0].price.id;
+        const quantity = subscription.items.data[0].quantity || 1;
+        const cancelAtPeriodEnd = subscription.cancel_at_period_end;
+
+        const subAny = subscription as any;
+        const periodStartRaw = subAny.current_period_start ?? subAny.start_date ?? subAny.billing_cycle_anchor;
+        const periodEndRaw = subAny.current_period_end ?? null;
+        let currentPeriodStart = new Date().toISOString();
+        let currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        if (periodStartRaw) { try { currentPeriodStart = new Date(periodStartRaw * 1000).toISOString(); } catch(e) {} }
+        if (periodEndRaw) { try { currentPeriodEnd = new Date(periodEndRaw * 1000).toISOString(); } catch(e) {} }
+
+        const isActive = ['active', 'trialing'].includes(status);
+        const isCanceled = ['canceled', 'unpaid', 'incomplete_expired'].includes(status);
+
+        if (isCanceled) {
+            await supabase.from('organizations').update({ plan_id: null }).eq('id', organizationId);
+            const { data: modules } = await supabase.from('module_catalog').select('id, is_core');
+            if (modules?.length) {
+                await supabase.from('organization_modules').upsert(
+                    modules.map((mod: any) => ({
+                        organization_id: organizationId,
+                        module_id: mod.id,
+                        is_enabled: Boolean(mod.is_core),
+                        enabled_at: Boolean(mod.is_core) ? new Date().toISOString() : null,
+                    })),
+                    { onConflict: 'organization_id,module_id' }
+                );
+            }
+        } else if (isActive) {
+            const { data: planData } = await supabase
+                .from('plans')
+                .select('id, max_branches, max_users, max_storage_mb, max_employees')
+                .eq('stripe_price_id', priceId)
+                .maybeSingle();
+
+            if (planData) {
+                await supabase.from('organizations').update({ plan_id: planData.id }).eq('id', organizationId);
+                await supabase.from('organization_limits').upsert({
+                    organization_id: organizationId,
+                    max_branches: planData.max_branches ?? null,
+                    max_users: planData.max_users ?? null,
+                    max_storage_mb: planData.max_storage_mb ?? null,
+                    max_employees: planData.max_employees ?? null,
+                }, { onConflict: 'organization_id' });
+            }
+        }
+
+        await supabase.from('subscriptions').upsert({
+            organization_id: organizationId,
+            stripe_subscription_id: subscription.id,
+            stripe_customer_id: stripeCustomerId,
+            status,
+            price_id: priceId,
+            quantity,
+            cancel_at_period_end: cancelAtPeriodEnd,
+            current_period_start: currentPeriodStart,
+            current_period_end: currentPeriodEnd,
+        }, { onConflict: 'stripe_subscription_id' });
+
+        console.log(`[Webhook] subscription.${event.type.split('.')[2]} processed for org ${organizationId}`);
+        break;
+      }
+
+      default:
+        console.log(`[Webhook] Unhandled event type: ${event.type}`);
+    }
   } catch (err: any) {
-    console.error('Error processing webhook:', err);
-    return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 });
+    console.error(`[Webhook] Unhandled error processing event ${event.type}:`, err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+
+  return NextResponse.json({ received: true });
 }
