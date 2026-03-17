@@ -81,8 +81,8 @@ export async function registerPublicAction(formData: FormData) {
     // 3. Assign Core Modules
     const { data: modules } = await supabaseAdmin
       .from("module_catalog")
-      .select("id, is_core")
-      .eq("is_core", true);
+      .select("id, code")
+      .in("code", ["dashboard", "settings"]);
 
     if (modules?.length) {
       await supabaseAdmin.from("organization_modules").insert(

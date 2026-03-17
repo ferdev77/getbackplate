@@ -87,6 +87,14 @@ export async function POST(request: Request) {
         organizationId: organizationId || '',
         userId: user?.id || '',
         planId: planId || '',
+      },
+      // Pass metadata down to the created subscription as well
+      subscription_data: {
+        metadata: {
+          organizationId: organizationId || '',
+          userId: user?.id || '',
+          planId: planId || '',
+        }
       }
     };
 

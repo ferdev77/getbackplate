@@ -71,20 +71,37 @@ export async function POST(req: Request) {
         const subscription = event.data.object as Stripe.Subscription;
         const stripeCustomerId = subscription.customer as string;
         
-        // Find the organization this customer belongs to
-        const { data: customerMapping } = await supabase
-            .from('stripe_customers')
-            .select('organization_id')
-            .eq('stripe_customer_id', stripeCustomerId)
-            .single();
+        // 1. Try to get organizationId from subscription METADATA first!
+        // This solves race conditions if subscription.created arrives before checkout.session.completed mapped the customer.
+        let organizationId = subscription.metadata?.organizationId;
+
+        if (!organizationId) {
+          // 2. Fallback to our database mapping if metadata is missing
+          const { data: customerMapping } = await supabase
+              .from('stripe_customers')
+              .select('organization_id')
+              .eq('stripe_customer_id', stripeCustomerId)
+              .single();
+              
+          if (customerMapping) {
+              organizationId = customerMapping.organization_id;
+          }
+        }
             
-        if (!customerMapping) {
-            console.error(`Received subscription update for unknown customer ${stripeCustomerId}`);
+        if (!organizationId) {
+            console.error(`Received subscription update for unknown customer ${stripeCustomerId} and no metadata`);
             break;
         }
         
+        // Create or update mapping if we got it from metadata
+        const { error: customerError } = await supabase
+          .from('stripe_customers')
+          .upsert(
+            { organization_id: organizationId, stripe_customer_id: stripeCustomerId },
+            { onConflict: 'organization_id' }
+          );
+        
         // Extract useful data
-        const organizationId = customerMapping.organization_id;
         const status = subscription.status;
         const priceId = subscription.items.data[0].price.id;
         const quantity = subscription.items.data[0].quantity || 1;
