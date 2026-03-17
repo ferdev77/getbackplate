@@ -19,9 +19,9 @@ type CompanyEmployeesPageProps = {
 
 const ROLE_OPTIONS = [
   { value: "employee", label: "Empleado" },
-  { value: "manager", label: "Manager" },
   { value: "company_admin", label: "Administrador" },
 ];
+
 
 export default async function CompanyEmployeesPage({ searchParams }: CompanyEmployeesPageProps) {
   const tenant = await requireTenantModule("employees");

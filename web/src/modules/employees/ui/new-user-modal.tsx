@@ -1,9 +1,8 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { UserDepartmentPositionFields } from "./user-department-position-fields";
 import { createUserAccountAction } from "@/modules/employees/actions";
 import { SubmitButton } from "@/shared/ui/submit-button";
 
@@ -17,18 +16,21 @@ type NewUserModalProps = {
 
 const initialState = { success: false, message: "" };
 
-export function NewUserModal({ open, branches, roleOptions, departments, positions }: NewUserModalProps) {
+export function NewUserModal({ open, branches, departments, positions }: NewUserModalProps) {
   const [state, formAction, isPending] = useActionState(createUserAccountAction, initialState);
+  const [selectedDept, setSelectedDept] = useState("");
+
+  const filteredPositions = useMemo(
+    () => positions.filter((p) => p.department_id === selectedDept && p.is_active),
+    [positions, selectedDept]
+  );
 
   useEffect(() => {
     if (state?.message) {
       if (state.success) {
         toast.success(state.message);
-        // We simulate a click to close the modal by navigating back
         const closeLink = document.getElementById("close-user-modal-link");
-        if (closeLink) {
-          closeLink.click();
-        }
+        if (closeLink) (closeLink as HTMLAnchorElement).click();
       } else {
         toast.error(state.message);
       }
@@ -44,7 +46,7 @@ export function NewUserModal({ open, branches, roleOptions, departments, positio
           <p className="font-serif text-[15px] font-bold text-[#111]">Nuevo Usuario</p>
           <Link
             id="close-user-modal-link"
-            href="/app/employees"
+            href="/app/employees?tab=users"
             className="grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111]"
           >
             ✕
@@ -52,6 +54,8 @@ export function NewUserModal({ open, branches, roleOptions, departments, positio
         </div>
         <form action={formAction}>
           <div className="max-h-[68vh] overflow-y-auto px-6 py-5">
+
+            {/* Nombre */}
             <label className="mb-1 mt-0 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">
               Nombre completo
             </label>
@@ -61,6 +65,8 @@ export function NewUserModal({ open, branches, roleOptions, departments, positio
               className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm"
               placeholder="ej. Juan Garcia"
             />
+
+            {/* Email */}
             <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">
               Correo corporativo
             </label>
@@ -71,38 +77,71 @@ export function NewUserModal({ open, branches, roleOptions, departments, positio
               className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm"
               placeholder="nombre@empresa.com"
             />
+
+            {/* Password */}
             <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">
-              Contrasena inicial
+              Contraseña inicial
             </label>
             <input
               name="password"
               type="password"
               required
+              minLength={8}
               className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm"
-              placeholder="Minimo 8 caracteres"
+              placeholder="Mínimo 8 caracteres"
             />
+
+            {/* Tipo de usuario */}
             <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">
-              Locacion
+              Tipo de usuario
+            </label>
+            <select name="role_code" defaultValue="employee" className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm">
+              <option value="employee">Empleado</option>
+              <option value="company_admin">Administrador</option>
+            </select>
+
+            {/* Locacion */}
+            <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">
+              Locación
             </label>
             <select name="branch_id" defaultValue="" className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm">
-              <option value="">Todas las locaciones</option>
+              <option value="">Sin locación asignada</option>
               {branches.map((branch) => (
                 <option key={branch.id} value={branch.id}>
                   {branch.name}
                 </option>
               ))}
             </select>
+
+            {/* Departamento */}
             <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">
-              Puesto / Departamento
+              Departamento
             </label>
-            <select name="role_code" defaultValue="employee" className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm">
-              {roleOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
+            <select
+              name="department_id"
+              defaultValue=""
+              value={selectedDept}
+              onChange={(e) => setSelectedDept(e.target.value)}
+              className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm"
+            >
+              <option value="">Sin departamento</option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.id}>{d.name}</option>
               ))}
             </select>
-            <UserDepartmentPositionFields departments={departments} positions={positions} />
+
+            {/* Puesto */}
+            <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">
+              Puesto
+            </label>
+            <select name="position_id" defaultValue="" className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm">
+              <option value="">{selectedDept ? "Sin puesto" : "Selecciona departamento primero"}</option>
+              {filteredPositions.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+
+            {/* Acceso */}
             <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">
               Acceso de usuario
             </label>
@@ -110,10 +149,11 @@ export function NewUserModal({ open, branches, roleOptions, departments, positio
               <option value="active">Activo</option>
               <option value="inactivo">Inactivo</option>
             </select>
+
           </div>
           <div className="flex justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4">
             <Link
-              href="/app/employees"
+              href="/app/employees?tab=users"
               className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]"
             >
               Cancelar

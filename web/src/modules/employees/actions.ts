@@ -49,9 +49,17 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
   const contactEmail = String(formData.get("email") ?? "").trim() || null;
   const position = String(formData.get("position") ?? "").trim() || null;
   const department = String(formData.get("department") ?? "").trim() || null;
+  const branchIdRaw = String(formData.get("branch_id") ?? "").trim();
+  const branchId = branchIdRaw || null;
+  const departmentIdRaw = String(formData.get("department_id") ?? "").trim();
+  const departmentId = departmentIdRaw || null;
+  const positionIdRaw = String(formData.get("position_id") ?? "").trim();
+  const positionId = positionIdRaw || null;
   const createMode = String(formData.get("create_mode") ?? "without_account").trim();
   const accountEmailInput = String(formData.get("account_email") ?? "").trim().toLowerCase();
   const accountPassword = String(formData.get("account_password") ?? "");
+  const accountRoleInput = String(formData.get("account_role") ?? "employee").trim();
+  const accountRole = accountRoleInput === "company_admin" ? "company_admin" : "employee";
   const createWithAccount = createMode === "with_account";
 
   try {
@@ -79,7 +87,7 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
     const { data: role, error: roleError } = await admin
       .from("roles")
       .select("id")
-      .eq("code", "employee")
+      .eq("code", accountRole)
       .single();
 
     if (roleError || !role) {
@@ -133,7 +141,7 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
         organization_id: tenant.organizationId,
         user_id: linkedUserId,
         role_id: role.id,
-        branch_id: tenant.branchId,
+        branch_id: branchId || tenant.branchId || null,
         status: "active",
       },
       { onConflict: "organization_id,user_id" },
@@ -151,13 +159,15 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
     .from("employees")
     .insert({
       organization_id: tenant.organizationId,
-      branch_id: tenant.branchId,
+      branch_id: branchId || tenant.branchId || null,
       user_id: linkedUserId,
       first_name: firstName,
       last_name: lastName,
       email: employeeEmail,
       position,
       department,
+      department_id: departmentId,
+      position_id: positionId,
     })
     .select("id")
     .single();
