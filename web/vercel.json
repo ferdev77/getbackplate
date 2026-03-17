@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/internal/cron/deliveries",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 8 * * *"
     }
   ]
 }
