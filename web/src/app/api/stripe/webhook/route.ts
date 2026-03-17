@@ -107,16 +107,20 @@ export async function POST(req: Request) {
         const quantity = subscription.items.data[0].quantity || 1;
         const cancelAtPeriodEnd = subscription.cancel_at_period_end;
         
-        // Stripe uses `current_period_start` and `current_period_end`
+        // Stripe API v2026-02-25 removed `current_period_start/end` from subscription objects.
+        // Use `start_date` for period start, and `billing_cycle_anchor` for period end approximation.
+        const subAny = subscription as any;
+        const periodStartRaw = subAny.current_period_start ?? subAny.start_date ?? subAny.billing_cycle_anchor;
+        const periodEndRaw = subAny.current_period_end ?? null;
+        
         let currentPeriodStart = new Date().toISOString();
         let currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // Default +30 days fallback
         
-        const subAny = subscription as any;
-        if (subAny.current_period_start) {
-            try { currentPeriodStart = new Date(subAny.current_period_start * 1000).toISOString(); } catch(e) {}
+        if (periodStartRaw) {
+            try { currentPeriodStart = new Date(periodStartRaw * 1000).toISOString(); } catch(e) {}
         }
-        if (subAny.current_period_end) {
-            try { currentPeriodEnd = new Date(subAny.current_period_end * 1000).toISOString(); } catch(e) {}
+        if (periodEndRaw) {
+            try { currentPeriodEnd = new Date(periodEndRaw * 1000).toISOString(); } catch(e) {}
         }
         
         // Fetch the corresponding internal plan_id using the price_id
