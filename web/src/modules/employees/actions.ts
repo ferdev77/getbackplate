@@ -222,8 +222,6 @@ export async function createUserAccountAction(prevState: any, formData: FormData
   const password = String(formData.get("password") ?? "");
   const roleCodeInput = String(formData.get("role_code") ?? "employee").trim();
   const branchId = String(formData.get("branch_id") ?? "").trim() || null;
-  let departmentId = String(formData.get("department_id") ?? "").trim() || null;
-  const positionId = String(formData.get("position_id") ?? "").trim() || null;
   const accessStatus = String(formData.get("access_status") ?? "active").trim();
 
   if (!fullName || !email) {
@@ -240,71 +238,7 @@ export async function createUserAccountAction(prevState: any, formData: FormData
       : "employee";
 
   const admin = createSupabaseAdminClient();
-  let departmentName: string | null = null;
-  let positionName: string | null = null;
-
-  if (branchId) {
-    const { data: branch } = await admin
-      .from("branches")
-      .select("id")
-      .eq("organization_id", tenant.organizationId)
-      .eq("id", branchId)
-      .maybeSingle();
-    if (!branch) {
-      return { success: false, message: "Locacion invalida para esta empresa" };
-    }
-  }
-
-  if (departmentId) {
-    const { data: department } = await admin
-      .from("organization_departments")
-      .select("id, name")
-      .eq("organization_id", tenant.organizationId)
-      .eq("id", departmentId)
-      .eq("is_active", true)
-      .maybeSingle();
-
-    if (!department) {
-      return { success: false, message: "Departamento invalido para esta empresa" };
-    }
-
-    departmentName = department.name;
-  }
-
-  if (positionId) {
-    const { data: position } = await admin
-      .from("department_positions")
-      .select("id, department_id, name")
-      .eq("organization_id", tenant.organizationId)
-      .eq("id", positionId)
-      .eq("is_active", true)
-      .maybeSingle();
-
-    if (!position) {
-      return { success: false, message: "Puesto invalido para esta empresa" };
-    }
-
-    if (departmentId && departmentId !== position.department_id) {
-      return { success: false, message: "El puesto no pertenece al departamento seleccionado" };
-    }
-
-    departmentId = position.department_id;
-    positionName = position.name;
-
-    const { data: department } = await admin
-      .from("organization_departments")
-      .select("name")
-      .eq("organization_id", tenant.organizationId)
-      .eq("id", departmentId)
-      .eq("is_active", true)
-      .maybeSingle();
-
-    if (!department) {
-      return { success: false, message: "Departamento invalido para el puesto seleccionado" };
-    }
-
-    departmentName = department.name;
-  }
+  // Removed department and position checks as Users are no longer linked to Employees
   const { data: role, error: roleError } = await admin
     .from("roles")
     .select("id")
@@ -374,51 +308,7 @@ export async function createUserAccountAction(prevState: any, formData: FormData
     return { success: false, message: `No se pudo asignar membresia: ${membershipError.message}` };
   }
 
-  const nameParts = fullName.split(/\s+/).filter(Boolean);
-  const firstName = nameParts.shift() ?? fullName;
-  const lastName = nameParts.join(" ") || "-";
-  const { data: existingEmployee } = await admin
-    .from("employees")
-    .select("id")
-    .eq("organization_id", tenant.organizationId)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (!existingEmployee?.id) {
-    try {
-      await assertPlanLimitForEmployees(tenant.organizationId, 1);
-    } catch (error) {
-      return { success: false, message: getPlanLimitErrorMessage(error, "Limite de empleados alcanzado. Actualiza tu plan para continuar.") };
-    }
-  }
-
-  if (existingEmployee?.id) {
-    await admin
-      .from("employees")
-      .update({
-        branch_id: branchId,
-        email,
-        department_id: departmentId,
-        department: departmentName,
-        position: positionName,
-        status: accessStatus === "inactivo" ? "inactive" : "active",
-      })
-      .eq("organization_id", tenant.organizationId)
-      .eq("id", existingEmployee.id);
-  } else {
-    await admin.from("employees").insert({
-      organization_id: tenant.organizationId,
-      user_id: userId,
-      first_name: firstName,
-      last_name: lastName,
-      email,
-      branch_id: branchId,
-      department_id: departmentId,
-      department: departmentName,
-      position: positionName,
-      status: accessStatus === "inactivo" ? "inactive" : "active",
-    });
-  }
+  // We no longer create an Employee record for a pure User.
 
   await logAuditEvent({
     action: "user.create",
@@ -426,7 +316,7 @@ export async function createUserAccountAction(prevState: any, formData: FormData
     entityId: userId,
     organizationId: tenant.organizationId,
     branchId,
-    metadata: { fullName, email, roleCode, accessStatus, branchId, departmentId, positionId },
+    metadata: { fullName, email, roleCode, accessStatus, branchId },
     eventDomain: "employees",
     outcome: "success",
     severity: "high",

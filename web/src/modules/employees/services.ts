@@ -127,7 +127,9 @@ export async function getEmployeeDirectoryView(
   }
 
   // Pre-process employees for mapping
-  const mappedEmployees = (employees ?? []).map((emp: any) => {
+  const mappedEmployees = (employees ?? [])
+    .filter((emp: any) => emp.last_name !== "-") // Exclude auto-generated employee records that were just pure system users
+    .map((emp: any) => {
     let positionName = emp.position;
     let departmentName = emp.dept?.name || emp.department;
 
@@ -191,8 +193,16 @@ export async function getEmployeeDirectoryView(
     };
   });
 
+  const validEmployeeUserIds = new Set(
+    (employees ?? [])
+      .filter((e: any) => e.last_name !== "-" && e.user_id)
+      .map((e: any) => e.user_id)
+  );
+
   // Pre-process mapped generic system users
-  const mappedUsers = (memberships ?? []).map((row: any) => {
+  const mappedUsers = (memberships ?? [])
+    .filter((row: any) => !validEmployeeUserIds.has(row.user_id))
+    .map((row: any) => {
     const roleCode = roleById.get(row.role_id);
     return {
       membershipId: row.id,
