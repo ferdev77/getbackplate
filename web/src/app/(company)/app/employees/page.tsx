@@ -22,6 +22,8 @@ const ROLE_OPTIONS = [
   { value: "company_admin", label: "Administrador" },
 ];
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function CompanyEmployeesPage({ searchParams }: CompanyEmployeesPageProps) {
   const tenant = await requireTenantModule("employees");

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { SubmitButton } from "@/shared/ui/submit-button";
@@ -55,16 +56,19 @@ export function NewEmployeeModal({
   const [selectedDept, setSelectedDept] = useState(initialEmployee?.department_id ?? "");
   // Toggle for creating a user account alongside the employee
   const [createAccount, setCreateAccount] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (state.message) {
       if (state.success) {
         toast.success(state.message);
+        router.refresh();
+        router.push("/app/employees");
       } else {
         toast.error(state.message);
       }
     }
-  }, [state]);
+  }, [state, router]);
 
   const filteredPositions = useMemo(() => {
     return positions.filter((p) => p.department_id === selectedDept && p.is_active);

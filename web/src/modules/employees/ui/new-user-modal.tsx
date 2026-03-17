@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createUserAccountAction } from "@/modules/employees/actions";
 import { SubmitButton } from "@/shared/ui/submit-button";
@@ -19,6 +20,7 @@ const initialState = { success: false, message: "" };
 export function NewUserModal({ open, branches, departments, positions }: NewUserModalProps) {
   const [state, formAction, isPending] = useActionState(createUserAccountAction, initialState);
   const [selectedDept, setSelectedDept] = useState("");
+  const router = useRouter();
 
   const filteredPositions = useMemo(
     () => positions.filter((p) => p.department_id === selectedDept && p.is_active),
@@ -29,13 +31,15 @@ export function NewUserModal({ open, branches, departments, positions }: NewUser
     if (state?.message) {
       if (state.success) {
         toast.success(state.message);
+        router.refresh();
+        router.push("/app/employees?tab=users");
         const closeLink = document.getElementById("close-user-modal-link");
         if (closeLink) (closeLink as HTMLAnchorElement).click();
       } else {
         toast.error(state.message);
       }
     }
-  }, [state]);
+  }, [state, router]);
 
   if (!open) return null;
 
