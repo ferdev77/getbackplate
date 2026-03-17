@@ -57,6 +57,10 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
   const [busySave, setBusySave] = useState(false);
   const [toast, setToast] = useState("");
 
+  useEffect(() => {
+    setRows(users);
+  }, [users]);
+
   const selected = rows.find((item) => item.membershipId === selectedMembershipId) ?? null;
   const editing = rows.find((item) => item.membershipId === editMembershipId) ?? null;
   const deleteTarget = rows.find((item) => item.membershipId === deleteTargetId) ?? null;
