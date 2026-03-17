@@ -97,8 +97,8 @@ export function NewEmployeeModal({
                     <input name="first_name" required defaultValue={initialEmployee?.first_name ?? ""} placeholder="ej. Juan" className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]" />
                   </label>
                   <label className="grid gap-1.5">
-                    <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Apellido</span>
-                    <input name="last_name" required defaultValue={initialEmployee?.last_name ?? ""} placeholder="ej. Garcia" className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]" />
+                    <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Apellido <span className="text-[#ccc] font-normal normal-case">(opcional)</span></span>
+                    <input name="last_name" defaultValue={initialEmployee?.last_name ?? ""} placeholder="ej. Garcia" className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]" />
                   </label>
                   <label className="grid gap-1.5 sm:col-span-2">
                     <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Email Personal</span>
