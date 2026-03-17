@@ -32,7 +32,7 @@ export function NewUserModal({ open, branches, departments, positions }: NewUser
       if (state.success) {
         toast.success(state.message);
         router.refresh();
-        router.push("/app/employees?tab=users");
+        router.push("/app/users");
         const closeLink = document.getElementById("close-user-modal-link");
         if (closeLink) (closeLink as HTMLAnchorElement).click();
       } else {
@@ -50,7 +50,7 @@ export function NewUserModal({ open, branches, departments, positions }: NewUser
           <p className="font-serif text-[15px] font-bold text-[#111]">Nuevo Usuario</p>
           <Link
             id="close-user-modal-link"
-            href="/app/employees?tab=users"
+            href="/app/users"
             className="grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111]"
           >
             ✕
@@ -157,7 +157,7 @@ export function NewUserModal({ open, branches, departments, positions }: NewUser
           </div>
           <div className="flex justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4">
             <Link
-              href="/app/employees?tab=users"
+              href="/app/users"
               className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]"
             >
               Cancelar
