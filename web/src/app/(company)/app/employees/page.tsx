@@ -159,6 +159,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       <EmployeesTableWorkspace employees={employeeRows} />
 
       <NewEmployeeModal
+        key={initialEmployeeData?.id ?? "new"}
         open={openEmployeeModal}
         mode={(action === "edit" || action === "edit-employee") ? "edit" : "create"}
         initialEmployee={initialEmployeeData}
