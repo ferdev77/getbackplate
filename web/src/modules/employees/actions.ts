@@ -69,6 +69,10 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
   const birthDateRaw = String(formData.get("birth_date") ?? "").trim() || null;
   const hireDateRaw = String(formData.get("hire_date") ?? "").trim() || null;
 
+  const documentType = String(formData.get("document_id") ?? "").trim() || null;
+  const documentNumber = String(formData.get("document_number") ?? "").trim() || null;
+  const personalEmail = String(formData.get("personal_email") ?? "").trim() || null;
+
   let employeeEmail = contactEmail;
   let linkedUserId: string | null = null;
   let positionName: string | null = position;
@@ -194,6 +198,9 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
     address_line1: address,
     birth_date: birthDateRaw,
     hired_at: hireDateRaw,
+    document_type: documentType,
+    document_number: documentNumber,
+    personal_email: personalEmail,
   };
 
   if (employeeId) {

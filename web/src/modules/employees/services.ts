@@ -18,6 +18,7 @@ export async function getEmployeeDirectoryView(
       .from("employees")
       .select(`
         id, user_id, first_name, last_name, email, phone, phone_country_code, position, department, department_id, status, branch_id, hired_at, birth_date, sex, nationality, address_line1, address_city, address_state, address_postal_code, address_country, emergency_contact_name, emergency_contact_phone, emergency_contact_email, created_at,
+        document_type, document_number, personal_email,
         branch:branches ( id, name ),
         dept:organization_departments ( id, name )
       `)
@@ -184,7 +185,7 @@ export async function getEmployeeDirectoryView(
       emergencyContactEmail: emp.emergency_contact_email,
       createdAt: emp.created_at,
       personalEmail: emp.personal_email,
-      documentId: emp.document_id,
+      documentType: emp.document_type,
       documentNumber: emp.document_number,
       contracts: contractsByEmployee.get(emp.id) ?? [],
       pendingDocuments: (docsByEmployee.get(emp.id) ?? []).filter(d => d.status === "pending" || d.status === "rejected"),

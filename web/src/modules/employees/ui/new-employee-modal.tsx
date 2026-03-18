@@ -27,7 +27,7 @@ type NewEmployeeModalProps = {
     branch_id: string;
     department_id: string;
     position_id: string;
-    document_id: string | null;
+    document_type: string | null;
     document_number: string | null;
     personal_email: string | null;
     phone: string | null;
@@ -57,6 +57,7 @@ export function NewEmployeeModal({
   // Toggle for creating a user account alongside the employee
   const [createAccount, setCreateAccount] = useState(false);
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState(0);
 
   useEffect(() => {
     if (state.message) {
@@ -78,188 +79,275 @@ export function NewEmployeeModal({
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
-      <div className="max-h-[90vh] w-[980px] max-w-[96vw] overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-        <div className="flex shrink-0 items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5">
-          <p className="font-serif text-[15px] font-bold text-[#111]">{mode === "edit" ? "Editar Empleado" : "Nuevo Empleado"}</p>
-          <Link href="/app/employees" className="grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111]">✕</Link>
+      <div className="emp-modal h-full max-h-[90vh]">
+        <div className="emp-modal-header">
+          <div className="emp-modal-title" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "30px", height: "30px", background: "#fff5f3", border: "1.5px solid #f0d5d0", borderRadius: "8px", flexShrink: 0 }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c0392b" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </span>
+            <span>{mode === "edit" ? "Editar Empleado" : "Nuevo Empleado"}</span>
+          </div>
+          <Link href="/app/employees" className="emp-modal-close" style={{ textDecoration: 'none' }}>✕</Link>
         </div>
 
-        <form action={formAction} className="flex flex-col overflow-hidden">
+        <div className="emp-tabs">
+          <div className={`emp-tab ${activeTab === 0 ? "active" : ""}`} onClick={() => setActiveTab(0)}>Info Personal</div>
+          <div className={`emp-tab ${activeTab === 1 ? "active" : ""}`} onClick={() => setActiveTab(1)}>Documentos</div>
+          <div className={`emp-tab ${activeTab === 2 ? "active" : ""}`} onClick={() => setActiveTab(2)}>Contrato & Salario</div>
+          <div className={`emp-tab ${activeTab === 3 ? "active" : ""}`} onClick={() => setActiveTab(3)}>Cuenta (App)</div>
+        </div>
+
+        <form action={formAction} className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {mode === "edit" && initialEmployee ? <input type="hidden" name="employee_id" value={initialEmployee.id} /> : null}
-          {/* Hidden field: account creation mode */}
           <input type="hidden" name="create_mode" value={createAccount ? "with_account" : "without_account"} />
 
-          <div className="max-h-[72vh] overflow-y-auto px-6 py-6 pb-4">
-            <div className="mb-6 grid gap-6 lg:grid-cols-2">
-
-              {/* ── Datos Personales ── */}
-              <section>
-                <h3 className="mb-3 border-b-[1.5px] border-[#f0f0f0] pb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Datos Personales</h3>
-                <div className="grid gap-3.5 sm:grid-cols-2">
-                  <label className="grid gap-1.5">
-                    <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Nombre</span>
-                    <input name="first_name" required defaultValue={initialEmployee?.first_name ?? ""} placeholder="ej. Juan" className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]" />
-                  </label>
-                  <label className="grid gap-1.5">
-                    <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Apellido <span className="text-[#ccc] font-normal normal-case">(opcional)</span></span>
-                    <input name="last_name" defaultValue={initialEmployee?.last_name ?? ""} placeholder="ej. Garcia" className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]" />
-                  </label>
-                  <label className="grid gap-1.5 sm:col-span-2">
-                    <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Email Personal</span>
-                    <input name="personal_email" type="email" defaultValue={initialEmployee?.personal_email ?? ""} placeholder="juan.garcia@gmail.com" className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]" />
-                  </label>
-                  <label className="grid gap-1.5">
-                    <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Teléfono</span>
-                    <input name="phone" defaultValue={initialEmployee?.phone ?? ""} placeholder="+1 555..." className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]" />
-                  </label>
-                  <label className="grid gap-1.5">
-                    <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Fecha de Nacimiento</span>
-                    <input name="birth_date" type="date" defaultValue={initialEmployee?.birth_date ?? ""} className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]" />
-                  </label>
-                  <label className="grid gap-1.5 sm:col-span-2">
-                    <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Dirección</span>
-                    <input name="address" defaultValue={initialEmployee?.address ?? ""} placeholder="Calle, Altura, Ciudad..." className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]" />
-                  </label>
+          <div className="emp-modal-body p-6">
+            
+            {/* TAB 0 - Info Personal */}
+            <div style={{ display: activeTab === 0 ? 'block' : 'none' }}>
+              <div className="emp-section-divider">Información Personal</div>
+              <div className="emp-form-row">
+                <div className="emp-form-group">
+                  <label className="emp-form-label">Nombre(s) *</label>
+                  <input name="first_name" required defaultValue={initialEmployee?.first_name ?? ""} className="emp-field-input" placeholder="Juan" />
                 </div>
-              </section>
-
-              {/* ── Asignación Laboral ── */}
-              <section>
-                <h3 className="mb-3 border-b-[1.5px] border-[#f0f0f0] pb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Asignación Laboral</h3>
-                <div className="grid gap-3.5 sm:grid-cols-2">
-                  <label className="grid gap-1.5 sm:col-span-2">
-                    <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Locación / Sucursal</span>
-                    <select name="branch_id" defaultValue={initialEmployee?.branch_id ?? ""} className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]">
-                      <option value="">Sin locación asignada</option>
-                      {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-                    </select>
-                  </label>
-                  <label className="grid gap-1.5">
-                    <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Departamento</span>
-                    <select
-                      name="department_id"
-                      value={selectedDept}
-                      onChange={(e) => setSelectedDept(e.target.value)}
-                      className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]"
-                    >
-                      <option value="">Sin departamento</option>
-                      {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                    </select>
-                  </label>
-                  <label className="grid gap-1.5">
-                    <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Puesto</span>
-                    <select name="position_id" defaultValue={initialEmployee?.position_id ?? ""} className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]">
-                      <option value="">{selectedDept ? "Sin puesto" : "Selecciona departamento primero"}</option>
-                      {filteredPositions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                  </label>
-                  <label className="grid gap-1.5">
-                    <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Fecha de Ingreso</span>
-                    <input name="hire_date" type="date" defaultValue={initialEmployee?.hire_date ?? ""} className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]" />
-                  </label>
-                  <label className="grid gap-1.5">
-                    <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Tipo de Contrato</span>
-                    <select name="contract_type" defaultValue={initialEmployee?.contract_type ?? "indefinite"} className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]">
-                      <option value="indefinite">Indeterminado</option>
-                      <option value="fixed_term">Plazo fijo</option>
-                      <option value="seasonal">Temporada</option>
-                      <option value="internship">Pasantía</option>
-                    </select>
-                  </label>
+                <div className="emp-form-group">
+                  <label className="emp-form-label">Apellidos</label>
+                  <input name="last_name" defaultValue={initialEmployee?.last_name ?? ""} className="emp-field-input" placeholder="García López" />
                 </div>
-              </section>
-            </div>
+              </div>
 
-            {/* ── Documentación Legal ── */}
-            <section className="mb-4">
-              <h3 className="mb-3 border-b-[1.5px] border-[#f0f0f0] pb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Documentación Legal</h3>
-              <div className="grid gap-3.5 sm:grid-cols-3">
-                <label className="grid gap-1.5">
-                  <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Tipo de ID</span>
-                  <select name="document_id" defaultValue={initialEmployee?.document_id ?? ""} className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]">
-                    <option value="">Selecciona...</option>
+              <div className="emp-form-row three">
+                <div className="emp-form-group">
+                  <label className="emp-form-label">Fecha Nacimiento</label>
+                  <input name="birth_date" type="date" defaultValue={initialEmployee?.birth_date ?? ""} className="emp-field-input" />
+                </div>
+                <div className="emp-form-group">
+                  <label className="emp-form-label">Tipo de Documento</label>
+                  <select name="document_id" defaultValue={initialEmployee?.document_type ?? ""} className="emp-field-select">
+                    <option value="">—</option>
                     <option value="dni">DNI</option>
                     <option value="cuil">CUIL / CUIT</option>
-                    <option value="ssn">SSN (US)</option>
+                    <option value="ssn">SSN / ITIN</option>
                     <option value="passport">Pasaporte</option>
                   </select>
-                </label>
-                <label className="grid gap-1.5">
-                  <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Número de ID</span>
-                  <input name="document_number" defaultValue={initialEmployee?.document_number ?? ""} placeholder="00.000.000" className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]" />
-                </label>
-                <label className="grid gap-1.5">
-                  <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Email corporativo</span>
-                  <input name="email" type="email" defaultValue={initialEmployee?.email ?? ""} placeholder="p.ej@empresa.com" className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]" />
-                </label>
-                <label className="grid gap-1.5">
-                  <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Firmante Contrato</span>
-                  <input name="contract_signer_name" defaultValue={initialEmployee?.contract_signer_name ?? ""} placeholder="Nombre completo" className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]" />
-                </label>
-                <label className="grid gap-1.5">
-                  <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Fecha de firma</span>
-                  <input name="contract_signed_at" type="date" defaultValue={initialEmployee?.contract_signed_at ?? ""} className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]" />
-                </label>
+                </div>
+                <div className="emp-form-group">
+                  <label className="emp-form-label">Número de Documento</label>
+                  <input name="document_number" defaultValue={initialEmployee?.document_number ?? ""} className="emp-field-input" placeholder="00.000.000" />
+                </div>
               </div>
-            </section>
 
-            {/* ── Cuenta de acceso (opcional) ── */}
-            <section>
-              <div className="mb-3 flex items-center gap-3 border-b-[1.5px] border-[#f0f0f0] pb-2">
-                <h3 className="flex-1 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Crear cuenta de acceso</h3>
-                <button
-                  type="button"
-                  onClick={() => setCreateAccount((prev) => !prev)}
-                  className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${createAccount ? "bg-[#111]" : "bg-[#d1d1d1]"}`}
-                  role="switch"
-                  aria-checked={createAccount}
-                >
-                  <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${createAccount ? "translate-x-4" : "translate-x-0"}`} />
-                </button>
+              <div className="emp-form-row">
+                <div className="emp-form-group">
+                  <label className="emp-form-label">Teléfono</label>
+                  <input name="phone" defaultValue={initialEmployee?.phone ?? ""} className="emp-field-input" placeholder="+1 228 555 0000" />
+                </div>
+                <div className="emp-form-group">
+                  <label className="emp-form-label">Email Personal</label>
+                  <input name="personal_email" type="email" defaultValue={initialEmployee?.personal_email ?? ""} className="emp-field-input" placeholder="juan@email.com" />
+                </div>
+              </div>
+
+              <div className="emp-section-divider">Dirección</div>
+              <div className="emp-form-row one">
+                <div className="emp-form-group">
+                  <label className="emp-form-label">Dirección Completa</label>
+                  <input name="address" defaultValue={initialEmployee?.address ?? ""} className="emp-field-input" placeholder="Calle, Número, Ciudad, Estado, País" />
+                </div>
+              </div>
+
+              <div className="emp-section-divider">Información Laboral</div>
+              <div className="emp-form-row">
+                <div className="emp-form-group">
+                  <label className="emp-form-label">Email Corporativo</label>
+                  <input name="email" type="email" defaultValue={initialEmployee?.email ?? ""} className="emp-field-input" placeholder="p.ej@empresa.com" />
+                </div>
+                <div className="emp-form-group">
+                  <label className="emp-form-label">Locación / Sucursal</label>
+                  <select name="branch_id" defaultValue={initialEmployee?.branch_id ?? ""} className="emp-field-select">
+                    <option value="">— Selecciona locación —</option>
+                    {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              
+              <div className="emp-form-row">
+                <div className="emp-form-group">
+                  <label className="emp-form-label">Departamento</label>
+                  <select 
+                    name="department_id" 
+                    value={selectedDept} 
+                    onChange={e => setSelectedDept(e.target.value)}
+                    className="emp-field-select"
+                  >
+                    <option value="">— Selecciona departamento —</option>
+                    {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
+                <div className="emp-form-group">
+                  <label className="emp-form-label">Puesto</label>
+                  <select name="position_id" defaultValue={initialEmployee?.position_id ?? ""} className="emp-field-select">
+                    <option value="">{selectedDept ? "— Selecciona un puesto —" : "Selecciona departamento primero"}</option>
+                    {filteredPositions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="emp-form-row">
+                <div className="emp-form-group">
+                  <label className="emp-form-label">Fecha de Ingreso</label>
+                  <input name="hire_date" type="date" defaultValue={initialEmployee?.hire_date ?? ""} className="emp-field-input" />
+                </div>
+                <div className="emp-form-group">
+                  <label className="emp-form-label">Tipo Contrato</label>
+                  <select name="contract_type" defaultValue={initialEmployee?.contract_type ?? "indefinite"} className="emp-field-select">
+                    <option value="">—</option>
+                    <option value="indefinite">Indeterminado</option>
+                    <option value="fixed_term">Plazo fijo</option>
+                    <option value="seasonal">Temporada</option>
+                    <option value="internship">Pasantía</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* TAB 1 - Documentos */}
+            <div style={{ display: activeTab === 1 ? 'block' : 'none' }}>
+              <div className="emp-section-divider">Documentos del Empleado</div>
+              <div className="emp-doc-grid">
+                <div className="emp-doc-slot" onClick={() => document.getElementById('empInputFoto')?.click()}>
+                  <input type="file" id="empInputFoto" accept="image/*" style={{ display: 'none' }} />
+                  <div className="emp-doc-icon">📷</div>
+                  <div className="emp-doc-label">Foto del Empleado</div>
+                  <div className="emp-doc-name"></div>
+                  <div className="emp-doc-check">✓</div>
+                </div>
+                <div className="emp-doc-slot" onClick={() => document.getElementById('empInputId')?.click()}>
+                  <input type="file" id="empInputId" accept=".pdf,image/*" style={{ display: 'none' }} />
+                  <div className="emp-doc-icon">🪪</div>
+                  <div className="emp-doc-label">ID / Identificación</div>
+                  <div className="emp-doc-name"></div>
+                  <div className="emp-doc-check">✓</div>
+                </div>
+                <div className="emp-doc-slot" onClick={() => document.getElementById('empInputSs')?.click()}>
+                  <input type="file" id="empInputSs" accept=".pdf,image/*" style={{ display: 'none' }} />
+                  <div className="emp-doc-icon">📋</div>
+                  <div className="emp-doc-label">Número de SS / CUIL</div>
+                  <div className="emp-doc-name"></div>
+                  <div className="emp-doc-check">✓</div>
+                </div>
+                <div className="emp-doc-slot" onClick={() => document.getElementById('empInputRec1')?.click()}>
+                  <input type="file" id="empInputRec1" accept=".pdf,image/*" style={{ display: 'none' }} />
+                  <div className="emp-doc-icon">📄</div>
+                  <div className="emp-doc-label">CV o Currículum</div>
+                  <div className="emp-doc-name"></div>
+                  <div className="emp-doc-check">✓</div>
+                </div>
+              </div>
+            </div>
+
+            {/* TAB 2 - Contrato & Salario */}
+            <div style={{ display: activeTab === 2 ? 'block' : 'none' }}>
+              <div className="emp-section-divider">Información Salarial</div>
+              <div className="emp-form-row">
+                <div className="emp-form-group">
+                  <label className="emp-form-label">Salario Base</label>
+                  <input className="emp-field-input" type="number" placeholder="0.00" />
+                </div>
+                <div className="emp-form-group">
+                  <label className="emp-form-label">Tipo</label>
+                  <select className="emp-field-select">
+                    <option value="hora">Por hora</option>
+                    <option value="semana">Semanal</option>
+                    <option value="quincena">Quincenal</option>
+                    <option value="mes">Mensual</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="emp-section-divider">Firma del Empleado</div>
+              <div className="emp-sig-area">
+                <canvas className="emp-sig-canvas bg-neutral-900 w-full" style={{ height: '140px' }}></canvas>
+                <div className="emp-sig-toolbar">
+                  <button type="button" className="btn-secondary">Limpiar Firma</button>
+                  <span className="emp-sig-status">Sin firma</span>
+                </div>
+              </div>
+              <div className="emp-form-row" style={{ marginTop: '14px' }}>
+                <div className="emp-form-group">
+                  <label className="emp-form-label">Nombre del Firmante</label>
+                  <input name="contract_signer_name" defaultValue={initialEmployee?.contract_signer_name ?? ""} className="emp-field-input" placeholder="Nombre completo" />
+                </div>
+                <div className="emp-form-group">
+                  <label className="emp-form-label">Fecha de Firma</label>
+                  <input name="contract_signed_at" type="date" defaultValue={initialEmployee?.contract_signed_at ?? ""} className="emp-field-input" />
+                </div>
+              </div>
+            </div>
+
+            {/* TAB 3 - Cuenta App */}
+            <div style={{ display: activeTab === 3 ? 'block' : 'none' }}>
+              <div className="emp-section-divider">Crear cuenta de acceso</div>
+              
+              <div className="emp-form-row one">
+                 <div className="mb-3 flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCreateAccount((prev) => !prev)}
+                    className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${createAccount ? "bg-[#111]" : "bg-[#d1d1d1]"}`}
+                    role="switch"
+                    aria-checked={createAccount}
+                  >
+                    <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${createAccount ? "translate-x-4" : "translate-x-0"}`} />
+                  </button>
+                  <h3 className="flex-1 text-[12px] font-bold text-[#333]">Habilitar acceso al Dashboard para este empleado</h3>
+                </div>
               </div>
 
               {createAccount && (
-                <div className="grid gap-3.5 sm:grid-cols-3">
-                  <label className="grid gap-1.5">
-                    <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Email de acceso</span>
+                <div className="emp-form-row three mt-4">
+                  <div className="emp-form-group">
+                    <label className="emp-form-label">Email de acceso</label>
                     <input
                       name="account_email"
                       type="email"
                       required={createAccount}
                       placeholder="usuario@empresa.com"
-                      className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]"
+                      className="emp-field-input"
                     />
-                  </label>
-                  <label className="grid gap-1.5">
-                    <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Contraseña inicial</span>
+                  </div>
+                  <div className="emp-form-group">
+                    <label className="emp-form-label">Contraseña inicial</label>
                     <input
                       name="account_password"
                       type="password"
                       required={createAccount}
                       minLength={8}
                       placeholder="Mínimo 8 caracteres"
-                      className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]"
+                      className="emp-field-input"
                     />
-                  </label>
-                  <label className="grid gap-1.5">
-                    <span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Tipo de usuario</span>
-                    <select name="account_role" defaultValue="employee" className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-[13px] text-[#111]">
+                  </div>
+                  <div className="emp-form-group">
+                    <label className="emp-form-label">Rol del usuario</label>
+                    <select name="account_role" defaultValue="employee" className="emp-field-select">
                       <option value="employee">Empleado</option>
                       <option value="company_admin">Administrador</option>
                     </select>
-                  </label>
+                  </div>
                 </div>
               )}
-            </section>
+            </div>
+
           </div>
 
-          <div className="flex shrink-0 items-center justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-3.5">
-            <Link href="/app/employees" className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]">Cancelar</Link>
+          <div className="emp-modal-footer">
+            <Link href="/app/employees" className="modal-cancel flex items-center justify-center text-center" style={{ textDecoration: 'none' }}>Cancelar</Link>
             <SubmitButton
               label={mode === "edit" ? "Actualizar Empleado" : "Guardar Empleado"}
               pendingLabel={mode === "edit" ? "Actualizando..." : "Guardando..."}
               pending={isActionPending || saving}
-              className="px-5 py-2 text-sm font-bold"
+              className="modal-save"
             />
           </div>
         </form>
