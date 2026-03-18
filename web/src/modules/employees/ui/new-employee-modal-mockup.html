@@ -1,0 +1,187 @@
+        <div class="emp-form-group"><label class="emp-form-label">Sexo</label>
+          <select class="emp-field-select" id="empSexo"><option value="">—</option><option>Masculino</option><option>Femenino</option><option>Otro</option></select></div>
+        <div class="emp-form-group"><label class="emp-form-label">Nacionalidad</label><input class="emp-field-input" id="empNacionalidad" placeholder="Mexicana"></div>
+      </div>
+      <div class="emp-form-row">
+        <div class="emp-form-group">
+          <label class="emp-form-label">Teléfono</label>
+          <div style="display:flex;gap:6px">
+            <select class="emp-field-select" id="empTelArea" style="width:90px;flex-shrink:0">
+              <option value="+1">🇺🇸 +1</option>
+              <option value="+52">🇲🇽 +52</option>
+              <option value="+34">🇪🇸 +34</option>
+              <option value="+1-PR">🇵🇷 +1</option>
+            </select>
+            <input class="emp-field-input" id="empTel" placeholder="228 555 0000" style="flex:1" oninput="empFormatPhone(this)">
+          </div>
+        </div>
+        <div class="emp-form-group"><label class="emp-form-label">Email</label><input class="emp-field-input" id="empEmail" type="email" placeholder="juan@email.com"></div>
+      </div>
+      <div class="emp-section-divider">Dirección</div>
+      <div class="emp-form-row">
+        <div class="emp-form-group"><label class="emp-form-label">Calle y Número</label><input class="emp-field-input" id="empDireccionCalle" placeholder="412 Oak Street"></div>
+        <div class="emp-form-group"><label class="emp-form-label">Ciudad</label><input class="emp-field-input" id="empDireccionCiudad" placeholder="Long Beach"></div>
+      </div>
+      <div class="emp-form-row three">
+        <div class="emp-form-group"><label class="emp-form-label">Estado</label>
+          <select class="emp-field-select" id="empDireccionEstado">
+            <option value="">—</option>
+            <option value="MS">Mississippi</option>
+            <option value="LA">Louisiana</option>
+            <option value="AL">Alabama</option>
+            <option value="FL">Florida</option>
+            <option value="TX">Texas</option>
+            <option value="CA">California</option>
+            <option value="NY">New York</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="emp-form-group"><label class="emp-form-label">ZIP Code</label><input class="emp-field-input" id="empDireccionZip" placeholder="39560" maxlength="10"></div>
+        <div class="emp-form-group"><label class="emp-form-label">País</label>
+          <select class="emp-field-select" id="empDireccionPais">
+            <option value="US">Estados Unidos</option>
+            <option value="MX">México</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+      </div>
+      <div class="emp-section-divider">Contacto de Emergencia</div>
+      <div class="emp-form-row three">
+        <div class="emp-form-group"><label class="emp-form-label">Nombre</label><input class="emp-field-input" id="empEmergenciaNombre" placeholder="Nombre · Parentesco"></div>
+        <div class="emp-form-group"><label class="emp-form-label">Teléfono</label><input class="emp-field-input" id="empEmergenciaTel" placeholder="+1 228 555 0000"></div>
+        <div class="emp-form-group"><label class="emp-form-label">Email</label><input class="emp-field-input" id="empEmergenciaEmail" type="email" placeholder="emergencia@email.com"></div>
+      </div>
+      <div class="emp-section-divider">Información Laboral</div>
+      <div class="emp-form-row">
+        <div class="emp-form-group"><label class="emp-form-label">Locación</label>
+          <select class="emp-field-select" id="empUbicacion" required><option value="">— Selecciona locación —</option><option value="long-beach">Long Beach</option><option value="biloxi">Biloxi</option><option value="saucier">Saucier</option><option value="poplarville">Poplarville</option><option value="waveland">Waveland</option><option value="wiggins">Wiggins</option><option value="scottsboro">Scottsboro</option></select></div>
+        <div class="emp-form-group"><label class="emp-form-label">Puesto / Departamento</label>
+          <select class="emp-field-select" id="empDept">
+            <option value="">— Selecciona un puesto —</option>
+            <optgroup label="Administración y Operaciones">
+              <option value="full-access">Full Access</option>
+              <option value="administrador">Administrador</option>
+              <option value="finanzas">Finanzas</option>
+              <option value="compras">Compras</option>
+              <option value="rrhh">Recursos Humanos</option>
+              <option value="marketing">Marketing</option>
+            </optgroup>
+            <optgroup label="FOH – Front of House">
+              <option value="gerente-foh">Gerente</option>
+              <option value="supervisor">Supervisor</option>
+              <option value="mesero">Meseros</option>
+              <option value="bartender">Bartender</option>
+              <option value="host">Host/Hostess</option>
+              <option value="busser">Busser</option>
+            </optgroup>
+            <optgroup label="BOH – Back of House">
+              <option value="gerente-cocina">Gerente de Cocina</option>
+              <option value="cocinero">Cocinero</option>
+              <option value="ayudante-cocina">Ayudante de Cocina</option>
+              <option value="lavaplatos">Lavaplatos</option>
+            </optgroup>
+            <optgroup label="Apoyo y Mantenimiento">
+              <option value="mantenimiento">Mantenimiento</option>
+              <option value="limpieza">Limpieza</option>
+            </optgroup>
+          </select></div>
+      </div>
+      <div class="emp-form-row">
+        <div class="emp-form-group"><label class="emp-form-label">Fecha de Ingreso</label><input class="emp-field-input" id="empIngreso" type="date"></div>
+      </div>
+      <div class="emp-form-row">
+        <div class="emp-form-group"><label class="emp-form-label">Tipo Contrato</label>
+          <select class="emp-field-select" id="empTipoContrato"><option value="">—</option><option>Tiempo completo</option><option>Medio tiempo</option><option>Por hora</option><option>Temporal</option></select></div>
+        <div class="emp-form-group"><label class="emp-form-label">Estado</label>
+          <select class="emp-field-select" id="empEstado"><option value="activo">Activo</option><option value="inactivo">Inactivo</option><option value="vacaciones">Vacaciones</option><option value="baja">Baja</option></select></div>
+      </div>
+      <div class="emp-form-row one">
+        <div class="emp-form-group"><label class="emp-form-label">Notas internas</label><textarea class="emp-field-textarea" id="empNotas" placeholder="Notas…"></textarea></div>
+      </div>
+      <div class="emp-section-divider">Salario</div>
+      <div class="emp-form-row">
+        <div class="emp-form-group"><label class="emp-form-label">Salario Actual</label><input class="emp-field-input" id="empSalario" type="number" placeholder="0.00"></div>
+        <div class="emp-form-group"><label class="emp-form-label">Tipo</label>
+          <select class="emp-field-select" id="empSalarioTipo"><option value="hora">Por hora</option><option value="semana">Semanal</option><option value="quincena">Quincenal</option><option value="mes">Mensual</option></select></div>
+      </div>
+      <div class="emp-salary-history" id="empSalaryHistoryUI"></div>
+      <div class="emp-add-raise-form">
+        <div class="emp-form-group"><label class="emp-form-label">Fecha</label><input class="emp-field-input" id="empRaiseDate" type="date"></div>
+        <div class="emp-form-group"><label class="emp-form-label">Monto</label><input class="emp-field-input" id="empRaiseAmount" type="number" placeholder="0.00"></div>
+        <div class="emp-form-group"><label class="emp-form-label">Nota</label><input class="emp-field-input" id="empRaiseNote" placeholder="Ajuste anual…"></div>
+        <div class="emp-form-group"><label class="emp-form-label">&nbsp;</label><button class="btn-primary" onclick="empAddRaise()">+ Agregar</button></div>
+      </div>
+    </div>
+    <!-- Tab 1: Docs -->
+    <div class="emp-tab-panel" id="empTabPanel1">
+      <div class="emp-section-divider">Documentos del Empleado</div>
+      <div class="emp-doc-grid">
+        <div class="emp-doc-slot" id="empSlotFoto" onclick="document.getElementById('empInputFoto').click()">
+          <input type="file" id="empInputFoto" accept="image/*" style="display:none" onchange="empHandleFoto(this)">
+          <img class="emp-foto-thumb" id="empFotoThumb">
+          <div class="emp-doc-icon">📷</div>
+          <div class="emp-doc-label">Foto del Empleado</div>
+          <div class="emp-doc-name" id="empNameFoto"></div>
+          <div class="emp-doc-check">✓</div>
+        </div>
+        <div class="emp-doc-slot" id="empSlotId" onclick="document.getElementById('empInputId').click()">
+          <input type="file" id="empInputId" accept=".pdf,image/*" style="display:none" onchange="empHandleDoc(this,'empSlotId','empNameId')">
+          <div class="emp-doc-icon">🪪</div>
+          <div class="emp-doc-label">ID / Identificación</div>
+          <div class="emp-doc-name" id="empNameId"></div>
+          <div class="emp-doc-check">✓</div>
+        </div>
+        <div class="emp-doc-slot" id="empSlotSs" onclick="document.getElementById('empInputSs').click()">
+          <input type="file" id="empInputSs" accept=".pdf,image/*" style="display:none" onchange="empHandleDoc(this,'empSlotSs','empNameSs')">
+          <div class="emp-doc-icon">📋</div>
+          <div class="emp-doc-label">Número de Seguro Social</div>
+          <div class="emp-doc-name" id="empNameSs"></div>
+          <div class="emp-doc-check">✓</div>
+        </div>
+        <div class="emp-doc-slot" id="empSlotRec1" onclick="document.getElementById('empInputRec1').click()">
+          <input type="file" id="empInputRec1" accept=".pdf,image/*" style="display:none" onchange="empHandleDoc(this,'empSlotRec1','empNameRec1')">
+          <div class="emp-doc-icon">📄</div>
+          <div class="emp-doc-label">Carta de Recomendación 1</div>
+          <div class="emp-doc-name" id="empNameRec1"></div>
+          <div class="emp-doc-check">✓</div>
+        </div>
+        <div class="emp-doc-slot" id="empSlotRec2" onclick="document.getElementById('empInputRec2').click()">
+          <input type="file" id="empInputRec2" accept=".pdf,image/*" style="display:none" onchange="empHandleDoc(this,'empSlotRec2','empNameRec2')">
+          <div class="emp-doc-icon">📄</div>
+          <div class="emp-doc-label">Carta de Recomendación 2</div>
+          <div class="emp-doc-name" id="empNameRec2"></div>
+          <div class="emp-doc-check">✓</div>
+        </div>
+        <div class="emp-doc-slot" id="empSlotOtro" onclick="document.getElementById('empInputOtro').click()">
+          <input type="file" id="empInputOtro" accept=".pdf,image/*" style="display:none" onchange="empHandleDoc(this,'empSlotOtro','empNameOtro')">
+          <div class="emp-doc-icon">📎</div>
+          <div class="emp-doc-label">Otro Documento</div>
+          <div class="emp-doc-name" id="empNameOtro"></div>
+          <div class="emp-doc-check">✓</div>
+        </div>
+      </div>
+    </div>
+    <!-- Tab 2: Contrato -->
+    <div class="emp-tab-panel" id="empTabPanel2">
+      <div class="emp-section-divider">Vista Previa del Contrato</div>
+      <div class="emp-contract-preview" id="empContractPreview">Complete la información del empleado para generar el contrato.</div>
+      <div class="emp-section-divider">Firma del Empleado</div>
+      <div class="emp-sig-area">
+        <canvas class="emp-sig-canvas" id="empSigCanvas" width="600" height="140"></canvas>
+        <div class="emp-sig-toolbar">
+          <button class="btn-secondary" onclick="empClearSig()">Limpiar Firma</button>
+          <span class="emp-sig-status" id="empSigStatus">Sin firma</span>
+        </div>
+      </div>
+      <div class="emp-form-row" style="margin-top:14px">
+        <div class="emp-form-group"><label class="emp-form-label">Nombre del Firmante</label><input class="emp-field-input" id="empFirmante" placeholder="Nombre completo"></div>
+        <div class="emp-form-group"><label class="emp-form-label">Fecha de Firma</label><input class="emp-field-input" id="empFechaFirma" type="date"></div>
+      </div>
+    </div>
+    </div><!-- /emp-modal-body -->
+    <div class="emp-modal-footer">
+      <button class="btn-secondary" onclick="closeEmpModal('empModal')">Cancelar</button>
+      <button class="btn-primary" onclick="empSaveEmployee()">Guardar Empleado</button>
+    </div>
+  </div>
+</div>
