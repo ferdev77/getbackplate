@@ -69,7 +69,7 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
   const birthDateRaw = String(formData.get("birth_date") ?? "").trim() || null;
   const hireDateRaw = String(formData.get("hire_date") ?? "").trim() || null;
 
-  const documentType = String(formData.get("document_id") ?? "").trim() || null;
+  const documentType = String(formData.get("document_type") ?? "").trim() || null;
   const documentNumber = String(formData.get("document_number") ?? "").trim() || null;
   const personalEmail = String(formData.get("personal_email") ?? "").trim() || null;
 
@@ -240,6 +240,32 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
         : `No se pudo guardar el empleado: ${employeeError.message}`;
 
     return { success: false, message };
+  }
+
+  // Save salary / contract info if provided
+  const salaryAmountRaw = String(formData.get("salary_amount") ?? "").trim();
+  const salaryAmount = salaryAmountRaw !== "" ? parseFloat(salaryAmountRaw) : null;
+  const paymentFrequency = String(formData.get("payment_frequency") ?? "").trim() || null;
+  const contractType = String(formData.get("contract_type") ?? "").trim() || null;
+  const contractSignerName = String(formData.get("contract_signer_name") ?? "").trim() || null;
+  const contractSignedAt = String(formData.get("contract_signed_at") ?? "").trim() || null;
+
+  if (salaryAmount !== null || paymentFrequency || contractType) {
+    await admin.from("employee_contracts").upsert(
+      {
+        employee_id: employee?.id,
+        organization_id: tenant.organizationId,
+        branch_id: branchId || tenant.branchId || null,
+        salary_amount: salaryAmount,
+        salary_currency: "ARS",
+        payment_frequency: paymentFrequency,
+        contract_type: contractType || "indefinite",
+        signer_name: contractSignerName,
+        signed_at: contractSignedAt || null,
+        contract_status: "active",
+      },
+      { onConflict: "employee_id,organization_id", ignoreDuplicates: false }
+    );
   }
 
   await logAuditEvent({
