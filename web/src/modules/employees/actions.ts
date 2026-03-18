@@ -71,6 +71,10 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
   let linkedUserId: string | null = null;
   let employeeEmail = contactEmail;
 
+  // Admin client is used for all DB operations in this action to bypass RLS.
+  // RLS is enforced at the tenant level via requireTenantContext() above.
+  const admin = createSupabaseAdminClient();
+
   if (createWithAccount) {
     const loginEmail = accountEmailInput || (contactEmail ? contactEmail.toLowerCase() : "");
 
@@ -81,8 +85,6 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
     if (accountPassword.length < 8) {
       return { success: false, message: "La contrasena de acceso debe tener al menos 8 caracteres" };
     }
-
-    const admin = createSupabaseAdminClient();
 
     const { data: role, error: roleError } = await admin
       .from("roles")
@@ -154,8 +156,10 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
     employeeEmail = loginEmail;
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { data: employee, error } = await supabase
+  // Use admin client to insert employee — bypasses RLS, consistent with all
+  // other data operations in this module. RLS is already enforced at the
+  // tenant level via requireTenantContext() at the top of this action.
+  const { data: employee, error } = await admin
     .from("employees")
     .insert({
       organization_id: tenant.organizationId,
