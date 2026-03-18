@@ -17,7 +17,7 @@ export async function getEmployeeDirectoryView(
     supabase
       .from("employees")
       .select(`
-        id, user_id, first_name, last_name, email, phone, phone_country_code, position, department, department_id, status, branch_id, hired_at, birth_date, sex, nationality, address_line1, address_city, address_state, address_postal_code, address_country, emergency_contact_name, emergency_contact_phone, emergency_contact_email, created_at, personal_email, document_id, document_number,
+        id, user_id, first_name, last_name, email, phone, phone_country_code, position, department, department_id, status, branch_id, hired_at, birth_date, sex, nationality, address_line1, address_city, address_state, address_postal_code, address_country, emergency_contact_name, emergency_contact_phone, emergency_contact_email, created_at,
         branch:branches ( id, name ),
         dept:organization_departments ( id, name )
       `)
