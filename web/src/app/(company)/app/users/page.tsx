@@ -14,7 +14,6 @@ type CompanyUsersPageProps = {
 };
 
 const ROLE_OPTIONS = [
-  { value: "employee", label: "Empleado" },
   { value: "company_admin", label: "Administrador" },
 ];
 

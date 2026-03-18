@@ -15,7 +15,7 @@ type NewUserModalProps = {
 
 const initialState = { success: false, message: "" };
 
-export function NewUserModal({ open, branches }: NewUserModalProps) {
+export function NewUserModal({ open, branches, roleOptions }: NewUserModalProps) {
   const [state, formAction, isPending] = useActionState(createUserAccountAction, initialState);
   const router = useRouter();
 
@@ -91,9 +91,12 @@ export function NewUserModal({ open, branches }: NewUserModalProps) {
             <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">
               Tipo de usuario
             </label>
-            <select name="role_code" defaultValue="employee" className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm">
-              <option value="employee">Empleado</option>
-              <option value="company_admin">Administrador</option>
+            <select name="role_code" defaultValue={roleOptions[0]?.value ?? ""} className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm">
+              {roleOptions.map((role) => (
+                <option key={role.value} value={role.value}>
+                  {role.label}
+                </option>
+              ))}
             </select>
 
             {/* Locacion */}
