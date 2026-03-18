@@ -81,7 +81,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
         phone: editEmployee.phone ?? null,
         email: editEmployee.email ?? "",
         personal_email: editEmployee.personalEmail ?? null,
-        document_id: editEmployee.documentType ?? null,
+        document_type: editEmployee.documentType ?? null,
         document_number: editEmployee.documentNumber ?? null,
         address: editEmployee.addressLine1 ?? null,
         branch_id: editEmployee.branchId ?? "",
