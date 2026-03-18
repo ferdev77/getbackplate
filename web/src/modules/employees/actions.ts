@@ -55,6 +55,8 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
   const departmentId = departmentIdRaw || null;
   const positionIdRaw = String(formData.get("position_id") ?? "").trim();
   const positionId = positionIdRaw || null;
+  const employeeIdRaw = String(formData.get("employee_id") ?? "").trim();
+  const employeeId = employeeIdRaw || null;
   const createMode = String(formData.get("create_mode") ?? "without_account").trim();
   const accountEmailInput = String(formData.get("account_email") ?? "").trim().toLowerCase();
   const accountPassword = String(formData.get("account_password") ?? "");
@@ -62,18 +64,35 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
   const accountRole = accountRoleInput === "company_admin" ? "company_admin" : "employee";
   const createWithAccount = createMode === "with_account";
 
+  const phone = String(formData.get("phone") ?? "").trim() || null;
+  const address = String(formData.get("address") ?? "").trim() || null;
+  const birthDateRaw = String(formData.get("birth_date") ?? "").trim() || null;
+  const hireDateRaw = String(formData.get("hire_date") ?? "").trim() || null;
+
+  let employeeEmail = contactEmail;
+  let linkedUserId: string | null = null;
+  let positionName: string | null = position;
+  let departmentName: string | null = department;
+
+  const admin = createSupabaseAdminClient();
+
+  if (departmentId && !departmentName) {
+    const { data: deptData } = await admin.from("organization_departments").select("name").eq("id", departmentId).single();
+    if (deptData) departmentName = deptData.name;
+  }
+  if (positionId && !positionName) {
+    const { data: posData } = await admin.from("department_positions").select("name").eq("id", positionId).single();
+    if (posData) positionName = posData.name;
+  }
+
   try {
     await assertPlanLimitForEmployees(tenant.organizationId, 1);
   } catch (error) {
     return { success: false, message: getPlanLimitErrorMessage(error, "Limite de empleados alcanzado. Actualiza tu plan para continuar.") };
   }
 
-  let linkedUserId: string | null = null;
-  let employeeEmail = contactEmail;
-
   // Admin client is used for all DB operations in this action to bypass RLS.
   // RLS is enforced at the tenant level via requireTenantContext() above.
-  const admin = createSupabaseAdminClient();
 
   if (createWithAccount) {
     const loginEmail = accountEmailInput || (contactEmail ? contactEmail.toLowerCase() : "");
@@ -156,31 +175,62 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
     employeeEmail = loginEmail;
   }
 
-  // Use admin client to insert employee — bypasses RLS, consistent with all
+  // Use admin client to insert or update employee — bypasses RLS, consistent with all
   // other data operations in this module. RLS is already enforced at the
   // tenant level via requireTenantContext() at the top of this action.
-  const { data: employee, error } = await admin
-    .from("employees")
-    .insert({
-      organization_id: tenant.organizationId,
-      branch_id: branchId || tenant.branchId || null,
-      user_id: linkedUserId,
-      first_name: firstName,
-      last_name: lastName,
-      email: employeeEmail,
-      position,
-      department,
-      department_id: departmentId,
-    })
-    .select("id")
-    .single();
+  
+  let employee;
+  let employeeError;
 
-  if (error) {
+  const employeePayload = {
+    branch_id: branchId || tenant.branchId || null,
+    first_name: firstName,
+    last_name: lastName,
+    email: employeeEmail,
+    position: positionName,
+    department: departmentName,
+    department_id: departmentId,
+    phone: phone,
+    address_line1: address,
+    birth_date: birthDateRaw,
+    hired_at: hireDateRaw,
+  };
+
+  if (employeeId) {
+    const { data: updatedEmployee, error: updateError } = await admin
+      .from("employees")
+      .update({
+        ...employeePayload,
+        ...(linkedUserId ? { user_id: linkedUserId } : {})
+      })
+      .eq("id", employeeId)
+      .eq("organization_id", tenant.organizationId)
+      .select("id")
+      .single();
+    
+    employee = updatedEmployee;
+    employeeError = updateError;
+  } else {
+    const { data: insertedEmployee, error: insertError } = await admin
+      .from("employees")
+      .insert({
+        organization_id: tenant.organizationId,
+        user_id: linkedUserId,
+        ...employeePayload
+      })
+      .select("id")
+      .single();
+      
+    employee = insertedEmployee;
+    employeeError = insertError;
+  }
+
+  if (employeeError) {
     const message =
-      error.message.toLowerCase().includes("row-level security") ||
-      error.message.toLowerCase().includes("permission")
-        ? "No tienes permisos para crear empleados con tu rol actual"
-        : `No se pudo crear el empleado: ${error.message}`;
+      employeeError.message.toLowerCase().includes("row-level security") ||
+      employeeError.message.toLowerCase().includes("permission")
+        ? "No tienes permisos para crear/editar empleados con tu rol actual"
+        : `No se pudo guardar el empleado: ${employeeError.message}`;
 
     return { success: false, message };
   }
@@ -207,9 +257,13 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
 
   revalidatePath("/app/employees");
   revalidatePath("/app/users");
+  
+  const actionText = employeeId ? "actualizado" : "creado";
+  const actionTextWithAccount = employeeId ? "Actualizado y cuenta creada" : "Empleado y cuenta creados";
+
   return {
     success: true,
-    message: createWithAccount ? "Empleado y cuenta creados correctamente" : "Empleado creado correctamente",
+    message: createWithAccount ? `${actionTextWithAccount} correctamente` : `Empleado ${actionText} correctamente`,
     timestamp: Date.now()
   };
 }
