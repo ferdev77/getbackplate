@@ -14,6 +14,18 @@ type CompanyEmployeesPageProps = {
   searchParams: Promise<{ status?: string; message?: string; action?: string; employeeId?: string; profileId?: string; limit?: string }>;
 };
 
+type DirectoryMembershipUser = {
+  membershipId: string;
+  userId: string;
+  fullName: string;
+  email: string;
+  roleCode: string;
+  status: string;
+  branchId: string | null;
+  branchName: string;
+  createdAt: string;
+};
+
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -145,7 +157,9 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
 
   const branchNameById = new Map((viewData.branches ?? []).map((b) => [b.id, b.name]));
   const departmentNameById = new Map((viewData.departments ?? []).map((d) => [d.id, d.name]));
-  const membershipByUser = new Map((viewData.users ?? []).map((u) => [u.userId, u]));
+  const membershipByUser = new Map<string, DirectoryMembershipUser>(
+    ((viewData.users ?? []) as DirectoryMembershipUser[]).map((u) => [u.userId, u]),
+  );
 
   const employeeRows = viewData.employees.map((emp) => {
     const defaultContract = emp.contracts?.[0];
