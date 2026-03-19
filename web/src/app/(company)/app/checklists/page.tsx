@@ -56,12 +56,13 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
   const templateId = firstParam(params.templateId).trim();
 
   const supabase = await createSupabaseServerClient();
+  const admin = createSupabaseAdminClient();
 
   const [
-    { data: authData },
     { data: branches },
     { data: templates },
     { data: employees },
+    { data: userProfiles },
     { data: departments },
     { data: positions },
     { data: memberships },
@@ -69,8 +70,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
     { count: completedCount },
     { count: pendingCount },
   ] = await Promise.all([
-    supabase.auth.getUser(),
-    supabase
+    admin
       .from("branches")
       .select("id, name")
       .eq("organization_id", tenant.organizationId)
@@ -83,39 +83,45 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
       .order("created_at", { ascending: false })
       .limit(80),
     (openCreateModal || previewTemplateId)
-      ? supabase
+      ? admin
           .from("employees")
-          .select("id, user_id, first_name, last_name")
+          .select("id, user_id, first_name, last_name, branch_id, department_id, position")
           .eq("organization_id", tenant.organizationId)
-          .not("user_id", "is", null)
           .order("first_name")
       : Promise.resolve({ data: [] }),
-    supabase
+    (openCreateModal || previewTemplateId)
+      ? admin
+          .from("organization_user_profiles")
+          .select("id, user_id, first_name, last_name")
+          .eq("organization_id", tenant.organizationId)
+          .eq("is_employee", false)
+          .order("first_name")
+      : Promise.resolve({ data: [] }),
+    admin
       .from("organization_departments")
       .select("id, name")
       .eq("organization_id", tenant.organizationId)
       .eq("is_active", true)
       .order("name"),
     (openCreateModal || previewTemplateId)
-      ? supabase
+      ? admin
           .from("department_positions")
           .select("id, department_id, name")
           .eq("organization_id", tenant.organizationId)
           .eq("is_active", true)
           .order("name")
       : Promise.resolve({ data: [] }),
-    openCreateModal
-      ? supabase
+    (openCreateModal || previewTemplateId)
+      ? admin
           .from("memberships")
           .select("user_id, role_id")
           .eq("organization_id", tenant.organizationId)
           .eq("status", "active")
       : Promise.resolve({ data: [] }),
-    openCreateModal
-      ? supabase
+    (openCreateModal || previewTemplateId)
+      ? admin
           .from("roles")
           .select("id, code")
-          .in("code", ["company_admin", "manager", "employee"])
       : Promise.resolve({ data: [] }),
     supabase
       .from("checklist_submissions")
@@ -150,66 +156,63 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
         .order("sort_order")
     : { data: [] };
 
-  const roleLabelByCode: Record<string, string> = {
-    company_admin: "Admin",
-    manager: "Manager",
-    employee: "Empleado",
-  };
+  const scopedUsers: Array<{
+    id: string;
+    user_id: string | null;
+    first_name: string;
+    last_name: string;
+    role_label?: string;
+    location_label?: string;
+    department_label?: string;
+    position_label?: string;
+  }> = [];
+  const branchNameById = new Map((branches ?? []).map((row) => [row.id, row.name]));
+  const departmentNameById = new Map((departments ?? []).map((row) => [row.id, row.name]));
   const roleCodeById = new Map((roles ?? []).map((role) => [role.id, role.code]));
-  const membershipRoleByUserId = new Map<string, string>();
-  for (const membership of memberships ?? []) {
-    const roleCode = roleCodeById.get(membership.role_id) ?? "";
-    membershipRoleByUserId.set(membership.user_id, (roleLabelByCode[roleCode] ?? roleCode) || "Usuario");
-  }
-
-  const employeeByUserId = new Map(
-    (employees ?? [])
-      .filter((row) => row.user_id)
-      .map((row) => [row.user_id as string, row]),
+  const employeeRoleUserIds = new Set(
+    (memberships ?? [])
+      .filter((membership) => roleCodeById.get(membership.role_id) === "employee")
+      .map((membership) => membership.user_id),
   );
 
-  const membershipUserIds = [...new Set((memberships ?? []).map((row) => row.user_id))];
-  const scopedUsers: Array<{ id: string; user_id: string | null; first_name: string; last_name: string; role_label?: string }> = [];
+  for (const employee of employees ?? []) {
+    scopedUsers.push({
+      id: employee.id,
+      user_id: employee.user_id,
+      first_name: employee.first_name,
+      last_name: employee.last_name,
+      role_label: "Empleado",
+      location_label: employee.branch_id ? (branchNameById.get(employee.branch_id) ?? undefined) : undefined,
+      department_label: employee.department_id ? (departmentNameById.get(employee.department_id) ?? undefined) : undefined,
+      position_label: employee.position ?? undefined,
+    });
+  }
 
-  for (const userId of membershipUserIds) {
-    const employee = employeeByUserId.get(userId);
-    if (employee) {
-      scopedUsers.push({
-        id: employee.id,
-        user_id: employee.user_id,
-        first_name: employee.first_name,
-        last_name: employee.last_name,
-        role_label: membershipRoleByUserId.get(userId),
-      });
-      continue;
-    }
+  for (const profile of userProfiles ?? []) {
+    const alreadyInList = profile.user_id
+      ? scopedUsers.some((row) => row.user_id === profile.user_id)
+      : false;
+    if (alreadyInList) continue;
+    scopedUsers.push({
+      id: `up-${profile.id}`,
+      user_id: profile.user_id,
+      first_name: profile.first_name ?? "Usuario",
+      last_name: profile.last_name ?? "",
+      role_label: "Usuario",
+    });
+  }
 
+  for (const userId of employeeRoleUserIds) {
+    if (!userId) continue;
+    const alreadyInList = scopedUsers.some((row) => row.user_id === userId);
+    if (alreadyInList) continue;
     scopedUsers.push({
       id: `m-${userId}`,
       user_id: userId,
       first_name: "Usuario",
       last_name: userId.slice(0, 8),
-      role_label: membershipRoleByUserId.get(userId),
+      role_label: "Usuario",
     });
-  }
-
-  if (authData.user) {
-    const alreadyInList = scopedUsers.some((row) => row.user_id === authData.user?.id);
-    if (!alreadyInList) {
-      const fullName =
-        typeof authData.user.user_metadata?.full_name === "string"
-          ? authData.user.user_metadata.full_name.trim()
-          : "";
-      const [firstName = "Usuario", ...rest] = fullName ? fullName.split(/\s+/) : [];
-
-      scopedUsers.unshift({
-        id: `self-${authData.user.id}`,
-        user_id: authData.user.id,
-        first_name: firstName || authData.user.email || "Usuario",
-        last_name: rest.join(" "),
-        role_label: membershipRoleByUserId.get(authData.user.id) ?? "Usuario",
-      });
-    }
   }
 
   if (scopedUsers.some((row) => row.first_name === "Usuario" && row.user_id)) {
@@ -300,37 +303,6 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
   const editingTemplate = action === "edit" ? templateRows.find((row) => row.id === templateId) ?? null : null;
   const previewTemplate = previewTemplateId ? templateRows.find((row) => row.id === previewTemplateId) ?? null : null;
   const deletingTemplate = deleteTemplateId ? templateRows.find((row) => row.id === deleteTemplateId) ?? null : null;
-
-  const forceUserIds = new Set<string>();
-  for (const template of [editingTemplate, previewTemplate]) {
-    const users =
-      template &&
-      typeof template.target_scope === "object" &&
-      template.target_scope !== null &&
-      Array.isArray((template.target_scope as Record<string, string[]>).users)
-        ? ((template.target_scope as Record<string, string[]>).users ?? [])
-        : [];
-
-    for (const userId of users) {
-      if (typeof userId === "string" && userId.trim()) {
-        forceUserIds.add(userId.trim());
-      }
-    }
-  }
-
-  if (forceUserIds.size) {
-    const existing = new Set(scopedUsers.map((row) => row.user_id).filter(Boolean) as string[]);
-    for (const userId of forceUserIds) {
-      if (existing.has(userId)) continue;
-      scopedUsers.push({
-        id: `forced-${userId}`,
-        user_id: userId,
-        first_name: "Usuario",
-        last_name: userId.slice(0, 8),
-        role_label: "Sin membresia activa",
-      });
-    }
-  }
 
   const userNameById = new Map(
     scopedUsers

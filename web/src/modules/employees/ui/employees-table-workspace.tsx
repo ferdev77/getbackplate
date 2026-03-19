@@ -488,8 +488,14 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
         <div className="fixed inset-0 z-[1050] grid place-items-center bg-black/45 p-4" onClick={() => !busyDelete && setDeleteTargetId(null)}>
           <div className="w-full max-w-[420px] rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]" onClick={(event) => event.stopPropagation()}>
             <div className="border-b border-[#f0f0f0] px-6 py-4">
-              <p className="font-serif text-[18px] font-bold text-[#111]">Eliminar empleado</p>
-              <p className="mt-1 text-sm text-[#777]">Esta accion eliminara el perfil laboral y sus vinculos.</p>
+              <p className="font-serif text-[18px] font-bold text-[#111]">
+                Eliminar {deleteTarget.recordType === "employee" ? "empleado" : "usuario"}
+              </p>
+              <p className="mt-1 text-sm text-[#777]">
+                {deleteTarget.recordType === "employee"
+                  ? "Esta accion eliminara el perfil laboral y sus vinculos."
+                  : "Esta accion eliminara el perfil de usuario y su acceso asociado (si existe)."}
+              </p>
             </div>
             <div className="px-6 py-4 text-sm text-[#444]">
               Vas a eliminar a <span className="font-semibold">{deleteTarget.firstName} {deleteTarget.lastName}</span>. Esta accion no se puede deshacer.

@@ -13,7 +13,7 @@ type Folder = { id: string; name: string };
 type Branch = { id: string; name: string };
 type Department = { id: string; name: string };
 type Position = { id: string; department_id: string; name: string };
-type Employee = { id: string; user_id: string | null; first_name: string; last_name: string };
+type Employee = { id: string; user_id: string | null; first_name: string; last_name: string; role_label?: string };
 type RecentDocument = { id: string; title: string; branch_id: string | null; created_at: string };
 
 type Props = {

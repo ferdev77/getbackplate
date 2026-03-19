@@ -32,6 +32,9 @@ type UserOption = {
   first_name: string;
   last_name: string;
   role_label?: string;
+  location_label?: string;
+  department_label?: string;
+  position_label?: string;
 };
 
 type AnnouncementCreateModalProps = {

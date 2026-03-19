@@ -1,5 +1,13 @@
 # Contexto del Producto
 
+## Fuente de verdad funcional vigente (RRHH)
+
+Para Recursos Humanos (pantallas `Usuarios / Empleados` y `Administradores`), el comportamiento oficial vigente esta definido en:
+
+- `ACTUALIZACION_2.0_SAAS.md`
+
+En caso de conflicto con definiciones historicas de este archivo, prevalece `ACTUALIZACION_2.0_SAAS.md` para ese modulo.
+
 ## Objetivo del sistema
 
 Desarrollar una plataforma web SaaS multiempresa, modular, segura, escalable y profesional, orientada a la operación interna de empresas con múltiples sucursales, especialmente restaurantes, cadenas gastronómicas o negocios con estructura operativa distribuida.
