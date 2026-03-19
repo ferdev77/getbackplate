@@ -7,7 +7,16 @@ type ScopeSelectorProps = {
   branches: Array<{ id: string; name: string }>;
   departments: Array<{ id: string; name: string }>;
   positions?: Array<{ id: string; department_id: string; name: string }>;
-  users: Array<{ id: string; user_id: string | null; first_name: string; last_name: string; role_label?: string }>;
+  users: Array<{
+    id: string;
+    user_id: string | null;
+    first_name: string;
+    last_name: string;
+    role_label?: string;
+    location_label?: string;
+    department_label?: string;
+    position_label?: string;
+  }>;
   locationInputName: string;
   departmentInputName: string;
   positionInputName?: string;
@@ -219,18 +228,26 @@ export function ScopeSelector({
       <div className="mt-2 max-h-36 overflow-y-auto rounded-lg border border-[#e8e8e8] bg-white p-3">
         <div className="grid gap-2 text-xs text-[#444]">
           {filteredUsers.map((user) => {
-            if (!user.user_id) return null;
             const value = user.user_id;
+            const disabled = !value;
             return (
-              <label key={`${namespace}-usr-${user.id}`} className="inline-flex items-center gap-2">
+              <label key={`${namespace}-usr-${user.id}`} className={`flex items-center gap-2 ${disabled ? "opacity-60" : ""}`}>
                 <input
                   type="checkbox"
-                  checked={selectedUsers.has(value)}
-                  onChange={(event) => toggleUser(value, event.target.checked)}
+                  checked={value ? selectedUsers.has(value) : false}
+                  onChange={(event) => {
+                    if (!value) return;
+                    toggleUser(value, event.target.checked);
+                  }}
+                  disabled={disabled}
                 className="h-[13px] w-[13px] accent-[#c0392b]"
               />
               <span>{user.first_name} {user.last_name}</span>
               {user.role_label ? <span className="rounded-full border border-[#e7ddd8] bg-[#faf6f4] px-1.5 py-0 text-[10px] text-[#8b817c]">{user.role_label}</span> : null}
+              {user.role_label === "Empleado" && user.location_label ? <span className="rounded-full border border-[#d6e2f4] bg-[#eef4ff] px-1.5 py-0 text-[10px] text-[#2a4f87]">{user.location_label}</span> : null}
+              {user.role_label === "Empleado" && user.department_label ? <span className="rounded-full border border-[#f0e3d0] bg-[#fff7eb] px-1.5 py-0 text-[10px] text-[#9b6a1e]">{user.department_label}</span> : null}
+              {user.role_label === "Empleado" && user.position_label ? <span className="rounded-full border border-[#e6d9f9] bg-[#f6f1ff] px-1.5 py-0 text-[10px] text-[#6f46b7]">{user.position_label}</span> : null}
+              {disabled ? <span className="rounded-full border border-[#ececec] bg-[#f8f8f8] px-1.5 py-0 text-[10px] text-[#888]">Sin acceso</span> : null}
             </label>
             );
           })}

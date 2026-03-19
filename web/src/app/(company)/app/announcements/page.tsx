@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Bell, BellPlus, CalendarClock, Pencil, Pin } from "lucide-react";
 
+import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { parseAnnouncementScope } from "@/modules/announcements/lib/scope";
 import {
@@ -42,6 +43,7 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
   const action = String(params.action ?? "").trim().toLowerCase();
   const openCreateModal = action === "create" || action === "edit";
   const supabase = await createSupabaseServerClient();
+  const admin = createSupabaseAdminClient();
   const { data: authData } = await supabase.auth.getUser();
 
   const { data: announcements, error: annError } = await supabase
@@ -81,28 +83,45 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
     .eq("organization_id", tenant.organizationId)
     .eq("is_active", true);
 
-  const employeesQuery = supabase
-    .from("employees")
-    .select("id, user_id, first_name, last_name")
-    .eq("organization_id", tenant.organizationId)
-    .not("user_id", "is", null);
+const employeesQuery = admin
+  .from("employees")
+  .select("id, user_id, first_name, last_name, branch_id, department_id, position")
+  .eq("organization_id", tenant.organizationId);
 
-  const departmentsQuery = supabase
+  const departmentsQuery = admin
     .from("organization_departments")
     .select("id, name")
     .eq("organization_id", tenant.organizationId)
     .eq("is_active", true);
 
-  const positionsQuery = supabase
+  const positionsQuery = admin
     .from("department_positions")
     .select("id, department_id, name")
     .eq("organization_id", tenant.organizationId)
     .eq("is_active", true);
 
+  const userProfilesQuery = admin
+    .from("organization_user_profiles")
+  .select("id, user_id, first_name, last_name")
+  .eq("organization_id", tenant.organizationId)
+  .eq("is_employee", false);
+
+  const membershipsQuery = admin
+    .from("memberships")
+    .select("user_id, role_id")
+    .eq("organization_id", tenant.organizationId)
+    .eq("status", "active");
+
+  const rolesQuery = admin
+    .from("roles")
+    .select("id, code");
+
   if (!openCreateModal) {
     // Only fetch needed references for performance
     if (branchIdsArr.length > 0) branchesQuery.in("id", branchIdsArr); else branchesQuery.in("id", ["00000000-0000-0000-0000-000000000000"]);
     if (userIdsArr.length > 0) employeesQuery.in("user_id", userIdsArr); else employeesQuery.in("user_id", ["00000000-0000-0000-0000-000000000000"]);
+    if (userIdsArr.length > 0) userProfilesQuery.in("user_id", userIdsArr); else userProfilesQuery.in("user_id", ["00000000-0000-0000-0000-000000000000"]);
+    if (userIdsArr.length > 0) membershipsQuery.in("user_id", userIdsArr); else membershipsQuery.in("user_id", ["00000000-0000-0000-0000-000000000000"]);
     if (deptIdsArr.length > 0) departmentsQuery.in("id", deptIdsArr); else departmentsQuery.in("id", ["00000000-0000-0000-0000-000000000000"]);
     if (posIdsArr.length > 0) positionsQuery.in("id", posIdsArr); else positionsQuery.in("id", ["00000000-0000-0000-0000-000000000000"]);
   }
@@ -110,14 +129,27 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
   const [
     { data: branches },
     { data: employees },
+    { data: userProfiles },
+    { data: memberships },
+    { data: roles },
     { data: departments },
     { data: positions },
   ] = await Promise.all([
     branchesQuery,
     employeesQuery,
+    userProfilesQuery,
+    membershipsQuery,
+    rolesQuery,
     departmentsQuery,
     positionsQuery,
   ]);
+
+  const roleCodeById = new Map((roles ?? []).map((role) => [role.id, role.code]));
+  const employeeRoleUserIds = new Set(
+    (memberships ?? [])
+      .filter((membership) => roleCodeById.get(membership.role_id) === "employee")
+      .map((membership) => membership.user_id),
+  );
 
   const branchNameMap = new Map((branches ?? []).map((row) => [row.id, row.name]));
   const departmentNameMap = new Map((departments ?? []).map((row) => [row.id, row.name]));
@@ -126,6 +158,11 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
       .filter((row) => row.user_id)
       .map((row) => [row.user_id as string, `${row.first_name ?? ""} ${row.last_name ?? ""}`.trim()]),
   );
+  for (const profile of userProfiles ?? []) {
+    if (!profile.user_id) continue;
+    if (employeeNameByUserId.has(profile.user_id)) continue;
+    employeeNameByUserId.set(profile.user_id, `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim() || "Usuario");
+  }
   const positionNameMap = new Map((positions ?? []).map((row) => [row.id, row.name]));
 
   const now = new Date();
@@ -266,12 +303,38 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
           branches={branches ?? []}
           departments={departments ?? []}
           positions={positions ?? []}
-          users={(employees ?? []).map((user) => ({
-            id: user.id,
-            user_id: user.user_id,
-            first_name: user.first_name ?? "",
-            last_name: user.last_name ?? "",
-          }))}
+          users={[
+            ...(employees ?? []).map((user) => ({
+              id: user.id,
+              user_id: user.user_id,
+              first_name: user.first_name ?? "",
+              last_name: user.last_name ?? "",
+              role_label: "Empleado",
+              location_label: user.branch_id ? (branchNameMap.get(user.branch_id) ?? undefined) : undefined,
+              department_label: user.department_id ? (departmentNameMap.get(user.department_id) ?? undefined) : undefined,
+              position_label: user.position ?? undefined,
+            })),
+            ...(userProfiles ?? [])
+              .filter((profile) => !profile.user_id || !(employees ?? []).some((employee) => employee.user_id === profile.user_id))
+              .map((profile) => ({
+                id: `up-${profile.id}`,
+                user_id: profile.user_id,
+                first_name: profile.first_name ?? "Usuario",
+                last_name: profile.last_name ?? "",
+                role_label: "Usuario",
+              })),
+            ...Array.from(employeeRoleUserIds)
+              .filter((userId) => Boolean(userId))
+              .filter((userId) => !(employees ?? []).some((employee) => employee.user_id === userId))
+              .filter((userId) => !(userProfiles ?? []).some((profile) => profile.user_id === userId))
+              .map((userId) => ({
+                id: `m-${userId}`,
+                user_id: userId,
+                first_name: "Usuario",
+                last_name: userId.slice(0, 8),
+                role_label: "Usuario",
+              })),
+          ]}
           publisherName={publisherName}
           mode={action === "edit" ? "edit" : "create"}
           initial={

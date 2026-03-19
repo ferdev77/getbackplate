@@ -1,6 +1,7 @@
 # Checklist Maestro de Avance - GetBackplate
 
 Este archivo es la fuente de verdad para avanzar sin limite de tiempo.
+Para el modulo de Recursos Humanos (flujo 2.0), complementar con `ACTUALIZACION_2.0_SAAS.md` como especificacion funcional detallada vigente.
 Cada paso se marca con check cuando queda terminado y validado.
 
 ## Como usar este checklist

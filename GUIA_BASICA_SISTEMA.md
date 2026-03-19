@@ -2,6 +2,14 @@
 
 Nombre oficial del producto: **GetBackplate**.
 
+## Fuente de verdad vigente para RRHH
+
+La actualizacion funcional 2.0 de Recursos Humanos esta documentada en:
+
+- `ACTUALIZACION_2.0_SAAS.md`
+
+Ese archivo define el comportamiento oficial de `Usuarios / Empleados` y `Administradores`.
+
 ## Que es este sistema
 
 Es una plataforma para que varias empresas usen el mismo sistema, pero cada una vea solo su informacion.

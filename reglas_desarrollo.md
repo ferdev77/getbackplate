@@ -4,6 +4,14 @@
 
 Estas reglas definen el estándar obligatorio de desarrollo para esta plataforma.
 
+## Fuente de verdad funcional vigente (obligatoria)
+
+Para el modulo de Recursos Humanos, la fuente de verdad actual es:
+
+- `ACTUALIZACION_2.0_SAAS.md`
+
+Todas las directrices de implementacion, naming, flujos y persistencia de RRHH deben seguir ese documento.
+
 La meta no es solo que el sistema funcione, sino que quede:
 
 - profesional

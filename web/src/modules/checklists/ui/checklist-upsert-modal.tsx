@@ -12,7 +12,28 @@ import { createChecklistTemplateAction } from "@/modules/checklists/actions";
 type BranchOption = { id: string; name: string };
 type DepartmentOption = { id: string; name: string };
 type PositionOption = { id: string; department_id: string; name: string };
-type UserOption = { id: string; user_id: string | null; first_name: string; last_name: string; role_label?: string };
+type UserOption = {
+  id: string;
+  user_id: string | null;
+  first_name: string;
+  last_name: string;
+  role_label?: string;
+  location_label?: string;
+  department_label?: string;
+  position_label?: string;
+};
+
+type EditingTemplate = {
+  id: string;
+  name?: string;
+  checklist_type?: string;
+  shift?: string;
+  repeat_every?: string;
+  is_active?: boolean;
+  target_scope?: Record<string, string[]>;
+  templateSections?: Array<{ name: string; items: string[] }>;
+  templateItems?: Array<{ label: string }>;
+};
 
 type ChecklistUpsertModalProps = {
   branches: BranchOption[];
@@ -20,8 +41,7 @@ type ChecklistUpsertModalProps = {
   positions: PositionOption[];
   users: UserOption[];
   action?: string;
-  templateId?: string;
-  editingTemplate?: any;
+  editingTemplate?: EditingTemplate | null;
 };
 
 export function ChecklistUpsertModal({
@@ -30,7 +50,6 @@ export function ChecklistUpsertModal({
   positions,
   users,
   action,
-  templateId,
   editingTemplate,
 }: ChecklistUpsertModalProps) {
   const router = useRouter();
@@ -118,7 +137,7 @@ export function ChecklistUpsertModal({
               initialSections={
                 editingTemplate?.templateSections?.length
                   ? editingTemplate.templateSections
-                  : [{ name: "General", items: editingTemplate?.templateItems.map((item: any) => item.label) ?? [""] }]
+                  : [{ name: "General", items: editingTemplate?.templateItems?.map((item) => item.label) ?? [""] }]
               }
             />
           </div>

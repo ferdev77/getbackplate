@@ -31,7 +31,7 @@ type DocumentRow = {
 type Branch = { id: string; name: string };
 type Department = { id: string; name: string };
 type Position = { id: string; department_id: string; name: string };
-type User = { id: string; user_id: string | null; first_name: string; last_name: string };
+type User = { id: string; user_id: string | null; first_name: string; last_name: string; role_label?: string };
 
 type Props = {
   organizationId: string;

@@ -6,6 +6,21 @@ Documento base inicial del proyecto SaaS multiempresa. Este archivo ira creciend
 
 Nombre de producto vigente: `GetBackplate`.
 
+## Fuente de verdad funcional vigente (RRHH)
+
+La especificacion funcional y tecnica de Recursos Humanos refactorizado (2.0) se consolida en:
+
+- `ACTUALIZACION_2.0_SAAS.md`
+
+Alcance:
+
+- `Usuarios / Empleados`
+- `Administradores`
+- flujos de alta/edicion/estado/eliminacion
+- persistencia en `organization_user_profiles` y tablas relacionadas
+
+Si hay diferencias con secciones historicas de este archivo para RRHH, prevalece `ACTUALIZACION_2.0_SAAS.md`.
+
 ### Entregables ya creados
 
 - Analisis funcional de mockups: `ANALISIS_MOCKUPS.md`
