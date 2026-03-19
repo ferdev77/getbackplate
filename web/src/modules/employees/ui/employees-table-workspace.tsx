@@ -7,6 +7,10 @@ import { Download, Eye, Pencil, Trash2 } from "lucide-react";
 type EmployeeRow = {
   recordType: "employee" | "user";
   id: string;
+  organizationUserProfileId?: string | null;
+  membershipId?: string | null;
+  roleCode?: string | null;
+  branchId?: string | null;
   firstName: string;
   lastName: string;
   email: string | null;
@@ -142,46 +146,59 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
   async function deleteEmployee() {
     if (!deleteTargetId) return;
     const target = rows.find((item) => item.id === deleteTargetId);
-    if (!target || target.recordType !== "employee") {
-      setToast("Solo se pueden eliminar empleados desde esta pantalla");
-      return;
-    }
+    if (!target) return;
     setBusyDelete(true);
     try {
+      const payload = target.recordType === "employee"
+        ? { employeeId: deleteTargetId }
+        : {
+            organizationUserProfileId: target.organizationUserProfileId,
+            membershipId: target.membershipId,
+          };
+
       const response = await fetch("/api/company/employees", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employeeId: deleteTargetId }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.error || "No se pudo eliminar empleado");
+        throw new Error(data.error || "No se pudo eliminar registro");
       }
 
       setRows((prev) => prev.filter((item) => item.id !== deleteTargetId));
       setSelectedEmployeeId((prev) => (prev === deleteTargetId ? null : prev));
       setDeleteTargetId(null);
-      setToast("Empleado eliminado correctamente");
+      setToast(target.recordType === "employee" ? "Empleado eliminado correctamente" : "Usuario eliminado correctamente");
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "No se pudo eliminar empleado");
+      setToast(error instanceof Error ? error.message : "No se pudo eliminar registro");
     } finally {
       setBusyDelete(false);
     }
   }
 
   async function updateEmployeeStatus() {
-    if (!selected || selected.recordType !== "employee") {
-      setToast("El estado laboral solo aplica a empleados");
-      return;
-    }
+    if (!selected) return;
     setBusyStatus(true);
     try {
-      const response = await fetch("/api/company/employees", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employeeId: selected.id, status: selectedStatus }),
-      });
+      const response = selected.recordType === "employee"
+        ? await fetch("/api/company/employees", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ employeeId: selected.id, status: selectedStatus }),
+          })
+        : await fetch("/api/company/employees", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              organizationUserProfileId: selected.organizationUserProfileId,
+              membershipId: selected.membershipId,
+              roleCode: selected.roleCode,
+              branchId: selected.branchId,
+              status: selectedStatus,
+            }),
+          });
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -371,17 +388,20 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                 </p>
                 <div className="flex items-center gap-1">
                   <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedEmployeeId(row.id); }} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Ver perfil"><Eye className="h-3.5 w-3.5" /></button>
-                  {row.recordType === "employee" ? (
-                    <Link onClick={(event) => event.stopPropagation()} href={`/app/employees?action=edit&employeeId=${row.id}`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Editar"><Pencil className="h-3.5 w-3.5" /></Link>
-                  ) : (
-                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f0f0f0] bg-[#fafafa] text-[#bbb]" title="Solo empleados"> <Pencil className="h-3.5 w-3.5" /></span>
-                  )}
+                  <Link
+                    onClick={(event) => event.stopPropagation()}
+                    href={
+                      row.recordType === "employee"
+                        ? `/app/employees?action=edit&employeeId=${row.id}`
+                        : `/app/employees?action=edit-user&profileId=${row.organizationUserProfileId ?? ""}`
+                    }
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]"
+                    title="Editar"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Link>
                   <button type="button" onClick={(event) => { event.stopPropagation(); downloadProfile(row); }} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Descargar perfil"><Download className="h-3.5 w-3.5" /></button>
-                  {row.recordType === "employee" ? (
-                    <button type="button" onClick={(event) => { event.stopPropagation(); setDeleteTargetId(row.id); }} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4]" title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
-                  ) : (
-                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f0f0f0] bg-[#fafafa] text-[#bbb]" title="Solo empleados"><Trash2 className="h-3.5 w-3.5" /></span>
-                  )}
+                  <button type="button" onClick={(event) => { event.stopPropagation(); setDeleteTargetId(row.id); }} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4]" title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>
               </div>
             );
@@ -430,7 +450,6 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Firma contrato</p><p className="text-sm text-[#333]">{formatDate(selected.contractSignedAt)}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Docs pendientes</p><p className="text-sm text-[#333]">{selected.pendingDocuments}</p></div>
             </div>
-            {selected.recordType === "employee" ? (
             <div className="mx-6 mb-5 rounded-xl border border-[#ece3de] bg-[#fcfaf8] p-3">
               <p className="mb-1 text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Cambiar estado</p>
               <div className="flex items-center gap-2">
@@ -454,7 +473,6 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                 </button>
               </div>
             </div>
-            ) : null}
             <div className="flex items-center justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4">
               <button type="button" className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]" onClick={() => downloadProfile(selected)}>Descargar</button>
               <button type="button" className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]" onClick={() => setSelectedEmployeeId(null)}>Cerrar</button>

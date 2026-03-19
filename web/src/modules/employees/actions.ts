@@ -141,6 +141,8 @@ export async function createEmployeeAction(_prevState: unknown, formData: FormDa
   const positionId = positionIdRaw || null;
   const employeeIdRaw = String(formData.get("employee_id") ?? "").trim();
   const employeeId = employeeIdRaw || null;
+  const organizationUserProfileIdRaw = String(formData.get("organization_user_profile_id") ?? "").trim();
+  const organizationUserProfileId = organizationUserProfileIdRaw || null;
   const createMode = String(formData.get("create_mode") ?? "without_account").trim();
   const accountEmailInput = String(formData.get("account_email") ?? "").trim().toLowerCase();
   const accountPassword = String(formData.get("account_password") ?? "");
@@ -199,7 +201,40 @@ export async function createEmployeeAction(_prevState: unknown, formData: FormDa
     userId: string | null;
     employeeId: string | null;
     isEmployee: boolean;
+    status: "active" | "inactive";
+    profileId?: string | null;
   }) {
+    if (params.profileId) {
+      const payload = {
+        branch_id: branchId || tenant.branchId || null,
+        department_id: departmentId,
+        position_id: positionId,
+        first_name: firstName,
+        last_name: lastName,
+        email: employeeEmail,
+        phone,
+        is_employee: params.isEmployee,
+        status: params.status,
+        source: "users_employees_modal",
+      };
+
+      if (params.userId) {
+        const { error } = await admin
+          .from("organization_user_profiles")
+          .update({ ...payload, user_id: params.userId, employee_id: params.employeeId })
+          .eq("organization_id", tenant.organizationId)
+          .eq("id", params.profileId);
+        return error;
+      }
+
+      const { error } = await admin
+        .from("organization_user_profiles")
+        .update(payload)
+        .eq("organization_id", tenant.organizationId)
+        .eq("id", params.profileId);
+      return error;
+    }
+
     if (!params.userId) {
       const { error } = await admin.from("organization_user_profiles").insert({
         organization_id: tenant.organizationId,
@@ -213,6 +248,7 @@ export async function createEmployeeAction(_prevState: unknown, formData: FormDa
         email: employeeEmail,
         phone,
         is_employee: params.isEmployee,
+        status: params.status,
         source: "users_employees_modal",
       });
 
@@ -232,6 +268,7 @@ export async function createEmployeeAction(_prevState: unknown, formData: FormDa
         email: employeeEmail,
         phone,
         is_employee: params.isEmployee,
+        status: params.status,
         source: "users_employees_modal",
       },
       { onConflict: "organization_id,user_id" },
@@ -339,6 +376,8 @@ export async function createEmployeeAction(_prevState: unknown, formData: FormDa
       userId: linkedUserId,
       employeeId: null,
       isEmployee: false,
+      status: createWithAccount ? "active" : "inactive",
+      profileId: organizationUserProfileId,
     });
 
     if (profileError) {
@@ -369,9 +408,10 @@ export async function createEmployeeAction(_prevState: unknown, formData: FormDa
 
     revalidatePath("/app/employees");
     revalidatePath("/app/users");
+    const userAction = organizationUserProfileId ? "actualizado" : "creado";
     return {
       success: true,
-      message: "Usuario creado correctamente (sin perfil de empleado)",
+      message: `Usuario ${userAction} correctamente (sin perfil de empleado)`,
       timestamp: Date.now(),
     };
   }
@@ -444,6 +484,8 @@ export async function createEmployeeAction(_prevState: unknown, formData: FormDa
       userId: linkedUserId,
       employeeId: employee.id,
       isEmployee: true,
+      status: "active",
+      profileId: organizationUserProfileId,
     });
 
     if (profileError) {

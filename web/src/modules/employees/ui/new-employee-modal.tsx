@@ -21,6 +21,7 @@ type NewEmployeeModalProps = {
   mode?: "create" | "edit";
   initialEmployee?: {
     id: string;
+    organization_user_profile_id?: string;
     first_name: string;
     last_name: string;
     email: string;
@@ -54,7 +55,9 @@ export function NewEmployeeModal({
   const [state, formAction, isActionPending] = useActionState(createEmployeeAction, { success: false, message: "" });
   const [selectedDept, setSelectedDept] = useState(initialEmployee?.department_id ?? "");
   const [createAccount, setCreateAccount] = useState(false);
-  const [isEmployeeProfile, setIsEmployeeProfile] = useState(mode === "edit" ? true : false);
+  const [isEmployeeProfile, setIsEmployeeProfile] = useState(
+    initialEmployee?.organization_user_profile_id ? false : mode === "edit",
+  );
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(0);
 
@@ -132,6 +135,9 @@ export function NewEmployeeModal({
         <form action={formAction} className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {mode === "edit" && initialEmployee ? (
             <input type="hidden" name="employee_id" value={initialEmployee.id} />
+          ) : null}
+          {initialEmployee?.organization_user_profile_id ? (
+            <input type="hidden" name="organization_user_profile_id" value={initialEmployee.organization_user_profile_id} />
           ) : null}
           <input type="hidden" name="create_mode" value={createAccount ? "with_account" : "without_account"} />
           <input type="hidden" name="is_employee" value={isEmployeeProfile ? "yes" : "no"} />

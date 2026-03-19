@@ -943,16 +943,74 @@ export async function PATCH(request: Request) {
   const actorId = moduleAccess.userId;
   const supabase = await createSupabaseServerClient();
 
-  const body = await request.json().catch(() => null) as { employeeId?: string; status?: string } | null;
+  const body = await request.json().catch(() => null) as {
+    employeeId?: string;
+    organizationUserProfileId?: string;
+    membershipId?: string;
+    roleCode?: string;
+    branchId?: string | null;
+    status?: string;
+  } | null;
   const employeeId = String(body?.employeeId ?? "").trim();
+  const organizationUserProfileId = String(body?.organizationUserProfileId ?? "").trim();
+  const membershipId = String(body?.membershipId ?? "").trim();
+  const roleCode = String(body?.roleCode ?? "employee").trim() || "employee";
+  const branchId = body?.branchId ? String(body.branchId).trim() : null;
   const status = String(body?.status ?? "").trim();
 
-  if (!employeeId) {
-    return NextResponse.json({ error: "Empleado invalido" }, { status: 400 });
+  if (!employeeId && !organizationUserProfileId) {
+    return NextResponse.json({ error: "Registro invalido" }, { status: 400 });
   }
 
-  if (!ALLOWED_EMPLOYMENT_STATUSES.has(status)) {
-    return NextResponse.json({ error: "Estado laboral invalido" }, { status: 400 });
+  const isEmployeeStatus = ALLOWED_EMPLOYMENT_STATUSES.has(status);
+  const isUserStatus = status === "active" || status === "inactive";
+  if (!isEmployeeStatus && !isUserStatus) {
+    return NextResponse.json({ error: "Estado invalido" }, { status: 400 });
+  }
+
+  if (organizationUserProfileId) {
+    const { error: profileError } = await supabase
+      .from("organization_user_profiles")
+      .update({ status })
+      .eq("organization_id", tenant.organizationId)
+      .eq("id", organizationUserProfileId);
+
+    if (profileError) {
+      return NextResponse.json({ error: `No se pudo actualizar estado del usuario: ${profileError.message}` }, { status: 400 });
+    }
+
+    if (membershipId) {
+      const { data: role } = await supabase
+        .from("roles")
+        .select("id")
+        .eq("code", roleCode)
+        .maybeSingle();
+
+      if (role?.id) {
+        await supabase
+          .from("memberships")
+          .update({ status, role_id: role.id, branch_id: branchId })
+          .eq("organization_id", tenant.organizationId)
+          .eq("id", membershipId);
+      }
+    }
+
+    await logAuditEvent({
+      action: "users.profile.status.update",
+      entityType: "organization_user_profile",
+      entityId: organizationUserProfileId,
+      organizationId: tenant.organizationId,
+      eventDomain: "employees",
+      outcome: "success",
+      severity: "low",
+      metadata: {
+        actor_user_id: actorId,
+        status,
+        membership_id: membershipId || null,
+      },
+    });
+
+    return NextResponse.json({ ok: true });
   }
 
   const { error } = await supabase
@@ -1006,11 +1064,53 @@ export async function DELETE(request: Request) {
   const actorId = moduleAccess.userId;
   const supabase = await createSupabaseServerClient();
 
-  const body = await request.json().catch(() => null) as { employeeId?: string } | null;
+  const body = await request.json().catch(() => null) as {
+    employeeId?: string;
+    organizationUserProfileId?: string;
+    membershipId?: string;
+  } | null;
   const employeeId = String(body?.employeeId ?? "").trim();
+  const organizationUserProfileId = String(body?.organizationUserProfileId ?? "").trim();
+  const membershipId = String(body?.membershipId ?? "").trim();
 
-  if (!employeeId) {
-    return NextResponse.json({ error: "Empleado invalido" }, { status: 400 });
+  if (!employeeId && !organizationUserProfileId) {
+    return NextResponse.json({ error: "Registro invalido" }, { status: 400 });
+  }
+
+  if (organizationUserProfileId) {
+    if (membershipId) {
+      await supabase
+        .from("memberships")
+        .delete()
+        .eq("organization_id", tenant.organizationId)
+        .eq("id", membershipId);
+    }
+
+    const { error: deleteProfileError } = await supabase
+      .from("organization_user_profiles")
+      .delete()
+      .eq("organization_id", tenant.organizationId)
+      .eq("id", organizationUserProfileId);
+
+    if (deleteProfileError) {
+      return NextResponse.json({ error: `No se pudo eliminar usuario: ${deleteProfileError.message}` }, { status: 400 });
+    }
+
+    await logAuditEvent({
+      action: "users.profile.delete",
+      entityType: "organization_user_profile",
+      entityId: organizationUserProfileId,
+      organizationId: tenant.organizationId,
+      eventDomain: "employees",
+      outcome: "success",
+      severity: "medium",
+      metadata: {
+        actor_user_id: actorId,
+        membership_id: membershipId || null,
+      },
+    });
+
+    return NextResponse.json({ ok: true });
   }
 
   const { data: employee } = await supabase
