@@ -71,23 +71,23 @@ export async function createChecklistTemplateAction(prevState: any, formData: Fo
   const validNotifyVia = notifyViaRaw.filter(v => v === "whatsapp" || v === "sms");
 
   const parsed = createChecklistSchema.safeParse({
-    template_id: formData.get("template_id"),
-    name: formData.get("name"),
-    checklist_type: formData.get("checklist_type"),
-    checklist_type_other: formData.get("checklist_type_other"),
-    branch_id: formData.get("branch_id"),
-    shift: formData.get("shift"),
-    department_id: formData.get("department_id"),
-    department: formData.get("department"),
-    repeat_every: formData.get("repeat_every"),
-    template_status: formData.get("template_status"),
+    template_id: String(formData.get("template_id") ?? ""),
+    name: String(formData.get("name") ?? ""),
+    checklist_type: String(formData.get("checklist_type") ?? ""),
+    checklist_type_other: String(formData.get("checklist_type_other") ?? ""),
+    branch_id: String(formData.get("branch_id") ?? ""),
+    shift: String(formData.get("shift") ?? ""),
+    department_id: String(formData.get("department_id") ?? ""),
+    department: String(formData.get("department") ?? ""),
+    repeat_every: String(formData.get("repeat_every") ?? ""),
+    template_status: String(formData.get("template_status") ?? ""),
     notify_via: validNotifyVia,
     location_scope: formData.getAll("location_scope").map(String),
     department_scope: formData.getAll("department_scope").map(String),
     position_scope: formData.getAll("position_scope").map(String),
     user_scope: formData.getAll("user_scope").map(String),
-    sections_payload: formData.get("sections_payload"),
-    items: formData.get("items"),
+    sections_payload: String(formData.get("sections_payload") ?? ""),
+    items: String(formData.get("items") ?? ""),
   });
 
   if (!parsed.success) {

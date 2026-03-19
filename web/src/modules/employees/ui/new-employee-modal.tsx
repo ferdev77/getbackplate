@@ -40,6 +40,7 @@ type NewEmployeeModalProps = {
     contract_signer_name: string | null;
     salary_amount?: number | null;
     payment_frequency?: string | null;
+    has_dashboard_access?: boolean;
   };
   recentDocuments?: ModalDocument[];
 };
@@ -54,7 +55,7 @@ export function NewEmployeeModal({
 }: NewEmployeeModalProps) {
   const [state, formAction, isActionPending] = useActionState(createEmployeeAction, { success: false, message: "" });
   const [selectedDept, setSelectedDept] = useState(initialEmployee?.department_id ?? "");
-  const [createAccount, setCreateAccount] = useState(false);
+  const [createAccount, setCreateAccount] = useState(Boolean(initialEmployee?.has_dashboard_access));
   const [isEmployeeProfile, setIsEmployeeProfile] = useState(
     initialEmployee?.organization_user_profile_id ? false : mode === "edit",
   );
@@ -88,6 +89,7 @@ export function NewEmployeeModal({
   );
 
   const currentTabIndex = activeTab <= tabs.length - 1 ? activeTab : 0;
+  const requiresAccountPassword = createAccount && !(mode === "edit" && initialEmployee?.has_dashboard_access);
 
   if (!open) return null;
 
@@ -141,6 +143,7 @@ export function NewEmployeeModal({
           ) : null}
           <input type="hidden" name="create_mode" value={createAccount ? "with_account" : "without_account"} />
           <input type="hidden" name="is_employee" value={isEmployeeProfile ? "yes" : "no"} />
+          <input type="hidden" name="existing_dashboard_access" value={initialEmployee?.has_dashboard_access ? "yes" : "no"} />
 
           <div className="flex-1 overflow-y-auto bg-[#fdfdfd] p-8">
             {/* TAB 0 - Info Personal */}
@@ -531,6 +534,7 @@ export function NewEmployeeModal({
                       name="account_email"
                       type="email"
                       required={createAccount}
+                      defaultValue={initialEmployee?.email ?? ""}
                       placeholder="usuario@empresa.com"
                       className="w-full rounded-xl border-[1.5px] border-[#e8e8e8] bg-white px-4 py-3 text-sm outline-none transition-all focus:border-brand"
                     />
@@ -540,9 +544,9 @@ export function NewEmployeeModal({
                     <input
                       name="account_password"
                       type="password"
-                      required={createAccount}
+                      required={requiresAccountPassword}
                       minLength={8}
-                      placeholder="Mínimo 8 caracteres"
+                      placeholder={mode === "edit" && initialEmployee?.has_dashboard_access ? "Opcional: dejar vacio para mantener" : "Mínimo 8 caracteres"}
                       className="w-full rounded-xl border-[1.5px] border-[#e8e8e8] bg-white px-4 py-3 text-sm outline-none transition-all focus:border-brand"
                     />
                   </div>

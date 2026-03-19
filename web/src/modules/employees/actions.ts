@@ -146,6 +146,7 @@ export async function createEmployeeAction(_prevState: unknown, formData: FormDa
   const createMode = String(formData.get("create_mode") ?? "without_account").trim();
   const accountEmailInput = String(formData.get("account_email") ?? "").trim().toLowerCase();
   const accountPassword = String(formData.get("account_password") ?? "");
+  const existingDashboardAccess = String(formData.get("existing_dashboard_access") ?? "no").trim().toLowerCase() === "yes";
   const createWithAccount = createMode === "with_account";
   const isEmployeeRaw = String(formData.get("is_employee") ?? "yes").trim().toLowerCase();
   const isEmployeeProfile = employeeId ? true : isEmployeeRaw !== "no";
@@ -286,6 +287,36 @@ export async function createEmployeeAction(_prevState: unknown, formData: FormDa
     if (posData) positionName = posData.name;
   }
 
+  if (employeeId) {
+    const { data: existingEmployee } = await admin
+      .from("employees")
+      .select("user_id, email")
+      .eq("organization_id", tenant.organizationId)
+      .eq("id", employeeId)
+      .maybeSingle();
+
+    if (existingEmployee?.user_id) {
+      linkedUserId = existingEmployee.user_id;
+    }
+    if (!employeeEmail && existingEmployee?.email) {
+      employeeEmail = existingEmployee.email;
+    }
+  } else if (organizationUserProfileId) {
+    const { data: existingProfile } = await admin
+      .from("organization_user_profiles")
+      .select("user_id, email")
+      .eq("organization_id", tenant.organizationId)
+      .eq("id", organizationUserProfileId)
+      .maybeSingle();
+
+    if (existingProfile?.user_id) {
+      linkedUserId = existingProfile.user_id;
+    }
+    if (!employeeEmail && existingProfile?.email) {
+      employeeEmail = existingProfile.email;
+    }
+  }
+
   if (isEmployeeProfile && !employeeId) {
     try {
       await assertPlanLimitForEmployees(tenant.organizationId, 1);
@@ -305,14 +336,17 @@ export async function createEmployeeAction(_prevState: unknown, formData: FormDa
   // RLS is enforced at the tenant level via requireTenantContext() above.
 
   if (createWithAccount) {
-    const loginEmail = accountEmailInput || (contactEmail ? contactEmail.toLowerCase() : "");
+    const loginEmail = accountEmailInput || (employeeEmail ? employeeEmail.toLowerCase() : "");
+    const needsProvision = !linkedUserId || !existingDashboardAccess;
 
-    if (!loginEmail) {
-      return { success: false, message: EMPLOYEES_MESSAGES.ACCESS_EMAIL_REQUIRED };
-    }
+    if (needsProvision) {
+      if (!loginEmail) {
+        return { success: false, message: EMPLOYEES_MESSAGES.ACCESS_EMAIL_REQUIRED };
+      }
 
-    if (accountPassword.length < 8) {
-      return { success: false, message: EMPLOYEES_MESSAGES.ACCESS_PASSWORD_MIN };
+      if (accountPassword.length < 8) {
+        return { success: false, message: EMPLOYEES_MESSAGES.ACCESS_PASSWORD_MIN };
+      }
     }
 
     const { data: role, error: roleError } = await admin
@@ -325,18 +359,24 @@ export async function createEmployeeAction(_prevState: unknown, formData: FormDa
       return { success: false, message: EMPLOYEES_MESSAGES.ROLE_EMPLOYEE_UNAVAILABLE };
     }
 
-    const authResult = await resolveOrCreateAuthUser({
-      email: loginEmail,
-      password: accountPassword,
-      fullName: `${firstName} ${lastName}`.trim(),
-      createErrorPrefix: EMPLOYEES_MESSAGES.EMPLOYEE_ACCOUNT_CREATE_FAILED_PREFIX,
-    });
+    if (needsProvision) {
+      const authResult = await resolveOrCreateAuthUser({
+        email: loginEmail,
+        password: accountPassword,
+        fullName: `${firstName} ${lastName}`.trim(),
+        createErrorPrefix: EMPLOYEES_MESSAGES.EMPLOYEE_ACCOUNT_CREATE_FAILED_PREFIX,
+      });
 
-    if (!authResult.userId) {
-      return { success: false, message: authResult.errorMessage ?? EMPLOYEES_MESSAGES.AUTH_USER_UNRESOLVED };
+      if (!authResult.userId) {
+        return { success: false, message: authResult.errorMessage ?? EMPLOYEES_MESSAGES.AUTH_USER_UNRESOLVED };
+      }
+
+      linkedUserId = authResult.userId;
     }
 
-    linkedUserId = authResult.userId;
+    if (!linkedUserId) {
+      return { success: false, message: EMPLOYEES_MESSAGES.AUTH_USER_UNRESOLVED };
+    }
 
     const { data: existingMembership } = await admin
       .from("memberships")
@@ -368,7 +408,7 @@ export async function createEmployeeAction(_prevState: unknown, formData: FormDa
       return { success: false, message: `No se pudo asignar acceso al empleado: ${membershipError.message}` };
     }
 
-    employeeEmail = loginEmail;
+    employeeEmail = loginEmail || employeeEmail;
   }
 
   if (!isEmployeeProfile) {
