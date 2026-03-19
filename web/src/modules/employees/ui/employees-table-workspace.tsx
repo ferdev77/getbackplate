@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Download, Eye, Pencil, Trash2 } from "lucide-react";
 
 type EmployeeRow = {
+  recordType: "employee" | "user";
   id: string;
   firstName: string;
   lastName: string;
@@ -81,6 +82,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
   const [location, setLocation] = useState("");
   const [department, setDepartment] = useState("");
   const [status, setStatus] = useState("");
+  const [recordTypeFilter, setRecordTypeFilter] = useState<"" | "employee" | "user">("");
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [busyDelete, setBusyDelete] = useState(false);
@@ -110,15 +112,14 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
       const byLocation = !location || row.branchName === location;
       const byDepartment = !department || row.departmentName === department;
       const byStatus = !status || row.status === status;
-      return byQuery && byLocation && byDepartment && byStatus;
+      const byType = !recordTypeFilter || row.recordType === recordTypeFilter;
+      return byQuery && byLocation && byDepartment && byStatus && byType;
     });
-  }, [department, rows, location, query, status]);
+  }, [department, rows, location, query, status, recordTypeFilter]);
 
   const activeCount = rows.filter((item) => item.status === "active").length;
-  const signedContracts = rows.filter(
-    (item) => Boolean(item.contractSignedAt) || item.contractStatus === "active",
-  ).length;
-  const pendingDocuments = rows.reduce((sum, item) => sum + item.pendingDocuments, 0);
+  const totalEmployees = rows.filter((item) => item.recordType === "employee").length;
+  const totalUsers = rows.filter((item) => item.recordType === "user").length;
 
   const selected = filteredEmployees.find((item) => item.id === selectedEmployeeId)
     ?? rows.find((item) => item.id === selectedEmployeeId)
@@ -140,6 +141,11 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
 
   async function deleteEmployee() {
     if (!deleteTargetId) return;
+    const target = rows.find((item) => item.id === deleteTargetId);
+    if (!target || target.recordType !== "employee") {
+      setToast("Solo se pueden eliminar empleados desde esta pantalla");
+      return;
+    }
     setBusyDelete(true);
     try {
       const response = await fetch("/api/company/employees", {
@@ -165,7 +171,10 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
   }
 
   async function updateEmployeeStatus() {
-    if (!selected) return;
+    if (!selected || selected.recordType !== "employee") {
+      setToast("El estado laboral solo aplica a empleados");
+      return;
+    }
     setBusyStatus(true);
     try {
       const response = await fetch("/api/company/employees", {
@@ -204,7 +213,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
       doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(16);
-      doc.text("Perfil de Empleado", left, y);
+      doc.text(row.recordType === "employee" ? "Perfil de Empleado" : "Perfil de Usuario", left, y);
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       doc.text(`Generado: ${new Date().toLocaleString("es-AR")}`, left, y + 16);
@@ -241,7 +250,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
       doc.save(`${fullName.toLowerCase().replace(/\s+/g, "-") || "empleado"}-perfil.pdf`);
     } catch {
       const content = [
-        `Perfil de empleado - ${fullName}`,
+         `Perfil de ${row.recordType === "employee" ? "empleado" : "usuario"} - ${fullName}`,
         "",
         `Nombre: ${fullName}`,
         `Email: ${row.email || "-"}`,
@@ -266,22 +275,18 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
 
   return (
     <>
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-3">
         <article className="rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white p-6">
           <p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Total Empleados</p>
-          <p className="font-serif text-4xl leading-none font-bold text-[#111]">{rows.length}</p>
+          <p className="font-serif text-4xl leading-none font-bold text-[#111]">{totalEmployees}</p>
         </article>
         <article className="rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white p-6">
-          <p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Activos</p>
+          <p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Total Usuarios</p>
+          <p className="font-serif text-4xl leading-none font-bold text-[#111]">{totalUsers}</p>
+        </article>
+        <article className="rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white p-6">
+          <p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Activos (Total)</p>
           <p className="font-serif text-4xl leading-none font-bold text-[#111]">{activeCount}</p>
-        </article>
-        <article className="rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white p-6">
-          <p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Contratos Firmados</p>
-          <p className="font-serif text-4xl leading-none font-bold text-[#111]">{signedContracts}</p>
-        </article>
-        <article className="rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white p-6">
-          <p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Docs Pendientes</p>
-          <p className="font-serif text-4xl leading-none font-bold text-[#111]">{pendingDocuments}</p>
         </article>
       </section>
 
@@ -291,9 +296,18 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             className="h-[34px] w-[210px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"
-            placeholder="Buscar empleado..."
+            placeholder="Buscar usuario/empleado..."
           />
         </div>
+        <select
+          value={recordTypeFilter}
+          onChange={(event) => setRecordTypeFilter(event.target.value as "" | "employee" | "user")}
+          className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"
+        >
+          <option value="">Todos</option>
+          <option value="employee">Empleado</option>
+          <option value="user">Usuario</option>
+        </select>
         <select
           value={location}
           onChange={(event) => setLocation(event.target.value)}
@@ -328,8 +342,8 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
       </section>
 
       <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white">
-        <div className="grid grid-cols-[minmax(180px,2fr)_minmax(100px,1fr)_minmax(120px,1.2fr)_minmax(120px,1fr)_minmax(110px,1fr)_minmax(90px,.8fr)_136px] gap-x-3 border-b-[1.5px] border-[#e8e8e8] bg-[#fafafa] px-5 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase">
-          <p>Nombre</p><p>Locacion</p><p>Departamento</p><p>Fecha de Ingreso</p><p>Salario</p><p>Estado</p><p>Acciones</p>
+        <div className="grid grid-cols-[minmax(200px,2fr)_minmax(100px,1fr)_minmax(120px,1.2fr)_minmax(100px,.9fr)_minmax(90px,.8fr)_136px] gap-x-3 border-b-[1.5px] border-[#e8e8e8] bg-[#fafafa] px-5 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase">
+          <p>Nombre</p><p>Locacion</p><p>Departamento</p><p>Es empleado</p><p>Estado</p><p>Acciones</p>
         </div>
         <div>
           {filteredEmployees.map((row) => {
@@ -337,7 +351,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
             return (
               <div
                 key={row.id}
-                className="grid grid-cols-[minmax(180px,2fr)_minmax(100px,1fr)_minmax(120px,1.2fr)_minmax(120px,1fr)_minmax(110px,1fr)_minmax(90px,.8fr)_136px] items-center gap-x-3 border-b border-[#f0f0f0] px-5 py-3 text-left hover:bg-[#fafafa]"
+                className="grid grid-cols-[minmax(200px,2fr)_minmax(100px,1fr)_minmax(120px,1.2fr)_minmax(100px,.9fr)_minmax(90px,.8fr)_136px] items-center gap-x-3 border-b border-[#f0f0f0] px-5 py-3 text-left hover:bg-[#fafafa]"
                 onClick={() => setSelectedEmployeeId(row.id)}
               >
                 <div className="flex items-center gap-2.5">
@@ -349,8 +363,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                 </div>
                 <p className="text-xs text-[#666]">{row.branchName}</p>
                 <p className="text-xs text-[#666]">{row.departmentName}</p>
-                <p className="text-xs text-[#666]">{formatDate(row.hiredAt)}</p>
-                <p className="text-xs text-[#666]">{formatMoney(row.salaryAmount, row.salaryCurrency)}</p>
+                <p className="text-xs text-[#666]">{row.recordType === "employee" ? "Si" : "No"}</p>
                 <p>
                   <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusClass(row.status)}`}>
                     {statusLabel(row.status)}
@@ -358,15 +371,23 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                 </p>
                 <div className="flex items-center gap-1">
                   <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedEmployeeId(row.id); }} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Ver perfil"><Eye className="h-3.5 w-3.5" /></button>
-                  <Link onClick={(event) => event.stopPropagation()} href={`/app/employees?action=edit&employeeId=${row.id}`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Editar"><Pencil className="h-3.5 w-3.5" /></Link>
+                  {row.recordType === "employee" ? (
+                    <Link onClick={(event) => event.stopPropagation()} href={`/app/employees?action=edit&employeeId=${row.id}`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Editar"><Pencil className="h-3.5 w-3.5" /></Link>
+                  ) : (
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f0f0f0] bg-[#fafafa] text-[#bbb]" title="Solo empleados"> <Pencil className="h-3.5 w-3.5" /></span>
+                  )}
                   <button type="button" onClick={(event) => { event.stopPropagation(); downloadProfile(row); }} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Descargar perfil"><Download className="h-3.5 w-3.5" /></button>
-                  <button type="button" onClick={(event) => { event.stopPropagation(); setDeleteTargetId(row.id); }} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4]" title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
+                  {row.recordType === "employee" ? (
+                    <button type="button" onClick={(event) => { event.stopPropagation(); setDeleteTargetId(row.id); }} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4]" title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
+                  ) : (
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f0f0f0] bg-[#fafafa] text-[#bbb]" title="Solo empleados"><Trash2 className="h-3.5 w-3.5" /></span>
+                  )}
                 </div>
               </div>
             );
           })}
           {!filteredEmployees.length ? (
-            <div className="px-5 py-14 text-center text-sm text-[#aaa]">No hay empleados para los filtros seleccionados.</div>
+            <div className="px-5 py-14 text-center text-sm text-[#aaa]">No hay usuarios/empleados para los filtros seleccionados.</div>
           ) : null}
         </div>
       </section>
@@ -375,7 +396,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
           <div className="flex max-h-[90vh] w-[680px] max-w-[95vw] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]">
             <div className="flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5">
-              <p className="font-serif text-[15px] font-bold text-[#111]">Perfil del Empleado</p>
+              <p className="font-serif text-[15px] font-bold text-[#111]">Perfil de {selected.recordType === "employee" ? "Empleado" : "Usuario"}</p>
               <button type="button" className="grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111]" onClick={() => setSelectedEmployeeId(null)}>✕</button>
             </div>
             <div className="flex items-center gap-4 border-b-[1.5px] border-[#f0f0f0] px-6 py-5">
@@ -409,6 +430,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Firma contrato</p><p className="text-sm text-[#333]">{formatDate(selected.contractSignedAt)}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Docs pendientes</p><p className="text-sm text-[#333]">{selected.pendingDocuments}</p></div>
             </div>
+            {selected.recordType === "employee" ? (
             <div className="mx-6 mb-5 rounded-xl border border-[#ece3de] bg-[#fcfaf8] p-3">
               <p className="mb-1 text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Cambiar estado</p>
               <div className="flex items-center gap-2">
@@ -432,11 +454,14 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                 </button>
               </div>
             </div>
+            ) : null}
             <div className="flex items-center justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4">
               <button type="button" className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]" onClick={() => downloadProfile(selected)}>Descargar</button>
               <button type="button" className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]" onClick={() => setSelectedEmployeeId(null)}>Cerrar</button>
-              <Link href={`/app/employees?action=edit&employeeId=${selected.id}`} className="rounded-lg bg-[#111] px-5 py-2 text-sm font-bold text-white hover:bg-[#c0392b]">Editar</Link>
-            </div>
+               {selected.recordType === "employee" ? (
+                 <Link href={`/app/employees?action=edit&employeeId=${selected.id}`} className="rounded-lg bg-[#111] px-5 py-2 text-sm font-bold text-white hover:bg-[#c0392b]">Editar</Link>
+               ) : null}
+             </div>
           </div>
         </div>
       ) : null}

@@ -112,7 +112,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
         }),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "No se pudo actualizar usuario");
+       if (!response.ok) throw new Error(data.error || "No se pudo actualizar administrador");
 
       const branchName = editBranchId
         ? branchOptions.find((branch) => branch.id === editBranchId)?.name || "Sucursal"
@@ -126,9 +126,9 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
         ),
       );
       setEditMembershipId(null);
-      setToast("Usuario actualizado correctamente");
+      setToast("Administrador actualizado correctamente");
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "No se pudo actualizar usuario");
+      setToast(error instanceof Error ? error.message : "No se pudo actualizar administrador");
     } finally {
       setBusySave(false);
     }
@@ -144,14 +144,14 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
         body: JSON.stringify({ membershipId: deleteTargetId }),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "No se pudo eliminar usuario");
+       if (!response.ok) throw new Error(data.error || "No se pudo eliminar administrador");
 
       setRows((prev) => prev.filter((item) => item.membershipId !== deleteTargetId));
       setSelectedMembershipId((prev) => (prev === deleteTargetId ? null : prev));
       setDeleteTargetId(null);
-      setToast("Usuario eliminado correctamente");
+      setToast("Administrador eliminado correctamente");
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "No se pudo eliminar usuario");
+      setToast(error instanceof Error ? error.message : "No se pudo eliminar administrador");
     } finally {
       setBusyDelete(false);
     }
@@ -164,7 +164,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
     let y = 54;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
-    doc.text("Perfil de Usuario", left, y);
+    doc.text("Perfil de Administrador", left, y);
     y += 24;
     const rowsText = [
       ["Nombre", user.fullName],
@@ -182,20 +182,20 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
       doc.text(String(value), left + 100, y);
       y += 18;
     }
-    doc.save(`${user.fullName.toLowerCase().replace(/\s+/g, "-")}-usuario.pdf`);
+    doc.save(`${user.fullName.toLowerCase().replace(/\s+/g, "-")}-administrador.pdf`);
   }
 
   return (
     <>
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <article className="rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white p-6"><p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Total Usuarios</p><p className="font-serif text-4xl leading-none font-bold text-[#111]">{rows.length}</p></article>
+         <article className="rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white p-6"><p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Total Administradores</p><p className="font-serif text-4xl leading-none font-bold text-[#111]">{rows.length}</p></article>
         <article className="rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white p-6"><p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Activos</p><p className="font-serif text-4xl leading-none font-bold text-[#111]">{activeCount}</p></article>
         <article className="rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white p-6"><p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Admins</p><p className="font-serif text-4xl leading-none font-bold text-[#111]">{adminCount}</p></article>
         <article className="rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white p-6"><p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Managers</p><p className="font-serif text-4xl leading-none font-bold text-[#111]">{managerCount}</p></article>
       </section>
 
       <section className="mt-2 flex flex-wrap items-center gap-2">
-        <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-[34px] w-[210px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs" placeholder="Buscar usuario..." />
+        <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-[34px] w-[210px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs" placeholder="Buscar administrador..." />
         <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"><option value="">Todas las locaciones</option>{[...new Set(rows.map((item) => item.branchName))].map((item) => <option key={item} value={item}>{item}</option>)}</select>
         <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"><option value="">Todos los roles</option>{roleOptions.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}</select>
         <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"><option value="">Todos los estados</option><option value="active">Activo</option><option value="inactive">Inactivo</option></select>
@@ -218,14 +218,14 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
               </div>
             </div>
           ))}
-          {!filtered.length ? <div className="px-5 py-14 text-center text-sm text-[#aaa]">No hay usuarios para los filtros seleccionados.</div> : null}
+          {!filtered.length ? <div className="px-5 py-14 text-center text-sm text-[#aaa]">No hay administradores para los filtros seleccionados.</div> : null}
         </div>
       </section>
 
       {selected ? (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
           <div className="flex max-h-[90vh] w-[640px] max-w-[95vw] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-            <div className="flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5"><p className="font-serif text-[15px] font-bold text-[#111]">Perfil de Usuario</p><button type="button" className="grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111]" onClick={() => setSelectedMembershipId(null)}>✕</button></div>
+            <div className="flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5"><p className="font-serif text-[15px] font-bold text-[#111]">Perfil de Administrador</p><button type="button" className="grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111]" onClick={() => setSelectedMembershipId(null)}>✕</button></div>
             <div className="grid gap-3 px-6 py-5 sm:grid-cols-2">
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Nombre</p><p className="text-sm text-[#333]">{selected.fullName}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Email</p><p className="text-sm text-[#333]">{selected.email}</p></div>
@@ -235,7 +235,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
             </div>
             <div className="flex items-center justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4">
               <button type="button" onClick={() => setEditMembershipId(selected.membershipId)} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]">Editar</button>
-              <Link href="/app/users?action=create-user" className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]">Nuevo usuario</Link>
+              <Link href="/app/users?action=create-user" className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]">Nuevo administrador</Link>
             </div>
           </div>
         </div>
@@ -244,7 +244,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
       {editing ? (
         <div className="fixed inset-0 z-[1020] flex items-center justify-center bg-black/45 p-5">
           <div className="flex max-h-[90vh] w-[560px] max-w-[95vw] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-            <div className="flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5"><p className="font-serif text-[15px] font-bold text-[#111]">Editar Usuario</p><button type="button" className="grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111]" onClick={() => setEditMembershipId(null)}>✕</button></div>
+            <div className="flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5"><p className="font-serif text-[15px] font-bold text-[#111]">Editar Administrador</p><button type="button" className="grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111]" onClick={() => setEditMembershipId(null)}>✕</button></div>
             <div className="grid gap-3 px-6 py-5 sm:grid-cols-2">
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Nombre</p><p className="text-sm text-[#333]">{editing.fullName}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Email</p><p className="text-sm text-[#333]">{editing.email}</p></div>
@@ -263,7 +263,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
       {deleteTarget ? (
         <div className="fixed inset-0 z-[1050] grid place-items-center bg-black/45 p-4" onClick={() => !busyDelete && setDeleteTargetId(null)}>
           <div className="w-full max-w-[420px] rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]" onClick={(event) => event.stopPropagation()}>
-            <div className="border-b border-[#f0f0f0] px-6 py-4"><p className="font-serif text-[18px] font-bold text-[#111]">Eliminar usuario</p><p className="mt-1 text-sm text-[#777]">Se removera el acceso de este usuario en tu empresa.</p></div>
+            <div className="border-b border-[#f0f0f0] px-6 py-4"><p className="font-serif text-[18px] font-bold text-[#111]">Eliminar administrador</p><p className="mt-1 text-sm text-[#777]">Se removera el acceso administrativo de esta persona en tu empresa.</p></div>
             <div className="px-6 py-4 text-sm text-[#444]">Vas a eliminar el acceso de <span className="font-semibold">{deleteTarget.fullName}</span>. Esta accion no se puede deshacer.</div>
             <div className="flex justify-end gap-2 border-t border-[#f0f0f0] px-6 py-4">
               <button type="button" disabled={busyDelete} onClick={() => setDeleteTargetId(null)} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333] disabled:opacity-60">Cancelar</button>

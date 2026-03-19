@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -39,7 +39,7 @@ export function NewUserModal({ open, branches, roleOptions }: NewUserModalProps)
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
       <div className="max-h-[90vh] w-[480px] max-w-[95vw] overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]">
         <div className="flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5">
-          <p className="font-serif text-[15px] font-bold text-[#111]">Nuevo Usuario</p>
+          <p className="font-serif text-[15px] font-bold text-[#111]">Nuevo Administrador</p>
           <Link
             id="close-user-modal-link"
             href="/app/users"
@@ -87,9 +87,9 @@ export function NewUserModal({ open, branches, roleOptions }: NewUserModalProps)
               placeholder="Mínimo 8 caracteres"
             />
 
-            {/* Tipo de usuario */}
+            {/* Tipo de administrador */}
             <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">
-              Tipo de usuario
+              Tipo de administrador
             </label>
             <select name="role_code" defaultValue={roleOptions[0]?.value ?? ""} className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm">
               {roleOptions.map((role) => (
@@ -114,7 +114,7 @@ export function NewUserModal({ open, branches, roleOptions }: NewUserModalProps)
 
             {/* Acceso */}
             <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">
-              Acceso de usuario
+              Acceso de administrador
             </label>
             <select name="access_status" defaultValue="active" className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm">
               <option value="active">Activo</option>
@@ -130,7 +130,7 @@ export function NewUserModal({ open, branches, roleOptions }: NewUserModalProps)
               Cancelar
             </Link>
             <SubmitButton
-              label="Crear Usuario"
+              label="Crear Administrador"
               pendingLabel="Creando..."
               pending={isPending}
               className="px-5 py-2 text-sm font-bold"

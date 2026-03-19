@@ -37,30 +37,20 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
     tenant.organizationId, 
     pageLimit,
     {
-      includeModalsData: openEmployeeModal,
-      includeUsersTab: false
+      includeModalsData: true,
+      includeUsersTab: true,
     }
   );
 
+  const { data: organizationUserProfiles } = await admin
+    .from("organization_user_profiles")
+    .select("id, user_id, first_name, last_name, email, phone, branch_id, department_id, is_employee, created_at")
+    .eq("organization_id", tenant.organizationId)
+    .eq("is_employee", false)
+    .order("created_at", { ascending: false })
+    .limit(pageLimit * 2);
+
   const { data: authData } = await supabase.auth.getUser();
-  let allowedBranches = viewData.branches;
-  if (tenant.roleCode === "manager" && tenant.branchId) {
-    allowedBranches = allowedBranches.filter((b) => b.id === tenant.branchId);
-  }
-
-  const { data: organization } = await admin
-    .from("organizations")
-    .select("plan_id")
-    .eq("id", tenant.organizationId)
-    .single();
-
-  const { data: currentPlan } = organization?.plan_id
-    ? await admin
-        .from("plans")
-        .select("max_employees")
-        .eq("id", organization.plan_id)
-        .single()
-    : { data: null };
 
   const publisherName = extractDisplayName(authData.user);
 
@@ -103,9 +93,14 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       }
     : undefined;
 
+  const branchNameById = new Map((viewData.branches ?? []).map((b) => [b.id, b.name]));
+  const departmentNameById = new Map((viewData.departments ?? []).map((d) => [d.id, d.name]));
+  const membershipByUser = new Map((viewData.users ?? []).map((u) => [u.userId, u]));
+
   const employeeRows = viewData.employees.map((emp) => {
     const defaultContract = emp.contracts?.[0];
     return {
+      recordType: "employee" as const,
       id: emp.id,
       firstName: emp.firstName,
       lastName: emp.lastName,
@@ -135,17 +130,54 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
     };
   });
 
+  const userRows = (organizationUserProfiles ?? []).map((profile) => {
+    const fullName = `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim();
+    const membership = profile.user_id ? membershipByUser.get(profile.user_id) : null;
+
+    return {
+      recordType: "user" as const,
+      id: `user-profile-${profile.id}`,
+      firstName: profile.first_name ?? (fullName || "Usuario"),
+      lastName: profile.last_name ?? "",
+      email: profile.email,
+      phone: profile.phone,
+      position: null,
+      status: membership?.status ?? "inactive",
+      hiredAt: null,
+      branchName: profile.branch_id ? (branchNameById.get(profile.branch_id) ?? "Sin locacion") : "Sin locacion",
+      departmentName: profile.department_id ? (departmentNameById.get(profile.department_id) ?? "Sin departamento") : "Sin departamento",
+      salaryAmount: null,
+      salaryCurrency: null,
+      paymentFrequency: null,
+      contractStatus: null,
+      contractSignedAt: null,
+      birthDate: null,
+      sex: null,
+      nationality: null,
+      addressLine1: null,
+      addressCity: null,
+      addressState: null,
+      addressCountry: null,
+      emergencyName: null,
+      emergencyPhone: null,
+      emergencyEmail: null,
+      pendingDocuments: 0,
+    };
+  });
+
+  const directoryRows = [...employeeRows, ...userRows];
+
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8">
       <section className="rounded-2xl border border-[#e5ddd8] bg-[#fffdfa] p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-[#9c938d] uppercase">Recursos Humanos</p>
-            <h1 className="mb-1 text-2xl font-bold tracking-tight text-[#241f1c]">Empleados</h1>
-            <p className="text-sm text-[#6b635e]">Gestión de plantilla y estado laboral.</p>
+            <h1 className="mb-1 text-2xl font-bold tracking-tight text-[#241f1c]">Usuarios / Empleados</h1>
+            <p className="text-sm text-[#6b635e]">Crea usuarios con o sin perfil de empleado y gestiona su estado laboral.</p>
           </div>
           <div className="flex gap-2">
-            <Link href="/app/employees?action=create" className="inline-flex items-center gap-1 rounded-lg bg-[#111111] px-3 py-2 text-sm font-semibold text-white hover:bg-[#c0392b]"><Plus className="h-4 w-4" /> Nuevo Empleado</Link>
+            <Link href="/app/employees?action=create" className="inline-flex items-center gap-1 rounded-lg bg-[#111111] px-3 py-2 text-sm font-semibold text-white hover:bg-[#c0392b]"><Plus className="h-4 w-4" /> Nuevo Usuario / Empleado</Link>
           </div>
         </div>
       </section>
@@ -156,7 +188,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
         </section>
       ) : null}
 
-      <EmployeesTableWorkspace employees={employeeRows} />
+      <EmployeesTableWorkspace employees={directoryRows} />
 
       <NewEmployeeModal
         key={initialEmployeeData?.id ?? "new"}

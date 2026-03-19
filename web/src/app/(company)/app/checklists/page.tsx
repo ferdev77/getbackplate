@@ -66,6 +66,8 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
     { data: positions },
     { data: memberships },
     { data: roles },
+    { count: completedCount },
+    { count: pendingCount },
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase
@@ -78,7 +80,6 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
       .from("checklist_templates")
       .select("id, name, checklist_type, is_active, branch_id, shift, department, department_id, repeat_every, target_scope, created_at")
       .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
       .order("created_at", { ascending: false })
       .limit(80),
     (openCreateModal || previewTemplateId)
@@ -116,6 +117,16 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
           .select("id, code")
           .in("code", ["company_admin", "manager", "employee"])
       : Promise.resolve({ data: [] }),
+    supabase
+      .from("checklist_submissions")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", tenant.organizationId)
+      .eq("status", "reviewed"),
+    supabase
+      .from("checklist_submissions")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", tenant.organizationId)
+      .eq("status", "submitted"),
   ]);
 
   const targetTemplateId = previewTemplateId || (action === "edit" ? templateId : null);
@@ -329,8 +340,8 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
 
   const totalTemplates = templates?.length ?? 0;
   const activeTemplates = (templates ?? []).filter((row) => row.is_active).length;
-  const completed = 0;
-  const pending = 0;
+  const completed = completedCount ?? 0;
+  const pending = pendingCount ?? 0;
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">

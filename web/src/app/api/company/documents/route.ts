@@ -38,6 +38,39 @@ async function requireContext() {
   return { supabase, tenant, userId: moduleAccess.userId };
 }
 
+export async function GET(request: Request) {
+  const context = await requireContext();
+  if ("error" in context) return context.error;
+
+  const { supabase, tenant } = context;
+  const url = new URL(request.url);
+  const catalog = url.searchParams.get("catalog");
+
+  if (catalog !== "share_scopes") {
+    return NextResponse.json({ error: "Consulta no soportada" }, { status: 400 });
+  }
+
+  const [{ data: employees }, { data: positions }] = await Promise.all([
+    supabase
+      .from("employees")
+      .select("id, user_id, first_name, last_name")
+      .eq("organization_id", tenant.organizationId)
+      .not("user_id", "is", null)
+      .order("first_name"),
+    supabase
+      .from("department_positions")
+      .select("id, department_id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("name"),
+  ]);
+
+  return NextResponse.json({
+    employees: employees ?? [],
+    positions: positions ?? [],
+  });
+}
+
 export async function POST(request: Request) {
   const context = await requireContext();
   if ("error" in context) return context.error;
@@ -350,8 +383,36 @@ export async function PATCH(request: Request) {
     .eq("id", documentId);
 
   if (error) {
+    await logAuditEvent({
+      action: "documents.file.update",
+      entityType: "document",
+      entityId: documentId,
+      organizationId: tenant.organizationId,
+      eventDomain: "documents",
+      outcome: "error",
+      severity: "medium",
+      metadata: {
+        actor_user_id: context.userId,
+        updated_fields: Object.keys(updatePayload),
+        error: error.message,
+      },
+    });
     return NextResponse.json({ error: `No se pudo actualizar documento: ${error.message}` }, { status: 400 });
   }
+
+  await logAuditEvent({
+    action: "documents.file.update",
+    entityType: "document",
+    entityId: documentId,
+    organizationId: tenant.organizationId,
+    eventDomain: "documents",
+    outcome: "success",
+    severity: "low",
+    metadata: {
+      actor_user_id: context.userId,
+      updated_fields: Object.keys(updatePayload),
+    },
+  });
 
   return NextResponse.json({ ok: true });
 }
@@ -386,6 +447,20 @@ export async function DELETE(request: Request) {
     .eq("id", documentId);
 
   if (error) {
+    await logAuditEvent({
+      action: "documents.file.delete",
+      entityType: "document",
+      entityId: documentId,
+      organizationId: tenant.organizationId,
+      eventDomain: "documents",
+      outcome: "error",
+      severity: "high",
+      metadata: {
+        actor_user_id: context.userId,
+        file_path: document.file_path,
+        error: error.message,
+      },
+    });
     return NextResponse.json({ error: `No se pudo eliminar documento: ${error.message}` }, { status: 400 });
   }
 
@@ -396,6 +471,20 @@ export async function DELETE(request: Request) {
     const admin = createSupabaseAdminClient();
     await admin.storage.from("tenant-documents").remove([document.file_path]);
   }
+
+  await logAuditEvent({
+    action: "documents.file.delete",
+    entityType: "document",
+    entityId: documentId,
+    organizationId: tenant.organizationId,
+    eventDomain: "documents",
+    outcome: "success",
+    severity: "medium",
+    metadata: {
+      actor_user_id: context.userId,
+      file_path: document.file_path,
+    },
+  });
 
   return NextResponse.json({ ok: true });
 }

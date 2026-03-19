@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
 import { assertTenantModuleApi } from "@/shared/lib/access";
+import { logAuditEvent } from "@/shared/lib/audit";
 
 const EVIDENCE_BUCKET = "checklist-evidence";
 const MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024;
@@ -90,16 +91,35 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
+  async function fail(message: string, status: number, metadata: Record<string, unknown> = {}) {
+    await logAuditEvent({
+      action: "checklists.submission.create",
+      entityType: "checklist_submission",
+      organizationId: tenant.organizationId,
+      branchId: tenant.branchId ?? null,
+      eventDomain: "checklists",
+      outcome: "error",
+      severity: "medium",
+      metadata: {
+        actor_user_id: userId,
+        error: message,
+        ...metadata,
+      },
+    });
+
+    return NextResponse.json({ error: message }, { status });
+  }
+
   const formData = await request.formData().catch(() => null);
   if (!formData) {
-    return NextResponse.json({ error: "Solicitud invalida" }, { status: 400 });
+    return fail("Solicitud invalida", 400);
   }
 
   const templateId = String(formData.get("template_id") ?? "").trim();
   const rawItems = String(formData.get("items") ?? "").trim();
 
   if (!templateId || !rawItems) {
-    return NextResponse.json({ error: "Checklist invalido" }, { status: 400 });
+    return fail("Checklist invalido", 400, { template_id: templateId || null });
   }
 
   let items: IncomingItem[] = [];
@@ -112,11 +132,11 @@ export async function POST(request: Request) {
       comment: String(item.comment ?? "").trim(),
     }));
   } catch {
-    return NextResponse.json({ error: "Payload de items invalido" }, { status: 400 });
+    return fail("Payload de items invalido", 400, { template_id: templateId });
   }
 
   if (!items.length) {
-    return NextResponse.json({ error: "Sin items para enviar" }, { status: 400 });
+    return fail("Sin items para enviar", 400, { template_id: templateId });
   }
 
   const { data: employeeRow } = await supabase
@@ -148,7 +168,7 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (!template) {
-    return NextResponse.json({ error: "Plantilla no encontrada" }, { status: 404 });
+    return fail("Plantilla no encontrada", 404, { template_id: templateId });
   }
 
   const canUse = canUseChecklistTemplateInTenant({
@@ -163,7 +183,7 @@ export async function POST(request: Request) {
   });
 
   if (!canUse) {
-    return NextResponse.json({ error: "No tienes acceso a este checklist" }, { status: 403 });
+    return fail("No tienes acceso a este checklist", 403, { template_id: templateId });
   }
 
   const itemIds = [...new Set(items.map((item) => item.template_item_id).filter(Boolean))];
@@ -175,12 +195,15 @@ export async function POST(request: Request) {
 
   const validSet = new Set((validItems ?? []).map((row) => row.id));
   if (itemIds.some((id) => !validSet.has(id))) {
-    return NextResponse.json({ error: "Items invalidos para esta plantilla" }, { status: 400 });
+    return fail("Items invalidos para esta plantilla", 400, { template_id: templateId });
   }
 
   const unresolvedFlags = items.filter((item) => item.flagged && !item.comment.trim());
   if (unresolvedFlags.length) {
-    return NextResponse.json({ error: "Los items marcados para atencion requieren comentario" }, { status: 400 });
+    return fail("Los items marcados para atencion requieren comentario", 400, {
+      template_id: templateId,
+      unresolved_flags: unresolvedFlags.length,
+    });
   }
 
   await ensureBucket();
@@ -201,7 +224,7 @@ export async function POST(request: Request) {
     .single();
 
   if (submissionError || !submission) {
-    return NextResponse.json({ error: `No se pudo crear envio: ${submissionError?.message ?? "error"}` }, { status: 400 });
+    return fail(`No se pudo crear envio: ${submissionError?.message ?? "error"}`, 400, { template_id: templateId });
   }
 
   const submissionItemIds: string[] = [];
@@ -220,14 +243,17 @@ export async function POST(request: Request) {
       .select("id")
       .single();
 
-    if (submissionItemError || !submissionItem) {
+      if (submissionItemError || !submissionItem) {
       await rollbackChecklistSubmissionCreateFlow({
         organizationId: tenant.organizationId,
         submissionId: submission.id,
         submissionItemIds,
         uploadedEvidencePaths,
       });
-      return NextResponse.json({ error: `Error guardando items: ${submissionItemError?.message ?? "error"}` }, { status: 400 });
+      return fail(`Error guardando items: ${submissionItemError?.message ?? "error"}`, 400, {
+        template_id: templateId,
+        submission_id: submission.id,
+      });
     }
 
     submissionItemIds.push(submissionItem.id);
@@ -246,7 +272,10 @@ export async function POST(request: Request) {
           submissionItemIds,
           uploadedEvidencePaths,
         });
-        return NextResponse.json({ error: `Error guardando comentario: ${error.message}` }, { status: 400 });
+        return fail(`Error guardando comentario: ${error.message}`, 400, {
+          template_id: templateId,
+          submission_id: submission.id,
+        });
       }
     }
 
@@ -265,7 +294,10 @@ export async function POST(request: Request) {
           submissionItemIds,
           uploadedEvidencePaths,
         });
-        return NextResponse.json({ error: `Error guardando flag: ${error.message}` }, { status: 400 });
+        return fail(`Error guardando flag: ${error.message}`, 400, {
+          template_id: templateId,
+          submission_id: submission.id,
+        });
       }
     }
 
@@ -281,7 +313,10 @@ export async function POST(request: Request) {
           submissionItemIds,
           uploadedEvidencePaths,
         });
-        return NextResponse.json({ error: `La foto ${file.name} supera el limite` }, { status: 400 });
+        return fail(`La foto ${file.name} supera el limite`, 400, {
+          template_id: templateId,
+          submission_id: submission.id,
+        });
       }
 
       const ext = file.name.includes(".") ? file.name.split(".").pop() : "bin";
@@ -299,7 +334,10 @@ export async function POST(request: Request) {
           submissionItemIds,
           uploadedEvidencePaths,
         });
-        return NextResponse.json({ error: `No se pudo subir evidencia: ${uploadError.message}` }, { status: 400 });
+        return fail(`No se pudo subir evidencia: ${uploadError.message}`, 400, {
+          template_id: templateId,
+          submission_id: submission.id,
+        });
       }
 
       uploadedEvidencePaths.push(objectPath);
@@ -319,10 +357,30 @@ export async function POST(request: Request) {
           submissionItemIds,
           uploadedEvidencePaths,
         });
-        return NextResponse.json({ error: `No se pudo registrar evidencia: ${attachmentError.message}` }, { status: 400 });
+        return fail(`No se pudo registrar evidencia: ${attachmentError.message}`, 400, {
+          template_id: templateId,
+          submission_id: submission.id,
+        });
       }
     }
   }
+
+  await logAuditEvent({
+    action: "checklists.submission.create",
+    entityType: "checklist_submission",
+    entityId: submission.id,
+    organizationId: tenant.organizationId,
+    branchId: tenant.branchId ?? template.branch_id ?? null,
+    eventDomain: "checklists",
+    outcome: "success",
+    severity: "medium",
+    metadata: {
+      actor_user_id: userId,
+      template_id: templateId,
+      items_count: items.length,
+      evidence_files_count: uploadedEvidencePaths.length,
+    },
+  });
 
   return NextResponse.json({ ok: true, submissionId: submission.id });
 }

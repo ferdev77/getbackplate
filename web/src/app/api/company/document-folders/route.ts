@@ -19,6 +19,153 @@ async function requireContext() {
   return { supabase, tenant, userId };
 }
 
+export async function POST(request: Request) {
+  const context = await requireContext();
+  if ("error" in context) return context.error;
+
+  const { supabase, tenant, userId } = context;
+  const body = (await request.json().catch(() => null)) as
+    | {
+        name?: string;
+        parentId?: string | null;
+        locationScope?: string[];
+        departmentScope?: string[];
+        positionScope?: string[];
+        userScope?: string[];
+      }
+    | null;
+
+  const name = String(body?.name ?? "").trim();
+  const parentId = typeof body?.parentId === "string" ? body.parentId.trim() : body?.parentId === null ? null : null;
+  const locationScope = Array.isArray(body?.locationScope)
+    ? [...new Set(body.locationScope.map((value) => String(value).trim()).filter(Boolean))]
+    : [];
+  const departmentScope = Array.isArray(body?.departmentScope)
+    ? [...new Set(body.departmentScope.map((value) => String(value).trim()).filter(Boolean))]
+    : [];
+  const positionScope = Array.isArray(body?.positionScope)
+    ? [...new Set(body.positionScope.map((value) => String(value).trim()).filter(Boolean))]
+    : [];
+  const userScope = Array.isArray(body?.userScope)
+    ? [...new Set(body.userScope.map((value) => String(value).trim()).filter(Boolean))]
+    : [];
+
+  if (!name) {
+    return NextResponse.json({ error: "Nombre de carpeta requerido" }, { status: 400 });
+  }
+
+  if (parentId) {
+    const { data: parent } = await supabase
+      .from("document_folders")
+      .select("id")
+      .eq("organization_id", tenant.organizationId)
+      .eq("id", parentId)
+      .maybeSingle();
+
+    if (!parent) {
+      return NextResponse.json({ error: "Carpeta padre invalida" }, { status: 400 });
+    }
+  }
+
+  if (locationScope.length) {
+    const { data: rows } = await supabase
+      .from("branches")
+      .select("id")
+      .eq("organization_id", tenant.organizationId)
+      .in("id", locationScope);
+    if ((rows?.length ?? 0) !== locationScope.length) {
+      return NextResponse.json({ error: "Locaciones invalidas" }, { status: 400 });
+    }
+  }
+
+  if (departmentScope.length) {
+    const { data: rows } = await supabase
+      .from("organization_departments")
+      .select("id")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .in("id", departmentScope);
+    if ((rows?.length ?? 0) !== departmentScope.length) {
+      return NextResponse.json({ error: "Departamentos invalidos" }, { status: 400 });
+    }
+  }
+
+  if (positionScope.length) {
+    const { data: rows } = await supabase
+      .from("department_positions")
+      .select("id")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .in("id", positionScope);
+    if ((rows?.length ?? 0) !== positionScope.length) {
+      return NextResponse.json({ error: "Puestos invalidos" }, { status: 400 });
+    }
+  }
+
+  if (userScope.length) {
+    const { data: rows } = await supabase
+      .from("employees")
+      .select("user_id")
+      .eq("organization_id", tenant.organizationId)
+      .in("user_id", userScope);
+    if ((rows?.length ?? 0) !== userScope.length) {
+      return NextResponse.json({ error: "Usuarios invalidos" }, { status: 400 });
+    }
+  }
+
+  const { data, error } = await supabase
+    .from("document_folders")
+    .insert({
+      organization_id: tenant.organizationId,
+      parent_id: parentId,
+      name,
+      created_by: userId,
+      access_scope: {
+        locations: locationScope,
+        department_ids: departmentScope,
+        position_ids: positionScope,
+        users: userScope,
+      },
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    await logAuditEvent({
+      action: "documents.folder.create",
+      entityType: "document_folder",
+      organizationId: tenant.organizationId,
+      eventDomain: "documents",
+      outcome: "error",
+      severity: "medium",
+      metadata: {
+        actor_user_id: userId,
+        name,
+        parent_id: parentId,
+        error: error.message,
+      },
+    });
+    return NextResponse.json({ error: `No se pudo crear carpeta: ${error.message}` }, { status: 400 });
+  }
+
+  await logAuditEvent({
+    action: "documents.folder.create",
+    entityType: "document_folder",
+    entityId: data.id,
+    organizationId: tenant.organizationId,
+    eventDomain: "documents",
+    outcome: "success",
+    severity: "medium",
+    metadata: {
+      actor_user_id: userId,
+      name,
+      parent_id: parentId,
+    },
+  });
+
+  return NextResponse.json({ ok: true, folderId: data.id });
+}
+
 export async function PATCH(request: Request) {
   const context = await requireContext();
   if ("error" in context) return context.error;
@@ -177,7 +324,7 @@ export async function PATCH(request: Request) {
 
   if (error) {
     await logAuditEvent({
-      action: "document.folder.update",
+      action: "documents.folder.update",
       entityType: "document_folder",
       entityId: folderId,
       organizationId: tenant.organizationId,
@@ -193,7 +340,7 @@ export async function PATCH(request: Request) {
   }
 
   await logAuditEvent({
-    action: "document.folder.update",
+    action: "documents.folder.update",
     entityType: "document_folder",
     entityId: folderId,
     organizationId: tenant.organizationId,
@@ -248,7 +395,7 @@ export async function DELETE(request: Request) {
 
   if (error) {
     await logAuditEvent({
-      action: "document.folder.delete",
+      action: "documents.folder.delete",
       entityType: "document_folder",
       entityId: folderId,
       organizationId: tenant.organizationId,
@@ -264,7 +411,7 @@ export async function DELETE(request: Request) {
   }
 
   await logAuditEvent({
-    action: "document.folder.delete",
+    action: "documents.folder.delete",
     entityType: "document_folder",
     entityId: folderId,
     organizationId: tenant.organizationId,

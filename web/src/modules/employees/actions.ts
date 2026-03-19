@@ -1,26 +1,110 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
+import { analyzeUploadedFile } from "@/shared/lib/file-security";
 import { requireTenantContext } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import {
   assertPlanLimitForEmployees,
+  assertPlanLimitForStorage,
   assertPlanLimitForUsers,
   getPlanLimitErrorMessage,
 } from "@/shared/lib/plan-limits";
+import { EMPLOYEES_MESSAGES } from "@/shared/lib/employees-messages";
+import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
 
-function qs(message: string) {
-  return encodeURIComponent(message);
+const EMPLOYEE_DOCUMENT_BUCKET_NAME = "tenant-documents";
+const EMPLOYEE_DOCUMENT_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
+const DOCUMENT_SLOT_LABELS: Record<string, string> = {
+  photo: "Foto del Empleado",
+  id: "ID / Identificacion",
+  ssn: "Numero de Seguro Social",
+  rec1: "Carta de Recomendacion 1",
+  rec2: "Carta de Recomendacion 2",
+  other: "Otro Documento",
+};
+
+async function ensureEmployeeDocumentsBucketExists() {
+  const admin = createSupabaseAdminClient();
+
+  const { data: bucket } = await admin.storage.getBucket(EMPLOYEE_DOCUMENT_BUCKET_NAME);
+  if (bucket) return;
+
+  await admin.storage.createBucket(EMPLOYEE_DOCUMENT_BUCKET_NAME, {
+    public: false,
+    fileSizeLimit: `${EMPLOYEE_DOCUMENT_MAX_FILE_SIZE_BYTES}`,
+  });
+}
+
+async function findAuthUserByEmail(email: string) {
+  const admin = createSupabaseAdminClient();
+  let page = 1;
+  const perPage = 200;
+
+  while (true) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
+    if (error) return null;
+
+    const found = data.users.find((user) => user.email?.toLowerCase() === email.toLowerCase());
+    if (found) return found;
+
+    if (data.users.length < perPage) return null;
+    page += 1;
+  }
+}
+
+function isAuthUserAlreadyRegisteredError(message: string) {
+  const normalized = message.toLowerCase();
+  return normalized.includes("already") || normalized.includes("exists") || normalized.includes("registered");
+}
+
+async function resolveOrCreateAuthUser(params: {
+  email: string;
+  password: string;
+  fullName: string;
+  createErrorPrefix: string;
+}) {
+  const admin = createSupabaseAdminClient();
+
+  const { data: createdUser, error: createUserError } = await admin.auth.admin.createUser({
+    email: params.email,
+    password: params.password,
+    email_confirm: true,
+    user_metadata: {
+      full_name: params.fullName,
+    },
+  });
+
+  if (!createUserError && createdUser.user?.id) {
+    return { userId: createdUser.user.id, errorMessage: null as string | null };
+  }
+
+  if (!createUserError) {
+    return { userId: null as string | null, errorMessage: EMPLOYEES_MESSAGES.AUTH_USER_UNRESOLVED };
+  }
+
+  if (!isAuthUserAlreadyRegisteredError(createUserError.message)) {
+    return {
+      userId: null as string | null,
+      errorMessage: `${params.createErrorPrefix}: ${createUserError.message}`,
+    };
+  }
+
+  const existing = await findAuthUserByEmail(params.email);
+  if (existing?.id) {
+    return { userId: existing.id, errorMessage: null as string | null };
+  }
+
+  return { userId: null as string | null, errorMessage: EMPLOYEES_MESSAGES.AUTH_USER_UNRESOLVED };
 }
 
 
 
-export async function createEmployeeAction(prevState: any, formData: FormData) {
+export async function createEmployeeAction(_prevState: unknown, formData: FormData) {
   const tenant = await requireTenantContext();
 
   if (tenant.roleCode !== "company_admin" && tenant.roleCode !== "manager") {
@@ -60,9 +144,9 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
   const createMode = String(formData.get("create_mode") ?? "without_account").trim();
   const accountEmailInput = String(formData.get("account_email") ?? "").trim().toLowerCase();
   const accountPassword = String(formData.get("account_password") ?? "");
-  const accountRoleInput = String(formData.get("account_role") ?? "employee").trim();
-  const accountRole = accountRoleInput === "company_admin" ? "company_admin" : "employee";
   const createWithAccount = createMode === "with_account";
+  const isEmployeeRaw = String(formData.get("is_employee") ?? "yes").trim().toLowerCase();
+  const isEmployeeProfile = employeeId ? true : isEmployeeRaw !== "no";
 
   const phone = String(formData.get("phone") ?? "").trim() || null;
   const address = String(formData.get("address") ?? "").trim() || null;
@@ -78,7 +162,83 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
   let positionName: string | null = position;
   let departmentName: string | null = department;
 
+  const uploadFiles: Array<{
+    slotKey: string;
+    slotLabel: string;
+    file: File;
+    analysis: Awaited<ReturnType<typeof analyzeUploadedFile>>;
+  }> = [];
+
+  for (const [slotKey, slotLabel] of Object.entries(DOCUMENT_SLOT_LABELS)) {
+    const file = formData.get(`document_file_${slotKey}`);
+    if (!(file instanceof File) || file.size <= 0) {
+      continue;
+    }
+
+    if (file.size > EMPLOYEE_DOCUMENT_MAX_FILE_SIZE_BYTES) {
+      return {
+        success: false,
+        message: `El archivo de ${slotLabel} supera el limite de 10MB`,
+      };
+    }
+
+    try {
+      const analysis = await analyzeUploadedFile(file);
+      uploadFiles.push({ slotKey, slotLabel, file, analysis });
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? `${slotLabel}: ${error.message}` : `${slotLabel}: archivo invalido`,
+      };
+    }
+  }
+
   const admin = createSupabaseAdminClient();
+
+  async function persistOrganizationUserProfile(params: {
+    userId: string | null;
+    employeeId: string | null;
+    isEmployee: boolean;
+  }) {
+    if (!params.userId) {
+      const { error } = await admin.from("organization_user_profiles").insert({
+        organization_id: tenant.organizationId,
+        user_id: null,
+        employee_id: params.employeeId,
+        branch_id: branchId || tenant.branchId || null,
+        department_id: departmentId,
+        position_id: positionId,
+        first_name: firstName,
+        last_name: lastName,
+        email: employeeEmail,
+        phone,
+        is_employee: params.isEmployee,
+        source: "users_employees_modal",
+      });
+
+      return error;
+    }
+
+    const { error } = await admin.from("organization_user_profiles").upsert(
+      {
+        organization_id: tenant.organizationId,
+        user_id: params.userId,
+        employee_id: params.employeeId,
+        branch_id: branchId || tenant.branchId || null,
+        department_id: departmentId,
+        position_id: positionId,
+        first_name: firstName,
+        last_name: lastName,
+        email: employeeEmail,
+        phone,
+        is_employee: params.isEmployee,
+        source: "users_employees_modal",
+      },
+      { onConflict: "organization_id,user_id" },
+    );
+
+    return error;
+  }
 
   if (departmentId && !departmentName) {
     const { data: deptData } = await admin.from("organization_departments").select("name").eq("id", departmentId).single();
@@ -89,10 +249,19 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
     if (posData) positionName = posData.name;
   }
 
-  try {
-    await assertPlanLimitForEmployees(tenant.organizationId, 1);
-  } catch (error) {
-    return { success: false, message: getPlanLimitErrorMessage(error, "Limite de empleados alcanzado. Actualiza tu plan para continuar.") };
+  if (isEmployeeProfile && !employeeId) {
+    try {
+      await assertPlanLimitForEmployees(tenant.organizationId, 1);
+    } catch (error) {
+      return {
+        success: false,
+        message: getPlanLimitErrorMessage(error, EMPLOYEES_MESSAGES.PLAN_LIMIT_EMPLOYEES),
+      };
+    }
+  }
+
+  if (!isEmployeeProfile && employeeId) {
+    return { success: false, message: "La conversion de empleado a usuario simple no esta soportada desde edicion" };
   }
 
   // Admin client is used for all DB operations in this action to bypass RLS.
@@ -102,49 +271,35 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
     const loginEmail = accountEmailInput || (contactEmail ? contactEmail.toLowerCase() : "");
 
     if (!loginEmail) {
-      return { success: false, message: "Para crear cuenta, completa el email de acceso" };
+      return { success: false, message: EMPLOYEES_MESSAGES.ACCESS_EMAIL_REQUIRED };
     }
 
     if (accountPassword.length < 8) {
-      return { success: false, message: "La contrasena de acceso debe tener al menos 8 caracteres" };
+      return { success: false, message: EMPLOYEES_MESSAGES.ACCESS_PASSWORD_MIN };
     }
 
     const { data: role, error: roleError } = await admin
       .from("roles")
       .select("id")
-      .eq("code", accountRole)
+      .eq("code", "employee")
       .single();
 
     if (roleError || !role) {
-      return { success: false, message: "No existe el rol employee en la base" };
+      return { success: false, message: EMPLOYEES_MESSAGES.ROLE_EMPLOYEE_UNAVAILABLE };
     }
 
-    const { data: createdUser, error: createUserError } = await admin.auth.admin.createUser({
+    const authResult = await resolveOrCreateAuthUser({
       email: loginEmail,
       password: accountPassword,
-      email_confirm: true,
-      user_metadata: {
-        full_name: `${firstName} ${lastName}`.trim(),
-      },
+      fullName: `${firstName} ${lastName}`.trim(),
+      createErrorPrefix: EMPLOYEES_MESSAGES.EMPLOYEE_ACCOUNT_CREATE_FAILED_PREFIX,
     });
 
-    if (!createUserError && createdUser.user) {
-      linkedUserId = createdUser.user.id;
+    if (!authResult.userId) {
+      return { success: false, message: authResult.errorMessage ?? EMPLOYEES_MESSAGES.AUTH_USER_UNRESOLVED };
     }
 
-    if (createUserError) {
-      const alreadyExists =
-        createUserError.message.toLowerCase().includes("already") ||
-        createUserError.message.toLowerCase().includes("exists") ||
-        createUserError.message.toLowerCase().includes("registered");
-
-      if (!alreadyExists) {
-        return { success: false, message: `No se pudo crear cuenta del empleado: ${createUserError.message}` };
-      }
-
-      // Privacy Fix: Do not auto-link existing users. They must be invited.
-      return { success: false, message: "Este correo ya está registrado en la plataforma. El usuario debe ser invitado formalmente." };
-    }
+    linkedUserId = authResult.userId;
 
     const { data: existingMembership } = await admin
       .from("memberships")
@@ -157,7 +312,7 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
       try {
         await assertPlanLimitForUsers(tenant.organizationId, 1);
       } catch (error) {
-        return { success: false, message: getPlanLimitErrorMessage(error, "Limite de usuarios alcanzado. Actualiza tu plan para continuar.") };
+        return { success: false, message: getPlanLimitErrorMessage(error, EMPLOYEES_MESSAGES.PLAN_LIMIT_USERS) };
       }
     }
 
@@ -177,6 +332,48 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
     }
 
     employeeEmail = loginEmail;
+  }
+
+  if (!isEmployeeProfile) {
+    const profileError = await persistOrganizationUserProfile({
+      userId: linkedUserId,
+      employeeId: null,
+      isEmployee: false,
+    });
+
+    if (profileError) {
+      return {
+        success: false,
+        message: `No se pudo guardar perfil de usuario: ${profileError.message}`,
+      };
+    }
+
+    await logAuditEvent({
+      action: "users.create",
+      entityType: createWithAccount ? "membership" : "organization_user_profile",
+      entityId: linkedUserId,
+      organizationId: tenant.organizationId,
+      branchId: branchId || tenant.branchId || null,
+      metadata: {
+        firstName,
+        lastName,
+        email: employeeEmail,
+        origin: "users_employees_modal",
+        isEmployeeProfile: false,
+        hasDashboardAccess: createWithAccount,
+      },
+      eventDomain: "employees",
+      outcome: "success",
+      severity: "medium",
+    });
+
+    revalidatePath("/app/employees");
+    revalidatePath("/app/users");
+    return {
+      success: true,
+      message: "Usuario creado correctamente (sin perfil de empleado)",
+      timestamp: Date.now(),
+    };
   }
 
   // Use admin client to insert or update employee — bypasses RLS, consistent with all
@@ -242,6 +439,128 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
     return { success: false, message };
   }
 
+  if (linkedUserId && employee?.id) {
+    const profileError = await persistOrganizationUserProfile({
+      userId: linkedUserId,
+      employeeId: employee.id,
+      isEmployee: true,
+    });
+
+    if (profileError) {
+      return {
+        success: false,
+        message: `No se pudo guardar perfil del usuario del empleado: ${profileError.message}`,
+      };
+    }
+  }
+
+  let documentUploadWarning: string | null = null;
+  if (uploadFiles.length && employee?.id) {
+    await ensureEmployeeDocumentsBucketExists();
+
+    const uploadedPaths: string[] = [];
+    const uploadedDocumentIds: string[] = [];
+
+    try {
+      for (const upload of uploadFiles) {
+        const { data: existingDuplicate } = await admin
+          .from("documents")
+          .select("id, file_path, mime_type")
+          .eq("organization_id", tenant.organizationId)
+          .eq("checksum_sha256", upload.analysis.checksumSha256)
+          .eq("file_size_bytes", upload.file.size)
+          .limit(1)
+          .maybeSingle();
+
+        const path =
+          existingDuplicate?.file_path ||
+          `${tenant.organizationId}/employees/${employee.id}/${Date.now()}-${upload.slotKey}-${upload.analysis.safeName}`;
+
+        if (!isSafeTenantStoragePath(path, tenant.organizationId)) {
+          throw new Error(`Ruta invalida para ${upload.slotLabel}`);
+        }
+
+        if (!existingDuplicate) {
+          await assertPlanLimitForStorage(tenant.organizationId, upload.file.size);
+
+          const { error: uploadError } = await admin.storage
+            .from(EMPLOYEE_DOCUMENT_BUCKET_NAME)
+            .upload(path, upload.file, {
+              contentType: upload.analysis.normalizedMime,
+              upsert: false,
+            });
+
+          if (uploadError) {
+            throw new Error(`No se pudo subir ${upload.slotLabel}: ${uploadError.message}`);
+          }
+
+          uploadedPaths.push(path);
+        }
+
+        const { data: createdDoc, error: createDocError } = await admin
+          .from("documents")
+          .insert({
+            organization_id: tenant.organizationId,
+            branch_id: branchId || tenant.branchId || null,
+            owner_user_id: linkedUserId,
+            title: `${upload.slotLabel} - ${firstName} ${lastName}`,
+            file_path: path,
+            mime_type: existingDuplicate?.mime_type || upload.analysis.normalizedMime,
+            original_file_name: upload.analysis.originalName,
+            checksum_sha256: upload.analysis.checksumSha256,
+            file_size_bytes: upload.file.size,
+            access_scope: {
+              locations: branchId ? [branchId] : [],
+              department_ids: departmentId ? [departmentId] : [],
+              users: linkedUserId ? [linkedUserId] : [],
+            },
+          })
+          .select("id")
+          .single();
+
+        if (createDocError || !createdDoc) {
+          throw new Error(`No se pudo registrar ${upload.slotLabel}: ${createDocError?.message ?? "error"}`);
+        }
+
+        uploadedDocumentIds.push(createdDoc.id);
+      }
+
+      if (uploadedDocumentIds.length) {
+        const payload = uploadedDocumentIds.map((documentId) => ({
+          organization_id: tenant.organizationId,
+          employee_id: employee.id,
+          document_id: documentId,
+          status: "pending",
+        }));
+
+        const { error: linkError } = await admin
+          .from("employee_documents")
+          .upsert(payload, { onConflict: "employee_id,document_id" });
+
+        if (linkError) {
+          throw new Error(`No se pudieron vincular documentos al empleado: ${linkError.message}`);
+        }
+      }
+    } catch (error) {
+      if (uploadedPaths.length) {
+        await admin.storage.from(EMPLOYEE_DOCUMENT_BUCKET_NAME).remove(uploadedPaths);
+      }
+
+      if (uploadedDocumentIds.length) {
+        await admin
+          .from("documents")
+          .delete()
+          .eq("organization_id", tenant.organizationId)
+          .in("id", uploadedDocumentIds);
+      }
+
+      documentUploadWarning = getPlanLimitErrorMessage(
+        error,
+        EMPLOYEES_MESSAGES.ATTACHMENTS_SAVE_WARNING,
+      );
+    }
+  }
+
   // Save salary / contract info if provided
   const salaryAmountRaw = String(formData.get("salary_amount") ?? "").trim();
   const salaryAmount = salaryAmountRaw !== "" ? parseFloat(salaryAmountRaw) : null;
@@ -282,6 +601,8 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
       department,
       createWithAccount,
       linkedUserId,
+      uploadedDocumentsCount: uploadFiles.length,
+      documentsWarning: documentUploadWarning,
     },
     eventDomain: "employees",
     outcome: "success",
@@ -293,15 +614,18 @@ export async function createEmployeeAction(prevState: any, formData: FormData) {
   
   const actionText = employeeId ? "actualizado" : "creado";
   const actionTextWithAccount = employeeId ? "Actualizado y cuenta creada" : "Empleado y cuenta creados";
+  const baseMessage = createWithAccount ? `${actionTextWithAccount} correctamente` : `Empleado ${actionText} correctamente`;
 
   return {
     success: true,
-    message: createWithAccount ? `${actionTextWithAccount} correctamente` : `Empleado ${actionText} correctamente`,
+    message: documentUploadWarning
+      ? `${baseMessage}. Aviso: ${documentUploadWarning}`
+      : baseMessage,
     timestamp: Date.now()
   };
 }
 
-export async function createUserAccountAction(prevState: any, formData: FormData) {
+export async function createUserAccountAction(_prevState: unknown, formData: FormData) {
   const tenant = await requireTenantContext();
 
   if (tenant.roleCode !== "company_admin" && tenant.roleCode !== "manager") {
@@ -340,34 +664,18 @@ export async function createUserAccountAction(prevState: any, formData: FormData
     return { success: false, message: "No se encontro el rol seleccionado" };
   }
 
-  let userId: string | null = null;
-
-  const { data: createdUser, error: createUserError } = await admin.auth.admin.createUser({
+  const authResult = await resolveOrCreateAuthUser({
     email,
     password,
-    email_confirm: true,
-    user_metadata: {
-      full_name: fullName,
-    },
+    fullName,
+    createErrorPrefix: EMPLOYEES_MESSAGES.USER_CREATE_FAILED_PREFIX,
   });
 
-  if (!createUserError && createdUser.user) {
-    userId = createdUser.user.id;
+  if (!authResult.userId) {
+    return { success: false, message: authResult.errorMessage ?? EMPLOYEES_MESSAGES.AUTH_USER_UNRESOLVED };
   }
 
-  if (createUserError) {
-    const alreadyExists =
-      createUserError.message.toLowerCase().includes("already") ||
-      createUserError.message.toLowerCase().includes("exists") ||
-      createUserError.message.toLowerCase().includes("registered");
-
-    if (!alreadyExists) {
-      return { success: false, message: `No se pudo crear usuario: ${createUserError.message}` };
-    }
-
-    // Privacy Fix: Do not auto-link existing users. They must be invited.
-    return { success: false, message: "Este correo ya está registrado en la plataforma. El usuario debe ser invitado formalmente." };
-  }
+  const userId = authResult.userId;
 
   const { data: existingMembership } = await admin
     .from("memberships")
@@ -380,7 +688,7 @@ export async function createUserAccountAction(prevState: any, formData: FormData
     try {
       await assertPlanLimitForUsers(tenant.organizationId, 1);
     } catch (error) {
-      return { success: false, message: getPlanLimitErrorMessage(error, "Limite de usuarios alcanzado. Actualiza tu plan para continuar.") };
+      return { success: false, message: getPlanLimitErrorMessage(error, EMPLOYEES_MESSAGES.PLAN_LIMIT_USERS) };
     }
   }
 
@@ -402,7 +710,7 @@ export async function createUserAccountAction(prevState: any, formData: FormData
   // We no longer create an Employee record for a pure User.
 
   await logAuditEvent({
-    action: "user.create",
+    action: "users.create",
     entityType: "membership",
     entityId: userId,
     organizationId: tenant.organizationId,

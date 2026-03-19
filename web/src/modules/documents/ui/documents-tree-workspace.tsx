@@ -799,15 +799,18 @@ function ShareAccessModal({
 
   useEffect(() => {
     if (users.length === 0 || positions.length === 0) {
-      import('@/modules/documents/actions').then((mod) => {
-        mod.getShareScopesCatalogsAction()
-          .then((data) => {
-            setDynamicUsers(data.employees);
-            setDynamicPositions(data.positions);
-            setLoading(false);
-          })
-          .catch(() => setLoading(false));
-      });
+      fetch("/api/company/documents?catalog=share_scopes")
+        .then(async (response) => {
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(typeof data.error === "string" ? data.error : "No se pudieron cargar los permisos");
+          }
+
+          setDynamicUsers(Array.isArray(data.employees) ? data.employees : []);
+          setDynamicPositions(Array.isArray(data.positions) ? data.positions : []);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
     }
   }, [users.length, positions.length]);
 

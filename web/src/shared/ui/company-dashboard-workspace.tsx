@@ -90,7 +90,7 @@ const QUICK_ACTIONS = [
   { href: "/app/documents", label: "Subir documento", icon: FolderOpen, moduleCode: "documents" },
   { href: "/app/announcements", label: "Publicar aviso", icon: Megaphone, moduleCode: "announcements" },
   { href: "/app/checklists", label: "Crear checklist", icon: ClipboardCheck, moduleCode: "checklists" },
-  { href: "/app/employees", label: "Agregar empleado", icon: UsersRound, moduleCode: "employees" },
+  { href: "/app/employees", label: "Agregar usuario/empleado", icon: UsersRound, moduleCode: "employees" },
 ];
 
 export function CompanyDashboardWorkspace({
@@ -148,7 +148,7 @@ export function CompanyDashboardWorkspace({
         </AnimatedItem>
         <AnimatedItem>
           <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full">
-            <p className="flex items-center gap-1 text-xs text-[#8a817b]"><UsersRound className="h-3.5 w-3.5" /> Empleados</p>
+            <p className="flex items-center gap-1 text-xs text-[#8a817b]"><UsersRound className="h-3.5 w-3.5" /> Usuarios / Empleados</p>
             <p className="mt-1 text-2xl font-bold">{employeesCount}</p>
           </article>
         </AnimatedItem>

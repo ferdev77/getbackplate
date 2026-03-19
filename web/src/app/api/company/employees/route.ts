@@ -5,6 +5,7 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { EMPLOYEES_MESSAGES, employeesStorageLimitForSlot } from "@/shared/lib/employees-messages";
 import { analyzeUploadedFile } from "@/shared/lib/file-security";
 import {
   assertPlanLimitForEmployees,
@@ -241,7 +242,7 @@ export async function POST(request: Request) {
         {
           error: getPlanLimitErrorMessage(
             error,
-            "Limite de empleados alcanzado. Actualiza tu plan para continuar.",
+            EMPLOYEES_MESSAGES.PLAN_LIMIT_EMPLOYEES,
           ),
         },
         { status: 400 },
@@ -402,7 +403,7 @@ export async function POST(request: Request) {
             {
               error: getPlanLimitErrorMessage(
                 error,
-                `Limite de almacenamiento alcanzado para ${upload.slotLabel}. Actualiza tu plan para continuar.`,
+                employeesStorageLimitForSlot(upload.slotLabel),
               ),
             },
             { status: 400 },
@@ -590,10 +591,10 @@ export async function POST(request: Request) {
   if (createMode === "with_account") {
     const loginEmail = accountEmailInput || email || "";
     if (!loginEmail) {
-      return NextResponse.json({ error: "Email de acceso obligatorio" }, { status: 400 });
+      return NextResponse.json({ error: EMPLOYEES_MESSAGES.ACCESS_EMAIL_REQUIRED }, { status: 400 });
     }
     if (accountPassword.length < 8) {
-      return NextResponse.json({ error: "Contrasena minima de 8 caracteres" }, { status: 400 });
+      return NextResponse.json({ error: EMPLOYEES_MESSAGES.ACCESS_PASSWORD_MIN }, { status: 400 });
     }
 
     const admin = createSupabaseAdminClient();
@@ -604,7 +605,7 @@ export async function POST(request: Request) {
       .single();
 
     if (roleError || !role) {
-      return NextResponse.json({ error: "Rol employee no disponible" }, { status: 400 });
+      return NextResponse.json({ error: EMPLOYEES_MESSAGES.ROLE_EMPLOYEE_UNAVAILABLE }, { status: 400 });
     }
 
     const { data: createdUser, error: createUserError } = await admin.auth.admin.createUser({
@@ -625,14 +626,17 @@ export async function POST(request: Request) {
         createUserError.message.toLowerCase().includes("exists") ||
         createUserError.message.toLowerCase().includes("registered");
       if (!exists) {
-        return NextResponse.json({ error: createUserError.message }, { status: 400 });
+        return NextResponse.json(
+          { error: `${EMPLOYEES_MESSAGES.EMPLOYEE_ACCOUNT_CREATE_FAILED_PREFIX}: ${createUserError.message}` },
+          { status: 400 },
+        );
       }
       const existing = await findAuthUserByEmail(loginEmail);
       linkedUserId = existing?.id ?? null;
     }
 
     if (!linkedUserId) {
-      return NextResponse.json({ error: "No se pudo resolver usuario auth" }, { status: 400 });
+      return NextResponse.json({ error: EMPLOYEES_MESSAGES.AUTH_USER_UNRESOLVED }, { status: 400 });
     }
 
     const { data: existingMembership } = await admin
@@ -651,7 +655,7 @@ export async function POST(request: Request) {
           {
             error: getPlanLimitErrorMessage(
               error,
-              "Limite de usuarios alcanzado. Actualiza tu plan para continuar.",
+              EMPLOYEES_MESSAGES.PLAN_LIMIT_USERS,
             ),
           },
           { status: 400 },
@@ -771,7 +775,7 @@ export async function POST(request: Request) {
           {
             error: getPlanLimitErrorMessage(
               error,
-              `Limite de almacenamiento alcanzado para ${upload.slotLabel}. Actualiza tu plan para continuar.`,
+              employeesStorageLimitForSlot(upload.slotLabel),
             ),
           },
           { status: 400 },

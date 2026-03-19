@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
+import { logAuditEvent } from "@/shared/lib/audit";
 
 const AVATAR_BUCKET = "profile-avatars";
 const MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024;
@@ -40,14 +41,41 @@ export async function POST(request: Request) {
   const file = formData.get("avatar");
 
   if (!(file instanceof File) || file.size === 0) {
+    await logAuditEvent({
+      action: "profile.avatar.update",
+      entityType: "profile",
+      entityId: user.id,
+      eventDomain: "settings",
+      outcome: "error",
+      severity: "low",
+      metadata: { actor_user_id: user.id, error: "Selecciona una imagen" },
+    });
     return NextResponse.json({ error: "Selecciona una imagen" }, { status: 400 });
   }
 
   if (!file.type.startsWith("image/")) {
+    await logAuditEvent({
+      action: "profile.avatar.update",
+      entityType: "profile",
+      entityId: user.id,
+      eventDomain: "settings",
+      outcome: "error",
+      severity: "low",
+      metadata: { actor_user_id: user.id, error: "El archivo debe ser una imagen" },
+    });
     return NextResponse.json({ error: "El archivo debe ser una imagen" }, { status: 400 });
   }
 
   if (file.size > MAX_AVATAR_SIZE_BYTES) {
+    await logAuditEvent({
+      action: "profile.avatar.update",
+      entityType: "profile",
+      entityId: user.id,
+      eventDomain: "settings",
+      outcome: "error",
+      severity: "low",
+      metadata: { actor_user_id: user.id, error: "La imagen supera el limite de 2MB", size: file.size },
+    });
     return NextResponse.json({ error: "La imagen supera el limite de 2MB" }, { status: 400 });
   }
 
@@ -63,6 +91,15 @@ export async function POST(request: Request) {
   });
 
   if (uploadError) {
+    await logAuditEvent({
+      action: "profile.avatar.update",
+      entityType: "profile",
+      entityId: user.id,
+      eventDomain: "settings",
+      outcome: "error",
+      severity: "medium",
+      metadata: { actor_user_id: user.id, error: uploadError.message },
+    });
     return NextResponse.json({ error: uploadError.message }, { status: 400 });
   }
 
@@ -84,12 +121,31 @@ export async function POST(request: Request) {
 
   if (updateUserError) {
     await admin.storage.from(AVATAR_BUCKET).remove([path]);
+    await logAuditEvent({
+      action: "profile.avatar.update",
+      entityType: "profile",
+      entityId: user.id,
+      eventDomain: "settings",
+      outcome: "error",
+      severity: "medium",
+      metadata: { actor_user_id: user.id, error: updateUserError.message },
+    });
     return NextResponse.json({ error: updateUserError.message }, { status: 400 });
   }
 
   if (previousAvatarPath) {
     await admin.storage.from(AVATAR_BUCKET).remove([previousAvatarPath]);
   }
+
+  await logAuditEvent({
+    action: "profile.avatar.update",
+    entityType: "profile",
+    entityId: user.id,
+    eventDomain: "settings",
+    outcome: "success",
+    severity: "low",
+    metadata: { actor_user_id: user.id, avatar_path: path },
+  });
 
   return NextResponse.json({ ok: true, avatarUrl });
 }
