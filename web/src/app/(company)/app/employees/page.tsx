@@ -11,7 +11,7 @@ import { extractDisplayName } from "@/shared/lib/user";
 
 
 type CompanyEmployeesPageProps = {
-  searchParams: Promise<{ status?: string; message?: string; action?: string; employeeId?: string; limit?: string }>;
+  searchParams: Promise<{ status?: string; message?: string; action?: string; employeeId?: string; profileId?: string; limit?: string }>;
 };
 
 export const dynamic = "force-dynamic";
@@ -23,9 +23,10 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   const supabase = await createSupabaseServerClient();
   const admin = createSupabaseAdminClient();
   const action = String((await searchParams).action ?? "").trim().toLowerCase();
-  const openEmployeeModal = action === "create" || action === "edit" || action === "create-employee" || action === "edit-employee";
+  const openEmployeeModal = action === "create" || action === "edit" || action === "create-employee" || action === "edit-employee" || action === "edit-user";
 
   const editEmployeeId = (await searchParams).employeeId;
+  const editProfileId = (await searchParams).profileId;
   const statusParam = (await searchParams).status;
   const messageParam = (await searchParams).message;
 
@@ -44,7 +45,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
 
   const { data: organizationUserProfiles } = await admin
     .from("organization_user_profiles")
-    .select("id, user_id, first_name, last_name, email, phone, branch_id, department_id, is_employee, created_at")
+    .select("id, user_id, first_name, last_name, email, phone, branch_id, department_id, is_employee, status, created_at")
     .eq("organization_id", tenant.organizationId)
     .eq("is_employee", false)
     .order("created_at", { ascending: false })
@@ -58,6 +59,9 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
     ? viewData.employees.find((item) => item.id === editEmployeeId)
     : null;
   const editContract = editEmployee ? (editEmployee.contracts?.[0] ?? null) : null;
+  const editUserProfile = action === "edit-user" && editProfileId
+    ? (organizationUserProfiles ?? []).find((item) => item.id === editProfileId)
+    : null;
 
   const initialEmployeeData = editEmployee
     ? {
@@ -91,6 +95,39 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
         payment_frequency: editContract?.payment_frequency ?? null,
         salary_currency: editContract?.salary_currency ?? null,
       }
+    : editUserProfile
+      ? {
+          id: "",
+          organization_user_profile_id: editUserProfile.id,
+          first_name: editUserProfile.first_name ?? "",
+          last_name: editUserProfile.last_name ?? "",
+          birth_date: null,
+          sex: null,
+          nationality: null,
+          phone_country_code: null,
+          phone: editUserProfile.phone ?? null,
+          email: editUserProfile.email ?? "",
+          personal_email: null,
+          document_type: null,
+          document_number: null,
+          address: null,
+          branch_id: editUserProfile.branch_id ?? "",
+          position: "",
+          position_id: "",
+          department_id: editUserProfile.department_id ?? "",
+          status: "active",
+          hire_date: null,
+          contract_type: null,
+          contract_status: null,
+          contract_start_date: null,
+          contract_end_date: null,
+          contract_notes: null,
+          contract_signer_name: null,
+          contract_signed_at: null,
+          salary_amount: null,
+          payment_frequency: null,
+          salary_currency: null,
+        }
     : undefined;
 
   const branchNameById = new Map((viewData.branches ?? []).map((b) => [b.id, b.name]));
@@ -127,6 +164,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       emergencyPhone: emp.emergencyContactPhone,
       emergencyEmail: emp.emergencyContactEmail,
       pendingDocuments: emp.pendingDocuments?.length ?? 0,
+      organizationUserProfileId: null,
     };
   });
 
@@ -137,12 +175,15 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
     return {
       recordType: "user" as const,
       id: `user-profile-${profile.id}`,
+      membershipId: membership?.membershipId ?? null,
+      roleCode: membership?.roleCode ?? "employee",
+      branchId: profile.branch_id ?? null,
       firstName: profile.first_name ?? (fullName || "Usuario"),
       lastName: profile.last_name ?? "",
       email: profile.email,
       phone: profile.phone,
       position: null,
-      status: membership?.status ?? "inactive",
+      status: membership?.status ?? profile.status ?? "inactive",
       hiredAt: null,
       branchName: profile.branch_id ? (branchNameById.get(profile.branch_id) ?? "Sin locacion") : "Sin locacion",
       departmentName: profile.department_id ? (departmentNameById.get(profile.department_id) ?? "Sin departamento") : "Sin departamento",
@@ -162,6 +203,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       emergencyPhone: null,
       emergencyEmail: null,
       pendingDocuments: 0,
+      organizationUserProfileId: profile.id,
     };
   });
 
@@ -193,7 +235,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       <NewEmployeeModal
         key={initialEmployeeData?.id ?? "new"}
         open={openEmployeeModal}
-        mode={(action === "edit" || action === "edit-employee") ? "edit" : "create"}
+        mode={(action === "edit" || action === "edit-employee" || action === "edit-user") ? "edit" : "create"}
         initialEmployee={initialEmployeeData}
         branches={viewData.branches}
         recentDocuments={viewData.documents}

@@ -47,7 +47,6 @@ function roleLabel(code: string) {
 export function UsersTableWorkspace({ users, roleOptions, branchOptions }: UsersTableWorkspaceProps) {
   const [rows, setRows] = useState<UserRow[]>(users);
   const [query, setQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [selectedMembershipId, setSelectedMembershipId] = useState<string | null>(null);
@@ -86,16 +85,13 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
     const q = query.trim().toLowerCase();
     return rows.filter((item) => {
       const byQuery = !q || item.fullName.toLowerCase().includes(q) || item.email.toLowerCase().includes(q);
-      const byRole = !roleFilter || item.roleCode === roleFilter;
       const byStatus = !statusFilter || item.status === statusFilter;
       const byLocation = !locationFilter || item.branchName === locationFilter;
-      return byQuery && byRole && byStatus && byLocation;
+      return byQuery && byStatus && byLocation;
     });
-  }, [locationFilter, query, roleFilter, rows, statusFilter]);
+  }, [locationFilter, query, rows, statusFilter]);
 
   const activeCount = rows.filter((item) => item.status === "active").length;
-  const adminCount = rows.filter((item) => item.roleCode === "company_admin").length;
-  const managerCount = rows.filter((item) => item.roleCode === "manager").length;
 
   async function saveUser() {
     if (!editing) return;
@@ -187,17 +183,14 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
 
   return (
     <>
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2">
          <article className="rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white p-6"><p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Total Administradores</p><p className="font-serif text-4xl leading-none font-bold text-[#111]">{rows.length}</p></article>
         <article className="rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white p-6"><p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Activos</p><p className="font-serif text-4xl leading-none font-bold text-[#111]">{activeCount}</p></article>
-        <article className="rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white p-6"><p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Admins</p><p className="font-serif text-4xl leading-none font-bold text-[#111]">{adminCount}</p></article>
-        <article className="rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white p-6"><p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Managers</p><p className="font-serif text-4xl leading-none font-bold text-[#111]">{managerCount}</p></article>
       </section>
 
       <section className="mt-2 flex flex-wrap items-center gap-2">
         <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-[34px] w-[210px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs" placeholder="Buscar administrador..." />
         <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"><option value="">Todas las locaciones</option>{[...new Set(rows.map((item) => item.branchName))].map((item) => <option key={item} value={item}>{item}</option>)}</select>
-        <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"><option value="">Todos los roles</option>{roleOptions.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}</select>
         <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"><option value="">Todos los estados</option><option value="active">Activo</option><option value="inactive">Inactivo</option></select>
       </section>
 
