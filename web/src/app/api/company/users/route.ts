@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { USERS_API_MESSAGES } from "@/shared/lib/employees-messages";
 
 const ALLOWED_ROLE_CODES = new Set(["employee", "manager", "company_admin"]);
 const ALLOWED_STATUSES = new Set(["active", "inactive"]);
@@ -39,15 +40,15 @@ export async function PATCH(request: Request) {
   const branchId = body?.branchId ? String(body.branchId).trim() : null;
 
   if (!membershipId) {
-    return NextResponse.json({ error: "Membresia invalida" }, { status: 400 });
+    return NextResponse.json({ error: USERS_API_MESSAGES.MEMBERSHIP_INVALID }, { status: 400 });
   }
 
   if (!ALLOWED_ROLE_CODES.has(roleCode)) {
-    return NextResponse.json({ error: "Rol invalido" }, { status: 400 });
+    return NextResponse.json({ error: USERS_API_MESSAGES.ROLE_INVALID }, { status: 400 });
   }
 
   if (!ALLOWED_STATUSES.has(status)) {
-    return NextResponse.json({ error: "Estado invalido" }, { status: 400 });
+    return NextResponse.json({ error: USERS_API_MESSAGES.STATUS_INVALID }, { status: 400 });
   }
 
   const { data: role, error: roleError } = await supabase
@@ -57,7 +58,7 @@ export async function PATCH(request: Request) {
     .maybeSingle();
 
   if (roleError || !role) {
-    return NextResponse.json({ error: "No se pudo resolver rol" }, { status: 400 });
+    return NextResponse.json({ error: USERS_API_MESSAGES.ROLE_RESOLUTION_FAILED }, { status: 400 });
   }
 
   if (branchId) {
@@ -70,7 +71,7 @@ export async function PATCH(request: Request) {
       .maybeSingle();
 
     if (!branch) {
-      return NextResponse.json({ error: "Locacion invalida" }, { status: 400 });
+      return NextResponse.json({ error: USERS_API_MESSAGES.LOCATION_INVALID }, { status: 400 });
     }
   }
 
@@ -82,7 +83,7 @@ export async function PATCH(request: Request) {
 
   if (updateError) {
     await logAuditEvent({
-      action: "user.membership.update",
+      action: "users.membership.update",
       entityType: "membership",
       entityId: membershipId,
       organizationId: tenant.organizationId,
@@ -97,11 +98,14 @@ export async function PATCH(request: Request) {
         error: updateError.message,
       },
     });
-    return NextResponse.json({ error: `No se pudo actualizar usuario: ${updateError.message}` }, { status: 400 });
+    return NextResponse.json(
+      { error: `${USERS_API_MESSAGES.USER_UPDATE_FAILED_PREFIX}: ${updateError.message}` },
+      { status: 400 },
+    );
   }
 
   await logAuditEvent({
-    action: "user.membership.update",
+    action: "users.membership.update",
     entityType: "membership",
     entityId: membershipId,
     organizationId: tenant.organizationId,
@@ -130,7 +134,7 @@ export async function DELETE(request: Request) {
   const membershipId = String(body?.membershipId ?? "").trim();
 
   if (!membershipId) {
-    return NextResponse.json({ error: "Membresia invalida" }, { status: 400 });
+    return NextResponse.json({ error: USERS_API_MESSAGES.MEMBERSHIP_INVALID }, { status: 400 });
   }
 
   const { error } = await supabase
@@ -141,7 +145,7 @@ export async function DELETE(request: Request) {
 
   if (error) {
     await logAuditEvent({
-      action: "user.membership.delete",
+      action: "users.membership.delete",
       entityType: "membership",
       entityId: membershipId,
       organizationId: tenant.organizationId,
@@ -153,11 +157,14 @@ export async function DELETE(request: Request) {
         error: error.message,
       },
     });
-    return NextResponse.json({ error: `No se pudo eliminar usuario: ${error.message}` }, { status: 400 });
+    return NextResponse.json(
+      { error: `${USERS_API_MESSAGES.USER_DELETE_FAILED_PREFIX}: ${error.message}` },
+      { status: 400 },
+    );
   }
 
   await logAuditEvent({
-    action: "user.membership.delete",
+    action: "users.membership.delete",
     entityType: "membership",
     entityId: membershipId,
     organizationId: tenant.organizationId,

@@ -157,7 +157,7 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
     { code: "announcements", label: "Avisos", enabled: isAnnouncementsEnabled },
     { code: "checklists", label: "Checklists", enabled: isChecklistsEnabled },
     { code: "reports", label: "Reportes", enabled: isReportsEnabled },
-    { code: "employees", label: "Empleados", enabled: isEmployeesEnabled },
+    { code: "employees", label: "Usuarios / Empleados", enabled: isEmployeesEnabled },
   ];
 
   const selectPlanId = params?.selectPlanId;

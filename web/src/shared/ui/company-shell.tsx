@@ -108,10 +108,10 @@ const SECTIONS: SidebarSection[] = [
   {
     label: "Recursos Humanos",
     items: [
-      { href: "/app/employees", label: "Empleados", icon: Users, moduleCode: "employees" },
-      { href: "/app/employees?action=create", label: "Nuevo Empleado", icon: UserPlus, sub: true, moduleCode: "employees" },
-      { href: "/app/users", label: "Usuarios", icon: User, moduleCode: "employees" },
-      { href: "/app/users?action=create-user", label: "Nuevo Usuario", icon: UserPlus, sub: true, moduleCode: "employees" },
+      { href: "/app/employees", label: "Usuarios / Empleados", icon: Users, moduleCode: "employees" },
+      { href: "/app/employees?action=create", label: "Nuevo Usuario / Empleado", icon: UserPlus, sub: true, moduleCode: "employees" },
+      { href: "/app/users", label: "Administradores", icon: User, moduleCode: "employees" },
+      { href: "/app/users?action=create-user", label: "Nuevo Administrador", icon: UserPlus, sub: true, moduleCode: "employees" },
     ],
   },
 ];

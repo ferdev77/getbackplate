@@ -2,7 +2,6 @@ import Link from "next/link";
 import { UserPlus } from "lucide-react";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { getEmployeeDirectoryView } from "@/modules/employees/services";
 import { requireTenantModule } from "@/shared/lib/access";
 import { UsersTableWorkspace } from "@/modules/employees/ui/users-table-workspace";
@@ -48,11 +47,11 @@ export default async function CompanyUsersPage({ searchParams }: CompanyUsersPag
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-[#9c938d] uppercase">Accesos</p>
-            <h1 className="mb-1 text-2xl font-bold tracking-tight text-[#241f1c]">Usuarios</h1>
-            <p className="text-sm text-[#6b635e]">Gestión de accesos, credenciales y permisos del sistema.</p>
+            <h1 className="mb-1 text-2xl font-bold tracking-tight text-[#241f1c]">Administradores</h1>
+            <p className="text-sm text-[#6b635e]">Gestión de accesos administrativos, credenciales y permisos del sistema.</p>
           </div>
           <div className="flex gap-2">
-            <Link href="/app/users?action=create-user" className="inline-flex items-center gap-1 rounded-lg bg-[#111111] px-3 py-2 text-sm font-semibold text-white hover:bg-[#c0392b]"><UserPlus className="h-4 w-4" /> Nuevo Usuario</Link>
+            <Link href="/app/users?action=create-user" className="inline-flex items-center gap-1 rounded-lg bg-[#111111] px-3 py-2 text-sm font-semibold text-white hover:bg-[#c0392b]"><UserPlus className="h-4 w-4" /> Nuevo Administrador</Link>
           </div>
         </div>
       </section>

@@ -30,7 +30,7 @@ export default async function EmployeeOnboardingPage() {
             <div className="mt-[1px] grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full bg-[#111] text-[12px] font-bold text-white">1</div>
             <div>
               <p className="mb-1 text-[14px] font-bold text-[#222]">Inicia sesion con tu usuario y contrasena</p>
-              <p className="text-[13px] leading-6 text-[#777]">Tu gerente te entrego credenciales unicas. Tu usuario es tu correo corporativo @juansrestaurants.com.</p>
+              <p className="text-[13px] leading-6 text-[#777]">Tu gerente te entrego credenciales unicas. Tu usuario suele ser tu correo corporativo.</p>
             </div>
           </div>
           <div className="flex items-start gap-4">
@@ -94,7 +94,7 @@ export default async function EmployeeOnboardingPage() {
           <div className="rounded-[10px] border-[1.5px] border-[#f0f0f0] bg-[#fafafa] p-[18px]">
             <p className="mb-2 text-[22px]">🆘</p>
             <p className="mb-1 text-[13px] font-bold text-[#333]">Problemas de acceso?</p>
-            <p className="text-[12px] leading-6 text-[#888]">Contacta a tu gerente o escribe a <span className="text-[#c0392b]">sistemas[at]juansrestaurants.com</span>.</p>
+            <p className="text-[12px] leading-6 text-[#888]">Contacta a tu gerente o al equipo de soporte interno de tu empresa.</p>
           </div>
         </div>
       </article>
