@@ -946,16 +946,10 @@ export async function PATCH(request: Request) {
   const body = await request.json().catch(() => null) as {
     employeeId?: string;
     organizationUserProfileId?: string;
-    membershipId?: string;
-    roleCode?: string;
-    branchId?: string | null;
     status?: string;
   } | null;
   const employeeId = String(body?.employeeId ?? "").trim();
   const organizationUserProfileId = String(body?.organizationUserProfileId ?? "").trim();
-  const membershipId = String(body?.membershipId ?? "").trim();
-  const roleCode = String(body?.roleCode ?? "employee").trim() || "employee";
-  const branchId = body?.branchId ? String(body.branchId).trim() : null;
   const status = String(body?.status ?? "").trim();
 
   if (!employeeId && !organizationUserProfileId) {
@@ -979,22 +973,6 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: `No se pudo actualizar estado del usuario: ${profileError.message}` }, { status: 400 });
     }
 
-    if (membershipId) {
-      const { data: role } = await supabase
-        .from("roles")
-        .select("id")
-        .eq("code", roleCode)
-        .maybeSingle();
-
-      if (role?.id) {
-        await supabase
-          .from("memberships")
-          .update({ status, role_id: role.id, branch_id: branchId })
-          .eq("organization_id", tenant.organizationId)
-          .eq("id", membershipId);
-      }
-    }
-
     await logAuditEvent({
       action: "users.profile.status.update",
       entityType: "organization_user_profile",
@@ -1006,7 +984,6 @@ export async function PATCH(request: Request) {
       metadata: {
         actor_user_id: actorId,
         status,
-        membership_id: membershipId || null,
       },
     });
 

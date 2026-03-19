@@ -17,6 +17,7 @@ type EmployeeRow = {
   phone: string | null;
   position: string | null;
   status: string;
+  dashboardAccess?: boolean;
   hiredAt: string | null;
   branchName: string;
   departmentName: string;
@@ -193,9 +194,6 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               organizationUserProfileId: selected.organizationUserProfileId,
-              membershipId: selected.membershipId,
-              roleCode: selected.roleCode,
-              branchId: selected.branchId,
               status: selectedStatus,
             }),
           });
@@ -350,7 +348,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
           onChange={(event) => setStatus(event.target.value)}
           className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"
         >
-          <option value="">Todos los estados</option>
+          <option value="">Todos los estados laborales</option>
           <option value="active">Activo</option>
           <option value="inactive">Inactivo</option>
           <option value="vacation">Vacaciones</option>
@@ -359,8 +357,8 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
       </section>
 
       <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white">
-        <div className="grid grid-cols-[minmax(200px,2fr)_minmax(100px,1fr)_minmax(120px,1.2fr)_minmax(100px,.9fr)_minmax(90px,.8fr)_136px] gap-x-3 border-b-[1.5px] border-[#e8e8e8] bg-[#fafafa] px-5 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase">
-          <p>Nombre</p><p>Locacion</p><p>Departamento</p><p>Es empleado</p><p>Estado</p><p>Acciones</p>
+        <div className="grid grid-cols-[minmax(180px,2fr)_minmax(100px,1fr)_minmax(120px,1.1fr)_minmax(100px,.8fr)_minmax(110px,.9fr)_minmax(90px,.8fr)_136px] gap-x-3 border-b-[1.5px] border-[#e8e8e8] bg-[#fafafa] px-5 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase">
+          <p>Nombre</p><p>Locacion</p><p>Departamento</p><p>Es empleado</p><p>Dashboard</p><p>Estado laboral</p><p>Acciones</p>
         </div>
         <div>
           {filteredEmployees.map((row) => {
@@ -368,7 +366,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
             return (
               <div
                 key={row.id}
-                className="grid grid-cols-[minmax(200px,2fr)_minmax(100px,1fr)_minmax(120px,1.2fr)_minmax(100px,.9fr)_minmax(90px,.8fr)_136px] items-center gap-x-3 border-b border-[#f0f0f0] px-5 py-3 text-left hover:bg-[#fafafa]"
+                className="grid grid-cols-[minmax(180px,2fr)_minmax(100px,1fr)_minmax(120px,1.1fr)_minmax(100px,.8fr)_minmax(110px,.9fr)_minmax(90px,.8fr)_136px] items-center gap-x-3 border-b border-[#f0f0f0] px-5 py-3 text-left hover:bg-[#fafafa]"
                 onClick={() => setSelectedEmployeeId(row.id)}
               >
                 <div className="flex items-center gap-2.5">
@@ -381,6 +379,11 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                 <p className="text-xs text-[#666]">{row.branchName}</p>
                 <p className="text-xs text-[#666]">{row.departmentName}</p>
                 <p className="text-xs text-[#666]">{row.recordType === "employee" ? "Si" : "No"}</p>
+                <p>
+                  <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${row.dashboardAccess ? "bg-[#edfbf3] text-[#27ae60]" : "bg-[#f5f5f5] text-[#888]"}`}>
+                    {row.dashboardAccess ? "Con acceso" : "Sin acceso"}
+                  </span>
+                </p>
                 <p>
                   <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusClass(row.status)}`}>
                     {statusLabel(row.status)}
@@ -428,6 +431,9 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                 <p className="text-xs text-[#aaa]">{selected.position || "Sin puesto"}</p>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusClass(selected.status)}`}>{statusLabel(selected.status)}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${selected.dashboardAccess ? "bg-[#edfbf3] text-[#27ae60]" : "bg-[#f5f5f5] text-[#888]"}`}>
+                    {selected.dashboardAccess ? "Dashboard: con acceso" : "Dashboard: sin acceso"}
+                  </span>
                   <span className="rounded-full bg-[#eef4ff] px-2 py-0.5 text-[11px] font-semibold text-[#2980b9]">{selected.branchName}</span>
                   <span className="rounded-full bg-[#fff5e8] px-2 py-0.5 text-[11px] font-semibold text-[#e67e22]">{selected.departmentName}</span>
                 </div>
@@ -451,7 +457,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Docs pendientes</p><p className="text-sm text-[#333]">{selected.pendingDocuments}</p></div>
             </div>
             <div className="mx-6 mb-5 rounded-xl border border-[#ece3de] bg-[#fcfaf8] p-3">
-              <p className="mb-1 text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Cambiar estado</p>
+              <p className="mb-1 text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Cambiar estado laboral</p>
               <div className="flex items-center gap-2">
                 <select
                   value={selectedStatus}
@@ -460,8 +466,8 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                 >
                   <option value="active">Activo</option>
                   <option value="inactive">Inactivo</option>
-                  <option value="vacation">Vacaciones</option>
-                  <option value="leave">Baja</option>
+                  {selected.recordType === "employee" ? <option value="vacation">Vacaciones</option> : null}
+                  {selected.recordType === "employee" ? <option value="leave">Baja</option> : null}
                 </select>
                 <button
                   type="button"

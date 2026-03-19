@@ -61,8 +61,19 @@ export function ScopeSelector({
 
   const filteredUsers = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return users;
-    return users.filter((user) => `${user.first_name} ${user.last_name}`.toLowerCase().includes(q));
+    const base = q
+      ? users.filter((user) => `${user.first_name} ${user.last_name}`.toLowerCase().includes(q))
+      : users;
+
+    return [...base].sort((a, b) => {
+      const aHasAccess = Boolean(a.user_id);
+      const bHasAccess = Boolean(b.user_id);
+      if (aHasAccess !== bHasAccess) return aHasAccess ? -1 : 1;
+
+      const aName = `${a.first_name} ${a.last_name}`.trim().toLowerCase();
+      const bName = `${b.first_name} ${b.last_name}`.trim().toLowerCase();
+      return aName.localeCompare(bName, "es");
+    });
   }, [query, users]);
 
   function toggleLocation(value: string, checked: boolean) {

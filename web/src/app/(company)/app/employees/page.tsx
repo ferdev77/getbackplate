@@ -51,6 +51,17 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
     .order("created_at", { ascending: false })
     .limit(pageLimit * 2);
 
+  const { data: organizationMemberships } = await admin
+    .from("memberships")
+    .select("user_id, status")
+    .eq("organization_id", tenant.organizationId);
+
+  const activeMembershipUserIds = new Set(
+    (organizationMemberships ?? [])
+      .filter((membership) => membership.status === "active")
+      .map((membership) => membership.user_id),
+  );
+
   const { data: authData } = await supabase.auth.getUser();
 
   const publisherName = extractDisplayName(authData.user);
@@ -94,6 +105,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
         salary_amount: editContract?.salary_amount ?? null,
         payment_frequency: editContract?.payment_frequency ?? null,
         salary_currency: editContract?.salary_currency ?? null,
+        has_dashboard_access: Boolean(editEmployee.userId && activeMembershipUserIds.has(editEmployee.userId)),
       }
     : editUserProfile
       ? {
@@ -127,6 +139,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
           salary_amount: null,
           payment_frequency: null,
           salary_currency: null,
+          has_dashboard_access: Boolean(editUserProfile.user_id && activeMembershipUserIds.has(editUserProfile.user_id)),
         }
     : undefined;
 
@@ -145,6 +158,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       phone: emp.phone,
       position: emp.position,
       status: emp.status,
+      dashboardAccess: Boolean(emp.userId && activeMembershipUserIds.has(emp.userId)),
       hiredAt: emp.hiredAt,
       branchName: emp.branchName,
       departmentName: emp.department ?? "Sin departamento",
@@ -183,7 +197,8 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       email: profile.email,
       phone: profile.phone,
       position: null,
-      status: membership?.status ?? profile.status ?? "inactive",
+      status: profile.status ?? "inactive",
+      dashboardAccess: Boolean(profile.user_id && activeMembershipUserIds.has(profile.user_id)),
       hiredAt: null,
       branchName: profile.branch_id ? (branchNameById.get(profile.branch_id) ?? "Sin locacion") : "Sin locacion",
       departmentName: profile.department_id ? (departmentNameById.get(profile.department_id) ?? "Sin departamento") : "Sin departamento",
@@ -233,7 +248,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       <EmployeesTableWorkspace employees={directoryRows} />
 
       <NewEmployeeModal
-        key={initialEmployeeData?.id ?? "new"}
+        key={initialEmployeeData?.id || initialEmployeeData?.organization_user_profile_id || "new"}
         open={openEmployeeModal}
         mode={(action === "edit" || action === "edit-employee" || action === "edit-user") ? "edit" : "create"}
         initialEmployee={initialEmployeeData}
