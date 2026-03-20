@@ -7,8 +7,8 @@ Este documento compara el estado real del proyecto contra el texto objetivo de "
 ## Resumen ejecutivo
 
 - Cumplido: 11
-- Parcial: 7
-- Pendiente: 7
+- Parcial: 8
+- Pendiente: 6
 - Fuera de alcance por definicion (bloque futuro): 1
 
 ---
@@ -29,7 +29,7 @@ Este documento compara el estado real del proyecto contra el texto objetivo de "
 
 - [x] Invitaciones: "Reenviar invitacion" en edicion de cliente
   - Estado: **Cumplido**
-  - Evidencia: boton "Reenviar invitación" en modal edit + action `resendOrganizationInvitationAction`.
+  - Evidencia: boton "Reenviar invitación" en modal edit + endpoint `POST /api/superadmin/organizations/invitations/resend` con feedback inline sin recarga en `web/src/modules/organizations/ui/resend-invitation-button.tsx`.
 
 - [x] Sidebar: filtro por locacion solo si hay multiples locaciones
   - Estado: **Cumplido**
@@ -91,9 +91,9 @@ Este documento compara el estado real del proyecto contra el texto objetivo de "
   - Estado: **Pendiente**
   - Evidencia: no hay flujo de "share by email" de documento.
 
-- [ ] Evento primer login cliente + notificacion automatica
-  - Estado: **Pendiente**
-  - Evidencia: existe marca de onboarding (`onboarding_seen_at`), no trigger/accion de notificacion automatica.
+- [~] Evento primer login cliente + notificacion automatica
+  - Estado: **Parcial**
+  - Evidencia: se implemento primer ingreso con cambio obligatorio de contraseña (`force_password_change`) y pantalla dedicada `web/src/app/auth/change-password/page.tsx`; aun falta trigger de notificacion automatica.
 
 ---
 
@@ -194,6 +194,8 @@ Una vez aprobado, se implementa por fases con PRs cortos y validacion funcional 
   - ruta dedicada `dashboard/location`
   - mejora UX dashboard por locacion: accesos directos por nombre de locacion en sidebar, chips de contexto y eliminacion de navegacion redundante
   - invitaciones superadmin: `Enviar invitación` en creación y `Reenviar invitación` en edición
+  - flujo de credenciales iniciales: contraseña temporal definida por superadmin + cambio obligatorio en primer ingreso
+  - recuperación de contraseña habilitada desde login (`/auth/forgot-password`)
 
 
 

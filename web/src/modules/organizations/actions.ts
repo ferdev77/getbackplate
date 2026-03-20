@@ -460,49 +460,6 @@ export async function createOrganizationAction(formData: FormData) {
   );
 }
 
-export async function resendOrganizationInvitationAction(formData: FormData) {
-  await requireSuperadmin();
-
-  const organizationId = String(formData.get("organization_id") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const fullName = String(formData.get("full_name") ?? "").trim() || "Administrador";
-
-  if (!organizationId || !email) {
-    redirect(
-      "/superadmin/organizations?status=error&message=" +
-        qs("No se pudo reenviar invitacion: faltan datos"),
-    );
-  }
-
-  const supabaseUser = await createSupabaseServerClient();
-  const { data: authData } = await supabaseUser.auth.getUser();
-
-  const invitation = await sendOrganizationAdminInvitation({
-    organizationId,
-    email,
-    fullName,
-    activateMembership: true,
-    sentBy: authData.user?.id ?? null,
-  });
-
-  if (!invitation.ok) {
-    redirect(
-      `/superadmin/organizations?action=edit&org=${organizationId}&status=error&message=` +
-        qs(`No se pudo reenviar invitacion: ${invitation.message}`),
-    );
-  }
-
-  revalidatePath("/superadmin/organizations");
-  const resendMessage =
-    invitation.mode === "recovery"
-      ? `Correo de acceso reenviado a ${email}`
-      : `Invitacion reenviada a ${email}`;
-  redirect(
-    `/superadmin/organizations?action=edit&org=${organizationId}&status=success&message=` +
-      qs(resendMessage),
-  );
-}
-
 export async function toggleOrganizationModuleAction(formData: FormData) {
   await requireSuperadmin();
 
