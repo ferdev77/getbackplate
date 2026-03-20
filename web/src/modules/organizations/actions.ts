@@ -117,11 +117,10 @@ async function sendOrganizationAdminInvitation(params: {
 
   async function sendRecoveryFallback(email: string) {
     const redirectTo = appUrl ? `${appUrl.replace(/\/$/, "")}/auth/login` : undefined;
-    const { error } = await supabase.auth.admin.generateLink({
-      type: "recovery",
+    const { error } = await supabase.auth.resetPasswordForEmail(
       email,
-      options: redirectTo ? { redirectTo } : undefined,
-    });
+      redirectTo ? { redirectTo } : undefined,
+    );
     return error;
   }
 
@@ -129,14 +128,16 @@ async function sendOrganizationAdminInvitation(params: {
   let userId = existingUser?.id ?? null;
   let deliveryMode: "invite" | "recovery" = "invite";
 
-  if (userId && params.password) {
-    const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
-      password: params.password,
-      email_confirm: true,
-      user_metadata: { full_name: params.fullName },
-    });
-    if (updateError) {
-      return { ok: false as const, message: updateError.message };
+  if (userId) {
+    if (params.password) {
+      const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
+        password: params.password,
+        email_confirm: true,
+        user_metadata: { full_name: params.fullName },
+      });
+      if (updateError) {
+        return { ok: false as const, message: updateError.message };
+      }
     }
 
     const recoveryError = await sendRecoveryFallback(params.email);
@@ -154,6 +155,7 @@ async function sendOrganizationAdminInvitation(params: {
           reason: "existing_user",
         },
       });
+      return { ok: false as const, message: `No se pudo enviar correo de acceso: ${recoveryError.message}` };
     } else {
       deliveryMode = "recovery";
       await logAuditEvent({
