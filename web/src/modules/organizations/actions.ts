@@ -83,7 +83,7 @@ async function createInvitationRecord(params: {
   const code = invitationCode();
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString();
 
-  await supabase.from("organization_invitations").insert({
+  const { error } = await supabase.from("organization_invitations").insert({
     organization_id: params.organizationId,
     email: params.email,
     full_name: params.fullName,
@@ -95,6 +95,8 @@ async function createInvitationRecord(params: {
     source: "superadmin",
     metadata: params.metadata ?? {},
   });
+
+  return error;
 }
 
 async function sendOrganizationAdminInvitation(params: {
@@ -113,11 +115,22 @@ async function sendOrganizationAdminInvitation(params: {
   let userId = existingUser?.id ?? null;
 
   if (!userId) {
-    const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/login`;
-    const { data: invited, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(params.email, {
-      redirectTo,
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+    const inviteOptions: {
+      redirectTo?: string;
+      data: Record<string, unknown>;
+    } = {
       data: { full_name: params.fullName },
-    });
+    };
+
+    if (appUrl) {
+      inviteOptions.redirectTo = `${appUrl.replace(/\/$/, "")}/auth/login`;
+    }
+
+    const { data: invited, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
+      params.email,
+      inviteOptions,
+    );
 
     if (inviteError) {
       return { ok: false as const, message: inviteError.message };
@@ -158,13 +171,17 @@ async function sendOrganizationAdminInvitation(params: {
     return { ok: false as const, message: membershipError.message };
   }
 
-  await createInvitationRecord({
+  const invitationError = await createInvitationRecord({
     organizationId: params.organizationId,
     email: params.email,
     fullName: params.fullName,
     sentBy: params.sentBy,
     metadata: { mode: "superadmin_invite" },
   });
+
+  if (invitationError) {
+    return { ok: false as const, message: `No se pudo guardar invitacion: ${invitationError.message}` };
+  }
 
   await logAuditEvent({
     action: "organization.invitation.send",
