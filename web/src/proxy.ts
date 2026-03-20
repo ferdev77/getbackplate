@@ -30,7 +30,7 @@ export async function proxy(request: NextRequest) {
   const hasTokenHashFlow =
     request.nextUrl.searchParams.has("token_hash") &&
     request.nextUrl.searchParams.has("type");
-  if ((hasAuthCode || hasTokenHashFlow) && path !== "/auth/callback") {
+  if ((hasAuthCode || hasTokenHashFlow) && !path.startsWith("/auth/callback")) {
     const callbackUrl = request.nextUrl.clone();
     callbackUrl.pathname = "/auth/callback";
 
