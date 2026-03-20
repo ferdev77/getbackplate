@@ -113,8 +113,21 @@ async function sendOrganizationAdminInvitation(params: {
     return { ok: false as const, message: "No se encontro rol company_admin" };
   }
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+
+  async function sendRecoveryFallback(email: string) {
+    const redirectTo = appUrl ? `${appUrl.replace(/\/$/, "")}/auth/login` : undefined;
+    const { error } = await supabase.auth.admin.generateLink({
+      type: "recovery",
+      email,
+      options: redirectTo ? { redirectTo } : undefined,
+    });
+    return error;
+  }
+
   const existingUser = await findAuthUserByEmail(params.email);
   let userId = existingUser?.id ?? null;
+  let deliveryMode: "invite" | "recovery" = "invite";
 
   if (userId && params.password) {
     const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
@@ -125,15 +138,49 @@ async function sendOrganizationAdminInvitation(params: {
     if (updateError) {
       return { ok: false as const, message: updateError.message };
     }
+
+    const recoveryError = await sendRecoveryFallback(params.email);
+    if (recoveryError) {
+      await logAuditEvent({
+        action: "organization.invitation.fallback_recovery.failed",
+        entityType: "organization_invitation",
+        organizationId: params.organizationId,
+        eventDomain: "superadmin",
+        outcome: "error",
+        severity: "medium",
+        metadata: {
+          email: params.email,
+          error: recoveryError.message,
+          reason: "existing_user",
+        },
+      });
+    } else {
+      deliveryMode = "recovery";
+      await logAuditEvent({
+        action: "organization.invitation.fallback_recovery.sent",
+        entityType: "organization_invitation",
+        organizationId: params.organizationId,
+        eventDomain: "superadmin",
+        outcome: "success",
+        severity: "low",
+        metadata: {
+          email: params.email,
+          reason: "existing_user",
+        },
+      });
+    }
   }
 
   if (!userId) {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
     const inviteOptions: {
       redirectTo?: string;
       data: Record<string, unknown>;
     } = {
-      data: { full_name: params.fullName },
+      data: {
+        full_name: params.fullName,
+        login_email: params.email,
+        login_password: params.password ?? "",
+      },
     };
 
     if (appUrl) {
@@ -146,7 +193,36 @@ async function sendOrganizationAdminInvitation(params: {
     );
 
     if (inviteError) {
-      return { ok: false as const, message: inviteError.message };
+      const recoveryError = await sendRecoveryFallback(params.email);
+      if (!recoveryError) {
+        deliveryMode = "recovery";
+        await logAuditEvent({
+          action: "organization.invitation.fallback_recovery.sent",
+          entityType: "organization_invitation",
+          organizationId: params.organizationId,
+          eventDomain: "superadmin",
+          outcome: "success",
+          severity: "low",
+          metadata: {
+            email: params.email,
+            reason: "invite_error",
+            invite_error: inviteError.message,
+          },
+        });
+      }
+
+      if (!recoveryError) {
+        return {
+          ok: true as const,
+          mode: "recovery" as const,
+          message: "Invite no disponible; se envio correo de recuperacion.",
+        };
+      }
+
+      return {
+        ok: false as const,
+        message: `${inviteError.message}. Fallback recovery fallo: ${recoveryError.message}`,
+      };
     }
 
     userId = invited.user?.id ?? null;
@@ -215,10 +291,11 @@ async function sendOrganizationAdminInvitation(params: {
       email: params.email,
       role: "company_admin",
       membership_status: params.activateMembership ? "active" : "invited",
+      fallback_recovery_enabled: true,
     },
   });
 
-  return { ok: true as const };
+  return { ok: true as const, mode: deliveryMode as const };
 }
 
 export async function createOrganizationAction(formData: FormData) {
@@ -342,9 +419,13 @@ export async function createOrganizationAction(formData: FormData) {
   });
 
   revalidatePath("/superadmin/organizations");
+  const successMessage =
+    invitation.mode === "recovery"
+      ? `Empresa creada. Usuario configurado y correo de acceso enviado a ${adminEmail}`
+      : `Empresa creada. Invitacion enviada a ${adminEmail}`;
   redirect(
     "/superadmin/organizations?status=success&message=" +
-      qs(`Empresa creada. Invitacion enviada a ${adminEmail}`),
+      qs(successMessage),
   );
 }
 
@@ -369,6 +450,7 @@ export async function resendOrganizationInvitationAction(formData: FormData) {
     organizationId,
     email,
     fullName,
+    activateMembership: true,
     sentBy: authData.user?.id ?? null,
   });
 
@@ -380,9 +462,13 @@ export async function resendOrganizationInvitationAction(formData: FormData) {
   }
 
   revalidatePath("/superadmin/organizations");
+  const resendMessage =
+    invitation.mode === "recovery"
+      ? `Correo de acceso reenviado a ${email}`
+      : `Invitacion reenviada a ${email}`;
   redirect(
     `/superadmin/organizations?action=edit&org=${organizationId}&status=success&message=` +
-      qs(`Invitacion reenviada a ${email}`),
+      qs(resendMessage),
   );
 }
 
