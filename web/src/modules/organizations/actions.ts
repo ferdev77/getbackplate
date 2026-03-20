@@ -115,7 +115,7 @@ async function sendOrganizationAdminInvitation(params: {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
   const callbackRedirectTo = appUrl
-    ? `${appUrl.replace(/\/$/, "")}/auth/callback/${encodeURIComponent(params.organizationId)}`
+    ? `${appUrl.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent("/app/dashboard")}&org=${encodeURIComponent(params.organizationId)}`
     : undefined;
 
   async function sendAccessEmail(email: string) {
