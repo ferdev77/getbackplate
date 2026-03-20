@@ -115,13 +115,28 @@ async function sendOrganizationAdminInvitation(params: {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
 
-  async function sendRecoveryFallback(email: string) {
+  async function sendAccessEmail(email: string) {
     const redirectTo = appUrl ? `${appUrl.replace(/\/$/, "")}/auth/login` : undefined;
-    const { error } = await supabase.auth.resetPasswordForEmail(
+
+    const server = await createSupabaseServerClient();
+    const { error: otpError } = await server.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: redirectTo,
+      },
+    });
+
+    if (!otpError) {
+      return null;
+    }
+
+    const { error: recoveryError } = await supabase.auth.resetPasswordForEmail(
       email,
       redirectTo ? { redirectTo } : undefined,
     );
-    return error;
+
+    return recoveryError ?? otpError;
   }
 
   const existingUser = await findAuthUserByEmail(params.email);
@@ -140,7 +155,7 @@ async function sendOrganizationAdminInvitation(params: {
       }
     }
 
-    const recoveryError = await sendRecoveryFallback(params.email);
+    const recoveryError = await sendAccessEmail(params.email);
     if (recoveryError) {
       await logAuditEvent({
         action: "organization.invitation.fallback_recovery.failed",
@@ -195,7 +210,7 @@ async function sendOrganizationAdminInvitation(params: {
     );
 
     if (inviteError) {
-      const recoveryError = await sendRecoveryFallback(params.email);
+      const recoveryError = await sendAccessEmail(params.email);
       if (!recoveryError) {
         deliveryMode = "recovery";
         await logAuditEvent({
@@ -312,14 +327,14 @@ export async function createOrganizationAction(formData: FormData) {
 
   if (!name || !adminEmail || !adminFullName || !adminPassword) {
     redirect(
-      "/superadmin/organizations?status=error&message=" +
+      "/superadmin/organizations?action=create&status=error&message=" +
         qs("Completa nombre de empresa y datos del admin inicial"),
     );
   }
 
   if (adminPassword.length < 8) {
     redirect(
-      "/superadmin/organizations?status=error&message=" +
+      "/superadmin/organizations?action=create&status=error&message=" +
         qs("La contrasena del admin inicial debe tener al menos 8 caracteres"),
     );
   }
@@ -344,7 +359,7 @@ export async function createOrganizationAction(formData: FormData) {
 
   if (orgError || !org) {
     redirect(
-      "/superadmin/organizations?status=error&message=" +
+      "/superadmin/organizations?action=create&status=error&message=" +
         qs(`No se pudo crear la organizacion: ${orgError?.message ?? "error"}`),
     );
   }
@@ -404,7 +419,7 @@ export async function createOrganizationAction(formData: FormData) {
 
   if (!invitation.ok) {
     redirect(
-      "/superadmin/organizations?status=error&message=" +
+      "/superadmin/organizations?action=create&status=error&message=" +
         qs(`Organizacion creada, pero fallo envio de invitacion: ${invitation.message}`),
     );
   }
