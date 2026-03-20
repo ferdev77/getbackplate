@@ -328,20 +328,19 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
                       <SuperadminInputField label="Email Corporativo" name="admin_email" type="email" autoComplete="off" required placeholder="admin@empresa.com" />
                       <SuperadminInputField label="Contraseña" name="admin_password" type="password" autoComplete="new-password" required minLength={8} placeholder="••••••••" />
                     </div>
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      Se creará la cuenta del administrador con esta contraseña y además se enviará email de invitación.
+                    </p>
                   </div>
 
                   <div className="flex flex-wrap justify-end gap-3 pt-1">
                     <Link href="/superadmin/organizations" className="rounded-xl border border-line bg-white px-6 py-2.5 text-sm font-bold text-muted-foreground transition-all hover:bg-muted">Cancelar</Link>
                     <SubmitButton
-                      label="Enviar invitación"
-                      pendingLabel="Enviando invitación..."
-                      variant="ghost"
-                      formNoValidate
-                      name="admin_invite_mode"
-                      value="invite"
-                      className="rounded-xl border border-brand bg-white px-6 py-2.5 text-sm font-bold text-brand hover:bg-brand/5"
+                      label="Crear y enviar invitación"
+                      pendingLabel="Creando organización y enviando..."
+                      variant="primary"
+                      className="rounded-xl px-8 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/20"
                     />
-                    <button type="submit" className="rounded-xl bg-brand px-8 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/20 transition-all hover:bg-brand-dark">Confirmar Registro</button>
                   </div>
                 </form>
               )}
