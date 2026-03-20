@@ -7,6 +7,7 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get("code");
   const tokenHash = requestUrl.searchParams.get("token_hash");
   const type = requestUrl.searchParams.get("type");
+  const org = requestUrl.searchParams.get("org");
   const next = requestUrl.searchParams.get("next") ?? "/";
 
   const supabase = await createSupabaseServerClient();
@@ -20,5 +21,10 @@ export async function GET(request: Request) {
     });
   }
 
-  return NextResponse.redirect(new URL(next, requestUrl.origin));
+  const redirectUrl = new URL(next, requestUrl.origin);
+  if (org && !redirectUrl.searchParams.has("org") && redirectUrl.pathname.startsWith("/app/")) {
+    redirectUrl.searchParams.set("org", org);
+  }
+
+  return NextResponse.redirect(redirectUrl);
 }
