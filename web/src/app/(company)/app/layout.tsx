@@ -8,6 +8,7 @@ import {
   getActiveBranches,
 } from "@/modules/organizations/queries";
 import { requireCompanyAccess } from "@/shared/lib/access";
+import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impersonation";
 import { CompanyShell } from "@/shared/ui/company-shell";
 import { FadeIn } from "@/shared/ui/animations";
 
@@ -22,6 +23,10 @@ export default async function CompanyLayout({
     getCurrentUser(),
     getOrganizationById(tenant.organizationId),
   ]);
+
+  const impersonationSession = user
+    ? await resolveActiveSuperadminImpersonationSession(user.id)
+    : null;
 
   const [orgSettings, preferences, activePlans, enabledModuleCodes, activeBranches] = await Promise.all([
     getOrganizationSettings(tenant.organizationId),
@@ -70,7 +75,11 @@ export default async function CompanyLayout({
       organizationLabel={organization?.name ?? ""}
       sessionUserName={profileName}
       sessionUserEmail={user?.email ?? ""}
-      sessionRoleLabel={roleLabelByCode[tenant.roleCode] ?? tenant.roleCode}
+      sessionRoleLabel={
+        impersonationSession
+          ? "Superadmin (impersonando)"
+          : (roleLabelByCode[tenant.roleCode] ?? tenant.roleCode)
+      }
       sessionAvatarUrl={avatarUrl}
       tenantId={tenant.organizationId}
       settingsSnapshot={{
@@ -105,6 +114,7 @@ export default async function CompanyLayout({
       currentPlanName={inferredCurrentPlan?.name ?? "Sin plan"}
       enabledModules={enabledModules}
       branchOptions={activeBranches}
+      impersonationMode={Boolean(impersonationSession)}
     >
       <FadeIn>
         {children}
