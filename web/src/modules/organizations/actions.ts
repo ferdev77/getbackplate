@@ -295,7 +295,7 @@ async function sendOrganizationAdminInvitation(params: {
     },
   });
 
-  return { ok: true as const, mode: deliveryMode as const };
+  return { ok: true as const, mode: deliveryMode };
 }
 
 export async function createOrganizationAction(formData: FormData) {
