@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   const server = await createSupabaseServerClient();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
   const redirectTo = appUrl
-    ? `${appUrl.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent(`/app/dashboard?org=${organizationId}`)}`
+    ? `${appUrl.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent("/app/dashboard")}&org=${encodeURIComponent(organizationId)}`
     : undefined;
 
   const existingUser = await findAuthUserByEmail(email);
