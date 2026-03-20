@@ -13,6 +13,7 @@ import {
   FolderOpen,
   Megaphone,
   UsersRound,
+  type LucideIcon,
 } from "lucide-react";
 import { SlideUp, AnimatedList, AnimatedItem } from "@/shared/ui/animations";
 
@@ -96,6 +97,48 @@ const QUICK_ACTIONS = [
   { href: "/app/employees", label: "Agregar usuario/empleado", icon: UsersRound, moduleCode: "employees" },
 ];
 
+function DashboardMetricCard({
+  icon: Icon,
+  label,
+  value,
+  subtitle,
+  details,
+  progress,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string | number;
+  subtitle?: string;
+  details: Array<{ label: string; value: string | number }>;
+  progress?: { value: number; label: string };
+}) {
+  return (
+    <article className="group rounded-xl border border-[#e7e0dc] bg-white p-4 h-full transition hover:-translate-y-[1px] hover:shadow-[0_10px_26px_rgba(0,0,0,.09)]">
+      <p className="flex items-center gap-1 text-xs text-[#8a817b]"><Icon className="h-3.5 w-3.5" /> {label}</p>
+      <p className="mt-1 text-2xl font-bold text-[#2a2420]">{value}</p>
+      {subtitle ? <p className="mt-1 text-[11px] text-[#8a817b]">{subtitle}</p> : null}
+      {progress ? (
+        <>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#efe8e4]">
+            <div className="h-full rounded-full bg-[#c0392b]" style={{ width: `${Math.max(0, Math.min(progress.value, 100))}%` }} />
+          </div>
+          <p className="mt-1 text-[10px] text-[#9a908a]">{progress.label}</p>
+        </>
+      ) : null}
+      <div className="mt-2 rounded-lg border border-[#ece4df] bg-[#fffdfa] p-2 transition duration-200 group-hover:border-[#dccfc8] group-hover:bg-[#fdf8f5]">
+        <div className="grid gap-1">
+          {details.map((detail) => (
+            <p key={detail.label} className="flex items-center justify-between gap-2 text-[11px] text-[#6f6762]">
+              <span>{detail.label}</span>
+              <span className="font-semibold text-[#3a332f]">{detail.value}</span>
+            </p>
+          ))}
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export function CompanyDashboardWorkspace({
   organizationName,
   organizationSlug,
@@ -140,6 +183,10 @@ export function CompanyDashboardWorkspace({
       : operationTone === "warning"
         ? "border-amber-200 bg-amber-50 text-amber-700"
         : "border-emerald-200 bg-emerald-50 text-emerald-700";
+  const checklistsTodayValue = showChecklistsPanel ? checklistTodayCount : 0;
+  const checklistsWeekValue = showChecklistsPanel ? checklistWeekCount : 0;
+  const pendingReviewValue = showChecklistsPanel ? pendingReviewCount : 0;
+  const openFlagsValue = showChecklistsPanel ? openFlagsCount : 0;
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
@@ -164,35 +211,57 @@ export function CompanyDashboardWorkspace({
 
       <AnimatedList className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <AnimatedItem>
-          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full transition hover:-translate-y-[1px] hover:shadow-[0_8px_20px_rgba(0,0,0,.08)]">
-            <p className="flex items-center gap-1 text-xs text-[#8a817b]"><Building2 className="h-3.5 w-3.5" /> Empresa</p>
-            <p className="mt-1 text-base font-semibold">{organizationSlug}</p>
-          </article>
+          <DashboardMetricCard
+            icon={Building2}
+            label="Empresa"
+            value={organizationSlug}
+            subtitle={organizationName}
+            details={[
+              { label: "Estado", value: statusLabel(organizationStatus) },
+              { label: "Sucursales activas", value: branchesCount },
+              { label: "Vista", value: selectedBranchName ? selectedBranchName : "General" },
+            ]}
+          />
         </AnimatedItem>
         <AnimatedItem>
-          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full transition hover:-translate-y-[1px] hover:shadow-[0_8px_20px_rgba(0,0,0,.08)]">
-            <p className="flex items-center gap-1 text-xs text-[#8a817b]"><UsersRound className="h-3.5 w-3.5" /> Usuarios / Empleados</p>
-            <p className="mt-1 text-2xl font-bold">{employeesCount}</p>
-            <p className="mt-1 text-[11px] text-[#8a817b]">Empleados: {employeesOnlyCount} · Usuarios: {usersOnlyCount}</p>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#efe8e4]">
-              <div className="h-full rounded-full bg-[#c0392b]" style={{ width: `${employeeRatio}%` }} />
-            </div>
-            <p className="mt-1 text-[10px] text-[#9a908a]">Composicion laboral: {employeeRatio}% empleados</p>
-          </article>
+          <DashboardMetricCard
+            icon={UsersRound}
+            label="Usuarios / Empleados"
+            value={employeesCount}
+            subtitle={`Empleados: ${employeesOnlyCount} · Usuarios: ${usersOnlyCount}`}
+            progress={{ value: employeeRatio, label: `Composicion laboral: ${employeeRatio}% empleados` }}
+            details={[
+              { label: "Empleados", value: employeesOnlyCount },
+              { label: "Usuarios", value: usersOnlyCount },
+              { label: "Total workforce", value: workforceTotal },
+            ]}
+          />
         </AnimatedItem>
         <AnimatedItem>
-          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full transition hover:-translate-y-[1px] hover:shadow-[0_8px_20px_rgba(0,0,0,.08)]">
-            <p className="flex items-center gap-1 text-xs text-[#8a817b]"><CheckCircle2 className="h-3.5 w-3.5" /> Checklists hoy</p>
-            <p className="mt-1 text-2xl font-bold">{checklistTodayCount}</p>
-          </article>
+          <DashboardMetricCard
+            icon={CheckCircle2}
+            label="Checklists hoy"
+            value={checklistsTodayValue}
+            subtitle={showChecklistsPanel ? "Actividad del dia en curso" : "Modulo deshabilitado"}
+            details={[
+              { label: "Semana", value: checklistsWeekValue },
+              { label: "Pendientes", value: pendingReviewValue },
+              { label: "Incidencias", value: openFlagsValue },
+            ]}
+          />
         </AnimatedItem>
         <AnimatedItem>
-          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full transition hover:-translate-y-[1px] hover:shadow-[0_8px_20px_rgba(0,0,0,.08)]">
+          <article className="group rounded-xl border border-[#e7e0dc] bg-white p-4 h-full transition hover:-translate-y-[1px] hover:shadow-[0_10px_26px_rgba(0,0,0,.09)]">
             <p className="text-xs text-[#8a817b]">Estado tenant</p>
             <p className="mt-1 inline-block rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-sm font-semibold text-emerald-700">
               {statusLabel(organizationStatus)}
             </p>
             <p className={`mt-2 inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${operationToneClass}`}>{operationToneLabel}</p>
+            <div className="mt-2 rounded-lg border border-[#ece4df] bg-[#fffdfa] p-2 transition duration-200 group-hover:border-[#dccfc8] group-hover:bg-[#fdf8f5]">
+              <p className="flex items-center justify-between gap-2 text-[11px] text-[#6f6762]"><span>Pendientes revision</span><span className="font-semibold text-[#3a332f]">{pendingReviewValue}</span></p>
+              <p className="mt-1 flex items-center justify-between gap-2 text-[11px] text-[#6f6762]"><span>Incidencias abiertas</span><span className="font-semibold text-[#3a332f]">{openFlagsValue}</span></p>
+              <p className="mt-1 flex items-center justify-between gap-2 text-[11px] text-[#6f6762]"><span>Checklists semana</span><span className="font-semibold text-[#3a332f]">{checklistsWeekValue}</span></p>
+            </div>
           </article>
         </AnimatedItem>
       </AnimatedList>
