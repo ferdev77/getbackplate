@@ -1,3 +1,5 @@
+import { normalizeScopeSelection } from "@/shared/lib/scope-validation";
+
 export type AnnouncementScope = {
   locations: string[];
   department_ids: string[];
@@ -5,16 +7,12 @@ export type AnnouncementScope = {
   users: string[];
 };
 
-function unique(values: string[]) {
-  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
-}
-
 export function readAnnouncementScopeFromFormData(formData: FormData): AnnouncementScope {
   return {
-    locations: unique(formData.getAll("location_scope").map(String)),
-    department_ids: unique(formData.getAll("department_scope").map(String)),
-    position_ids: unique(formData.getAll("position_scope").map(String)),
-    users: unique(formData.getAll("user_scope").map(String)),
+    locations: normalizeScopeSelection(formData.getAll("location_scope").map(String), { allowAllToken: true }),
+    department_ids: normalizeScopeSelection(formData.getAll("department_scope").map(String), { allowAllToken: true }),
+    position_ids: normalizeScopeSelection(formData.getAll("position_scope").map(String), { allowAllToken: true }),
+    users: normalizeScopeSelection(formData.getAll("user_scope").map(String), { allowAllToken: true }),
   };
 }
 

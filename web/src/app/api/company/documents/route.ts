@@ -162,7 +162,7 @@ export async function POST(request: Request) {
     departmentIds: effectiveScope.department_ids,
     positionIds: effectiveScope.position_ids,
     userIds: effectiveScope.users,
-    userSource: "employees",
+    userSource: "memberships",
   });
 
   if (!scopeValidation.ok) {
@@ -289,16 +289,16 @@ export async function PATCH(request: Request) {
   const title = typeof body?.title === "string" ? body.title.trim() : null;
   const folderId = typeof body?.folderId === "string" ? body.folderId.trim() : body?.folderId === null ? null : undefined;
   const locationScope = Array.isArray(body?.locationScope)
-    ? [...new Set(body.locationScope.map((value) => String(value).trim()).filter(Boolean))]
+    ? normalizeScopeSelection(body.locationScope.map((value) => String(value)), { allowAllToken: true })
     : undefined;
   const departmentScope = Array.isArray(body?.departmentScope)
-    ? [...new Set(body.departmentScope.map((value) => String(value).trim()).filter(Boolean))]
+    ? normalizeScopeSelection(body.departmentScope.map((value) => String(value)), { allowAllToken: true })
     : undefined;
   const positionScope = Array.isArray(body?.positionScope)
-    ? [...new Set(body.positionScope.map((value) => String(value).trim()).filter(Boolean))]
+    ? normalizeScopeSelection(body.positionScope.map((value) => String(value)), { allowAllToken: true })
     : undefined;
   const userScope = Array.isArray(body?.userScope)
-    ? [...new Set(body.userScope.map((value) => String(value).trim()).filter(Boolean))]
+    ? normalizeScopeSelection(body.userScope.map((value) => String(value)), { allowAllToken: true })
     : undefined;
 
   if (!documentId) {
@@ -334,49 +334,24 @@ export async function PATCH(request: Request) {
     targetFolderScope = parseDocumentScope(folder.access_scope);
   }
 
-  if (locationScope && locationScope.length) {
-    const { data: rows } = await supabase
-      .from("branches")
-      .select("id")
-      .eq("organization_id", tenant.organizationId)
-      .in("id", locationScope);
-    if ((rows?.length ?? 0) !== locationScope.length) {
-      return NextResponse.json({ error: "Locaciones invalidas" }, { status: 400 });
-    }
-  }
-
-  if (departmentScope && departmentScope.length) {
-    const { data: rows } = await supabase
-      .from("organization_departments")
-      .select("id")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .in("id", departmentScope);
-    if ((rows?.length ?? 0) !== departmentScope.length) {
-      return NextResponse.json({ error: "Departamentos invalidos" }, { status: 400 });
-    }
-  }
-
-  if (userScope && userScope.length) {
-    const { data: rows } = await supabase
-      .from("employees")
-      .select("user_id")
-      .eq("organization_id", tenant.organizationId)
-      .in("user_id", userScope);
-    if ((rows?.length ?? 0) !== userScope.length) {
-      return NextResponse.json({ error: "Usuarios invalidos" }, { status: 400 });
-    }
-  }
-
-  if (positionScope && positionScope.length) {
-    const { data: rows } = await supabase
-      .from("department_positions")
-      .select("id")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .in("id", positionScope);
-    if ((rows?.length ?? 0) !== positionScope.length) {
-      return NextResponse.json({ error: "Puestos invalidos" }, { status: 400 });
+  if (locationScope || departmentScope || positionScope || userScope) {
+    const scopeValidation = await validateTenantScopeReferences({
+      supabase,
+      organizationId: tenant.organizationId,
+      locationIds: locationScope,
+      departmentIds: departmentScope,
+      positionIds: positionScope,
+      userIds: userScope,
+      userSource: "memberships",
+    });
+    if (!scopeValidation.ok) {
+      const messageByField = {
+        locations: "Locaciones invalidas",
+        departments: "Departamentos invalidos",
+        positions: "Puestos invalidos",
+        users: "Usuarios invalidos",
+      } as const;
+      return NextResponse.json({ error: messageByField[scopeValidation.field] }, { status: 400 });
     }
   }
 

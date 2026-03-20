@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
 
 async function requireContext() {
   const moduleAccess = await assertCompanyManagerModuleApi("documents");
@@ -37,18 +38,22 @@ export async function POST(request: Request) {
 
   const name = String(body?.name ?? "").trim();
   const parentId = typeof body?.parentId === "string" ? body.parentId.trim() : body?.parentId === null ? null : null;
-  const locationScope = Array.isArray(body?.locationScope)
-    ? [...new Set(body.locationScope.map((value) => String(value).trim()).filter(Boolean))]
-    : [];
-  const departmentScope = Array.isArray(body?.departmentScope)
-    ? [...new Set(body.departmentScope.map((value) => String(value).trim()).filter(Boolean))]
-    : [];
-  const positionScope = Array.isArray(body?.positionScope)
-    ? [...new Set(body.positionScope.map((value) => String(value).trim()).filter(Boolean))]
-    : [];
-  const userScope = Array.isArray(body?.userScope)
-    ? [...new Set(body.userScope.map((value) => String(value).trim()).filter(Boolean))]
-    : [];
+  const locationScope = normalizeScopeSelection(
+    Array.isArray(body?.locationScope) ? body.locationScope.map((value) => String(value)) : [],
+    { allowAllToken: true },
+  );
+  const departmentScope = normalizeScopeSelection(
+    Array.isArray(body?.departmentScope) ? body.departmentScope.map((value) => String(value)) : [],
+    { allowAllToken: true },
+  );
+  const positionScope = normalizeScopeSelection(
+    Array.isArray(body?.positionScope) ? body.positionScope.map((value) => String(value)) : [],
+    { allowAllToken: true },
+  );
+  const userScope = normalizeScopeSelection(
+    Array.isArray(body?.userScope) ? body.userScope.map((value) => String(value)) : [],
+    { allowAllToken: true },
+  );
 
   if (!name) {
     return NextResponse.json({ error: "Nombre de carpeta requerido" }, { status: 400 });
@@ -67,50 +72,23 @@ export async function POST(request: Request) {
     }
   }
 
-  if (locationScope.length) {
-    const { data: rows } = await supabase
-      .from("branches")
-      .select("id")
-      .eq("organization_id", tenant.organizationId)
-      .in("id", locationScope);
-    if ((rows?.length ?? 0) !== locationScope.length) {
-      return NextResponse.json({ error: "Locaciones invalidas" }, { status: 400 });
-    }
-  }
-
-  if (departmentScope.length) {
-    const { data: rows } = await supabase
-      .from("organization_departments")
-      .select("id")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .in("id", departmentScope);
-    if ((rows?.length ?? 0) !== departmentScope.length) {
-      return NextResponse.json({ error: "Departamentos invalidos" }, { status: 400 });
-    }
-  }
-
-  if (positionScope.length) {
-    const { data: rows } = await supabase
-      .from("department_positions")
-      .select("id")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .in("id", positionScope);
-    if ((rows?.length ?? 0) !== positionScope.length) {
-      return NextResponse.json({ error: "Puestos invalidos" }, { status: 400 });
-    }
-  }
-
-  if (userScope.length) {
-    const { data: rows } = await supabase
-      .from("employees")
-      .select("user_id")
-      .eq("organization_id", tenant.organizationId)
-      .in("user_id", userScope);
-    if ((rows?.length ?? 0) !== userScope.length) {
-      return NextResponse.json({ error: "Usuarios invalidos" }, { status: 400 });
-    }
+  const scopeValidation = await validateTenantScopeReferences({
+    supabase,
+    organizationId: tenant.organizationId,
+    locationIds: locationScope,
+    departmentIds: departmentScope,
+    positionIds: positionScope,
+    userIds: userScope,
+    userSource: "memberships",
+  });
+  if (!scopeValidation.ok) {
+    const messageByField = {
+      locations: "Locaciones invalidas",
+      departments: "Departamentos invalidos",
+      positions: "Puestos invalidos",
+      users: "Usuarios invalidos",
+    } as const;
+    return NextResponse.json({ error: messageByField[scopeValidation.field] }, { status: 400 });
   }
 
   const { data, error } = await supabase
@@ -187,16 +165,16 @@ export async function PATCH(request: Request) {
   const name = typeof body?.name === "string" ? body.name.trim() : null;
   const parentId = typeof body?.parentId === "string" ? body.parentId.trim() : body?.parentId === null ? null : undefined;
   const locationScope = Array.isArray(body?.locationScope)
-    ? [...new Set(body.locationScope.map((value) => String(value).trim()).filter(Boolean))]
+    ? normalizeScopeSelection(body.locationScope.map((value) => String(value)), { allowAllToken: true })
     : undefined;
   const departmentScope = Array.isArray(body?.departmentScope)
-    ? [...new Set(body.departmentScope.map((value) => String(value).trim()).filter(Boolean))]
+    ? normalizeScopeSelection(body.departmentScope.map((value) => String(value)), { allowAllToken: true })
     : undefined;
   const positionScope = Array.isArray(body?.positionScope)
-    ? [...new Set(body.positionScope.map((value) => String(value).trim()).filter(Boolean))]
+    ? normalizeScopeSelection(body.positionScope.map((value) => String(value)), { allowAllToken: true })
     : undefined;
   const userScope = Array.isArray(body?.userScope)
-    ? [...new Set(body.userScope.map((value) => String(value).trim()).filter(Boolean))]
+    ? normalizeScopeSelection(body.userScope.map((value) => String(value)), { allowAllToken: true })
     : undefined;
 
   if (!folderId) {
@@ -233,49 +211,24 @@ export async function PATCH(request: Request) {
     }
   }
 
-  if (locationScope && locationScope.length) {
-    const { data: rows } = await supabase
-      .from("branches")
-      .select("id")
-      .eq("organization_id", tenant.organizationId)
-      .in("id", locationScope);
-    if ((rows?.length ?? 0) !== locationScope.length) {
-      return NextResponse.json({ error: "Locaciones invalidas" }, { status: 400 });
-    }
-  }
-
-  if (departmentScope && departmentScope.length) {
-    const { data: rows } = await supabase
-      .from("organization_departments")
-      .select("id")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .in("id", departmentScope);
-    if ((rows?.length ?? 0) !== departmentScope.length) {
-      return NextResponse.json({ error: "Departamentos invalidos" }, { status: 400 });
-    }
-  }
-
-  if (userScope && userScope.length) {
-    const { data: rows } = await supabase
-      .from("employees")
-      .select("user_id")
-      .eq("organization_id", tenant.organizationId)
-      .in("user_id", userScope);
-    if ((rows?.length ?? 0) !== userScope.length) {
-      return NextResponse.json({ error: "Usuarios invalidos" }, { status: 400 });
-    }
-  }
-
-  if (positionScope && positionScope.length) {
-    const { data: rows } = await supabase
-      .from("department_positions")
-      .select("id")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .in("id", positionScope);
-    if ((rows?.length ?? 0) !== positionScope.length) {
-      return NextResponse.json({ error: "Puestos invalidos" }, { status: 400 });
+  if (locationScope || departmentScope || positionScope || userScope) {
+    const scopeValidation = await validateTenantScopeReferences({
+      supabase,
+      organizationId: tenant.organizationId,
+      locationIds: locationScope,
+      departmentIds: departmentScope,
+      positionIds: positionScope,
+      userIds: userScope,
+      userSource: "memberships",
+    });
+    if (!scopeValidation.ok) {
+      const messageByField = {
+        locations: "Locaciones invalidas",
+        departments: "Departamentos invalidos",
+        positions: "Puestos invalidos",
+        users: "Usuarios invalidos",
+      } as const;
+      return NextResponse.json({ error: messageByField[scopeValidation.field] }, { status: 400 });
     }
   }
 

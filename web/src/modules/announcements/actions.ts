@@ -11,6 +11,7 @@ import {
 } from "@/modules/announcements/lib/scope";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { requireTenantModule } from "@/shared/lib/access";
+import { validateTenantScopeReferences } from "@/shared/lib/scope-validation";
 
 function qs(message: string) {
   return encodeURIComponent(message);
@@ -24,7 +25,7 @@ function normalizeKind(kind: string) {
   return "general";
 }
 
-export async function createAnnouncementAction(prevState: any, formData: FormData) {
+export async function createAnnouncementAction(_prevState: unknown, formData: FormData) {
   const tenant = await requireTenantModule("announcements");
 
   const formDataObj = Object.fromEntries(formData.entries());
@@ -60,54 +61,24 @@ export async function createAnnouncementAction(prevState: any, formData: FormDat
   const supabase = await createSupabaseServerClient();
   const { data: authData } = await supabase.auth.getUser();
 
-  if (locationScopes.length) {
-    const { data: scopeBranches, error: scopeBranchesError } = await supabase
-      .from("branches")
-      .select("id")
-      .eq("organization_id", tenant.organizationId)
-      .in("id", locationScopes);
+  const scopeValidation = await validateTenantScopeReferences({
+    supabase,
+    organizationId: tenant.organizationId,
+    locationIds: locationScopes,
+    departmentIds: departmentScopes,
+    positionIds: positionScopes,
+    userIds: userScopes,
+    userSource: "memberships",
+  });
 
-    if (scopeBranchesError || (scopeBranches?.length ?? 0) !== locationScopes.length) {
-      return { success: false, message: "Hay locaciones invalidas en la audiencia" };
-    }
-  }
-
-  if (departmentScopes.length) {
-    const { data: scopeDepartments, error: scopeDepartmentsError } = await supabase
-      .from("organization_departments")
-      .select("id")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .in("id", departmentScopes);
-
-    if (scopeDepartmentsError || (scopeDepartments?.length ?? 0) !== departmentScopes.length) {
-      return { success: false, message: "Hay departamentos invalidos en la audiencia" };
-    }
-  }
-
-  if (positionScopes.length) {
-    const { data: scopedPositions, error: scopedPositionsError } = await supabase
-      .from("department_positions")
-      .select("id")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .in("id", positionScopes);
-
-    if (scopedPositionsError || (scopedPositions?.length ?? 0) !== positionScopes.length) {
-      return { success: false, message: "Hay puestos invalidos en la audiencia" };
-    }
-  }
-
-  if (userScopes.length) {
-    const { data: scopeUsers, error: scopeUsersError } = await supabase
-      .from("employees")
-      .select("user_id")
-      .eq("organization_id", tenant.organizationId)
-      .in("user_id", userScopes);
-
-    if (scopeUsersError || (scopeUsers?.length ?? 0) !== userScopes.length) {
-      return { success: false, message: "Hay usuarios invalidos en la audiencia" };
-    }
+  if (!scopeValidation.ok) {
+    const messageByField = {
+      locations: "Hay locaciones invalidas en la audiencia",
+      departments: "Hay departamentos invalidos en la audiencia",
+      positions: "Hay puestos invalidos en la audiencia",
+      users: "Hay usuarios invalidos en la audiencia",
+    } as const;
+    return { success: false, message: messageByField[scopeValidation.field] };
   }
 
   if (announcementId) {
@@ -209,7 +180,7 @@ export async function createAnnouncementAction(prevState: any, formData: FormDat
   };
 }
 
-export async function toggleAnnouncementFeaturedAction(arg1: any, arg2?: FormData) {
+export async function toggleAnnouncementFeaturedAction(arg1: FormData | unknown, arg2?: FormData) {
   const formData = arg2 || (arg1 as FormData);
   const tenant = await requireTenantModule("announcements");
 
@@ -253,7 +224,7 @@ export async function toggleAnnouncementFeaturedAction(arg1: any, arg2?: FormDat
   );
 }
 
-export async function deleteAnnouncementAction(arg1: any, arg2?: FormData) {
+export async function deleteAnnouncementAction(arg1: FormData | unknown, arg2?: FormData) {
   const formData = arg2 || (arg1 as FormData);
   const tenant = await requireTenantModule("announcements");
 
