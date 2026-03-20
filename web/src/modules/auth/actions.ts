@@ -18,6 +18,16 @@ function getEmailDomain(email: string) {
   return parts.length === 2 ? parts[1]?.toLowerCase() ?? null : null;
 }
 
+function getAppUrl() {
+  const publicUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (publicUrl) return publicUrl.replace(/\/$/, "");
+
+  const baseUrl = process.env.APP_BASE_URL?.trim();
+  if (baseUrl) return baseUrl.replace(/\/$/, "");
+
+  return null;
+}
+
 export async function loginWithPasswordAction(formData: FormData) {
   try {
     const email = String(formData.get("email") ?? "").trim();
@@ -71,6 +81,10 @@ export async function loginWithPasswordAction(formData: FormData) {
         },
       });
       redirect("/auth/login?error=" + encodeURIComponent("No se pudo validar la sesion"));
+    }
+
+    if (Boolean((authData.user.user_metadata as Record<string, unknown> | undefined)?.force_password_change)) {
+      redirect("/auth/change-password?reason=first_login");
     }
 
     const admin = createSupabaseAdminClient();
@@ -260,6 +274,94 @@ export async function loginWithPasswordAction(formData: FormData) {
         ),
     );
   }
+}
+
+export async function requestPasswordRecoveryAction(formData: FormData) {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+
+  if (!email) {
+    redirect("/auth/forgot-password?error=" + encodeURIComponent("Ingresa un email valido"));
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const appUrl = getAppUrl();
+  const nextPath = "/auth/change-password?reason=recovery";
+  const redirectTo = appUrl
+    ? `${appUrl}/auth/callback?next=${encodeURIComponent(nextPath)}`
+    : undefined;
+
+  const { error } = await supabase.auth.resetPasswordForEmail(
+    email,
+    redirectTo ? { redirectTo } : undefined,
+  );
+
+  if (error) {
+    redirect(
+      "/auth/forgot-password?error=" +
+        encodeURIComponent(`No se pudo enviar el correo de recuperacion: ${error.message}`),
+    );
+  }
+
+  redirect(
+    "/auth/forgot-password?status=success&message=" +
+      encodeURIComponent("Te enviamos un enlace para restablecer tu contrasena"),
+  );
+}
+
+export async function updatePasswordAction(formData: FormData) {
+  const password = String(formData.get("password") ?? "");
+  const confirmPassword = String(formData.get("confirm_password") ?? "");
+  const nextPath = String(formData.get("next") ?? "").trim();
+
+  if (!password || password.length < 8) {
+    redirect(
+      "/auth/change-password?error=" +
+        encodeURIComponent("La contrasena debe tener al menos 8 caracteres"),
+    );
+  }
+
+  if (password !== confirmPassword) {
+    redirect(
+      "/auth/change-password?error=" +
+        encodeURIComponent("La confirmacion de contrasena no coincide"),
+    );
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/auth/login?error=" + encodeURIComponent("Tu sesion expiro. Inicia sesion nuevamente"));
+  }
+
+  const currentMetadata =
+    user.user_metadata && typeof user.user_metadata === "object"
+      ? (user.user_metadata as Record<string, unknown>)
+      : {};
+
+  const { error } = await supabase.auth.updateUser({
+    password,
+    data: {
+      ...currentMetadata,
+      force_password_change: false,
+      password_changed_at: new Date().toISOString(),
+    },
+  });
+
+  if (error) {
+    redirect(
+      "/auth/change-password?error=" +
+        encodeURIComponent(`No se pudo actualizar la contrasena: ${error.message}`),
+    );
+  }
+
+  if (nextPath.startsWith("/") && !nextPath.startsWith("//")) {
+    redirect(nextPath);
+  }
+
+  redirect("/app/dashboard");
 }
 
 export async function logoutAction() {
