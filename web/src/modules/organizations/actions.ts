@@ -114,16 +114,17 @@ async function sendOrganizationAdminInvitation(params: {
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  const callbackRedirectTo = appUrl
+    ? `${appUrl.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent("/auth/select-organization")}`
+    : undefined;
 
   async function sendAccessEmail(email: string) {
-    const redirectTo = appUrl ? `${appUrl.replace(/\/$/, "")}/auth/login` : undefined;
-
     const server = await createSupabaseServerClient();
     const { error: otpError } = await server.auth.signInWithOtp({
       email,
       options: {
         shouldCreateUser: false,
-        emailRedirectTo: redirectTo,
+        emailRedirectTo: callbackRedirectTo,
       },
     });
 
@@ -133,7 +134,7 @@ async function sendOrganizationAdminInvitation(params: {
 
     const { error: recoveryError } = await supabase.auth.resetPasswordForEmail(
       email,
-      redirectTo ? { redirectTo } : undefined,
+      callbackRedirectTo ? { redirectTo: callbackRedirectTo } : undefined,
     );
 
     return recoveryError ?? otpError;
@@ -200,8 +201,8 @@ async function sendOrganizationAdminInvitation(params: {
       },
     };
 
-    if (appUrl) {
-      inviteOptions.redirectTo = `${appUrl.replace(/\/$/, "")}/auth/login`;
+    if (callbackRedirectTo) {
+      inviteOptions.redirectTo = callbackRedirectTo;
     }
 
     const { data: invited, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
