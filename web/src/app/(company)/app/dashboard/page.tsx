@@ -53,8 +53,44 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
   const isReportsEnabled = Boolean(reportsEnabled);
   const isEmployeesEnabled = Boolean(employeesEnabled);
 
+  const employeesCountQuery = supabase
+    .from("employees")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", tenant.organizationId);
+  if (branchFilter) {
+    employeesCountQuery.eq("branch_id", branchFilter);
+  }
+
+  const todayChecklistQuery = supabase
+    .from("checklist_submissions")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", tenant.organizationId)
+    .gte("created_at", todayStart.toISOString());
+  if (branchFilter) {
+    todayChecklistQuery.eq("branch_id", branchFilter);
+  }
+
+  const weekChecklistQuery = supabase
+    .from("checklist_submissions")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", tenant.organizationId)
+    .gte("created_at", weekStart.toISOString());
+  if (branchFilter) {
+    weekChecklistQuery.eq("branch_id", branchFilter);
+  }
+
+  const pendingReviewQuery = supabase
+    .from("checklist_submissions")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", tenant.organizationId)
+    .eq("status", "submitted");
+  if (branchFilter) {
+    pendingReviewQuery.eq("branch_id", branchFilter);
+  }
+
   const [
     { count: employeesCount },
+    { count: usersCount },
     { count: branchesCount },
     { data: organization },
     { data: branches },
@@ -66,10 +102,12 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
     { data: recentDocuments },
     { data: orgSettings },
   ] = await Promise.all([
+      employeesCountQuery,
       supabase
-        .from("employees")
+        .from("organization_user_profiles")
         .select("id", { count: "exact", head: true })
-        .eq("organization_id", tenant.organizationId),
+        .eq("organization_id", tenant.organizationId)
+        .eq("is_employee", false),
       supabase
         .from("branches")
         .select("id", { count: "exact", head: true })
@@ -93,27 +131,9 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
             .order("publish_at", { ascending: false })
             .limit(6)
         : Promise.resolve({ data: [] }),
-      isChecklistsEnabled
-        ? supabase
-            .from("checklist_submissions")
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", tenant.organizationId)
-            .gte("created_at", todayStart.toISOString())
-        : Promise.resolve({ count: 0 }),
-      isChecklistsEnabled
-        ? supabase
-            .from("checklist_submissions")
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", tenant.organizationId)
-            .gte("created_at", weekStart.toISOString())
-        : Promise.resolve({ count: 0 }),
-      isChecklistsEnabled
-        ? supabase
-            .from("checklist_submissions")
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", tenant.organizationId)
-            .eq("status", "submitted")
-        : Promise.resolve({ count: 0 }),
+      isChecklistsEnabled ? todayChecklistQuery : Promise.resolve({ count: 0 }),
+      isChecklistsEnabled ? weekChecklistQuery : Promise.resolve({ count: 0 }),
+      isChecklistsEnabled ? pendingReviewQuery : Promise.resolve({ count: 0 }),
       isChecklistsEnabled
         ? supabase
             .from("checklist_flags")
@@ -137,6 +157,7 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
     ]);
 
   const branchNameMap = new Map((branches ?? []).map((item) => [item.id, item.name]));
+  const selectedBranchName = branchFilter ? branchNameMap.get(branchFilter) ?? null : null;
 
   const filteredAnnouncements = (announcements ?? []).filter((item) => {
     const branchMatch = !branchFilter || item.branch_id === branchFilter;
@@ -182,7 +203,9 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
         organizationName={organization?.name ?? "Panel de empresa"}
         organizationSlug={organization?.slug ?? "-"}
         organizationStatus={organization?.status ?? "active"}
-        employeesCount={employeesCount ?? 0}
+        employeesCount={(employeesCount ?? 0) + (usersCount ?? 0)}
+        employeesOnlyCount={employeesCount ?? 0}
+        usersOnlyCount={usersCount ?? 0}
         branchesCount={branchesCount ?? 0}
         checklistTodayCount={todayChecklistCount ?? 0}
         checklistWeekCount={weekChecklistCount ?? 0}
@@ -193,6 +216,7 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
         branchNameMap={branchNameMap}
         branches={branches ?? []}
         branchFilter={branchFilter}
+        selectedBranchName={selectedBranchName}
         searchTerm={searchTerm}
         dashboardNote={orgSettings?.dashboard_note ?? ""}
         moduleStatus={moduleStatus}

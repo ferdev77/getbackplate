@@ -26,6 +26,14 @@ function qs(message: string) {
   return encodeURIComponent(message);
 }
 
+function randomPassword() {
+  return `Gb!${Math.random().toString(36).slice(2)}${Date.now().toString(36)}A9`;
+}
+
+function invitationCode() {
+  return crypto.randomUUID();
+}
+
 async function findAuthUserByEmail(email: string) {
   const supabase = createSupabaseAdminClient();
   let page = 1;
@@ -54,6 +62,127 @@ async function findAuthUserByEmail(email: string) {
   }
 }
 
+async function getCompanyAdminRoleId() {
+  const supabase = createSupabaseAdminClient();
+  const { data: role } = await supabase
+    .from("roles")
+    .select("id")
+    .eq("code", "company_admin")
+    .single();
+  return role?.id ?? null;
+}
+
+async function createInvitationRecord(params: {
+  organizationId: string;
+  email: string;
+  fullName: string;
+  sentBy: string | null;
+  metadata?: Record<string, unknown>;
+}) {
+  const supabase = createSupabaseAdminClient();
+  const code = invitationCode();
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString();
+
+  await supabase.from("organization_invitations").insert({
+    organization_id: params.organizationId,
+    email: params.email,
+    full_name: params.fullName,
+    role_code: "company_admin",
+    status: "sent",
+    invitation_code: code,
+    sent_by: params.sentBy,
+    expires_at: expiresAt,
+    source: "superadmin",
+    metadata: params.metadata ?? {},
+  });
+}
+
+async function sendOrganizationAdminInvitation(params: {
+  organizationId: string;
+  email: string;
+  fullName: string;
+  sentBy: string | null;
+}) {
+  const supabase = createSupabaseAdminClient();
+  const roleId = await getCompanyAdminRoleId();
+  if (!roleId) {
+    return { ok: false as const, message: "No se encontro rol company_admin" };
+  }
+
+  const existingUser = await findAuthUserByEmail(params.email);
+  let userId = existingUser?.id ?? null;
+
+  if (!userId) {
+    const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/login`;
+    const { data: invited, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(params.email, {
+      redirectTo,
+      data: { full_name: params.fullName },
+    });
+
+    if (inviteError) {
+      return { ok: false as const, message: inviteError.message };
+    }
+
+    userId = invited.user?.id ?? null;
+
+    if (!userId) {
+      const tempPassword = randomPassword();
+      const { data: createdUser, error: createError } = await supabase.auth.admin.createUser({
+        email: params.email,
+        password: tempPassword,
+        email_confirm: false,
+        user_metadata: { full_name: params.fullName },
+      });
+      if (createError) {
+        return { ok: false as const, message: createError.message };
+      }
+      userId = createdUser.user?.id ?? null;
+    }
+  }
+
+  if (!userId) {
+    return { ok: false as const, message: "No se pudo resolver usuario invitado" };
+  }
+
+  const { error: membershipError } = await supabase.from("memberships").upsert(
+    {
+      organization_id: params.organizationId,
+      user_id: userId,
+      role_id: roleId,
+      status: "invited",
+    },
+    { onConflict: "organization_id,user_id" },
+  );
+
+  if (membershipError) {
+    return { ok: false as const, message: membershipError.message };
+  }
+
+  await createInvitationRecord({
+    organizationId: params.organizationId,
+    email: params.email,
+    fullName: params.fullName,
+    sentBy: params.sentBy,
+    metadata: { mode: "superadmin_invite" },
+  });
+
+  await logAuditEvent({
+    action: "organization.invitation.send",
+    entityType: "organization_invitation",
+    organizationId: params.organizationId,
+    eventDomain: "superadmin",
+    outcome: "success",
+    severity: "medium",
+    metadata: {
+      email: params.email,
+      role: "company_admin",
+      membership_status: "invited",
+    },
+  });
+
+  return { ok: true as const };
+}
+
 export async function createOrganizationAction(formData: FormData) {
   await requireSuperadmin();
 
@@ -63,15 +192,16 @@ export async function createOrganizationAction(formData: FormData) {
   const adminEmail = String(formData.get("admin_email") ?? "").trim().toLowerCase();
   const adminFullName = String(formData.get("admin_full_name") ?? "").trim();
   const adminPassword = String(formData.get("admin_password") ?? "");
+  const inviteMode = String(formData.get("admin_invite_mode") ?? "").trim() === "invite";
 
-  if (!name || !adminEmail || !adminFullName || !adminPassword) {
+  if (!name || !adminEmail || !adminFullName || (!inviteMode && !adminPassword)) {
     redirect(
       "/superadmin/organizations?status=error&message=" +
         qs("Completa nombre de empresa y datos del admin inicial"),
     );
   }
 
-  if (adminPassword.length < 8) {
+  if (!inviteMode && adminPassword.length < 8) {
     redirect(
       "/superadmin/organizations?status=error&message=" +
         qs("La contrasena del admin inicial debe tener al menos 8 caracteres"),
@@ -162,6 +292,28 @@ export async function createOrganizationAction(formData: FormData) {
 
   let userId: string | null = null;
 
+  if (inviteMode) {
+    const invitation = await sendOrganizationAdminInvitation({
+      organizationId: org.id,
+      email: adminEmail,
+      fullName: adminFullName,
+      sentBy: authData.user?.id ?? null,
+    });
+
+    if (!invitation.ok) {
+      redirect(
+        "/superadmin/organizations?status=error&message=" +
+          qs(`Organizacion creada, pero fallo envio de invitacion: ${invitation.message}`),
+      );
+    }
+
+    revalidatePath("/superadmin/organizations");
+    redirect(
+      "/superadmin/organizations?status=success&message=" +
+        qs(`Empresa creada. Invitacion enviada a ${adminEmail}`),
+    );
+  }
+
   const { data: createdUser, error: createUserError } = await supabase.auth.admin.createUser({
     email: adminEmail,
     password: adminPassword,
@@ -242,6 +394,44 @@ export async function createOrganizationAction(formData: FormData) {
   redirect(
     "/superadmin/organizations?status=success&message=" +
       qs(`Empresa creada con admin inicial: ${adminEmail}`),
+  );
+}
+
+export async function resendOrganizationInvitationAction(formData: FormData) {
+  await requireSuperadmin();
+
+  const organizationId = String(formData.get("organization_id") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const fullName = String(formData.get("full_name") ?? "").trim() || "Administrador";
+
+  if (!organizationId || !email) {
+    redirect(
+      "/superadmin/organizations?status=error&message=" +
+        qs("No se pudo reenviar invitacion: faltan datos"),
+    );
+  }
+
+  const supabaseUser = await createSupabaseServerClient();
+  const { data: authData } = await supabaseUser.auth.getUser();
+
+  const invitation = await sendOrganizationAdminInvitation({
+    organizationId,
+    email,
+    fullName,
+    sentBy: authData.user?.id ?? null,
+  });
+
+  if (!invitation.ok) {
+    redirect(
+      `/superadmin/organizations?action=edit&org=${organizationId}&status=error&message=` +
+        qs(`No se pudo reenviar invitacion: ${invitation.message}`),
+    );
+  }
+
+  revalidatePath("/superadmin/organizations");
+  redirect(
+    `/superadmin/organizations?action=edit&org=${organizationId}&status=success&message=` +
+      qs(`Invitacion reenviada a ${email}`),
   );
 }
 

@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { ChecklistUpsertModal } from "@/modules/checklists/ui/checklist-upsert-modal";
 import { ChecklistDeleteModal } from "@/modules/checklists/ui/checklist-delete-modal";
 import { requireTenantModule } from "@/shared/lib/access";
+import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { SlideUp, AnimatedList, AnimatedItem } from "@/shared/ui/animations";
 
 type CompanyChecklistsPageProps = {
@@ -61,12 +62,8 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
   const [
     { data: branches },
     { data: templates },
-    { data: employees },
-    { data: userProfiles },
     { data: departments },
     { data: positions },
-    { data: memberships },
-    { data: roles },
     { count: completedCount },
     { count: pendingCount },
   ] = await Promise.all([
@@ -82,21 +79,6 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
       .eq("organization_id", tenant.organizationId)
       .order("created_at", { ascending: false })
       .limit(80),
-    (openCreateModal || previewTemplateId)
-      ? admin
-          .from("employees")
-          .select("id, user_id, first_name, last_name, branch_id, department_id, position")
-          .eq("organization_id", tenant.organizationId)
-          .order("first_name")
-      : Promise.resolve({ data: [] }),
-    (openCreateModal || previewTemplateId)
-      ? admin
-          .from("organization_user_profiles")
-          .select("id, user_id, first_name, last_name")
-          .eq("organization_id", tenant.organizationId)
-          .eq("is_employee", false)
-          .order("first_name")
-      : Promise.resolve({ data: [] }),
     admin
       .from("organization_departments")
       .select("id, name")
@@ -110,18 +92,6 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
           .eq("organization_id", tenant.organizationId)
           .eq("is_active", true)
           .order("name")
-      : Promise.resolve({ data: [] }),
-    (openCreateModal || previewTemplateId)
-      ? admin
-          .from("memberships")
-          .select("user_id, role_id")
-          .eq("organization_id", tenant.organizationId)
-          .eq("status", "active")
-      : Promise.resolve({ data: [] }),
-    (openCreateModal || previewTemplateId)
-      ? admin
-          .from("roles")
-          .select("id, code")
       : Promise.resolve({ data: [] }),
     supabase
       .from("checklist_submissions")
@@ -156,64 +126,10 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
         .order("sort_order")
     : { data: [] };
 
-  const scopedUsers: Array<{
-    id: string;
-    user_id: string | null;
-    first_name: string;
-    last_name: string;
-    role_label?: string;
-    location_label?: string;
-    department_label?: string;
-    position_label?: string;
-  }> = [];
-  const branchNameById = new Map((branches ?? []).map((row) => [row.id, row.name]));
-  const departmentNameById = new Map((departments ?? []).map((row) => [row.id, row.name]));
-  const roleCodeById = new Map((roles ?? []).map((role) => [role.id, role.code]));
-  const employeeRoleUserIds = new Set(
-    (memberships ?? [])
-      .filter((membership) => roleCodeById.get(membership.role_id) === "employee")
-      .map((membership) => membership.user_id),
-  );
-
-  for (const employee of employees ?? []) {
-    scopedUsers.push({
-      id: employee.id,
-      user_id: employee.user_id,
-      first_name: employee.first_name,
-      last_name: employee.last_name,
-      role_label: "Empleado",
-      location_label: employee.branch_id ? (branchNameById.get(employee.branch_id) ?? undefined) : undefined,
-      department_label: employee.department_id ? (departmentNameById.get(employee.department_id) ?? undefined) : undefined,
-      position_label: employee.position ?? undefined,
-    });
-  }
-
-  for (const profile of userProfiles ?? []) {
-    const alreadyInList = profile.user_id
-      ? scopedUsers.some((row) => row.user_id === profile.user_id)
-      : false;
-    if (alreadyInList) continue;
-    scopedUsers.push({
-      id: `up-${profile.id}`,
-      user_id: profile.user_id,
-      first_name: profile.first_name ?? "Usuario",
-      last_name: profile.last_name ?? "",
-      role_label: "Usuario",
-    });
-  }
-
-  for (const userId of employeeRoleUserIds) {
-    if (!userId) continue;
-    const alreadyInList = scopedUsers.some((row) => row.user_id === userId);
-    if (alreadyInList) continue;
-    scopedUsers.push({
-      id: `m-${userId}`,
-      user_id: userId,
-      first_name: "Usuario",
-      last_name: userId.slice(0, 8),
-      role_label: "Usuario",
-    });
-  }
+  const scopedUsers =
+    openCreateModal || Boolean(previewTemplateId)
+      ? await buildScopeUsersCatalog(tenant.organizationId)
+      : [];
 
   if (scopedUsers.some((row) => row.first_name === "Usuario" && row.user_id)) {
     try {
