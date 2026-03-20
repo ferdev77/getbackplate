@@ -25,6 +25,22 @@ if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
 export async function proxy(request: NextRequest) {
   // Rate limit API and auth routes
   const path = request.nextUrl.pathname;
+
+  const hasAuthCode = request.nextUrl.searchParams.has("code");
+  const hasTokenHashFlow =
+    request.nextUrl.searchParams.has("token_hash") &&
+    request.nextUrl.searchParams.has("type");
+  if ((hasAuthCode || hasTokenHashFlow) && path !== "/auth/callback") {
+    const callbackUrl = request.nextUrl.clone();
+    callbackUrl.pathname = "/auth/callback";
+
+    if (!callbackUrl.searchParams.has("next")) {
+      callbackUrl.searchParams.set("next", "/app/dashboard");
+    }
+
+    return NextResponse.redirect(callbackUrl);
+  }
+
   if (ratelimit && (path.startsWith("/api/") || path.startsWith("/auth/"))) {
     const ip = request.headers.get("x-forwarded-for") ?? "127.0.0.1";
     const { success, limit, reset, remaining } = await ratelimit.limit(ip);
