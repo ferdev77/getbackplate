@@ -26,6 +26,7 @@ import {
   updateOrganizationAction,
 } from "@/modules/organizations/actions";
 import { SuperadminInputField, SuperadminSelectField } from "@/shared/ui/superadmin-form-fields";
+import { SubmitButton } from "@/shared/ui/submit-button";
 
 type SuperadminOrganizationsPageProps = {
   searchParams: Promise<{ status?: string; message?: string; action?: string; org?: string }>;
@@ -288,7 +289,7 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className={`relative z-10 w-full rounded-[2.5rem] border border-line/40 bg-white p-8 shadow-2xl ${action === 'edit' ? 'max-w-4xl' : 'max-w-2xl'}`}
+              className={`relative z-10 w-full rounded-[2.5rem] border border-line/40 bg-white p-8 shadow-2xl ${action === 'edit' ? 'max-w-4xl' : action === 'create' ? 'max-w-3xl' : 'max-w-2xl'}`}
             >
               <div className="mb-6 flex items-center justify-between border-b border-line/20 pb-6">
                 <div>
@@ -306,25 +307,40 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
               </div>
 
               {action === "create" && (
-                <form action={createOrganizationAction} autoComplete="off" className="grid gap-6 sm:grid-cols-2">
-                  <SuperadminInputField label="Organización" name="name" required placeholder="Nombre comercial de la empresa" className="sm:col-span-2" />
-                  <SuperadminSelectField label="Plan Inicial" name="plan_id" defaultValue="" className="sm:col-span-2">
-                      <option value="">Sin plan asignado</option>
-                      {(plans ?? []).map((plan) => (
-                        <option key={plan.id} value={plan.id}>{plan.name} ({plan.code})</option>
-                      ))}
-                  </SuperadminSelectField>
-                  <div className="sm:col-span-2 space-y-4">
-                     <p className="text-[10px] font-bold uppercase tracking-widest text-brand mb-2">Credenciales del Administrador</p>
-                     <SuperadminInputField label="Nombre Completo" name="admin_full_name" required placeholder="Nombre del responsable" />
-                     <div className="grid gap-4 sm:grid-cols-2">
-                        <SuperadminInputField label="Email Corporativo" name="admin_email" type="email" autoComplete="off" required placeholder="admin@empresa.com" />
-                        <SuperadminInputField label="Contraseña" name="admin_password" type="password" autoComplete="new-password" required minLength={8} placeholder="••••••••" />
-                     </div>
+                <form action={createOrganizationAction} autoComplete="off" className="space-y-6">
+                  <div className="rounded-2xl border border-line/30 bg-muted/10 p-5">
+                    <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">Datos de la organización</p>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <SuperadminInputField label="Organización" name="name" required placeholder="Nombre comercial de la empresa" className="md:col-span-2" />
+                      <SuperadminSelectField label="Plan Inicial" name="plan_id" defaultValue="" className="md:col-span-2">
+                          <option value="">Sin plan asignado</option>
+                          {(plans ?? []).map((plan) => (
+                            <option key={plan.id} value={plan.id}>{plan.name} ({plan.code})</option>
+                          ))}
+                      </SuperadminSelectField>
+                    </div>
                   </div>
-                  <div className="sm:col-span-2 flex justify-end gap-3 mt-4">
+
+                  <div className="rounded-2xl border border-line/30 bg-white p-5">
+                    <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-brand">Credenciales del Administrador</p>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <SuperadminInputField label="Nombre Completo" name="admin_full_name" required placeholder="Nombre del responsable" className="md:col-span-2" />
+                      <SuperadminInputField label="Email Corporativo" name="admin_email" type="email" autoComplete="off" required placeholder="admin@empresa.com" />
+                      <SuperadminInputField label="Contraseña" name="admin_password" type="password" autoComplete="new-password" required minLength={8} placeholder="••••••••" />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap justify-end gap-3 pt-1">
                     <Link href="/superadmin/organizations" className="rounded-xl border border-line bg-white px-6 py-2.5 text-sm font-bold text-muted-foreground transition-all hover:bg-muted">Cancelar</Link>
-                    <button type="submit" formNoValidate name="admin_invite_mode" value="invite" className="rounded-xl border border-brand bg-white px-6 py-2.5 text-sm font-bold text-brand transition-all hover:bg-brand/5">Enviar invitación</button>
+                    <SubmitButton
+                      label="Enviar invitación"
+                      pendingLabel="Enviando invitación..."
+                      variant="ghost"
+                      formNoValidate
+                      name="admin_invite_mode"
+                      value="invite"
+                      className="rounded-xl border border-brand bg-white px-6 py-2.5 text-sm font-bold text-brand hover:bg-brand/5"
+                    />
                     <button type="submit" className="rounded-xl bg-brand px-8 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/20 transition-all hover:bg-brand-dark">Confirmar Registro</button>
                   </div>
                 </form>
@@ -440,9 +456,12 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
                             <input type="hidden" name="organization_id" value={selectedOrg.id} />
                             <input type="hidden" name="email" value={selectedAdmins[0].email} />
                             <input type="hidden" name="full_name" value={selectedAdmins[0].email.split("@")[0]} />
-                            <button type="submit" className="w-full rounded-lg border border-brand bg-white px-3 py-2 text-xs font-bold text-brand hover:bg-brand/5">
-                              Reenviar invitación
-                            </button>
+                            <SubmitButton
+                              label="Reenviar invitación"
+                              pendingLabel="Reenviando..."
+                              variant="ghost"
+                              className="w-full rounded-lg border border-brand bg-white px-3 py-2 text-xs font-bold text-brand hover:bg-brand/5"
+                            />
                           </form>
                         ) : null}
                      </div>
