@@ -6,6 +6,7 @@ import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
 type Scope = {
   locations?: string[];
   department_ids?: string[];
+  position_ids?: string[];
   users?: string[];
 };
 
@@ -43,7 +44,7 @@ export async function GET() {
       .limit(5000),
     supabase
       .from("document_folders")
-      .select("id, name")
+      .select("id, name, access_scope")
       .eq("organization_id", tenant.organizationId),
     supabase
       .from("branches")
@@ -55,7 +56,7 @@ export async function GET() {
       .eq("organization_id", tenant.organizationId),
   ]);
 
-  const folderMap = new Map((folders ?? []).map((row) => [row.id, row.name]));
+  const folderMap = new Map((folders ?? []).map((row) => [row.id, row]));
   const branchMap = new Map((branches ?? []).map((row) => [row.id, row.name]));
   const deptMap = new Map((departments ?? []).map((row) => [row.id, row.name]));
 
@@ -65,6 +66,7 @@ export async function GET() {
     "Carpeta",
     "Locacion",
     "Departamento",
+    "Puesto",
     "UsuariosScope",
     "TipoMime",
     "TamanoBytes",
@@ -72,8 +74,10 @@ export async function GET() {
   ];
 
   const rows = (docs ?? []).map((doc) => {
-    const scope = (doc.access_scope as Scope | null) ?? {};
+    const folderScope = doc.folder_id ? ((folderMap.get(doc.folder_id)?.access_scope as Scope | null) ?? null) : null;
+    const scope = folderScope ?? ((doc.access_scope as Scope | null) ?? {});
     const deptName = (scope.department_ids ?? []).map((id) => deptMap.get(id) ?? id).join(" | ");
+    const positionName = (scope.position_ids ?? []).join(" | ");
     const branchName = doc.branch_id ? (branchMap.get(doc.branch_id) ?? null) : null;
     const scopedLocationNames = (scope.locations ?? []).map((id) => branchMap.get(id) ?? id).join(" | ");
     const locationName = (branchName ?? scopedLocationNames) || "Global";
@@ -82,9 +86,10 @@ export async function GET() {
     return [
       doc.id,
       doc.title,
-      doc.folder_id ? folderMap.get(doc.folder_id) ?? doc.folder_id : "Sin carpeta",
+      doc.folder_id ? folderMap.get(doc.folder_id)?.name ?? doc.folder_id : "Sin carpeta",
       locationName,
       deptName || "-",
+      positionName || "-",
       usersCount,
       doc.mime_type ?? "",
       doc.file_size_bytes ?? "",
