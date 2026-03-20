@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { loginWithPasswordAction } from "@/modules/auth/actions";
 import { SubmitButton } from "@/shared/ui/submit-button";
@@ -63,6 +64,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none ring-brand/20 transition focus:ring-2"
                 placeholder="********"
               />
+              <div className="mt-2 text-right">
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-xs font-medium text-brand hover:text-brand-dark"
+                >
+                  Olvide mi contrasena
+                </Link>
+              </div>
             </div>
 
             <SubmitButton

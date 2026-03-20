@@ -17,6 +17,11 @@ import {
 
 export const MODULE_DISABLED_COPY = "Este modulo no esta incluido en tu plan actual.";
 
+function userMustChangePassword(user: { user_metadata?: unknown } | null | undefined) {
+  if (!user || typeof user.user_metadata !== "object" || !user.user_metadata) return false;
+  return Boolean((user.user_metadata as Record<string, unknown>).force_password_change);
+}
+
 type TenantModuleApiAccessResult =
   | {
       ok: true;
@@ -103,7 +108,12 @@ export async function requireSuperadmin() {
 }
 
 export async function requireTenantContext() {
-  await requireAuthenticatedUser();
+  const user = await requireAuthenticatedUser();
+
+  if (userMustChangePassword(user)) {
+    redirect("/auth/change-password?reason=first_login");
+  }
+
   const tenantContext = await resolveTenantFromCookie();
 
   if (tenantContext.requiresSelection) {
@@ -196,6 +206,15 @@ export async function assertTenantModuleApi(moduleCode: string): Promise<TenantM
     };
   }
 
+  if (userMustChangePassword(user)) {
+    return {
+      ok: false,
+      status: 409,
+      error: "password_change_required",
+      reasonCode: AUDIT_REASON_CODES.MISSING_AUTH_SESSION,
+    };
+  }
+
   const tenantContext = await resolveTenantFromCookie();
 
   if (tenantContext.requiresSelection) {
@@ -283,7 +302,12 @@ export async function assertCompanyManagerModuleApi(moduleCode: string) {
 }
 
 export async function requireCompanyAccess() {
-  await requireAuthenticatedUser();
+  const user = await requireAuthenticatedUser();
+
+  if (userMustChangePassword(user)) {
+    redirect("/auth/change-password?reason=first_login");
+  }
+
   const context = await resolveTenantFromCookie({
     roleCodes: ["company_admin", "manager"],
   });
@@ -314,7 +338,12 @@ export async function requireCompanyAccess() {
 }
 
 export async function requireEmployeeAccess() {
-  await requireAuthenticatedUser();
+  const user = await requireAuthenticatedUser();
+
+  if (userMustChangePassword(user)) {
+    redirect("/auth/change-password?reason=first_login");
+  }
+
   const context = await resolveTenantFromCookie({
     roleCodes: ["employee"],
   });

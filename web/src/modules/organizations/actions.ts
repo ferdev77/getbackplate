@@ -34,6 +34,19 @@ function invitationCode() {
   return crypto.randomUUID();
 }
 
+function buildTemporaryPasswordMetadata(
+  base: unknown,
+  fullName: string,
+) {
+  const current = base && typeof base === "object" ? (base as Record<string, unknown>) : {};
+  return {
+    ...current,
+    full_name: fullName,
+    force_password_change: true,
+    temporary_password_set_at: new Date().toISOString(),
+  };
+}
+
 async function findAuthUserByEmail(email: string) {
   const supabase = createSupabaseAdminClient();
   let page = 1;
@@ -149,7 +162,7 @@ async function sendOrganizationAdminInvitation(params: {
       const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
         password: params.password,
         email_confirm: true,
-        user_metadata: { full_name: params.fullName },
+        user_metadata: buildTemporaryPasswordMetadata(existingUser?.user_metadata, params.fullName),
       });
       if (updateError) {
         return { ok: false as const, message: updateError.message };
@@ -249,7 +262,7 @@ async function sendOrganizationAdminInvitation(params: {
       await supabase.auth.admin.updateUserById(userId, {
         password: params.password,
         email_confirm: true,
-        user_metadata: { full_name: params.fullName },
+        user_metadata: buildTemporaryPasswordMetadata(invited.user?.user_metadata, params.fullName),
       });
     }
 
@@ -257,9 +270,9 @@ async function sendOrganizationAdminInvitation(params: {
       const tempPassword = randomPassword();
       const { data: createdUser, error: createError } = await supabase.auth.admin.createUser({
         email: params.email,
-        password: tempPassword,
+        password: params.password ?? tempPassword,
         email_confirm: false,
-        user_metadata: { full_name: params.fullName },
+        user_metadata: buildTemporaryPasswordMetadata(undefined, params.fullName),
       });
       if (createError) {
         return { ok: false as const, message: createError.message };
@@ -879,9 +892,7 @@ export async function assignCompanyAdminAction(formData: FormData) {
       email,
       password,
       email_confirm: true,
-      user_metadata: {
-        full_name: fullName,
-      },
+      user_metadata: buildTemporaryPasswordMetadata(undefined, fullName),
     });
 
     if (!createUserError && createdUser.user) {
@@ -908,6 +919,19 @@ export async function assignCompanyAdminAction(formData: FormData) {
         redirect(
           "/superadmin/organizations?status=error&message=" +
             qs("El email ya existe pero no se pudo recuperar el usuario"),
+        );
+      }
+
+      const { error: updateUserError } = await supabase.auth.admin.updateUserById(userId, {
+        password,
+        email_confirm: true,
+        user_metadata: buildTemporaryPasswordMetadata(existingUser?.user_metadata, fullName),
+      });
+
+      if (updateUserError) {
+        redirect(
+          "/superadmin/organizations?status=error&message=" +
+            qs(`No se pudo actualizar credenciales del admin: ${updateUserError.message}`),
         );
       }
     }

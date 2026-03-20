@@ -341,7 +341,7 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
                       <SuperadminInputField label="Contraseña" name="admin_password" type="password" autoComplete="new-password" required minLength={8} placeholder="••••••••" />
                     </div>
                     <p className="mt-3 text-xs text-muted-foreground">
-                      Se creará la cuenta del administrador con esta contraseña y además se enviará email de invitación.
+                      Se creará la cuenta del administrador con esta contraseña, se enviará por email y se solicitará cambio obligatorio en el primer ingreso.
                     </p>
                   </div>
 
