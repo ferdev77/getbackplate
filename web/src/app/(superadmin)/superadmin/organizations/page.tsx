@@ -21,10 +21,10 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import {
   createOrganizationAction,
   deleteOrganizationAction,
-  resendOrganizationInvitationAction,
   toggleOrganizationModuleAction,
   updateOrganizationAction,
 } from "@/modules/organizations/actions";
+import { ResendInvitationButton } from "@/modules/organizations/ui/resend-invitation-button";
 import { SuperadminInputField, SuperadminSelectField } from "@/shared/ui/superadmin-form-fields";
 import { SubmitButton } from "@/shared/ui/submit-button";
 
@@ -306,6 +306,18 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
                 </Link>
               </div>
 
+              {params.message ? (
+                <div
+                  className={`mb-5 rounded-xl border px-4 py-3 text-xs font-semibold ${
+                    params.status === "success"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                      : "border-rose-200 bg-rose-50 text-rose-800"
+                  }`}
+                >
+                  {params.message}
+                </div>
+              ) : null}
+
               {action === "create" && (
                 <form action={createOrganizationAction} autoComplete="off" className="space-y-6">
                   <div className="rounded-2xl border border-line/30 bg-muted/10 p-5">
@@ -451,17 +463,13 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
                            <p className="text-[11px] text-muted-foreground mt-1">El administrador principal solo puede ser cambiado mediante consola de seguridad.</p>
                         </div>
                         {selectedAdmins[0] ? (
-                          <form action={resendOrganizationInvitationAction} className="mt-3 rounded-xl border border-line/20 bg-white p-3">
-                            <input type="hidden" name="organization_id" value={selectedOrg.id} />
-                            <input type="hidden" name="email" value={selectedAdmins[0].email} />
-                            <input type="hidden" name="full_name" value={selectedAdmins[0].email.split("@")[0]} />
-                            <SubmitButton
-                              label="Reenviar invitación"
-                              pendingLabel="Reenviando..."
-                              variant="ghost"
-                              className="w-full rounded-lg border border-brand bg-white px-3 py-2 text-xs font-bold text-brand hover:bg-brand/5"
+                          <div className="mt-3 rounded-xl border border-line/20 bg-white p-3">
+                            <ResendInvitationButton
+                              organizationId={selectedOrg.id}
+                              email={selectedAdmins[0].email}
+                              fullName={selectedAdmins[0].email.split("@")[0]}
                             />
-                          </form>
+                          </div>
                         ) : null}
                      </div>
                    </div>
