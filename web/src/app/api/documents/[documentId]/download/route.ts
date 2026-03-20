@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { isModuleEnabledForOrganization } from "@/shared/lib/access";
 import { canReadDocumentInTenant } from "@/shared/lib/document-access";
+import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impersonation";
 import {
   isAllowedDocumentMime,
   isAllowedDocumentSize,
@@ -33,7 +34,16 @@ export async function GET(_request: Request, { params }: Context) {
     .eq("user_id", userId)
     .eq("status", "active");
 
-  const orgIds = [...new Set((memberships ?? []).map((m) => m.organization_id))];
+  const impersonation = await resolveActiveSuperadminImpersonationSession(userId);
+
+  const orgIds = [
+    ...new Set(
+      [
+        ...(memberships ?? []).map((m) => m.organization_id),
+        ...(impersonation?.organizationId ? [impersonation.organizationId] : []),
+      ].filter(Boolean),
+    ),
+  ];
 
   if (!orgIds.length) {
     return NextResponse.json({ error: "Sin membresia activa" }, { status: 403 });
@@ -57,7 +67,7 @@ export async function GET(_request: Request, { params }: Context) {
 
   const membership = (memberships ?? []).find((row) => row.organization_id === document.organization_id);
 
-  if (!membership) {
+  if (!membership && impersonation?.organizationId !== document.organization_id) {
     return NextResponse.json({ error: "Sin acceso a este documento" }, { status: 403 });
   }
 
@@ -121,10 +131,17 @@ export async function GET(_request: Request, { params }: Context) {
   }
 
   const orgMemberships = (memberships ?? []).filter((row) => row.organization_id === document.organization_id);
+  const fallbackMemberships =
+    !orgMemberships.length && impersonation?.organizationId === document.organization_id
+      ? [{ organization_id: document.organization_id, branch_id: null, role_id: "__impersonation__" }]
+      : [];
 
   let canRead = false;
-  for (const membership of orgMemberships) {
-    const roleCode = roleCodeById.get(membership.role_id) ?? "";
+  for (const membership of [...orgMemberships, ...fallbackMemberships]) {
+    const roleCode =
+      membership.role_id === "__impersonation__"
+        ? "company_admin"
+        : (roleCodeById.get(membership.role_id) ?? "");
     const isAllowed = canReadDocumentInTenant({
       roleCode,
       userId,

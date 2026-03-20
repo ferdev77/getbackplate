@@ -64,6 +64,7 @@ type CompanyShellProps = {
   currentPlanName: string;
   enabledModules: string[];
   branchOptions: Array<{ id: string; name: string }>;
+  impersonationMode?: boolean;
   children: React.ReactNode;
 };
 
@@ -211,6 +212,7 @@ export function CompanyShell({
   currentPlanName,
   enabledModules,
   branchOptions,
+  impersonationMode = false,
   children,
 }: CompanyShellProps) {
   const pathname = usePathname();
@@ -542,7 +544,16 @@ export function CompanyShell({
         </aside>
 
         <div className="min-w-0 flex-1" style={{ background: palette.pageBg }}>
-          <header className="sticky top-0 z-30 flex h-[60px] items-center justify-between gap-3 border-b-[1.5px] border-[#e8e8e8] px-4 sm:px-8" style={{ background: palette.headerBg }}>
+          <header className="sticky top-0 z-30 border-b-[1.5px] border-[#e8e8e8]" style={{ background: palette.headerBg }}>
+            {impersonationMode ? (
+              <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900 sm:px-8">
+                <p className="font-semibold">Modo superadmin activo: estas operando dentro de una organizacion en modo impersonacion.</p>
+                <a href="/auth/impersonation/stop" className="rounded-md border border-amber-300 bg-white px-2.5 py-1 text-[11px] font-bold text-amber-800 hover:bg-amber-100">
+                  Salir de impersonacion
+                </a>
+              </div>
+            ) : null}
+            <div className="flex h-[60px] items-center justify-between gap-3 px-4 sm:px-8">
             <div className="flex items-center gap-3">
               <button type="button" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#ddd5d0] bg-white text-[#4c4a48] lg:hidden" onClick={() => setMenuOpen((prev) => !prev)} aria-label="Abrir menu">☰</button>
               <p className="font-serif text-[19px] font-bold text-[#111111]">{currentLabel}</p>
@@ -550,6 +561,7 @@ export function CompanyShell({
             <div className="flex items-center gap-2">
               {organizationLabel ? <span className="hidden rounded-full border border-[#e6dfda] bg-white px-2.5 py-1 text-xs text-[#6f6965] sm:inline">{organizationLabel}</span> : null}
               <span className="hidden rounded-full border border-[#f0d8d3] bg-[#fff4f2] px-2.5 py-1 text-xs text-[#8f3a30] sm:inline">{sessionRoleLabel}</span>
+            </div>
             </div>
           </header>
           <div className="flex min-h-[calc(100vh-60px)] flex-col">

@@ -7,10 +7,12 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { requireSuperadmin } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { createSuperadminImpersonationSession, setSuperadminImpersonationCookie } from "@/shared/lib/impersonation";
 import {
   assertOrganizationCanSwitchToPlan,
   getPlanLimitErrorMessage,
 } from "@/shared/lib/plan-limits";
+import { setActiveOrganizationIdCookie } from "@/shared/lib/tenant-selection";
 
 function slugify(value: string) {
   return value
@@ -755,6 +757,80 @@ export async function deleteOrganizationAction(formData: FormData) {
     "/superadmin/organizations?status=success&message=" +
       qs(`Empresa '${organization.name}' eliminada junto con sus datos`),
   );
+}
+
+export async function startOrganizationImpersonationAction(formData: FormData) {
+  await requireSuperadmin();
+
+  const organizationId = String(formData.get("organization_id") ?? "").trim();
+  const organizationName = String(formData.get("organization_name") ?? "").trim();
+  const reason = String(formData.get("reason") ?? "").trim() || "superadmin_support";
+
+  if (!organizationId) {
+    redirect(
+      "/superadmin/organizations?status=error&message=" +
+        qs("No se pudo iniciar impersonacion: organizacion invalida"),
+    );
+  }
+
+  const server = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await server.auth.getUser();
+
+  if (!user) {
+    redirect(
+      "/auth/login?error=" +
+        qs("Tu sesion expiro. Vuelve a iniciar sesion para impersonar una organizacion"),
+    );
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data: organization } = await admin
+    .from("organizations")
+    .select("id, name")
+    .eq("id", organizationId)
+    .maybeSingle();
+
+  if (!organization) {
+    redirect(
+      "/superadmin/organizations?status=error&message=" +
+        qs("No se encontro la organizacion seleccionada"),
+    );
+  }
+
+  const session = await createSuperadminImpersonationSession({
+    superadminUserId: user.id,
+    organizationId,
+    reason,
+  });
+
+  if (!session.ok) {
+    redirect(
+      "/superadmin/organizations?status=error&message=" +
+        qs(`No se pudo iniciar impersonacion: ${session.error}`),
+    );
+  }
+
+  await setSuperadminImpersonationCookie(session.sessionId);
+  await setActiveOrganizationIdCookie(organizationId);
+
+  await logAuditEvent({
+    action: "organization.impersonation.start",
+    entityType: "superadmin_impersonation_session",
+    entityId: session.sessionId,
+    organizationId,
+    eventDomain: "superadmin",
+    outcome: "success",
+    severity: "high",
+    metadata: {
+      organization_name: organizationName || organization.name,
+      expires_at: session.expiresAt,
+      reason,
+    },
+  });
+
+  redirect("/app/dashboard");
 }
 
 function toNullableInt(value: FormDataEntryValue | null): number | null {

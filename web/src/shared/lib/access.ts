@@ -14,6 +14,7 @@ import { AUDIT_REASON_CODES } from "@/shared/lib/audit-taxonomy";
 import {
   getActiveOrganizationIdFromCookie,
 } from "@/shared/lib/tenant-selection";
+import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impersonation";
 
 export const MODULE_DISABLED_COPY = "Este modulo no esta incluido en tu plan actual.";
 
@@ -37,6 +38,8 @@ type TenantModuleApiAccessResult =
 
 async function resolveTenantFromCookie(options?: {
   roleCodes?: string[];
+  userId?: string;
+  isSuperadmin?: boolean;
 }) {
   const memberships = await getCurrentUserMemberships();
   const filteredMemberships = options?.roleCodes?.length
@@ -46,12 +49,39 @@ async function resolveTenantFromCookie(options?: {
   const preferredOrganizationId = await getActiveOrganizationIdFromCookie();
   const resolved = resolvePreferredMembership(filteredMemberships, preferredOrganizationId);
 
+  if (!resolved.selected && !resolved.requiresSelection && options?.isSuperadmin && options.userId) {
+    const impersonation = await resolveActiveSuperadminImpersonationSession(options.userId);
+    if (impersonation) {
+      const syntheticTenant = {
+        membershipId: `impersonation:${impersonation.id}`,
+        organizationId: impersonation.organizationId,
+        roleId: "impersonation",
+        branchId: null,
+        roleCode: "company_admin",
+        createdAt: impersonation.createdAt,
+      };
+
+      const roleAllowed = !options.roleCodes?.length || options.roleCodes.includes("company_admin");
+      if (roleAllowed) {
+        return {
+          memberships,
+          filteredMemberships,
+          preferredOrganizationId,
+          selected: syntheticTenant,
+          requiresSelection: false,
+          impersonation,
+        };
+      }
+    }
+  }
+
   return {
     memberships,
     filteredMemberships,
     preferredOrganizationId,
     selected: resolved.selected,
     requiresSelection: resolved.requiresSelection,
+    impersonation: null,
   };
 }
 
@@ -114,7 +144,12 @@ export async function requireTenantContext() {
     redirect("/auth/change-password?reason=first_login");
   }
 
-  const tenantContext = await resolveTenantFromCookie();
+  const isSuperadmin = await isCurrentUserSuperadmin();
+
+  const tenantContext = await resolveTenantFromCookie({
+    userId: user.id,
+    isSuperadmin,
+  });
 
   if (tenantContext.requiresSelection) {
     redirect("/auth/select-organization");
@@ -123,8 +158,6 @@ export async function requireTenantContext() {
   const tenant = tenantContext.selected;
 
   if (!tenant) {
-    const isSuperadmin = await isCurrentUserSuperadmin();
-
     if (isSuperadmin) {
       redirect("/superadmin/dashboard");
     }
@@ -215,7 +248,11 @@ export async function assertTenantModuleApi(moduleCode: string): Promise<TenantM
     };
   }
 
-  const tenantContext = await resolveTenantFromCookie();
+  const isSuperadmin = await isCurrentUserSuperadmin();
+  const tenantContext = await resolveTenantFromCookie({
+    userId: user.id,
+    isSuperadmin,
+  });
 
   if (tenantContext.requiresSelection) {
     return {
@@ -308,8 +345,11 @@ export async function requireCompanyAccess() {
     redirect("/auth/change-password?reason=first_login");
   }
 
+  const isSuperadmin = await isCurrentUserSuperadmin();
   const context = await resolveTenantFromCookie({
     roleCodes: ["company_admin", "manager"],
+    userId: user.id,
+    isSuperadmin,
   });
 
   if (context.requiresSelection) {
@@ -344,8 +384,11 @@ export async function requireEmployeeAccess() {
     redirect("/auth/change-password?reason=first_login");
   }
 
+  const isSuperadmin = await isCurrentUserSuperadmin();
   const context = await resolveTenantFromCookie({
     roleCodes: ["employee"],
+    userId: user.id,
+    isSuperadmin,
   });
 
   if (context.requiresSelection) {
