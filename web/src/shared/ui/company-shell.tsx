@@ -63,6 +63,7 @@ type CompanyShellProps = {
   currentPlanCode: string | null;
   currentPlanName: string;
   enabledModules: string[];
+  branchOptions: Array<{ id: string; name: string }>;
   children: React.ReactNode;
 };
 
@@ -84,7 +85,7 @@ const SECTIONS: SidebarSection[] = [
     label: "Operaciones",
     items: [
       { href: "/app/dashboard", label: "Dashboard", icon: LayoutGrid },
-      { href: "/app/reports", label: "Reportes", icon: ClipboardList, moduleCode: "reports" },
+      { href: "/app/reports", label: "Reportes Checklists", icon: ClipboardList, moduleCode: "reports" },
       { href: "/app/settings", label: "Ajustes Empresa", icon: Settings, moduleCode: "settings" },
     ],
   },
@@ -209,6 +210,7 @@ export function CompanyShell({
   currentPlanCode,
   currentPlanName,
   enabledModules,
+  branchOptions,
   children,
 }: CompanyShellProps) {
   const pathname = usePathname();
@@ -224,20 +226,39 @@ export function CompanyShell({
   );
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState("");
+  const selectedBranch = searchParams.get("branch") ?? "";
 
   const enabledModuleSet = useMemo(() => new Set(enabledModules), [enabledModules]);
-  const visibleSections = useMemo(
-    () =>
-      SECTIONS
-        .map((section) => ({
+  const visibleSections = useMemo(() => {
+    return SECTIONS
+      .map((section) => {
+        const filteredItems = section.items.filter(
+          (item) => !item.moduleCode || enabledModuleSet.has(item.moduleCode),
+        );
+
+        if (section.label !== "Operaciones" || !filteredItems.some((item) => item.href === "/app/dashboard")) {
+          return { ...section, items: filteredItems };
+        }
+
+        const dashboardIndex = filteredItems.findIndex((item) => item.href === "/app/dashboard");
+        if (dashboardIndex === -1) return { ...section, items: filteredItems };
+
+        const before = filteredItems.slice(0, dashboardIndex + 1);
+        const after = filteredItems.slice(dashboardIndex + 1);
+        const locationItems: SidebarItem[] = branchOptions.map((branch) => ({
+          href: `/app/dashboard/location?branch=${branch.id}`,
+          label: branch.name,
+          icon: LayoutGrid,
+          sub: true,
+        }));
+
+        return {
           ...section,
-          items: section.items.filter(
-            (item) => !item.moduleCode || enabledModuleSet.has(item.moduleCode),
-          ),
-        }))
-        .filter((section) => section.items.length > 0),
-    [enabledModuleSet],
-  );
+          items: [...before, ...locationItems, ...after],
+        };
+      })
+      .filter((section) => section.items.length > 0);
+  }, [enabledModuleSet, branchOptions]);
 
   const [theme, setTheme] = useState(settingsSnapshot.theme);
   const [profileName, setProfileName] = useState(sessionUserName);
@@ -290,6 +311,22 @@ export function CompanyShell({
     }
     return "Panel";
   }, [pathname, searchParams, visibleSections]);
+
+  function hrefWithBranch(href: string) {
+    if (!selectedBranch || !href.startsWith("/app")) return href;
+    const [path, query] = href.split("?");
+    const params = new URLSearchParams(query ?? "");
+    if (!params.has("branch")) params.set("branch", selectedBranch);
+    return `${path}?${params.toString()}`;
+  }
+
+  function updateBranchFilter(value: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value) params.set("branch", value);
+    else params.delete("branch");
+    const query = params.toString();
+    window.location.href = `${pathname}${query ? `?${query}` : ""}`;
+  }
 
   const palette = THEME_PALETTES[theme] ?? THEME_PALETTES.default;
 
@@ -403,6 +440,21 @@ export function CompanyShell({
               </button>
             </div>
             {!collapsed ? <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#8f8a86]">Administrador</p> : null}
+            {!collapsed && branchOptions.length > 1 ? (
+              <div className="mt-2">
+                <label className="mb-1 block text-[9px] font-bold uppercase tracking-[0.12em] text-black/40">Locacion</label>
+                <select
+                  value={selectedBranch}
+                  onChange={(event) => updateBranchFilter(event.target.value)}
+                  className="w-full rounded-md border border-black/15 bg-white/80 px-2 py-1.5 text-[11px] text-black/70"
+                >
+                  <option value="">Todas</option>
+                  {branchOptions.map((branch) => (
+                    <option key={branch.id} value={branch.id}>{branch.name}</option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
           </div>
 
           <nav className="min-h-0 flex-1 overflow-y-auto py-2">
@@ -425,7 +477,7 @@ export function CompanyShell({
                       return (
                         <Link
                           key={item.href}
-                          href={item.href}
+                          href={hrefWithBranch(item.href)}
                           className={`flex items-center gap-2.5 border-l-[2.5px] text-[13px] transition ${
                             collapsed ? "justify-center px-0 py-2.5" : item.sub ? "px-5 py-1.5 pl-7" : "px-5 py-2"
                           } ${active ? "bg-black/5 font-semibold text-[#111111]" : "border-l-transparent text-black/60 hover:border-l-black/20 hover:bg-black/5 hover:text-black/85"}`}
@@ -786,7 +838,7 @@ export function CompanyShell({
                         return (
                           <Link
                             key={item.href}
-                            href={item.href}
+                            href={hrefWithBranch(item.href)}
                             className={`flex items-center gap-2.5 border-l-[2.5px] px-4 text-[13px] transition ${item.sub ? "py-1.5 pl-6" : "py-2"} ${active ? "bg-black/5 font-semibold text-[#111111]" : "border-l-transparent text-black/60 hover:border-l-black/20 hover:bg-black/5 hover:text-black/85"}`}
                             style={active ? { borderLeftColor: palette.accent } : undefined}
                             onClick={() => setMenuOpen(false)}

@@ -4,7 +4,8 @@ import {
   getOrganizationSettings, 
   getActivePlans, 
   getUserPreferences, 
-  getEnabledModules 
+  getEnabledModules,
+  getActiveBranches,
 } from "@/modules/organizations/queries";
 import { requireCompanyAccess } from "@/shared/lib/access";
 import { CompanyShell } from "@/shared/ui/company-shell";
@@ -22,11 +23,12 @@ export default async function CompanyLayout({
     getOrganizationById(tenant.organizationId),
   ]);
 
-  const [orgSettings, preferences, activePlans, enabledModuleCodes] = await Promise.all([
+  const [orgSettings, preferences, activePlans, enabledModuleCodes, activeBranches] = await Promise.all([
     getOrganizationSettings(tenant.organizationId),
     user ? getUserPreferences(user.id, tenant.organizationId) : Promise.resolve(null),
     getActivePlans(),
     getEnabledModules(tenant.organizationId),
+    getActiveBranches(tenant.organizationId),
   ]);
 
   const currentPlanById = organization?.plan_id
@@ -102,6 +104,7 @@ export default async function CompanyLayout({
       currentPlanCode={inferredCurrentPlan?.code ?? null}
       currentPlanName={inferredCurrentPlan?.name ?? "Sin plan"}
       enabledModules={enabledModules}
+      branchOptions={activeBranches}
     >
       <FadeIn>
         {children}

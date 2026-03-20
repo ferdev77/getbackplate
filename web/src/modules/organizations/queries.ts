@@ -57,3 +57,14 @@ export const getUserPreferences = cache(async function getUserPreferences(userId
     .maybeSingle();
   return data;
 });
+
+export const getActiveBranches = cache(async function getActiveBranches(organizationId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("branches")
+    .select("id, name")
+    .eq("organization_id", organizationId)
+    .eq("is_active", true)
+    .order("name");
+  return data ?? [];
+});

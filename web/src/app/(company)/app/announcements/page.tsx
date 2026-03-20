@@ -9,6 +9,7 @@ import {
   toggleAnnouncementFeaturedAction,
 } from "@/modules/announcements/actions";
 import { requireTenantModule } from "@/shared/lib/access";
+import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { AnnouncementCreateModal } from "@/shared/ui/announcement-create-modal";
 import { ConfirmSubmitButton } from "@/shared/ui/confirm-submit-button";
 import {SlideUp, AnimatedList, AnimatedItem} from "@/shared/ui/animations";
@@ -106,22 +107,11 @@ const employeesQuery = admin
   .eq("organization_id", tenant.organizationId)
   .eq("is_employee", false);
 
-  const membershipsQuery = admin
-    .from("memberships")
-    .select("user_id, role_id")
-    .eq("organization_id", tenant.organizationId)
-    .eq("status", "active");
-
-  const rolesQuery = admin
-    .from("roles")
-    .select("id, code");
-
   if (!openCreateModal) {
     // Only fetch needed references for performance
     if (branchIdsArr.length > 0) branchesQuery.in("id", branchIdsArr); else branchesQuery.in("id", ["00000000-0000-0000-0000-000000000000"]);
     if (userIdsArr.length > 0) employeesQuery.in("user_id", userIdsArr); else employeesQuery.in("user_id", ["00000000-0000-0000-0000-000000000000"]);
     if (userIdsArr.length > 0) userProfilesQuery.in("user_id", userIdsArr); else userProfilesQuery.in("user_id", ["00000000-0000-0000-0000-000000000000"]);
-    if (userIdsArr.length > 0) membershipsQuery.in("user_id", userIdsArr); else membershipsQuery.in("user_id", ["00000000-0000-0000-0000-000000000000"]);
     if (deptIdsArr.length > 0) departmentsQuery.in("id", deptIdsArr); else departmentsQuery.in("id", ["00000000-0000-0000-0000-000000000000"]);
     if (posIdsArr.length > 0) positionsQuery.in("id", posIdsArr); else positionsQuery.in("id", ["00000000-0000-0000-0000-000000000000"]);
   }
@@ -130,26 +120,15 @@ const employeesQuery = admin
     { data: branches },
     { data: employees },
     { data: userProfiles },
-    { data: memberships },
-    { data: roles },
     { data: departments },
     { data: positions },
   ] = await Promise.all([
     branchesQuery,
     employeesQuery,
     userProfilesQuery,
-    membershipsQuery,
-    rolesQuery,
     departmentsQuery,
     positionsQuery,
   ]);
-
-  const roleCodeById = new Map((roles ?? []).map((role) => [role.id, role.code]));
-  const employeeRoleUserIds = new Set(
-    (memberships ?? [])
-      .filter((membership) => roleCodeById.get(membership.role_id) === "employee")
-      .map((membership) => membership.user_id),
-  );
 
   const branchNameMap = new Map((branches ?? []).map((row) => [row.id, row.name]));
   const departmentNameMap = new Map((departments ?? []).map((row) => [row.id, row.name]));
@@ -163,6 +142,8 @@ const employeesQuery = admin
     if (employeeNameByUserId.has(profile.user_id)) continue;
     employeeNameByUserId.set(profile.user_id, `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim() || "Usuario");
   }
+
+  const scopeUsers = openCreateModal ? await buildScopeUsersCatalog(tenant.organizationId) : [];
   const positionNameMap = new Map((positions ?? []).map((row) => [row.id, row.name]));
 
   const now = new Date();
@@ -303,38 +284,7 @@ const employeesQuery = admin
           branches={branches ?? []}
           departments={departments ?? []}
           positions={positions ?? []}
-          users={[
-            ...(employees ?? []).map((user) => ({
-              id: user.id,
-              user_id: user.user_id,
-              first_name: user.first_name ?? "",
-              last_name: user.last_name ?? "",
-              role_label: "Empleado",
-              location_label: user.branch_id ? (branchNameMap.get(user.branch_id) ?? undefined) : undefined,
-              department_label: user.department_id ? (departmentNameMap.get(user.department_id) ?? undefined) : undefined,
-              position_label: user.position ?? undefined,
-            })),
-            ...(userProfiles ?? [])
-              .filter((profile) => !profile.user_id || !(employees ?? []).some((employee) => employee.user_id === profile.user_id))
-              .map((profile) => ({
-                id: `up-${profile.id}`,
-                user_id: profile.user_id,
-                first_name: profile.first_name ?? "Usuario",
-                last_name: profile.last_name ?? "",
-                role_label: "Usuario",
-              })),
-            ...Array.from(employeeRoleUserIds)
-              .filter((userId) => Boolean(userId))
-              .filter((userId) => !(employees ?? []).some((employee) => employee.user_id === userId))
-              .filter((userId) => !(userProfiles ?? []).some((profile) => profile.user_id === userId))
-              .map((userId) => ({
-                id: `m-${userId}`,
-                user_id: userId,
-                first_name: "Usuario",
-                last_name: userId.slice(0, 8),
-                role_label: "Usuario",
-              })),
-          ]}
+          users={scopeUsers}
           publisherName={publisherName}
           mode={action === "edit" ? "edit" : "create"}
           initial={

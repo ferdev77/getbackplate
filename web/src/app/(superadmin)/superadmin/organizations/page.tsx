@@ -21,6 +21,7 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import {
   createOrganizationAction,
   deleteOrganizationAction,
+  resendOrganizationInvitationAction,
   toggleOrganizationModuleAction,
   updateOrganizationAction,
 } from "@/modules/organizations/actions";
@@ -323,6 +324,7 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
                   </div>
                   <div className="sm:col-span-2 flex justify-end gap-3 mt-4">
                     <Link href="/superadmin/organizations" className="rounded-xl border border-line bg-white px-6 py-2.5 text-sm font-bold text-muted-foreground transition-all hover:bg-muted">Cancelar</Link>
+                    <button type="submit" formNoValidate name="admin_invite_mode" value="invite" className="rounded-xl border border-brand bg-white px-6 py-2.5 text-sm font-bold text-brand transition-all hover:bg-brand/5">Enviar invitación</button>
                     <button type="submit" className="rounded-xl bg-brand px-8 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/20 transition-all hover:bg-brand-dark">Confirmar Registro</button>
                   </div>
                 </form>
@@ -417,14 +419,24 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
                       </button>
                     </form>
                     
-                    <div className="rounded-3xl border border-line/40 bg-white p-6">
-                       <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-foreground"><User className="h-5 w-5 text-brand" /> Responsable</h4>
-                       <div className="p-3 bg-muted/30 rounded-xl border border-line/20">
-                         <p className="text-sm font-bold text-foreground">{selectedAdmins[0] ?? "- No asignado -"}</p>
-                         <p className="text-[11px] text-muted-foreground mt-1">El administrador principal solo puede ser cambiado mediante consola de seguridad.</p>
-                       </div>
-                    </div>
-                  </div>
+                     <div className="rounded-3xl border border-line/40 bg-white p-6">
+                        <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-foreground"><User className="h-5 w-5 text-brand" /> Responsable</h4>
+                        <div className="p-3 bg-muted/30 rounded-xl border border-line/20">
+                          <p className="text-sm font-bold text-foreground">{selectedAdmins[0] ?? "- No asignado -"}</p>
+                          <p className="text-[11px] text-muted-foreground mt-1">El administrador principal solo puede ser cambiado mediante consola de seguridad.</p>
+                        </div>
+                        {selectedAdmins[0] ? (
+                          <form action={resendOrganizationInvitationAction} className="mt-3 rounded-xl border border-line/20 bg-white p-3">
+                            <input type="hidden" name="organization_id" value={selectedOrg.id} />
+                            <input type="hidden" name="email" value={selectedAdmins[0]} />
+                            <input type="hidden" name="full_name" value={selectedAdmins[0].split("@")[0]} />
+                            <button type="submit" className="w-full rounded-lg border border-brand bg-white px-3 py-2 text-xs font-bold text-brand hover:bg-brand/5">
+                              Reenviar invitación
+                            </button>
+                          </form>
+                        ) : null}
+                     </div>
+                   </div>
 
                   <div className="rounded-3xl border border-line/40 bg-white p-6 shadow-sm">
                     <h4 className="mb-6 flex items-center gap-2 text-sm font-bold text-foreground"><LayoutGrid className="h-5 w-5 text-brand" /> Catálogo de Módulos</h4>

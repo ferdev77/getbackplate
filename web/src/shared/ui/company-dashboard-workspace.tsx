@@ -50,6 +50,8 @@ type CompanyDashboardWorkspaceProps = {
   organizationSlug: string;
   organizationStatus: string;
   employeesCount: number;
+  employeesOnlyCount: number;
+  usersOnlyCount: number;
   branchesCount: number;
   checklistTodayCount: number;
   checklistWeekCount: number;
@@ -60,6 +62,7 @@ type CompanyDashboardWorkspaceProps = {
   branchNameMap: Map<string, string>;
   branches: DashboardBranch[];
   branchFilter: string;
+  selectedBranchName?: string | null;
   searchTerm: string;
   dashboardNote: string;
   moduleStatus: DashboardModuleStatus[];
@@ -98,6 +101,8 @@ export function CompanyDashboardWorkspace({
   organizationSlug,
   organizationStatus,
   employeesCount,
+  employeesOnlyCount,
+  usersOnlyCount,
   branchesCount,
   checklistTodayCount,
   checklistWeekCount,
@@ -108,6 +113,7 @@ export function CompanyDashboardWorkspace({
   branchNameMap,
   branches,
   branchFilter,
+  selectedBranchName,
   searchTerm,
   dashboardNote,
   moduleStatus,
@@ -122,6 +128,18 @@ export function CompanyDashboardWorkspace({
   const showDocumentsPanel = enabledModuleSet.has("documents");
   const showChecklistsPanel = enabledModuleSet.has("checklists");
   const showReportsLink = enabledModuleSet.has("reports");
+  const workforceTotal = employeesOnlyCount + usersOnlyCount;
+  const employeeRatio = workforceTotal > 0 ? Math.round((employeesOnlyCount / workforceTotal) * 100) : 0;
+  const operationTone =
+    openFlagsCount > 10 ? "critical" : openFlagsCount > 3 || pendingReviewCount > 10 ? "warning" : "healthy";
+  const operationToneLabel =
+    operationTone === "critical" ? "Riesgo alto" : operationTone === "warning" ? "Atencion" : "Operacion estable";
+  const operationToneClass =
+    operationTone === "critical"
+      ? "border-rose-200 bg-rose-50 text-rose-700"
+      : operationTone === "warning"
+        ? "border-amber-200 bg-amber-50 text-amber-700"
+        : "border-emerald-200 bg-emerald-50 text-emerald-700";
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
@@ -136,34 +154,45 @@ export function CompanyDashboardWorkspace({
           <p className="mt-1 text-sm text-[#67605b]">
             Centro operativo con estado diario, seguimiento de tareas y actividad reciente.
           </p>
+          {selectedBranchName ? (
+            <p className="mt-2 inline-flex rounded-full border border-[#d8e4f7] bg-[#eff5ff] px-2.5 py-1 text-xs font-semibold text-[#2d4f86]">
+              Vista de locacion: {selectedBranchName}
+            </p>
+          ) : null}
         </section>
       </SlideUp>
 
       <AnimatedList className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <AnimatedItem>
-          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full">
+          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full transition hover:-translate-y-[1px] hover:shadow-[0_8px_20px_rgba(0,0,0,.08)]">
             <p className="flex items-center gap-1 text-xs text-[#8a817b]"><Building2 className="h-3.5 w-3.5" /> Empresa</p>
             <p className="mt-1 text-base font-semibold">{organizationSlug}</p>
           </article>
         </AnimatedItem>
         <AnimatedItem>
-          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full">
+          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full transition hover:-translate-y-[1px] hover:shadow-[0_8px_20px_rgba(0,0,0,.08)]">
             <p className="flex items-center gap-1 text-xs text-[#8a817b]"><UsersRound className="h-3.5 w-3.5" /> Usuarios / Empleados</p>
             <p className="mt-1 text-2xl font-bold">{employeesCount}</p>
+            <p className="mt-1 text-[11px] text-[#8a817b]">Empleados: {employeesOnlyCount} · Usuarios: {usersOnlyCount}</p>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#efe8e4]">
+              <div className="h-full rounded-full bg-[#c0392b]" style={{ width: `${employeeRatio}%` }} />
+            </div>
+            <p className="mt-1 text-[10px] text-[#9a908a]">Composicion laboral: {employeeRatio}% empleados</p>
           </article>
         </AnimatedItem>
         <AnimatedItem>
-          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full">
+          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full transition hover:-translate-y-[1px] hover:shadow-[0_8px_20px_rgba(0,0,0,.08)]">
             <p className="flex items-center gap-1 text-xs text-[#8a817b]"><CheckCircle2 className="h-3.5 w-3.5" /> Checklists hoy</p>
             <p className="mt-1 text-2xl font-bold">{checklistTodayCount}</p>
           </article>
         </AnimatedItem>
         <AnimatedItem>
-          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full">
+          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full transition hover:-translate-y-[1px] hover:shadow-[0_8px_20px_rgba(0,0,0,.08)]">
             <p className="text-xs text-[#8a817b]">Estado tenant</p>
             <p className="mt-1 inline-block rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-sm font-semibold text-emerald-700">
               {statusLabel(organizationStatus)}
             </p>
+            <p className={`mt-2 inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${operationToneClass}`}>{operationToneLabel}</p>
           </article>
         </AnimatedItem>
       </AnimatedList>
@@ -196,6 +225,13 @@ export function CompanyDashboardWorkspace({
               Aplicar filtros
             </button>
           </form>
+          {selectedBranchName || searchTerm ? (
+            <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+              {selectedBranchName ? <span className="rounded-full border border-[#d8e4f7] bg-[#eff5ff] px-2 py-0.5 text-[#2d4f86]">Locacion: {selectedBranchName}</span> : null}
+              {searchTerm ? <span className="rounded-full border border-[#ece4df] bg-[#fffdfa] px-2 py-0.5 text-[#7c746f]">Busqueda: {searchTerm}</span> : null}
+              <Link href="/app/dashboard" className="font-semibold text-[#b63a2f] hover:underline">Limpiar filtros</Link>
+            </div>
+          ) : null}
           <p className="mb-3 text-xs font-semibold tracking-[0.1em] text-[#8a817b] uppercase">Modulos habilitados</p>
           <div className="flex flex-wrap gap-2">
             {moduleStatus.map((moduleItem) => (
@@ -338,7 +374,7 @@ export function CompanyDashboardWorkspace({
             <div className="flex flex-wrap gap-2">
               {showAnnouncementsPanel ? <Link href="/app/announcements" className="inline-flex items-center gap-1 rounded-lg border border-[#ddd3ce] bg-white px-3 py-1.5 text-sm text-[#4f4843] hover:bg-[#f8f3f1]"><Bell className="h-4 w-4" /> Avisos</Link> : null}
               {showChecklistsPanel ? <Link href="/app/checklists" className="inline-flex items-center gap-1 rounded-lg border border-[#ddd3ce] bg-white px-3 py-1.5 text-sm text-[#4f4843] hover:bg-[#f8f3f1]"><ClipboardCheck className="h-4 w-4" /> Checklists</Link> : null}
-              {showReportsLink ? <Link href="/app/reports" className="inline-flex items-center gap-1 rounded-lg border border-[#ddd3ce] bg-white px-3 py-1.5 text-sm text-[#4f4843] hover:bg-[#f8f3f1]"><FileText className="h-4 w-4" /> Reportes</Link> : null}
+              {showReportsLink ? <Link href="/app/reports" className="inline-flex items-center gap-1 rounded-lg border border-[#ddd3ce] bg-white px-3 py-1.5 text-sm text-[#4f4843] hover:bg-[#f8f3f1]"><FileText className="h-4 w-4" /> Reportes Checklists</Link> : null}
             </div>
           </div>
           <p className="mt-2 text-sm text-[#6b635e]">
