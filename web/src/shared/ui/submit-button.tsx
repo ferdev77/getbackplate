@@ -11,7 +11,10 @@ type SubmitButtonProps = {
   disabled?: boolean;
   variant?: "primary" | "danger" | "ghost";
   pending?: boolean;
-} & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "type" | "children">;
+  name?: string;
+  value?: string;
+  formNoValidate?: boolean;
+};
 
 const variantClasses: Record<NonNullable<SubmitButtonProps["variant"]>, string> = {
   primary:
@@ -29,7 +32,9 @@ export function SubmitButton({
   disabled,
   variant = "primary",
   pending: externalPending,
-  ...buttonProps
+  name,
+  value,
+  formNoValidate,
 }: SubmitButtonProps) {
   const { pending: internalPending } = useFormStatus();
   const isPending = externalPending ?? internalPending ?? disabled;
@@ -39,7 +44,9 @@ export function SubmitButton({
       type="submit"
       disabled={isPending}
       aria-disabled={isPending}
-      {...buttonProps}
+      name={name}
+      value={value}
+      formNoValidate={formNoValidate}
       className={[
         "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition shadow-sm",
         variantClasses[variant],
