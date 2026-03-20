@@ -46,7 +46,7 @@ export async function GET(_request: Request, { params }: Context) {
   const admin = createSupabaseAdminClient();
   const { data: document, error: docError } = await admin
     .from("documents")
-    .select("id, file_path, organization_id, branch_id, access_scope, mime_type, file_size_bytes")
+    .select("id, file_path, organization_id, branch_id, folder_id, access_scope, mime_type, file_size_bytes")
     .eq("id", documentId)
     .in("organization_id", orgIds)
     .single();
@@ -107,6 +107,19 @@ export async function GET(_request: Request, { params }: Context) {
     isDirectlyAssigned = Boolean(link);
   }
 
+  let effectiveAccessScope = document.access_scope;
+  if (document.folder_id) {
+    const { data: folder } = await admin
+      .from("document_folders")
+      .select("id, access_scope")
+      .eq("organization_id", document.organization_id)
+      .eq("id", document.folder_id)
+      .maybeSingle();
+    if (folder?.access_scope) {
+      effectiveAccessScope = folder.access_scope;
+    }
+  }
+
   const orgMemberships = (memberships ?? []).filter((row) => row.organization_id === document.organization_id);
 
   let canRead = false;
@@ -119,7 +132,7 @@ export async function GET(_request: Request, { params }: Context) {
       departmentId: employeeRow?.department_id ?? null,
       positionIds: employeePositionIds,
       isDirectlyAssigned,
-      accessScope: document.access_scope,
+      accessScope: effectiveAccessScope,
     });
 
     if (isAllowed) {

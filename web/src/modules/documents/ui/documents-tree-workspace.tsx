@@ -141,6 +141,12 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
   }, [organizationId, router, supabase]);
 
   const folderOptions = useMemo(() => folderRows.map((row) => ({ id: row.id, name: row.name })), [folderRows]);
+  const folderById = useMemo(() => new Map(folderRows.map((row) => [row.id, row])), [folderRows]);
+
+  function getEffectiveDocumentScope(doc: DocumentRow) {
+    if (!doc.folder_id) return parseScope(doc.access_scope);
+    return parseScope(folderById.get(doc.folder_id)?.access_scope ?? doc.access_scope);
+  }
 
   const docsByFolder = useMemo(() => {
     const map = new Map<string | null, DocumentRow[]>();
@@ -489,7 +495,7 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
                 <FadeIn delay={0.05}>
                   <div className="border-l-[3px] border-[#e8e8e8]">
                     {docList.map((doc) => {
-                      const docScope = parseScope(doc.access_scope);
+                      const docScope = getEffectiveDocumentScope(doc);
                       const docLoc = doc.branch_id ? branchMap.get(doc.branch_id) ?? "Locacion" : docScope.locations[0] ? branchMap.get(docScope.locations[0]) ?? "Locacion" : "Global";
                       const docDept = docScope.departments[0] ? deptMap.get(docScope.departments[0]) ?? "Departamento" : "-";
                       const docShared = docScope.locations.length || docScope.departments.length || docScope.positions.length || docScope.users.length ? "Segmentado" : "Todos";
@@ -507,7 +513,9 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
                           <div className="flex items-center justify-end gap-1">
                             <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Ver/Descargar"><Eye className="h-3.5 w-3.5" /></a>
                             <button type="button" onClick={() => setEditDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
-                            <button type="button" onClick={() => setShareDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
+                            {doc.folder_id ? null : (
+                              <button type="button" onClick={() => setShareDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
+                            )}
                             <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Descargar"><Download className="h-3.5 w-3.5" /></a>
                             <button type="button" onClick={() => setDeleteDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4]" title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
                           </div>
@@ -578,7 +586,7 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
             {renderFolderTree(null)}
             <AnimatePresence>
               {rootDocuments.map((doc) => {
-                const scope = parseScope(doc.access_scope);
+                const scope = getEffectiveDocumentScope(doc);
                 const loc = doc.branch_id ? branchMap.get(doc.branch_id) ?? "Locacion" : scope.locations[0] ? branchMap.get(scope.locations[0]) ?? "Locacion" : "Global";
                 const dept = scope.departments[0] ? deptMap.get(scope.departments[0]) ?? "Departamento" : "-";
                 const shared = scope.locations.length || scope.departments.length || scope.positions.length || scope.users.length ? "Segmentado" : "Todos";
@@ -593,7 +601,9 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
                       <div className="flex items-center justify-end gap-1">
                         <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Ver"><Eye className="h-3.5 w-3.5" /></a>
                         <button type="button" onClick={() => setEditDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
-                        <button type="button" onClick={() => setShareDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
+                         {doc.folder_id ? null : (
+                           <button type="button" onClick={() => setShareDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
+                         )}
                         <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Descargar"><Download className="h-3.5 w-3.5" /></a>
                         <button type="button" onClick={() => setDeleteDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4]" title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
                       </div>

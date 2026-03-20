@@ -322,6 +322,14 @@ export async function PATCH(request: Request) {
     .eq("organization_id", tenant.organizationId)
     .eq("id", folderId);
 
+  if (!error && updatePayload.access_scope) {
+    await supabase
+      .from("documents")
+      .update({ access_scope: updatePayload.access_scope })
+      .eq("organization_id", tenant.organizationId)
+      .eq("folder_id", folderId);
+  }
+
   if (error) {
     await logAuditEvent({
       action: "documents.folder.update",

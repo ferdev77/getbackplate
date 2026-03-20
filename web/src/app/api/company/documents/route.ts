@@ -13,6 +13,27 @@ const BUCKET_NAME = "tenant-documents";
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const ASYNC_POST_PROCESS_THRESHOLD_BYTES = 5 * 1024 * 1024;
 
+type DocumentScope = {
+  locations: string[];
+  department_ids: string[];
+  position_ids: string[];
+  users: string[];
+};
+
+function parseDocumentScope(scope: unknown): DocumentScope {
+  const value = typeof scope === "object" && scope !== null ? (scope as Record<string, unknown>) : {};
+  return {
+    locations: Array.isArray(value.locations) ? value.locations.filter((item): item is string => typeof item === "string") : [],
+    department_ids: Array.isArray(value.department_ids)
+      ? value.department_ids.filter((item): item is string => typeof item === "string")
+      : [],
+    position_ids: Array.isArray(value.position_ids)
+      ? value.position_ids.filter((item): item is string => typeof item === "string")
+      : [],
+    users: Array.isArray(value.users) ? value.users.filter((item): item is string => typeof item === "string") : [],
+  };
+}
+
 async function ensureBucketExists() {
   const admin = createSupabaseAdminClient();
   const { data: bucket } = await admin.storage.getBucket(BUCKET_NAME);
@@ -113,25 +134,34 @@ export async function POST(request: Request) {
 
   await ensureBucketExists();
 
+  let folderScope: DocumentScope | null = null;
   if (folderId) {
     const { data: folder } = await supabase
       .from("document_folders")
-      .select("id")
+      .select("id, access_scope")
       .eq("organization_id", tenant.organizationId)
       .eq("id", folderId)
       .maybeSingle();
     if (!folder) {
       return NextResponse.json({ error: "Carpeta invalida para esta empresa" }, { status: 400 });
     }
+    folderScope = parseDocumentScope(folder.access_scope);
   }
+
+  const effectiveScope = folderScope ?? {
+    locations: locationScopes,
+    department_ids: departmentScopes,
+    position_ids: positionScopes,
+    users: userScopes,
+  };
 
   const scopeValidation = await validateTenantScopeReferences({
     supabase,
     organizationId: tenant.organizationId,
-    locationIds: locationScopes,
-    departmentIds: departmentScopes,
-    positionIds: positionScopes,
-    userIds: userScopes,
+    locationIds: effectiveScope.locations,
+    departmentIds: effectiveScope.department_ids,
+    positionIds: effectiveScope.position_ids,
+    userIds: effectiveScope.users,
     userSource: "employees",
   });
 
@@ -198,12 +228,7 @@ export async function POST(request: Request) {
       original_file_name: analysis.originalName,
       checksum_sha256: analysis.checksumSha256,
       file_size_bytes: file.size,
-      access_scope: {
-        locations: locationScopes,
-        department_ids: departmentScopes,
-        position_ids: positionScopes,
-        users: userScopes,
-      },
+      access_scope: effectiveScope,
     })
     .select("id")
     .single();
@@ -280,17 +305,33 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Documento invalido" }, { status: 400 });
   }
 
-  if (folderId !== undefined && folderId) {
+  const { data: currentDocument } = await supabase
+    .from("documents")
+    .select("id, folder_id, access_scope")
+    .eq("organization_id", tenant.organizationId)
+    .eq("id", documentId)
+    .maybeSingle();
+
+  if (!currentDocument) {
+    return NextResponse.json({ error: "Documento no encontrado" }, { status: 404 });
+  }
+
+  let targetFolderScope: DocumentScope | null = null;
+  const targetFolderId = folderId === undefined ? currentDocument.folder_id : folderId;
+
+  if (targetFolderId) {
     const { data: folder } = await supabase
       .from("document_folders")
-      .select("id")
+      .select("id, access_scope")
       .eq("organization_id", tenant.organizationId)
-      .eq("id", folderId)
+      .eq("id", targetFolderId)
       .maybeSingle();
 
     if (!folder) {
       return NextResponse.json({ error: "Carpeta invalida" }, { status: 400 });
     }
+
+    targetFolderScope = parseDocumentScope(folder.access_scope);
   }
 
   if (locationScope && locationScope.length) {
@@ -351,24 +392,21 @@ export async function PATCH(request: Request) {
   if (folderId !== undefined) {
     updatePayload.folder_id = folderId;
   }
-  if (locationScope || departmentScope || positionScope || userScope) {
-    const { data: current } = await supabase
-      .from("documents")
-      .select("access_scope")
-      .eq("organization_id", tenant.organizationId)
-      .eq("id", documentId)
-      .maybeSingle();
-    const existing = (current?.access_scope as Record<string, unknown> | null) ?? {};
-    const existingLocations = Array.isArray(existing.locations) ? (existing.locations as string[]) : [];
-    const existingDepartments = Array.isArray(existing.department_ids) ? (existing.department_ids as string[]) : [];
-    const existingPositions = Array.isArray(existing.position_ids) ? (existing.position_ids as string[]) : [];
-    const existingUsers = Array.isArray(existing.users) ? (existing.users as string[]) : [];
-
+  if (targetFolderScope) {
+    if (locationScope || departmentScope || positionScope || userScope) {
+      return NextResponse.json(
+        { error: "El documento hereda permisos de su carpeta. Edita la carpeta para cambiar acceso." },
+        { status: 400 },
+      );
+    }
+    updatePayload.access_scope = targetFolderScope;
+  } else if (locationScope || departmentScope || positionScope || userScope) {
+    const existing = parseDocumentScope(currentDocument.access_scope);
     updatePayload.access_scope = {
-      locations: locationScope ?? existingLocations,
-      department_ids: departmentScope ?? existingDepartments,
-      position_ids: positionScope ?? existingPositions,
-      users: userScope ?? existingUsers,
+      locations: locationScope ?? existing.locations,
+      department_ids: departmentScope ?? existing.department_ids,
+      position_ids: positionScope ?? existing.position_ids,
+      users: userScope ?? existing.users,
     };
   }
 

@@ -37,6 +37,7 @@ export function UploadDocumentModal({
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [selectedFileName, setSelectedFileName] = useState("");
+  const [selectedFolderId, setSelectedFolderId] = useState("");
   const [isClosing, setIsClosing] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
 
@@ -129,22 +130,30 @@ export function UploadDocumentModal({
                 <input name="title" placeholder="Se usa el nombre del archivo si lo dejas vacio" className="mb-3 w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm" />
 
                 <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">Guardar en carpeta</label>
-                <select name="folder_id" defaultValue="" className="mb-3 w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm"><option value="">Raiz</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select>
+                <select name="folder_id" value={selectedFolderId} onChange={(event) => setSelectedFolderId(event.target.value)} className="mb-3 w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm"><option value="">Raiz</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select>
 
                 <div className="mb-3 rounded-xl border border-[#e8e1dc] bg-[#fcf9f7] p-3">
                   <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8d847f]">Quienes pueden ver este archivo</p>
-                  <p className="mt-1 text-xs text-[#7c726d]">Define acceso por locacion, departamento, puesto o usuario. Esta configuracion se guarda en base de datos y limita el acceso en el portal.</p>
-                  <ScopeSelector
-                    namespace="upload-modal"
-                    branches={branches}
-                    departments={departments}
-                    positions={positions}
-                    users={employees}
-                    locationInputName="location_scope"
-                    departmentInputName="department_scope"
-                    positionInputName="position_scope"
-                    userInputName="user_scope"
-                  />
+                  {selectedFolderId ? (
+                    <p className="mt-1 text-xs text-[#7c726d]">
+                      Este archivo heredara automaticamente los permisos de la carpeta seleccionada.
+                    </p>
+                  ) : (
+                    <>
+                      <p className="mt-1 text-xs text-[#7c726d]">Define acceso por locacion, departamento, puesto o usuario. Esta configuracion aplica cuando el archivo esta en raiz.</p>
+                      <ScopeSelector
+                        namespace="upload-modal"
+                        branches={branches}
+                        departments={departments}
+                        positions={positions}
+                        users={employees}
+                        locationInputName="location_scope"
+                        departmentInputName="department_scope"
+                        positionInputName="position_scope"
+                        userInputName="user_scope"
+                      />
+                    </>
+                  )}
                 </div>
 
                 <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">Descripcion (opcional)</label>
