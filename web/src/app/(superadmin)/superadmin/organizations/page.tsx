@@ -106,19 +106,19 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
   const { data: adminMemberships } = companyAdminRoleId
     ? await supabase
         .from("memberships")
-        .select("organization_id, user_id")
+        .select("organization_id, user_id, status")
         .eq("role_id", companyAdminRoleId)
-        .eq("status", "active")
+        .in("status", ["active", "invited"])
     : { data: [] };
 
   const authUserMap = await getAuthUserMap();
   const adminCountByOrg = new Map<string, number>();
-  const adminEmailsByOrg = new Map<string, string[]>();
+  const adminEmailsByOrg = new Map<string, Array<{ email: string; status: string }>>();
   for (const row of adminMemberships ?? []) {
     adminCountByOrg.set(row.organization_id, (adminCountByOrg.get(row.organization_id) ?? 0) + 1);
     const existing = adminEmailsByOrg.get(row.organization_id) ?? [];
     const email = authUserMap.get(row.user_id) ?? row.user_id;
-    existing.push(email);
+    existing.push({ email, status: row.status });
     adminEmailsByOrg.set(row.organization_id, existing);
   }
 
@@ -339,7 +339,12 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
                     </div>
                     <div className="rounded-2xl border border-line/40 bg-muted/20 p-4">
                       <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">Administrador</p>
-                      <p className="text-lg font-bold text-foreground truncate">{selectedAdmins[0] ?? "- No asignado -"}</p>
+                      <p className="text-lg font-bold text-foreground truncate">{selectedAdmins[0]?.email ?? "- No asignado -"}</p>
+                      {selectedAdmins[0]?.status ? (
+                        <p className="mt-1 text-[11px] font-semibold text-amber-700">
+                          Estado: {selectedAdmins[0].status === "invited" ? "Invitado" : "Activo"}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                   
@@ -422,14 +427,19 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
                      <div className="rounded-3xl border border-line/40 bg-white p-6">
                         <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-foreground"><User className="h-5 w-5 text-brand" /> Responsable</h4>
                         <div className="p-3 bg-muted/30 rounded-xl border border-line/20">
-                          <p className="text-sm font-bold text-foreground">{selectedAdmins[0] ?? "- No asignado -"}</p>
-                          <p className="text-[11px] text-muted-foreground mt-1">El administrador principal solo puede ser cambiado mediante consola de seguridad.</p>
+                           <p className="text-sm font-bold text-foreground">{selectedAdmins[0]?.email ?? "- No asignado -"}</p>
+                           {selectedAdmins[0]?.status ? (
+                             <p className="mt-1 text-[11px] font-semibold text-amber-700">
+                               Estado: {selectedAdmins[0].status === "invited" ? "Invitado" : "Activo"}
+                             </p>
+                           ) : null}
+                           <p className="text-[11px] text-muted-foreground mt-1">El administrador principal solo puede ser cambiado mediante consola de seguridad.</p>
                         </div>
                         {selectedAdmins[0] ? (
                           <form action={resendOrganizationInvitationAction} className="mt-3 rounded-xl border border-line/20 bg-white p-3">
                             <input type="hidden" name="organization_id" value={selectedOrg.id} />
-                            <input type="hidden" name="email" value={selectedAdmins[0]} />
-                            <input type="hidden" name="full_name" value={selectedAdmins[0].split("@")[0]} />
+                            <input type="hidden" name="email" value={selectedAdmins[0].email} />
+                            <input type="hidden" name="full_name" value={selectedAdmins[0].email.split("@")[0]} />
                             <button type="submit" className="w-full rounded-lg border border-brand bg-white px-3 py-2 text-xs font-bold text-brand hover:bg-brand/5">
                               Reenviar invitación
                             </button>
