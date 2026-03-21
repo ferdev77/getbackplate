@@ -949,3 +949,78 @@ Rollback incluye:
 Archivo principal:
 
 - `web/src/app/api/employee/checklists/submit/route.ts`
+
+## 33. Cierre operativo Etapa 2 (2026-03-21)
+
+Se consolidaron funcionalidades clave de producto y hardening sin romper flujos existentes:
+
+- invitaciones superadmin robustas (crear + reenviar) con callback estable
+- primer login con cambio obligatorio de contraseña
+- recuperacion de contraseña integrada en login
+- modelo folder-first en permisos de documentos
+- impersonacion segura superadmin (inicio/salida + banner + auditoria)
+- bloqueo de billing/settings sensibles durante impersonacion
+- dashboard empresa con detalle operativo y hover interactivo
+
+### 33.1 Invitaciones y acceso
+
+- Endpoint resend:
+  - `web/src/app/api/superadmin/organizations/invitations/resend/route.ts`
+- UI resend sin recarga:
+  - `web/src/modules/organizations/ui/resend-invitation-button.tsx`
+- Callback auth:
+  - `web/src/app/auth/callback/route.ts`
+- Cambio obligatorio de password:
+  - `web/src/app/auth/change-password/page.tsx`
+  - `web/src/modules/auth/actions.ts`
+- Recuperacion password:
+  - `web/src/app/auth/forgot-password/page.tsx`
+
+### 33.2 Impersonacion segura
+
+- Migracion:
+  - `supabase/migrations/202603200002_superadmin_impersonation_sessions.sql`
+- Core impersonacion:
+  - `web/src/shared/lib/impersonation.ts`
+- Inicio desde superadmin:
+  - `web/src/modules/organizations/actions.ts`
+  - `web/src/app/(superadmin)/superadmin/organizations/page.tsx`
+- Salida impersonacion:
+  - `web/src/app/auth/impersonation/stop/route.ts`
+- Banner y estado de sesion:
+  - `web/src/shared/ui/company-shell.tsx`
+  - `web/src/app/(company)/app/layout.tsx`
+
+### 33.3 Permisos de documentos (folder-first)
+
+- API documentos y carpetas:
+  - `web/src/app/api/company/documents/route.ts`
+  - `web/src/app/api/company/document-folders/route.ts`
+- Validacion en descarga/export:
+  - `web/src/app/api/documents/[documentId]/download/route.ts`
+  - `web/src/app/api/company/documents/export/route.ts`
+- UI documentos:
+  - `web/src/modules/documents/ui/upload-document-modal.tsx`
+  - `web/src/modules/documents/ui/documents-tree-workspace.tsx`
+
+### 33.4 Notificaciones email de negocio
+
+- Documento tecnico dedicado:
+  - `web/docs/notificaciones-operativas.md`
+- Migracion canal email en avisos:
+  - `supabase/migrations/202603200003_announcement_deliveries_email_channel.sql`
+
+Variables requeridas en runtime (Vercel):
+
+- `BREVO_API_KEY`
+- `BREVO_SENDER_EMAIL` (o `MAIL_FROM`)
+- `BREVO_SENDER_NAME` (opcional)
+
+### 33.5 QA tenant 7 locaciones
+
+- Setup:
+  - `web/scripts/setup-tenant-qa-7-locations.mjs`
+  - `npm run setup:tenant-qa-7-locations`
+- Verificacion:
+  - `web/scripts/verify-tenant-7-locations.mjs`
+  - `npm run verify:tenant-7-locations`
