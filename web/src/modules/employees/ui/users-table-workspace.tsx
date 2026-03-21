@@ -25,6 +25,9 @@ type UsersTableWorkspaceProps = {
   branchOptions: BranchOption[];
 };
 
+const ACTION_BTN_NEUTRAL = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6] [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#c8d7ea] [.theme-dark-pro_&]:hover:bg-[#172131]";
+const ACTION_BTN_DANGER = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4] [.theme-dark-pro_&]:border-[#6a3a42] [.theme-dark-pro_&]:bg-[#2a1c1f] [.theme-dark-pro_&]:text-[#ff9ea7] [.theme-dark-pro_&]:hover:bg-[#352328]";
+
 function initials(name: string) {
   return name
     .split(" ")
@@ -208,10 +211,10 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
               <p className="text-xs text-[#666]">{row.branchName}</p>
               <p><span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${row.status === "active" ? "bg-[#edfbf3] text-[#27ae60]" : "bg-[#f5f5f5] text-[#888]"}`}>{statusLabel(row.status)}</span></p>
               <div className="flex items-center gap-1">
-                <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedMembershipId(row.membershipId); }} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Ver perfil"><Eye className="h-3.5 w-3.5" /></button>
-                <button type="button" onClick={(event) => { event.stopPropagation(); setEditMembershipId(row.membershipId); }} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
-                <button type="button" onClick={(event) => { event.stopPropagation(); void downloadUser(row); }} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Descargar perfil"><Download className="h-3.5 w-3.5" /></button>
-                <button type="button" onClick={(event) => { event.stopPropagation(); setDeleteTargetId(row.membershipId); }} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4]" title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
+                <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedMembershipId(row.membershipId); }} className={ACTION_BTN_NEUTRAL} title="Ver perfil"><Eye className="h-3.5 w-3.5" /></button>
+                <button type="button" onClick={(event) => { event.stopPropagation(); setEditMembershipId(row.membershipId); }} className={ACTION_BTN_NEUTRAL} title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
+                <button type="button" onClick={(event) => { event.stopPropagation(); void downloadUser(row); }} className={ACTION_BTN_NEUTRAL} title="Descargar perfil"><Download className="h-3.5 w-3.5" /></button>
+                <button type="button" onClick={(event) => { event.stopPropagation(); setDeleteTargetId(row.membershipId); }} className={ACTION_BTN_DANGER} title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
               </div>
             </div>
           ))}

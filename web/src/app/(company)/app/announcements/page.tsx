@@ -29,6 +29,8 @@ const DARK_MUTED = "[.theme-dark-pro_&]:text-[#9aabc3]";
 const DARK_CARD = "[.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#151b25]";
 const DARK_PRIMARY = "[.theme-dark-pro_&]:bg-[#2b5ea8] [.theme-dark-pro_&]:text-white [.theme-dark-pro_&]:hover:bg-[#3a73c6]";
 const DARK_GHOST = "[.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#d8e3f2] [.theme-dark-pro_&]:hover:bg-[#172131]";
+const ACTION_BTN_NEUTRAL = `inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6] ${DARK_GHOST}`;
+const ACTION_BTN_DANGER = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4] [.theme-dark-pro_&]:border-[#6a3a42] [.theme-dark-pro_&]:bg-[#2a1c1f] [.theme-dark-pro_&]:text-[#ff9ea7] [.theme-dark-pro_&]:hover:bg-[#352328]";
 
 function kindLabel(kind: string) {
   if (kind === "urgent") return "Urgente";
@@ -258,9 +260,9 @@ const employeesQuery = admin
                         <form action={toggleAnnouncementFeaturedAction}>
                           <input type="hidden" name="announcement_id" value={ann.id} />
                           <input type="hidden" name="next_featured" value={String(!ann.is_featured)} />
-                          <button className={`inline-flex h-7 w-7 items-center justify-center rounded-md border ${ann.is_featured ? "border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f]" : `border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6] ${DARK_GHOST}`}`} type="submit" title={ann.is_featured ? "Quitar fijado" : "Fijar"}><Pin className="h-3.5 w-3.5" /></button>
+                          <button className={ann.is_featured ? ACTION_BTN_DANGER : ACTION_BTN_NEUTRAL} type="submit" title={ann.is_featured ? "Quitar fijado" : "Fijar"}><Pin className="h-3.5 w-3.5" /></button>
                         </form>
-                        <Link href={`/app/announcements?action=edit&announcementId=${ann.id}`} className={`inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6] ${DARK_GHOST}`} title="Editar"><Pencil className="h-3.5 w-3.5" /></Link>
+                        <Link href={`/app/announcements?action=edit&announcementId=${ann.id}`} className={ACTION_BTN_NEUTRAL} title="Editar"><Pencil className="h-3.5 w-3.5" /></Link>
                         <form action={deleteAnnouncementAction}>
                           <input type="hidden" name="announcement_id" value={ann.id} />
                           <ConfirmSubmitButton
@@ -268,7 +270,7 @@ const employeesQuery = admin
                             confirmTitle="Eliminar anuncio"
                             confirmDescription="Se eliminara el anuncio y su audiencia. Esta accion no se puede deshacer."
                             confirmLabel="Eliminar"
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4]"
+                            className={ACTION_BTN_DANGER}
                           />
                         </form>
                       </div>

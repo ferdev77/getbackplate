@@ -111,7 +111,7 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
 
 ## Bloque B — Unificación de flujo RRHH
 
-### [~] B1. Definir una sola vía de mutación RRHH
+### [x] B1. Definir una sola vía de mutación RRHH
 
 - **Qué pasa hoy (simple):** hay lógica de alta/edición en Server Actions y en API, con reglas distintas.
 - **Por qué está mal:** el usuario puede obtener resultados diferentes según desde dónde dispare el flujo.
@@ -124,9 +124,13 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   - Alta de administradores migrada de Server Action a API (`POST /api/company/users`).
   - `new-user-modal` ahora usa API para crear, y la misma API de usuarios ya usada para editar/eliminar.
   - Prueba con datos reales en DB (temporal + cleanup): alta de membership en `active`, actualización a `inactive`, borrado final exitoso.
-  - Pendiente para cierre total B1: migrar también el alta/edición de empleado al mismo patrón.
+  - Código en desuso removido: `createUserAccountAction` eliminado de `web/src/modules/employees/actions.ts` (sin referencias activas).
+  - Flujo mixto `Nuevo Usuario / Empleado` migrado a API (`POST /api/company/employees`) en `web/src/modules/employees/ui/new-employee-modal.tsx`.
+  - API de empleados ampliada para soportar usuario sin perfil laboral (`is_employee=no`) y edición de `organization_user_profiles`.
+  - Código en desuso removido: `web/src/modules/employees/actions.ts` eliminado por completo.
+  - Prueba real en DB (temporal + cleanup): creación de empleado con acceso y creación/actualización de usuario simple (`is_employee=false`) con link a cuenta.
 
-### [ ] B2. Homologar validaciones de alta/edición
+### [x] B2. Homologar validaciones de alta/edición
 
 - **Qué pasa hoy (simple):** campos obligatorios y reglas cambian entre caminos.
 - **Por qué está mal:** genera errores confusos y resultados inconsistentes.
@@ -134,9 +138,13 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   1. Alinear validaciones de nombre/apellido, credenciales, modos y estados entre `web/src/modules/employees/actions.ts` y `web/src/app/api/company/employees/route.ts`.
   2. Reutilizar esquema de validación común donde sea posible.
 - **Comportamiento esperado después:** el mismo formulario siempre responde igual ante los mismos datos.
-- **Evidencia de cierre:** _pendiente_
+- **Evidencia de cierre:**
+  - Con B1 cerrado, la mutación de RRHH ya no depende de `actions.ts`; se valida en rutas API únicas.
+  - Compatibilidad agregada en `web/src/app/api/company/employees/route.ts` para payload legado del modal (`hire_date`/`hired_at`, `address`/`address_line1`, `status`/`employment_status`).
+  - En edición de empleado, si no llega estado laboral en payload, se preserva el estado existente (evita reset accidental a `active`).
+  - Verificación técnica: lint puntual del endpoint sin errores.
 
-### [ ] B3. Alinear guardas de módulo y rol en ambos caminos
+### [x] B3. Alinear guardas de módulo y rol en ambos caminos
 
 - **Qué pasa hoy (simple):** un camino verifica módulo habilitado y otro no siempre.
 - **Por qué está mal:** riesgo de operar sobre módulo apagado por plan.
@@ -144,7 +152,16 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   1. Garantizar `assertCompanyManagerModuleApi("employees")` o equivalente en toda mutación de RRHH.
   2. Revisar rutas y actions relacionadas.
 - **Comportamiento esperado después:** si módulo está deshabilitado, ninguna mutación crítica pasa.
-- **Evidencia de cierre:** _pendiente_
+- **Evidencia de cierre:**
+  - Todas las mutaciones RRHH quedaron centralizadas en APIs con guarda de módulo/rol:
+    - `web/src/app/api/company/employees/route.ts` (`POST`, `PATCH`, `DELETE`) con `assertCompanyManagerModuleApi("employees")`.
+    - `web/src/app/api/company/users/route.ts` (`POST`, `PATCH`, `DELETE`) con `assertCompanyManagerModuleApi("employees")`.
+  - Las UIs de RRHH llaman únicamente esas APIs para mutaciones:
+    - `web/src/modules/employees/ui/new-employee-modal.tsx`
+    - `web/src/modules/employees/ui/new-user-modal.tsx`
+    - `web/src/modules/employees/ui/employees-table-workspace.tsx`
+    - `web/src/modules/employees/ui/users-table-workspace.tsx`
+  - Eliminado el camino alterno sin módulo (`web/src/modules/employees/actions.ts`).
 
 ---
 
@@ -160,7 +177,7 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
 - **Comportamiento esperado después:** menor riesgo de exposición accidental y arquitectura más segura.
 - **Evidencia de cierre:** _pendiente_
 
-### [ ] C2. Estandarizar orden de validaciones en endpoints críticos
+### [x] C2. Estandarizar orden de validaciones en endpoints críticos
 
 - **Qué pasa hoy (simple):** no todos los endpoints aplican validación en el mismo orden.
 - **Por qué está mal:** puede haber comportamientos borde difíciles de predecir.
@@ -168,16 +185,24 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   1. Definir orden estándar: auth -> tenant -> módulo -> rol -> validación de payload -> mutación.
   2. Aplicarlo en endpoints de RRHH, documentos, checklists, settings.
 - **Comportamiento esperado después:** respuestas consistentes y menor probabilidad de bypass lógico.
-- **Evidencia de cierre:** _pendiente_
+- **Evidencia de cierre:**
+  - Endpoints RRHH ajustados para validar existencia de registro antes de mutar y responder `404` cuando corresponde:
+    - `web/src/app/api/company/employees/route.ts` (`PATCH` y `DELETE`)
+    - `web/src/app/api/company/users/route.ts` (`PATCH` y `DELETE`)
+  - En `DELETE` de perfiles de usuario se valida error al eliminar membership asociado antes de continuar.
+  - Verificación técnica: lint en rutas críticas OK.
+  - Verificación de no-regresión: `npm run build` OK.
 
-### [ ] C3. Corregir branding inconsistente en portal empleado
+### [x] C3. Corregir branding inconsistente en portal empleado
 
 - **Qué pasa hoy (simple):** el footer menciona marca externa en vez de estándar del producto.
 - **Por qué está mal:** rompe directriz de naming oficial y consistencia de marca.
 - **Plan a seguir:**
   1. Ajustar footer en `web/src/shared/ui/employee-shell.tsx` a branding oficial `GetBackplate`.
 - **Comportamiento esperado después:** identidad visual consistente en todos los paneles.
-- **Evidencia de cierre:** _pendiente_
+- **Evidencia de cierre:**
+  - Footer actualizado a marca oficial en `web/src/shared/ui/employee-shell.tsx`.
+  - Verificación técnica: lint sin errores en el componente y rutas RRHH críticas.
 
 ---
 
@@ -309,3 +334,39 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   - Bloques tocados: A1.  
   - Riesgos detectados: bajo; cambios solo en logs y metadata de auditoría.  
   - Próximo objetivo: iniciar Bloque B (unificación de flujo RRHH).
+
+- Fecha: 2026-03-21  
+  - Cambios aplicados: unificación parcial B1 en flujo de administradores vía API y limpieza de acción sin uso.  
+  - Bloques tocados: B1, E2 (limpieza puntual).  
+  - Riesgos detectados: bajo; sin cambios de interfaz ni rutas visibles para el usuario.  
+  - Próximo objetivo: migrar flujo mixto "Nuevo Usuario / Empleado" para cierre completo de B1.
+
+- Fecha: 2026-03-21  
+  - Cambios aplicados: cierre total B1 con migración de `Nuevo Usuario / Empleado` a API y eliminación de `actions.ts` de empleados.  
+  - Bloques tocados: B1, E2 (limpieza).  
+  - Riesgos detectados: bajo-medio; mitigado con prueba real temporal en DB y limpieza completa.  
+  - Próximo objetivo: iniciar B2 (homologar validaciones entre rutas).
+
+- Fecha: 2026-03-21  
+  - Cambios aplicados: cierre B2 con homologación de validaciones y compatibilidad de payload legado en API de empleados.  
+  - Bloques tocados: B2.  
+  - Riesgos detectados: bajo; se agregaron compatibilidades para evitar regresiones de formularios actuales.  
+  - Próximo objetivo: iniciar B3 (alinear guardas de módulo/rol en rutas restantes).
+
+- Fecha: 2026-03-21  
+  - Cambios aplicados: cierre B3 con guardas unificadas de módulo/rol en todas las mutaciones RRHH vía API.  
+  - Bloques tocados: B3.  
+  - Riesgos detectados: bajo; validación por inspección de rutas y llamadas UI.  
+  - Próximo objetivo: iniciar Bloque C (hardening de seguridad y consistencia operativa).
+
+- Fecha: 2026-03-21  
+  - Cambios aplicados: cierre C3 con branding oficial de portal empleado (`GetBackplate`).  
+  - Bloques tocados: C3.  
+  - Riesgos detectados: nulo; cambio de copy visual sin impacto funcional.  
+  - Próximo objetivo: avanzar C1 y C2 por etapas con pruebas de no-regresión.
+
+- Fecha: 2026-03-21  
+  - Cambios aplicados: cierre C2 con validaciones de existencia previas a mutación y respuestas consistentes `404` en RRHH API.  
+  - Bloques tocados: C2.  
+  - Riesgos detectados: bajo; mejora de consistencia sin cambio de interfaz.  
+  - Próximo objetivo: abordar C1 de forma incremental (reducción segura de admin client en lecturas UI).

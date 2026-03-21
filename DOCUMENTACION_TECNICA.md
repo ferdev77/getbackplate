@@ -21,6 +21,31 @@ Alcance:
 
 Si hay diferencias con secciones historicas de este archivo para RRHH, prevalece `ACTUALIZACION_2.0_SAAS.md`.
 
+### Actualizacion tecnica 2026-03-21 (RRHH B1)
+
+- Se definio API como via principal de mutacion RRHH para altas/ediciones:
+  - `POST/PATCH/DELETE /api/company/users`
+  - `POST/PATCH/DELETE /api/company/employees`
+- Se migro el alta de administradores desde Server Action a API en:
+  - `web/src/modules/employees/ui/new-user-modal.tsx`
+- Se migro el flujo mixto `Nuevo Usuario / Empleado` a API en:
+  - `web/src/modules/employees/ui/new-employee-modal.tsx`
+- Se amplio `POST /api/company/employees` para soportar usuario sin perfil laboral (`is_employee=no`) manteniendo comportamiento funcional esperado.
+- Se homologaron validaciones y compatibilidad de payload del modal legado en `POST /api/company/employees`:
+  - `hire_date` <-> `hired_at`
+  - `address` <-> `address_line1`
+  - `status` <-> `employment_status`
+  - en edicion, si no llega estado laboral, se preserva el estado actual
+- Se estandarizo comportamiento de validacion previa a mutacion en RRHH API:
+  - `PATCH/DELETE /api/company/employees` valida existencia previa y responde `404` cuando corresponde
+  - `PATCH/DELETE /api/company/users` valida existencia previa y responde `404` cuando corresponde
+- Se elimino codigo en desuso:
+  - `web/src/modules/employees/actions.ts`
+- Se validaron flujos con datos reales temporales en DB (con limpieza al finalizar):
+  - alta/edicion de membership
+  - alta de empleado con acceso
+  - alta/edicion de usuario simple (`organization_user_profiles`, `is_employee=false`)
+
 ### Entregables ya creados
 
 - Analisis funcional de mockups: `ANALISIS_MOCKUPS.md`
