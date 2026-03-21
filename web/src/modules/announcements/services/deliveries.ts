@@ -148,9 +148,11 @@ async function resolveAnnouncementAudienceContacts(
     .from("employees")
     .select("user_id, branch_id, department_id, position, phone_country_code, phone, status")
     .eq("organization_id", organizationId)
-    .eq("is_active", true);
+    .eq("status", "active");
 
-  if (error || !employees) return { phones: [] as string[], emails: [] as string[] };
+  if (error || !employees) {
+    throw new Error(`No se pudo resolver audiencia de aviso: ${error?.message ?? "sin datos"}`);
+  }
 
   const { data: userProfiles } = await supabase
     .from("organization_user_profiles")
@@ -165,12 +167,10 @@ async function resolveAnnouncementAudienceContacts(
 
   for (const emp of employees) {
     if (!emp.user_id) continue;
-    const isEmployeeActive = emp.status === "active";
-
     let isMatch = false;
 
     if (!hasSpecificScope) {
-      isMatch = isEmployeeActive;
+      isMatch = true;
     } else {
       if (emp.branch_id && scope.locations.includes(emp.branch_id)) isMatch = true;
       if (emp.department_id && scope.department_ids.includes(emp.department_id)) isMatch = true;

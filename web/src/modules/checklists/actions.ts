@@ -50,15 +50,13 @@ async function sendChecklistAudienceEmail(input: {
     .from("employees")
     .select("user_id, branch_id, department_id, position, status")
     .eq("organization_id", input.organizationId)
-    .eq("is_active", true)
+    .eq("status", "active")
     .not("user_id", "is", null);
 
   const recipientUserIds = new Set<string>();
 
   for (const employee of employees ?? []) {
     if (!employee.user_id) continue;
-    if (employee.status !== "active") continue;
-
     const byTemplateBranch = Boolean(input.templateBranchId) && employee.branch_id === input.templateBranchId;
     const byTemplateDepartment =
       Boolean(input.templateDepartmentId) && employee.department_id === input.templateDepartmentId;
