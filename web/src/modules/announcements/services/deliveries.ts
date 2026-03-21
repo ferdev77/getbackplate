@@ -1,11 +1,11 @@
-import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
+import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { sendTwilioMessage } from "@/infrastructure/twilio/client";
 import { getAuthEmailByUserId } from "@/shared/lib/auth-users";
 import { AnnouncementScope, parseAnnouncementScope } from "../lib/scope";
 
 export async function processAnnouncementDeliveries() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   
   // 1. Fetch queued deliveries
   const { data: deliveries, error: fetchError } = await supabase
@@ -43,7 +43,7 @@ export async function processAnnouncementDeliveries() {
         : delivery.announcement;
 
       if (!announcement) {
-        await markDeliveryStatus(supabase, delivery.id, "failed", "Announcement not found");
+        await markDeliveryStatus(supabase, delivery.id, "failed");
         failCount++;
         continue;
       }
@@ -58,7 +58,7 @@ export async function processAnnouncementDeliveries() {
           : audience.phones;
 
       if (targetContacts.length === 0) {
-        await markDeliveryStatus(supabase, delivery.id, "sent", "No se encontraron contactos validos en la audiencia");
+        await markDeliveryStatus(supabase, delivery.id, "sent");
         successCount++;
         continue;
       }
@@ -88,27 +88,16 @@ export async function processAnnouncementDeliveries() {
       }
 
       if (sentCount > 0) {
-        await markDeliveryStatus(
-          supabase, 
-          delivery.id,
-          "sent",
-          `Sent to ${sentCount}/${targetContacts.length}. Errors: ${errorMsgs.join(", ")}`
-        );
+        await markDeliveryStatus(supabase, delivery.id, "sent");
         successCount++;
       } else {
-        await markDeliveryStatus(
-          supabase, 
-          delivery.id, 
-          "failed", 
-          `All sends failed. Errors: ${errorMsgs.join(", ")}`
-        );
+        await markDeliveryStatus(supabase, delivery.id, "failed");
         failCount++;
       }
 
     } catch (err: unknown) {
       console.error(`Error processing delivery ${delivery.id}:`, err);
-      const message = err instanceof Error ? err.message : "Error desconocido";
-      await markDeliveryStatus(supabase, delivery.id, "failed", message);
+      await markDeliveryStatus(supabase, delivery.id, "failed");
       failCount++;
     }
   }
@@ -134,7 +123,7 @@ async function sendAnnouncementEmail(email: string, title: string, body: string)
 }
 
 async function resolveAnnouncementAudienceContacts(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
   organizationId: string,
   scope: AnnouncementScope
 ) {
@@ -154,23 +143,23 @@ async function resolveAnnouncementAudienceContacts(
     throw new Error(`No se pudo resolver audiencia de aviso: ${error?.message ?? "sin datos"}`);
   }
 
-  const { data: userProfiles } = await supabase
-    .from("organization_user_profiles")
+  const { data: memberships } = await supabase
+    .from("memberships")
     .select("user_id")
     .eq("organization_id", organizationId)
-    .eq("is_employee", false)
-    .is("deleted_at", null)
+    .eq("status", "active")
     .not("user_id", "is", null);
 
   const matchedPhones = new Set<string>();
   const matchedUserIds = new Set<string>();
+  const membershipUserIds = new Set((memberships ?? []).map((row) => row.user_id).filter(Boolean));
 
   for (const emp of employees) {
     if (!emp.user_id) continue;
     let isMatch = false;
 
     if (!hasSpecificScope) {
-      isMatch = true;
+      isMatch = membershipUserIds.has(emp.user_id);
     } else {
       if (emp.branch_id && scope.locations.includes(emp.branch_id)) isMatch = true;
       if (emp.department_id && scope.department_ids.includes(emp.department_id)) isMatch = true;
@@ -202,10 +191,13 @@ async function resolveAnnouncementAudienceContacts(
     }
   }
 
-  for (const profile of userProfiles ?? []) {
-    if (!profile.user_id) continue;
-    if (!hasSpecificScope || scope.users.includes(profile.user_id)) {
-      matchedUserIds.add(profile.user_id);
+  if (!hasSpecificScope) {
+    for (const membershipUserId of membershipUserIds) {
+      matchedUserIds.add(membershipUserId);
+    }
+  } else {
+    for (const userId of scope.users) {
+      matchedUserIds.add(userId);
     }
   }
 
@@ -219,17 +211,15 @@ async function resolveAnnouncementAudienceContacts(
 }
 
 async function markDeliveryStatus(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
   deliveryId: string,
   status: "sent" | "failed",
-  errorMsg?: string,
 ) {
   await supabase
     .from("announcement_deliveries")
     .update({ 
       status, 
-      error_message: errorMsg ? errorMsg.substring(0, 255) : null,
-      processed_at: new Date().toISOString()
+      sent_at: new Date().toISOString(),
     })
     .eq("id", deliveryId);
 }
