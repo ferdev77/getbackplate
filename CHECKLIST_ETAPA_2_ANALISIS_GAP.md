@@ -6,8 +6,8 @@ Este documento compara el estado real del proyecto contra el texto objetivo de "
 
 ## Resumen ejecutivo
 
-- Cumplido: 18
-- Parcial: 7
+- Cumplido: 19
+- Parcial: 6
 - Pendiente: 0
 - Fuera de alcance por definicion (bloque futuro): 1
 
@@ -106,9 +106,9 @@ Este documento compara el estado real del proyecto contra el texto objetivo de "
   - Estado: **Cumplido**
   - Evidencia: endpoint `POST /api/company/documents/share-email` + modal UI de envio en `web/src/modules/documents/ui/documents-tree-workspace.tsx`.
 
-- [~] Evento primer login cliente + notificacion automatica
-  - Estado: **Parcial**
-  - Evidencia: se implemento primer ingreso con cambio obligatorio de contraseña (`force_password_change`) y pantalla dedicada `web/src/app/auth/change-password/page.tsx`; aun falta trigger de notificacion automatica.
+- [x] Evento primer login cliente + notificacion automatica
+  - Estado: **Cumplido**
+  - Evidencia: al primer login del admin invitado inicial (creado desde superadmin) se marca `organization_invitations.first_login_completed_at/first_login_user_id`, se audita evento `organization.invited_admin.first_login` y se muestra estado `Pendiente/Completado` en Radar de Organizaciones de `web/src/app/(superadmin)/superadmin/dashboard/page.tsx`.
 
 ---
 

@@ -65,6 +65,18 @@ function formatDuration(ms: number | null) {
   return `${(ms / 1000).toFixed(2)} s`;
 }
 
+function invitedFirstLoginTone(status: "pending" | "completed" | "none") {
+  if (status === "completed") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (status === "pending") return "border-amber-200 bg-amber-50 text-amber-700";
+  return "border-slate-200 bg-slate-50 text-slate-600";
+}
+
+function invitedFirstLoginText(status: "pending" | "completed" | "none") {
+  if (status === "completed") return "Primer ingreso invitado: Completado";
+  if (status === "pending") return "Primer ingreso invitado: Pendiente";
+  return "Primer ingreso invitado: Sin dato";
+}
+
 export default async function SuperadminDashboardPage() {
   const SHOW_OBSERVABILITY_CARD = false;
 
@@ -208,6 +220,17 @@ export default async function SuperadminDashboardPage() {
                   <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><FileText className="h-4 w-4 text-brand/60" /> {row.docs30d} docs</span>
                   <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><ClipboardList className="h-4 w-4 text-brand/60" /> {row.checklist7d} checks</span>
                   <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Megaphone className="h-4 w-4 text-brand/60" /> {row.activeAnnouncements} avisos</span>
+                  <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${invitedFirstLoginTone(row.invitedAdminFirstLoginStatus)}`}>
+                    {invitedFirstLoginText(row.invitedAdminFirstLoginStatus)}
+                  </span>
+                  {row.invitedAdminFirstLoginStatus === "completed" && row.invitedAdminFirstLoginAt ? (
+                    <span className="text-[10px] text-muted-foreground">
+                      {new Date(row.invitedAdminFirstLoginAt).toLocaleString("es-ES")}
+                    </span>
+                  ) : null}
+                  {row.invitedAdminEmail ? (
+                    <span className="text-[10px] text-muted-foreground">{row.invitedAdminEmail}</span>
+                  ) : null}
                   <div className="ml-auto text-xs font-medium text-muted-foreground bg-muted/40 px-3 py-1 rounded-lg border border-line/30">
                     Storage: <span className="text-foreground font-bold">{formatStorage(row.storageMb)}</span>
                     <span className="opacity-50"> / {row.storageLimitMb != null ? formatStorage(row.storageLimitMb) : "∞"}</span>

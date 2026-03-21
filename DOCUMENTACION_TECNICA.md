@@ -970,6 +970,7 @@ Se consolidaron funcionalidades clave de producto y hardening sin romper flujos 
   - `web/src/modules/organizations/ui/resend-invitation-button.tsx`
 - Callback auth:
   - `web/src/app/auth/callback/route.ts`
+  - marca primer login del admin invitado inicial en `organization_invitations`
 - Cambio obligatorio de password:
   - `web/src/app/auth/change-password/page.tsx`
   - `web/src/modules/auth/actions.ts`
@@ -1029,3 +1030,13 @@ Variables requeridas en runtime (Vercel):
 - Verificacion:
   - `web/scripts/verify-tenant-7-locations.mjs`
   - `npm run verify:tenant-7-locations`
+
+### 33.6 Radar: primer ingreso invitado inicial
+
+- Migracion:
+  - `supabase/migrations/202603200004_organization_invitations_first_login.sql`
+- Persistencia:
+  - `organization_invitations.first_login_completed_at`
+  - `organization_invitations.first_login_user_id`
+- Vista en superadmin:
+  - estado `Primer ingreso invitado: Pendiente/Completado` dentro de Radar en `web/src/app/(superadmin)/superadmin/dashboard/page.tsx`

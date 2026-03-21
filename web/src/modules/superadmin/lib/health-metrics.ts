@@ -22,6 +22,9 @@ export type TenantHealthRow = {
   storageLimitMb: number | null;
   checklist7d: number;
   activeAnnouncements: number;
+  invitedAdminEmail: string | null;
+  invitedAdminFirstLoginAt: string | null;
+  invitedAdminFirstLoginStatus: "pending" | "completed" | "none";
   score: number;
   issues: string[];
 };
@@ -104,7 +107,20 @@ type HealthSnapshotRow = {
   storage_limit_mb: number | string | null;
 };
 
-function computeScore(row: HealthSnapshotRow) {
+type InvitationFirstLoginRow = {
+  organization_id: string;
+  email: string;
+  first_login_completed_at: string | null;
+  created_at: string;
+};
+
+function computeScore(
+  row: HealthSnapshotRow,
+  invitationState?: {
+    email: string;
+    firstLoginAt: string | null;
+  } | null,
+) {
   const activeAdmins = Number(row.active_admins ?? 0);
   const activeMembers = Number(row.active_members ?? 0);
   const activeEmployees = Number(row.active_employees ?? 0);
@@ -153,6 +169,13 @@ function computeScore(row: HealthSnapshotRow) {
     storageLimitMb,
     checklist7d,
     activeAnnouncements,
+    invitedAdminEmail: invitationState?.email ?? null,
+    invitedAdminFirstLoginAt: invitationState?.firstLoginAt ?? null,
+    invitedAdminFirstLoginStatus: invitationState
+      ? invitationState.firstLoginAt
+        ? "completed"
+        : "pending"
+      : "none",
     score: Math.max(0, score),
     issues,
   } satisfies TenantHealthRow;
@@ -161,12 +184,30 @@ function computeScore(row: HealthSnapshotRow) {
 export async function getSuperadminHealthMetrics() {
   const supabase = createSupabaseAdminClient();
 
-  const [{ data: snapshotRows }, { data: moduleCatalog }] = await Promise.all([
+  const [{ data: snapshotRows }, { data: moduleCatalog }, { data: invitationRows }] = await Promise.all([
     supabase.rpc("superadmin_org_health_snapshot"),
     supabase.from("module_catalog").select("id"),
+    supabase
+      .from("organization_invitations")
+      .select("organization_id, email, first_login_completed_at, created_at")
+      .eq("source", "superadmin")
+      .eq("role_code", "company_admin")
+      .contains("metadata", { mode: "superadmin_invite" })
+      .order("created_at", { ascending: true }),
   ]);
 
-  const tenantRows = ((snapshotRows ?? []) as HealthSnapshotRow[]).map((row) => computeScore(row));
+  const firstInvitationByOrg = new Map<string, { email: string; firstLoginAt: string | null }>();
+  for (const row of (invitationRows ?? []) as InvitationFirstLoginRow[]) {
+    if (!row.organization_id || firstInvitationByOrg.has(row.organization_id)) continue;
+    firstInvitationByOrg.set(row.organization_id, {
+      email: row.email,
+      firstLoginAt: row.first_login_completed_at,
+    });
+  }
+
+  const tenantRows = ((snapshotRows ?? []) as HealthSnapshotRow[]).map((row) =>
+    computeScore(row, firstInvitationByOrg.get(row.organization_id) ?? null),
+  );
 
   const orgCount = tenantRows.length;
   const modulesCount = moduleCatalog?.length ?? 0;
