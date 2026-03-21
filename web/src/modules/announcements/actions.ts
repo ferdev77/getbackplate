@@ -9,6 +9,7 @@ import {
   buildAnnouncementAudienceRows,
   readAnnouncementScopeFromFormData,
 } from "@/modules/announcements/lib/scope";
+import { processAnnouncementDeliveries } from "@/modules/announcements/services/deliveries";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { requireTenantModule } from "@/shared/lib/access";
 import { validateTenantScopeReferences } from "@/shared/lib/scope-validation";
@@ -168,6 +169,10 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
 
     if (deliveriesError) {
       return { success: false, message: `Aviso guardado pero no se pudo encolar notificacion: ${deliveriesError.message}` };
+    }
+
+    if (!announcementId) {
+      await processAnnouncementDeliveries();
     }
   }
 
