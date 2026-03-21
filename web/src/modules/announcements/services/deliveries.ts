@@ -22,6 +22,7 @@ export async function processAnnouncementDeliveries() {
       )
     `)
     .eq("status", "queued")
+    .order("created_at", { ascending: true })
     .limit(50); // Process in batches
     
   if (fetchError) {
@@ -35,9 +36,18 @@ export async function processAnnouncementDeliveries() {
 
   let successCount = 0;
   let failCount = 0;
+  let sentContactsCount = 0;
+  const processedKeys = new Set<string>();
 
   for (const delivery of deliveries) {
     try {
+      const dedupeKey = `${delivery.announcement_id}:${delivery.channel}`;
+      if (processedKeys.has(dedupeKey)) {
+        await markDeliveryStatus(supabase, delivery.id, "sent");
+        continue;
+      }
+      processedKeys.add(dedupeKey);
+
       const announcement = Array.isArray(delivery.announcement) 
         ? delivery.announcement[0] 
         : delivery.announcement;
@@ -90,6 +100,7 @@ export async function processAnnouncementDeliveries() {
       if (sentCount > 0) {
         await markDeliveryStatus(supabase, delivery.id, "sent");
         successCount++;
+        sentContactsCount += sentCount;
       } else {
         await markDeliveryStatus(supabase, delivery.id, "failed");
         failCount++;
@@ -102,7 +113,7 @@ export async function processAnnouncementDeliveries() {
     }
   }
 
-  return { success: true, processed: deliveries.length, successCount, failCount };
+  return { success: true, processed: deliveries.length, successCount, failCount, sentContactsCount };
 }
 
 async function sendAnnouncementEmail(email: string, title: string, body: string) {

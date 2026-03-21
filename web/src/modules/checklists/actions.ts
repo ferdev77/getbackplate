@@ -86,7 +86,7 @@ async function sendChecklistAudienceEmail(input: {
   const emailByUserId = await getAuthEmailByUserId([...recipientUserIds]);
   const recipients = [...new Set([...emailByUserId.values()].filter(Boolean))];
 
-  if (!recipients.length) return;
+  if (!recipients.length) return 0;
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "";
   const reportsUrl = appUrl ? `${appUrl}/app/reports` : "/app/reports";
@@ -117,6 +117,7 @@ async function sendChecklistAudienceEmail(input: {
       : `Checklist enviado\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nIncidencias: ${input.flaggedCount ?? 0}\nEnviado por: ${input.actorEmail ?? "Usuario interno"}\nVer en reportes: ${reportsUrl}`;
 
   await Promise.allSettled(recipients.map((to) => sendTransactionalEmail({ to, subject, html, text })));
+  return recipients.length;
 }
 
 import { z } from "zod";
@@ -475,8 +476,9 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   revalidatePath("/app/checklists");
   revalidatePath("/app/reports");
 
+  let checklistAudienceEmailCount = 0;
   if (!templateId && notifyByEmail) {
-    await sendChecklistAudienceEmail({
+    checklistAudienceEmailCount = await sendChecklistAudienceEmail({
       supabase,
       organizationId: tenant.organizationId,
       templateName: name,
@@ -500,7 +502,9 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
       ? preservedHistory
         ? "Checklist actualizado creando nueva version (se preservo historial)"
         : "Checklist actualizado correctamente"
-      : "Plantilla creada correctamente"
+      : notifyByEmail
+        ? `Plantilla creada correctamente. Emails enviados: ${checklistAudienceEmailCount}`
+        : "Plantilla creada correctamente"
   };
 }
 
