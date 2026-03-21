@@ -60,6 +60,12 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
   const normalizedNotifyChannels = [...new Set(notifyChannels)].filter((channel) =>
     ["sms", "whatsapp", "email", "in_app"].includes(channel),
   );
+  const channelsForDelivery =
+    normalizedNotifyChannels.length > 0
+      ? normalizedNotifyChannels
+      : announcementId
+        ? (["email"] as const)
+        : [];
 
   const supabase = await createSupabaseServerClient();
   const { data: authData } = await supabase.auth.getUser();
@@ -153,15 +159,19 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
     return { success: false, message: `Anuncio creado pero audiencia fallo: ${audienceError.message}` };
   }
 
-  if (normalizedNotifyChannels.length) {
-    await supabase.from("announcement_deliveries").insert(
-      normalizedNotifyChannels.map((channel) => ({
+  if (channelsForDelivery.length) {
+    const { error: deliveriesError } = await supabase.from("announcement_deliveries").insert(
+      channelsForDelivery.map((channel) => ({
         organization_id: tenant.organizationId,
         announcement_id: announcement.id,
         channel,
         status: "queued",
       })),
     );
+
+    if (deliveriesError) {
+      return { success: false, message: `Aviso guardado pero no se pudo encolar notificacion: ${deliveriesError.message}` };
+    }
   }
 
   await logAuditEvent({
@@ -169,7 +179,7 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
     entityType: "announcement",
     entityId: announcement.id,
     organizationId: tenant.organizationId,
-    metadata: { title, kind, isFeatured, locationScopes, departmentScopes, positionScopes, userScopes, notifyChannels: normalizedNotifyChannels },
+    metadata: { title, kind, isFeatured, locationScopes, departmentScopes, positionScopes, userScopes, notifyChannels: channelsForDelivery },
     eventDomain: "announcements",
     outcome: "success",
     severity: announcementId ? "medium" : "high",
