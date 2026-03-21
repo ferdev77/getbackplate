@@ -14,6 +14,7 @@ import {
   LayoutGrid,
   LogOut,
   MessageSquarePlus,
+  MapPin,
   PanelsLeftRight,
   Settings,
   Upload,
@@ -250,7 +251,7 @@ export function CompanyShell({
         const locationItems: SidebarItem[] = branchOptions.map((branch) => ({
           href: `/app/dashboard/location?branch=${branch.id}`,
           label: branch.name,
-          icon: LayoutGrid,
+          icon: MapPin,
           sub: true,
         }));
 
@@ -320,14 +321,6 @@ export function CompanyShell({
     const params = new URLSearchParams(query ?? "");
     if (!params.has("branch")) params.set("branch", selectedBranch);
     return `${path}?${params.toString()}`;
-  }
-
-  function updateBranchFilter(value: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value) params.set("branch", value);
-    else params.delete("branch");
-    const query = params.toString();
-    window.location.href = `${pathname}${query ? `?${query}` : ""}`;
   }
 
   const palette = THEME_PALETTES[theme] ?? THEME_PALETTES.default;
@@ -466,21 +459,6 @@ export function CompanyShell({
               </button>
             </div>
             {!collapsed ? <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#8f8a86]">Administrador</p> : null}
-            {!collapsed && branchOptions.length > 1 ? (
-              <div className="mt-2">
-                <label className="mb-1 block text-[9px] font-bold uppercase tracking-[0.12em] text-black/40">Locacion</label>
-                <select
-                  value={selectedBranch}
-                  onChange={(event) => updateBranchFilter(event.target.value)}
-                  className="w-full rounded-md border border-black/15 bg-white/80 px-2 py-1.5 text-[11px] text-black/70"
-                >
-                  <option value="">Todas</option>
-                  {branchOptions.map((branch) => (
-                    <option key={branch.id} value={branch.id}>{branch.name}</option>
-                  ))}
-                </select>
-              </div>
-            ) : null}
           </div>
 
           <nav className="min-h-0 flex-1 overflow-y-auto py-2">
