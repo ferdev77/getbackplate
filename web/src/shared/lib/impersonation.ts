@@ -108,3 +108,10 @@ export async function resolveActiveSuperadminImpersonationSession(superadminUser
     createdAt: data.created_at,
   };
 }
+
+export async function isSuperadminImpersonating(userId: string, organizationId?: string | null) {
+  const active = await resolveActiveSuperadminImpersonationSession(userId);
+  if (!active) return false;
+  if (!organizationId) return true;
+  return active.organizationId === organizationId;
+}

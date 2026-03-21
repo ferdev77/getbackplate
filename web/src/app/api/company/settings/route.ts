@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { isSuperadminImpersonating } from "@/shared/lib/impersonation";
 
 const requestSchema = z.object({
   kind: z.enum(["profile", "preferences", "billing", "theme"]),
@@ -42,6 +43,32 @@ export async function POST(request: Request) {
 
   const body = parsed.data;
   const kind = body.kind;
+  const impersonating = await isSuperadminImpersonating(userId, tenant.organizationId);
+
+  if (
+    impersonating &&
+    (
+      kind === "billing" ||
+      (kind === "profile" && (body.twoFactorEnabled !== undefined || body.twoFactorMethod !== undefined))
+    )
+  ) {
+    await logAuditEvent({
+      action: "organization.impersonation.blocked_settings_write",
+      entityType: "organization_setting",
+      organizationId: tenant.organizationId,
+      eventDomain: "security",
+      outcome: "denied",
+      severity: "high",
+      metadata: {
+        kind,
+        blocked_reason: kind === "billing" ? "billing_write" : "security_profile_write",
+      },
+    });
+    return NextResponse.json(
+      { error: "impersonation_blocked", message: "Operacion bloqueada en modo impersonacion." },
+      { status: 403 },
+    );
+  }
 
   if (kind === "profile") {
     const fullName = body.fullName ?? "";

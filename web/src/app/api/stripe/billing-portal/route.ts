@@ -1,14 +1,30 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { stripe } from '@/infrastructure/stripe/client';
+import { isSuperadminImpersonating } from '@/shared/lib/impersonation';
+import { logAuditEvent } from '@/shared/lib/audit';
 
-export async function POST(request: Request) {
+export async function POST() {
   try {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (await isSuperadminImpersonating(user.id)) {
+      await logAuditEvent({
+        action: 'organization.impersonation.blocked_billing_portal',
+        entityType: 'stripe_billing_portal',
+        eventDomain: 'security',
+        outcome: 'denied',
+        severity: 'high',
+      });
+      return NextResponse.json(
+        { error: 'impersonation_blocked', message: 'No puedes gestionar billing en modo impersonacion.' },
+        { status: 403 },
+      );
     }
 
     // Identify the user's active organization
@@ -45,10 +61,11 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ url: portalSession.url });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Stripe Billing Portal Error:', error);
+    const message = error instanceof Error ? error.message : 'Internal Server Error';
     return NextResponse.json(
-      { error: error.message || 'Internal Server Error' },
+      { error: message },
       { status: 500 }
     );
   }

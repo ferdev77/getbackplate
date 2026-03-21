@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
+import type Stripe from 'stripe';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/client/server';
 import { stripe } from '@/infrastructure/stripe/client';
+import { isSuperadminImpersonating } from '@/shared/lib/impersonation';
+import { logAuditEvent } from '@/shared/lib/audit';
 
 export async function POST(request: Request) {
   try {
@@ -20,6 +23,20 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: 'AuthRequired', message: 'You must be logged in to subscribe.' }, { status: 401 });
+    }
+
+    if (await isSuperadminImpersonating(user.id)) {
+      await logAuditEvent({
+        action: 'organization.impersonation.blocked_checkout',
+        entityType: 'stripe_checkout',
+        eventDomain: 'security',
+        outcome: 'denied',
+        severity: 'high',
+      });
+      return NextResponse.json(
+        { error: 'impersonation_blocked', message: 'No puedes gestionar billing en modo impersonacion.' },
+        { status: 403 },
+      );
     }
 
     let organizationId: string | null = null;
@@ -100,7 +117,7 @@ export async function POST(request: Request) {
     // NEW SUBSCRIPTION PATH: No active subscription yet
     // Create a fresh Stripe Checkout Session
     // ─────────────────────────────────────────────────────────
-    const sessionConfig: any = {
+    const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
@@ -132,10 +149,11 @@ export async function POST(request: Request) {
     const session = await stripe.checkout.sessions.create(sessionConfig);
     return NextResponse.json({ sessionId: session.id, url: session.url });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Stripe Checkout Error:', error);
+    const message = error instanceof Error ? error.message : 'Internal Server Error';
     return NextResponse.json(
-      { error: error.message || 'Internal Server Error' },
+      { error: message },
       { status: 500 }
     );
   }
