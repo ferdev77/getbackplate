@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
+import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { requireTenantModule } from "@/shared/lib/access";
+import { getAuthEmailByUserId } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
 import { normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
@@ -13,30 +15,49 @@ function qs(message: string) {
   return encodeURIComponent(message);
 }
 
-function normalizeChecklistType(value: string) {
-  const type = value.trim().toLowerCase();
-  if (["opening", "closing", "prep", "custom"].includes(type)) {
-    return type;
-  }
-  return "custom";
-}
-
-function normalizeTemplateStatus(value: string) {
-  const status = value.trim().toLowerCase();
-  if (status === "draft") return "draft";
-  return "active";
-}
-
-function unique(values: string[]) {
-  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
-}
-
 function normalizePriority(value: string) {
   const priority = value.trim().toLowerCase();
   if (["low", "medium", "high"].includes(priority)) {
     return priority;
   }
   return "medium";
+}
+
+async function sendChecklistSubmissionEmails(input: {
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  organizationId: string;
+  templateName: string;
+  flaggedCount: number;
+  itemsCount: number;
+  submittedByEmail: string;
+}) {
+  const { data: memberships } = await input.supabase
+    .from("memberships")
+    .select("user_id, roles!inner(code)")
+    .eq("organization_id", input.organizationId)
+    .eq("status", "active")
+    .in("roles.code", ["company_admin", "manager"]);
+
+  const recipientUserIds = [...new Set((memberships ?? []).map((row) => row.user_id).filter(Boolean))] as string[];
+  const emailByUserId = await getAuthEmailByUserId(recipientUserIds);
+  const recipients = [...new Set([...emailByUserId.values()].filter(Boolean))];
+
+  if (!recipients.length) return;
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "";
+  const reportsUrl = appUrl ? `${appUrl}/app/reports` : "/app/reports";
+  const subject = `Checklist enviado: ${input.templateName}`;
+  const html = `
+    <h2 style="margin:0 0 10px 0;">Checklist enviado</h2>
+    <p style="margin:0 0 8px 0;color:#444;">Plantilla: <strong>${input.templateName}</strong></p>
+    <p style="margin:0 0 8px 0;color:#444;">Items: <strong>${input.itemsCount}</strong></p>
+    <p style="margin:0 0 8px 0;color:#444;">Incidencias: <strong>${input.flaggedCount}</strong></p>
+    <p style="margin:0 0 14px 0;color:#444;">Enviado por: <strong>${input.submittedByEmail}</strong></p>
+    <p style="margin:14px 0 0 0;"><a href="${reportsUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">Ver en reportes</a></p>
+  `;
+  const text = `Checklist enviado\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nIncidencias: ${input.flaggedCount}\nEnviado por: ${input.submittedByEmail}\nVer en reportes: ${reportsUrl}`;
+
+  await Promise.allSettled(recipients.map((to) => sendTransactionalEmail({ to, subject, html, text })));
 }
 
 import { z } from "zod";
@@ -61,7 +82,7 @@ const createChecklistSchema = z.object({
   items: z.string().trim().optional(),
 });
 
-export async function createChecklistTemplateAction(prevState: any, formData: FormData) {
+export async function createChecklistTemplateAction(_prevState: unknown, formData: FormData) {
   const tenant = await requireTenantModule("checklists");
   const supabase = await createSupabaseServerClient();
 
@@ -122,10 +143,10 @@ export async function createChecklistTemplateAction(prevState: any, formData: Fo
       const parsed = JSON.parse(sectionsPayloadRaw);
       if (Array.isArray(parsed)) {
         normalizedSections = parsed
-          .map((section: any) => ({
+          .map((section: { name?: unknown; items?: unknown }) => ({
             name: typeof section?.name === "string" && section.name.trim() ? section.name.trim() : "General",
             items: Array.isArray(section?.items)
-              ? section.items.map((item: any) => String(item).trim()).filter(Boolean)
+              ? section.items.map((item: unknown) => String(item).trim()).filter(Boolean)
               : [],
           }))
           .filter((section) => section.items.length > 0)
@@ -401,7 +422,7 @@ export async function createChecklistTemplateAction(prevState: any, formData: Fo
   };
 }
 
-export async function submitChecklistRunAction(prevState: any, formData: FormData) {
+export async function submitChecklistRunAction(_prevState: unknown, formData: FormData) {
   const tenant = await requireTenantModule("checklists");
   const supabase = await createSupabaseServerClient();
   const { data: authData } = await supabase.auth.getUser();
@@ -541,13 +562,23 @@ export async function submitChecklistRunAction(prevState: any, formData: FormDat
 
   revalidatePath("/app/checklists");
   revalidatePath("/app/reports");
+
+  await sendChecklistSubmissionEmails({
+    supabase,
+    organizationId: tenant.organizationId,
+    templateName: template.name,
+    flaggedCount,
+    itemsCount: items.length,
+    submittedByEmail: authData.user?.email ?? "Usuario interno",
+  });
+
   return {
     success: true,
     message: `Checklist enviado (${items.length} items, ${flaggedCount} incidencias)`
   };
 }
 
-export async function reviewChecklistSubmissionAction(prevState: any, formData: FormData) {
+export async function reviewChecklistSubmissionAction(_prevState: unknown, formData: FormData) {
   const tenant = await requireTenantModule("checklists");
   const supabase = await createSupabaseServerClient();
   const { data: authData } = await supabase.auth.getUser();
@@ -590,7 +621,7 @@ export async function reviewChecklistSubmissionAction(prevState: any, formData: 
   return { success: true, message: "Checklist marcado como revisado" };
 }
 
-export async function deleteChecklistTemplateAction(prevState: any, formData: FormData) {
+export async function deleteChecklistTemplateAction(_prevState: unknown, formData: FormData) {
   const tenant = await requireTenantModule("checklists");
   const supabase = await createSupabaseServerClient();
 

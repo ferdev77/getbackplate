@@ -6,9 +6,9 @@ Este documento compara el estado real del proyecto contra el texto objetivo de "
 
 ## Resumen ejecutivo
 
-- Cumplido: 15
+- Cumplido: 18
 - Parcial: 7
-- Pendiente: 3
+- Pendiente: 0
 - Fuera de alcance por definicion (bloque futuro): 1
 
 ---
@@ -79,17 +79,17 @@ Este documento compara el estado real del proyecto contra el texto objetivo de "
   - Estado: **Cumplido**
   - Evidencia: boton de ingreso en acciones de superadmin + sesion dedicada de impersonacion + banner y salida segura en `web/src/app/(superadmin)/superadmin/organizations/page.tsx`, `web/src/modules/organizations/actions.ts`, `web/src/shared/lib/impersonation.ts`, `web/src/app/auth/impersonation/stop/route.ts` y migracion `supabase/migrations/202603200002_superadmin_impersonation_sessions.sql`.
 
-- [ ] Notificaciones email integradas reutilizando avisos
-  - Estado: **Pendiente**
-  - Evidencia: se guardan canales/flags, pero no hay pipeline de envio email activo (mailer/proveedor/cola).
+- [x] Notificaciones email integradas reutilizando avisos
+  - Estado: **Cumplido**
+  - Evidencia: canal `email` habilitado en `announcement_deliveries`, envio via Brevo en cron de entregas y notificaciones email de checklists enviados a managers/admins en `web/src/modules/announcements/services/deliveries.ts` y `web/src/modules/checklists/actions.ts`.
 
 - [~] Recurrencia (diario, semanal, mensual, trimestral, anual, dias especificos)
   - Estado: **Parcial**
   - Evidencia: checklist soporta `daily/weekly/monthly`; no se observa trimestral/anual/dias especificos.
 
-- [ ] Archivos: compartir por email
-  - Estado: **Pendiente**
-  - Evidencia: no hay flujo de "share by email" de documento.
+- [x] Archivos: compartir por email
+  - Estado: **Cumplido**
+  - Evidencia: endpoint `POST /api/company/documents/share-email` + modal UI de envio en `web/src/modules/documents/ui/documents-tree-workspace.tsx`.
 
 - [~] Evento primer login cliente + notificacion automatica
   - Estado: **Parcial**
@@ -99,9 +99,9 @@ Este documento compara el estado real del proyecto contra el texto objetivo de "
 
 ## BLOQUE 4 - TESTING
 
-- [ ] Cliente mock con 7 locaciones y validaciones de permisos/dashboards/filtros/multi-tenant
-  - Estado: **Pendiente**
-  - Evidencia: no hay suite o plan de prueba formal automatizada con ese escenario como artefacto del repo.
+- [x] Cliente mock con 7 locaciones y validaciones de permisos/dashboards/filtros/multi-tenant
+  - Estado: **Cumplido**
+  - Evidencia: scripts `web/scripts/setup-tenant-qa-7-locations.mjs` y `web/scripts/verify-tenant-7-locations.mjs` + npm scripts dedicados.
 
 ---
 
@@ -199,6 +199,9 @@ Una vez aprobado, se implementa por fases con PRs cortos y validacion funcional 
   - dashboard con hover interactivo y tarjetas con detalle operativo
   - permisos de documentos consolidado en modelo folder-first (fuente unica de acceso)
   - impersonacion segura de superadmin con hardening en acciones sensibles de billing/settings
+  - notificaciones email operativas para avisos (canal email) y checklists enviados
+  - compartir documento por email desde Documentos
+  - suite QA de 7 locaciones con setup + verify automatizado
 
 
 

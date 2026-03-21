@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MessageSquare, Pin, Smartphone, Clock3 } from "lucide-react";
+import { MessageSquare, Pin, Smartphone, Clock3, Mail } from "lucide-react";
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -63,6 +63,7 @@ export function AnnouncementCreateModal({ branches, departments, positions, user
   const [state, formAction, isPending] = useActionState(createAnnouncementAction, { success: false, message: "" });
   const [notifyWhatsapp, setNotifyWhatsapp] = useState(false);
   const [notifySms, setNotifySms] = useState(false);
+  const [notifyEmail, setNotifyEmail] = useState(true);
   const [hasExpiry, setHasExpiry] = useState(Boolean(initial?.expires_at));
 
   useEffect(() => {
@@ -170,9 +171,21 @@ export function AnnouncementCreateModal({ branches, departments, positions, user
               >
                 <Smartphone className="h-3.5 w-3.5" /> SMS
               </button>
+              <button
+                type="button"
+                onClick={() => setNotifyEmail((prev) => !prev)}
+                className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
+                  notifyEmail
+                    ? "border-[#c0392b] bg-[#fff5f3] text-[#c0392b]"
+                    : "border-[#e8e8e8] bg-white text-[#666]"
+                }`}
+              >
+                <Mail className="h-3.5 w-3.5" /> Email
+              </button>
             </div>
             {notifyWhatsapp ? <input type="hidden" name="notify_channel" value="whatsapp" /> : null}
             {notifySms ? <input type="hidden" name="notify_channel" value="sms" /> : null}
+            {notifyEmail ? <input type="hidden" name="notify_channel" value="email" /> : null}
 
             <div className="my-4 h-px bg-[#f0f0f0]" />
 

@@ -57,6 +57,9 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
   const positionScopes = scope.position_ids;
   const userScopes = scope.users;
   const notifyChannels = formData.getAll("notify_channel").map(String);
+  const normalizedNotifyChannels = [...new Set(notifyChannels)].filter((channel) =>
+    ["sms", "whatsapp", "email", "in_app"].includes(channel),
+  );
 
   const supabase = await createSupabaseServerClient();
   const { data: authData } = await supabase.auth.getUser();
@@ -150,12 +153,12 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
     return { success: false, message: `Anuncio creado pero audiencia fallo: ${audienceError.message}` };
   }
 
-  if (notifyChannels.length) {
+  if (normalizedNotifyChannels.length) {
     await supabase.from("announcement_deliveries").insert(
-      notifyChannels.map((channel) => ({
+      normalizedNotifyChannels.map((channel) => ({
         organization_id: tenant.organizationId,
         announcement_id: announcement.id,
-        channel: channel === "sms" ? "sms" : channel === "whatsapp" ? "whatsapp" : "in_app",
+        channel,
         status: "queued",
       })),
     );
@@ -166,7 +169,7 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
     entityType: "announcement",
     entityId: announcement.id,
     organizationId: tenant.organizationId,
-    metadata: { title, kind, isFeatured, locationScopes, departmentScopes, positionScopes, userScopes, notifyChannels },
+    metadata: { title, kind, isFeatured, locationScopes, departmentScopes, positionScopes, userScopes, notifyChannels: normalizedNotifyChannels },
     eventDomain: "announcements",
     outcome: "success",
     severity: announcementId ? "medium" : "high",

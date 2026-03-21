@@ -15,6 +15,8 @@
     "verify:role-permissions": "node --env-file=.env.local scripts/verify-role-permissions.mjs",
     "verify:module-role-e2e": "node --env-file=.env.local scripts/verify-module-role-e2e.mjs",
     "verify:smoke-modules": "node --env-file=.env.local scripts/smoke-modules.mjs",
+    "setup:tenant-qa-7-locations": "node --env-file=.env.local scripts/setup-tenant-qa-7-locations.mjs",
+    "verify:tenant-7-locations": "node --env-file=.env.local scripts/verify-tenant-7-locations.mjs",
     "verify:document-guardrails": "node --env-file=.env.local scripts/verify-document-guardrails.mjs",
     "verify:audit-coverage": "node --env-file=.env.local scripts/verify-audit-coverage.mjs",
     "verify:operational-metrics-consistency": "node --env-file=.env.local scripts/verify-operational-metrics-consistency.mjs",
