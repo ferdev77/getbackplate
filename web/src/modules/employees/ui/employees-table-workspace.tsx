@@ -206,9 +206,9 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
       setRows((prev) =>
         prev.map((item) => (item.id === selected.id ? { ...item, status: selectedStatus } : item)),
       );
-      setToast("Estado actualizado correctamente");
+      setToast("Estado laboral actualizado correctamente");
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "No se pudo actualizar estado");
+      setToast(error instanceof Error ? error.message : "No se pudo actualizar estado laboral");
     } finally {
       setBusyStatus(false);
     }
@@ -246,7 +246,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
         ["Puesto", row.position || "-"],
         ["Locacion", row.branchName],
         ["Departamento", row.departmentName],
-        ["Estado", statusLabel(row.status)],
+        ["Estado laboral", statusLabel(row.status)],
         ["Fecha de ingreso", formatDate(row.hiredAt)],
         ["Salario", formatMoney(row.salaryAmount, row.salaryCurrency)],
         ["Contrato", row.contractStatus || "-"],
@@ -273,7 +273,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
         `Puesto: ${row.position || "-"}`,
         `Locacion: ${row.branchName}`,
         `Departamento: ${row.departmentName}`,
-        `Estado: ${statusLabel(row.status)}`,
+        `Estado laboral: ${statusLabel(row.status)}`,
       ].join("\n");
 
       const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
@@ -356,6 +356,10 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
         </select>
       </section>
 
+      <p className="text-[11px] text-[#8b817c]">
+        Estado laboral y acceso a plataforma se gestionan por separado.
+      </p>
+
       <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white">
         <div className="grid grid-cols-[minmax(180px,2fr)_minmax(100px,1fr)_minmax(120px,1.1fr)_minmax(100px,.8fr)_minmax(110px,.9fr)_minmax(90px,.8fr)_136px] gap-x-3 border-b-[1.5px] border-[#e8e8e8] bg-[#fafafa] px-5 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase">
           <p>Nombre</p><p>Locacion</p><p>Departamento</p><p>Es empleado</p><p>Dashboard</p><p>Estado laboral</p><p>Acciones</p>
@@ -430,9 +434,9 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                 <p className="font-serif text-xl font-bold text-[#111]">{selected.firstName} {selected.lastName}</p>
                 <p className="text-xs text-[#aaa]">{selected.position || "Sin puesto"}</p>
                 <div className="mt-1 flex flex-wrap gap-1.5">
-                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusClass(selected.status)}`}>{statusLabel(selected.status)}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusClass(selected.status)}`}>Estado laboral: {statusLabel(selected.status)}</span>
                   <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${selected.dashboardAccess ? "bg-[#edfbf3] text-[#27ae60]" : "bg-[#f5f5f5] text-[#888]"}`}>
-                    {selected.dashboardAccess ? "Dashboard: con acceso" : "Dashboard: sin acceso"}
+                    {selected.dashboardAccess ? "Acceso plataforma: habilitado" : "Acceso plataforma: sin acceso"}
                   </span>
                   <span className="rounded-full bg-[#eef4ff] px-2 py-0.5 text-[11px] font-semibold text-[#2980b9]">{selected.branchName}</span>
                   <span className="rounded-full bg-[#fff5e8] px-2 py-0.5 text-[11px] font-semibold text-[#e67e22]">{selected.departmentName}</span>
@@ -475,7 +479,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                   onClick={updateEmployeeStatus}
                   className="rounded-lg bg-[#111] px-4 py-2 text-sm font-bold text-white hover:bg-[#c0392b] disabled:opacity-60"
                 >
-                  {busyStatus ? "Guardando..." : "Guardar estado"}
+                  {busyStatus ? "Guardando..." : "Guardar estado laboral"}
                 </button>
               </div>
             </div>

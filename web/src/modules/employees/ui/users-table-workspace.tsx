@@ -166,7 +166,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
       ["Nombre", user.fullName],
       ["Email", user.email],
       ["Rol", roleLabel(user.roleCode)],
-      ["Estado", statusLabel(user.status)],
+      ["Acceso a plataforma", statusLabel(user.status)],
       ["Locacion", user.branchName],
       ["Alta", new Date(user.createdAt).toLocaleDateString("es-AR")],
     ];
@@ -191,11 +191,15 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
       <section className="mt-2 flex flex-wrap items-center gap-2">
         <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-[34px] w-[210px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs" placeholder="Buscar administrador..." />
         <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"><option value="">Todas las locaciones</option>{[...new Set(rows.map((item) => item.branchName))].map((item) => <option key={item} value={item}>{item}</option>)}</select>
-        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"><option value="">Todos los estados</option><option value="active">Activo</option><option value="inactive">Inactivo</option></select>
+        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"><option value="">Todos los accesos</option><option value="active">Activo</option><option value="inactive">Inactivo</option></select>
       </section>
 
+      <p className="text-[11px] text-[#8b817c]">
+        Este estado controla el ingreso a la plataforma (no el estado laboral).
+      </p>
+
       <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white">
-        <div className="grid grid-cols-[minmax(190px,2fr)_minmax(170px,1.4fr)_minmax(120px,1fr)_minmax(100px,.8fr)_136px] gap-x-3 border-b-[1.5px] border-[#e8e8e8] bg-[#fafafa] px-5 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase"><p>Nombre</p><p>Email</p><p>Locacion</p><p>Estado</p><p>Acciones</p></div>
+        <div className="grid grid-cols-[minmax(190px,2fr)_minmax(170px,1.4fr)_minmax(120px,1fr)_minmax(100px,.8fr)_136px] gap-x-3 border-b-[1.5px] border-[#e8e8e8] bg-[#fafafa] px-5 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase"><p>Nombre</p><p>Email</p><p>Locacion</p><p>Acceso</p><p>Acciones</p></div>
         <div>
           {filtered.map((row) => (
             <div key={row.membershipId} onClick={() => setSelectedMembershipId(row.membershipId)} className="grid grid-cols-[minmax(190px,2fr)_minmax(170px,1.4fr)_minmax(120px,1fr)_minmax(100px,.8fr)_136px] items-center gap-x-3 border-b border-[#f0f0f0] px-5 py-3 hover:bg-[#fafafa]">
@@ -223,7 +227,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Nombre</p><p className="text-sm text-[#333]">{selected.fullName}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Email</p><p className="text-sm text-[#333]">{selected.email}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Rol</p><p className="text-sm text-[#333]">{roleLabel(selected.roleCode)}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Estado</p><p className="text-sm text-[#333]">{statusLabel(selected.status)}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Acceso a plataforma</p><p className="text-sm text-[#333]">{statusLabel(selected.status)}</p></div>
               <div className="sm:col-span-2"><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Locacion</p><p className="text-sm text-[#333]">{selected.branchName}</p></div>
             </div>
             <div className="flex items-center justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4">
@@ -242,7 +246,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Nombre</p><p className="text-sm text-[#333]">{editing.fullName}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Email</p><p className="text-sm text-[#333]">{editing.email}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Rol</p><select value={editRole} onChange={(event) => setEditRole(event.target.value)} className="mt-1 h-9 w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-sm">{roleOptions.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}</select></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Estado</p><select value={editStatus} onChange={(event) => setEditStatus(event.target.value)} className="mt-1 h-9 w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-sm"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></div>
+               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Acceso a plataforma</p><select value={editStatus} onChange={(event) => setEditStatus(event.target.value)} className="mt-1 h-9 w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-sm"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></div>
               <div className="sm:col-span-2"><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Locacion</p><select value={editBranchId} onChange={(event) => setEditBranchId(event.target.value)} className="mt-1 h-9 w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-sm"><option value="">Todas</option>{branchOptions.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></div>
             </div>
             <div className="flex items-center justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4">

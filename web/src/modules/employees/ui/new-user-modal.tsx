@@ -114,12 +114,13 @@ export function NewUserModal({ open, branches, roleOptions }: NewUserModalProps)
 
             {/* Acceso */}
             <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">
-              Acceso de administrador
+              Acceso a plataforma
             </label>
             <select name="access_status" defaultValue="active" className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm">
               <option value="active">Activo</option>
-              <option value="inactivo">Inactivo</option>
+              <option value="inactive">Inactivo</option>
             </select>
+            <p className="mt-1 text-[11px] text-[#8b817c]">Este campo define si puede iniciar sesión en la plataforma.</p>
 
           </div>
           <div className="flex justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4">
