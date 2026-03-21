@@ -15,8 +15,16 @@ Variables enviadas en `inviteUserByEmail(..., { data })`:
   - se envia email de `Invite user` mostrando usuario + contraseña temporal
   - en primer login se fuerza cambio de contraseña (`force_password_change = true`)
 - Reenvio de invitacion:
-  - se envia correo de acceso (magic link/recovery)
+  - se envia correo de acceso (magic link/recovery) via endpoint `POST /api/superadmin/organizations/invitations/resend`
   - si no ingresa por enlace, usar `Olvide mi contrasena` en `/auth/login`
+
+## Redirect de acceso
+
+- El redirect de invitaciones/resend debe apuntar a callback de app:
+  - `/auth/callback?next=/app/dashboard&org=<organization_id>`
+- Requisitos en Supabase (`Authentication > URL Configuration`):
+  - `Site URL` en `https://...`
+  - `Redirect URLs` con `https://<tu-host>/auth/callback*`
 
 ## Configurar template en Supabase
 
