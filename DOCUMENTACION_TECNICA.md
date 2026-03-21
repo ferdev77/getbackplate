@@ -1009,6 +1009,11 @@ Se consolidaron funcionalidades clave de producto y hardening sin romper flujos 
   - `web/docs/notificaciones-operativas.md`
 - Migracion canal email en avisos:
   - `supabase/migrations/202603200003_announcement_deliveries_email_channel.sql`
+- Reglas operativas vigentes:
+  - avisos: email solo al crear (toggle ON/OFF), no en editar
+  - checklists: email solo al crear plantilla (toggle ON/OFF), no en editar
+  - feedback de creacion: se informa cantidad de emails enviados
+  - deduplicacion en entregas de avisos por `announcement_id + channel`
 
 Variables requeridas en runtime (Vercel):
 

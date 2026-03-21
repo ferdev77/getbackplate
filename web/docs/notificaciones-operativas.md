@@ -7,15 +7,27 @@ Unificar envios email transaccionales de negocio sin depender de plantillas de a
 ## Flujos activos
 
 - Avisos (`announcements`):
-  - canal `email` disponible en modal de creacion/edicion
-  - se encola en `announcement_deliveries`
-  - cron procesa y envia por Brevo
-- Checklists enviados (`checklist_submissions`):
-  - envio de resumen por email a la audiencia del alcance de la plantilla
-  - incluye plantilla, cantidad de items, incidencias y link a reportes
+  - canal `email` disponible solo en modal de creacion
+  - en editar no se muestran canales ni se dispara email
+  - se encola en `announcement_deliveries` y se procesa en la misma creacion
+  - deduplicacion por `announcement_id + channel` para evitar reenvios duplicados
+- Checklists (crear plantilla):
+  - canal `email` disponible solo en modal de creacion
+  - en editar no se muestran canales ni se dispara email
+  - envio directo por Brevo a audiencia del alcance
 - Documentos compartidos por email:
   - accion manual por documento desde modulo Documentos
   - endpoint dedicado genera link firmado (24h) y envia correo
+
+## Regla de toggle
+
+- Toggle `Email` ON: envia notificacion.
+- Toggle `Email` OFF: no envia notificacion.
+- Se aplica igual en crear aviso y crear checklist.
+
+## Feedback en UI
+
+- Al crear aviso/checklist, el toast devuelve `Emails enviados: <cantidad>`.
 
 ## Variables de entorno requeridas
 
@@ -36,8 +48,9 @@ Unificar envios email transaccionales de negocio sin depender de plantillas de a
 - Alta/edicion de avisos:
   - `web/src/modules/announcements/actions.ts`
   - `web/src/shared/ui/announcement-create-modal.tsx`
-- Envio email al enviar checklist:
+- Envio email al crear checklist:
   - `web/src/modules/checklists/actions.ts`
+  - `web/src/modules/checklists/ui/checklist-upsert-modal.tsx`
 - Compartir documento por email:
   - `web/src/app/api/company/documents/share-email/route.ts`
   - `web/src/modules/documents/ui/documents-tree-workspace.tsx`
