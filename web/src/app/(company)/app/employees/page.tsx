@@ -245,7 +245,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
           <div>
             <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-[#9c938d] uppercase">Recursos Humanos</p>
             <h1 className="mb-1 text-2xl font-bold tracking-tight text-[#241f1c]">Usuarios / Empleados</h1>
-            <p className="text-sm text-[#6b635e]">Crea usuarios con o sin perfil de empleado y gestiona su estado laboral.</p>
+            <p className="text-sm text-[#6b635e]">Crea usuarios con o sin perfil de empleado y gestiona su estado laboral. El acceso a la plataforma se controla por separado.</p>
           </div>
           <div className="flex gap-2">
             <Link href="/app/employees?action=create" className="inline-flex items-center gap-1 rounded-lg bg-[#111111] px-3 py-2 text-sm font-semibold text-white hover:bg-[#c0392b]"><Plus className="h-4 w-4" /> Nuevo Usuario / Empleado</Link>

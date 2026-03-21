@@ -35,16 +35,21 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
 
 ## Bloque A — Crítico (no negociar)
 
-### [ ] A1. Sincronizar estado RRHH con membresías
+### [~] A1. Separar y documentar estado laboral vs acceso a plataforma
 
-- **Qué pasa hoy (simple):** cambiamos estado de empleado/usuario pero a veces la membresía queda con otro estado.
-- **Por qué está mal:** el sistema muestra una cosa en pantalla y otra en permisos reales de acceso.
+- **Qué pasa hoy (simple):** se interpreta que "inactivo" de RRHH debería cortar login, pero en realidad ese estado hoy es laboral.
+- **Por qué está mal:** genera confusión operativa y decisiones equivocadas de soporte/gestión.
 - **Plan a seguir:**
-  1. Ajustar `PATCH` en `web/src/app/api/company/employees/route.ts` para que, cuando corresponda, sincronice también `memberships.status`.
-  2. Mantener reglas por tipo de registro (empleado vs usuario simple).
-  3. Auditar el cambio con eventos claros.
-- **Comportamiento esperado después:** si un perfil se desactiva, su acceso también queda desactivado de forma consistente.
-- **Evidencia de cierre:** _pendiente_
+  1. Documentar regla oficial: `estado laboral` no cambia `acceso a plataforma` automáticamente.
+  2. En `web/src/app/api/company/employees/route.ts`, mantener separados ambos conceptos.
+  3. Solo cambiar `memberships.status` cuando exista una acción explícita de acceso (ejemplo: bloquear/reactivar ingreso).
+  4. Ajustar labels y textos en UI para distinguir claramente ambos estados.
+  5. Auditar por separado: `employee.status.update` (laboral) y `membership.status.update` (acceso).
+- **Comportamiento esperado después:** cambiar estado laboral no rompe acceso; acceso se modifica solo con acción explícita de seguridad/ingreso.
+- **Evidencia de cierre:**
+  - Regla funcional validada con negocio: estado laboral no implica bloqueo de login.
+  - Labels de UI aclarados en RRHH y Accesos para evitar ambigüedad.
+  - Pendiente de cierre final: auditoría separada completa para eventos de acceso.
 
 ### [ ] A2. Corregir alcance por puestos (`position_ids`)
 
@@ -268,8 +273,8 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
 
 ## Registro de avances
 
-- Fecha: _pendiente_  
-  - Cambios aplicados: _pendiente_  
-  - Bloques tocados: _pendiente_  
-  - Riesgos detectados: _pendiente_  
-  - Próximo objetivo: _pendiente_
+- Fecha: 2026-03-21  
+  - Cambios aplicados: Clarificación funcional y visual de "estado laboral" vs "acceso a plataforma".  
+  - Bloques tocados: A1, B (comunicación de reglas), C (consistencia operativa UI).  
+  - Riesgos detectados: Ninguno crítico; cambio de copy sin impacto de layout esperado.  
+  - Próximo objetivo: cerrar A1 con auditoría separada y empezar A2 (scope por `position_ids`).

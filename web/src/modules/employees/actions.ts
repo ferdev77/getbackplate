@@ -719,7 +719,8 @@ export async function createUserAccountAction(_prevState: unknown, formData: For
   const password = String(formData.get("password") ?? "");
   const roleCodeInput = String(formData.get("role_code") ?? "employee").trim();
   const branchId = String(formData.get("branch_id") ?? "").trim() || null;
-  const accessStatus = String(formData.get("access_status") ?? "active").trim();
+  const accessStatus = String(formData.get("access_status") ?? "active").trim().toLowerCase();
+  const normalizedAccessStatus = accessStatus === "inactive" || accessStatus === "inactivo" ? "inactive" : "active";
 
   if (!fullName || !email) {
     return { success: false, message: "Nombre completo y correo corporativo son obligatorios" };
@@ -780,7 +781,7 @@ export async function createUserAccountAction(_prevState: unknown, formData: For
       user_id: userId,
       role_id: role.id,
       branch_id: branchId,
-      status: accessStatus === "inactivo" ? "inactive" : "active",
+      status: normalizedAccessStatus,
     },
     { onConflict: "organization_id,user_id" },
   );
@@ -797,7 +798,7 @@ export async function createUserAccountAction(_prevState: unknown, formData: For
     entityId: userId,
     organizationId: tenant.organizationId,
     branchId,
-    metadata: { fullName, email, roleCode, accessStatus, branchId },
+    metadata: { fullName, email, roleCode, accessStatus: normalizedAccessStatus, branchId },
     eventDomain: "employees",
     outcome: "success",
     severity: "high",
