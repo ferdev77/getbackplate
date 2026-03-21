@@ -93,7 +93,7 @@ export function EmployeeShell({
 
       <footer className="mt-auto flex items-center justify-between bg-[#111] px-4 py-5 sm:px-10">
         <p className="text-sm text-[#777]">{organizationName}</p>
-        <p className="text-[11px] text-[#444]">© 2026 {organizationName} - Created by Marketing Solutions</p>
+        <p className="text-[11px] text-[#444]">© 2026 {organizationName} - Powered by GetBackplate</p>
       </footer>
     </div>
   );

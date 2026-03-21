@@ -114,6 +114,17 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: USERS_API_MESSAGES.STATUS_INVALID }, { status: 400 });
   }
 
+  const { data: previousMembership } = await supabase
+    .from("memberships")
+    .select("status, role_id, branch_id")
+    .eq("organization_id", tenant.organizationId)
+    .eq("id", membershipId)
+    .maybeSingle();
+
+  if (!previousMembership) {
+    return NextResponse.json({ error: USERS_API_MESSAGES.MEMBERSHIP_INVALID }, { status: 404 });
+  }
+
   const { data: role, error: roleError } = await supabase
     .from("roles")
     .select("id")
@@ -137,13 +148,6 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: USERS_API_MESSAGES.LOCATION_INVALID }, { status: 400 });
     }
   }
-
-  const { data: previousMembership } = await supabase
-    .from("memberships")
-    .select("status, role_id, branch_id")
-    .eq("organization_id", tenant.organizationId)
-    .eq("id", membershipId)
-    .maybeSingle();
 
   const { error: updateError } = await supabase
     .from("memberships")
@@ -315,7 +319,7 @@ export async function POST(request: Request) {
 
   if (membershipError || !membership) {
     return NextResponse.json(
-      { error: `${USERS_API_MESSAGES.USER_CREATE_FAILED_PREFIX}: ${membershipError?.message ?? "error"}` },
+      { error: `No se pudo crear usuario: ${membershipError?.message ?? "error"}` },
       { status: 400 },
     );
   }
@@ -371,6 +375,17 @@ export async function DELETE(request: Request) {
 
   if (!membershipId) {
     return NextResponse.json({ error: USERS_API_MESSAGES.MEMBERSHIP_INVALID }, { status: 400 });
+  }
+
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("id")
+    .eq("organization_id", tenant.organizationId)
+    .eq("id", membershipId)
+    .maybeSingle();
+
+  if (!membership) {
+    return NextResponse.json({ error: USERS_API_MESSAGES.MEMBERSHIP_INVALID }, { status: 404 });
   }
 
   const { error } = await supabase

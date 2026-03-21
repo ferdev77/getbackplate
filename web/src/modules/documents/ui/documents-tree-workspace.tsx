@@ -505,9 +505,9 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
               <p className="text-xs text-[#888]">{sharedLabel}</p>
               <p className="text-xs text-[#888]">{formatDate(folder.created_at)}</p>
               <div className="flex items-center justify-end gap-1">
-                <button type="button" onClick={() => setEditFolderId(folder.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6] transition-opacity" title="Editar carpeta"><Pencil className="h-3.5 w-3.5" /></button>
-                <button type="button" onClick={() => setShareFolderId(folder.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6] transition-opacity" title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
-                <button type="button" onClick={() => setDeleteFolderId(folder.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4] transition-opacity" title="Eliminar carpeta"><Trash2 className="h-3.5 w-3.5" /></button>
+                <button type="button" onClick={() => setEditFolderId(folder.id)} className={ACTION_BTN_NEUTRAL} title="Editar carpeta"><Pencil className="h-3.5 w-3.5" /></button>
+                <button type="button" onClick={() => setShareFolderId(folder.id)} className={ACTION_BTN_NEUTRAL} title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
+                <button type="button" onClick={() => setDeleteFolderId(folder.id)} className={ACTION_BTN_DANGER} title="Eliminar carpeta"><Trash2 className="h-3.5 w-3.5" /></button>
               </div>
             </div>
             <AnimatePresence>
@@ -531,14 +531,14 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
                           <p className="text-xs text-[#888]">{docShared}</p>
                           <p className="text-xs text-[#888]">{formatDate(doc.created_at)}</p>
                           <div className="flex items-center justify-end gap-1">
-                            <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Ver/Descargar"><Eye className="h-3.5 w-3.5" /></a>
-                            <button type="button" onClick={() => setEditDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
+                            <a href={`/api/documents/${doc.id}/download`} className={ACTION_BTN_NEUTRAL} title="Ver/Descargar"><Eye className="h-3.5 w-3.5" /></a>
+                            <button type="button" onClick={() => setEditDocId(doc.id)} className={ACTION_BTN_NEUTRAL} title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
                             {doc.folder_id ? null : (
-                              <button type="button" onClick={() => setShareDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
+                              <button type="button" onClick={() => setShareDocId(doc.id)} className={ACTION_BTN_NEUTRAL} title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
                             )}
-                            <button type="button" onClick={() => setEmailShareDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#dce8fb] bg-[#f2f7ff] text-[#2a4f87] hover:bg-[#e7f0ff]" title="Compartir por email"><Mail className="h-3.5 w-3.5" /></button>
-                            <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Descargar"><Download className="h-3.5 w-3.5" /></a>
-                            <button type="button" onClick={() => setDeleteDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4]" title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
+                            <button type="button" onClick={() => setEmailShareDocId(doc.id)} className={ACTION_BTN_MAIL} title="Compartir por email"><Mail className="h-3.5 w-3.5" /></button>
+                            <a href={`/api/documents/${doc.id}/download`} className={ACTION_BTN_NEUTRAL} title="Descargar"><Download className="h-3.5 w-3.5" /></a>
+                            <button type="button" onClick={() => setDeleteDocId(doc.id)} className={ACTION_BTN_DANGER} title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
                           </div>
                         </div>
                       );
@@ -621,14 +621,14 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
                       <p className="text-xs text-[#888]">{shared}</p>
                       <p className="text-xs text-[#888]">{formatDate(doc.created_at)}</p>
                       <div className="flex items-center justify-end gap-1">
-                        <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Ver"><Eye className="h-3.5 w-3.5" /></a>
-                        <button type="button" onClick={() => setEditDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
+                        <a href={`/api/documents/${doc.id}/download`} className={ACTION_BTN_NEUTRAL} title="Ver"><Eye className="h-3.5 w-3.5" /></a>
+                        <button type="button" onClick={() => setEditDocId(doc.id)} className={ACTION_BTN_NEUTRAL} title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
                          {doc.folder_id ? null : (
-                           <button type="button" onClick={() => setShareDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
+                           <button type="button" onClick={() => setShareDocId(doc.id)} className={ACTION_BTN_NEUTRAL} title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
                          )}
-                         <button type="button" onClick={() => setEmailShareDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#dce8fb] bg-[#f2f7ff] text-[#2a4f87] hover:bg-[#e7f0ff]" title="Compartir por email"><Mail className="h-3.5 w-3.5" /></button>
-                         <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Descargar"><Download className="h-3.5 w-3.5" /></a>
-                        <button type="button" onClick={() => setDeleteDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4]" title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
+                          <button type="button" onClick={() => setEmailShareDocId(doc.id)} className={ACTION_BTN_MAIL} title="Compartir por email"><Mail className="h-3.5 w-3.5" /></button>
+                         <a href={`/api/documents/${doc.id}/download`} className={ACTION_BTN_NEUTRAL} title="Descargar"><Download className="h-3.5 w-3.5" /></a>
+                        <button type="button" onClick={() => setDeleteDocId(doc.id)} className={ACTION_BTN_DANGER} title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
                       </div>
                     </div>
                   </AnimatedItem>
@@ -725,6 +725,21 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
   );
 }
 
+const ACTION_BTN_NEUTRAL = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6] transition-opacity [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#c8d7ea] [.theme-dark-pro_&]:hover:bg-[#172131]";
+const ACTION_BTN_MAIL = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#dce8fb] bg-[#f2f7ff] text-[#2a4f87] hover:bg-[#e7f0ff] transition-opacity [.theme-dark-pro_&]:border-[#365a87] [.theme-dark-pro_&]:bg-[#18283d] [.theme-dark-pro_&]:text-[#9dc6ff] [.theme-dark-pro_&]:hover:bg-[#1f334d]";
+const ACTION_BTN_DANGER = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4] transition-opacity [.theme-dark-pro_&]:border-[#6a3a42] [.theme-dark-pro_&]:bg-[#2a1c1f] [.theme-dark-pro_&]:text-[#ff9ea7] [.theme-dark-pro_&]:hover:bg-[#352328]";
+const MODAL_PANEL = "overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)] [.theme-dark-pro_&]:border [.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#151b25]";
+const MODAL_HEADER = "flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5 [.theme-dark-pro_&]:border-[#2b3646]";
+const MODAL_TITLE = "font-serif text-[15px] font-bold text-[#111] [.theme-dark-pro_&]:text-[#e7edf7]";
+const MODAL_CLOSE = "grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] [.theme-dark-pro_&]:border [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#c8d7ea] [.theme-dark-pro_&]:hover:bg-[#172131]";
+const MODAL_SOFT_BOX = "rounded-lg border border-[#e8e8e8] bg-[#f8f8f8] p-3 [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#111824]";
+const MODAL_LABEL = "text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase [.theme-dark-pro_&]:text-[#9aabc3]";
+const MODAL_INPUT = "rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#d8e3f2]";
+const MODAL_FOOTER = "flex justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4 [.theme-dark-pro_&]:border-[#2b3646]";
+const MODAL_CANCEL = "rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#c8d7ea] [.theme-dark-pro_&]:hover:bg-[#172131]";
+const MODAL_PRIMARY = "rounded-lg bg-[#111] px-5 py-2 text-sm font-bold text-white hover:bg-[#c0392b] disabled:opacity-60 [.theme-dark-pro_&]:bg-[#2b5ea8] [.theme-dark-pro_&]:hover:bg-[#3a73c6]";
+const MODAL_DANGER = "rounded-lg border-[1.5px] border-[#f3cbc4] bg-[#fff3f1] px-4 py-2 text-sm font-bold text-[#b63a2f] hover:bg-[#ffe8e4] [.theme-dark-pro_&]:border-[#6a3a42] [.theme-dark-pro_&]:bg-[#2a1c1f] [.theme-dark-pro_&]:text-[#ff9ea7] [.theme-dark-pro_&]:hover:bg-[#352328]";
+
 function ShareByEmailModal({
   document,
   busy,
@@ -741,17 +756,17 @@ function ShareByEmailModal({
 
   return (
     <div className="fixed inset-0 z-[1060] flex items-center justify-center bg-black/45 p-5" onClick={() => !busy && onCancel()}>
-      <div className="w-[460px] max-w-[95vw] overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]" onClick={(event) => event.stopPropagation()}>
-        <div className="flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5"><p className="font-serif text-[15px] font-bold text-[#111]">Compartir por email</p><button type="button" className="grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5]" onClick={onCancel}>✕</button></div>
+      <div className={`w-[460px] max-w-[95vw] ${MODAL_PANEL}`} onClick={(event) => event.stopPropagation()}>
+        <div className={MODAL_HEADER}><p className={MODAL_TITLE}>Compartir por email</p><button type="button" className={MODAL_CLOSE} onClick={onCancel}>✕</button></div>
         <div className="space-y-3 px-6 py-5">
-          <div className="rounded-lg border border-[#e8e8e8] bg-[#f8f8f8] p-3">
-            <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[#aaa] uppercase">Documento</p>
-            <p className="text-sm font-semibold text-[#111]">{document.title}</p>
+          <div className={MODAL_SOFT_BOX}>
+            <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[#aaa] uppercase [.theme-dark-pro_&]:text-[#9aabc3]">Documento</p>
+            <p className="text-sm font-semibold text-[#111] [.theme-dark-pro_&]:text-[#e7edf7]">{document.title}</p>
           </div>
-          <label className="grid gap-1.5"><span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Email destino</span><input value={email} onChange={(event) => setEmail(event.target.value)} type="email" placeholder="usuario@empresa.com" className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm" /></label>
-          <label className="grid gap-1.5"><span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Mensaje (opcional)</span><textarea value={message} onChange={(event) => setMessage(event.target.value)} rows={3} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm" placeholder="Te comparto este archivo." /></label>
+          <label className="grid gap-1.5"><span className={MODAL_LABEL}>Email destino</span><input value={email} onChange={(event) => setEmail(event.target.value)} type="email" placeholder="usuario@empresa.com" className={MODAL_INPUT} /></label>
+          <label className="grid gap-1.5"><span className={MODAL_LABEL}>Mensaje (opcional)</span><textarea value={message} onChange={(event) => setMessage(event.target.value)} rows={3} className={MODAL_INPUT} placeholder="Te comparto este archivo." /></label>
         </div>
-        <div className="flex justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4"><button type="button" onClick={onCancel} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777]">Cancelar</button><button type="button" disabled={busy || !email.trim()} onClick={() => onSubmit({ documentId: document.id, email: email.trim(), message: message.trim() })} className="rounded-lg bg-[#111] px-5 py-2 text-sm font-bold text-white hover:bg-[#c0392b] disabled:opacity-60">{busy ? "Enviando..." : "Enviar"}</button></div>
+        <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button><button type="button" disabled={busy || !email.trim()} onClick={() => onSubmit({ documentId: document.id, email: email.trim(), message: message.trim() })} className={MODAL_PRIMARY}>{busy ? "Enviando..." : "Enviar"}</button></div>
       </div>
     </div>
   );
@@ -772,11 +787,11 @@ function ConfirmDeleteModal({
 }) {
   return (
     <div className="fixed inset-0 z-[1050] grid place-items-center bg-black/45 p-4" onClick={() => !busy && onCancel()}>
-      <div className="w-full max-w-[420px] rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]" onClick={(event) => event.stopPropagation()}>
-        <div className="border-b border-[#f0f0f0] px-6 py-4"><p className="font-serif text-[18px] font-bold text-[#111]">{title}</p><p className="mt-1 text-sm text-[#777]">{description}</p></div>
-        <div className="flex justify-end gap-2 border-t border-[#f0f0f0] px-6 py-4">
-          <button type="button" disabled={busy} onClick={onCancel} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec]">Cancelar</button>
-          <button type="button" disabled={busy} onClick={onConfirm} className="rounded-lg border-[1.5px] border-[#f3cbc4] bg-[#fff3f1] px-4 py-2 text-sm font-bold text-[#b63a2f] hover:bg-[#ffe8e4]">{busy ? "Procesando..." : "Eliminar"}</button>
+      <div className={`w-full max-w-[420px] ${MODAL_PANEL}`} onClick={(event) => event.stopPropagation()}>
+        <div className="border-b border-[#f0f0f0] px-6 py-4 [.theme-dark-pro_&]:border-[#2b3646]"><p className="font-serif text-[18px] font-bold text-[#111] [.theme-dark-pro_&]:text-[#e7edf7]">{title}</p><p className="mt-1 text-sm text-[#777] [.theme-dark-pro_&]:text-[#9aabc3]">{description}</p></div>
+        <div className="flex justify-end gap-2 border-t border-[#f0f0f0] px-6 py-4 [.theme-dark-pro_&]:border-[#2b3646]">
+          <button type="button" disabled={busy} onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button>
+          <button type="button" disabled={busy} onClick={onConfirm} className={MODAL_DANGER}>{busy ? "Procesando..." : "Eliminar"}</button>
         </div>
       </div>
     </div>
@@ -801,13 +816,13 @@ function EditDocumentModal({
 
   return (
     <div className="fixed inset-0 z-[1020] flex items-center justify-center bg-black/45 p-5">
-      <div className="w-[520px] max-w-[95vw] overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-        <div className="flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5"><p className="font-serif text-[15px] font-bold text-[#111]">Editar Documento</p><button type="button" className="grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5]" onClick={onCancel}>✕</button></div>
+      <div className={`w-[520px] max-w-[95vw] ${MODAL_PANEL}`}>
+        <div className={MODAL_HEADER}><p className={MODAL_TITLE}>Editar Documento</p><button type="button" className={MODAL_CLOSE} onClick={onCancel}>✕</button></div>
         <div className="space-y-3 px-6 py-5">
-          <label className="grid gap-1.5"><span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Titulo</span><input value={title} onChange={(event) => setTitle(event.target.value)} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm" /></label>
-          <label className="grid gap-1.5"><span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Carpeta</span><select value={folderId} onChange={(event) => setFolderId(event.target.value)} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm"><option value="">Sin carpeta</option>{folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select></label>
+          <label className="grid gap-1.5"><span className={MODAL_LABEL}>Titulo</span><input value={title} onChange={(event) => setTitle(event.target.value)} className={MODAL_INPUT} /></label>
+          <label className="grid gap-1.5"><span className={MODAL_LABEL}>Carpeta</span><select value={folderId} onChange={(event) => setFolderId(event.target.value)} className={MODAL_INPUT}><option value="">Sin carpeta</option>{folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select></label>
         </div>
-        <div className="flex justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4"><button type="button" onClick={onCancel} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777]">Cancelar</button><button type="button" disabled={busy || !title.trim()} onClick={() => onSave({ documentId: document.id, title: title.trim(), folderId: folderId || null })} className="rounded-lg bg-[#111] px-5 py-2 text-sm font-bold text-white hover:bg-[#c0392b] disabled:opacity-60">{busy ? "Guardando..." : "Guardar"}</button></div>
+        <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button><button type="button" disabled={busy || !title.trim()} onClick={() => onSave({ documentId: document.id, title: title.trim(), folderId: folderId || null })} className={MODAL_PRIMARY}>{busy ? "Guardando..." : "Guardar"}</button></div>
       </div>
     </div>
   );
@@ -831,13 +846,13 @@ function EditFolderModal({
 
   return (
     <div className="fixed inset-0 z-[1020] flex items-center justify-center bg-black/45 p-5">
-      <div className="w-[520px] max-w-[95vw] overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-        <div className="flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5"><p className="font-serif text-[15px] font-bold text-[#111]">Editar Carpeta</p><button type="button" className="grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5]" onClick={onCancel}>✕</button></div>
+      <div className={`w-[520px] max-w-[95vw] ${MODAL_PANEL}`}>
+        <div className={MODAL_HEADER}><p className={MODAL_TITLE}>Editar Carpeta</p><button type="button" className={MODAL_CLOSE} onClick={onCancel}>✕</button></div>
         <div className="space-y-3 px-6 py-5">
-          <label className="grid gap-1.5"><span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Nombre</span><input value={name} onChange={(event) => setName(event.target.value)} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm" /></label>
-          <label className="grid gap-1.5"><span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Carpeta padre</span><select value={parentId} onChange={(event) => setParentId(event.target.value)} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm"><option value="">Raiz</option>{folders.filter((f) => f.id !== folder.id).map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select></label>
+          <label className="grid gap-1.5"><span className={MODAL_LABEL}>Nombre</span><input value={name} onChange={(event) => setName(event.target.value)} className={MODAL_INPUT} /></label>
+          <label className="grid gap-1.5"><span className={MODAL_LABEL}>Carpeta padre</span><select value={parentId} onChange={(event) => setParentId(event.target.value)} className={MODAL_INPUT}><option value="">Raiz</option>{folders.filter((f) => f.id !== folder.id).map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select></label>
         </div>
-        <div className="flex justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4"><button type="button" onClick={onCancel} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777]">Cancelar</button><button type="button" disabled={busy || !name.trim()} onClick={() => onSave({ folderId: folder.id, name: name.trim(), parentId: parentId || null })} className="rounded-lg bg-[#111] px-5 py-2 text-sm font-bold text-white hover:bg-[#c0392b] disabled:opacity-60">{busy ? "Guardando..." : "Guardar"}</button></div>
+        <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button><button type="button" disabled={busy || !name.trim()} onClick={() => onSave({ folderId: folder.id, name: name.trim(), parentId: parentId || null })} className={MODAL_PRIMARY}>{busy ? "Guardando..." : "Guardar"}</button></div>
       </div>
     </div>
   );
@@ -890,8 +905,8 @@ function ShareAccessModal({
 
   return (
     <div className="fixed inset-0 z-[1060] flex items-center justify-center bg-black/45 p-5">
-      <div className="w-[460px] max-w-[95vw] overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-        <div className="flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5"><p className="font-serif text-[15px] font-bold text-[#111]">{title}</p><button type="button" className="grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5]" onClick={onCancel}>✕</button></div>
+      <div className={`w-[460px] max-w-[95vw] ${MODAL_PANEL}`}>
+        <div className={MODAL_HEADER}><p className={MODAL_TITLE}>{title}</p><button type="button" className={MODAL_CLOSE} onClick={onCancel}>✕</button></div>
         <form
           id={scopeFormId}
           onSubmit={(event) => {
@@ -907,14 +922,14 @@ function ShareAccessModal({
           }}
         >
           <div className="max-h-[68vh] overflow-y-auto px-6 py-4">
-            <div className="mb-3 rounded-lg border border-[#e8e8e8] bg-[#f8f8f8] p-3">
-              <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[#aaa] uppercase">Elemento</p>
-              <p className="text-sm font-semibold text-[#111]">{itemName}</p>
+            <div className={MODAL_SOFT_BOX}>
+              <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[#aaa] uppercase [.theme-dark-pro_&]:text-[#9aabc3]">Elemento</p>
+              <p className="text-sm font-semibold text-[#111] [.theme-dark-pro_&]:text-[#e7edf7]">{itemName}</p>
             </div>
 
             {loading ? (
               <div className="flex items-center justify-center p-12">
-                <span className="text-xs font-semibold text-[#888] animate-pulse">Cargando permisos...</span>
+                <span className="animate-pulse text-xs font-semibold text-[#888] [.theme-dark-pro_&]:text-[#9aabc3]">Cargando permisos...</span>
               </div>
             ) : (
               <ScopeSelector
@@ -934,7 +949,7 @@ function ShareAccessModal({
               />
             )}
           </div>
-          <div className="flex justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4"><button type="button" onClick={onCancel} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777]">Cancelar</button><button type="submit" disabled={busy} className="rounded-lg bg-[#111] px-5 py-2 text-sm font-bold text-white hover:bg-[#c0392b] disabled:opacity-60">{busy ? "Guardando..." : "Guardar permisos"}</button></div>
+          <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button><button type="submit" disabled={busy} className={MODAL_PRIMARY}>{busy ? "Guardando..." : "Guardar permisos"}</button></div>
         </form>
       </div>
     </div>

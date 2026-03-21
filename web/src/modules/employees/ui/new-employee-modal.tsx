@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { SubmitButton } from "@/shared/ui/submit-button";
-import { createEmployeeAction } from "@/modules/employees/actions";
 
 type ModalBranch = { id: string; name: string };
 type ModalDocument = { id: string; title: string; created_at: string };
@@ -58,7 +57,7 @@ export function NewEmployeeModal({
   mode = "create",
   initialEmployee,
 }: NewEmployeeModalProps) {
-  const [state, formAction, isActionPending] = useActionState(createEmployeeAction, { success: false, message: "" });
+  const [isActionPending, setIsActionPending] = useState(false);
   const [selectedDept, setSelectedDept] = useState(initialEmployee?.department_id ?? "");
   const [createAccount, setCreateAccount] = useState(Boolean(initialEmployee?.has_dashboard_access));
   const [isEmployeeProfile, setIsEmployeeProfile] = useState(
@@ -67,17 +66,31 @@ export function NewEmployeeModal({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(0);
 
-  useEffect(() => {
-    if (state.message) {
-      if (state.success) {
-        toast.success(state.message);
-        router.refresh();
-        router.push("/app/employees");
-      } else {
-        toast.error(state.message);
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsActionPending(true);
+
+    try {
+      const formData = new FormData(event.currentTarget);
+      const response = await fetch("/api/company/employees", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || "No se pudo guardar el registro");
       }
+
+      toast.success(data.message || (mode === "edit" ? "Registro actualizado correctamente" : "Registro creado correctamente"));
+      router.refresh();
+      router.push("/app/employees");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo guardar el registro");
+    } finally {
+      setIsActionPending(false);
     }
-  }, [state, router]);
+  }
 
   const filteredPositions = useMemo(() => {
     return positions.filter((p) => p.department_id === selectedDept && p.is_active);
@@ -139,7 +152,7 @@ export function NewEmployeeModal({
           ))}
         </div>
 
-        <form action={formAction} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {mode === "edit" && initialEmployee ? (
             <input type="hidden" name="employee_id" value={initialEmployee.id} />
           ) : null}

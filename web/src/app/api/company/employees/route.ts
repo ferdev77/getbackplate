@@ -145,9 +145,15 @@ export async function POST(request: Request) {
   const branchId = String(formData.get("branch_id") ?? "").trim() || null;
   const email = String(formData.get("email") ?? "").trim().toLowerCase() || null;
   const phone = String(formData.get("phone") ?? "").trim() || null;
-  const employmentStatus = String(formData.get("employment_status") ?? "active").trim() || "active";
-  const hiredAt = String(formData.get("hired_at") ?? "").trim() || null;
+  const employmentStatusInput = String(
+    formData.get("employment_status") ?? formData.get("status") ?? "",
+  ).trim();
+  const hiredAt = String(formData.get("hired_at") ?? formData.get("hire_date") ?? "").trim() || null;
   const createMode = String(formData.get("create_mode") ?? "without_account").trim();
+  const isEmployeeProfile = String(formData.get("is_employee") ?? "yes").trim().toLowerCase() !== "no";
+  const organizationUserProfileId = String(formData.get("organization_user_profile_id") ?? "").trim() || null;
+  const existingDashboardAccess =
+    String(formData.get("existing_dashboard_access") ?? "no").trim().toLowerCase() === "yes";
   const employeeId = String(formData.get("employee_id") ?? "").trim() || null;
   const isEditMode = Boolean(employeeId);
   const accountEmailInput = String(formData.get("account_email") ?? "").trim().toLowerCase();
@@ -157,7 +163,7 @@ export async function POST(request: Request) {
   const sex = String(formData.get("sex") ?? "").trim() || null;
   const nationality = String(formData.get("nationality") ?? "").trim() || null;
   const phoneCountryCode = String(formData.get("phone_country_code") ?? "").trim() || null;
-  const addressLine1 = String(formData.get("address_line1") ?? "").trim() || null;
+  const addressLine1 = String(formData.get("address_line1") ?? formData.get("address") ?? "").trim() || null;
   const addressCity = String(formData.get("address_city") ?? "").trim() || null;
   const addressState = String(formData.get("address_state") ?? "").trim() || null;
   const addressPostalCode = String(formData.get("address_postal_code") ?? "").trim() || null;
@@ -230,11 +236,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Estado de contrato invalido" }, { status: 400 });
   }
 
-  if (!ALLOWED_EMPLOYMENT_STATUSES.has(employmentStatus)) {
+  const normalizedEmploymentStatus = employmentStatusInput || "active";
+  if (employmentStatusInput && !ALLOWED_EMPLOYMENT_STATUSES.has(normalizedEmploymentStatus)) {
     return NextResponse.json({ error: "Estado laboral invalido" }, { status: 400 });
   }
 
-  if (!isEditMode) {
+  if (!isEditMode && isEmployeeProfile) {
     try {
       await assertPlanLimitForEmployees(tenant.organizationId, 1);
     } catch (error) {
@@ -314,10 +321,168 @@ export async function POST(request: Request) {
     department = departmentRow.name;
   }
 
+  if (!isEmployeeProfile) {
+    const admin = createSupabaseAdminClient();
+    let linkedUserId: string | null = null;
+
+    if (organizationUserProfileId) {
+      const { data: existingProfile } = await admin
+        .from("organization_user_profiles")
+        .select("user_id")
+        .eq("organization_id", tenant.organizationId)
+        .eq("id", organizationUserProfileId)
+        .maybeSingle();
+
+      if (!existingProfile) {
+        return NextResponse.json({ error: "Usuario no encontrado para editar" }, { status: 404 });
+      }
+
+      linkedUserId = existingProfile.user_id;
+    }
+
+    if (createMode === "with_account") {
+      const loginEmail = accountEmailInput || email || "";
+      const needsProvision = !linkedUserId || !existingDashboardAccess;
+
+      if (needsProvision) {
+        if (!loginEmail) {
+          return NextResponse.json({ error: EMPLOYEES_MESSAGES.ACCESS_EMAIL_REQUIRED }, { status: 400 });
+        }
+
+        if (accountPassword.length < 8) {
+          return NextResponse.json({ error: EMPLOYEES_MESSAGES.ACCESS_PASSWORD_MIN }, { status: 400 });
+        }
+
+        const { data: createdUser, error: createUserError } = await admin.auth.admin.createUser({
+          email: loginEmail,
+          password: accountPassword,
+          email_confirm: true,
+          user_metadata: { full_name: `${firstName} ${lastName}`.trim() },
+        });
+
+        if (!createUserError && createdUser.user) {
+          linkedUserId = createdUser.user.id;
+        }
+
+        if (createUserError) {
+          const exists =
+            createUserError.message.toLowerCase().includes("already") ||
+            createUserError.message.toLowerCase().includes("exists") ||
+            createUserError.message.toLowerCase().includes("registered");
+          if (!exists) {
+            return NextResponse.json(
+              { error: `${EMPLOYEES_MESSAGES.EMPLOYEE_ACCOUNT_CREATE_FAILED_PREFIX}: ${createUserError.message}` },
+              { status: 400 },
+            );
+          }
+          const existing = await findAuthUserByEmail(loginEmail);
+          linkedUserId = existing?.id ?? null;
+        }
+      }
+
+      if (!linkedUserId) {
+        return NextResponse.json({ error: EMPLOYEES_MESSAGES.AUTH_USER_UNRESOLVED }, { status: 400 });
+      }
+
+      const { data: role, error: roleError } = await admin
+        .from("roles")
+        .select("id")
+        .eq("code", "employee")
+        .single();
+
+      if (roleError || !role) {
+        return NextResponse.json({ error: EMPLOYEES_MESSAGES.ROLE_EMPLOYEE_UNAVAILABLE }, { status: 400 });
+      }
+
+      const { data: existingMembership } = await admin
+        .from("memberships")
+        .select("id")
+        .eq("organization_id", tenant.organizationId)
+        .eq("user_id", linkedUserId)
+        .maybeSingle();
+
+      if (!existingMembership) {
+        try {
+          await assertPlanLimitForUsers(tenant.organizationId, 1);
+        } catch (error) {
+          return NextResponse.json(
+            { error: getPlanLimitErrorMessage(error, EMPLOYEES_MESSAGES.PLAN_LIMIT_USERS) },
+            { status: 400 },
+          );
+        }
+      }
+
+      const { error: membershipError } = await admin.from("memberships").upsert(
+        {
+          organization_id: tenant.organizationId,
+          user_id: linkedUserId,
+          role_id: role.id,
+          branch_id: branchId,
+          status: "active",
+        },
+        { onConflict: "organization_id,user_id" },
+      );
+
+      if (membershipError) {
+        return NextResponse.json({ error: `No se pudo asignar acceso al usuario: ${membershipError.message}` }, { status: 400 });
+      }
+    }
+
+    const profilePayload = {
+      organization_id: tenant.organizationId,
+      user_id: linkedUserId,
+      employee_id: null,
+      branch_id: branchId,
+      department_id: departmentId,
+      position_id: positionId,
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      phone,
+      is_employee: false,
+      status: createMode === "with_account" ? "active" : "inactive",
+      source: "users_employees_modal",
+    };
+
+    const profileResult = organizationUserProfileId
+      ? await admin
+          .from("organization_user_profiles")
+          .update(profilePayload)
+          .eq("organization_id", tenant.organizationId)
+          .eq("id", organizationUserProfileId)
+      : await admin.from("organization_user_profiles").insert(profilePayload);
+
+    if (profileResult.error) {
+      return NextResponse.json({ error: `No se pudo guardar perfil de usuario: ${profileResult.error.message}` }, { status: 400 });
+    }
+
+    await logAuditEvent({
+      action: organizationUserProfileId ? "users.update" : "users.create",
+      entityType: "organization_user_profile",
+      entityId: organizationUserProfileId,
+      organizationId: tenant.organizationId,
+      eventDomain: "employees",
+      outcome: "success",
+      severity: "medium",
+      metadata: {
+        actor_user_id: actorId,
+        has_dashboard_access: createMode === "with_account",
+      },
+    });
+
+    return NextResponse.json({
+      ok: true,
+      mode: organizationUserProfileId ? "edit-user" : "create-user",
+      message: organizationUserProfileId
+        ? "Usuario actualizado correctamente (sin perfil de empleado)"
+        : "Usuario creado correctamente (sin perfil de empleado)",
+    });
+  }
+
   if (isEditMode) {
     const { data: existingEmployee, error: existingEmployeeError } = await supabase
       .from("employees")
-      .select("id, user_id")
+      .select("id, user_id, status")
       .eq("organization_id", tenant.organizationId)
       .eq("id", employeeId)
       .maybeSingle();
@@ -325,6 +490,8 @@ export async function POST(request: Request) {
     if (existingEmployeeError || !existingEmployee) {
       return NextResponse.json({ error: "Empleado no encontrado para editar" }, { status: 404 });
     }
+
+    const employmentStatus = employmentStatusInput || existingEmployee.status || "active";
 
     const { error: updateEmployeeError } = await supabase
       .from("employees")
@@ -687,7 +854,7 @@ export async function POST(request: Request) {
       user_id: linkedUserId,
       first_name: firstName,
       last_name: lastName,
-      status: employmentStatus,
+      status: normalizedEmploymentStatus,
       email,
       phone,
       position,
@@ -970,6 +1137,10 @@ export async function PATCH(request: Request) {
       .eq("id", organizationUserProfileId)
       .maybeSingle();
 
+    if (!previousProfile) {
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
+
     const { error: profileError } = await supabase
       .from("organization_user_profiles")
       .update({ status })
@@ -1005,6 +1176,10 @@ export async function PATCH(request: Request) {
     .eq("organization_id", tenant.organizationId)
     .eq("id", employeeId)
     .maybeSingle();
+
+  if (!previousEmployee) {
+    return NextResponse.json({ error: "Empleado no encontrado" }, { status: 404 });
+  }
 
   const { error } = await supabase
     .from("employees")
@@ -1075,12 +1250,27 @@ export async function DELETE(request: Request) {
   }
 
   if (organizationUserProfileId) {
+    const { data: existingProfile } = await supabase
+      .from("organization_user_profiles")
+      .select("id")
+      .eq("organization_id", tenant.organizationId)
+      .eq("id", organizationUserProfileId)
+      .maybeSingle();
+
+    if (!existingProfile) {
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
+
     if (membershipId) {
-      await supabase
+      const { error: membershipDeleteError } = await supabase
         .from("memberships")
         .delete()
         .eq("organization_id", tenant.organizationId)
         .eq("id", membershipId);
+
+      if (membershipDeleteError) {
+        return NextResponse.json({ error: `No se pudo eliminar acceso de usuario: ${membershipDeleteError.message}` }, { status: 400 });
+      }
     }
 
     const { error: deleteProfileError } = await supabase
