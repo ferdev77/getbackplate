@@ -60,12 +60,9 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
   const normalizedNotifyChannels = [...new Set(notifyChannels)].filter((channel) =>
     ["sms", "whatsapp", "email", "in_app"].includes(channel),
   );
-  const channelsForDelivery =
-    normalizedNotifyChannels.length > 0
-      ? normalizedNotifyChannels
-      : announcementId
-        ? (["email"] as const)
-        : [];
+  const channelsForDelivery = announcementId
+    ? []
+    : [...new Set(["email", ...normalizedNotifyChannels])];
 
   const supabase = await createSupabaseServerClient();
   const { data: authData } = await supabase.auth.getUser();

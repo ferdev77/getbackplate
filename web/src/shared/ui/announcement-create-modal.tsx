@@ -145,47 +145,51 @@ export function AnnouncementCreateModal({ branches, departments, positions, user
               initialUsers={initial?.user_scope ?? []}
             />
 
-            <div className="my-4 h-px bg-[#f0f0f0]" />
+            {mode === "create" ? (
+              <>
+                <div className="my-4 h-px bg-[#f0f0f0]" />
 
-            <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#888]">Notificar tambien via</label>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setNotifyWhatsapp((prev) => !prev)}
-                className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
-                  notifyWhatsapp
-                    ? "border-[#c0392b] bg-[#fff5f3] text-[#c0392b]"
-                    : "border-[#e8e8e8] bg-white text-[#666]"
-                }`}
-              >
-                <MessageSquare className="h-3.5 w-3.5" /> WhatsApp
-              </button>
-              <button
-                type="button"
-                onClick={() => setNotifySms((prev) => !prev)}
-                className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
-                  notifySms
-                    ? "border-[#c0392b] bg-[#fff5f3] text-[#c0392b]"
-                    : "border-[#e8e8e8] bg-white text-[#666]"
-                }`}
-              >
-                <Smartphone className="h-3.5 w-3.5" /> SMS
-              </button>
-              <button
-                type="button"
-                onClick={() => setNotifyEmail((prev) => !prev)}
-                className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
-                  notifyEmail
-                    ? "border-[#c0392b] bg-[#fff5f3] text-[#c0392b]"
-                    : "border-[#e8e8e8] bg-white text-[#666]"
-                }`}
-              >
-                <Mail className="h-3.5 w-3.5" /> Email
-              </button>
-            </div>
-            {notifyWhatsapp ? <input type="hidden" name="notify_channel" value="whatsapp" /> : null}
-            {notifySms ? <input type="hidden" name="notify_channel" value="sms" /> : null}
-            {notifyEmail ? <input type="hidden" name="notify_channel" value="email" /> : null}
+                <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#888]">Notificar tambien via</label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNotifyWhatsapp((prev) => !prev)}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
+                      notifyWhatsapp
+                        ? "border-[#c0392b] bg-[#fff5f3] text-[#c0392b]"
+                        : "border-[#e8e8e8] bg-white text-[#666]"
+                    }`}
+                  >
+                    <MessageSquare className="h-3.5 w-3.5" /> WhatsApp
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNotifySms((prev) => !prev)}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
+                      notifySms
+                        ? "border-[#c0392b] bg-[#fff5f3] text-[#c0392b]"
+                        : "border-[#e8e8e8] bg-white text-[#666]"
+                    }`}
+                  >
+                    <Smartphone className="h-3.5 w-3.5" /> SMS
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNotifyEmail((prev) => !prev)}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
+                      notifyEmail
+                        ? "border-[#c0392b] bg-[#fff5f3] text-[#c0392b]"
+                        : "border-[#e8e8e8] bg-white text-[#666]"
+                    }`}
+                  >
+                    <Mail className="h-3.5 w-3.5" /> Email
+                  </button>
+                </div>
+                {notifyWhatsapp ? <input type="hidden" name="notify_channel" value="whatsapp" /> : null}
+                {notifySms ? <input type="hidden" name="notify_channel" value="sms" /> : null}
+                {notifyEmail ? <input type="hidden" name="notify_channel" value="email" /> : null}
+              </>
+            ) : null}
 
             <div className="my-4 h-px bg-[#f0f0f0]" />
 
