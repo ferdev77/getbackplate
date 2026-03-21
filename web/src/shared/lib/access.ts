@@ -15,6 +15,7 @@ import {
   getActiveOrganizationIdFromCookie,
 } from "@/shared/lib/tenant-selection";
 import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impersonation";
+import { markInvitedAdminFirstLoginIfNeeded } from "@/shared/lib/invited-admin-first-login";
 
 export const MODULE_DISABLED_COPY = "Este modulo no esta incluido en tu plan actual.";
 
@@ -373,6 +374,12 @@ export async function requireCompanyAccess() {
         encodeURIComponent("Tu usuario no tiene acceso al panel de empresa"),
     );
   }
+
+  await markInvitedAdminFirstLoginIfNeeded({
+    organizationId: companyMembership.organizationId,
+    userId: user.id,
+    email: user.email,
+  });
 
   return companyMembership;
 }
