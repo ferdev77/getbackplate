@@ -151,6 +151,8 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
 
   const notifyViaRaw = formData.getAll("notify_via").map(String);
   const validNotifyVia = notifyViaRaw.filter(v => v === "whatsapp" || v === "sms");
+  const notifyChannels = [...new Set(formData.getAll("notify_channel").map(String))];
+  const notifyByEmail = notifyChannels.includes("email");
 
   const parsed = createChecklistSchema.safeParse({
     template_id: String(formData.get("template_id") ?? ""),
@@ -461,6 +463,7 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
       repeatEvery,
       templateStatus,
       notifyVia,
+      notifyChannels,
       checklistTypeOther,
       itemsCount: totalItems,
       sectionsCount: normalizedSections.length,
@@ -474,7 +477,7 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   revalidatePath("/app/checklists");
   revalidatePath("/app/reports");
 
-  if (!templateId) {
+  if (!templateId && notifyByEmail) {
     await sendChecklistAudienceEmail({
       supabase,
       organizationId: tenant.organizationId,
