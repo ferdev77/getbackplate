@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Mail } from "lucide-react";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import { ChecklistItemsBuilder } from "@/modules/checklists/ui/checklist-items-builder";
@@ -54,6 +55,7 @@ export function ChecklistUpsertModal({
 }: ChecklistUpsertModalProps) {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(createChecklistTemplateAction, { success: false, message: "" });
+  const [notifyEmail, setNotifyEmail] = useState(true);
 
   useEffect(() => {
     if (state.message) {
@@ -140,6 +142,27 @@ export function ChecklistUpsertModal({
                   : [{ name: "General", items: editingTemplate?.templateItems?.map((item) => item.label) ?? [""] }]
               }
             />
+
+            {!editingTemplate ? (
+              <>
+                <div className="my-4 h-px bg-[#f0f0f0]" />
+                <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#888]">Notificar tambien via</label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNotifyEmail((prev) => !prev)}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
+                      notifyEmail
+                        ? "border-[#c0392b] bg-[#fff5f3] text-[#c0392b]"
+                        : "border-[#e8e8e8] bg-white text-[#666]"
+                    }`}
+                  >
+                    <Mail className="h-3.5 w-3.5" /> Email
+                  </button>
+                </div>
+                {notifyEmail ? <input type="hidden" name="notify_channel" value="email" /> : null}
+              </>
+            ) : null}
           </div>
           <div className="flex justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4">
             <Link href="/app/checklists" className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]">Cancelar</Link>
