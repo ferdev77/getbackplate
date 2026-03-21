@@ -23,13 +23,14 @@ function normalizePriority(value: string) {
   return "medium";
 }
 
-async function sendChecklistSubmissionEmails(input: {
+async function sendChecklistAudienceEmail(input: {
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
   organizationId: string;
   templateName: string;
-  flaggedCount: number;
+  event: "created" | "submitted";
   itemsCount: number;
-  submittedByEmail: string;
+  flaggedCount?: number;
+  actorEmail?: string;
   targetScope: {
     locations?: string[];
     department_ids?: string[];
@@ -91,16 +92,31 @@ async function sendChecklistSubmissionEmails(input: {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "";
   const reportsUrl = appUrl ? `${appUrl}/app/reports` : "/app/reports";
-  const subject = `Checklist enviado: ${input.templateName}`;
-  const html = `
+  const subject =
+    input.event === "created"
+      ? `Nuevo checklist creado: ${input.templateName}`
+      : `Checklist enviado: ${input.templateName}`;
+  const html =
+    input.event === "created"
+      ? `
+    <h2 style="margin:0 0 10px 0;">Nuevo checklist creado</h2>
+    <p style="margin:0 0 8px 0;color:#444;">Plantilla: <strong>${input.templateName}</strong></p>
+    <p style="margin:0 0 8px 0;color:#444;">Items: <strong>${input.itemsCount}</strong></p>
+    <p style="margin:0 0 14px 0;color:#444;">Creado por: <strong>${input.actorEmail ?? "Usuario interno"}</strong></p>
+    <p style="margin:14px 0 0 0;"><a href="${reportsUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">Ver checklists</a></p>
+  `
+      : `
     <h2 style="margin:0 0 10px 0;">Checklist enviado</h2>
     <p style="margin:0 0 8px 0;color:#444;">Plantilla: <strong>${input.templateName}</strong></p>
     <p style="margin:0 0 8px 0;color:#444;">Items: <strong>${input.itemsCount}</strong></p>
-    <p style="margin:0 0 8px 0;color:#444;">Incidencias: <strong>${input.flaggedCount}</strong></p>
-    <p style="margin:0 0 14px 0;color:#444;">Enviado por: <strong>${input.submittedByEmail}</strong></p>
+    <p style="margin:0 0 8px 0;color:#444;">Incidencias: <strong>${input.flaggedCount ?? 0}</strong></p>
+    <p style="margin:0 0 14px 0;color:#444;">Enviado por: <strong>${input.actorEmail ?? "Usuario interno"}</strong></p>
     <p style="margin:14px 0 0 0;"><a href="${reportsUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">Ver en reportes</a></p>
   `;
-  const text = `Checklist enviado\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nIncidencias: ${input.flaggedCount}\nEnviado por: ${input.submittedByEmail}\nVer en reportes: ${reportsUrl}`;
+  const text =
+    input.event === "created"
+      ? `Nuevo checklist creado\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nCreado por: ${input.actorEmail ?? "Usuario interno"}\nVer checklists: ${reportsUrl}`
+      : `Checklist enviado\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nIncidencias: ${input.flaggedCount ?? 0}\nEnviado por: ${input.actorEmail ?? "Usuario interno"}\nVer en reportes: ${reportsUrl}`;
 
   await Promise.allSettled(recipients.map((to) => sendTransactionalEmail({ to, subject, html, text })));
 }
@@ -457,6 +473,26 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
 
   revalidatePath("/app/checklists");
   revalidatePath("/app/reports");
+
+  if (!templateId) {
+    await sendChecklistAudienceEmail({
+      supabase,
+      organizationId: tenant.organizationId,
+      templateName: name,
+      event: "created",
+      itemsCount: totalItems,
+      actorEmail: authData.user?.email ?? "Usuario interno",
+      targetScope: {
+        locations: locationScopes,
+        department_ids: departmentScopes,
+        position_ids: positionScopes,
+        users: userScopes,
+      },
+      templateBranchId: branchId,
+      templateDepartmentId: departmentId,
+    });
+  }
+
   return {
     success: true,
     message: templateId
@@ -607,23 +643,6 @@ export async function submitChecklistRunAction(_prevState: unknown, formData: Fo
 
   revalidatePath("/app/checklists");
   revalidatePath("/app/reports");
-
-  await sendChecklistSubmissionEmails({
-    supabase,
-    organizationId: tenant.organizationId,
-    templateName: template.name,
-    flaggedCount,
-    itemsCount: items.length,
-    submittedByEmail: authData.user?.email ?? "Usuario interno",
-    targetScope: (template.target_scope as {
-      locations?: string[];
-      department_ids?: string[];
-      position_ids?: string[];
-      users?: string[];
-    } | null) ?? null,
-    templateBranchId: template.branch_id,
-    templateDepartmentId: template.department_id,
-  });
 
   return {
     success: true,
