@@ -30,16 +30,61 @@ async function sendChecklistSubmissionEmails(input: {
   flaggedCount: number;
   itemsCount: number;
   submittedByEmail: string;
+  targetScope: {
+    locations?: string[];
+    department_ids?: string[];
+    position_ids?: string[];
+    users?: string[];
+  } | null;
+  templateBranchId?: string | null;
+  templateDepartmentId?: string | null;
 }) {
-  const { data: memberships } = await input.supabase
-    .from("memberships")
-    .select("user_id, roles!inner(code)")
-    .eq("organization_id", input.organizationId)
-    .eq("status", "active")
-    .in("roles.code", ["company_admin", "manager"]);
+  const scope = input.targetScope ?? {};
+  const locationIds = Array.isArray(scope.locations) ? scope.locations.filter(Boolean) : [];
+  const departmentIds = Array.isArray(scope.department_ids) ? scope.department_ids.filter(Boolean) : [];
+  const positionIds = Array.isArray(scope.position_ids) ? scope.position_ids.filter(Boolean) : [];
+  const scopedUserIds = Array.isArray(scope.users) ? scope.users.filter(Boolean) : [];
 
-  const recipientUserIds = [...new Set((memberships ?? []).map((row) => row.user_id).filter(Boolean))] as string[];
-  const emailByUserId = await getAuthEmailByUserId(recipientUserIds);
+  const { data: employees } = await input.supabase
+    .from("employees")
+    .select("user_id, branch_id, department_id, position, status")
+    .eq("organization_id", input.organizationId)
+    .eq("is_active", true)
+    .not("user_id", "is", null);
+
+  const recipientUserIds = new Set<string>();
+
+  for (const employee of employees ?? []) {
+    if (!employee.user_id) continue;
+    if (employee.status !== "active") continue;
+
+    const byTemplateBranch = Boolean(input.templateBranchId) && employee.branch_id === input.templateBranchId;
+    const byTemplateDepartment =
+      Boolean(input.templateDepartmentId) && employee.department_id === input.templateDepartmentId;
+    const byLocationScope = locationIds.length > 0 && Boolean(employee.branch_id) && locationIds.includes(employee.branch_id);
+    const byDepartmentScope =
+      departmentIds.length > 0 && Boolean(employee.department_id) && departmentIds.includes(employee.department_id);
+    const byPositionScope =
+      positionIds.length > 0 && Boolean(employee.position) && positionIds.includes(employee.position);
+    const byUserScope = scopedUserIds.length > 0 && scopedUserIds.includes(employee.user_id);
+
+    const hasAnyScope =
+      locationIds.length > 0 || departmentIds.length > 0 || positionIds.length > 0 || scopedUserIds.length > 0;
+
+    const isInAudience = hasAnyScope
+      ? byLocationScope || byDepartmentScope || byPositionScope || byUserScope
+      : byTemplateBranch || byTemplateDepartment || (!input.templateBranchId && !input.templateDepartmentId);
+
+    if (isInAudience) {
+      recipientUserIds.add(employee.user_id);
+    }
+  }
+
+  for (const scopedUserId of scopedUserIds) {
+    recipientUserIds.add(scopedUserId);
+  }
+
+  const emailByUserId = await getAuthEmailByUserId([...recipientUserIds]);
   const recipients = [...new Set([...emailByUserId.values()].filter(Boolean))];
 
   if (!recipients.length) return;
@@ -570,6 +615,14 @@ export async function submitChecklistRunAction(_prevState: unknown, formData: Fo
     flaggedCount,
     itemsCount: items.length,
     submittedByEmail: authData.user?.email ?? "Usuario interno",
+    targetScope: (template.target_scope as {
+      locations?: string[];
+      department_ids?: string[];
+      position_ids?: string[];
+      users?: string[];
+    } | null) ?? null,
+    templateBranchId: template.branch_id,
+    templateDepartmentId: template.department_id,
   });
 
   return {
