@@ -62,7 +62,7 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
   );
   const channelsForDelivery = announcementId
     ? []
-    : [...new Set(["email", ...normalizedNotifyChannels])];
+    : normalizedNotifyChannels;
 
   const supabase = await createSupabaseServerClient();
   const { data: authData } = await supabase.auth.getUser();
