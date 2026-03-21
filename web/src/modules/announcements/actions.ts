@@ -157,6 +157,8 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
     return { success: false, message: `Anuncio creado pero audiencia fallo: ${audienceError.message}` };
   }
 
+  let sentContactsCount = 0;
+
   if (channelsForDelivery.length) {
     const { error: deliveriesError } = await supabase.from("announcement_deliveries").insert(
       channelsForDelivery.map((channel) => ({
@@ -172,7 +174,10 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
     }
 
     if (!announcementId) {
-      await processAnnouncementDeliveries();
+      const deliveryResult = await processAnnouncementDeliveries();
+      if (deliveryResult.success && typeof deliveryResult.sentContactsCount === "number") {
+        sentContactsCount = deliveryResult.sentContactsCount;
+      }
     }
   }
 
@@ -189,9 +194,12 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
 
   revalidatePath("/app/announcements");
   revalidatePath("/portal/home");
+  const creationMessage = channelsForDelivery.includes("email")
+    ? `Anuncio creado correctamente. Emails enviados: ${sentContactsCount}`
+    : "Anuncio creado correctamente";
   return { 
     success: true, 
-    message: announcementId ? "Anuncio actualizado correctamente" : "Anuncio creado correctamente" 
+    message: announcementId ? "Anuncio actualizado correctamente" : creationMessage
   };
 }
 
