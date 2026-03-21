@@ -6,22 +6,22 @@ Este documento compara el estado real del proyecto contra el texto objetivo de "
 
 ## Resumen ejecutivo
 
-- Cumplido: 11
-- Parcial: 8
-- Pendiente: 6
+- Cumplido: 15
+- Parcial: 7
+- Pendiente: 3
 - Fuera de alcance por definicion (bloque futuro): 1
 
 ---
 
 ## BLOQUE 1 - UX/UI
 
-- [ ] Dashboard: hover interactivo en metricas
-  - Estado: **Pendiente**
-  - Evidencia: las cards del dashboard no tienen interaccion hover de detalle en `web/src/shared/ui/company-dashboard-workspace.tsx`.
+- [x] Dashboard: hover interactivo en metricas
+  - Estado: **Cumplido**
+  - Evidencia: cards con hover y panel de microdetalle por metrica en `web/src/shared/ui/company-dashboard-workspace.tsx`.
 
-- [~] Dashboard: mostrar detalle (usuarios / empleados)
-  - Estado: **Parcial**
-  - Evidencia: muestra metrica agregada `Usuarios / Empleados`, pero no desagrega detalle en card/interaccion en `web/src/shared/ui/company-dashboard-workspace.tsx`.
+- [x] Dashboard: mostrar detalle (usuarios / empleados)
+  - Estado: **Cumplido**
+  - Evidencia: desagregacion visible de empleados/usuarios y detalles auxiliares en tarjetas de dashboard en `web/src/shared/ui/company-dashboard-workspace.tsx`.
 
 - [x] Invitaciones: "Enviar invitacion" en creacion de organizacion
   - Estado: **Cumplido**
@@ -67,17 +67,17 @@ Este documento compara el estado real del proyecto contra el texto objetivo de "
   - Estado: **Parcial**
   - Evidencia: validacion de scopes en modulos (checklists/docs/anuncios) via `web/src/shared/lib/scope-validation.ts`; falta consolidacion global de autorizacion por todos los endpoints/consultas de negocio.
 
-- [ ] Archivos: eliminar reglas redundantes y usar jerarquia de carpetas como fuente unica
-  - Estado: **Pendiente**
-  - Evidencia: coexisten `document_folders.access_scope` y `documents.access_scope` (reglas duales) en API/documentos.
+- [x] Archivos: eliminar reglas redundantes y usar jerarquia de carpetas como fuente unica
+  - Estado: **Cumplido**
+  - Evidencia: modelo folder-first aplicado en APIs de documentos/carpetas y descarga/export con scope efectivo en `web/src/app/api/company/documents/route.ts`, `web/src/app/api/company/document-folders/route.ts`, `web/src/app/api/documents/[documentId]/download/route.ts`, `web/src/app/api/company/documents/export/route.ts`.
 
 ---
 
 ## BLOQUE 3 - FUNCIONALIDADES NUEVAS
 
-- [ ] "Entrar a la organizacion" con impersonacion segura
-  - Estado: **Pendiente**
-  - Evidencia: no existe flujo de impersonacion seguro dedicado (solo seleccion de organizacion).
+- [x] "Entrar a la organizacion" con impersonacion segura
+  - Estado: **Cumplido**
+  - Evidencia: boton de ingreso en acciones de superadmin + sesion dedicada de impersonacion + banner y salida segura en `web/src/app/(superadmin)/superadmin/organizations/page.tsx`, `web/src/modules/organizations/actions.ts`, `web/src/shared/lib/impersonation.ts`, `web/src/app/auth/impersonation/stop/route.ts` y migracion `supabase/migrations/202603200002_superadmin_impersonation_sessions.sql`.
 
 - [ ] Notificaciones email integradas reutilizando avisos
   - Estado: **Pendiente**
@@ -196,6 +196,9 @@ Una vez aprobado, se implementa por fases con PRs cortos y validacion funcional 
   - invitaciones superadmin: `Enviar invitación` en creación y `Reenviar invitación` en edición
   - flujo de credenciales iniciales: contraseña temporal definida por superadmin + cambio obligatorio en primer ingreso
   - recuperación de contraseña habilitada desde login (`/auth/forgot-password`)
+  - dashboard con hover interactivo y tarjetas con detalle operativo
+  - permisos de documentos consolidado en modelo folder-first (fuente unica de acceso)
+  - impersonacion segura de superadmin con hardening en acciones sensibles de billing/settings
 
 
 

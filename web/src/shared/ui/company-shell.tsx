@@ -359,6 +359,11 @@ export function CompanyShell({
   }
 
   async function startCheckout(planId: string, priceId: string) {
+    if (impersonationMode) {
+      setToast("Billing bloqueado en modo impersonacion");
+      return;
+    }
+
     setBusy(true);
     try {
       const response = await fetch("/api/stripe/checkout", {
@@ -373,6 +378,25 @@ export function CompanyShell({
       window.location.href = data.url;
     } catch (error) {
       setToast(error instanceof Error ? error.message : "Falló la conexión de pagos");
+      setBusy(false);
+    }
+  }
+
+  async function openBillingPortal() {
+    if (impersonationMode) {
+      setToast("Billing bloqueado en modo impersonacion");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const response = await fetch("/api/stripe/billing-portal", { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || data.error || "No se pudo abrir el portal de pagos");
+      if (!data.url) throw new Error("No se encontro URL del portal de pagos");
+      window.location.href = data.url;
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "No se pudo abrir el portal de pagos");
       setBusy(false);
     }
   }
@@ -504,11 +528,14 @@ export function CompanyShell({
               <button
                 type="button"
                 onClick={() => setPlanOpen(true)}
-                className="mb-2.5 w-full rounded-lg border-[1.5px] bg-white/75 px-3 py-2 text-left"
+                disabled={impersonationMode}
+                className="mb-2.5 w-full rounded-lg border-[1.5px] bg-white/75 px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-60"
                 style={{ borderColor: palette.accent }}
               >
                 <div className="mb-1 flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full" style={{ background: palette.accent }} /><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#333333]">{currentPlanName}</p></div>
-                <p className="text-xs font-bold" style={{ color: palette.accent }}>Upgrade Plan →</p>
+                <p className="text-xs font-bold" style={{ color: palette.accent }}>
+                  {impersonationMode ? "Billing bloqueado" : "Upgrade Plan →"}
+                </p>
               </button>
             ) : null}
 
@@ -706,11 +733,17 @@ export function CompanyShell({
                     <p className="text-[11px] text-white/65 mb-3">
                       Gestiona tus métodos de pago, datos de facturación y descarga tus facturas de forma segura a través del portal de Stripe.
                     </p>
-                    <form action="/api/stripe/billing-portal" method="POST">
-                      <button type="submit" className="w-full rounded-md bg-white px-2 py-2 font-semibold text-[#111] transition hover:bg-gray-200">
+                    <button
+                      type="button"
+                      onClick={openBillingPortal}
+                      disabled={busy || impersonationMode}
+                      className="w-full rounded-md bg-white px-2 py-2 font-semibold text-[#111] transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
                         Abrir Portal de Pagos
-                      </button>
-                    </form>
+                    </button>
+                    {impersonationMode ? (
+                      <p className="mt-2 text-[10px] font-semibold text-amber-300">Accion bloqueada durante impersonacion.</p>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -873,14 +906,17 @@ export function CompanyShell({
                   setMenuOpen(false);
                   setPlanOpen(true);
                 }}
-                className="mb-2.5 w-full rounded-lg border-[1.5px] bg-white/75 px-3 py-2 text-left"
+                disabled={impersonationMode}
+                className="mb-2.5 w-full rounded-lg border-[1.5px] bg-white/75 px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-60"
                 style={{ borderColor: palette.accent }}
               >
                 <div className="mb-1 flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full" style={{ background: palette.accent }} />
                   <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#333333]">{currentPlanName}</p>
                 </div>
-                <p className="text-xs font-bold" style={{ color: palette.accent }}>Upgrade Plan →</p>
+                <p className="text-xs font-bold" style={{ color: palette.accent }}>
+                  {impersonationMode ? "Billing bloqueado" : "Upgrade Plan →"}
+                </p>
               </button>
 
               <div className="space-y-1.5">
