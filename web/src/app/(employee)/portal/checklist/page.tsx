@@ -118,21 +118,25 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
     ? visibleTemplates.find((template) => template.id === previewTemplateId) ?? null
     : null;
 
-  const [{ data: previewSections }, { data: previewItems }] = previewTemplate
-    ? await Promise.all([
-        supabase
-          .from("checklist_template_sections")
-          .select("id, name, sort_order")
-          .eq("organization_id", tenant.organizationId)
-          .eq("template_id", previewTemplate.id)
-          .order("sort_order", { ascending: true }),
-        supabase
-          .from("checklist_template_items")
-          .select("id, section_id, label, priority, sort_order")
-          .eq("organization_id", tenant.organizationId)
-          .order("sort_order", { ascending: true }),
-      ])
-    : [{ data: null }, { data: null }];
+  const { data: previewSections } = previewTemplate
+    ? await supabase
+        .from("checklist_template_sections")
+        .select("id, name, sort_order")
+        .eq("organization_id", tenant.organizationId)
+        .eq("template_id", previewTemplate.id)
+        .order("sort_order", { ascending: true })
+    : { data: null };
+
+  const previewSectionIds = (previewSections ?? []).map((section) => section.id);
+
+  const { data: previewItems } = previewTemplate && previewSectionIds.length > 0
+    ? await supabase
+        .from("checklist_template_items")
+        .select("id, section_id, label, priority, sort_order")
+        .eq("organization_id", tenant.organizationId)
+        .in("section_id", previewSectionIds)
+        .order("sort_order", { ascending: true })
+    : { data: null };
 
   const { data: latestSubmission } = previewTemplate
     ? await supabase
@@ -146,29 +150,37 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
         .maybeSingle()
     : { data: null };
 
-  const [{ data: submissionItems }, { data: submissionComments }, { data: submissionFlags }, { data: submissionAttachments }] =
-    latestSubmission
+  const { data: submissionItems } = latestSubmission
+    ? await supabase
+        .from("checklist_submission_items")
+        .select("id, template_item_id, is_checked, is_flagged")
+        .eq("organization_id", tenant.organizationId)
+        .eq("submission_id", latestSubmission.id)
+    : { data: null };
+
+  const submissionItemIds = (submissionItems ?? []).map((row) => row.id);
+
+  const [{ data: submissionComments }, { data: submissionFlags }, { data: submissionAttachments }] =
+    latestSubmission && submissionItemIds.length > 0
       ? await Promise.all([
-          supabase
-            .from("checklist_submission_items")
-            .select("id, template_item_id, is_checked, is_flagged")
-            .eq("organization_id", tenant.organizationId)
-            .eq("submission_id", latestSubmission.id),
           supabase
             .from("checklist_item_comments")
             .select("submission_item_id, comment, created_at")
             .eq("organization_id", tenant.organizationId)
+            .in("submission_item_id", submissionItemIds)
             .order("created_at", { ascending: false }),
           supabase
             .from("checklist_flags")
             .select("submission_item_id, reason")
-            .eq("organization_id", tenant.organizationId),
+            .eq("organization_id", tenant.organizationId)
+            .in("submission_item_id", submissionItemIds),
           supabase
             .from("checklist_item_attachments")
             .select("submission_item_id, file_path")
-            .eq("organization_id", tenant.organizationId),
+            .eq("organization_id", tenant.organizationId)
+            .in("submission_item_id", submissionItemIds),
         ])
-      : [{ data: null }, { data: null }, { data: null }, { data: null }];
+      : [{ data: null }, { data: null }, { data: null }];
 
   const itemsBySection = new Map<string, Array<{ id: string; label: string; priority: string }>>();
   for (const item of previewItems ?? []) {

@@ -7,6 +7,12 @@ type DashboardByLocationPageProps = {
   searchParams: Promise<{ branch?: string; q?: string; selectPlanId?: string }>;
 };
 
+const DARK_CARD = "[.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#151b25]";
+const DARK_MUTED = "[.theme-dark-pro_&]:text-[#9aabc3]";
+const DARK_PILL = "[.theme-dark-pro_&]:border-[#2a4870] [.theme-dark-pro_&]:bg-[#162337] [.theme-dark-pro_&]:text-[#98c4ff]";
+const DARK_GHOST = "[.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#d8e3f2] [.theme-dark-pro_&]:hover:bg-[#172131]";
+const DARK_PRIMARY = "[.theme-dark-pro_&]:border-[#2b5ea8] [.theme-dark-pro_&]:bg-[#2b5ea8] [.theme-dark-pro_&]:text-white [.theme-dark-pro_&]:hover:bg-[#3a73c6]";
+
 export default async function DashboardByLocationPage({ searchParams }: DashboardByLocationPageProps) {
   const params = await searchParams;
   const tenant = await requireTenantModule("dashboard");
@@ -25,18 +31,18 @@ export default async function DashboardByLocationPage({ searchParams }: Dashboar
   return (
     <>
       <section className="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-6">
-        <div className="mb-4 rounded-xl border border-[#e7e0dc] bg-white px-4 py-3">
-          <p className="text-xs font-semibold tracking-[0.1em] text-[#8a817b] uppercase">Vista por locacion</p>
-          <p className="mt-1 text-sm text-[#5f5853]">Esta vista comparte metricas del dashboard, filtradas por la locacion seleccionada.</p>
+        <div className={`mb-4 rounded-xl border border-[#e7e0dc] bg-white px-4 py-3 ${DARK_CARD}`}>
+          <p className={`text-xs font-semibold tracking-[0.1em] text-[#8a817b] uppercase ${DARK_MUTED}`}>Vista por locacion</p>
+          <p className={`mt-1 text-sm text-[#5f5853] ${DARK_MUTED}`}>Esta vista comparte metricas del dashboard, filtradas por la locacion seleccionada.</p>
           {selectedBranchName ? (
-            <p className="mt-2 inline-flex rounded-full border border-[#d8e4f7] bg-[#eff5ff] px-2 py-0.5 text-xs font-semibold text-[#2d4f86]">
+            <p className={`mt-2 inline-flex rounded-full border border-[#d8e4f7] bg-[#eff5ff] px-2 py-0.5 text-xs font-semibold text-[#2d4f86] ${DARK_PILL}`}>
               Locacion activa: {selectedBranchName}
             </p>
           ) : null}
           <div className="mt-3 flex flex-wrap gap-2">
-            <Link href="/app/dashboard/location" className={`rounded-md border px-2.5 py-1 text-xs ${!selectedBranch ? "border-[#111] bg-[#111] text-white" : "border-[#ddd] bg-white text-[#555]"}`}>Todas</Link>
+            <Link href="/app/dashboard/location" className={`rounded-md border px-2.5 py-1 text-xs ${!selectedBranch ? `border-[#111] bg-[#111] text-white ${DARK_PRIMARY}` : `border-[#ddd] bg-white text-[#555] ${DARK_GHOST}`}`}>Todas</Link>
             {(branches ?? []).map((branch) => (
-              <Link key={branch.id} href={`/app/dashboard/location?branch=${branch.id}`} className={`rounded-md border px-2.5 py-1 text-xs ${selectedBranch === branch.id ? "border-[#111] bg-[#111] text-white" : "border-[#ddd] bg-white text-[#555]"}`}>
+              <Link key={branch.id} href={`/app/dashboard/location?branch=${branch.id}`} className={`rounded-md border px-2.5 py-1 text-xs ${selectedBranch === branch.id ? `border-[#111] bg-[#111] text-white ${DARK_PRIMARY}` : `border-[#ddd] bg-white text-[#555] ${DARK_GHOST}`}`}>
                 {branch.name}
               </Link>
             ))}

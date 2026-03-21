@@ -24,6 +24,12 @@ type CompanyAnnouncementsPageProps = {
   }>;
 };
 
+const DARK_TEXT = "[.theme-dark-pro_&]:text-[#e7edf7]";
+const DARK_MUTED = "[.theme-dark-pro_&]:text-[#9aabc3]";
+const DARK_CARD = "[.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#151b25]";
+const DARK_PRIMARY = "[.theme-dark-pro_&]:bg-[#2b5ea8] [.theme-dark-pro_&]:text-white [.theme-dark-pro_&]:hover:bg-[#3a73c6]";
+const DARK_GHOST = "[.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#d8e3f2] [.theme-dark-pro_&]:hover:bg-[#172131]";
+
 function kindLabel(kind: string) {
   if (kind === "urgent") return "Urgente";
   if (kind === "reminder") return "Recordatorio";
@@ -169,31 +175,31 @@ const employeesQuery = admin
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
       <SlideUp>
         <section className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div className="inline-flex items-center gap-2 text-[#1f1a17]">
+          <div className={`inline-flex items-center gap-2 text-[#1f1a17] ${DARK_TEXT}`}>
             <Bell className="h-4 w-4" />
             <h1 className="text-[18px] font-bold">Avisos</h1>
           </div>
-          <Link href="/app/announcements?action=create" className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[#111] px-3 text-xs font-bold text-white hover:bg-[#c0392b]"><BellPlus className="h-3.5 w-3.5" /> Nuevo Aviso</Link>
+          <Link href="/app/announcements?action=create" className={`inline-flex h-[33px] items-center gap-1 rounded-lg bg-[#111] px-3 text-xs font-bold text-white hover:bg-[#c0392b] ${DARK_PRIMARY}`}><BellPlus className="h-3.5 w-3.5" /> Nuevo Aviso</Link>
         </section>
       </SlideUp>
 
       <AnimatedList className="mb-5 grid gap-3 sm:grid-cols-4">
         <AnimatedItem className="h-full">
-          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full"><p className="text-xs text-[#8a817b]">Avisos activos</p><p className="mt-1 text-2xl font-bold">{announcements?.length ?? 0}</p><p className="text-[11px] text-[#a7a09a]">En todas las locaciones</p></article>
+          <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Avisos activos</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{announcements?.length ?? 0}</p><p className={`text-[11px] text-[#a7a09a] ${DARK_MUTED}`}>En todas las locaciones</p></article>
         </AnimatedItem>
         <AnimatedItem className="h-full">
-          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full"><p className="text-xs text-[#8a817b]">Fijados</p><p className="mt-1 text-2xl font-bold">{(announcements ?? []).filter((row) => row.is_featured).length}</p><p className="text-[11px] text-[#a7a09a]">Visible al top</p></article>
+          <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Fijados</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{(announcements ?? []).filter((row) => row.is_featured).length}</p><p className={`text-[11px] text-[#a7a09a] ${DARK_MUTED}`}>Visible al top</p></article>
         </AnimatedItem>
         <AnimatedItem className="h-full">
-          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full"><p className="text-xs text-[#8a817b]">Por vencer</p><p className="mt-1 text-2xl font-bold">{porVencer}</p><p className="text-[11px] text-[#a7a09a]">Esta semana</p></article>
+          <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Por vencer</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{porVencer}</p><p className={`text-[11px] text-[#a7a09a] ${DARK_MUTED}`}>Esta semana</p></article>
         </AnimatedItem>
         <AnimatedItem className="h-full">
-          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full"><p className="text-xs text-[#8a817b]">Ultima publicacion</p><p className="mt-1 text-2xl font-bold">{latestDate ? new Date(latestDate).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }) : "-"}</p><p className="text-[11px] text-[#a7a09a]">{latestAnnouncement ? employeeNameByUserId.get(latestAnnouncement.created_by ?? "") || "Direccion General" : "Sin avisos"}</p></article>
+          <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Ultima publicacion</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{latestDate ? new Date(latestDate).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }) : "-"}</p><p className={`text-[11px] text-[#a7a09a] ${DARK_MUTED}`}>{latestAnnouncement ? employeeNameByUserId.get(latestAnnouncement.created_by ?? "") || "Direccion General" : "Sin avisos"}</p></article>
         </AnimatedItem>
       </AnimatedList>
 
       <SlideUp delay={0.1}>
-        <p className="mb-2 text-[11px] font-bold tracking-[0.11em] text-[#9c938d] uppercase">Avisos publicados</p>
+        <p className={`mb-2 text-[11px] font-bold tracking-[0.11em] text-[#9c938d] uppercase ${DARK_MUTED}`}>Avisos publicados</p>
       </SlideUp>
 
       <section className="space-y-3">
@@ -210,11 +216,11 @@ const employeesQuery = admin
 
               return (
                 <AnimatedItem key={ann.id}>
-                  <article className={`rounded-xl border-[1.5px] bg-white px-5 py-4 ${ann.is_featured ? "border-[#e8e8e8] border-l-[3.5px] border-l-[#c0392b]" : "border-[#e8e8e8]"}`}>
+                  <article className={`rounded-xl border-[1.5px] bg-white px-5 py-4 ${DARK_CARD} ${ann.is_featured ? "border-[#e8e8e8] border-l-[3.5px] border-l-[#c0392b]" : "border-[#e8e8e8]"}`}>
                     <div className="mb-2 flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-[14px] font-bold text-[#111]">{ann.title}</p>
-                        <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-[#aaa]">
+                        <p className={`text-[14px] font-bold text-[#111] ${DARK_TEXT}`}>{ann.title}</p>
+                        <div className={`mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-[#aaa] ${DARK_MUTED}`}>
                           <span>📅 {ann.publish_at ? new Date(ann.publish_at).toLocaleDateString("es-AR") : "-"} · {employeeNameByUserId.get(ann.created_by ?? "") || "Direccion General"}</span>
                           {ann.expires_at ? (
                             (() => {
@@ -234,10 +240,10 @@ const employeesQuery = admin
                       {ann.is_featured ? <span className="inline-flex items-center gap-1 rounded-full border border-[#f3cbc4] bg-[#fff2f0] px-2 py-0.5 text-[10px] font-semibold text-[#b63a2f]"><Pin className="h-3 w-3" /> FIJADO</span> : null}
                     </div>
 
-                    <p className="text-[13px] leading-6 text-[#777]">{ann.body}</p>
+                    <p className={`text-[13px] leading-6 text-[#777] ${DARK_MUTED}`}>{ann.body}</p>
 
                     <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                      <span className="text-[11px] font-semibold text-[#888]">Para:</span>
+                      <span className={`text-[11px] font-semibold text-[#888] ${DARK_MUTED}`}>Para:</span>
                       {!hasAudience ? <span className="rounded-full border border-[#e8dfda] bg-[#faf7f5] px-2 py-0.5 text-[11px] text-[#6f6864]">Todos los empleados</span> : null}
                       {scopedLocations.map((id) => <span key={`${ann.id}-loc-${id}`} className="rounded-full border border-[#d6e2f4] bg-[#eef4ff] px-2 py-0.5 text-[11px] text-[#2a4f87]">{branchNameMap.get(id) ?? "Sucursal"}</span>)}
                       {scopedDepartments.map((id) => <span key={`${ann.id}-dep-${id}`} className="rounded-full border border-[#f0e3d0] bg-[#fff7eb] px-2 py-0.5 text-[11px] text-[#9b6a1e]">{departmentNameMap.get(id) ?? "Departamento"}</span>)}
@@ -252,9 +258,9 @@ const employeesQuery = admin
                         <form action={toggleAnnouncementFeaturedAction}>
                           <input type="hidden" name="announcement_id" value={ann.id} />
                           <input type="hidden" name="next_featured" value={String(!ann.is_featured)} />
-                          <button className={`inline-flex h-7 w-7 items-center justify-center rounded-md border ${ann.is_featured ? "border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f]" : "border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]"}`} type="submit" title={ann.is_featured ? "Quitar fijado" : "Fijar"}><Pin className="h-3.5 w-3.5" /></button>
+                          <button className={`inline-flex h-7 w-7 items-center justify-center rounded-md border ${ann.is_featured ? "border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f]" : `border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6] ${DARK_GHOST}`}`} type="submit" title={ann.is_featured ? "Quitar fijado" : "Fijar"}><Pin className="h-3.5 w-3.5" /></button>
                         </form>
-                        <Link href={`/app/announcements?action=edit&announcementId=${ann.id}`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Editar"><Pencil className="h-3.5 w-3.5" /></Link>
+                        <Link href={`/app/announcements?action=edit&announcementId=${ann.id}`} className={`inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6] ${DARK_GHOST}`} title="Editar"><Pencil className="h-3.5 w-3.5" /></Link>
                         <form action={deleteAnnouncementAction}>
                           <input type="hidden" name="announcement_id" value={ann.id} />
                           <ConfirmSubmitButton
@@ -274,7 +280,7 @@ const employeesQuery = admin
           </AnimatedList>
         ) : (
           <SlideUp delay={0.2}>
-            <div className="rounded-xl border border-dashed border-[#dccfca] bg-[#fffdfa] px-4 py-8 text-center text-sm text-[#8b817c]">Aun no hay anuncios cargados.</div>
+            <div className={`rounded-xl border border-dashed border-[#dccfca] bg-[#fffdfa] px-4 py-8 text-center text-sm text-[#8b817c] ${DARK_CARD} ${DARK_MUTED}`}>Aun no hay anuncios cargados.</div>
           </SlideUp>
         )}
       </section>

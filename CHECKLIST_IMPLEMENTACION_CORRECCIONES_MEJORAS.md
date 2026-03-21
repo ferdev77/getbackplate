@@ -35,7 +35,7 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
 
 ## Bloque A — Crítico (no negociar)
 
-### [~] A1. Separar y documentar estado laboral vs acceso a plataforma
+### [x] A1. Separar y documentar estado laboral vs acceso a plataforma
 
 - **Qué pasa hoy (simple):** se interpreta que "inactivo" de RRHH debería cortar login, pero en realidad ese estado hoy es laboral.
 - **Por qué está mal:** genera confusión operativa y decisiones equivocadas de soporte/gestión.
@@ -49,9 +49,12 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
 - **Evidencia de cierre:**
   - Regla funcional validada con negocio: estado laboral no implica bloqueo de login.
   - Labels de UI aclarados en RRHH y Accesos para evitar ambigüedad.
-  - Pendiente de cierre final: auditoría separada completa para eventos de acceso.
+  - Auditoría separada implementada:
+    - `employee.status.update` para estado laboral en `web/src/app/api/company/employees/route.ts`.
+    - `membership.status.update` para acceso en `web/src/app/api/company/users/route.ts`.
+  - Metadata de auditoría enriquecida con `previous_status`, `next_status` y `status_scope`.
 
-### [ ] A2. Corregir alcance por puestos (`position_ids`)
+### [x] A2. Corregir alcance por puestos (`position_ids`)
 
 - **Qué pasa hoy (simple):** algunos filtros por puesto comparan nombre de puesto en vez de ID.
 - **Por qué está mal:** puede incluir/excluir personas equivocadas en avisos y checklists.
@@ -60,9 +63,13 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   2. Corregir matching en `web/src/modules/checklists/actions.ts`.
   3. Estandarizar uso de IDs en todo el flujo de scope.
 - **Comportamiento esperado después:** la segmentación por puesto llega exactamente a quienes corresponde.
-- **Evidencia de cierre:** _pendiente_
+- **Evidencia de cierre:**
+  - Matching por puesto corregido a IDs en `web/src/modules/checklists/actions.ts`.
+  - Matching por puesto corregido a IDs en `web/src/modules/announcements/services/deliveries.ts`.
+  - Verificación técnica: lint puntual de ambos archivos sin errores.
+  - Prueba en DB con datos temporales: `oldLogicMatch=false` y `newLogicMatch=true` para el mismo puesto (demuestra corrección efectiva de matching por `position_ids`).
 
-### [ ] A3. Filtrar correctamente items de checklist por plantilla en portal empleado
+### [x] A3. Filtrar correctamente items de checklist por plantilla en portal empleado
 
 - **Qué pasa hoy (simple):** al abrir preview de checklist se pueden traer items fuera de la plantilla elegida.
 - **Por qué está mal:** el empleado podría ver datos mezclados y el reporte perder coherencia.
@@ -70,9 +77,12 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   1. Ajustar query en `web/src/app/(employee)/portal/checklist/page.tsx` para traer solo items de secciones de la plantilla seleccionada.
   2. Validar consistencia entre secciones e items renderizados.
 - **Comportamiento esperado después:** cada preview muestra solo su checklist real, sin contaminación de otros.
-- **Evidencia de cierre:** _pendiente_
+- **Evidencia de cierre:**
+  - Query de `checklist_template_items` limitada a secciones de la plantilla preview en `web/src/app/(employee)/portal/checklist/page.tsx`.
+  - Verificación técnica: lint puntual del archivo sin errores.
+  - Prueba en DB con datos temporales: lectura antigua tomaba 2 items de prueba, lectura nueva toma solo 1 (correcto por plantilla).
 
-### [ ] A4. Limitar comentarios/flags/adjuntos al envío (`submission_id`) correcto
+### [x] A4. Limitar comentarios/flags/adjuntos al envío (`submission_id`) correcto
 
 - **Qué pasa hoy (simple):** en preview se leen comentarios/flags/adjuntos a nivel organización y luego se filtra en memoria.
 - **Por qué está mal:** riesgo de sobrelectura y potencial mezcla de datos no relacionados.
@@ -80,9 +90,12 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   1. Filtrar por `submission_id` en las consultas de `checklist_item_comments`, `checklist_flags`, `checklist_item_attachments` en `web/src/app/(employee)/portal/checklist/page.tsx`.
   2. Mantener misma UI pero con dataset estricto.
 - **Comportamiento esperado después:** cada reporte solo muestra evidencias de su propio envío.
-- **Evidencia de cierre:** _pendiente_
+- **Evidencia de cierre:**
+  - Lectura de comentarios/flags/adjuntos ahora acotada por `submission_item_id` del envío actual en `web/src/app/(employee)/portal/checklist/page.tsx`.
+  - Verificación técnica: lint puntual del archivo sin errores.
+  - Prueba en DB con datos temporales: lectura antigua tomaba 2 registros de prueba, lectura nueva toma solo 1 en comentarios, flags y adjuntos.
 
-### [ ] A5. Corregir taxonomía de auditoría RRHH (create vs update)
+### [x] A5. Corregir taxonomía de auditoría RRHH (create vs update)
 
 - **Qué pasa hoy (simple):** ciertas ediciones quedan auditadas como creación.
 - **Por qué está mal:** los registros de auditoría no reflejan la acción real.
@@ -90,13 +103,15 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   1. Ajustar acción en `web/src/modules/employees/actions.ts` para emitir `employee.update` cuando sea edición.
   2. Revisar metadata asociada para que sea trazable.
 - **Comportamiento esperado después:** auditoría limpia y confiable para soporte/compliance.
-- **Evidencia de cierre:** _pendiente_
+- **Evidencia de cierre:**
+  - Acción de auditoría corregida para emitir `employee.update` cuando corresponde en `web/src/modules/employees/actions.ts`.
+  - Verificación técnica: lint puntual del archivo sin errores.
 
 ---
 
 ## Bloque B — Unificación de flujo RRHH
 
-### [ ] B1. Definir una sola vía de mutación RRHH
+### [~] B1. Definir una sola vía de mutación RRHH
 
 - **Qué pasa hoy (simple):** hay lógica de alta/edición en Server Actions y en API, con reglas distintas.
 - **Por qué está mal:** el usuario puede obtener resultados diferentes según desde dónde dispare el flujo.
@@ -105,7 +120,11 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   2. Dejar Server Actions como wrappers o migrarlas gradualmente.
   3. Documentar la fuente oficial en `DOCUMENTACION_TECNICA.md`.
 - **Comportamiento esperado después:** un solo comportamiento funcional, predecible y mantenible.
-- **Evidencia de cierre:** _pendiente_
+- **Evidencia de avance:**
+  - Alta de administradores migrada de Server Action a API (`POST /api/company/users`).
+  - `new-user-modal` ahora usa API para crear, y la misma API de usuarios ya usada para editar/eliminar.
+  - Prueba con datos reales en DB (temporal + cleanup): alta de membership en `active`, actualización a `inactive`, borrado final exitoso.
+  - Pendiente para cierre total B1: migrar también el alta/edición de empleado al mismo patrón.
 
 ### [ ] B2. Homologar validaciones de alta/edición
 
@@ -278,3 +297,15 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   - Bloques tocados: A1, B (comunicación de reglas), C (consistencia operativa UI).  
   - Riesgos detectados: Ninguno crítico; cambio de copy sin impacto de layout esperado.  
   - Próximo objetivo: cerrar A1 con auditoría separada y empezar A2 (scope por `position_ids`).
+
+- Fecha: 2026-03-21  
+  - Cambios aplicados: cierre técnico A2, A3, A4 y A5 con hardening de scopes y auditoría de RRHH.  
+  - Bloques tocados: A2, A3, A4, A5.  
+  - Riesgos detectados: bajo; cambios internos de consulta/matching sin rediseño UI.  
+  - Próximo objetivo: QA funcional guiada de punta a punta en avisos y portal checklist.
+
+- Fecha: 2026-03-21  
+  - Cambios aplicados: cierre A1 con separación formal de auditoría entre estado laboral y acceso de plataforma.  
+  - Bloques tocados: A1.  
+  - Riesgos detectados: bajo; cambios solo en logs y metadata de auditoría.  
+  - Próximo objetivo: iniciar Bloque B (unificación de flujo RRHH).

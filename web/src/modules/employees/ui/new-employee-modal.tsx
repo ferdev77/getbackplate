@@ -45,6 +45,11 @@ type NewEmployeeModalProps = {
   recentDocuments?: ModalDocument[];
 };
 
+const DARK_PANEL = "[.theme-dark-pro_&]:border [.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#151b25]";
+const DARK_TEXT = "[.theme-dark-pro_&]:text-[#e7edf7]";
+const DARK_MUTED = "[.theme-dark-pro_&]:text-[#9aabc3]";
+const DARK_GHOST = "[.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#d8e3f2] [.theme-dark-pro_&]:hover:bg-[#172131]";
+
 export function NewEmployeeModal({
   open,
   branches,
@@ -95,9 +100,9 @@ export function NewEmployeeModal({
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="relative flex h-full max-h-[90vh] w-full max-w-[850px] flex-col overflow-hidden rounded-[24px] bg-white shadow-2xl">
+      <div className={`relative flex h-full max-h-[90vh] w-full max-w-[850px] flex-col overflow-hidden rounded-[24px] bg-white shadow-2xl ${DARK_PANEL}`}>
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#f0f0f0] p-6">
+        <div className="flex items-center justify-between border-b border-[#f0f0f0] p-6 [.theme-dark-pro_&]:border-[#2b3646]">
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#f0d5d0] bg-[#fff5f3]">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c0392b" strokeWidth="2">
@@ -107,17 +112,17 @@ export function NewEmployeeModal({
                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
             </span>
-            <h2 className="text-xl font-bold tracking-tight text-[#111]" style={{ fontFamily: 'Georgia, serif' }}>
+            <h2 className={`text-xl font-bold tracking-tight text-[#111] ${DARK_TEXT}`} style={{ fontFamily: 'Georgia, serif' }}>
               {mode === "edit" ? "Editar Usuario / Empleado" : "Nuevo Usuario / Empleado"}
             </h2>
           </div>
-          <Link href="/app/employees" className="flex h-8 w-8 items-center justify-center rounded-full text-[#999] hover:bg-gray-100 hover:text-black transition-colors">
+          <Link href="/app/employees" className={`flex h-8 w-8 items-center justify-center rounded-full text-[#999] transition-colors hover:bg-gray-100 hover:text-black ${DARK_GHOST}`}>
             <span className="text-xl">✕</span>
           </Link>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-[#f0f0f0] bg-[#fafafa] px-6">
+        <div className="flex border-b border-[#f0f0f0] bg-[#fafafa] px-6 [.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#111824]">
           {tabs.map((tab, idx) => (
             <button
               key={tab.key}
@@ -126,7 +131,7 @@ export function NewEmployeeModal({
               className={`border-b-2 px-4 py-4 text-sm font-semibold transition-all ${
                 currentTabIndex === idx
                   ? "border-brand text-brand"
-                  : "border-transparent text-[#888] hover:text-[#555]"
+                  : `border-transparent text-[#888] hover:text-[#555] ${DARK_MUTED}`
               }`}
             >
               {tab.label}
@@ -145,10 +150,10 @@ export function NewEmployeeModal({
           <input type="hidden" name="is_employee" value={isEmployeeProfile ? "yes" : "no"} />
           <input type="hidden" name="existing_dashboard_access" value={initialEmployee?.has_dashboard_access ? "yes" : "no"} />
 
-          <div className="flex-1 overflow-y-auto bg-[#fdfdfd] p-8">
+          <div className="flex-1 overflow-y-auto bg-[#fdfdfd] p-8 [.theme-dark-pro_&]:bg-[#151b25]">
             {/* TAB 0 - Info Personal */}
             <div className={currentTabIndex === tabs.findIndex((tab) => tab.key === "personal") ? "block" : "hidden"}>
-              <h3 className="mb-4 border-b border-[#f0f0f0] pb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#999]">
+              <h3 className={`mb-4 border-b border-[#f0f0f0] pb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#999] [.theme-dark-pro_&]:border-[#2b3646] ${DARK_MUTED}`}>
                 Información Personal
               </h3>
               <div className="mb-6 rounded-2xl border-[1.5px] border-[#e8e8e8] bg-white p-5">
@@ -562,10 +567,10 @@ export function NewEmployeeModal({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 border-t border-[#f0f0f0] bg-white p-6 px-8">
+           <div className="flex items-center justify-end gap-3 border-t border-[#f0f0f0] bg-white p-6 px-8 [.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#151b25]">
             <Link
               href="/app/employees"
-              className="rounded-full px-6 py-2.5 text-sm font-bold text-[#888] transition-colors hover:bg-gray-100"
+              className={`rounded-full px-6 py-2.5 text-sm font-bold text-[#888] transition-colors hover:bg-gray-100 ${DARK_GHOST}`}
             >
               Cancelar
             </Link>

@@ -46,12 +46,28 @@ async function sendChecklistAudienceEmail(input: {
   const positionIds = Array.isArray(scope.position_ids) ? scope.position_ids.filter(Boolean) : [];
   const scopedUserIds = Array.isArray(scope.users) ? scope.users.filter(Boolean) : [];
 
-  const { data: employees } = await input.supabase
-    .from("employees")
-    .select("user_id, branch_id, department_id, position, status")
-    .eq("organization_id", input.organizationId)
-    .eq("status", "active")
-    .not("user_id", "is", null);
+  const [{ data: employees }, { data: positionRows }] = await Promise.all([
+    input.supabase
+      .from("employees")
+      .select("user_id, branch_id, department_id, position, status")
+      .eq("organization_id", input.organizationId)
+      .eq("status", "active")
+      .not("user_id", "is", null),
+    input.supabase
+      .from("department_positions")
+      .select("id, name")
+      .eq("organization_id", input.organizationId)
+      .eq("is_active", true),
+  ]);
+
+  const positionIdsByName = new Map<string, string[]>();
+  for (const row of positionRows ?? []) {
+    const key = row.name.trim().toLowerCase();
+    if (!key) continue;
+    const list = positionIdsByName.get(key) ?? [];
+    list.push(row.id);
+    positionIdsByName.set(key, list);
+  }
 
   const recipientUserIds = new Set<string>();
 
@@ -63,8 +79,11 @@ async function sendChecklistAudienceEmail(input: {
     const byLocationScope = locationIds.length > 0 && Boolean(employee.branch_id) && locationIds.includes(employee.branch_id);
     const byDepartmentScope =
       departmentIds.length > 0 && Boolean(employee.department_id) && departmentIds.includes(employee.department_id);
+    const employeePositionIds = employee.position
+      ? positionIdsByName.get(employee.position.trim().toLowerCase()) ?? []
+      : [];
     const byPositionScope =
-      positionIds.length > 0 && Boolean(employee.position) && positionIds.includes(employee.position);
+      positionIds.length > 0 && employeePositionIds.some((positionId) => positionIds.includes(positionId));
     const byUserScope = scopedUserIds.length > 0 && scopedUserIds.includes(employee.user_id);
 
     const hasAnyScope =
