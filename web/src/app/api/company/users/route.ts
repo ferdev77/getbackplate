@@ -1,12 +1,75 @@
 import { NextResponse } from "next/server";
 
+import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { USERS_API_MESSAGES } from "@/shared/lib/employees-messages";
+import { assertPlanLimitForUsers, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
 
 const ALLOWED_ROLE_CODES = new Set(["employee", "manager", "company_admin"]);
 const ALLOWED_STATUSES = new Set(["active", "inactive"]);
+
+function isAuthUserAlreadyRegisteredError(message: string) {
+  const normalized = message.toLowerCase();
+  return normalized.includes("already") || normalized.includes("exists") || normalized.includes("registered");
+}
+
+async function findAuthUserByEmail(email: string) {
+  const admin = createSupabaseAdminClient();
+  let page = 1;
+  const perPage = 200;
+
+  while (true) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
+    if (error) return null;
+
+    const found = data.users.find((user) => user.email?.toLowerCase() === email.toLowerCase());
+    if (found) return found;
+
+    if (data.users.length < perPage) return null;
+    page += 1;
+  }
+}
+
+async function resolveOrCreateAuthUser(params: {
+  email: string;
+  password: string;
+  fullName: string;
+}) {
+  const admin = createSupabaseAdminClient();
+
+  const { data: createdUser, error: createUserError } = await admin.auth.admin.createUser({
+    email: params.email,
+    password: params.password,
+    email_confirm: true,
+    user_metadata: {
+      full_name: params.fullName,
+    },
+  });
+
+  if (!createUserError && createdUser.user?.id) {
+    return { userId: createdUser.user.id, errorMessage: null as string | null };
+  }
+
+  if (!createUserError) {
+    return { userId: null as string | null, errorMessage: "No se pudo resolver el usuario de autenticacion" };
+  }
+
+  if (!isAuthUserAlreadyRegisteredError(createUserError.message)) {
+    return {
+      userId: null as string | null,
+      errorMessage: `No se pudo crear usuario de autenticacion: ${createUserError.message}`,
+    };
+  }
+
+  const existing = await findAuthUserByEmail(params.email);
+  if (existing?.id) {
+    return { userId: existing.id, errorMessage: null as string | null };
+  }
+
+  return { userId: null as string | null, errorMessage: "No se pudo resolver el usuario de autenticacion" };
+}
 
 async function requireUserContext() {
   const moduleAccess = await assertCompanyManagerModuleApi("employees");
@@ -75,6 +138,13 @@ export async function PATCH(request: Request) {
     }
   }
 
+  const { data: previousMembership } = await supabase
+    .from("memberships")
+    .select("status, role_id, branch_id")
+    .eq("organization_id", tenant.organizationId)
+    .eq("id", membershipId)
+    .maybeSingle();
+
   const { error: updateError } = await supabase
     .from("memberships")
     .update({ role_id: role.id, status, branch_id: branchId })
@@ -117,10 +187,176 @@ export async function PATCH(request: Request) {
       role_code: roleCode,
       status,
       branch_id: branchId,
+      previous_status: previousMembership?.status ?? null,
+      status_changed: previousMembership?.status !== status,
     },
   });
 
+  if (previousMembership?.status !== status) {
+    await logAuditEvent({
+      action: "membership.status.update",
+      entityType: "membership",
+      entityId: membershipId,
+      organizationId: tenant.organizationId,
+      eventDomain: "employees",
+      outcome: "success",
+      severity: "low",
+      metadata: {
+        actor_user_id: userId,
+        status_scope: "acceso",
+        previous_status: previousMembership?.status ?? null,
+        next_status: status,
+      },
+    });
+  }
+
   return NextResponse.json({ ok: true });
+}
+
+export async function POST(request: Request) {
+  const context = await requireUserContext();
+  if ("error" in context) {
+    return context.error;
+  }
+
+  const { supabase, tenant, userId } = context;
+  const formData = await request.formData().catch(() => null);
+  if (!formData) {
+    return NextResponse.json({ error: "Solicitud invalida" }, { status: 400 });
+  }
+
+  const fullName = String(formData.get("full_name") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  const roleCodeInput = String(formData.get("role_code") ?? "employee").trim();
+  const branchId = String(formData.get("branch_id") ?? "").trim() || null;
+  const accessStatusRaw = String(formData.get("access_status") ?? "active").trim().toLowerCase();
+  const accessStatus = accessStatusRaw === "inactive" || accessStatusRaw === "inactivo" ? "inactive" : "active";
+
+  if (!fullName || !email) {
+    return NextResponse.json({ error: "Nombre completo y correo corporativo son obligatorios" }, { status: 400 });
+  }
+
+  if (password.length < 8) {
+    return NextResponse.json({ error: "La contrasena debe tener al menos 8 caracteres" }, { status: 400 });
+  }
+
+  const roleCode = ALLOWED_ROLE_CODES.has(roleCodeInput) ? roleCodeInput : "employee";
+
+  const { data: role, error: roleError } = await supabase
+    .from("roles")
+    .select("id")
+    .eq("code", roleCode)
+    .maybeSingle();
+
+  if (roleError || !role) {
+    return NextResponse.json({ error: USERS_API_MESSAGES.ROLE_RESOLUTION_FAILED }, { status: 400 });
+  }
+
+  if (branchId) {
+    const { data: branch } = await supabase
+      .from("branches")
+      .select("id")
+      .eq("organization_id", tenant.organizationId)
+      .eq("id", branchId)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (!branch) {
+      return NextResponse.json({ error: USERS_API_MESSAGES.LOCATION_INVALID }, { status: 400 });
+    }
+  }
+
+  const authResult = await resolveOrCreateAuthUser({
+    email,
+    password,
+    fullName,
+  });
+
+  if (!authResult.userId) {
+    return NextResponse.json({ error: authResult.errorMessage ?? "No se pudo resolver el usuario" }, { status: 400 });
+  }
+
+  const targetUserId = authResult.userId;
+  const admin = createSupabaseAdminClient();
+
+  const { data: existingMembership } = await admin
+    .from("memberships")
+    .select("id")
+    .eq("organization_id", tenant.organizationId)
+    .eq("user_id", targetUserId)
+    .maybeSingle();
+
+  if (!existingMembership) {
+    try {
+      await assertPlanLimitForUsers(tenant.organizationId, 1);
+    } catch (error) {
+      return NextResponse.json(
+        { error: getPlanLimitErrorMessage(error, "No puedes crear mas usuarios con tu plan actual") },
+        { status: 400 },
+      );
+    }
+  }
+
+  const { data: membership, error: membershipError } = await admin
+    .from("memberships")
+    .upsert(
+      {
+        organization_id: tenant.organizationId,
+        user_id: targetUserId,
+        role_id: role.id,
+        branch_id: branchId,
+        status: accessStatus,
+      },
+      { onConflict: "organization_id,user_id" },
+    )
+    .select("id")
+    .single();
+
+  if (membershipError || !membership) {
+    return NextResponse.json(
+      { error: `${USERS_API_MESSAGES.USER_CREATE_FAILED_PREFIX}: ${membershipError?.message ?? "error"}` },
+      { status: 400 },
+    );
+  }
+
+  await logAuditEvent({
+    action: "users.membership.create",
+    entityType: "membership",
+    entityId: membership.id,
+    organizationId: tenant.organizationId,
+    eventDomain: "employees",
+    outcome: "success",
+    severity: "high",
+    metadata: {
+      actor_user_id: userId,
+      target_user_id: targetUserId,
+      full_name: fullName,
+      email,
+      role_code: roleCode,
+      status: accessStatus,
+      branch_id: branchId,
+      was_existing_membership: Boolean(existingMembership),
+    },
+  });
+
+  await logAuditEvent({
+    action: "membership.status.update",
+    entityType: "membership",
+    entityId: membership.id,
+    organizationId: tenant.organizationId,
+    eventDomain: "employees",
+    outcome: "success",
+    severity: "low",
+    metadata: {
+      actor_user_id: userId,
+      status_scope: "acceso",
+      previous_status: existingMembership ? "(existing)" : null,
+      next_status: accessStatus,
+    },
+  });
+
+  return NextResponse.json({ ok: true, membershipId: membership.id });
 }
 
 export async function DELETE(request: Request) {

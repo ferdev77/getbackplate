@@ -669,8 +669,10 @@ export async function createEmployeeAction(_prevState: unknown, formData: FormDa
     );
   }
 
+  const employeeAuditAction = employeeId ? "employee.update" : "employee.create";
+
   await logAuditEvent({
-    action: "employee.create",
+    action: employeeAuditAction,
     entityType: "employee",
     entityId: employee?.id,
     organizationId: tenant.organizationId,

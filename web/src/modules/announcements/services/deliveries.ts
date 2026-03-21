@@ -144,11 +144,18 @@ async function resolveAnnouncementAudienceContacts(
     scope.position_ids.length > 0 || 
     scope.users.length > 0;
 
-  const { data: employees, error } = await supabase
-    .from("employees")
-    .select("user_id, branch_id, department_id, position, phone_country_code, phone, status")
-    .eq("organization_id", organizationId)
-    .eq("status", "active");
+  const [{ data: employees, error }, { data: positionRows }] = await Promise.all([
+    supabase
+      .from("employees")
+      .select("user_id, branch_id, department_id, position, phone_country_code, phone, status")
+      .eq("organization_id", organizationId)
+      .eq("status", "active"),
+    supabase
+      .from("department_positions")
+      .select("id, name")
+      .eq("organization_id", organizationId)
+      .eq("is_active", true),
+  ]);
 
   if (error || !employees) {
     throw new Error(`No se pudo resolver audiencia de aviso: ${error?.message ?? "sin datos"}`);
@@ -164,6 +171,15 @@ async function resolveAnnouncementAudienceContacts(
   const matchedPhones = new Set<string>();
   const matchedUserIds = new Set<string>();
   const membershipUserIds = new Set((memberships ?? []).map((row) => row.user_id).filter(Boolean));
+  const positionIdsByName = new Map<string, string[]>();
+
+  for (const row of positionRows ?? []) {
+    const key = row.name.trim().toLowerCase();
+    if (!key) continue;
+    const list = positionIdsByName.get(key) ?? [];
+    list.push(row.id);
+    positionIdsByName.set(key, list);
+  }
 
   for (const emp of employees) {
     if (!emp.user_id) continue;
@@ -174,7 +190,10 @@ async function resolveAnnouncementAudienceContacts(
     } else {
       if (emp.branch_id && scope.locations.includes(emp.branch_id)) isMatch = true;
       if (emp.department_id && scope.department_ids.includes(emp.department_id)) isMatch = true;
-      if (emp.position && scope.position_ids.includes(emp.position)) isMatch = true;
+       const employeePositionIds = emp.position
+         ? positionIdsByName.get(emp.position.trim().toLowerCase()) ?? []
+         : [];
+       if (employeePositionIds.some((positionId) => scope.position_ids.includes(positionId))) isMatch = true;
       if (scope.users.includes(emp.user_id)) isMatch = true;
     }
 

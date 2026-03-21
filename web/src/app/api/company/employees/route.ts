@@ -963,6 +963,13 @@ export async function PATCH(request: Request) {
   }
 
   if (organizationUserProfileId) {
+    const { data: previousProfile } = await supabase
+      .from("organization_user_profiles")
+      .select("status")
+      .eq("organization_id", tenant.organizationId)
+      .eq("id", organizationUserProfileId)
+      .maybeSingle();
+
     const { error: profileError } = await supabase
       .from("organization_user_profiles")
       .update({ status })
@@ -974,7 +981,7 @@ export async function PATCH(request: Request) {
     }
 
     await logAuditEvent({
-      action: "users.profile.status.update",
+      action: "employee.status.update",
       entityType: "organization_user_profile",
       entityId: organizationUserProfileId,
       organizationId: tenant.organizationId,
@@ -983,12 +990,21 @@ export async function PATCH(request: Request) {
       severity: "low",
       metadata: {
         actor_user_id: actorId,
-        status,
+        status_scope: "laboral",
+        previous_status: previousProfile?.status ?? null,
+        next_status: status,
       },
     });
 
     return NextResponse.json({ ok: true });
   }
+
+  const { data: previousEmployee } = await supabase
+    .from("employees")
+    .select("status")
+    .eq("organization_id", tenant.organizationId)
+    .eq("id", employeeId)
+    .maybeSingle();
 
   const { error } = await supabase
     .from("employees")
@@ -1007,7 +1023,9 @@ export async function PATCH(request: Request) {
       severity: "medium",
       metadata: {
         actor_user_id: actorId,
-        status,
+        status_scope: "laboral",
+        previous_status: previousEmployee?.status ?? null,
+        next_status: status,
         error: error.message,
       },
     });
@@ -1024,7 +1042,9 @@ export async function PATCH(request: Request) {
     severity: "low",
     metadata: {
       actor_user_id: actorId,
-      status,
+      status_scope: "laboral",
+      previous_status: previousEmployee?.status ?? null,
+      next_status: status,
     },
   });
 

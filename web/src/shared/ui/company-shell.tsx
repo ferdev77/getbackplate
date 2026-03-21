@@ -120,6 +120,7 @@ const SECTIONS: SidebarSection[] = [
 ];
 
 const THEMES = [
+  "dark-pro",
   "default",
   "sky",
   "turquoise",
@@ -131,10 +132,10 @@ const THEMES = [
   "ebony",
   "navy",
   "gray",
-  "dark",
 ] as const;
 
 const THEME_NAMES: Record<string, string> = {
+  "dark-pro": "Dark Pro",
   default: "Default",
   sky: "Sky",
   turquoise: "Turquoise",
@@ -146,10 +147,10 @@ const THEME_NAMES: Record<string, string> = {
   ebony: "Ebony",
   navy: "Navy",
   gray: "Gray",
-  dark: "Dark",
 };
 
 const THEME_PALETTES: Record<string, { accent: string; sidebarGradient: string; pageGradient: string; pageBg: string; headerBg: string }> = {
+  "dark-pro": { accent: "#5aa9ff", sidebarGradient: "linear-gradient(170deg,#171a1f 0%,#12151a 100%)", pageGradient: "linear-gradient(180deg,#11151c 0%,#0e1218 55%,#0b0f14 100%)", pageBg: "#0f1319", headerBg: "#141922" },
   default: { accent: "#c0392b", sidebarGradient: "linear-gradient(170deg,#f8f8fa 0%,#f2f2f5 100%)", pageGradient: "linear-gradient(180deg,#f8f5f2 0%,#f5f4f0 45%,#f3f2ee 100%)", pageBg: "#f5f4f0", headerBg: "#ffffff" },
   sky: { accent: "#3d6bd4", sidebarGradient: "linear-gradient(170deg,#eef3ff 0%,#e2ebff 100%)", pageGradient: "linear-gradient(180deg,#f4f7ff 0%,#eef3ff 55%,#e7eeff 100%)", pageBg: "#eef3ff", headerBg: "#ffffff" },
   turquoise: { accent: "#0f9b7a", sidebarGradient: "linear-gradient(170deg,#edfaf6 0%,#dcf5ee 100%)", pageGradient: "linear-gradient(180deg,#f2fcf8 0%,#eaf8f3 55%,#def3ea 100%)", pageBg: "#eaf8f3", headerBg: "#ffffff" },
@@ -161,10 +162,10 @@ const THEME_PALETTES: Record<string, { accent: string; sidebarGradient: string; 
   ebony: { accent: "#7a5a30", sidebarGradient: "linear-gradient(170deg,#f7f1e8 0%,#eee3d3 100%)", pageGradient: "linear-gradient(180deg,#fbf8f3 0%,#f4ede2 55%,#ebdfcf 100%)", pageBg: "#f4ede2", headerBg: "#ffffff" },
   navy: { accent: "#2a4a80", sidebarGradient: "linear-gradient(170deg,#edf2ff 0%,#dce6fb 100%)", pageGradient: "linear-gradient(180deg,#f3f6ff 0%,#eaf0ff 55%,#dfe8fb 100%)", pageBg: "#eaf0ff", headerBg: "#ffffff" },
   gray: { accent: "#5a6070", sidebarGradient: "linear-gradient(170deg,#f2f3f6 0%,#e7e9ee 100%)", pageGradient: "linear-gradient(180deg,#f6f7fa 0%,#eef0f4 55%,#e5e8ef 100%)", pageBg: "#eef0f4", headerBg: "#ffffff" },
-  dark: { accent: "#d43a20", sidebarGradient: "linear-gradient(170deg,#1a1a1c 0%,#121214 100%)", pageGradient: "linear-gradient(180deg,#18181b 0%,#141417 55%,#101013 100%)", pageBg: "#141417", headerBg: "#1b1b1f" },
 };
 
 const THEME_SWATCH_STYLE: Record<string, string> = {
+  "dark-pro": "linear-gradient(145deg,#1f2530,#0f141d)",
   default: "#e8e8e8",
   sky: "linear-gradient(145deg,#7fa8f5,#5b82e8)",
   turquoise: "linear-gradient(145deg,#42e0b0,#1fb897)",
@@ -176,7 +177,6 @@ const THEME_SWATCH_STYLE: Record<string, string> = {
   ebony: "linear-gradient(145deg,#c9a070,#a87d50)",
   navy: "linear-gradient(145deg,#3a5a9a,#1a2e60)",
   gray: "linear-gradient(145deg,#606878,#303845)",
-  dark: "#0e0e14",
 };
 
 function isActive(pathname: string, searchParams: URLSearchParams, href: string) {
@@ -323,7 +323,8 @@ export function CompanyShell({
     return `${path}?${params.toString()}`;
   }
 
-  const palette = THEME_PALETTES[theme] ?? THEME_PALETTES.default;
+  const isDarkTheme = theme === "dark-pro" || theme === "dark";
+  const palette = THEME_PALETTES[theme] ?? (theme === "dark" ? THEME_PALETTES["dark-pro"] : THEME_PALETTES.default);
 
   const initials =
     profileName
@@ -442,23 +443,27 @@ export function CompanyShell({
   }
 
   return (
-    <div className="min-h-screen text-[#1a1a1a]" style={{ ["--gb-accent" as string]: palette.accent, background: palette.pageGradient } as CSSProperties}>
+    <div
+      data-theme={isDarkTheme ? "dark-pro" : theme}
+      className={`min-h-screen ${isDarkTheme ? "theme-dark-pro text-[#e7edf6]" : "text-[#1a1a1a]"}`}
+      style={{ ["--gb-accent" as string]: palette.accent, background: palette.pageGradient } as CSSProperties}
+    >
       <div className="flex min-h-screen">
-        <aside className={`hidden shrink-0 border-r border-black/10 transition-all duration-200 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col ${sidebarWidth}`} style={{ background: palette.sidebarGradient }}>
-          <div className={`border-b border-black/10 py-3 ${sidebarPaddingX}`}>
+        <aside className={`hidden shrink-0 border-r transition-all duration-200 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col ${isDarkTheme ? "border-white/10" : "border-black/10"} ${sidebarWidth}`} style={{ background: palette.sidebarGradient }}>
+          <div className={`border-b py-3 ${isDarkTheme ? "border-white/10" : "border-black/10"} ${sidebarPaddingX}`}>
             <div className={`flex items-center gap-2 ${collapsed ? "justify-center" : ""}`}>
               <div className="grid h-7 w-7 place-items-center rounded-md bg-[#111111] text-xs font-bold text-white">GB</div>
-              {!collapsed ? <p className="text-sm font-semibold text-[#0f1923]">GetBackplate</p> : null}
+              {!collapsed ? <p className={`text-sm font-semibold ${isDarkTheme ? "text-[#edf3ff]" : "text-[#0f1923]"}`}>GetBackplate</p> : null}
               <button
                 type="button"
                 onClick={() => setCollapsed((v) => !v)}
-                className={`ml-auto grid h-8 w-8 place-items-center rounded-md bg-black/5 text-black/60 hover:bg-black/10 hover:text-black/90 ${collapsed ? "ml-0" : ""}`}
+                className={`ml-auto grid h-8 w-8 place-items-center rounded-md ${isDarkTheme ? "bg-white/5 text-white/65 hover:bg-white/10 hover:text-white" : "bg-black/5 text-black/60 hover:bg-black/10 hover:text-black/90"} ${collapsed ? "ml-0" : ""}`}
                 aria-label="Alternar sidebar"
               >
                 <PanelsLeftRight className="h-4 w-4" />
               </button>
             </div>
-            {!collapsed ? <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#8f8a86]">Administrador</p> : null}
+            {!collapsed ? <p className={`mt-2 text-[10px] font-bold uppercase tracking-[0.14em] ${isDarkTheme ? "text-[#8f9aad]" : "text-[#8f8a86]"}`}>Administrador</p> : null}
           </div>
 
           <nav className="min-h-0 flex-1 overflow-y-auto py-2">
@@ -468,7 +473,7 @@ export function CompanyShell({
                   <button
                     type="button"
                     onClick={() => toggleSection(section.label)}
-                    className="flex w-full items-center justify-between px-5 pb-1 pt-3 text-left text-[10px] font-bold uppercase tracking-[0.13em] text-black/35"
+                    className={`flex w-full items-center justify-between px-5 pb-1 pt-3 text-left text-[10px] font-bold uppercase tracking-[0.13em] ${isDarkTheme ? "text-white/45" : "text-black/35"}`}
                   >
                     <span>{section.label}</span>
                     <ChevronDown className={`h-3.5 w-3.5 transition ${expandedSections[section.label] ? "rotate-180" : ""}`} />
@@ -483,11 +488,11 @@ export function CompanyShell({
                           key={item.href}
                           href={hrefWithBranch(item.href)}
                           className={`flex items-center gap-2.5 border-l-[2.5px] text-[13px] transition ${
-                            collapsed ? "justify-center px-0 py-2.5" : item.sub ? "px-5 py-1.5 pl-7" : "px-5 py-2"
-                          } ${active ? "bg-black/5 font-semibold text-[#111111]" : "border-l-transparent text-black/60 hover:border-l-black/20 hover:bg-black/5 hover:text-black/85"}`}
-                          style={active ? { borderLeftColor: palette.accent } : undefined}
-                          onClick={() => setMenuOpen(false)}
-                        >
+                             collapsed ? "justify-center px-0 py-2.5" : item.sub ? "px-5 py-1.5 pl-7" : "px-5 py-2"
+                           } ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-black/5 font-semibold text-[#111111]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-black/60 hover:border-l-black/20 hover:bg-black/5 hover:text-black/85")}`}
+                           style={active ? { borderLeftColor: palette.accent } : undefined}
+                           onClick={() => setMenuOpen(false)}
+                         >
                           <item.icon className="h-4 w-4" />
                           {!collapsed ? <span>{item.label}</span> : null}
                         </Link>
@@ -495,7 +500,7 @@ export function CompanyShell({
                     })}
                   </div>
                 ) : null}
-                {idx < visibleSections.length - 1 ? <div className={`mx-4 mt-2 h-px bg-black/10 ${collapsed ? "mx-2" : ""}`} /> : null}
+                {idx < visibleSections.length - 1 ? <div className={`mx-4 mt-2 h-px ${isDarkTheme ? "bg-white/10" : "bg-black/10"} ${collapsed ? "mx-2" : ""}`} /> : null}
               </div>
             ))}
 
@@ -507,10 +512,10 @@ export function CompanyShell({
                 type="button"
                 onClick={() => setPlanOpen(true)}
                 disabled={impersonationMode}
-                className="mb-2.5 w-full rounded-lg border-[1.5px] bg-white/75 px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-60"
+                className={`mb-2.5 w-full rounded-lg border-[1.5px] px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-60 ${isDarkTheme ? "bg-white/5" : "bg-white/75"}`}
                 style={{ borderColor: palette.accent }}
               >
-                <div className="mb-1 flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full" style={{ background: palette.accent }} /><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#333333]">{currentPlanName}</p></div>
+                <div className="mb-1 flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full" style={{ background: palette.accent }} /><p className={`text-[10px] font-bold uppercase tracking-[0.12em] ${isDarkTheme ? "text-[#d8e4f5]" : "text-[#333333]"}`}>{currentPlanName}</p></div>
                 <p className="text-xs font-bold" style={{ color: palette.accent }}>
                   {impersonationMode ? "Billing bloqueado" : "Upgrade Plan →"}
                 </p>
@@ -533,23 +538,23 @@ export function CompanyShell({
                   )}
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate text-[13px] font-semibold text-[#222222]">{profileName}</p>
-                  <p className="truncate text-[11px] text-[#9a9a9a]">{sessionRoleLabel}</p>
-                  <p className="truncate text-[10px] text-[#b0b0b0]">{sessionUserEmail || "Sin email"}</p>
+                   <p className={`truncate text-[13px] font-semibold ${isDarkTheme ? "text-[#eef3fb]" : "text-[#222222]"}`}>{profileName}</p>
+                   <p className={`truncate text-[11px] ${isDarkTheme ? "text-[#aab6c8]" : "text-[#9a9a9a]"}`}>{sessionRoleLabel}</p>
+                   <p className={`truncate text-[10px] ${isDarkTheme ? "text-[#8693a7]" : "text-[#b0b0b0]"}`}>{sessionUserEmail || "Sin email"}</p>
                 </div>
               </div>
             ) : null}
 
             <div className="space-y-1.5">
-              <a href="/auth/logout" className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-black/10 bg-black/5 py-2 text-xs text-[#666666] hover:bg-black/10 hover:text-[#222222] ${collapsed ? "h-9 w-9 p-0" : "px-2"}`} title="Cerrar sesion"><LogOut className="h-3.5 w-3.5" />{!collapsed ? <span>Cerrar Sesion</span> : null}</a>
-              <button type="button" onClick={() => { setSettingsOpen(true); setSettingsView("main"); }} className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-black/10 bg-black/5 py-2 text-xs text-[#666666] hover:bg-black/10 hover:text-[#222222] ${collapsed ? "h-9 w-9 p-0" : "px-2"}`} title="Settings"><Settings className="h-3.5 w-3.5" />{!collapsed ? <span>Settings</span> : null}</button>
-              <button type="button" onClick={() => setFeedbackOpen(true)} className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-black/10 bg-black/5 py-2 text-xs text-[#666666] hover:bg-black/10 hover:text-[#222222] ${collapsed ? "h-9 w-9 p-0" : "px-2"}`} title="Feedback"><MessageSquarePlus className="h-3.5 w-3.5" />{!collapsed ? <span>Feedback</span> : null}</button>
+               <a href="/auth/logout" className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-[#b9c3d3] hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 text-[#666666] hover:bg-black/10 hover:text-[#222222]"} ${collapsed ? "h-9 w-9 p-0" : "px-2"}`} title="Cerrar sesion"><LogOut className="h-3.5 w-3.5" />{!collapsed ? <span>Cerrar Sesion</span> : null}</a>
+               <button type="button" onClick={() => { setSettingsOpen(true); setSettingsView("main"); }} className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-[#b9c3d3] hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 text-[#666666] hover:bg-black/10 hover:text-[#222222]"} ${collapsed ? "h-9 w-9 p-0" : "px-2"}`} title="Settings"><Settings className="h-3.5 w-3.5" />{!collapsed ? <span>Settings</span> : null}</button>
+               <button type="button" onClick={() => setFeedbackOpen(true)} className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-[#b9c3d3] hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 text-[#666666] hover:bg-black/10 hover:text-[#222222]"} ${collapsed ? "h-9 w-9 p-0" : "px-2"}`} title="Feedback"><MessageSquarePlus className="h-3.5 w-3.5" />{!collapsed ? <span>Feedback</span> : null}</button>
             </div>
           </div>
         </aside>
 
         <div className="min-w-0 flex-1" style={{ background: palette.pageBg }}>
-          <header className="sticky top-0 z-30 border-b-[1.5px] border-[#e8e8e8]" style={{ background: palette.headerBg }}>
+          <header className={`sticky top-0 z-30 border-b-[1.5px] ${isDarkTheme ? "border-white/10" : "border-[#e8e8e8]"}`} style={{ background: palette.headerBg }}>
             {impersonationMode ? (
               <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900 sm:px-8">
                 <p className="font-semibold">Modo superadmin activo: estas operando dentro de una organizacion en modo impersonacion.</p>
@@ -560,19 +565,19 @@ export function CompanyShell({
             ) : null}
             <div className="flex h-[60px] items-center justify-between gap-3 px-4 sm:px-8">
             <div className="flex items-center gap-3">
-              <button type="button" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#ddd5d0] bg-white text-[#4c4a48] lg:hidden" onClick={() => setMenuOpen((prev) => !prev)} aria-label="Abrir menu">☰</button>
-              <p className="font-serif text-[19px] font-bold text-[#111111]">{currentLabel}</p>
+              <button type="button" className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border lg:hidden ${isDarkTheme ? "border-white/15 bg-white/5 text-[#d3dcec]" : "border-[#ddd5d0] bg-white text-[#4c4a48]"}`} onClick={() => setMenuOpen((prev) => !prev)} aria-label="Abrir menu">☰</button>
+              <p className={`font-serif text-[19px] font-bold ${isDarkTheme ? "text-[#edf3ff]" : "text-[#111111]"}`}>{currentLabel}</p>
             </div>
             <div className="flex items-center gap-2">
-              {organizationLabel ? <span className="hidden rounded-full border border-[#e6dfda] bg-white px-2.5 py-1 text-xs text-[#6f6965] sm:inline">{organizationLabel}</span> : null}
-              <span className="hidden rounded-full border border-[#f0d8d3] bg-[#fff4f2] px-2.5 py-1 text-xs text-[#8f3a30] sm:inline">{sessionRoleLabel}</span>
+              {organizationLabel ? <span className={`hidden rounded-full border px-2.5 py-1 text-xs sm:inline ${isDarkTheme ? "border-white/15 bg-white/5 text-[#c6d0df]" : "border-[#e6dfda] bg-white text-[#6f6965]"}`}>{organizationLabel}</span> : null}
+              <span className={`hidden rounded-full border px-2.5 py-1 text-xs sm:inline ${isDarkTheme ? "border-[#4d6b93] bg-[#18283c] text-[#8fc2ff]" : "border-[#f0d8d3] bg-[#fff4f2] text-[#8f3a30]"}`}>{sessionRoleLabel}</span>
             </div>
             </div>
           </header>
           <div className="flex min-h-[calc(100vh-60px)] flex-col">
             <div className="flex-1">{children}</div>
-            <footer className="mt-auto flex items-center justify-between border-t border-black/10 px-6 py-4 text-[11px] text-[#999] sm:px-9" style={{ background: palette.sidebarGradient }}>
-              <p className="font-semibold tracking-[0.02em] text-[#8e8e8e]">GetBackplate</p>
+            <footer className={`mt-auto flex items-center justify-between border-t px-6 py-4 text-[11px] sm:px-9 ${isDarkTheme ? "border-white/10 text-[#8ea0b8]" : "border-black/10 text-[#999]"}`} style={{ background: palette.sidebarGradient }}>
+              <p className={`font-semibold tracking-[0.02em] ${isDarkTheme ? "text-[#a8b7cb]" : "text-[#8e8e8e]"}`}>GetBackplate</p>
               <p>© 2026 GetBackplate · v1</p>
             </footer>
           </div>
@@ -604,8 +609,8 @@ export function CompanyShell({
                         className="group flex flex-col items-center gap-1"
                       >
                         <span
-                          className={`relative h-10 w-10 rounded-[10px] border transition group-hover:scale-105 ${item === "dark" ? "border-[#2a2a3a]" : "border-black/10"}`}
-                          style={{ background: THEME_SWATCH_STYLE[item] }}
+                           className={`relative h-10 w-10 rounded-[10px] border transition group-hover:scale-105 ${item === "dark-pro" ? "border-[#2e3b4f]" : "border-black/10"}`}
+                           style={{ background: THEME_SWATCH_STYLE[item] }}
                         >
                           <span className={`absolute inset-0 grid place-items-center rounded-[10px] ${theme === item ? "bg-black/20 opacity-100" : "opacity-0"}`}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
@@ -841,15 +846,15 @@ export function CompanyShell({
       {menuOpen ? (
         <div className="fixed inset-0 z-40 flex lg:hidden">
           <button type="button" className="h-full w-full bg-black/35" onClick={() => setMenuOpen(false)} aria-label="Cerrar menu" />
-          <aside className="absolute left-0 top-0 flex h-full w-[280px] flex-col border-r border-black/10 text-[#1a1a1a]" style={{ background: palette.sidebarGradient }}>
-            <div className="border-b border-black/10 px-4 py-3"><p className="text-sm font-semibold">GetBackplate</p><p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-[#8f8a86]">Administrador</p></div>
+          <aside className={`absolute left-0 top-0 flex h-full w-[280px] flex-col border-r ${isDarkTheme ? "border-white/10 text-[#e7edf6]" : "border-black/10 text-[#1a1a1a]"}`} style={{ background: palette.sidebarGradient }}>
+            <div className={`border-b px-4 py-3 ${isDarkTheme ? "border-white/10" : "border-black/10"}`}><p className={`text-sm font-semibold ${isDarkTheme ? "text-[#edf3ff]" : ""}`}>GetBackplate</p><p className={`text-[10px] font-semibold tracking-[0.14em] uppercase ${isDarkTheme ? "text-[#8f9aad]" : "text-[#8f8a86]"}`}>Administrador</p></div>
             <div className="flex-1 overflow-y-auto py-2">
               {visibleSections.map((section, idx) => (
                 <div key={section.label}>
                   <button
                     type="button"
                     onClick={() => toggleSection(section.label)}
-                    className="flex w-full items-center justify-between px-4 pb-1 pt-3 text-left text-[10px] font-bold uppercase tracking-[0.13em] text-black/35"
+                    className={`flex w-full items-center justify-between px-4 pb-1 pt-3 text-left text-[10px] font-bold uppercase tracking-[0.13em] ${isDarkTheme ? "text-white/45" : "text-black/35"}`}
                   >
                     <span>{section.label}</span>
                     <ChevronDown className={`h-3.5 w-3.5 transition ${expandedSections[section.label] ? "rotate-180" : ""}`} />
@@ -862,7 +867,7 @@ export function CompanyShell({
                           <Link
                             key={item.href}
                             href={hrefWithBranch(item.href)}
-                            className={`flex items-center gap-2.5 border-l-[2.5px] px-4 text-[13px] transition ${item.sub ? "py-1.5 pl-6" : "py-2"} ${active ? "bg-black/5 font-semibold text-[#111111]" : "border-l-transparent text-black/60 hover:border-l-black/20 hover:bg-black/5 hover:text-black/85"}`}
+                            className={`flex items-center gap-2.5 border-l-[2.5px] px-4 text-[13px] transition ${item.sub ? "py-1.5 pl-6" : "py-2"} ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-black/5 font-semibold text-[#111111]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-black/60 hover:border-l-black/20 hover:bg-black/5 hover:text-black/85")}`}
                             style={active ? { borderLeftColor: palette.accent } : undefined}
                             onClick={() => setMenuOpen(false)}
                           >
@@ -873,11 +878,11 @@ export function CompanyShell({
                       })}
                     </div>
                   ) : null}
-                  {idx < visibleSections.length - 1 ? <div className="mx-4 mt-2 h-px bg-black/10" /> : null}
+                  {idx < visibleSections.length - 1 ? <div className={`mx-4 mt-2 h-px ${isDarkTheme ? "bg-white/10" : "bg-black/10"}`} /> : null}
                 </div>
               ))}
             </div>
-            <div className="mt-auto border-t border-black/10 px-4 py-3">
+            <div className={`mt-auto border-t px-4 py-3 ${isDarkTheme ? "border-white/10" : "border-black/10"}`}>
               <button
                 type="button"
                 onClick={() => {
@@ -885,12 +890,12 @@ export function CompanyShell({
                   setPlanOpen(true);
                 }}
                 disabled={impersonationMode}
-                className="mb-2.5 w-full rounded-lg border-[1.5px] bg-white/75 px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-60"
+                className={`mb-2.5 w-full rounded-lg border-[1.5px] px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-60 ${isDarkTheme ? "bg-white/5" : "bg-white/75"}`}
                 style={{ borderColor: palette.accent }}
               >
                 <div className="mb-1 flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full" style={{ background: palette.accent }} />
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#333333]">{currentPlanName}</p>
+                  <p className={`text-[10px] font-bold uppercase tracking-[0.12em] ${isDarkTheme ? "text-[#d8e4f5]" : "text-[#333333]"}`}>{currentPlanName}</p>
                 </div>
                 <p className="text-xs font-bold" style={{ color: palette.accent }}>
                   {impersonationMode ? "Billing bloqueado" : "Upgrade Plan →"}
@@ -900,7 +905,7 @@ export function CompanyShell({
               <div className="space-y-1.5">
                 <a
                   href="/auth/logout"
-                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-black/10 bg-black/5 px-2 py-2 text-xs text-[#666666] hover:bg-black/10 hover:text-[#222222]"
+                  className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-[#b9c3d3] hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 text-[#666666] hover:bg-black/10 hover:text-[#222222]"}`}
                   title="Cerrar sesion"
                 >
                   <LogOut className="h-3.5 w-3.5" />
@@ -913,7 +918,7 @@ export function CompanyShell({
                     setSettingsOpen(true);
                     setSettingsView("main");
                   }}
-                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-black/10 bg-black/5 px-2 py-2 text-xs text-[#666666] hover:bg-black/10 hover:text-[#222222]"
+                  className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-[#b9c3d3] hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 text-[#666666] hover:bg-black/10 hover:text-[#222222]"}`}
                   title="Settings"
                 >
                   <Settings className="h-3.5 w-3.5" />
@@ -925,7 +930,7 @@ export function CompanyShell({
                     setMenuOpen(false);
                     setFeedbackOpen(true);
                   }}
-                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-black/10 bg-black/5 px-2 py-2 text-xs text-[#666666] hover:bg-black/10 hover:text-[#222222]"
+                  className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-[#b9c3d3] hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 text-[#666666] hover:bg-black/10 hover:text-[#222222]"}`}
                   title="Feedback"
                 >
                   <MessageSquarePlus className="h-3.5 w-3.5" />
