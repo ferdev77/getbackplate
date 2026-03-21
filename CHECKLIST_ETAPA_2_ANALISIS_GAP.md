@@ -11,6 +11,21 @@ Este documento compara el estado real del proyecto contra el texto objetivo de "
 - Pendiente: 0
 - Fuera de alcance por definicion (bloque futuro): 1
 
+## Reglas vigentes (fuente de verdad operativa)
+
+- Emails de Avisos:
+  - se envian solo al crear aviso, nunca al editar
+  - dependen del toggle `Email` del modal (ON envia / OFF no envia)
+  - destinatarios: usuarios dentro del alcance del aviso
+- Emails de Checklists:
+  - se envian solo al crear checklist, nunca al editar
+  - dependen del toggle `Email` del modal (ON envia / OFF no envia)
+  - destinatarios: usuarios dentro del alcance del checklist
+- Mensajeria UX en creacion:
+  - al crear aviso/checklist se informa cantidad de emails enviados
+- Documentos:
+  - compartir por email es manual por documento, fuera del alcance automatico
+
 ---
 
 ## BLOQUE 1 - UX/UI
@@ -81,7 +96,7 @@ Este documento compara el estado real del proyecto contra el texto objetivo de "
 
 - [x] Notificaciones email integradas reutilizando avisos
   - Estado: **Cumplido**
-  - Evidencia: canal `email` habilitado en `announcement_deliveries`, envio via Brevo en cron de entregas y notificaciones email de checklists enviados a managers/admins en `web/src/modules/announcements/services/deliveries.ts` y `web/src/modules/checklists/actions.ts`.
+  - Evidencia: canal `email` habilitado en `announcement_deliveries`, envio via Brevo al crear avisos/checklists segun toggle, deduplicacion de cola y feedback de cantidad enviada en `web/src/modules/announcements/services/deliveries.ts`, `web/src/modules/announcements/actions.ts`, `web/src/modules/checklists/actions.ts`, `web/src/shared/ui/announcement-create-modal.tsx`, `web/src/modules/checklists/ui/checklist-upsert-modal.tsx`.
 
 - [~] Recurrencia (diario, semanal, mensual, trimestral, anual, dias especificos)
   - Estado: **Parcial**
@@ -242,11 +257,11 @@ Plan inteligente de implementación (quirúrgico)
   - Qué: sumar trimestral, anual y días específicos.
   - Cómo: ampliar esquema repeat_every + repeat_config; job scheduler incremental.
   - Riesgo: medio-alto; requiere motor de programación.
-- P3. Notificaciones email reales
+- [x] P3. Notificaciones email reales
   - Qué: envío email para avisos/checklists/eventos.
   - Cómo: provider (Resend/SES), servicio notifications, plantillas, cola/reintentos, auditoría.
   - Riesgo: medio.
-- P3. Compartir documento por email
+- [x] P3. Compartir documento por email
   - Qué: acción desde documentos.
   - Cómo: endpoint POST /api/company/documents/share-email, selección documento+destinatario, registro de delivery.
   - Riesgo: medio.
@@ -254,7 +269,7 @@ Plan inteligente de implementación (quirúrgico)
   - Qué: detectar y notificar automáticamente.
   - Cómo: flag/evento en auth lifecycle (primer last_sign_in_at), crear audit event + notificación.
   - Riesgo: medio-bajo.
-- P3. Suite QA tenant 7 locaciones
+- [x] P3. Suite QA tenant 7 locaciones
   - Qué: dataset y checklist de pruebas multi-tenant.
   - Cómo: seed controlado + script verify (permisos, filtros, dashboards).
   - Riesgo: bajo.
