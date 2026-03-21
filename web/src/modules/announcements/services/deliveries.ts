@@ -1,5 +1,7 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
+import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { sendTwilioMessage } from "@/infrastructure/twilio/client";
+import { getAuthEmailByUserId } from "@/shared/lib/auth-users";
 import { AnnouncementScope, parseAnnouncementScope } from "../lib/scope";
 
 export async function processAnnouncementDeliveries() {
@@ -49,14 +51,14 @@ export async function processAnnouncementDeliveries() {
       const scope = parseAnnouncementScope(announcement.target_scope);
       
       // 2. Resolve audience to phones
-      const audiencePhones = await resolveAudiencePhones(
-        supabase, 
-        delivery.organization_id, 
-        scope
-      );
+      const audience = await resolveAnnouncementAudienceContacts(supabase, delivery.organization_id, scope);
+      const targetContacts =
+        delivery.channel === "email"
+          ? audience.emails
+          : audience.phones;
 
-      if (audiencePhones.length === 0) {
-        await markDeliveryStatus(supabase, delivery.id, "sent", "No valid phones found in audience");
+      if (targetContacts.length === 0) {
+        await markDeliveryStatus(supabase, delivery.id, "sent", "No se encontraron contactos validos en la audiencia");
         successCount++;
         continue;
       }
@@ -66,14 +68,17 @@ export async function processAnnouncementDeliveries() {
       // but considering Twilio supports multiple recipients or we can loop, 
       // we will loop here for the MVP.
       let sentCount = 0;
-      let errorMsgs: string[] = [];
+      const errorMsgs: string[] = [];
 
-      for (const phone of audiencePhones) {
-        const result = await sendTwilioMessage(
-          phone, 
-          `*${announcement.title}*\n\n${announcement.body}`, 
-          delivery.channel as "whatsapp" | "sms"
-        );
+      for (const contact of targetContacts) {
+        const result =
+          delivery.channel === "email"
+            ? await sendAnnouncementEmail(contact, announcement.title, announcement.body)
+            : await sendTwilioMessage(
+                contact,
+                `*${announcement.title}*\n\n${announcement.body}`,
+                delivery.channel as "whatsapp" | "sms",
+              );
         
         if (result.success) {
           sentCount++;
@@ -85,9 +90,9 @@ export async function processAnnouncementDeliveries() {
       if (sentCount > 0) {
         await markDeliveryStatus(
           supabase, 
-          delivery.id, 
-          "sent", 
-          `Sent to ${sentCount}/${audiencePhones.length}. Errors: ${errorMsgs.join(", ")}`
+          delivery.id,
+          "sent",
+          `Sent to ${sentCount}/${targetContacts.length}. Errors: ${errorMsgs.join(", ")}`
         );
         successCount++;
       } else {
@@ -100,9 +105,10 @@ export async function processAnnouncementDeliveries() {
         failCount++;
       }
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(`Error processing delivery ${delivery.id}:`, err);
-      await markDeliveryStatus(supabase, delivery.id, "failed", err.message);
+      const message = err instanceof Error ? err.message : "Error desconocido";
+      await markDeliveryStatus(supabase, delivery.id, "failed", message);
       failCount++;
     }
   }
@@ -110,79 +116,72 @@ export async function processAnnouncementDeliveries() {
   return { success: true, processed: deliveries.length, successCount, failCount };
 }
 
-async function resolveAudiencePhones(
-  supabase: any,
+async function sendAnnouncementEmail(email: string, title: string, body: string) {
+  const result = await sendTransactionalEmail({
+    to: email,
+    subject: `Nuevo aviso: ${title}`,
+    html: `
+      <h2 style="margin:0 0 10px 0;">${title}</h2>
+      <p style="margin:0 0 14px 0;color:#444;">${body.replace(/\n/g, "<br/>")}</p>
+      <p style="margin:14px 0 0 0;font-size:12px;color:#666;">Entra a GetBackplate para ver el aviso completo.</p>
+    `,
+    text: `${title}\n\n${body}\n\nIngresa a GetBackplate para ver el aviso completo.`,
+  });
+
+  return result.ok
+    ? { success: true as const }
+    : { success: false as const, error: result.error };
+}
+
+async function resolveAnnouncementAudienceContacts(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   organizationId: string,
   scope: AnnouncementScope
-): Promise<string[]> {
-  
-  // We need to fetch all employees in the organization that match the scope
-  // If scope is entirely empty, we could assume ALL employees, or NO employees. 
-  // Let's build a query.
-  
-  let query = supabase
-    .from("employees")
-    .select("phone_country_code, phone")
-    .eq("organization_id", organizationId)
-    .eq("status", "active")
-    .not("phone", "is", null);
-
-  // If we have specific filters, we apply them. If ALL are empty, it likely means
-  // the entire organization (or no restriction). We will send to all active in that case,
-  // OR we can restrict based on how UI builds it. 
-  // In typical SaaS, empty scope = all company. Let's check if we have any.
+) {
   const hasSpecificScope = 
     scope.locations.length > 0 || 
     scope.department_ids.length > 0 || 
     scope.position_ids.length > 0 || 
     scope.users.length > 0;
 
-  if (hasSpecificScope) {
-    // Supabase JS doesn't have an easy OR across different joined tables for IN clauses without RPC.
-    // For MVP, if it gets too complex, we fetch all active and filter in memory.
-    const { data: allActive } = await query;
-    if (!allActive) return [];
-
-    const { data: matchingUsers, error } = await supabase.rpc("resolve_audience_users", {
-       p_org_id: organizationId,
-       p_locations: scope.locations,
-       p_departments: scope.department_ids,
-       p_positions: scope.position_ids,
-       p_users: scope.users
-    });
-    
-    // If RPC doesn't exist, fallback to in-memory filtering by fetching more details
-    // It's highly likely the RPC resolve_audience_users doesn't exist.
-    // Let's do in-memory filtering for MVP since we know the typical payload size is small.
-  }
-  
-  // Re-fetch with details for in-memory filter
   const { data: employees, error } = await supabase
     .from("employees")
-    .select("user_id, branch_id, department_id, position, phone_country_code, phone")
+    .select("user_id, branch_id, department_id, position, phone_country_code, phone, status")
     .eq("organization_id", organizationId)
-    .eq("status", "active")
-    .not("phone", "is", null);
+    .eq("is_active", true);
 
-  if (error || !employees) return [];
+  if (error || !employees) return { phones: [] as string[], emails: [] as string[] };
+
+  const { data: userProfiles } = await supabase
+    .from("organization_user_profiles")
+    .select("user_id")
+    .eq("organization_id", organizationId)
+    .eq("is_employee", false)
+    .is("deleted_at", null)
+    .not("user_id", "is", null);
 
   const matchedPhones = new Set<string>();
+  const matchedUserIds = new Set<string>();
 
   for (const emp of employees) {
-    if (!emp.phone) continue;
-    
+    if (!emp.user_id) continue;
+    const isEmployeeActive = emp.status === "active";
+
     let isMatch = false;
 
     if (!hasSpecificScope) {
-      isMatch = true;
+      isMatch = isEmployeeActive;
     } else {
-      if (scope.locations.includes(emp.branch_id)) isMatch = true;
+      if (emp.branch_id && scope.locations.includes(emp.branch_id)) isMatch = true;
       if (emp.department_id && scope.department_ids.includes(emp.department_id)) isMatch = true;
-      if (emp.position && scope.position_ids.includes(emp.position)) isMatch = true; // Assuming position is an ID or matched by name
+      if (emp.position && scope.position_ids.includes(emp.position)) isMatch = true;
       if (scope.users.includes(emp.user_id)) isMatch = true;
     }
 
     if (isMatch) {
+      matchedUserIds.add(emp.user_id);
+
+      if (!emp.phone) continue;
       // Format phone: e.g. +54 9 11 1234 5678 -> +5491112345678
       const code = (emp.phone_country_code || "").replace(/[^0-9+]/g, "");
       const number = emp.phone.replace(/[^0-9]/g, "");
@@ -203,10 +202,28 @@ async function resolveAudiencePhones(
     }
   }
 
-  return Array.from(matchedPhones);
+  for (const profile of userProfiles ?? []) {
+    if (!profile.user_id) continue;
+    if (!hasSpecificScope || scope.users.includes(profile.user_id)) {
+      matchedUserIds.add(profile.user_id);
+    }
+  }
+
+  const emailByUserId = await getAuthEmailByUserId([...matchedUserIds]);
+  const emails = [...emailByUserId.values()].filter(Boolean);
+
+  return {
+    phones: Array.from(matchedPhones),
+    emails,
+  };
 }
 
-async function markDeliveryStatus(supabase: any, deliveryId: string, status: "sent" | "failed", errorMsg?: string) {
+async function markDeliveryStatus(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  deliveryId: string,
+  status: "sent" | "failed",
+  errorMsg?: string,
+) {
   await supabase
     .from("announcement_deliveries")
     .update({ 

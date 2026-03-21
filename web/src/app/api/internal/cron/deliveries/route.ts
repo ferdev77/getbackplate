@@ -24,10 +24,11 @@ export async function GET(request: Request) {
       durationMs: Date.now() - start,
       ...result,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Cron Error processing deliveries:", error);
+    const message = error instanceof Error ? error.message : "Internal Server Error";
     return NextResponse.json(
-      { success: false, error: error.message || "Internal Server Error" },
+      { success: false, error: message },
       { status: 500 }
     );
   }

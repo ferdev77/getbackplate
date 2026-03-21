@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, Eye, Pencil, Search, Share2, Trash2, ChevronRight, Folder } from "lucide-react";
+import { Download, Eye, Pencil, Search, Share2, Trash2, ChevronRight, Folder, Mail } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
@@ -88,6 +88,7 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
   const [deleteFolderId, setDeleteFolderId] = useState<string | null>(null);
   const [shareDocId, setShareDocId] = useState<string | null>(null);
   const [shareFolderId, setShareFolderId] = useState<string | null>(null);
+  const [emailShareDocId, setEmailShareDocId] = useState<string | null>(null);
   const [dropFolderId, setDropFolderId] = useState<string | null>(null);
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
@@ -423,6 +424,25 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
     }
   }
 
+  async function shareDocumentByEmail(payload: { documentId: string; email: string; message: string }) {
+    setBusy(true);
+    try {
+      const response = await fetch("/api/company/documents/share-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "No se pudo compartir por email");
+      setToast(typeof data.message === "string" ? data.message : "Documento compartido por email");
+      setEmailShareDocId(null);
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "Error compartiendo por email");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function renderFolderTree(parentId: string | null, depth = 0) {
     const folderList = childrenByFolder.get(parentId) ?? [];
     return folderList.flatMap((folder) => {
@@ -516,6 +536,7 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
                             {doc.folder_id ? null : (
                               <button type="button" onClick={() => setShareDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
                             )}
+                            <button type="button" onClick={() => setEmailShareDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#dce8fb] bg-[#f2f7ff] text-[#2a4f87] hover:bg-[#e7f0ff]" title="Compartir por email"><Mail className="h-3.5 w-3.5" /></button>
                             <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Descargar"><Download className="h-3.5 w-3.5" /></a>
                             <button type="button" onClick={() => setDeleteDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4]" title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
                           </div>
@@ -543,6 +564,7 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
   const deleteFolder = folderRows.find((folder) => folder.id === deleteFolderId) ?? null;
   const shareDocument = documentRows.find((doc) => doc.id === shareDocId) ?? null;
   const shareFolder = folderRows.find((folder) => folder.id === shareFolderId) ?? null;
+  const emailShareDocument = documentRows.find((doc) => doc.id === emailShareDocId) ?? null;
 
   return (
     <>
@@ -604,7 +626,8 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
                          {doc.folder_id ? null : (
                            <button type="button" onClick={() => setShareDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
                          )}
-                        <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Descargar"><Download className="h-3.5 w-3.5" /></a>
+                         <button type="button" onClick={() => setEmailShareDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#dce8fb] bg-[#f2f7ff] text-[#2a4f87] hover:bg-[#e7f0ff]" title="Compartir por email"><Mail className="h-3.5 w-3.5" /></button>
+                         <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6]" title="Descargar"><Download className="h-3.5 w-3.5" /></a>
                         <button type="button" onClick={() => setDeleteDocId(doc.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4]" title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
                       </div>
                     </div>
@@ -686,10 +709,51 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
         />
       ) : null}
 
+      {emailShareDocument ? (
+        <ShareByEmailModal
+          document={emailShareDocument}
+          busy={busy}
+          onCancel={() => setEmailShareDocId(null)}
+          onSubmit={(payload) => void shareDocumentByEmail(payload)}
+        />
+      ) : null}
+
       <AnimatePresence>
         {toast ? <FadeIn className="fixed bottom-6 left-1/2 z-[1100] -translate-x-1/2 rounded-lg bg-[#111] px-4 py-2 text-sm font-semibold text-white shadow-lg">{toast}</FadeIn> : null}
       </AnimatePresence>
     </>
+  );
+}
+
+function ShareByEmailModal({
+  document,
+  busy,
+  onCancel,
+  onSubmit,
+}: {
+  document: DocumentRow;
+  busy: boolean;
+  onCancel: () => void;
+  onSubmit: (payload: { documentId: string; email: string; message: string }) => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+
+  return (
+    <div className="fixed inset-0 z-[1060] flex items-center justify-center bg-black/45 p-5" onClick={() => !busy && onCancel()}>
+      <div className="w-[460px] max-w-[95vw] overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]" onClick={(event) => event.stopPropagation()}>
+        <div className="flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5"><p className="font-serif text-[15px] font-bold text-[#111]">Compartir por email</p><button type="button" className="grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5]" onClick={onCancel}>✕</button></div>
+        <div className="space-y-3 px-6 py-5">
+          <div className="rounded-lg border border-[#e8e8e8] bg-[#f8f8f8] p-3">
+            <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[#aaa] uppercase">Documento</p>
+            <p className="text-sm font-semibold text-[#111]">{document.title}</p>
+          </div>
+          <label className="grid gap-1.5"><span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Email destino</span><input value={email} onChange={(event) => setEmail(event.target.value)} type="email" placeholder="usuario@empresa.com" className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm" /></label>
+          <label className="grid gap-1.5"><span className="text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Mensaje (opcional)</span><textarea value={message} onChange={(event) => setMessage(event.target.value)} rows={3} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm" placeholder="Te comparto este archivo." /></label>
+        </div>
+        <div className="flex justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4"><button type="button" onClick={onCancel} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777]">Cancelar</button><button type="button" disabled={busy || !email.trim()} onClick={() => onSubmit({ documentId: document.id, email: email.trim(), message: message.trim() })} className="rounded-lg bg-[#111] px-5 py-2 text-sm font-bold text-white hover:bg-[#c0392b] disabled:opacity-60">{busy ? "Enviando..." : "Enviar"}</button></div>
+      </div>
+    </div>
   );
 }
 
