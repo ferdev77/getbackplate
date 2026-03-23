@@ -192,13 +192,20 @@ export function LandingFeatures() {
 
 type LandingPlan = {
   id: string;
+  plan_id?: string;
+  code?: string;
   name: string;
   price_amount?: number | null;
+  currency_code?: string | null;
   billing_period?: string | null;
+  description?: string | null;
   stripe_price_id?: string | null;
   max_branches?: number | null;
   max_users?: number | null;
   max_employees?: number | null;
+  max_storage_mb?: number | null;
+  modules_count?: number | null;
+  [key: string]: unknown;
 };
 
 export function LandingPricing({ plans, highlightPlanId, compact }: { plans: LandingPlan[]; highlightPlanId?: string; compact?: boolean }) {

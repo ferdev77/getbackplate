@@ -125,7 +125,16 @@ Si hay diferencias con secciones historicas de este archivo para RRHH, prevalece
 - Estado de cierre:
   - F1: cerrado
   - F3: cerrado
-  - F2: pendiente (deuda historica de lint global fuera del scope funcional del release)
+  - F2: cerrado (lint sin errores, build estable)
+
+### Cierre F2 (calidad tecnica minima)
+
+- `npm run lint`: 0 errores / 40 warnings
+- `npm run build`: OK
+- Remediaciones aplicadas:
+  - tipados y `catch` con `unknown` en auth/plans/twilio/checkout
+  - tipado de planes en landing
+  - ajustes de lint en scripts auxiliares/debug para eliminar errores bloqueantes
 - Se elimino codigo en desuso:
   - `web/src/modules/employees/actions.ts`
 - Se validaron flujos con datos reales temporales en DB (con limpieza al finalizar):

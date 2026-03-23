@@ -342,7 +342,7 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
     - `verify:operational-alerts` OK (2 alertas medias detectadas en tenant sin actividad)
   - Smoke manual visual de UI completado (impersonación + multiempresa) validado por negocio (`OK F1`).
 
-### [ ] F2. Bajar lint y asegurar build estable
+### [x] F2. Bajar lint y asegurar build estable
 
 - **Qué pasa hoy (simple):** existen errores/warnings que hoy degradan calidad y confiabilidad de cambios.
 - **Por qué está mal:** aumenta riesgo en producción y dificulta mantenimiento.
@@ -353,12 +353,13 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
 - **Comportamiento esperado después:** baseline técnico sólido para seguir escalando.
 - **Evidencia de avance:**
   - `npm run build` OK.
-  - `npm run lint` todavía reporta deuda histórica fuera de alcance inmediato (`33` errores, `40` warnings), mayormente en scripts/debug y módulos no tocados en este lote.
+  - `npm run lint` sin errores (0 errores, 40 warnings).
   - Scripts de QA de plan-limit ajustados al estado real del código (sin `employees/actions.ts` ni `documents/actions.ts`) y verificados en verde:
     - `verify:plan-limit-enforcement` OK
     - `verify:plan-limit-messages` OK
   - `verify:audit-coverage` OK tras cubrir auditoría faltante en `updatePasswordAction`.
   - `verify:official-plan-packaging` ajustado al contrato real de producto (`basico/pro`) y validado en verde.
+  - Nota: warnings remanentes son deuda de prolijidad (imports/vars no usados) y no bloquean build ni release funcional.
 
 ### [x] F3. Documentar cierre por bloque
 
@@ -479,3 +480,9 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   - Bloques tocados: F1, F3.  
   - Riesgos detectados: pendiente de calidad técnica global en F2 (deuda lint histórica).  
   - Próximo objetivo: remediación dedicada de lint para cerrar F2.
+
+- Fecha: 2026-03-23  
+  - Cambios aplicados: cierre F2 con remediación de errores de lint (0 errores), build verde y actualización de tipados/capturas en módulos críticos.  
+  - Bloques tocados: F2.  
+  - Riesgos detectados: bajo; quedan solo warnings no bloqueantes de prolijidad.  
+  - Próximo objetivo: mantenimiento incremental de warnings en lote de housekeeping.
