@@ -1,6 +1,7 @@
 "use client";
 
 import { Search, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 export type ChecklistReportView = {
@@ -104,10 +105,13 @@ export function ChecklistReportsDashboard({
   reports,
   attentionFeed,
 }: ChecklistReportsDashboardProps) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<"" | "ok" | "warn">("");
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const [isReviewing, setIsReviewing] = useState(false);
+  const [reviewError, setReviewError] = useState("");
 
   const selectedReport = useMemo(
     () => reports.find((report) => report.id === selectedReportId) ?? null,
@@ -132,6 +136,32 @@ export function ChecklistReportsDashboard({
       );
     });
   }, [reports, query, locationFilter, statusFilter]);
+
+  async function markSelectedReportAsReviewed() {
+    if (!selectedReport || selectedReport.dbStatus === "reviewed" || isReviewing) {
+      return;
+    }
+
+    setReviewError("");
+    setIsReviewing(true);
+
+    const response = await fetch("/api/company/checklists/review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ submissionId: selectedReport.id }),
+    });
+
+    const payload = (await response.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+    setIsReviewing(false);
+
+    if (!response.ok || !payload?.ok) {
+      setReviewError(payload?.error ?? "No se pudo marcar como revisado");
+      return;
+    }
+
+    setSelectedReportId(null);
+    router.refresh();
+  }
 
   return (
     <main className="mx-auto w-full max-w-[1320px] px-4 py-7 sm:px-6 lg:px-8">
@@ -423,10 +453,22 @@ export function ChecklistReportsDashboard({
               <button type="button" onClick={() => setSelectedReportId(null)} className="flex-1 rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2.5 text-sm font-semibold text-[#555] transition hover:bg-[#ededed]">
                 Cerrar
               </button>
-              <button type="button" className="flex-[1.5] rounded-lg bg-[#0e0e0e] px-3 py-2.5 text-sm font-bold text-white transition hover:bg-[#c0392b]">
-                📧 Enviar al Gerente
+              <button
+                type="button"
+                onClick={markSelectedReportAsReviewed}
+                disabled={selectedReport.dbStatus === "reviewed" || isReviewing}
+                className="flex-[1.5] rounded-lg bg-[#0e0e0e] px-3 py-2.5 text-sm font-bold text-white transition hover:bg-[#c0392b] disabled:cursor-not-allowed disabled:bg-[#b9b3af]"
+              >
+                {selectedReport.dbStatus === "reviewed"
+                  ? "✓ Reporte revisado"
+                  : isReviewing
+                    ? "Marcando revision..."
+                    : "Marcar como revisado"}
               </button>
             </footer>
+            {reviewError ? (
+              <div className="border-t border-rose-200 bg-rose-50 px-6 py-3 text-sm text-rose-700">{reviewError}</div>
+            ) : null}
           </aside>
         </>
       ) : null}
