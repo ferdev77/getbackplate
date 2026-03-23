@@ -127,15 +127,7 @@ export function EmployeeChecklistPreviewModal({
   function closeModal() {
     setVisible(false);
     setTimeout(() => {
-      router.replace("/portal/checklist");
-      router.refresh();
-      if (typeof window !== "undefined") {
-        window.setTimeout(() => {
-          if (window.location.search.includes("preview=")) {
-            window.location.assign("/portal/checklist");
-          }
-        }, 250);
-      }
+      router.replace("/portal/checklist", { scroll: false });
     }, 220);
   }
 
