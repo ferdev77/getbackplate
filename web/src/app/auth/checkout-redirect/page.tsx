@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Stripe from "stripe";
 import { stripe } from "@/infrastructure/stripe/client";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 
@@ -37,7 +38,7 @@ export default async function CheckoutRedirectPage({
   }
 
   try {
-    const sessionConfig: any = {
+    const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [
@@ -52,7 +53,7 @@ export default async function CheckoutRedirectPage({
         enabled: true,
       },
       client_reference_id: organizationId,
-      customer_email: user.email,
+      customer_email: user.email ?? undefined,
       metadata: {
         organizationId: organizationId,
         userId: user.id,

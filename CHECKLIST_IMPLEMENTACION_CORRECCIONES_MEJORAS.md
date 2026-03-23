@@ -314,7 +314,7 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
 
 ## Bloque F — QA y release controlado
 
-### [~] F1. Ejecutar smoke integral por módulo
+### [x] F1. Ejecutar smoke integral por módulo
 
 - **Qué pasa hoy (simple):** hay correcciones sensibles con riesgo de regresión cruzada.
 - **Por qué está mal liberar sin esto:** podría romperse un módulo no tocado visualmente.
@@ -340,7 +340,7 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
     - `verify:plan-change-rules` OK
     - `verify:operational-metrics-consistency` OK
     - `verify:operational-alerts` OK (2 alertas medias detectadas en tenant sin actividad)
-  - Pendiente para cierre total: smoke manual de UI en impersonación/multiempresa (requiere validación visual interactiva).
+  - Smoke manual visual de UI completado (impersonación + multiempresa) validado por negocio (`OK F1`).
 
 ### [ ] F2. Bajar lint y asegurar build estable
 
@@ -360,7 +360,7 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   - `verify:audit-coverage` OK tras cubrir auditoría faltante en `updatePasswordAction`.
   - `verify:official-plan-packaging` ajustado al contrato real de producto (`basico/pro`) y validado en verde.
 
-### [~] F3. Documentar cierre por bloque
+### [x] F3. Documentar cierre por bloque
 
 - **Qué pasa hoy (simple):** sin documentación de cierre, el equipo pierde trazabilidad de decisiones.
 - **Por qué está mal:** complica soporte, auditoría y continuidad.
@@ -371,7 +371,8 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
 - **Evidencia de avance:**
   - Documentación técnica actualizada en cada bloque cerrado (A, B, C2/C3, D, E).
   - C1 ya cerrado y documentado.
-  - Pendiente cierre final tras smoke manual visual de F1.
+  - Cierre final de bloques documentado tras validación manual de F1.
+  - Riesgo remanente explicitado: deuda histórica de lint global en F2.
 
 ---
 
@@ -472,3 +473,9 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   - Bloques tocados: C1 (refuerzo), D (refuerzo UX/performance), F3 (documentación).  
   - Riesgos detectados: bajo; cambios sin alterar reglas de negocio.  
   - Próximo objetivo: ejecutar smoke manual visual de impersonación/multiempresa para cierre final de F1/F3.
+
+- Fecha: 2026-03-23  
+  - Cambios aplicados: cierre formal de F1 (smoke manual visual validado) y F3 (documentación de cierre consolidada).  
+  - Bloques tocados: F1, F3.  
+  - Riesgos detectados: pendiente de calidad técnica global en F2 (deuda lint histórica).  
+  - Próximo objetivo: remediación dedicada de lint para cerrar F2.

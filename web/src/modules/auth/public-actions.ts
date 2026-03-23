@@ -145,8 +145,8 @@ export async function registerPublicAction(formData: FormData) {
 
     redirect("/app/dashboard?welcome=true");
 
-  } catch (error: any) {
-    if (error.message && error.message.includes('NEXT_REDIRECT')) {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) {
         throw error;
     }
     console.error("Registration Action Failed", error);

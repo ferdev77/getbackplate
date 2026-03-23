@@ -123,8 +123,9 @@ export async function createPlanAction(formData: FormData) {
       const price = await stripe.prices.retrieve(stripePriceId);
       priceAmount = price.unit_amount ? price.unit_amount / 100 : 0;
       currencyCode = price.currency.toUpperCase();
-    } catch (err: any) {
-      redirect("/superadmin/plans?status=error&message=" + qs(`Stripe Price ID inválido: ${err.message}`));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error desconocido";
+      redirect("/superadmin/plans?status=error&message=" + qs(`Stripe Price ID inválido: ${message}`));
     }
   }
 
@@ -234,8 +235,9 @@ export async function updatePlanAction(formData: FormData) {
       const price = await stripe.prices.retrieve(stripePriceId);
       priceAmount = price.unit_amount ? price.unit_amount / 100 : 0;
       currencyCode = price.currency.toUpperCase();
-    } catch (err: any) {
-      redirect("/superadmin/plans?status=error&message=" + qs(`Stripe Price ID inválido: ${err.message}`));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error desconocido";
+      redirect("/superadmin/plans?status=error&message=" + qs(`Stripe Price ID inválido: ${message}`));
     }
   }
 

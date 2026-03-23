@@ -102,7 +102,10 @@ export const getCurrentUserMemberships = cache(async function getCurrentUserMemb
     organizationId: row.organization_id,
     roleId: row.role_id,
     branchId: row.branch_id,
-    roleCode: Array.isArray(row.roles) ? row.roles[0]?.code ?? "" : (row.roles as any)?.code ?? "",
+    roleCode:
+      Array.isArray(row.roles)
+        ? row.roles[0]?.code ?? ""
+        : (row.roles as { code?: string } | null)?.code ?? "",
     createdAt: row.created_at,
   }));
 });

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fetch = require('node-fetch');
 
 async function triggerWebhook() {
