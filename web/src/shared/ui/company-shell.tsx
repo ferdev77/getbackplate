@@ -247,6 +247,10 @@ export function CompanyShell({
         const dashboardIndex = filteredItems.findIndex((item) => item.href === "/app/dashboard");
         if (dashboardIndex === -1) return { ...section, items: filteredItems };
 
+        if (branchOptions.length < 2) {
+          return { ...section, items: filteredItems };
+        }
+
         const before = filteredItems.slice(0, dashboardIndex + 1);
         const after = filteredItems.slice(dashboardIndex + 1);
         const locationItems: SidebarItem[] = branchOptions.map((branch) => ({
