@@ -27,11 +27,12 @@ export const revalidate = 0;
 export default async function CompanyUsersPage({ searchParams }: CompanyUsersPageProps) {
   const tenant = await requireTenantModule("employees");
   const supabase = await createSupabaseServerClient();
-  const action = String((await searchParams).action ?? "").trim().toLowerCase();
+  const params = await searchParams;
+  const action = String(params.action ?? "").trim().toLowerCase();
   const openUserModal = action === "create-user" || action === "edit-user";
 
-  const statusParam = (await searchParams).status;
-  const messageParam = (await searchParams).message;
+  const statusParam = params.status;
+  const messageParam = params.message;
 
   const pageLimit = 50;
   
@@ -41,7 +42,8 @@ export default async function CompanyUsersPage({ searchParams }: CompanyUsersPag
     pageLimit,
     {
       includeModalsData: openUserModal,
-      includeUsersTab: true
+      includeUsersTab: true,
+      includeEmployeesData: false,
     }
   );
 
