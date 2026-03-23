@@ -2,8 +2,6 @@
 
 import Link from "next/link";
 import {
-  AlertTriangle,
-  Bell,
   Building2,
   CalendarClock,
   CheckCircle2,
@@ -41,11 +39,6 @@ type DashboardModuleStatus = {
   enabled: boolean;
 };
 
-type DashboardBranch = {
-  id: string;
-  name: string;
-};
-
 type CompanyDashboardWorkspaceProps = {
   organizationName: string;
   organizationSlug: string;
@@ -61,11 +54,6 @@ type CompanyDashboardWorkspaceProps = {
   announcements: DashboardAnnouncement[];
   recentDocuments: DashboardDocument[];
   branchNameMap: Map<string, string>;
-  branches: DashboardBranch[];
-  branchFilter: string;
-  selectedBranchName?: string | null;
-  searchTerm: string;
-  dashboardNote: string;
   moduleStatus: DashboardModuleStatus[];
 };
 
@@ -113,7 +101,7 @@ function DashboardMetricCard({
   progress?: { value: number; label: string };
 }) {
   return (
-    <article className="group rounded-xl border border-[#e7e0dc] bg-white p-4 h-full transition hover:-translate-y-[1px] hover:shadow-[0_10px_26px_rgba(0,0,0,.09)]">
+    <article className="group flex h-full flex-col rounded-xl border border-[#e7e0dc] bg-white p-4 transition hover:-translate-y-[1px] hover:shadow-[0_10px_26px_rgba(0,0,0,.09)]">
       <p className="flex items-center gap-1 text-xs text-[#8a817b]"><Icon className="h-3.5 w-3.5" /> {label}</p>
       <p className="mt-1 text-2xl font-bold text-[#2a2420]">{value}</p>
       {subtitle ? <p className="mt-1 text-[11px] text-[#8a817b]">{subtitle}</p> : null}
@@ -125,7 +113,7 @@ function DashboardMetricCard({
           <p className="mt-1 text-[10px] text-[#9a908a]">{progress.label}</p>
         </>
       ) : null}
-      <div className="mt-2 rounded-lg border border-[#ece4df] bg-[#fffdfa] p-2 transition duration-200 group-hover:border-[#dccfc8] group-hover:bg-[#fdf8f5]">
+      <div className="mt-auto pt-2 rounded-lg border border-[#ece4df] bg-[#fffdfa] p-2 transition duration-200 group-hover:border-[#dccfc8] group-hover:bg-[#fdf8f5]">
         <div className="grid gap-1">
           {details.map((detail) => (
             <p key={detail.label} className="flex items-center justify-between gap-2 text-[11px] text-[#6f6762]">
@@ -154,11 +142,6 @@ export function CompanyDashboardWorkspace({
   announcements,
   recentDocuments,
   branchNameMap,
-  branches,
-  branchFilter,
-  selectedBranchName,
-  searchTerm,
-  dashboardNote,
   moduleStatus,
 }: CompanyDashboardWorkspaceProps) {
   const enabledModuleSet = new Set(
@@ -170,19 +153,8 @@ export function CompanyDashboardWorkspace({
   const showAnnouncementsPanel = enabledModuleSet.has("announcements");
   const showDocumentsPanel = enabledModuleSet.has("documents");
   const showChecklistsPanel = enabledModuleSet.has("checklists");
-  const showReportsLink = enabledModuleSet.has("reports");
   const workforceTotal = employeesOnlyCount + usersOnlyCount;
   const employeeRatio = workforceTotal > 0 ? Math.round((employeesOnlyCount / workforceTotal) * 100) : 0;
-  const operationTone =
-    openFlagsCount > 10 ? "critical" : openFlagsCount > 3 || pendingReviewCount > 10 ? "warning" : "healthy";
-  const operationToneLabel =
-    operationTone === "critical" ? "Riesgo alto" : operationTone === "warning" ? "Atencion" : "Operacion estable";
-  const operationToneClass =
-    operationTone === "critical"
-      ? "border-rose-200 bg-rose-50 text-rose-700"
-      : operationTone === "warning"
-        ? "border-amber-200 bg-amber-50 text-amber-700"
-        : "border-emerald-200 bg-emerald-50 text-emerald-700";
   const checklistsTodayValue = showChecklistsPanel ? checklistTodayCount : 0;
   const checklistsWeekValue = showChecklistsPanel ? checklistWeekCount : 0;
   const pendingReviewValue = showChecklistsPanel ? pendingReviewCount : 0;
@@ -201,11 +173,6 @@ export function CompanyDashboardWorkspace({
           <p className="mt-1 text-sm text-[#67605b]">
             Centro operativo con estado diario, seguimiento de tareas y actividad reciente.
           </p>
-          {selectedBranchName ? (
-            <p className="mt-2 inline-flex rounded-full border border-[#d8e4f7] bg-[#eff5ff] px-2.5 py-1 text-xs font-semibold text-[#2d4f86]">
-              Vista de locacion: {selectedBranchName}
-            </p>
-          ) : null}
         </section>
       </SlideUp>
 
@@ -219,7 +186,7 @@ export function CompanyDashboardWorkspace({
             details={[
               { label: "Estado", value: statusLabel(organizationStatus) },
               { label: "Sucursales activas", value: branchesCount },
-              { label: "Vista", value: selectedBranchName ? selectedBranchName : "General" },
+              { label: "Vista", value: "General" },
             ]}
           />
         </AnimatedItem>
@@ -251,13 +218,12 @@ export function CompanyDashboardWorkspace({
           />
         </AnimatedItem>
         <AnimatedItem>
-          <article className="group rounded-xl border border-[#e7e0dc] bg-white p-4 h-full transition hover:-translate-y-[1px] hover:shadow-[0_10px_26px_rgba(0,0,0,.09)]">
-            <p className="text-xs text-[#8a817b]">Estado tenant</p>
+          <article className="group flex h-full flex-col rounded-xl border border-[#e7e0dc] bg-white p-4 transition hover:-translate-y-[1px] hover:shadow-[0_10px_26px_rgba(0,0,0,.09)]">
+            <p className="text-xs text-[#8a817b]">Estado de empresa</p>
             <p className="mt-1 inline-block rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-sm font-semibold text-emerald-700">
               {statusLabel(organizationStatus)}
             </p>
-            <p className={`mt-2 inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${operationToneClass}`}>{operationToneLabel}</p>
-            <div className="mt-2 rounded-lg border border-[#ece4df] bg-[#fffdfa] p-2 transition duration-200 group-hover:border-[#dccfc8] group-hover:bg-[#fdf8f5]">
+            <div className="mt-auto pt-2 rounded-lg border border-[#ece4df] bg-[#fffdfa] p-2 transition duration-200 group-hover:border-[#dccfc8] group-hover:bg-[#fdf8f5]">
               <p className="flex items-center justify-between gap-2 text-[11px] text-[#6f6762]"><span>Pendientes revision</span><span className="font-semibold text-[#3a332f]">{pendingReviewValue}</span></p>
               <p className="mt-1 flex items-center justify-between gap-2 text-[11px] text-[#6f6762]"><span>Incidencias abiertas</span><span className="font-semibold text-[#3a332f]">{openFlagsValue}</span></p>
               <p className="mt-1 flex items-center justify-between gap-2 text-[11px] text-[#6f6762]"><span>Checklists semana</span><span className="font-semibold text-[#3a332f]">{checklistsWeekValue}</span></p>
@@ -265,59 +231,6 @@ export function CompanyDashboardWorkspace({
           </article>
         </AnimatedItem>
       </AnimatedList>
-
-      <SlideUp delay={0.1}>
-        <section className="mb-5 rounded-xl border border-[#e7e0dc] bg-white p-4">
-          <form className="mb-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-            <select
-              name="branch"
-              defaultValue={branchFilter}
-              className="rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm"
-            >
-              <option value="">Todas las sucursales</option>
-              {branches.map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name}
-                </option>
-              ))}
-            </select>
-            <input
-              name="q"
-              defaultValue={searchTerm}
-              placeholder="Buscar en anuncios/documentos"
-              className="rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm"
-            />
-            <button
-              type="submit"
-              className="rounded-lg border border-[#ddd3ce] bg-white px-3 py-2 text-sm text-[#4f4843] hover:bg-[#f8f3f1]"
-            >
-              Aplicar filtros
-            </button>
-          </form>
-          {selectedBranchName || searchTerm ? (
-            <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
-              {selectedBranchName ? <span className="rounded-full border border-[#d8e4f7] bg-[#eff5ff] px-2 py-0.5 text-[#2d4f86]">Locacion: {selectedBranchName}</span> : null}
-              {searchTerm ? <span className="rounded-full border border-[#ece4df] bg-[#fffdfa] px-2 py-0.5 text-[#7c746f]">Busqueda: {searchTerm}</span> : null}
-              <Link href="/app/dashboard" className="font-semibold text-[#b63a2f] hover:underline">Limpiar filtros</Link>
-            </div>
-          ) : null}
-          <p className="mb-3 text-xs font-semibold tracking-[0.1em] text-[#8a817b] uppercase">Modulos habilitados</p>
-          <div className="flex flex-wrap gap-2">
-            {moduleStatus.map((moduleItem) => (
-              <span
-                key={moduleItem.code}
-                className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                  moduleItem.enabled
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-neutral-200 bg-neutral-100 text-neutral-500"
-                }`}
-              >
-                {moduleItem.label}
-              </span>
-            ))}
-          </div>
-        </section>
-      </SlideUp>
 
       <section className="mb-5 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
         <SlideUp delay={0.2}>
@@ -346,7 +259,7 @@ export function CompanyDashboardWorkspace({
 
         <SlideUp delay={0.25}>
           <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#8b817c]">Seguimiento</h2>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#8b817c]">Seguimiento de checklist</h2>
             <div className="space-y-2">
               <div className="rounded-lg border border-[#ece4df] bg-[#fffdfa] p-3">
                 <p className="inline-flex items-center gap-1 text-xs text-[#8b817c]"><CalendarClock className="h-3.5 w-3.5" /> Checklists semana</p>
@@ -436,26 +349,6 @@ export function CompanyDashboardWorkspace({
         </SlideUp>
       </section>
 
-      <SlideUp delay={0.4}>
-        <section className="mt-5 rounded-xl border border-[#e7e0dc] bg-white p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="inline-flex items-center gap-1 text-sm font-semibold text-[#2f2925]"><AlertTriangle className="h-4 w-4 text-[#b63a2f]" /> Operacion diaria</p>
-            <div className="flex flex-wrap gap-2">
-              {showAnnouncementsPanel ? <Link href="/app/announcements" className="inline-flex items-center gap-1 rounded-lg border border-[#ddd3ce] bg-white px-3 py-1.5 text-sm text-[#4f4843] hover:bg-[#f8f3f1]"><Bell className="h-4 w-4" /> Avisos</Link> : null}
-              {showChecklistsPanel ? <Link href="/app/checklists" className="inline-flex items-center gap-1 rounded-lg border border-[#ddd3ce] bg-white px-3 py-1.5 text-sm text-[#4f4843] hover:bg-[#f8f3f1]"><ClipboardCheck className="h-4 w-4" /> Checklists</Link> : null}
-              {showReportsLink ? <Link href="/app/reports" className="inline-flex items-center gap-1 rounded-lg border border-[#ddd3ce] bg-white px-3 py-1.5 text-sm text-[#4f4843] hover:bg-[#f8f3f1]"><FileText className="h-4 w-4" /> Reportes Checklists</Link> : null}
-            </div>
-          </div>
-          <p className="mt-2 text-sm text-[#6b635e]">
-            Sucursales activas: {branchesCount}. Mantiene seguimiento diario desde checklists y avisos para evitar incidencias operativas.
-          </p>
-          {dashboardNote ? (
-            <p className="mt-2 rounded-lg border border-[#ede2dd] bg-[#fff8f6] px-3 py-2 text-sm text-[#6b635e]">
-              Nota interna: {dashboardNote}
-            </p>
-          ) : null}
-        </section>
-      </SlideUp>
     </main>
   );
 }
