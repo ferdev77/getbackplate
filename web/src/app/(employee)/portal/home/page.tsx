@@ -41,7 +41,7 @@ export default async function EmployeeHomePage() {
     target_scope: unknown;
   }> = [];
 
-  const hasAnnouncementsModule = Boolean(announcementsModuleEnabled?.data);
+  const hasAnnouncementsModule = Boolean(announcementsModuleEnabled);
 
   if (hasAnnouncementsModule) {
     const now = new Date();
