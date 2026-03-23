@@ -88,7 +88,7 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
 
   const visibleTemplateIds = visibleTemplates.map((template) => template.id);
   const { data: visibleSubmissions } = visibleTemplateIds.length
-    ? await admin
+    ? await supabase
         .from("checklist_submissions")
         .select("template_id, status, submitted_at")
         .eq("organization_id", tenant.organizationId)
@@ -206,13 +206,35 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
 
   const attachmentUrlsBySubmissionItemId = new Map<string, string[]>();
   if ((submissionAttachments ?? []).length) {
+    const bySubmissionItemId = new Map<string, string[]>();
+    const allPaths: string[] = [];
+
     for (const attachment of submissionAttachments ?? []) {
-      const { data } = await admin.storage
-        .from("checklist-evidence")
-        .createSignedUrl(attachment.file_path, 60 * 60 * 24);
-      const list = attachmentUrlsBySubmissionItemId.get(attachment.submission_item_id) ?? [];
-      if (data?.signedUrl) list.push(data.signedUrl);
-      attachmentUrlsBySubmissionItemId.set(attachment.submission_item_id, list);
+      const currentPaths = bySubmissionItemId.get(attachment.submission_item_id) ?? [];
+      currentPaths.push(attachment.file_path);
+      bySubmissionItemId.set(attachment.submission_item_id, currentPaths);
+      allPaths.push(attachment.file_path);
+    }
+
+    const signedByPath = new Map<string, string>();
+    const chunkSize = 50;
+
+    for (let index = 0; index < allPaths.length; index += chunkSize) {
+      const chunk = allPaths.slice(index, index + chunkSize);
+      const { data } = await admin.storage.from("checklist-evidence").createSignedUrls(chunk, 60 * 60 * 24);
+
+      for (const row of data ?? []) {
+        if (row.path && row.signedUrl) {
+          signedByPath.set(row.path, row.signedUrl);
+        }
+      }
+    }
+
+    for (const [submissionItemId, paths] of bySubmissionItemId.entries()) {
+      attachmentUrlsBySubmissionItemId.set(
+        submissionItemId,
+        paths.map((path) => signedByPath.get(path)).filter((value): value is string => Boolean(value)),
+      );
     }
   }
 
