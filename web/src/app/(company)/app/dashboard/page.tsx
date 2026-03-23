@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
+import { getEnabledModules } from "@/modules/organizations/queries";
 import { requireTenantModule } from "@/shared/lib/access";
 import { CompanyDashboardWorkspace } from "@/shared/ui/company-dashboard-workspace";
 
@@ -18,40 +19,12 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
   const weekStart = new Date(now);
   weekStart.setDate(now.getDate() - 7);
 
-  const [
-    { data: documentsEnabled },
-    { data: announcementsEnabled },
-    { data: checklistEnabled },
-    { data: reportsEnabled },
-    { data: employeesEnabled },
-  ] = await Promise.all([
-    supabase.rpc("is_module_enabled", {
-      org_id: tenant.organizationId,
-      module_code: "documents",
-    }),
-    supabase.rpc("is_module_enabled", {
-      org_id: tenant.organizationId,
-      module_code: "announcements",
-    }),
-    supabase.rpc("is_module_enabled", {
-      org_id: tenant.organizationId,
-      module_code: "checklists",
-    }),
-    supabase.rpc("is_module_enabled", {
-      org_id: tenant.organizationId,
-      module_code: "reports",
-    }),
-    supabase.rpc("is_module_enabled", {
-      org_id: tenant.organizationId,
-      module_code: "employees",
-    }),
-  ]);
-
-  const isDocumentsEnabled = Boolean(documentsEnabled);
-  const isAnnouncementsEnabled = Boolean(announcementsEnabled);
-  const isChecklistsEnabled = Boolean(checklistEnabled);
-  const isReportsEnabled = Boolean(reportsEnabled);
-  const isEmployeesEnabled = Boolean(employeesEnabled);
+  const enabledModuleCodes = await getEnabledModules(tenant.organizationId);
+  const isDocumentsEnabled = enabledModuleCodes.has("documents");
+  const isAnnouncementsEnabled = enabledModuleCodes.has("announcements");
+  const isChecklistsEnabled = enabledModuleCodes.has("checklists");
+  const isReportsEnabled = enabledModuleCodes.has("reports");
+  const isEmployeesEnabled = enabledModuleCodes.has("employees");
 
   const employeesCountQuery = supabase
     .from("employees")
