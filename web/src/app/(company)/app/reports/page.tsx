@@ -136,10 +136,17 @@ export default async function CompanyReportsPage() {
   const submittedByUserIds = [...new Set((submissions ?? []).map((row) => row.submitted_by).filter(Boolean))];
   const templateIds = [...new Set((submissions ?? []).map((row) => row.template_id).filter(Boolean))];
 
-  const [{ data: employees }, { data: templates }, { data: submissionItems }] = await Promise.all([
+  const [{ data: employees }, { data: userProfiles }, { data: templates }, { data: submissionItems }] = await Promise.all([
     submittedByUserIds.length
       ? supabase
           .from("employees")
+          .select("user_id, first_name, last_name")
+          .eq("organization_id", tenant.organizationId)
+          .in("user_id", submittedByUserIds)
+      : Promise.resolve({ data: null }),
+    submittedByUserIds.length
+      ? supabase
+          .from("organization_user_profiles")
           .select("user_id, first_name, last_name")
           .eq("organization_id", tenant.organizationId)
           .in("user_id", submittedByUserIds)
@@ -210,6 +217,14 @@ export default async function CompanyReportsPage() {
     employeeNameByUserId.set(row.user_id, `${row.first_name} ${row.last_name}`.trim());
   }
 
+  for (const row of userProfiles ?? []) {
+    const fullName = `${row.first_name ?? ""} ${row.last_name ?? ""}`.trim();
+    if (!row.user_id || !fullName) continue;
+    if (!employeeNameByUserId.has(row.user_id)) {
+      employeeNameByUserId.set(row.user_id, fullName);
+    }
+  }
+
   const templateNameById = new Map((templates ?? []).map((row) => [row.id, row.name]));
   const branchById = new Map((branches ?? []).map((row) => [row.id, row]));
 
@@ -273,7 +288,7 @@ export default async function CompanyReportsPage() {
   const reports: ChecklistReportView[] = (submissions ?? []).map((submission) => {
     const timestamp = submission.submitted_at ?? submission.created_at;
     const branch = submission.branch_id ? branchById.get(submission.branch_id) : null;
-    const managerName = employeeNameByUserId.get(submission.submitted_by) ?? "Empleado";
+    const managerName = employeeNameByUserId.get(submission.submitted_by) ?? "Usuario";
     const managerInitials = initials(managerName);
     const managerColor = colorForUser(submission.submitted_by);
     const metrics = metricsBySubmissionId.get(submission.id) ?? { total: 0, done: 0, flagged: 0, photos: 0 };

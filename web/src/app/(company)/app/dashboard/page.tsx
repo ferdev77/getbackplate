@@ -4,15 +4,13 @@ import { requireTenantModule } from "@/shared/lib/access";
 import { CompanyDashboardWorkspace } from "@/shared/ui/company-dashboard-workspace";
 
 type CompanyDashboardPageProps = {
-  searchParams: Promise<{ branch?: string; q?: string; selectPlanId?: string }>;
+  searchParams: Promise<{ selectPlanId?: string }>;
 };
 
 export default async function CompanyDashboardPage({ searchParams }: CompanyDashboardPageProps) {
   const tenant = await requireTenantModule("dashboard");
   const supabase = await createSupabaseServerClient();
   const params = await searchParams;
-  const branchFilter = params.branch?.trim() ?? "";
-  const searchTerm = params.q?.trim() ?? "";
   const now = new Date();
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
@@ -30,36 +28,24 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
     .from("employees")
     .select("id", { count: "exact", head: true })
     .eq("organization_id", tenant.organizationId);
-  if (branchFilter) {
-    employeesCountQuery.eq("branch_id", branchFilter);
-  }
 
   const todayChecklistQuery = supabase
     .from("checklist_submissions")
     .select("id", { count: "exact", head: true })
     .eq("organization_id", tenant.organizationId)
     .gte("created_at", todayStart.toISOString());
-  if (branchFilter) {
-    todayChecklistQuery.eq("branch_id", branchFilter);
-  }
 
   const weekChecklistQuery = supabase
     .from("checklist_submissions")
     .select("id", { count: "exact", head: true })
     .eq("organization_id", tenant.organizationId)
     .gte("created_at", weekStart.toISOString());
-  if (branchFilter) {
-    weekChecklistQuery.eq("branch_id", branchFilter);
-  }
 
   const pendingReviewQuery = supabase
     .from("checklist_submissions")
     .select("id", { count: "exact", head: true })
     .eq("organization_id", tenant.organizationId)
     .eq("status", "submitted");
-  if (branchFilter) {
-    pendingReviewQuery.eq("branch_id", branchFilter);
-  }
 
   const [
     { count: employeesCount },
@@ -73,7 +59,6 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
     { count: pendingReviewCount },
     { count: openFlagsCount },
     { data: recentDocuments },
-    { data: orgSettings },
   ] = await Promise.all([
       employeesCountQuery,
       supabase
@@ -122,29 +107,9 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
             .order("created_at", { ascending: false })
             .limit(6)
         : Promise.resolve({ data: [] }),
-      supabase
-        .from("organization_settings")
-        .select("dashboard_note")
-        .eq("organization_id", tenant.organizationId)
-        .maybeSingle(),
     ]);
 
   const branchNameMap = new Map((branches ?? []).map((item) => [item.id, item.name]));
-  const selectedBranchName = branchFilter ? branchNameMap.get(branchFilter) ?? null : null;
-
-  const filteredAnnouncements = (announcements ?? []).filter((item) => {
-    const branchMatch = !branchFilter || item.branch_id === branchFilter;
-    const queryMatch =
-      !searchTerm || item.title.toLowerCase().includes(searchTerm.toLowerCase());
-    return branchMatch && queryMatch;
-  });
-
-  const filteredDocuments = (recentDocuments ?? []).filter((item) => {
-    const branchMatch = !branchFilter || item.branch_id === branchFilter;
-    const queryMatch =
-      !searchTerm || item.title.toLowerCase().includes(searchTerm.toLowerCase());
-    return branchMatch && queryMatch;
-  });
 
   const moduleStatus = [
     { code: "documents", label: "Documentos", enabled: isDocumentsEnabled },
@@ -184,14 +149,9 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
         checklistWeekCount={weekChecklistCount ?? 0}
         pendingReviewCount={pendingReviewCount ?? 0}
         openFlagsCount={openFlagsCount ?? 0}
-        announcements={filteredAnnouncements}
-        recentDocuments={filteredDocuments}
+        announcements={announcements ?? []}
+        recentDocuments={recentDocuments ?? []}
         branchNameMap={branchNameMap}
-        branches={branches ?? []}
-        branchFilter={branchFilter}
-        selectedBranchName={selectedBranchName}
-        searchTerm={searchTerm}
-        dashboardNote={orgSettings?.dashboard_note ?? ""}
         moduleStatus={moduleStatus}
       />
     </>

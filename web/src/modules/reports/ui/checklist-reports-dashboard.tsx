@@ -254,7 +254,7 @@ export function ChecklistReportsDashboard({
               <table className="w-full min-w-[860px] border-collapse">
                 <thead>
                   <tr className="border-b border-[#f0f0f0] bg-[#fafafa] text-left text-[11px] font-bold uppercase tracking-[0.1em] text-[#888]">
-                    <th className="px-4 py-3">Gerente / Ubicación</th>
+                    <th className="px-4 py-3">Nombre / Ubicación</th>
                     <th className="px-4 py-3">Fecha</th>
                     <th className="px-4 py-3">Progreso</th>
                     <th className="px-4 py-3">Atención</th>
