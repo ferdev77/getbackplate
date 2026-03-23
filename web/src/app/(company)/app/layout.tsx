@@ -55,6 +55,7 @@ export default async function CompanyLayout({
     ...(enabledModuleCodes.has("announcements") ? ["announcements"] : []),
     ...(enabledModuleCodes.has("checklists") ? ["checklists"] : []),
     ...(enabledModuleCodes.has("reports") ? ["reports"] : []),
+    ...(enabledModuleCodes.has("ai_assistant") ? ["ai_assistant"] : []),
   ];
 
   const roleLabelByCode: Record<string, string> = {

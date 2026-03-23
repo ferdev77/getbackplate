@@ -23,6 +23,7 @@ import {
   User,
   X,
 } from "lucide-react";
+import { FloatingAiAssistant } from "@/shared/ui/floating-ai-assistant";
 
 type SettingsSnapshot = {
   billingPlan: string;
@@ -758,6 +759,10 @@ export function CompanyShell({
             ) : null}
           </div>
         </div>
+      ) : null}
+
+      {enabledModuleSet.has("ai_assistant") ? (
+        <FloatingAiAssistant currentPlanCode={currentPlanCode} />
       ) : null}
 
       {feedbackOpen ? (

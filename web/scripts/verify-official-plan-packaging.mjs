@@ -30,7 +30,7 @@ const EXPECTED = {
 };
 
 const EXPECTED_OPTIONAL_MODULES = {
-  basico: ["dashboard", "settings", "employees", "documents", "onboarding", "checklists", "reports"],
+  basico: ["dashboard", "settings", "employees", "documents", "onboarding", "checklists", "reports", "ai_assistant"],
   pro: [
     "dashboard",
     "settings",
@@ -40,6 +40,7 @@ const EXPECTED_OPTIONAL_MODULES = {
     "onboarding",
     "checklists",
     "reports",
+    "ai_assistant",
   ],
 };
 

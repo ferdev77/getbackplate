@@ -81,6 +81,24 @@ Debe incluir:
    - recibe pregunta + contexto permitido
    - devuelve respuesta final en espanol claro
 
+## Comportamiento por plan
+
+- `basico`:
+  - intenta IA via OpenRouter
+  - fallback a modo estructurado (consultas directas con reglas)
+  - responde con datos reales de la organizacion
+
+- `pro`:
+  - usa IA via OpenAI como motor principal
+  - fallback a OpenRouter y luego a modo estructurado si falla
+
+## Variables de entorno requeridas para IA real
+
+- `OPENAI_API_KEY` (obligatoria para modo pro con IA generativa)
+- `OPENAI_MODEL` (opcional, por defecto `gpt-4o-mini`)
+- `OPENROUTER_API_KEY` (obligatoria para IA en plan basico)
+- `OPENROUTER_MODEL` (opcional, por defecto `openai/gpt-4o-mini`)
+
 ---
 
 ## Fases de implementacion 2.1
