@@ -1326,3 +1326,44 @@ QA ejecutado post-implementacion:
 - `npm run verify:smoke-modules` ✅
 - `npm run verify:audit-coverage` ✅
 - `npm run verify:operational-metrics-consistency` ✅
+
+### 35. Integracion Twilio en modales (avisos + checklists)
+
+- Alcance funcional:
+  - modal `Nuevo Aviso` con canales: `email`, `sms`, `whatsapp`
+  - modal `Nuevo Checklist` con canales: `email`, `sms`, `whatsapp`
+
+- Implementacion:
+  - avisos:
+    - UI: `web/src/shared/ui/announcement-create-modal.tsx`
+    - action: `web/src/modules/announcements/actions.ts`
+    - deliveries: `web/src/modules/announcements/services/deliveries.ts`
+  - checklists:
+    - UI: `web/src/modules/checklists/ui/checklist-upsert-modal.tsx`
+    - action: `web/src/modules/checklists/actions.ts`
+    - audiencia + envio Twilio en alta de plantilla (solo creacion)
+
+- Infraestructura:
+  - cliente Twilio: `web/src/infrastructure/twilio/client.ts`
+  - variables requeridas:
+    - `TWILIO_ACCOUNT_SID`
+    - `TWILIO_AUTH_TOKEN`
+    - `TWILIO_PHONE_NUMBER`
+    - `TWILIO_WHATSAPP_NUMBER`
+
+- Resultado operativo:
+  - al crear aviso/checklist, si se seleccionan canales Twilio, se envian mensajes a telefonos de audiencia segun alcance tenant.
+  - la creacion del recurso no se bloquea por fallas puntuales de entrega Twilio.
+
+- Documento de referencia:
+  - `web/docs/twilio-notifications.md`
+
+### 36. Plan futuro: Twilio/WhatsApp en produccion
+
+- Se agrega plan maestro paso a paso para migrar de sandbox a produccion:
+  - `web/docs/twilio-whatsapp-produccion-plan.md`
+- Incluye:
+  - precondiciones de compliance
+  - onboarding Meta + Twilio
+  - templates, backend hardening, observabilidad
+  - piloto controlado y rollout progresivo por tenant

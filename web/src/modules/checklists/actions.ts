@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
+import { sendTwilioMessage } from "@/infrastructure/twilio/client";
 import { requireTenantModule } from "@/shared/lib/access";
 import { getAuthEmailByUserId } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
@@ -22,14 +23,9 @@ function normalizePriority(value: string) {
   return "medium";
 }
 
-async function sendChecklistAudienceEmail(input: {
+type ChecklistAudienceInput = {
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
   organizationId: string;
-  templateName: string;
-  event: "created" | "submitted";
-  itemsCount: number;
-  flaggedCount?: number;
-  actorEmail?: string;
   targetScope: {
     locations?: string[];
     department_ids?: string[];
@@ -38,7 +34,9 @@ async function sendChecklistAudienceEmail(input: {
   } | null;
   templateBranchId?: string | null;
   templateDepartmentId?: string | null;
-}) {
+};
+
+async function resolveChecklistAudienceContacts(input: ChecklistAudienceInput) {
   const scope = input.targetScope ?? {};
   const locationIds = Array.isArray(scope.locations) ? scope.locations.filter(Boolean) : [];
   const departmentIds = Array.isArray(scope.department_ids) ? scope.department_ids.filter(Boolean) : [];
@@ -48,7 +46,7 @@ async function sendChecklistAudienceEmail(input: {
   const [{ data: employees }, { data: positionRows }] = await Promise.all([
     input.supabase
       .from("employees")
-      .select("user_id, branch_id, department_id, position, status")
+      .select("user_id, branch_id, department_id, position, status, phone_country_code, phone")
       .eq("organization_id", input.organizationId)
       .eq("status", "active")
       .not("user_id", "is", null),
@@ -104,7 +102,43 @@ async function sendChecklistAudienceEmail(input: {
   const emailByUserId = await getAuthEmailByUserId([...recipientUserIds]);
   const recipients = [...new Set([...emailByUserId.values()].filter(Boolean))];
 
-  if (!recipients.length) return 0;
+  const recipientPhones = new Set<string>();
+  for (const employee of employees ?? []) {
+    if (!employee.user_id || !recipientUserIds.has(employee.user_id) || !employee.phone) {
+      continue;
+    }
+
+    const code = (employee.phone_country_code || "").replace(/[^0-9+]/g, "");
+    const number = employee.phone.replace(/[^0-9]/g, "");
+    if (!number) continue;
+
+    let fullNumber = number;
+    if (code && !number.startsWith(code) && !number.startsWith(code.replace("+", ""))) {
+      fullNumber = `${code}${number}`;
+    } else if (number.startsWith("+")) {
+      fullNumber = number;
+    } else {
+      fullNumber = `+${number}`;
+    }
+
+    recipientPhones.add(fullNumber);
+  }
+
+  return {
+    emails: recipients,
+    phones: [...recipientPhones],
+  };
+}
+
+async function sendChecklistAudienceEmail(input: ChecklistAudienceInput & {
+  templateName: string;
+  event: "created" | "submitted";
+  itemsCount: number;
+  flaggedCount?: number;
+  actorEmail?: string;
+}) {
+  const contacts = await resolveChecklistAudienceContacts(input);
+  if (!contacts.emails.length) return 0;
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "";
   const reportsUrl = appUrl ? `${appUrl}/app/reports` : "/app/reports";
@@ -134,8 +168,29 @@ async function sendChecklistAudienceEmail(input: {
       ? `Nuevo checklist creado\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nCreado por: ${input.actorEmail ?? "Usuario interno"}\nVer checklists: ${reportsUrl}`
       : `Checklist enviado\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nIncidencias: ${input.flaggedCount ?? 0}\nEnviado por: ${input.actorEmail ?? "Usuario interno"}\nVer en reportes: ${reportsUrl}`;
 
-  await Promise.allSettled(recipients.map((to) => sendTransactionalEmail({ to, subject, html, text })));
-  return recipients.length;
+  await Promise.allSettled(contacts.emails.map((to) => sendTransactionalEmail({ to, subject, html, text })));
+  return contacts.emails.length;
+}
+
+async function sendChecklistAudienceTwilio(input: ChecklistAudienceInput & {
+  channel: "sms" | "whatsapp";
+  templateName: string;
+  itemsCount: number;
+  actorEmail?: string;
+}) {
+  const contacts = await resolveChecklistAudienceContacts(input);
+  if (!contacts.phones.length) return 0;
+
+  const body =
+    input.channel === "whatsapp"
+      ? `*Nuevo checklist creado*\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nCreado por: ${input.actorEmail ?? "Usuario interno"}`
+      : `Nuevo checklist creado\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nCreado por: ${input.actorEmail ?? "Usuario interno"}`;
+
+  const results = await Promise.allSettled(
+    contacts.phones.map((phone) => sendTwilioMessage(phone, body, input.channel)),
+  );
+
+  return results.filter((result) => result.status === "fulfilled" && result.value.success).length;
 }
 
 import { z } from "zod";
@@ -151,7 +206,6 @@ const createChecklistSchema = z.object({
   department: z.string().trim().optional().transform(v => v || null),
   repeat_every: z.string().trim().default("daily").transform(v => v || "daily"),
   template_status: z.enum(["active", "draft"]).catch("active"),
-  notify_via: z.array(z.enum(["whatsapp", "sms"])).default([]),
   location_scope: z.array(z.string()).default([]),
   department_scope: z.array(z.string()).default([]),
   position_scope: z.array(z.string()).default([]),
@@ -166,9 +220,10 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
 
   const { data: authData } = await supabase.auth.getUser();
 
-  const notifyViaRaw = formData.getAll("notify_via").map(String);
-  const validNotifyVia = notifyViaRaw.filter(v => v === "whatsapp" || v === "sms");
   const notifyChannels = [...new Set(formData.getAll("notify_channel").map(String))];
+  const notifyVia = notifyChannels.filter(
+    (channel): channel is "whatsapp" | "sms" => channel === "whatsapp" || channel === "sms",
+  );
   const notifyByEmail = notifyChannels.includes("email");
 
   const parsed = createChecklistSchema.safeParse({
@@ -182,7 +237,6 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
     department: String(formData.get("department") ?? ""),
     repeat_every: String(formData.get("repeat_every") ?? ""),
     template_status: String(formData.get("template_status") ?? ""),
-    notify_via: validNotifyVia,
     location_scope: formData.getAll("location_scope").map(String),
     department_scope: formData.getAll("department_scope").map(String),
     position_scope: formData.getAll("position_scope").map(String),
@@ -205,7 +259,6 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
     department_id: departmentId,
     repeat_every: repeatEvery,
     template_status: templateStatus,
-    notify_via: notifyVia,
     sections_payload: sectionsPayloadRaw,
     items: itemsInput,
   } = parsed.data;
@@ -495,6 +548,8 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   revalidatePath("/app/reports");
 
   let checklistAudienceEmailCount = 0;
+  let checklistAudienceSmsCount = 0;
+  let checklistAudienceWhatsappCount = 0;
   if (!templateId && notifyByEmail) {
     checklistAudienceEmailCount = await sendChecklistAudienceEmail({
       supabase,
@@ -514,14 +569,63 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
     });
   }
 
+  if (!templateId && notifyVia.includes("sms")) {
+    checklistAudienceSmsCount = await sendChecklistAudienceTwilio({
+      supabase,
+      organizationId: tenant.organizationId,
+      channel: "sms",
+      templateName: name,
+      itemsCount: totalItems,
+      actorEmail: authData.user?.email ?? "Usuario interno",
+      targetScope: {
+        locations: locationScopes,
+        department_ids: departmentScopes,
+        position_ids: positionScopes,
+        users: userScopes,
+      },
+      templateBranchId: branchId,
+      templateDepartmentId: departmentId,
+    });
+  }
+
+  if (!templateId && notifyVia.includes("whatsapp")) {
+    checklistAudienceWhatsappCount = await sendChecklistAudienceTwilio({
+      supabase,
+      organizationId: tenant.organizationId,
+      channel: "whatsapp",
+      templateName: name,
+      itemsCount: totalItems,
+      actorEmail: authData.user?.email ?? "Usuario interno",
+      targetScope: {
+        locations: locationScopes,
+        department_ids: departmentScopes,
+        position_ids: positionScopes,
+        users: userScopes,
+      },
+      templateBranchId: branchId,
+      templateDepartmentId: departmentId,
+    });
+  }
+
+  const notificationsSummary: string[] = [];
+  if (notifyByEmail) {
+    notificationsSummary.push(`Emails enviados: ${checklistAudienceEmailCount}`);
+  }
+  if (notifyVia.includes("sms")) {
+    notificationsSummary.push(`SMS enviados: ${checklistAudienceSmsCount}`);
+  }
+  if (notifyVia.includes("whatsapp")) {
+    notificationsSummary.push(`WhatsApp enviados: ${checklistAudienceWhatsappCount}`);
+  }
+
   return {
     success: true,
     message: templateId
       ? preservedHistory
         ? "Checklist actualizado creando nueva version (se preservo historial)"
         : "Checklist actualizado correctamente"
-      : notifyByEmail
-        ? `Plantilla creada correctamente. Emails enviados: ${checklistAudienceEmailCount}`
+      : notificationsSummary.length
+        ? `Plantilla creada correctamente. ${notificationsSummary.join(" · ")}`
         : "Plantilla creada correctamente"
   };
 }
