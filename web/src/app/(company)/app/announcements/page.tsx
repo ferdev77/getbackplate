@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Bell, BellPlus, CalendarClock, Pencil, Pin } from "lucide-react";
 
-import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { parseAnnouncementScope } from "@/modules/announcements/lib/scope";
 import {
@@ -52,7 +51,6 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
   const action = String(params.action ?? "").trim().toLowerCase();
   const openCreateModal = action === "create" || action === "edit";
   const supabase = await createSupabaseServerClient();
-  const admin = createSupabaseAdminClient();
   const { data: authData } = await supabase.auth.getUser();
 
   const { data: announcements, error: annError } = await supabase
@@ -92,24 +90,24 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
     .eq("organization_id", tenant.organizationId)
     .eq("is_active", true);
 
-const employeesQuery = admin
+const employeesQuery = supabase
   .from("employees")
   .select("id, user_id, first_name, last_name, branch_id, department_id, position")
   .eq("organization_id", tenant.organizationId);
 
-  const departmentsQuery = admin
+  const departmentsQuery = supabase
     .from("organization_departments")
     .select("id, name")
     .eq("organization_id", tenant.organizationId)
     .eq("is_active", true);
 
-  const positionsQuery = admin
+  const positionsQuery = supabase
     .from("department_positions")
     .select("id, department_id, name")
     .eq("organization_id", tenant.organizationId)
     .eq("is_active", true);
 
-  const userProfilesQuery = admin
+  const userProfilesQuery = supabase
     .from("organization_user_profiles")
   .select("id, user_id, first_name, last_name")
   .eq("organization_id", tenant.organizationId)

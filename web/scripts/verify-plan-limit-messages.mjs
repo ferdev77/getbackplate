@@ -5,8 +5,7 @@ const ROOT = process.cwd();
 
 const FILES = [
   "src/modules/settings/actions.ts",
-  "src/modules/employees/actions.ts",
-  "src/modules/documents/actions.ts",
+  "src/app/api/company/users/route.ts",
   "src/app/api/company/employees/route.ts",
   "src/app/api/company/documents/route.ts",
 ];

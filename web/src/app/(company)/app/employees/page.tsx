@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 
-import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { EmployeesTableWorkspace } from "@/modules/employees/ui/employees-table-workspace";
 import { NewEmployeeModal } from "@/modules/employees/ui/new-employee-modal";
@@ -36,9 +35,7 @@ export const revalidate = 0;
 
 export default async function CompanyEmployeesPage({ searchParams }: CompanyEmployeesPageProps) {
   const tenant = await requireTenantModule("employees");
-  // Use server client only to get auth user; use admin client for data queries to bypass RLS
   const supabase = await createSupabaseServerClient();
-  const admin = createSupabaseAdminClient();
   const action = String((await searchParams).action ?? "").trim().toLowerCase();
   const openEmployeeModal = action === "create" || action === "edit" || action === "create-employee" || action === "edit-employee" || action === "edit-user";
 
@@ -49,9 +46,8 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
 
   const pageLimit = 100;
   
-  // Use admin client to bypass RLS — this is a server-side page with tenant auth already verified
   const viewData = await getEmployeeDirectoryView(
-    admin, 
+    supabase,
     tenant.organizationId, 
     pageLimit,
     {
@@ -60,7 +56,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
     }
   );
 
-  const { data: organizationUserProfiles } = await admin
+  const { data: organizationUserProfiles } = await supabase
     .from("organization_user_profiles")
     .select("id, user_id, first_name, last_name, email, phone, branch_id, department_id, is_employee, status, created_at")
     .eq("organization_id", tenant.organizationId)
@@ -68,7 +64,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
     .order("created_at", { ascending: false })
     .limit(pageLimit * 2);
 
-  const { data: organizationMemberships } = await admin
+  const { data: organizationMemberships } = await supabase
     .from("memberships")
     .select("user_id, status")
     .eq("organization_id", tenant.organizationId);

@@ -9,16 +9,12 @@ const EXPECTED_GUARDS = [
     mustInclude: ["assertPlanLimitForBranches"],
   },
   {
-    file: "src/modules/employees/actions.ts",
-    mustInclude: ["assertPlanLimitForEmployees", "assertPlanLimitForUsers"],
+    file: "src/app/api/company/users/route.ts",
+    mustInclude: ["assertPlanLimitForUsers"],
   },
   {
     file: "src/app/api/company/employees/route.ts",
     mustInclude: ["assertPlanLimitForEmployees", "assertPlanLimitForUsers", "assertPlanLimitForStorage"],
-  },
-  {
-    file: "src/modules/documents/actions.ts",
-    mustInclude: ["assertPlanLimitForStorage"],
   },
   {
     file: "src/app/api/company/documents/route.ts",

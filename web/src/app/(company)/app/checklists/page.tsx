@@ -67,7 +67,6 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
   const templateId = firstParam(params.templateId).trim();
 
   const supabase = await createSupabaseServerClient();
-  const admin = createSupabaseAdminClient();
 
   const [
     { data: branches },
@@ -77,7 +76,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
     { count: completedCount },
     { count: pendingCount },
   ] = await Promise.all([
-    admin
+    supabase
       .from("branches")
       .select("id, name")
       .eq("organization_id", tenant.organizationId)
@@ -89,14 +88,14 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
       .eq("organization_id", tenant.organizationId)
       .order("created_at", { ascending: false })
       .limit(80),
-    admin
+    supabase
       .from("organization_departments")
       .select("id, name")
       .eq("organization_id", tenant.organizationId)
       .eq("is_active", true)
       .order("name"),
     (openCreateModal || previewTemplateId)
-      ? admin
+      ? supabase
           .from("department_positions")
           .select("id, department_id, name")
           .eq("organization_id", tenant.organizationId)

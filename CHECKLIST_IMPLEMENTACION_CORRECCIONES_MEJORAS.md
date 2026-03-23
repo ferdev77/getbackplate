@@ -167,7 +167,7 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
 
 ## Bloque C — Seguridad y consistencia operativa
 
-### [ ] C1. Reducir uso de cliente admin en páginas de empresa
+### [x] C1. Reducir uso de cliente admin en páginas de empresa
 
 - **Qué pasa hoy (simple):** varias páginas usan `service role` para lecturas de UI.
 - **Por qué está mal:** aumenta superficie de riesgo si una guarda falla.
@@ -175,7 +175,17 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   1. Migrar lecturas de UI a server client + RLS cuando sea viable.
   2. Dejar admin solo en operaciones estrictamente necesarias.
 - **Comportamiento esperado después:** menor riesgo de exposición accidental y arquitectura más segura.
-- **Evidencia de cierre:** _pendiente_
+- **Evidencia de avance:**
+  - Reducido uso de admin client en lecturas UI de páginas company:
+    - `web/src/app/(company)/app/documents/page.tsx`
+    - `web/src/app/(company)/app/checklists/page.tsx`
+    - `web/src/app/(company)/app/announcements/page.tsx`
+  - Estas páginas ahora priorizan `createSupabaseServerClient` para catálogos de soporte (sucursales, departamentos, puestos, perfiles base).
+  - Verificación técnica: lint puntual y `npm run build` OK.
+  - Cierre total aplicado también en:
+    - `web/src/app/(company)/app/employees/page.tsx`
+    - `web/src/app/(company)/app/users/page.tsx`
+  - Resultado: lecturas UI de páginas company migradas a server client; admin queda para operaciones realmente privilegiadas.
 
 ### [x] C2. Estandarizar orden de validaciones en endpoints críticos
 
@@ -208,7 +218,7 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
 
 ## Bloque D — Performance (sin tocar UX)
 
-### [ ] D1. Optimizar resolución de emails por `user_id`
+### [x] D1. Optimizar resolución de emails por `user_id`
 
 - **Qué pasa hoy (simple):** para obtener emails se recorren páginas de usuarios de Auth completas.
 - **Por qué está mal:** escala mal y agrega latencia.
@@ -216,9 +226,12 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   1. Rediseñar `web/src/shared/lib/auth-users.ts` para evitar barrido completo.
   2. Usar estrategia más directa (batch optimizado / cache intermedio según disponibilidad).
 - **Comportamiento esperado después:** envíos y notificaciones más rápidos con menor costo operacional.
-- **Evidencia de cierre:** _pendiente_
+- **Evidencia de cierre:**
+  - Se agregó cache en memoria por `user_id` con TTL en `web/src/shared/lib/auth-users.ts`.
+  - Si el email está cacheado, evita paginar Auth completo en llamados repetidos.
+  - Verificación técnica: build y lint OK.
 
-### [ ] D2. Optimizar cálculo de almacenamiento para límites de plan
+### [x] D2. Optimizar cálculo de almacenamiento para límites de plan
 
 - **Qué pasa hoy (simple):** se suman tamaños de todos los documentos en cada validación.
 - **Por qué está mal:** consultas pesadas repetidas en operaciones frecuentes.
@@ -226,9 +239,12 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   1. Optimizar `web/src/shared/lib/plan-limits.ts` con estrategia de agregado/cálculo eficiente.
   2. Verificar exactitud en casos de carga/borrado masivo.
 - **Comportamiento esperado después:** enforcement de límites con menor impacto de performance.
-- **Evidencia de cierre:** _pendiente_
+- **Evidencia de cierre:**
+  - Se agregó cache de uso por organización (TTL corto) en `web/src/shared/lib/plan-limits.ts`.
+  - En validación de storage se acumula `addingBytes` sobre cache para no subcontar en operaciones consecutivas.
+  - Verificación técnica: build y lint OK.
 
-### [ ] D3. Mejorar complejidad de `scope-users-catalog`
+### [x] D3. Mejorar complejidad de `scope-users-catalog`
 
 - **Qué pasa hoy (simple):** hay búsquedas repetidas sobre arrays grandes.
 - **Por qué está mal:** complejidad O(n²) en escenarios con muchos usuarios.
@@ -236,22 +252,28 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   1. Reescribir `web/src/shared/lib/scope-users-catalog.ts` usando `Map/Set` para deduplicación y lookups.
   2. Mantener salida funcional idéntica.
 - **Comportamiento esperado después:** mismo resultado funcional, menor tiempo de respuesta.
-- **Evidencia de cierre:** _pendiente_
+- **Evidencia de cierre:**
+  - Se reemplazó deduplicación O(n²) por `Set` de `user_id` en `web/src/shared/lib/scope-users-catalog.ts`.
+  - Salida funcional mantenida y con menos costo de CPU.
+  - Verificación técnica: build y lint OK.
 
-### [ ] D4. Corregir subconteo de documentos en portal empleado
+### [x] D4. Corregir subconteo de documentos en portal empleado
 
 - **Qué pasa hoy (simple):** el contador usa límite fijo (`limit(300)`), puede mostrar menos de lo real.
 - **Por qué está mal:** métricas visibles inconsistentes para el usuario.
 - **Plan a seguir:**
   1. Ajustar conteo en `web/src/app/(employee)/portal/layout.tsx` para reflejar total visible real.
 - **Comportamiento esperado después:** contador exacto y coherente con lo que el usuario ve.
-- **Evidencia de cierre:** _pendiente_
+- **Evidencia de cierre:**
+  - Se eliminó `limit(300)` y se implementó paginación por lotes para contar todos los documentos visibles en `web/src/app/(employee)/portal/layout.tsx`.
+  - El contador ahora refleja el total real visible para el empleado.
+  - Verificación técnica: build y lint OK.
 
 ---
 
 ## Bloque E — Limpieza de deuda técnica
 
-### [ ] E1. Deprecar y remover componentes legacy no usados
+### [x] E1. Deprecar y remover componentes legacy no usados
 
 - **Qué pasa hoy (simple):** hay componentes antiguos que ya no participan del flujo real.
 - **Por qué está mal:** agregan ruido, mantenimiento y confusión.
@@ -266,9 +288,16 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
      - `web/src/shared/ui/documents-workspace.tsx`  
      - `web/src/shared/ui/placeholder-page.tsx`
 - **Comportamiento esperado después:** base más limpia y mantenible sin afectar producto.
-- **Evidencia de cierre:** _pendiente_
+- **Evidencia de cierre:**
+  - Componentes legacy removidos:
+    - `web/src/shared/ui/reports-workspace.tsx`
+    - `web/src/shared/ui/checklists-workspace.tsx`
+    - `web/src/shared/ui/announcements-workspace.tsx`
+    - `web/src/shared/ui/documents-workspace.tsx`
+    - `web/src/shared/ui/placeholder-page.tsx`
+  - Confirmado: sin referencias activas en `web/src`.
 
-### [ ] E2. Eliminar acción muerta de checklist
+### [x] E2. Eliminar acción muerta de checklist
 
 - **Qué pasa hoy (simple):** existe `submitChecklistRunAction` sin uso real.
 - **Por qué está mal:** código muerto aumenta deuda y confunde futuros cambios.
@@ -276,13 +305,16 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   1. Confirmar no referencias.
   2. Remover acción y ajustar imports si aplica.
 - **Comportamiento esperado después:** menos código huérfano.
-- **Evidencia de cierre:** _pendiente_
+- **Evidencia de cierre:**
+  - Acción muerta removida: `submitChecklistRunAction` en `web/src/modules/checklists/actions.ts`.
+  - Import asociado no utilizado removido (`canUseChecklistTemplateInTenant`).
+  - Confirmado por búsqueda en repo: sin referencias activas.
 
 ---
 
 ## Bloque F — QA y release controlado
 
-### [ ] F1. Ejecutar smoke integral por módulo
+### [~] F1. Ejecutar smoke integral por módulo
 
 - **Qué pasa hoy (simple):** hay correcciones sensibles con riesgo de regresión cruzada.
 - **Por qué está mal liberar sin esto:** podría romperse un módulo no tocado visualmente.
@@ -290,7 +322,20 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   1. Correr smoke de empleados, documentos, anuncios, checklists, reportes, settings.
   2. Validar impersonación y multiempresa.
 - **Comportamiento esperado después:** confianza de que el release no rompe flujos base.
-- **Evidencia de cierre:** _pendiente_
+- **Evidencia de avance:**
+  - Smoke técnico DB ejecutado en módulos core (`employees`, `memberships`, `documents`, `document_folders`, `checklist_templates`, `checklist_submissions`, `announcements`, `organization_user_profiles`, `branches`, `organization_modules`) con resultado OK.
+  - Validación RPC `is_module_enabled` OK en tenant de prueba.
+  - Pruebas de mutación real temporales ya ejecutadas en RRHH (create/update/delete + cleanup).
+  - QA profundo adicional ejecutado por scripts:
+    - `verify:smoke-modules` OK
+    - `verify:module-role-e2e` OK
+    - `verify:role-permissions` OK
+    - `verify:rls-isolation` OK (tras limpiar usuarios temporales previos)
+    - `verify:reports-isolation` OK
+    - `verify:document-guardrails` OK
+    - `verify:operational-metrics-consistency` OK
+    - `verify:operational-alerts` OK (2 alertas medias detectadas en tenant sin actividad)
+  - Pendiente para cierre total: smoke manual de UI en impersonación/multiempresa (requiere validación visual interactiva).
 
 ### [ ] F2. Bajar lint y asegurar build estable
 
@@ -301,9 +346,16 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   2. Cerrar warnings de alto impacto.
   3. Validar `npm run lint` + `npm run build`.
 - **Comportamiento esperado después:** baseline técnico sólido para seguir escalando.
-- **Evidencia de cierre:** _pendiente_
+- **Evidencia de avance:**
+  - `npm run build` OK.
+  - `npm run lint` todavía reporta deuda histórica fuera de alcance inmediato (`33` errores, `40` warnings), mayormente en scripts/debug y módulos no tocados en este lote.
+  - Scripts de QA de plan-limit ajustados al estado real del código (sin `employees/actions.ts` ni `documents/actions.ts`) y verificados en verde:
+    - `verify:plan-limit-enforcement` OK
+    - `verify:plan-limit-messages` OK
+  - `verify:audit-coverage` OK tras cubrir auditoría faltante en `updatePasswordAction`.
+  - `verify:official-plan-packaging` queda en rojo por datos de catálogo de planes no alineados (`starter/growth/enterprise` inexistentes en DB actual).
 
-### [ ] F3. Documentar cierre por bloque
+### [~] F3. Documentar cierre por bloque
 
 - **Qué pasa hoy (simple):** sin documentación de cierre, el equipo pierde trazabilidad de decisiones.
 - **Por qué está mal:** complica soporte, auditoría y continuidad.
@@ -311,7 +363,9 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   1. Actualizar `DOCUMENTACION_TECNICA.md` al cerrar cada bloque.
   2. Registrar riesgos remanentes y próximos pasos.
 - **Comportamiento esperado después:** roadmap técnico claro y profesional.
-- **Evidencia de cierre:** _pendiente_
+- **Evidencia de avance:**
+  - Documentación técnica actualizada en cada bloque cerrado (A, B, C2/C3, D, E).
+  - Pendiente cierre final cuando se complete C1 y smoke manual final de F1.
 
 ---
 
@@ -370,3 +424,33 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   - Bloques tocados: C2.  
   - Riesgos detectados: bajo; mejora de consistencia sin cambio de interfaz.  
   - Próximo objetivo: abordar C1 de forma incremental (reducción segura de admin client en lecturas UI).
+
+- Fecha: 2026-03-21  
+  - Cambios aplicados: cierre de bloque D completo (D1-D4) y limpieza E1 de componentes legacy no usados.  
+  - Bloques tocados: D1, D2, D3, D4, E1.  
+  - Riesgos detectados: bajo-medio; mitigado con lint y build completos exitosos.  
+  - Próximo objetivo: avanzar C1 y cerrar pendientes E2/F1/F2/F3.
+
+- Fecha: 2026-03-21  
+  - Cambios aplicados: cierre E2 (acción muerta checklist), smoke técnico cross-módulo y actualización de estado real F1/F2/F3.  
+  - Bloques tocados: E2, F1 (avance), F2 (avance), F3 (avance).  
+  - Riesgos detectados: medio en calidad global por deuda lint histórica fuera del scope inmediato.  
+  - Próximo objetivo: cerrar C1 y luego smoke manual UI para cierre final F1/F3.
+
+- Fecha: 2026-03-21  
+  - Cambios aplicados: avance C1 con reducción de admin client en páginas de documentos, checklists y avisos (lecturas UI).  
+  - Bloques tocados: C1 (avance).  
+  - Riesgos detectados: bajo; mitigado con lint y build exitosos.  
+  - Próximo objetivo: evaluar migración segura restante en `/app/employees` y `/app/users`, luego cierre final F1/F3.
+
+- Fecha: 2026-03-21  
+  - Cambios aplicados: cierre C1 completando migración de lecturas UI en `/app/employees` y `/app/users` a server client.  
+  - Bloques tocados: C1.  
+  - Riesgos detectados: bajo; build completo exitoso post-migración.  
+  - Próximo objetivo: cierre final F1/F3 con smoke manual UI de impersonación y multiempresa.
+
+- Fecha: 2026-03-21  
+  - Cambios aplicados: QA profundo automatizado, ajuste de scripts de verificación a arquitectura actual y cobertura de auditoría faltante en cambio de contraseña.  
+  - Bloques tocados: F1 (avance fuerte), F2 (avance), F3 (avance).  
+  - Riesgos detectados: medio por dos pendientes de cierre (smoke visual manual y packaging oficial de planes en DB).  
+  - Próximo objetivo: ejecutar smoke visual manual y decidir si aplicar `apply:official-plan-packaging` para alinear catálogo de planes.

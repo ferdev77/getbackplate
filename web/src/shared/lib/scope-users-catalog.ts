@@ -61,8 +61,13 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
   const departmentNameById = new Map((departments ?? []).map((row) => [row.id, row.name]));
 
   const catalog: ScopeCatalogUser[] = [];
+  const userIdsInCatalog = new Set<string>();
 
   for (const employee of employees ?? []) {
+    if (employee.user_id) {
+      userIdsInCatalog.add(employee.user_id);
+    }
+
     catalog.push({
       id: employee.id,
       user_id: employee.user_id,
@@ -76,7 +81,7 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
   }
 
   for (const profile of userProfiles ?? []) {
-    if (profile.user_id && catalog.some((row) => row.user_id === profile.user_id)) continue;
+    if (profile.user_id && userIdsInCatalog.has(profile.user_id)) continue;
     catalog.push({
       id: `up-${profile.id}`,
       user_id: profile.user_id,
@@ -84,11 +89,14 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
       last_name: profile.last_name ?? "",
       role_label: "Usuario",
     });
+    if (profile.user_id) {
+      userIdsInCatalog.add(profile.user_id);
+    }
   }
 
   for (const userId of employeeRoleUserIds) {
     if (!userId) continue;
-    if (catalog.some((row) => row.user_id === userId)) continue;
+    if (userIdsInCatalog.has(userId)) continue;
     catalog.push({
       id: `m-${userId}`,
       user_id: userId,
@@ -96,6 +104,7 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
       last_name: userId.slice(0, 8),
       role_label: "Usuario",
     });
+    userIdsInCatalog.add(userId);
   }
 
   return catalog;

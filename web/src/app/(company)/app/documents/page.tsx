@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { FolderPlus, LayoutGrid, UploadCloud } from "lucide-react";
 
-import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { DocumentsTreeWorkspace } from "@/modules/documents/ui/documents-tree-workspace";
 import { DocumentFolderModal } from "@/modules/documents/ui/document-folder-modal";
@@ -26,7 +25,6 @@ export default async function CompanyDocumentsPage({
   const openFolderModal = params.action === "create-folder";
   const openUploadModal = params.action === "upload";
   const supabase = await createSupabaseServerClient();
-  const admin = createSupabaseAdminClient();
 
   const [{ data: folders }, { data: documents }, { data: branches }, { data: departments }, { data: positions }] =
     await Promise.all([
@@ -41,20 +39,20 @@ export default async function CompanyDocumentsPage({
         .eq("organization_id", tenant.organizationId)
         .order("created_at", { ascending: false })
         .limit(100),
-      admin
+      supabase
         .from("branches")
         .select("id, name")
         .eq("organization_id", tenant.organizationId)
         .eq("is_active", true)
         .order("name"),
-      admin
+      supabase
         .from("organization_departments")
         .select("id, name")
         .eq("organization_id", tenant.organizationId)
         .eq("is_active", true)
         .order("name"),
       (openFolderModal || openUploadModal)
-        ? admin
+        ? supabase
             .from("department_positions")
             .select("id, department_id, name")
             .eq("organization_id", tenant.organizationId)

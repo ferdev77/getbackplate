@@ -76,6 +76,14 @@ type OrganizationUsage = {
   storageBytes: number;
 };
 
+type UsageCacheEntry = {
+  usage: OrganizationUsage;
+  fetchedAt: number;
+};
+
+const USAGE_CACHE_TTL_MS = 15 * 1000;
+const usageCache = new Map<string, UsageCacheEntry>();
+
 type PlanLimits = {
   maxBranches: number | null;
   maxUsers: number | null;
@@ -106,6 +114,12 @@ async function getLimits(orgId: string): Promise<OrganizationLimits> {
 }
 
 async function getUsage(orgId: string): Promise<OrganizationUsage> {
+  const cached = usageCache.get(orgId);
+  const now = Date.now();
+  if (cached && now - cached.fetchedAt <= USAGE_CACHE_TTL_MS) {
+    return cached.usage;
+  }
+
   const admin = createSupabaseAdminClient();
 
   const [{ count: branches }, { count: users }, { count: employees }, { data: docs }] = await Promise.all([
@@ -121,12 +135,33 @@ async function getUsage(orgId: string): Promise<OrganizationUsage> {
 
   const storageBytes = (docs ?? []).reduce((sum, row) => sum + toSafeInt(row.file_size_bytes), 0);
 
-  return {
+  const usage = {
     branches: toSafeInt(branches),
     users: toSafeInt(users),
     employees: toSafeInt(employees),
     storageBytes,
   };
+
+  usageCache.set(orgId, { usage, fetchedAt: now });
+
+  return usage;
+}
+
+function bumpUsageCache(orgId: string, updates: Partial<OrganizationUsage>) {
+  const cached = usageCache.get(orgId);
+  if (!cached) return;
+
+  const next: OrganizationUsage = {
+    branches: Math.max(0, cached.usage.branches + (updates.branches ?? 0)),
+    users: Math.max(0, cached.usage.users + (updates.users ?? 0)),
+    employees: Math.max(0, cached.usage.employees + (updates.employees ?? 0)),
+    storageBytes: Math.max(0, cached.usage.storageBytes + (updates.storageBytes ?? 0)),
+  };
+
+  usageCache.set(orgId, {
+    usage: next,
+    fetchedAt: cached.fetchedAt,
+  });
 }
 
 async function getPlanLimitsById(planId: string): Promise<PlanLimits | null> {
@@ -224,6 +259,8 @@ export async function assertPlanLimitForStorage(orgId: string, addingBytes: numb
     adding: Math.floor(addingBytes),
     limit: maxStorageBytes,
   });
+
+  bumpUsageCache(orgId, { storageBytes: Math.floor(addingBytes) });
 }
 
 export async function assertOrganizationCanSwitchToPlan(orgId: string, targetPlanId: string) {

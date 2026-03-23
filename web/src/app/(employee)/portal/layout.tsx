@@ -96,13 +96,6 @@ export default async function EmployeeLayout({
   let docsCount = 0;
 
   if (isDocumentsEnabled) {
-    const { data: documents } = await supabase
-      .from("documents")
-      .select("id, branch_id, access_scope")
-      .eq("organization_id", tenant.organizationId)
-      .order("created_at", { ascending: false })
-      .limit(300);
-
     const assignedDocumentIds = new Set<string>();
     if (employee?.id) {
       const { data: links } = await supabase
@@ -116,17 +109,40 @@ export default async function EmployeeLayout({
       }
     }
 
-    docsCount = (documents ?? []).filter((doc) =>
-      canReadDocumentInTenant({
-        roleCode: tenant.roleCode,
-        userId: user.id,
-        branchId: employeeBranchId,
-        departmentId: employee?.department_id ?? null,
-        positionIds: employeePositionIds,
-        isDirectlyAssigned: assignedDocumentIds.has(doc.id),
-        accessScope: doc.access_scope,
-      }),
-    ).length;
+    const pageSize = 500;
+    let from = 0;
+
+    while (true) {
+      const { data: documents } = await supabase
+        .from("documents")
+        .select("id, branch_id, access_scope")
+        .eq("organization_id", tenant.organizationId)
+        .order("created_at", { ascending: false })
+        .range(from, from + pageSize - 1);
+
+      const batch = documents ?? [];
+      if (!batch.length) {
+        break;
+      }
+
+      docsCount += batch.filter((doc) =>
+        canReadDocumentInTenant({
+          roleCode: tenant.roleCode,
+          userId: user.id,
+          branchId: employeeBranchId,
+          departmentId: employee?.department_id ?? null,
+          positionIds: employeePositionIds,
+          isDirectlyAssigned: assignedDocumentIds.has(doc.id),
+          accessScope: doc.access_scope,
+        }),
+      ).length;
+
+      if (batch.length < pageSize) {
+        break;
+      }
+
+      from += pageSize;
+    }
   }
 
   const employeeName = employee
