@@ -3,7 +3,6 @@
 import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { logAuthEvent } from "@/shared/lib/audit";
-import { AUDIT_REASON_CODES } from "@/shared/lib/audit-taxonomy";
 import { setActiveOrganizationIdCookie } from "@/shared/lib/tenant-selection";
 
 function slugify(value: string) {
@@ -81,8 +80,8 @@ export async function registerPublicAction(formData: FormData) {
     // 3. Assign Core Modules
     const { data: modules } = await supabaseAdmin
       .from("module_catalog")
-      .select("id, code")
-      .in("code", ["dashboard", "settings"]);
+      .select("id")
+      .eq("is_core", true);
 
     if (modules?.length) {
       await supabaseAdmin.from("organization_modules").insert(
@@ -129,7 +128,7 @@ export async function registerPublicAction(formData: FormData) {
     // MUST use the ServerClient, not Admin Client, so cookies are set!
     const { createSupabaseServerClient } = await import("@/infrastructure/supabase/client/server");
     const supabaseServer = await createSupabaseServerClient();
-    const { error: signInError } = await supabaseServer.auth.signInWithPassword({
+    await supabaseServer.auth.signInWithPassword({
         email,
         password
     });

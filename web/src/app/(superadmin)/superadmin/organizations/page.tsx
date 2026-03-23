@@ -100,7 +100,7 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
     supabase.from("roles").select("id, code"),
     supabase.from("branches").select("organization_id, is_active"),
     supabase.from("memberships").select("organization_id, status"),
-    supabase.from("employees").select("organization_id, is_active"),
+    supabase.from("employees").select("organization_id, status"),
     supabase.from("documents").select("organization_id, file_size_bytes"),
   ]);
 
@@ -147,7 +147,7 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
 
   const usedEmployeesByOrg = new Map<string, number>();
   for (const row of employeesUsage ?? []) {
-    if (!row.is_active) continue;
+    if (row.status !== "active") continue;
     usedEmployeesByOrg.set(row.organization_id, (usedEmployeesByOrg.get(row.organization_id) ?? 0) + 1);
   }
 

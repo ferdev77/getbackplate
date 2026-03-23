@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { requireSuperadmin } from "@/shared/lib/access";
+import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { createSuperadminImpersonationSession, setSuperadminImpersonationCookie } from "@/shared/lib/impersonation";
 import {
@@ -47,34 +48,6 @@ function buildTemporaryPasswordMetadata(
     force_password_change: true,
     temporary_password_set_at: new Date().toISOString(),
   };
-}
-
-async function findAuthUserByEmail(email: string) {
-  const supabase = createSupabaseAdminClient();
-  let page = 1;
-  const perPage = 200;
-
-  while (true) {
-    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
-
-    if (error) {
-      return null;
-    }
-
-    const found = data.users.find(
-      (user) => user.email?.toLowerCase() === email.toLowerCase(),
-    );
-
-    if (found) {
-      return found;
-    }
-
-    if (data.users.length < perPage) {
-      return null;
-    }
-
-    page += 1;
-  }
 }
 
 async function getCompanyAdminRoleId() {
@@ -567,11 +540,6 @@ export async function updateOrganizationAction(formData: FormData) {
 
   const planChanged = (currentOrg?.plan_id ?? null) !== planId;
 
-  await supabase
-    .from("organizations")
-    .update({ name, slug, status })
-    .eq("id", organizationId);
-
   if (planChanged && planId) {
     try {
       await assertOrganizationCanSwitchToPlan(organizationId, planId);
@@ -586,19 +554,27 @@ export async function updateOrganizationAction(formData: FormData) {
           ),
       );
     }
-
-    await supabase
-      .from("organizations")
-      .update({ plan_id: planId })
-      .eq("id", organizationId);
   }
 
-  if (planChanged && !planId) {
-    await supabase
-      .from("organizations")
-      .update({ plan_id: null })
-      .eq("id", organizationId);
+  const organizationUpdatePayload: {
+    name: string;
+    slug: string;
+    status: string;
+    plan_id?: string | null;
+  } = {
+    name,
+    slug,
+    status,
+  };
+
+  if (planChanged) {
+    organizationUpdatePayload.plan_id = planId;
   }
+
+  await supabase
+    .from("organizations")
+    .update(organizationUpdatePayload)
+    .eq("id", organizationId);
 
   if (planChanged && planId) {
     const { data: planLimits } = await supabase
