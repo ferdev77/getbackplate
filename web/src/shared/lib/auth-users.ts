@@ -56,3 +56,32 @@ export async function getAuthEmailByUserId(userIds: string[]) {
 
   return emailByUserId;
 }
+
+export async function findAuthUserByEmail(email: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) {
+    return null;
+  }
+
+  const admin = createSupabaseAdminClient();
+  let page = 1;
+  const perPage = 200;
+
+  while (true) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
+    if (error) {
+      return null;
+    }
+
+    const found = data.users.find((user) => user.email?.toLowerCase() === normalizedEmail);
+    if (found) {
+      return found;
+    }
+
+    if (data.users.length < perPage) {
+      return null;
+    }
+
+    page += 1;
+  }
+}

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { USERS_API_MESSAGES } from "@/shared/lib/employees-messages";
 import { assertPlanLimitForUsers, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
@@ -13,23 +14,6 @@ const ALLOWED_STATUSES = new Set(["active", "inactive"]);
 function isAuthUserAlreadyRegisteredError(message: string) {
   const normalized = message.toLowerCase();
   return normalized.includes("already") || normalized.includes("exists") || normalized.includes("registered");
-}
-
-async function findAuthUserByEmail(email: string) {
-  const admin = createSupabaseAdminClient();
-  let page = 1;
-  const perPage = 200;
-
-  while (true) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
-    if (error) return null;
-
-    const found = data.users.find((user) => user.email?.toLowerCase() === email.toLowerCase());
-    if (found) return found;
-
-    if (data.users.length < perPage) return null;
-    page += 1;
-  }
 }
 
 async function resolveOrCreateAuthUser(params: {

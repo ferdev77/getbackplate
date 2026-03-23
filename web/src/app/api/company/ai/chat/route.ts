@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import {
+  applySharedRateLimit,
+  deleteSharedRuntimeValue,
+  getSharedRuntimeValue,
+  setSharedRuntimeValue,
+} from "@/shared/lib/ai-runtime-store";
 import { logAuditEvent } from "@/shared/lib/audit";
 
 type ChatMessage = {
@@ -73,7 +79,16 @@ const requestTimestampsByUser = new Map<string, number[]>();
 const faqCache = new Map<string, CachedAnswer>();
 const sessionMemoryByKey = new Map<string, SessionMemory>();
 
-function applyRateLimit(userId: string) {
+async function applyRateLimit(userId: string) {
+  const shared = await applySharedRateLimit({
+    userId,
+    windowMs: REQUEST_WINDOW_MS,
+    maxRequests: MAX_REQUESTS_PER_WINDOW,
+  });
+  if (typeof shared === "boolean") {
+    return shared;
+  }
+
   const now = Date.now();
   const existing = requestTimestampsByUser.get(userId) ?? [];
   const fresh = existing.filter((timestamp) => now - timestamp < REQUEST_WINDOW_MS);
@@ -191,7 +206,12 @@ function buildFaqCacheKey(params: { organizationId: string; planCode: string | n
   return `${params.organizationId}::${params.planCode ?? "none"}::${params.intent}::${normalizeFaqQuestion(params.question)}`;
 }
 
-function getCachedAnswer(cacheKey: string) {
+async function getCachedAnswer(cacheKey: string) {
+  const shared = await getSharedRuntimeValue<CachedAnswer>("faq", cacheKey);
+  if (shared) {
+    return shared;
+  }
+
   const cached = faqCache.get(cacheKey);
   if (!cached) return null;
   if (Date.now() - cached.createdAt > FAQ_CACHE_TTL_MS) {
@@ -201,10 +221,18 @@ function getCachedAnswer(cacheKey: string) {
   return cached;
 }
 
-function setCachedAnswer(cacheKey: string, answer: Omit<CachedAnswer, "createdAt">) {
-  faqCache.set(cacheKey, {
+async function setCachedAnswer(cacheKey: string, answer: Omit<CachedAnswer, "createdAt">) {
+  const next = {
     ...answer,
     createdAt: Date.now(),
+  };
+
+  faqCache.set(cacheKey, next);
+  await setSharedRuntimeValue({
+    scope: "faq",
+    key: cacheKey,
+    value: next,
+    ttlSeconds: Math.ceil(FAQ_CACHE_TTL_MS / 1000),
   });
 }
 
@@ -212,21 +240,38 @@ function getSessionMemoryKey(organizationId: string, userId: string) {
   return `${organizationId}:${userId}`;
 }
 
-function getSessionMemory(memoryKey: string, incomingHistory: ChatMessage[]) {
+async function getSessionMemory(memoryKey: string, incomingHistory: ChatMessage[]) {
+  const shared = await getSharedRuntimeValue<SessionMemory>("session", memoryKey);
+  if (shared) {
+    if (!incomingHistory.length) {
+      return shared.messages;
+    }
+    return incomingHistory.slice(-SESSION_MEMORY_MAX_TURNS * 2);
+  }
+
   const existing = sessionMemoryByKey.get(memoryKey);
   if (!existing) return incomingHistory.slice(-SESSION_MEMORY_MAX_TURNS * 2);
   if (Date.now() - existing.updatedAt > SESSION_MEMORY_TTL_MS) {
     sessionMemoryByKey.delete(memoryKey);
+    await deleteSharedRuntimeValue("session", memoryKey);
     return incomingHistory.slice(-SESSION_MEMORY_MAX_TURNS * 2);
   }
   if (!incomingHistory.length) return existing.messages;
   return incomingHistory.slice(-SESSION_MEMORY_MAX_TURNS * 2);
 }
 
-function setSessionMemory(memoryKey: string, history: ChatMessage[]) {
-  sessionMemoryByKey.set(memoryKey, {
+async function setSessionMemory(memoryKey: string, history: ChatMessage[]) {
+  const payload = {
     updatedAt: Date.now(),
     messages: history.slice(-SESSION_MEMORY_MAX_TURNS * 2),
+  };
+
+  sessionMemoryByKey.set(memoryKey, payload);
+  await setSharedRuntimeValue({
+    scope: "session",
+    key: memoryKey,
+    value: payload,
+    ttlSeconds: Math.ceil(SESSION_MEMORY_TTL_MS / 1000),
   });
 }
 
@@ -359,7 +404,7 @@ async function getFacts(organizationId: string): Promise<Facts> {
       .maybeSingle(),
     supabase
       .from("documents")
-      .select("name, created_at")
+      .select("title, created_at")
       .eq("organization_id", organizationId)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -411,7 +456,7 @@ async function getFacts(organizationId: string): Promise<Facts> {
     announcementsExpiringSoon: announcementsExpiringSoon ?? 0,
     latestAnnouncementTitle: latestAnnouncement?.title ?? null,
     latestAnnouncementDate: latestAnnouncement?.publish_at ?? null,
-    latestDocumentName: latestDocument?.name ?? null,
+    latestDocumentName: latestDocument?.title ?? null,
     latestChecklistTemplate: latestChecklistTemplate?.name ?? null,
     enabledModules,
     planCode: plan?.code ?? null,
@@ -656,7 +701,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
-  if (!applyRateLimit(access.userId)) {
+  if (!(await applyRateLimit(access.userId))) {
     return NextResponse.json(
       { error: "Demasiadas consultas seguidas. Espera un minuto e intenta de nuevo." },
       { status: 429 },
@@ -687,7 +732,7 @@ export async function POST(request: Request) {
   const complexity = detectComplexity(question);
 
   const memoryKey = getSessionMemoryKey(access.tenant.organizationId, access.userId);
-  const history = getSessionMemory(memoryKey, incomingHistory);
+  const history = await getSessionMemory(memoryKey, incomingHistory);
 
   const canUseFaqCache = history.length <= 1;
   const cacheKey = buildFaqCacheKey({
@@ -698,10 +743,10 @@ export async function POST(request: Request) {
   });
 
   if (canUseFaqCache) {
-    const cached = getCachedAnswer(cacheKey);
+    const cached = await getCachedAnswer(cacheKey);
     if (cached) {
       const assistantMessage: ChatMessage = { role: "assistant", content: cached.answer };
-      setSessionMemory(memoryKey, [...history, { role: "user", content: question }, assistantMessage]);
+      await setSessionMemory(memoryKey, [...history, { role: "user", content: question }, assistantMessage]);
       return NextResponse.json({
         answer: cached.answer,
         mode: cached.mode,
@@ -836,10 +881,10 @@ export async function POST(request: Request) {
   }
 
   const assistantMessage: ChatMessage = { role: "assistant", content: answer };
-  setSessionMemory(memoryKey, [...history, { role: "user", content: question }, assistantMessage]);
+  await setSessionMemory(memoryKey, [...history, { role: "user", content: question }, assistantMessage]);
 
   if (canUseFaqCache) {
-    setCachedAnswer(cacheKey, {
+    await setCachedAnswer(cacheKey, {
       answer,
       mode,
       confidence,
