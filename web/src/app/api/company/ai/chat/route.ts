@@ -16,8 +16,24 @@ type AssistantMode = "basic" | "basic_ai" | "pro_ai";
 
 type Facts = {
   employeesActive: number;
+  employeesTotal: number;
+  usersActive: number;
+  branchesActive: number;
+  departmentsActive: number;
+  positionsActive: number;
+  documentsTotal: number;
+  foldersTotal: number;
+  checklistTemplatesTotal: number;
+  checklistRunsTotal: number;
   checklistPending: number;
   documentsPending: number;
+  announcementsActive: number;
+  announcementsFeatured: number;
+  announcementsExpiringSoon: number;
+  latestAnnouncementTitle: string | null;
+  latestAnnouncementDate: string | null;
+  latestDocumentName: string | null;
+  latestChecklistTemplate: string | null;
   enabledModules: string[];
   planCode: string | null;
   planName: string | null;
@@ -92,10 +108,12 @@ function normalizeHistory(raw: unknown): ChatMessage[] {
 
 function detectIntent(question: string): AssistantIntent {
   const q = question.toLowerCase();
-  if (q.includes("emplead") || q.includes("usuario")) return "employees";
+  if (q.includes("emplead") || q.includes("usuario") || q.includes("admin") || q.includes("administrador")) return "employees";
   if (q.includes("checklist") || q.includes("pendient")) return "checklists";
-  if (q.includes("document") || q.includes("firma")) return "documents";
-  if (q.includes("modulo") || q.includes("módulo") || q.includes("habilitado")) return "modules";
+  if (q.includes("document") || q.includes("firma") || q.includes("carpeta")) return "documents";
+  if (q.includes("aviso") || q.includes("anuncio") || q.includes("publicacion") || q.includes("publicación")) return "executive";
+  if (q.includes("modulo") || q.includes("módulo") || q.includes("habilitado") || q.includes("plan") || q.includes("configur")) return "modules";
+  if (q.includes("sucursal") || q.includes("departamento") || q.includes("puesto") || q.includes("reporte")) return "executive";
   if (q.includes("resumen") || q.includes("ejecut") || q.includes("general")) return "executive";
   return "general";
 }
@@ -234,11 +252,30 @@ function isSensitiveQuestion(question: string) {
 
 async function getFacts(organizationId: string): Promise<Facts> {
   const supabase = await createSupabaseServerClient();
+  const nowIso = new Date().toISOString();
+  const soon = new Date();
+  soon.setDate(soon.getDate() + 7);
+  const soonIso = soon.toISOString();
 
   const [
     { count: employeesActive },
+    { count: employeesTotal },
+    { count: usersActive },
+    { count: branchesActive },
+    { count: departmentsActive },
+    { count: positionsActive },
+    { count: documentsTotal },
+    { count: foldersTotal },
+    { count: checklistTemplatesTotal },
+    { count: checklistRunsTotal },
     { count: checklistPending },
     { count: documentsPending },
+    { count: announcementsActive },
+    { count: announcementsFeatured },
+    { count: announcementsExpiringSoon },
+    { data: latestAnnouncement },
+    { data: latestDocument },
+    { data: latestChecklistTemplate },
     { data: enabledModulesRows },
     { data: organizationPlan },
   ] = await Promise.all([
@@ -247,6 +284,46 @@ async function getFacts(organizationId: string): Promise<Facts> {
       .select("id", { head: true, count: "exact" })
       .eq("organization_id", organizationId)
       .eq("status", "active"),
+    supabase
+      .from("employees")
+      .select("id", { head: true, count: "exact" })
+      .eq("organization_id", organizationId),
+    supabase
+      .from("memberships")
+      .select("id", { head: true, count: "exact" })
+      .eq("organization_id", organizationId)
+      .eq("status", "active"),
+    supabase
+      .from("branches")
+      .select("id", { head: true, count: "exact" })
+      .eq("organization_id", organizationId)
+      .eq("is_active", true),
+    supabase
+      .from("organization_departments")
+      .select("id", { head: true, count: "exact" })
+      .eq("organization_id", organizationId)
+      .eq("is_active", true),
+    supabase
+      .from("department_positions")
+      .select("id", { head: true, count: "exact" })
+      .eq("organization_id", organizationId)
+      .eq("is_active", true),
+    supabase
+      .from("documents")
+      .select("id", { head: true, count: "exact" })
+      .eq("organization_id", organizationId),
+    supabase
+      .from("document_folders")
+      .select("id", { head: true, count: "exact" })
+      .eq("organization_id", organizationId),
+    supabase
+      .from("checklist_templates")
+      .select("id", { head: true, count: "exact" })
+      .eq("organization_id", organizationId),
+    supabase
+      .from("checklist_submissions")
+      .select("id", { head: true, count: "exact" })
+      .eq("organization_id", organizationId),
     supabase
       .from("checklist_submissions")
       .select("id", { head: true, count: "exact" })
@@ -257,6 +334,43 @@ async function getFacts(organizationId: string): Promise<Facts> {
       .select("document_id", { head: true, count: "exact" })
       .eq("organization_id", organizationId)
       .in("status", ["pending", "rejected"]),
+    supabase
+      .from("announcements")
+      .select("id", { head: true, count: "exact" })
+      .eq("organization_id", organizationId),
+    supabase
+      .from("announcements")
+      .select("id", { head: true, count: "exact" })
+      .eq("organization_id", organizationId)
+      .eq("is_featured", true),
+    supabase
+      .from("announcements")
+      .select("id", { head: true, count: "exact" })
+      .eq("organization_id", organizationId)
+      .not("expires_at", "is", null)
+      .gte("expires_at", nowIso)
+      .lte("expires_at", soonIso),
+    supabase
+      .from("announcements")
+      .select("title, publish_at")
+      .eq("organization_id", organizationId)
+      .order("publish_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("documents")
+      .select("name, created_at")
+      .eq("organization_id", organizationId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("checklist_templates")
+      .select("name, created_at")
+      .eq("organization_id", organizationId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
     supabase
       .from("organization_modules")
       .select("module_catalog!inner(code)")
@@ -281,8 +395,24 @@ async function getFacts(organizationId: string): Promise<Facts> {
 
   return {
     employeesActive: employeesActive ?? 0,
+    employeesTotal: employeesTotal ?? 0,
+    usersActive: usersActive ?? 0,
+    branchesActive: branchesActive ?? 0,
+    departmentsActive: departmentsActive ?? 0,
+    positionsActive: positionsActive ?? 0,
+    documentsTotal: documentsTotal ?? 0,
+    foldersTotal: foldersTotal ?? 0,
+    checklistTemplatesTotal: checklistTemplatesTotal ?? 0,
+    checklistRunsTotal: checklistRunsTotal ?? 0,
     checklistPending: checklistPending ?? 0,
     documentsPending: documentsPending ?? 0,
+    announcementsActive: announcementsActive ?? 0,
+    announcementsFeatured: announcementsFeatured ?? 0,
+    announcementsExpiringSoon: announcementsExpiringSoon ?? 0,
+    latestAnnouncementTitle: latestAnnouncement?.title ?? null,
+    latestAnnouncementDate: latestAnnouncement?.publish_at ?? null,
+    latestDocumentName: latestDocument?.name ?? null,
+    latestChecklistTemplate: latestChecklistTemplate?.name ?? null,
     enabledModules,
     planCode: plan?.code ?? null,
     planName: plan?.name ?? null,
@@ -291,10 +421,17 @@ async function getFacts(organizationId: string): Promise<Facts> {
 
 function answerWithRules(question: string, facts: Facts) {
   const q = question.toLowerCase();
+  if (q.includes("todo") || q.includes("toda la info") || q.includes("panorama completo") || q.includes("estado general")) {
+    return [
+      `Resumen: empleados activos ${facts.employeesActive}/${facts.employeesTotal}, usuarios activos ${facts.usersActive}, checklists pendientes ${facts.checklistPending}, documentos pendientes ${facts.documentsPending}, avisos ${facts.announcementsActive}.`,
+      `Dato clave: sucursales ${facts.branchesActive}, departamentos ${facts.departmentsActive}, puestos ${facts.positionsActive}, plantillas checklist ${facts.checklistTemplatesTotal}, ejecuciones checklist ${facts.checklistRunsTotal}.`,
+      `Siguiente accion: pide detalle por modulo (empleados, documentos, checklists, avisos, modulos, plan) para bajar a nivel operativo.${facts.latestAnnouncementTitle ? ` Ultimo aviso: ${facts.latestAnnouncementTitle}.` : ""}`,
+    ].join("\n");
+  }
   if (q.includes("emplead") || q.includes("usuario")) {
     return [
-      `Resumen: hoy tienes ${facts.employeesActive} empleados activos.`,
-      `Dato clave: plantilla activa = ${facts.employeesActive}.`,
+      `Resumen: hoy tienes ${facts.employeesActive} empleados activos y ${facts.usersActive} usuarios activos en total.`,
+      `Dato clave: total de empleados registrados = ${facts.employeesTotal}.`,
       "Siguiente accion: revisa altas pendientes o ausencias del dia para ajustar operacion.",
     ].join("\n");
   }
@@ -320,10 +457,38 @@ function answerWithRules(question: string, facts: Facts) {
       "Siguiente accion: valida que los equipos usen solo modulos habilitados para tu plan.",
     ].join("\n");
   }
+  if (q.includes("sucursal") || q.includes("departamento") || q.includes("puesto")) {
+    return [
+      `Resumen: tienes ${facts.branchesActive} sucursales activas, ${facts.departmentsActive} departamentos activos y ${facts.positionsActive} puestos activos.`,
+      `Dato clave: estructura operativa actual = ${facts.branchesActive}/${facts.departmentsActive}/${facts.positionsActive}.`,
+      "Siguiente accion: valida cobertura por sucursal y departamentos con mayor carga.",
+    ].join("\n");
+  }
+  if (q.includes("plan") || q.includes("pricing") || q.includes("facturacion") || q.includes("facturación")) {
+    return [
+      `Resumen: plan actual = ${facts.planName ?? facts.planCode ?? "sin plan"}.`,
+      `Dato clave: modulos habilitados = ${facts.enabledModules.length}.`,
+      "Siguiente accion: evalua upgrade si necesitas mas automatizacion o mas capacidad.",
+    ].join("\n");
+  }
+  if (q.includes("reporte") || q.includes("resumen")) {
+    return [
+      `Resumen: empleados activos ${facts.employeesActive}, checklists pendientes ${facts.checklistPending}, documentos pendientes ${facts.documentsPending}, avisos ${facts.announcementsActive}.`,
+      `Dato clave: checklists corridos ${facts.checklistRunsTotal}, plantillas ${facts.checklistTemplatesTotal}, documentos ${facts.documentsTotal}, carpetas ${facts.foldersTotal}.`,
+      "Siguiente accion: pide un analisis puntual por area para priorizar accion operativa.",
+    ].join("\n");
+  }
+  if (q.includes("aviso") || q.includes("anuncio") || q.includes("publicacion") || q.includes("publicación")) {
+    return [
+      `Resumen: tienes ${facts.announcementsActive} avisos creados en total.`,
+      `Dato clave: fijados = ${facts.announcementsFeatured}, por vencer en 7 dias = ${facts.announcementsExpiringSoon}${facts.latestAnnouncementTitle ? `, ultimo aviso = ${facts.latestAnnouncementTitle}` : ""}.`,
+      "Siguiente accion: revisa avisos por vencer y prioriza los que impactan operacion diaria.",
+    ].join("\n");
+  }
   return [
-    `Resumen: ${facts.employeesActive} empleados activos, ${facts.checklistPending} checklists pendientes y ${facts.documentsPending} documentos pendientes.`,
+    `Resumen: ${facts.employeesActive} empleados activos, ${facts.checklistPending} checklists pendientes, ${facts.documentsPending} documentos pendientes y ${facts.announcementsActive} avisos creados.`,
     `Dato clave: plan actual = ${facts.planName ?? facts.planCode ?? "sin plan"}.`,
-    "Siguiente accion: decide si quieres profundizar en empleados, checklists, documentos o modulos.",
+    `Siguiente accion: decide si quieres profundizar en empleados, checklists, documentos, modulos, sucursales o reportes${facts.latestDocumentName ? ` (ultimo documento: ${facts.latestDocumentName})` : ""}.`,
   ].join("\n");
 }
 
