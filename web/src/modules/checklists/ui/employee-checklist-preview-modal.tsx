@@ -128,6 +128,7 @@ export function EmployeeChecklistPreviewModal({
     setVisible(false);
     setTimeout(() => {
       router.replace("/portal/checklist");
+      router.refresh();
       if (typeof window !== "undefined") {
         window.setTimeout(() => {
           if (window.location.search.includes("preview=")) {
