@@ -333,6 +333,11 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
     - `verify:rls-isolation` OK (tras limpiar usuarios temporales previos)
     - `verify:reports-isolation` OK
     - `verify:document-guardrails` OK
+    - `verify:audit-coverage` OK
+    - `verify:plan-limit-enforcement` OK
+    - `verify:plan-limit-messages` OK
+    - `verify:official-plan-packaging` OK (`basico/pro`)
+    - `verify:plan-change-rules` OK
     - `verify:operational-metrics-consistency` OK
     - `verify:operational-alerts` OK (2 alertas medias detectadas en tenant sin actividad)
   - Pendiente para cierre total: smoke manual de UI en impersonación/multiempresa (requiere validación visual interactiva).
@@ -461,3 +466,9 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   - Bloques tocados: F1 (avance), F2 (avance), F3 (avance).  
   - Riesgos detectados: bajo-medio; pendiente único para cierre total es validación visual/manual de impersonación y multiempresa.  
   - Próximo objetivo: ejecutar smoke visual manual y pasar F1/F3 a cerrado.
+
+- Fecha: 2026-03-23  
+  - Cambios aplicados: optimización de velocidad percibida en panel admin (queries innecesarias + skeletons reales por pantalla).  
+  - Bloques tocados: C1 (refuerzo), D (refuerzo UX/performance), F3 (documentación).  
+  - Riesgos detectados: bajo; cambios sin alterar reglas de negocio.  
+  - Próximo objetivo: ejecutar smoke manual visual de impersonación/multiempresa para cierre final de F1/F3.

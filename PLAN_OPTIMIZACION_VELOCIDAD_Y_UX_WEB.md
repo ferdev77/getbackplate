@@ -1,5 +1,13 @@
 # Plan Maestro de Optimizacion de Velocidad y UX
 
+## Estado de vigencia (2026-03-23)
+
+- Este documento se mantiene como **fuente de verdad para mejoras futuras de velocidad/UX**.
+- Ajustes de contexto ya aplicados:
+  - El build de produccion actualmente compila (`npm run build` OK).
+  - El contrato oficial de planes vigente es `basico/pro` (no `starter/growth/enterprise`).
+  - Ya se implementaron optimizaciones parciales en panel admin (queries y skeletons).
+
 ## Objetivo en palabras simples
 
 Queremos que la web:

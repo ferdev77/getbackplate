@@ -77,6 +77,43 @@ Si hay diferencias con secciones historicas de este archivo para RRHH, prevalece
   - `scripts/verify-plan-limit-messages.mjs` actualizado para quitar referencias a archivos eliminados
 - Cobertura de auditoría:
   - se agregaron eventos de auditoría en `updatePasswordAction` (`src/modules/auth/actions.ts`) para casos success/failed
+
+### Actualizacion tecnica 2026-03-23 (velocidad panel admin)
+
+- Optimizacion de carga en vistas comerciales:
+  - `web/src/app/(company)/app/users/page.tsx`
+    - evita carga de dataset de empleados cuando la pantalla solo requiere administradores (`includeEmployeesData: false`).
+    - evita lecturas repetidas de `searchParams` en la misma request.
+  - `web/src/app/(company)/app/employees/page.tsx`
+    - evita lectura repetida de `searchParams`.
+    - `includeModalsData` solo cuando el modal esta abierto.
+  - `web/src/modules/employees/services.ts`
+    - nueva opcion `includeEmployeesData` para evitar consultas pesadas innecesarias en pantallas que no las requieren.
+
+- Optimizacion de dashboard:
+  - `web/src/app/(company)/app/dashboard/page.tsx`
+    - reemplazo de 5 RPC repetidas `is_module_enabled` por una sola lectura centralizada `getEnabledModules`.
+
+- Mejora de UX de carga (skeletons alineados a UI real):
+  - actualizados:
+    - `web/src/app/(company)/app/dashboard/loading.tsx`
+    - `web/src/app/(company)/app/documents/loading.tsx`
+    - `web/src/app/(company)/app/checklists/loading.tsx`
+    - `web/src/app/(company)/app/announcements/loading.tsx`
+    - `web/src/app/(company)/app/employees/loading.tsx`
+    - `web/src/app/(company)/app/settings/loading.tsx`
+  - agregados:
+    - `web/src/app/(company)/app/users/loading.tsx`
+    - `web/src/app/(company)/app/reports/loading.tsx`
+    - `web/src/app/(company)/app/dashboard/location/loading.tsx`
+    - `web/src/app/(company)/app/checklists/new/loading.tsx`
+
+- Ajuste de contrato de plan vigente en layout empresa:
+  - `web/src/app/(company)/app/layout.tsx`
+    - fallback de plan por defecto corregido a `basico` (en lugar de `starter`).
+
+- Verificacion:
+  - `npm run build` OK despues de los cambios.
 - Se elimino codigo en desuso:
   - `web/src/modules/employees/actions.ts`
 - Se validaron flujos con datos reales temporales en DB (con limpieza al finalizar):
