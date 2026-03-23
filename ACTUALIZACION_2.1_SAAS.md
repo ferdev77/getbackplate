@@ -19,7 +19,7 @@ La version 2.1 define un **nuevo modulo funcional** a integrar sobre los modulos
 ## Estado de esta version
 
 - Version: `2.1`
-- Estado: `planificada`
+- Estado: `implementada (fase inicial operativa)`
 - Tipo: `nueva capacidad funcional`
 - Ambito inicial: panel empresa (`/app/*`)
 
@@ -99,6 +99,28 @@ Debe incluir:
 - `OPENROUTER_API_KEY` (obligatoria para IA en plan basico)
 - `OPENROUTER_MODEL` (opcional, por defecto `openai/gpt-4o-mini`)
 
+## Etiquetas visibles de modo en UI
+
+- `Modo estructurado` (sin proveedor IA)
+- `Modo OpenRouter` (respuesta via OpenRouter)
+- `Modo IA Pro` (respuesta via OpenAI)
+
+## Mejora 2.1.1 aplicada (OpenRouter Pro)
+
+- prompt profesional por dominio (empleados/checklists/documentos/modulos/resumen)
+- contexto operacional inyectado en consulta IA:
+  - rol del usuario
+  - modulo/pantalla origen
+  - intencion detectada de la pregunta
+- etiqueta de confianza en respuesta:
+  - `alto`, `medio`, `bajo`
+- guardrails sensibles activos
+- memoria corta por sesion activa
+- reintento automatico de calidad activo
+- cache de FAQ por tenant activa
+- enrutamiento por complejidad activo
+- telemetria de costo/latencia activa
+
 ---
 
 ## Fases de implementacion 2.1
@@ -153,3 +175,4 @@ Se considera implementado cuando:
 
 - especificacion funcional 2.1: `ACTUALIZACION_2.1_SAAS.md`
 - checklist operativo 2.1: `CHECKLIST_IMPLEMENTACION_2.1_CHATBOT_IA.md`
+- mejora continua OpenRouter (2.1.1): `PLAN_2.1.1_PRO_OPENROUTER.md`

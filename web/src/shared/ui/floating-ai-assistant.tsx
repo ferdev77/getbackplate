@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Bot, Send, Sparkles, X } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 type Message = {
   role: "user" | "assistant";
@@ -13,6 +14,7 @@ type FloatingAiAssistantProps = {
 };
 
 export function FloatingAiAssistant({ currentPlanCode }: FloatingAiAssistantProps) {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,6 +44,7 @@ export function FloatingAiAssistant({ currentPlanCode }: FloatingAiAssistantProp
         body: JSON.stringify({
           question,
           history: nextMessages.slice(-8),
+          originModule: pathname,
         }),
       });
 
@@ -49,6 +52,7 @@ export function FloatingAiAssistant({ currentPlanCode }: FloatingAiAssistantProp
         answer?: string;
         error?: string;
         mode?: "basic" | "basic_ai" | "pro_ai";
+        confidence?: "alto" | "medio" | "bajo";
       };
 
       if (!response.ok) {
@@ -61,7 +65,8 @@ export function FloatingAiAssistant({ currentPlanCode }: FloatingAiAssistantProp
           : data.mode === "basic_ai"
             ? "\n\n(Modo OpenRouter)"
             : "\n\n(Modo estructurado)";
-      setMessages((prev) => [...prev, { role: "assistant", content: `${data.answer ?? "Sin respuesta"}${suffix}` }]);
+      const confidence = data.confidence ? `\nConfianza: ${data.confidence}` : "";
+      setMessages((prev) => [...prev, { role: "assistant", content: `${data.answer ?? "Sin respuesta"}${suffix}${confidence}` }]);
     } catch (error) {
       const message = error instanceof Error ? error.message : "No pude procesar tu consulta";
       setMessages((prev) => [...prev, { role: "assistant", content: `Error: ${message}` }]);

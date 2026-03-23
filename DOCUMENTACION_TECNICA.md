@@ -170,15 +170,55 @@ Naming oficial de modulo 2.1: `ai_assistant`.
   - `basico`: IA via OpenRouter (si hay key), fallback estructurado
   - `pro`: IA via OpenAI (principal), fallback OpenRouter y luego estructurado
 
+- Etiqueta de modo mostrada al usuario:
+  - `Modo estructurado`
+  - `Modo OpenRouter`
+  - `Modo IA Pro`
+
 - Variables esperadas:
   - `OPENAI_API_KEY` / `OPENAI_MODEL`
   - `OPENROUTER_API_KEY` / `OPENROUTER_MODEL`
+
+### Mejora 2.1.1 (fase A) - calidad de respuesta
+
+- `web/src/app/api/company/ai/chat/route.ts`
+  - deteccion de intencion por dominio
+  - prompt especializado por dominio
+  - contexto operacional en request IA (`rol`, `originModule`, `intent`)
+  - etiqueta de confianza (`alto/medio/bajo`) en salida
+
+- `web/src/shared/ui/floating-ai-assistant.tsx`
+  - envio de `originModule` desde ruta actual
+  - visualizacion de modo (`estructurado/OpenRouter/IA Pro`) y confianza
+
+### Mejora 2.1.1 (fases B y C) - seguridad, calidad y costo
+
+- `web/src/app/api/company/ai/chat/route.ts`
+  - guardrails para preguntas sensibles/fuera de alcance
+  - memoria corta por sesion con expiracion
+  - reintento de calidad si la respuesta inicial es debil
+  - cache FAQ por tenant + pregunta normalizada (TTL corto)
+  - enrutamiento por complejidad (`simple`/`complex`) a modelos rapidos o avanzados
+  - telemetria operativa por consulta:
+    - proveedor
+    - modelo
+    - latencia
+    - tokens input/output/total
+    - costo estimado
+
+Estado 2.1.1: completado.
 
 - Integracion en catalogo de modulos y planes:
   - `module_catalog`: agregado/actualizado `code = ai_assistant`
   - `plan_modules`: `ai_assistant` habilitado para `basico` y `pro`
   - `organization_modules`: sincronizado para organizaciones con plan `basico/pro`
   - verificacion: `npm run verify:official-plan-packaging` OK
+
+### Estado de cierre 2.1
+
+- `ACTUALIZACION_2.1_SAAS.md`: implementada (fase inicial operativa)
+- `CHECKLIST_IMPLEMENTACION_2.1_CHATBOT_IA.md`: completado (fase inicial)
+- proxima iteracion de calidad OpenRouter: `PLAN_2.1.1_PRO_OPENROUTER.md`
 - Se elimino codigo en desuso:
   - `web/src/modules/employees/actions.ts`
 - Se validaron flujos con datos reales temporales en DB (con limpieza al finalizar):
