@@ -365,7 +365,8 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
 - **Comportamiento esperado después:** roadmap técnico claro y profesional.
 - **Evidencia de avance:**
   - Documentación técnica actualizada en cada bloque cerrado (A, B, C2/C3, D, E).
-  - Pendiente cierre final cuando se complete C1 y smoke manual final de F1.
+  - C1 ya cerrado y documentado.
+  - Pendiente cierre final tras smoke manual visual de F1.
 
 ---
 
@@ -454,3 +455,9 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   - Bloques tocados: F1 (avance fuerte), F2 (avance), F3 (avance).  
   - Riesgos detectados: bajo-medio; pendiente principal de cierre es smoke visual manual de UI.  
   - Próximo objetivo: ejecutar smoke visual manual y cerrar F1/F3.
+
+- Fecha: 2026-03-21  
+  - Cambios aplicados: rerun completo de QA automatizado (módulos, roles, aislamiento, guardrails, auditoría, límites, planes oficiales) con resultados en verde.  
+  - Bloques tocados: F1 (avance), F2 (avance), F3 (avance).  
+  - Riesgos detectados: bajo-medio; pendiente único para cierre total es validación visual/manual de impersonación y multiempresa.  
+  - Próximo objetivo: ejecutar smoke visual manual y pasar F1/F3 a cerrado.
