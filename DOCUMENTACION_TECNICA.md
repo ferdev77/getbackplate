@@ -1367,3 +1367,18 @@ QA ejecutado post-implementacion:
   - onboarding Meta + Twilio
   - templates, backend hardening, observabilidad
   - piloto controlado y rollout progresivo por tenant
+
+### 37. Fuente de verdad de notificaciones (Twilio + Email)
+
+- Documento canonico operativo:
+  - `web/docs/twilio-notifications.md`
+- Se formaliza como referencia unica para evitar confusiones sobre:
+  - canales soportados (`email`, `sms`, `whatsapp`)
+  - reglas de audiencia (empleados + usuarios no-empleado)
+  - diferencias por entorno (`trial` vs `produccion`)
+  - diagnostico rapido de fallas de entrega
+
+- Ajustes tecnicos incluidos en la referencia:
+  - `TWILIO_TRIAL_MODE` para pruebas en cuenta trial con normalizacion AR por canal y fallback.
+  - soporte de telefonos de `organization_user_profiles` para usuarios no-empleado.
+  - dependencia explicita de Brevo para canal email.

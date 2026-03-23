@@ -4,6 +4,10 @@
 
 Dejar listo el modulo de notificaciones de `avisos` y `checklists` por `SMS` y `WhatsApp` para uso productivo, con trazabilidad, control de costos, monitoreo y cumplimiento.
 
+Documento operativo actual (fuente de verdad):
+
+- `web/docs/twilio-notifications.md`
+
 ## Alcance
 
 - Incluye:
