@@ -57,10 +57,10 @@ export function FloatingAiAssistant({ currentPlanCode }: FloatingAiAssistantProp
 
       const suffix =
         data.mode === "pro_ai"
-          ? "\n\n(Modo PRO IA)"
+          ? "\n\n(Modo IA Pro)"
           : data.mode === "basic_ai"
-            ? "\n\n(Modo Basico IA)"
-            : "\n\n(Modo basico estructurado)";
+            ? "\n\n(Modo OpenRouter)"
+            : "\n\n(Modo estructurado)";
       setMessages((prev) => [...prev, { role: "assistant", content: `${data.answer ?? "Sin respuesta"}${suffix}` }]);
     } catch (error) {
       const message = error instanceof Error ? error.message : "No pude procesar tu consulta";
