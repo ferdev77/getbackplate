@@ -114,6 +114,18 @@ Si hay diferencias con secciones historicas de este archivo para RRHH, prevalece
 
 - Verificacion:
   - `npm run build` OK despues de los cambios.
+
+### Cierre operativo QA (2026-03-23)
+
+- Smoke manual visual del panel admin validado por negocio (`OK F1`), incluyendo:
+  - navegacion de modulos principales de empresa
+  - consistencia visual de skeletons
+  - impersonacion
+  - cambio de organizacion (multiempresa)
+- Estado de cierre:
+  - F1: cerrado
+  - F3: cerrado
+  - F2: pendiente (deuda historica de lint global fuera del scope funcional del release)
 - Se elimino codigo en desuso:
   - `web/src/modules/employees/actions.ts`
 - Se validaron flujos con datos reales temporales en DB (con limpieza al finalizar):

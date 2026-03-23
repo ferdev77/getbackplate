@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import { stripe } from '@/infrastructure/stripe/client';
 import { createClient } from '@supabase/supabase-js';
@@ -43,7 +44,7 @@ export async function POST(req: Request) {
 
         console.log(`[Webhook] checkout.session.completed - customer: ${session.customer}, subscription: ${session.subscription}`);
 
-        let organizationId = session.metadata?.organizationId || (session.client_reference_id as string | null);
+        const organizationId = session.metadata?.organizationId || (session.client_reference_id as string | null);
         let planId = session.metadata?.planId || null;
 
         if (!organizationId) {

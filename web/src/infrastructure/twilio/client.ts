@@ -45,8 +45,9 @@ export async function sendTwilioMessage(
     });
 
     return { success: true, messageId: message.sid };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Failed to send Twilio message:", error);
-    return { success: false, error: error?.message || "Unknown error" };
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return { success: false, error: message };
   }
 }

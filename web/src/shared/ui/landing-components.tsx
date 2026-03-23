@@ -190,7 +190,18 @@ export function LandingFeatures() {
   );
 }
 
-export function LandingPricing({ plans, highlightPlanId, compact }: { plans: any[], highlightPlanId?: string, compact?: boolean }) {
+type LandingPlan = {
+  id: string;
+  name: string;
+  price_amount?: number | null;
+  billing_period?: string | null;
+  stripe_price_id?: string | null;
+  max_branches?: number | null;
+  max_users?: number | null;
+  max_employees?: number | null;
+};
+
+export function LandingPricing({ plans, highlightPlanId, compact }: { plans: LandingPlan[]; highlightPlanId?: string; compact?: boolean }) {
   const router = useRouter();
   const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null);
 
@@ -224,9 +235,10 @@ export function LandingPricing({ plans, highlightPlanId, compact }: { plans: any
         console.error("No checkout URL returned", data);
         alert(data.error || "Error initiating checkout");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Checkout Request Failed", error);
-      alert(error.message || "Something went wrong");
+      const message = error instanceof Error ? error.message : "Something went wrong";
+      alert(message);
     } finally {
         setLoadingPriceId(null);
     }
