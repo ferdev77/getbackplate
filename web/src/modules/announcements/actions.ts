@@ -194,8 +194,8 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
 
   revalidatePath("/app/announcements");
   revalidatePath("/portal/home");
-  const creationMessage = channelsForDelivery.includes("email")
-    ? `Anuncio creado correctamente. Emails enviados: ${sentContactsCount}`
+  const creationMessage = channelsForDelivery.length
+    ? `Anuncio creado correctamente. Notificaciones enviadas: ${sentContactsCount}`
     : "Anuncio creado correctamente";
   return { 
     success: true, 

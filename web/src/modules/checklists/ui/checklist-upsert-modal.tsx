@@ -4,7 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Mail } from "lucide-react";
+import { Mail, MessageSquare, Smartphone } from "lucide-react";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import { ChecklistItemsBuilder } from "@/modules/checklists/ui/checklist-items-builder";
@@ -60,6 +60,8 @@ export function ChecklistUpsertModal({
 }: ChecklistUpsertModalProps) {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(createChecklistTemplateAction, { success: false, message: "" });
+  const [notifyWhatsapp, setNotifyWhatsapp] = useState(false);
+  const [notifySms, setNotifySms] = useState(false);
   const [notifyEmail, setNotifyEmail] = useState(true);
 
   useEffect(() => {
@@ -155,6 +157,28 @@ export function ChecklistUpsertModal({
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
+                    onClick={() => setNotifyWhatsapp((prev) => !prev)}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
+                      notifyWhatsapp
+                        ? "border-[#c0392b] bg-[#fff5f3] text-[#c0392b]"
+                        : `border-[#e8e8e8] bg-white text-[#666] ${DARK_GHOST}`
+                    }`}
+                  >
+                    <MessageSquare className="h-3.5 w-3.5" /> WhatsApp
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNotifySms((prev) => !prev)}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
+                      notifySms
+                        ? "border-[#c0392b] bg-[#fff5f3] text-[#c0392b]"
+                        : `border-[#e8e8e8] bg-white text-[#666] ${DARK_GHOST}`
+                    }`}
+                  >
+                    <Smartphone className="h-3.5 w-3.5" /> SMS
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setNotifyEmail((prev) => !prev)}
                     className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
                       notifyEmail
@@ -165,6 +189,8 @@ export function ChecklistUpsertModal({
                     <Mail className="h-3.5 w-3.5" /> Email
                   </button>
                 </div>
+                {notifyWhatsapp ? <input type="hidden" name="notify_channel" value="whatsapp" /> : null}
+                {notifySms ? <input type="hidden" name="notify_channel" value="sms" /> : null}
                 {notifyEmail ? <input type="hidden" name="notify_channel" value="email" /> : null}
               </>
             ) : null}
