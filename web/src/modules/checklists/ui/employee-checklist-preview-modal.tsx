@@ -77,6 +77,7 @@ export function EmployeeChecklistPreviewModal({
   const [visible, setVisible] = useState(false);
   const [instructionsVisible, setInstructionsVisible] = useState(true);
   const [successOpen, setSuccessOpen] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [openPanels, setOpenPanels] = useState<Record<string, "comment" | "photo" | null>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -127,8 +128,19 @@ export function EmployeeChecklistPreviewModal({
   function closeModal() {
     setVisible(false);
     setTimeout(() => {
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem("portal-checklist-scroll-y", String(window.scrollY || 0));
+      }
       router.replace("/portal/checklist", { scroll: false });
     }, 220);
+  }
+
+  function closeSuccessAndModal() {
+    setSuccessVisible(false);
+    setTimeout(() => {
+      setSuccessOpen(false);
+      closeModal();
+    }, 180);
   }
 
   function toggleCheck(itemId: string) {
@@ -233,6 +245,7 @@ export function EmployeeChecklistPreviewModal({
     }
 
     setSuccessOpen(true);
+    requestAnimationFrame(() => setSuccessVisible(true));
   }
 
   return (
@@ -355,8 +368,8 @@ export function EmployeeChecklistPreviewModal({
       </div>
 
       {successOpen ? (
-        <div className="fixed inset-0 z-[1120] flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-[420px] rounded-[20px] bg-white px-8 py-10 text-center shadow-[0_32px_80px_rgba(0,0,0,.4)]">
+        <div className={`fixed inset-0 z-[1120] flex items-center justify-center bg-black/70 p-4 transition-opacity duration-200 ${successVisible ? "opacity-100" : "opacity-0"}`}>
+          <div className={`w-full max-w-[420px] rounded-[20px] bg-white px-8 py-10 text-center shadow-[0_32px_80px_rgba(0,0,0,.4)] transition-all duration-200 ${successVisible ? "scale-100 opacity-100" : "scale-95 opacity-0"}`}>
             <div className="mx-auto mb-5 grid h-[72px] w-[72px] place-items-center rounded-full border-2 border-[#c8edd8] bg-[#e8f8ef] text-[32px]">✅</div>
             <h3 className="font-serif text-[26px] text-[#0e0e0e]">Apertura Completada</h3>
             <p className="mt-2 text-[14px] leading-6 text-[#888]">El reporte fue registrado exitosamente y esta listo para revision.</p>
@@ -366,7 +379,7 @@ export function EmployeeChecklistPreviewModal({
               <p><strong className="text-[#0e0e0e]">Items resueltos:</strong> {resolvedCount}/{totalItems}</p>
               <p><strong className="text-[#0e0e0e]">Atencion requerida:</strong> {flaggedIds.length}</p>
             </div>
-            <button type="button" onClick={closeModal} className="mt-6 rounded-[10px] bg-[#0e0e0e] px-7 py-3 text-sm font-bold text-white transition-colors hover:bg-[#c0392b]">Volver al portal</button>
+            <button type="button" onClick={closeSuccessAndModal} className="mt-6 rounded-[10px] bg-[#0e0e0e] px-7 py-3 text-sm font-bold text-white transition-colors hover:bg-[#c0392b]">Volver al portal</button>
           </div>
         </div>
       ) : null}

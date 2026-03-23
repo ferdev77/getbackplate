@@ -4,6 +4,7 @@ import { ClipboardCheck, Eye } from "lucide-react";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { EmployeeChecklistPreviewModal } from "@/modules/checklists/ui/employee-checklist-preview-modal";
+import { RestoreChecklistScroll } from "@/modules/checklists/ui/restore-checklist-scroll";
 import { requireEmployeeModule } from "@/shared/lib/access";
 import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
 
@@ -270,6 +271,7 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
 
   return (
     <main>
+      <RestoreChecklistScroll />
       <section className="mb-5 rounded-2xl border border-[#e7dfda] bg-gradient-to-r from-[#fffdfa] to-[#fff8f5] p-6">
         <p className="text-[11px] font-semibold tracking-[0.14em] text-[#9d948f] uppercase">Checklist asignado</p>
         <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
