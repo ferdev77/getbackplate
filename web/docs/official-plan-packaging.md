@@ -21,5 +21,5 @@ No modifica UI ni rutas; sirve como contrato de negocio para enforcement backend
 - modulo: `ai_assistant`
 - habilitado en `basico` y `pro`
 - comportamiento por plan:
-  - `basico`: modo asistente estructurado (sin IA generativa)
-  - `pro`: IA real (OpenAI) con fallback estructurado
+  - `basico`: IA via OpenRouter como primera opcion, con fallback estructurado
+  - `pro`: IA real (OpenAI) con fallback a OpenRouter y luego estructurado

@@ -270,10 +270,8 @@ export function CompanyShell({
   const [profileAvatarPreview, setProfileAvatarPreview] = useState("");
   const [billingPlan, setBillingPlan] = useState(currentPlanName || settingsSnapshot.billingPlan);
   const [billingPeriod, setBillingPeriod] = useState(settingsSnapshot.billingPeriod);
-  const [billedTo, setBilledTo] = useState(settingsSnapshot.billedTo);
-  const [billingEmail, setBillingEmail] = useState(settingsSnapshot.billingEmail);
-  const [paymentLast4, setPaymentLast4] = useState(settingsSnapshot.paymentLast4);
-  const [invoiceEmailsEnabled, setInvoiceEmailsEnabled] = useState(settingsSnapshot.invoiceEmailsEnabled);
+  const [billedTo] = useState(settingsSnapshot.billedTo);
+  const [billingEmail] = useState(settingsSnapshot.billingEmail);
   const [language, setLanguage] = useState(settingsSnapshot.language);
   const [dateFormat, setDateFormat] = useState(settingsSnapshot.dateFormat);
   const [timezoneMode, setTimezoneMode] = useState(settingsSnapshot.timezoneMode);

@@ -1257,3 +1257,72 @@ Variables requeridas en runtime (Vercel):
   - `organization_invitations.first_login_user_id`
 - Vista en superadmin:
   - estado `Primer ingreso invitado: Pendiente/Completado` dentro de Radar en `web/src/app/(superadmin)/superadmin/dashboard/page.tsx`
+
+### 34. Correcciones integrales P0-P3 (2026-03-23)
+
+- Seguridad y tenant en billing:
+  - `web/src/app/api/stripe/checkout/route.ts`
+  - `web/src/app/api/stripe/billing-portal/route.ts`
+  - ambos endpoints ahora resuelven tenant activo por contexto/cookie y exigen rol `company_admin|manager`.
+  - eliminado acceso por membership ambiguo (`.single()` sobre multiples organizaciones activas).
+
+- Consistencia RRHH estado usuario no-empleado:
+  - `web/src/app/api/company/employees/route.ts`
+  - `PATCH` de `organization_user_profiles` ahora sincroniza `memberships.status` del mismo usuario/tenant.
+  - se endurecio validacion de estado por scope (`active/inactive` para usuario, estados laborales para empleado).
+
+- Superadmin metrica empleados activos:
+  - `web/src/app/(superadmin)/superadmin/organizations/page.tsx`
+  - conteo migrado de `is_active` a `status = active` segun esquema vigente.
+
+- Registro publico y modulos core:
+  - `web/src/modules/auth/public-actions.ts`
+  - alta publica habilita modulos por `module_catalog.is_core = true` (en vez de hardcode parcial).
+
+- Consistencia funcional adicional:
+  - billing portal vuelve a ruta valida `/app/dashboard`.
+  - IA corrige lectura de ultimo documento (`documents.title`), en `web/src/app/api/company/ai/chat/route.ts`.
+  - portal empleado corrige flag real de modulo anuncios (`rpc.data`) en `web/src/app/(employee)/portal/home/page.tsx`.
+  - actualizacion de organizacion evita update parcial al validar downgrade en `web/src/modules/organizations/actions.ts`.
+
+- Reduccion de redundancias:
+  - helper unico `findAuthUserByEmail` en `web/src/shared/lib/auth-users.ts`.
+  - reemplazo de duplicados en:
+    - `web/src/app/api/company/users/route.ts`
+    - `web/src/app/api/company/employees/route.ts`
+    - `web/src/modules/organizations/actions.ts`
+    - `web/src/app/api/superadmin/organizations/invitations/resend/route.ts`
+
+- Avatar centralizado:
+  - nuevo servicio `web/src/shared/lib/profile-avatar.ts`.
+  - consumido por:
+    - `web/src/app/api/company/profile/avatar/route.ts`
+    - `web/src/modules/profile/actions.ts`
+
+- IA runtime compartido (multi-instancia):
+  - nuevo `web/src/shared/lib/ai-runtime-store.ts`.
+  - `web/src/app/api/company/ai/chat/route.ts` usa store compartido (Upstash Redis si esta configurado) con fallback local en memoria.
+
+- Hardening portal checklist:
+  - `web/src/app/(employee)/portal/checklist/page.tsx`
+  - menos uso de admin client para lecturas y firmado por lotes (`createSignedUrls`).
+
+- Deprecacion de flujo legacy checkout:
+  - `web/src/app/auth/checkout-redirect/page.tsx` ahora redirige al flujo oficial en panel empresa.
+
+- Alineacion documental IA:
+  - `web/docs/official-plan-packaging.md` actualizado para reflejar `basico: OpenRouter + fallback estructurado` y `pro: OpenAI + fallback`.
+
+- Limpieza de calidad:
+  - `npm run lint` sin warnings ni errores.
+
+QA ejecutado post-implementacion:
+
+- `npm run lint` ✅
+- `npm run build` ✅
+- `npm run verify:official-plan-packaging` ✅
+- `npm run verify:plan-change-rules` ✅
+- `npm run verify:module-role-e2e` ✅
+- `npm run verify:smoke-modules` ✅
+- `npm run verify:audit-coverage` ✅
+- `npm run verify:operational-metrics-consistency` ✅

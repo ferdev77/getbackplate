@@ -2,9 +2,7 @@ import {
   Activity,
   ArrowRight,
   AlertTriangle,
-  BadgeCheck,
   Building2,
-  CircleOff,
   FileText,
   Layers3,
   Timer,
@@ -19,7 +17,6 @@ import * as motion from "framer-motion/client";
 import {
   getSuperadminHealthMetrics,
   getSuperadminObservabilityMetrics,
-  type ObservabilityDomainStatus,
 } from "@/modules/superadmin/lib/health-metrics";
 
 function statusTone(status: string) {
@@ -45,24 +42,6 @@ function formatStorage(mb: number) {
   if (mb < 0.1) return `${Math.round(mb * 1024)} KB`;
   if (mb >= 100) return `${Math.round(mb)} MB`;
   return `${mb.toFixed(1)} MB`;
-}
-
-function statusBadgeTone(status: ObservabilityDomainStatus) {
-  if (status === "critical") return "border-rose-200 bg-rose-50 text-rose-700";
-  if (status === "warning") return "border-amber-200 bg-amber-50 text-amber-700";
-  return "border-emerald-200 bg-emerald-50 text-emerald-700";
-}
-
-function statusBadgeText(status: ObservabilityDomainStatus) {
-  if (status === "critical") return "Crítico";
-  if (status === "warning") return "Alerta";
-  return "OK";
-}
-
-function formatDuration(ms: number | null) {
-  if (ms == null) return "Sin datos";
-  if (ms < 1000) return `${Math.round(ms)} ms`;
-  return `${(ms / 1000).toFixed(2)} s`;
 }
 
 function invitedFirstLoginTone(status: "pending" | "completed" | "none") {

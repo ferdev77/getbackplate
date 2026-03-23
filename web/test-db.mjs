@@ -1,5 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-import { readFileSync } from 'fs';
 import dotenv from 'dotenv';
 dotenv.config({ path: 'c:/Users/pikachu/Downloads/saasresto/web/.env.local' });
 
