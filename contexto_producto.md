@@ -8,6 +8,15 @@ Para Recursos Humanos (pantallas `Usuarios / Empleados` y `Administradores`), el
 
 En caso de conflicto con definiciones historicas de este archivo, prevalece `ACTUALIZACION_2.0_SAAS.md` para ese modulo.
 
+## Ruta de futuras implementaciones (vigente)
+
+Para nuevas funcionalidades fuera del alcance de RRHH 2.0, la ruta oficial de implementacion es:
+
+- `ACTUALIZACION_2.1_SAAS.md`
+- `CHECKLIST_IMPLEMENTACION_2.1_CHATBOT_IA.md`
+
+Primer objetivo de esta ruta: chatbot flotante con IA en panel empresa.
+
 ## Objetivo del sistema
 
 Desarrollar una plataforma web SaaS multiempresa, modular, segura, escalable y profesional, orientada a la operación interna de empresas con múltiples sucursales, especialmente restaurantes, cadenas gastronómicas o negocios con estructura operativa distribuida.

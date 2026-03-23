@@ -12,6 +12,11 @@ Para el modulo de Recursos Humanos, la fuente de verdad actual es:
 
 Todas las directrices de implementacion, naming, flujos y persistencia de RRHH deben seguir ese documento.
 
+Para nuevas funcionalidades versionadas posteriores (ruta 2.1), se debe seguir:
+
+- `ACTUALIZACION_2.1_SAAS.md`
+- `CHECKLIST_IMPLEMENTACION_2.1_CHATBOT_IA.md`
+
 La meta no es solo que el sistema funcione, sino que quede:
 
 - profesional
