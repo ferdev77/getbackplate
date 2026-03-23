@@ -8,6 +8,47 @@ const authToken = process.env.TWILIO_AUTH_TOKEN;
 export const twilioClient =
   accountSid && authToken ? twilio(accountSid, authToken) : null;
 
+function normalizeRawPhone(value: string) {
+  return value.replace(/[^0-9+]/g, "").trim();
+}
+
+function toWhatsAppAddress(phone: string) {
+  return phone.startsWith("whatsapp:") ? phone : `whatsapp:${phone}`;
+}
+
+function normalizeArgentineFormat(phone: string, channel: "whatsapp" | "sms") {
+  const normalized = normalizeRawPhone(phone);
+
+  if (!normalized.startsWith("+54")) {
+    return normalized;
+  }
+
+  const rest = normalized.slice(3);
+  if (!rest) {
+    return normalized;
+  }
+
+  if (channel === "sms") {
+    return rest.startsWith("9") ? `+54${rest.slice(1)}` : normalized;
+  }
+
+  return rest.startsWith("9") ? normalized : `+549${rest}`;
+}
+
+function resolveTwilioTargets(to: string, channel: "whatsapp" | "sms") {
+  const base = normalizeRawPhone(to);
+  const trialMode = process.env.TWILIO_TRIAL_MODE === "true";
+
+  if (!trialMode) {
+    return [base];
+  }
+
+  const preferred = normalizeArgentineFormat(base, channel);
+  const fallback = preferred === base ? normalizeArgentineFormat(base, channel === "sms" ? "whatsapp" : "sms") : base;
+
+  return fallback && fallback !== preferred ? [preferred, fallback] : [preferred];
+}
+
 /**
  * Sends a message using Twilio.
  * @param to The destination phone number (must include country code, e.g., +54911...).
@@ -27,8 +68,7 @@ export async function sendTwilioMessage(
 
   try {
     const isWhatsApp = channel === "whatsapp";
-    // For WhatsApp, Twilio requires the 'whatsapp:' prefix for both FROM and TO numbers
-    const formattedTo = isWhatsApp && !to.startsWith("whatsapp:") ? `whatsapp:${to}` : to;
+    const targetNumbers = resolveTwilioTargets(to, channel);
     
     // Fallback to empty string to keep Typescript happy, but will fail at Twilio's end if actually empty
     const fromPhone =
@@ -38,13 +78,23 @@ export async function sendTwilioMessage(
 
     const formattedFrom = isWhatsApp && !fromPhone.startsWith("whatsapp:") ? `whatsapp:${fromPhone}` : fromPhone;
 
-    const message = await twilioClient.messages.create({
-      body: body,
-      from: formattedFrom,
-      to: formattedTo,
-    });
+    let lastError: unknown = null;
 
-    return { success: true, messageId: message.sid };
+    for (const target of targetNumbers) {
+      try {
+        const message = await twilioClient.messages.create({
+          body,
+          from: formattedFrom,
+          to: isWhatsApp ? toWhatsAppAddress(target) : target,
+        });
+
+        return { success: true, messageId: message.sid };
+      } catch (error: unknown) {
+        lastError = error;
+      }
+    }
+
+    throw lastError;
   } catch (error: unknown) {
     console.error("Failed to send Twilio message:", error);
     const message = error instanceof Error ? error.message : "Unknown error";

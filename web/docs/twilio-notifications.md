@@ -14,6 +14,11 @@ Habilitar envio de notificaciones por `SMS` y `WhatsApp` desde:
 - `TWILIO_PHONE_NUMBER` (SMS)
 - `TWILIO_WHATSAPP_NUMBER` (WhatsApp)
 
+Opcional para pruebas con cuenta Trial:
+
+- `TWILIO_TRIAL_MODE=true`
+  - habilita normalizacion automatica AR por canal (`+54` para SMS y `+549` para WhatsApp, con fallback)
+
 ## Flujo funcional
 
 1. Usuario crea aviso o checklist desde modal.
