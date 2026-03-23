@@ -174,11 +174,6 @@ function pick(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function pickN(arr, n) {
-  const shuffled = [...arr].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, Math.min(n, arr.length));
-}
-
 function randomDate(startYear, endYear) {
   const start = new Date(startYear, 0, 1).getTime();
   const end = new Date(endYear, 11, 31).getTime();

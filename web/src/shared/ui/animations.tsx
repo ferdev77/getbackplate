@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence, HTMLMotionProps } from "framer-motion";
+import { motion, HTMLMotionProps } from "framer-motion";
 import { ReactNode } from "react";
 
 interface AnimationProps extends HTMLMotionProps<"div"> {

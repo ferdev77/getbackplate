@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 dotenv.config({ path: 'c:/Users/pikachu/Downloads/saasresto/web/.env.local' });
 
@@ -26,7 +25,7 @@ for (const sql of sqls) {
     const text = await resp.text();
     console.log(`[${resp.status}] ${sql.substring(0, 60)}`);
     if (resp.status !== 200) console.log('  Response:', text.substring(0, 200));
-  } catch (err) {
-    console.error('Error:', err.message);
+  } catch (error) {
+    console.error('Error:', error.message);
   }
 }

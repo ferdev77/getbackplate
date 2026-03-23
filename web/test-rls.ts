@@ -15,11 +15,11 @@ async function run() {
   
   if (results.data) {
      console.log('Employees Policies from RPC:', results.data);
-  } else {
+   } else {
      let policiesResult;
      try {
        policiesResult = await admin.from('pg_policies').select('*').eq('tablename', 'employees');
-     } catch (err) {
+     } catch {
        policiesResult = { data: null };
      }
      console.log('Employees pg_policies:', policiesResult.data);

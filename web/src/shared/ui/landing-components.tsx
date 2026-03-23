@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { MoveRight, CheckCircle2, Menu, X, Globe, Shield, Users, FileText, Bell } from "lucide-react";
+import Image from "next/image";
+import { MoveRight, CheckCircle2, Menu, X, Users, FileText, Bell } from "lucide-react";
 import { useState } from "react";
 import { FadeIn, SlideUp, AnimatedList, AnimatedItem, AnimatedButton, Interactive } from "@/shared/ui/animations";
 import { motion, AnimatePresence } from "framer-motion";
@@ -113,10 +114,13 @@ export function LandingHero() {
         <SlideUp delay={0.5} className="mt-20">
           <div className="relative mx-auto max-w-5xl rounded-3xl border border-line bg-panel p-2 shadow-2xl">
             <div className="overflow-hidden rounded-2xl">
-              <img 
-                src="/dashboard-preview.png" 
-                alt="GetBackplate Dashboard Preview" 
-                className="w-full opacity-90 transition-opacity hover:opacity-100"
+              <Image
+                src="/dashboard-preview.png"
+                alt="GetBackplate Dashboard Preview"
+                width={1600}
+                height={900}
+                className="h-auto w-full opacity-90 transition-opacity hover:opacity-100"
+                priority
               />
             </div>
             {/* Overlay indicators */}

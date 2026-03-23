@@ -83,8 +83,8 @@ export async function POST(req: Request) {
         const periodEndRaw = subAny.current_period_end ?? null;
         let currentPeriodStart = new Date().toISOString();
         let currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-        if (periodStartRaw) { try { currentPeriodStart = new Date(periodStartRaw * 1000).toISOString(); } catch(e) {} }
-        if (periodEndRaw) { try { currentPeriodEnd = new Date(periodEndRaw * 1000).toISOString(); } catch(e) {} }
+        if (periodStartRaw) { try { currentPeriodStart = new Date(periodStartRaw * 1000).toISOString(); } catch {} }
+        if (periodEndRaw) { try { currentPeriodEnd = new Date(periodEndRaw * 1000).toISOString(); } catch {} }
 
         console.log(`[Webhook] Subscription status: ${status}, priceId: ${priceId}`);
 
@@ -205,8 +205,8 @@ export async function POST(req: Request) {
         const periodEndRaw = subAny.current_period_end ?? null;
         let currentPeriodStart = new Date().toISOString();
         let currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-        if (periodStartRaw) { try { currentPeriodStart = new Date(periodStartRaw * 1000).toISOString(); } catch(e) {} }
-        if (periodEndRaw) { try { currentPeriodEnd = new Date(periodEndRaw * 1000).toISOString(); } catch(e) {} }
+        if (periodStartRaw) { try { currentPeriodStart = new Date(periodStartRaw * 1000).toISOString(); } catch {} }
+        if (periodEndRaw) { try { currentPeriodEnd = new Date(periodEndRaw * 1000).toISOString(); } catch {} }
 
         const isActive = ['active', 'trialing'].includes(status);
         const isCanceled = ['canceled', 'unpaid', 'incomplete_expired'].includes(status);

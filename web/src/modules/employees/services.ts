@@ -95,7 +95,6 @@ export async function getEmployeeDirectoryView(
   const roleById = new Map((roles ?? []).map((row) => [row.id, row.code]));
   const branchById = new Map((branches ?? []).map((row) => [row.id, row.name]));
   const departmentById = new Map((departments ?? []).map((row) => [row.id, row.name]));
-  const positionById = new Map((positions ?? []).map((row) => [row.id, row.name]));
 
   const documentById = new Map((documents ?? []).map((row) => [row.id, row]));
   const docsByEmployee = new Map<string, any[]>();

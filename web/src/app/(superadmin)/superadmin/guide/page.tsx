@@ -2,17 +2,12 @@
 
 import { 
   BookOpen, 
-  HelpCircle, 
-  Search, 
   LayoutDashboard, 
   Building2, 
   Layers3, 
   ShieldCheck, 
   TrendingUp, 
-  Zap, 
-  AlertTriangle,
-  FileText,
-  MousePointer2
+  Zap
 } from "lucide-react";
 import * as motion from "framer-motion/client";
 

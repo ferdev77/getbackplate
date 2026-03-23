@@ -9,7 +9,7 @@ async function main() {
   // We need to login as 'adminprimas@s.com' first
   const supabase = createClient(supabaseUrl, anonKey);
   
-  const { data: auth, error: authErr } = await supabase.auth.signInWithPassword({
+  const { error: authErr } = await supabase.auth.signInWithPassword({
     email: "adminprimas@s.com",
     password: "password123!" // Assuming this is their password based on previous setups or we can reset/use admin token
   });

@@ -1,7 +1,6 @@
 import {
   BadgeDollarSign,
   Building2,
-  CalendarClock,
   ChevronDown,
   PencilLine,
   Plus,
@@ -11,11 +10,9 @@ import {
   HardDrive,
   Users2,
   AlertCircle,
-  X,
   Trash2,
 } from "lucide-react";
 import * as motion from "framer-motion/client";
-import { AnimatePresence } from "framer-motion";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import {
@@ -28,7 +25,7 @@ import { SuperadminInputField, SuperadminSelectField } from "@/shared/ui/superad
 import { DetailsCloseButton } from "@/shared/ui/details-close-button";
 
 type SuperadminPlansPageProps = {
-  searchParams: Promise<{ status?: string; message?: string; action?: string; plan?: string }>;
+  searchParams: Promise<{ status?: string; message?: string; plan?: string }>;
 };
 
 function money(amount: number | null, currency = "USD") {
@@ -45,10 +42,9 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
   const params = await searchParams;
   const status = params.status;
   const message = params.message;
-  const action = typeof params.action === "string" ? params.action : "";
 
   const [
-    { data: plans, error: plansError },
+    { data: plans },
     { data: orgsWithPlans },
     { data: modulesCatalog },
     { data: planModules },
