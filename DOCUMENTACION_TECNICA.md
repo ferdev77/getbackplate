@@ -148,6 +148,37 @@ Naming oficial de modulo 2.1: `ai_assistant`.
   - tipados y `catch` con `unknown` en auth/plans/twilio/checkout
   - tipado de planes en landing
   - ajustes de lint en scripts auxiliares/debug para eliminar errores bloqueantes
+
+### Implementacion inicial 2.1 - Modulo `ai_assistant`
+
+- Backend:
+  - `POST /api/company/ai/chat` en `web/src/app/api/company/ai/chat/route.ts`
+  - guardas de acceso por tenant/modulo/rol (`assertCompanyManagerModuleApi("ai_assistant")`)
+  - rate limit por usuario en ventana corta
+  - sanitizacion de pregunta e historial
+  - auditoria por consulta (`ai_assistant.chat.query`)
+
+- UI:
+  - componente flotante: `web/src/shared/ui/floating-ai-assistant.tsx`
+  - integrado en shell empresa: `web/src/shared/ui/company-shell.tsx`
+  - habilitacion por modulo activo desde layout empresa
+
+- Integracion de modulos:
+  - `web/src/app/(company)/app/layout.tsx` ahora considera `ai_assistant` en `enabledModules`
+
+- Comportamiento por plan:
+  - `basico`: IA via OpenRouter (si hay key), fallback estructurado
+  - `pro`: IA via OpenAI (principal), fallback OpenRouter y luego estructurado
+
+- Variables esperadas:
+  - `OPENAI_API_KEY` / `OPENAI_MODEL`
+  - `OPENROUTER_API_KEY` / `OPENROUTER_MODEL`
+
+- Integracion en catalogo de modulos y planes:
+  - `module_catalog`: agregado/actualizado `code = ai_assistant`
+  - `plan_modules`: `ai_assistant` habilitado para `basico` y `pro`
+  - `organization_modules`: sincronizado para organizaciones con plan `basico/pro`
+  - verificacion: `npm run verify:official-plan-packaging` OK
 - Se elimino codigo en desuso:
   - `web/src/modules/employees/actions.ts`
 - Se validaron flujos con datos reales temporales en DB (con limpieza al finalizar):

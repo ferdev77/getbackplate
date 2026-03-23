@@ -1,26 +1,25 @@
 # Official Plan Packaging
 
-Definicion oficial de planes comerciales para GetBackplate (C1).
+Definicion oficial de planes comerciales para GetBackplate.
 No modifica UI ni rutas; sirve como contrato de negocio para enforcement backend.
 
-## Planes oficiales
+## Planes oficiales vigentes
 
-- `starter` (Starter)
-  - max sucursales: 1
-  - max usuarios: 10
-  - max empleados: 25
-  - max storage: 1024 MB
-- `growth` (Pro)
-  - max sucursales: 5
-  - max usuarios: 40
+- `basico` (plan basico)
+  - max sucursales: 30
+  - max usuarios: 50
   - max empleados: 200
-  - max storage: 5120 MB
-- `enterprise` (Enterprise)
-  - max sucursales: 20
-  - max usuarios: 200
-  - max empleados: 1000
-  - max storage: 20480 MB
+  - max storage: 200 MB
+- `pro` (plan pro)
+  - max sucursales: 50
+  - max usuarios: 50
+  - max empleados: 500
+  - max storage: 400 MB
 
-## Nota de compatibilidad
+## Modulo 2.1 - ai_assistant
 
-- Se mantiene `code = growth` por compatibilidad tecnica, con nombre comercial `Pro`.
+- modulo: `ai_assistant`
+- habilitado en `basico` y `pro`
+- comportamiento por plan:
+  - `basico`: modo asistente estructurado (sin IA generativa)
+  - `pro`: IA real (OpenAI) con fallback estructurado
