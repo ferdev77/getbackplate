@@ -127,6 +127,7 @@ export function ChecklistReportsDashboard({
     () => [...new Set(reports.map((report) => report.locationName))].sort((a, b) => a.localeCompare(b, "es")),
     [reports],
   );
+  const showAttentionLocationBadge = locations.length >= 2;
 
   const filteredReports = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -372,7 +373,9 @@ export function ChecklistReportsDashboard({
                   <p className="truncate text-xs text-[#888]">&quot;{item.note || "Sin comentario"}&quot;</p>
                   <p className="mt-1 text-[11px] text-[#bbb]">{item.managerShort} · {item.timeLabel}</p>
                 </div>
-                <span className="rounded-full bg-[#f3f4f6] px-2 py-0.5 text-[11px] font-semibold text-[#555]">{item.locationShort}</span>
+                {showAttentionLocationBadge ? (
+                  <span className="rounded-full bg-[#f3f4f6] px-2 py-0.5 text-[11px] font-semibold text-[#555]">{item.locationShort}</span>
+                ) : null}
               </button>
             ))}
             {!attentionFeed.length ? (
