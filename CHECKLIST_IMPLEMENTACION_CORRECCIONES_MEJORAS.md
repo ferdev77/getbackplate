@@ -31,6 +31,13 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
 5. Limpieza de deuda técnica
 6. QA de no regresión y gate de release
 
+## Siguiente ruta oficial (version 2.1)
+
+Con el cierre de este checklist, las nuevas implementaciones pasan a:
+
+- `ACTUALIZACION_2.1_SAAS.md`
+- `CHECKLIST_IMPLEMENTACION_2.1_CHATBOT_IA.md`
+
 ---
 
 ## Bloque A — Crítico (no negociar)

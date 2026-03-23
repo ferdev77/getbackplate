@@ -21,6 +21,19 @@ Alcance:
 
 Si hay diferencias con secciones historicas de este archivo para RRHH, prevalece `ACTUALIZACION_2.0_SAAS.md`.
 
+## Ruta vigente de nuevas implementaciones
+
+Para nuevas capacidades funcionales posteriores a RRHH 2.0, se define la ruta de versionado:
+
+- `ACTUALIZACION_2.1_SAAS.md` (especificacion funcional version 2.1)
+- `CHECKLIST_IMPLEMENTACION_2.1_CHATBOT_IA.md` (ejecucion operativa 2.1)
+
+Alcance inicial 2.1: chatbot flotante con IA para consultas de datos de la organizacion.
+
+Definicion de producto para 2.1: nuevo modulo integrable sobre modulos existentes (no reemplazo), con habilitacion por tenant.
+
+Naming oficial de modulo 2.1: `ai_assistant`.
+
 ### Actualizacion tecnica 2026-03-21 (RRHH B1)
 
 - Se definio API como via principal de mutacion RRHH para altas/ediciones:
