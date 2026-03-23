@@ -208,6 +208,18 @@ Naming oficial de modulo 2.1: `ai_assistant`.
 
 Estado 2.1.1: completado.
 
+### Ampliacion de cobertura de datos (asistente empresa)
+
+- `web/src/app/api/company/ai/chat/route.ts` ahora expone contexto amplio de tenant para respuestas:
+  - empleados activos/total
+  - usuarios activos
+  - sucursales/departamentos/puestos activos
+  - documentos total/pendientes y ultimo documento
+  - carpetas de documentos
+  - checklists (plantillas, ejecuciones, pendientes y ultima plantilla)
+  - avisos (total, fijados, por vencer y ultimo aviso)
+  - modulos habilitados y plan actual
+
 - Integracion en catalogo de modulos y planes:
   - `module_catalog`: agregado/actualizado `code = ai_assistant`
   - `plan_modules`: `ai_assistant` habilitado para `basico` y `pro`

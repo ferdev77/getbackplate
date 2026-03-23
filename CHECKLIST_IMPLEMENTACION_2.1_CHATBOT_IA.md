@@ -80,6 +80,15 @@ Esta implementacion se considera un **nuevo modulo** del sistema, integrado con 
   - prompt por dominio activo
   - contexto operacional (`originModule`, rol, intencion) activo
   - etiqueta de confianza visible en respuesta
+- Cobertura ampliada de datos de empresa:
+  - empleados (activos y total)
+  - usuarios activos
+  - sucursales/departamentos/puestos activos
+  - documentos (total, pendientes, ultimo documento)
+  - carpetas de documentos
+  - checklists (plantillas, ejecuciones, pendientes, ultima plantilla)
+  - avisos (total, fijados, por vencer, ultimo aviso)
+  - modulos habilitados y plan activo
 
 ## Evidencia de cierre 2.1.1 (OpenRouter Pro)
 
