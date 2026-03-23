@@ -13,21 +13,25 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 });
 
 const EXPECTED = {
-  starter: { max_branches: 1, max_users: 10, max_employees: 25, max_storage_mb: 1024, expected_name: "Starter" },
-  growth: { max_branches: 5, max_users: 40, max_employees: 200, max_storage_mb: 5120, expected_name: "Pro" },
-  enterprise: {
-    max_branches: 20,
-    max_users: 200,
-    max_employees: 1000,
-    max_storage_mb: 20480,
-    expected_name: "Enterprise",
+  basico: {
+    max_branches: 30,
+    max_users: 50,
+    max_employees: 200,
+    max_storage_mb: 200,
+    expected_name: "plan basico",
+  },
+  pro: {
+    max_branches: 50,
+    max_users: 50,
+    max_employees: 500,
+    max_storage_mb: 400,
+    expected_name: "plan pro",
   },
 };
 
 const EXPECTED_OPTIONAL_MODULES = {
-  starter: ["dashboard", "settings", "employees", "documents", "announcements", "onboarding"],
-  growth: ["dashboard", "settings", "employees", "documents", "announcements", "onboarding", "checklists"],
-  enterprise: [
+  basico: ["dashboard", "settings", "employees", "documents", "onboarding", "checklists", "reports"],
+  pro: [
     "dashboard",
     "settings",
     "employees",

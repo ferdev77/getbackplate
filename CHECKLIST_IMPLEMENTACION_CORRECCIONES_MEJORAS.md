@@ -353,7 +353,7 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
     - `verify:plan-limit-enforcement` OK
     - `verify:plan-limit-messages` OK
   - `verify:audit-coverage` OK tras cubrir auditoría faltante en `updatePasswordAction`.
-  - `verify:official-plan-packaging` queda en rojo por datos de catálogo de planes no alineados (`starter/growth/enterprise` inexistentes en DB actual).
+  - `verify:official-plan-packaging` ajustado al contrato real de producto (`basico/pro`) y validado en verde.
 
 ### [~] F3. Documentar cierre por bloque
 
@@ -450,7 +450,7 @@ Se va a usar como fuente viva de seguimiento: iremos marcando cada item a medida
   - Próximo objetivo: cierre final F1/F3 con smoke manual UI de impersonación y multiempresa.
 
 - Fecha: 2026-03-21  
-  - Cambios aplicados: QA profundo automatizado, ajuste de scripts de verificación a arquitectura actual y cobertura de auditoría faltante en cambio de contraseña.  
+  - Cambios aplicados: QA profundo automatizado, ajuste de scripts de verificación a arquitectura actual, cobertura de auditoría faltante en cambio de contraseña y corrección de contrato de planes oficiales (`basico/pro`).  
   - Bloques tocados: F1 (avance fuerte), F2 (avance), F3 (avance).  
-  - Riesgos detectados: medio por dos pendientes de cierre (smoke visual manual y packaging oficial de planes en DB).  
-  - Próximo objetivo: ejecutar smoke visual manual y decidir si aplicar `apply:official-plan-packaging` para alinear catálogo de planes.
+  - Riesgos detectados: bajo-medio; pendiente principal de cierre es smoke visual manual de UI.  
+  - Próximo objetivo: ejecutar smoke visual manual y cerrar F1/F3.

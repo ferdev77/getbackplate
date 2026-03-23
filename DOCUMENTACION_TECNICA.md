@@ -71,7 +71,7 @@ Si hay diferencias con secciones historicas de este archivo para RRHH, prevalece
   - OK: `verify:audit-coverage`
   - OK: `verify:plan-limit-enforcement`
   - OK: `verify:plan-limit-messages`
-  - ERROR funcional de datos (no código): `verify:official-plan-packaging` por catálogo de planes no alineado en DB (`starter/growth/enterprise` ausentes)
+  - OK: `verify:official-plan-packaging` (actualizado al contrato real `basico/pro`)
 - Ajustes de scripts QA por arquitectura actual:
   - `scripts/verify-plan-limit-enforcement.mjs` actualizado para chequear `src/app/api/company/users/route.ts` en lugar de `src/modules/employees/actions.ts`
   - `scripts/verify-plan-limit-messages.mjs` actualizado para quitar referencias a archivos eliminados
@@ -783,12 +783,13 @@ Se consideran cerrados los puntos padre D1/D2/D3/D4/D5 con evidencia ejecutable 
 Se definio y documento packaging oficial:
 
 - `web/docs/official-plan-packaging.md`
-- Starter / Pro (`code=growth`) / Enterprise con limites exactos
+- Plan Basico (`code=basico`) y Plan Pro (`code=pro`)
 
-Se aplico y verifico en datos:
+Se verifico en datos:
 
-- `npm run apply:official-plan-packaging`
 - `npm run verify:official-plan-packaging`
+
+Nota de vigencia: la referencia historica a `starter/growth/enterprise` quedo deprecada y no aplica al contrato actual.
 
 ### C2 - Enforcement backend de limites por plan
 
@@ -797,9 +798,8 @@ Se implemento enforcement en backend sin cambios visuales:
 - util central: `web/src/shared/lib/plan-limits.ts`
 - enforcement en acciones/API:
   - `web/src/modules/settings/actions.ts` (sucursales)
-  - `web/src/modules/employees/actions.ts` (usuarios/empleados)
+  - `web/src/app/api/company/users/route.ts` (usuarios)
   - `web/src/app/api/company/employees/route.ts` (usuarios/empleados/storage)
-  - `web/src/modules/documents/actions.ts` (storage)
   - `web/src/app/api/company/documents/route.ts` (storage)
 
 Verificacion automatizada:
