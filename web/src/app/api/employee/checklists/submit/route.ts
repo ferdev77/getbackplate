@@ -186,6 +186,25 @@ export async function POST(request: Request) {
     return fail("No tienes acceso a este checklist", 403, { template_id: templateId });
   }
 
+  const { data: existingSubmission } = await admin
+    .from("checklist_submissions")
+    .select("id, status, submitted_at")
+    .eq("organization_id", tenant.organizationId)
+    .eq("template_id", templateId)
+    .eq("submitted_by", userId)
+    .in("status", ["submitted", "reviewed"])
+    .order("submitted_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingSubmission) {
+    return fail("Este checklist ya fue enviado. Solo puedes visualizarlo.", 409, {
+      template_id: templateId,
+      existing_submission_id: existingSubmission.id,
+      existing_submission_status: existingSubmission.status,
+    });
+  }
+
   const itemIds = [...new Set(items.map((item) => item.template_item_id).filter(Boolean))];
   const { data: validItems } = await supabase
     .from("checklist_template_items")

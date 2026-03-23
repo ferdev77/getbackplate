@@ -30,6 +30,24 @@ function formatSubmittedAt(value: string | null) {
   });
 }
 
+function reportStatusBadge(status: string | null | undefined) {
+  if (status === "reviewed") {
+    return {
+      label: "Reporte revisado",
+      className: "border-[#cfe0ff] bg-[#eef4ff] text-[#2a4f87]",
+      dotClassName: "bg-[#2a4f87]",
+      dateClassName: "text-[#5d7cab]",
+    };
+  }
+
+  return {
+    label: "Reporte enviado",
+    className: "border-[#c8edd8] bg-[#eff8f2] text-[#2f6b45]",
+    dotClassName: "bg-[#2f6b45]",
+    dateClassName: "text-[#5a8a6c]",
+  };
+}
+
 export default async function EmployeeChecklistPage({ searchParams }: EmployeeChecklistPageProps) {
   const tenant = await requireEmployeeModule("checklists");
   const params = await searchParams;
@@ -272,15 +290,21 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 {latestSubmissionByTemplateId.has(template.id) ? (
-                  <div className="inline-flex items-center gap-2 rounded-full border border-[#c8edd8] bg-[#eff8f2] px-3 py-1.5 text-[11px] font-semibold text-[#2f6b45]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#2f6b45]" />
-                    <span>Enviado</span>
-                    <span className="hidden text-[#5a8a6c] sm:inline">· {formatSubmittedAt(latestSubmissionByTemplateId.get(template.id)?.submittedAt ?? null)}</span>
-                  </div>
+                  (() => {
+                    const latest = latestSubmissionByTemplateId.get(template.id);
+                    const statusBadge = reportStatusBadge(latest?.status);
+                    return (
+                      <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold ${statusBadge.className}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${statusBadge.dotClassName}`} />
+                        <span>{statusBadge.label}</span>
+                        <span className={`hidden sm:inline ${statusBadge.dateClassName}`}>· {formatSubmittedAt(latest?.submittedAt ?? null)}</span>
+                      </div>
+                    );
+                  })()
                 ) : (
                   <div className="inline-flex items-center gap-2 rounded-full border border-[#f0d5d0] bg-[#fff5f3] px-3 py-1.5 text-[11px] font-semibold text-[#b63a2f]">
                     <span className="h-1.5 w-1.5 rounded-full bg-[#b63a2f]" />
-                    <span>Pendiente</span>
+                    <span>Reporte pendiente</span>
                   </div>
                 )}
                 <Link href={`/portal/checklist?preview=${template.id}`} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#d6e9dc] bg-[#eff8f2] text-[#2f6b45] transition-colors hover:bg-[#e6f3ea]" title="Ver checklist">
