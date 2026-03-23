@@ -52,10 +52,17 @@ body {
 .theme-dark-pro [class*="bg-white"],
 .theme-dark-pro [class*="bg-[#fffdfa]"],
 .theme-dark-pro [class*="bg-[#fffcfa]"],
+.theme-dark-pro [class*="bg-[#fffcfb]"],
+.theme-dark-pro [class*="bg-[#fffaf8]"],
 .theme-dark-pro [class*="bg-[#fafafa]"],
+.theme-dark-pro [class*="bg-[#fdfdfd]"],
 .theme-dark-pro [class*="bg-[#f8f8f8]"],
 .theme-dark-pro [class*="bg-[#f6f6f6]"],
 .theme-dark-pro [class*="bg-[#f5f5f5]"],
+.theme-dark-pro [class*="bg-[#fcfcfc]"],
+.theme-dark-pro [class*="bg-[#fcfaf8]"],
+.theme-dark-pro [class*="bg-[#fcf9f7]"],
+.theme-dark-pro [class*="bg-[#fdf8f5]"],
 .theme-dark-pro [class*="bg-[#fff8f5]"],
 .theme-dark-pro [class*="bg-[#fff4f2]"],
 .theme-dark-pro [class*="bg-[#fff3f1]"],
@@ -68,7 +75,9 @@ body {
 .theme-dark-pro [class*="bg-[#eff5ff]"],
 .theme-dark-pro [class*="bg-[#eef4ff]"],
 .theme-dark-pro [class*="bg-[#eff8f2]"],
+.theme-dark-pro [class*="bg-neutral-100"],
 .theme-dark-pro [class*="bg-emerald-50"],
+.theme-dark-pro [class*="bg-amber-50"],
 .theme-dark-pro [class*="bg-rose-50"] {
   background: var(--dm-bg-2) !important;
 }
@@ -81,10 +90,15 @@ body {
   border-color: var(--dm-border) !important;
 }
 
+.theme-dark-pro [class*="text-[#0"],
 .theme-dark-pro [class*="text-[#1"],
 .theme-dark-pro [class*="text-[#2"],
 .theme-dark-pro [class*="text-[#3"],
 .theme-dark-pro [class*="text-[#4"] {
+  color: var(--dm-text) !important;
+}
+
+.theme-dark-pro [class*="text-black"] {
   color: var(--dm-text) !important;
 }
 
@@ -158,6 +172,10 @@ body {
   background: var(--dm-green-bg) !important;
 }
 
+.theme-dark-pro [class*="bg-[#edfbf3]"] {
+  background: var(--dm-green-bg) !important;
+}
+
 .theme-dark-pro [class*="border-[#d6e9dc]"],
 .theme-dark-pro [class*="border-[#d9eadf]"] {
   border-color: var(--dm-green-border) !important;
@@ -193,6 +211,158 @@ body {
   color: var(--dm-purple-text) !important;
 }
 
+.theme-dark-pro [class*="bg-[#fff7eb]"],
+.theme-dark-pro [class*="bg-[#fff5e8]"],
+.theme-dark-pro [class*="bg-[#fffbf0]"] {
+  background: #2a2217 !important;
+}
+
+.theme-dark-pro [class*="border-[#f0e3d0]"],
+.theme-dark-pro [class*="border-[#efd7b4]"] {
+  border-color: #654b2a !important;
+}
+
+.theme-dark-pro [class*="text-[#9b6a1e]"],
+.theme-dark-pro [class*="text-[#e67e22]"],
+.theme-dark-pro [class*="text-[#d48f00]"] {
+  color: #f3c27c !important;
+}
+
+.theme-dark-pro [class*="bg-[#fff2f0]"],
+.theme-dark-pro [class*="bg-[#fff5f3]"],
+.theme-dark-pro [class*="bg-[#fff1ef]"] {
+  background: var(--dm-red-bg) !important;
+}
+
+.theme-dark-pro [class*="bg-[#dcfce7]"] {
+  background: #172b22 !important;
+}
+
+.theme-dark-pro [class*="bg-[#fee2e2]"] {
+  background: #2f1d21 !important;
+}
+
+.theme-dark-pro [class*="bg-[#fef3c7]"],
+.theme-dark-pro [class*="bg-[#fff9ec]"],
+.theme-dark-pro [class*="bg-[#fffdf0]"],
+.theme-dark-pro [class*="bg-[#fdf6e3]"],
+.theme-dark-pro [class*="bg-[#fef08a]"] {
+  background: #2d2517 !important;
+}
+
+.theme-dark-pro [class*="bg-[#bfdbfe]"] {
+  background: #18283d !important;
+}
+
+.theme-dark-pro [class*="bg-[#e5e7eb]"],
+.theme-dark-pro [class*="bg-[#f3f4f6]"] {
+  background: #1a2230 !important;
+}
+
+.theme-dark-pro [class*="border-[#c8edd8]"],
+.theme-dark-pro [class*="border-[#c3efd4]"],
+.theme-dark-pro [class*="border-[#dcfce7]"] {
+  border-color: #2f5f4a !important;
+}
+
+.theme-dark-pro [class*="border-neutral-200"] {
+  border-color: #3b4556 !important;
+}
+
+.theme-dark-pro [class*="border-emerald-200"] {
+  border-color: #2f5f4a !important;
+}
+
+.theme-dark-pro [class*="border-amber-200"],
+.theme-dark-pro [class*="border-amber-300"] {
+  border-color: #7d6230 !important;
+}
+
+.theme-dark-pro [class*="border-rose-200"] {
+  border-color: #6a3a42 !important;
+}
+
+.theme-dark-pro [class*="border-[#ffd7d1]"] {
+  border-color: #6a3a42 !important;
+}
+
+.theme-dark-pro [class*="border-[#f1dfb3]"] {
+  border-color: #7d6230 !important;
+}
+
+.theme-dark-pro [class*="border-[#f5e0a0]"],
+.theme-dark-pro [class*="border-[#f0d070]"],
+.theme-dark-pro [class*="border-[#ca8a04]"],
+.theme-dark-pro [class*="border-[#e09400]"] {
+  border-color: #7d6230 !important;
+}
+
+.theme-dark-pro [class*="border-[#3b82f6]"] {
+  border-color: #365a87 !important;
+}
+
+.theme-dark-pro [class*="border-[#6b7280]"] {
+  border-color: #4a5568 !important;
+}
+
+.theme-dark-pro [class*="text-[#15803d]"],
+.theme-dark-pro [class*="text-[#27ae60]"] {
+  color: #7fd8a8 !important;
+}
+
+.theme-dark-pro [class*="text-neutral-500"],
+.theme-dark-pro [class*="text-neutral-600"] {
+  color: #9aabc3 !important;
+}
+
+.theme-dark-pro [class*="text-emerald-600"],
+.theme-dark-pro [class*="text-emerald-700"],
+.theme-dark-pro [class*="text-emerald-800"] {
+  color: #7fd8a8 !important;
+}
+
+.theme-dark-pro [class*="text-amber-700"],
+.theme-dark-pro [class*="text-amber-800"],
+.theme-dark-pro [class*="text-amber-900"] {
+  color: #f3c27c !important;
+}
+
+.theme-dark-pro [class*="text-rose-700"],
+.theme-dark-pro [class*="text-rose-800"] {
+  color: #ff9ea7 !important;
+}
+
+.theme-dark-pro [class*="text-[#991b1b]"] {
+  color: #ff9ea7 !important;
+}
+
+.theme-dark-pro [class*="text-[#bf3e31]"] {
+  color: #ff9ea7 !important;
+}
+
+.theme-dark-pro [class*="text-[#a44a3f]"],
+.theme-dark-pro [class*="text-[#9d4a3f]"],
+.theme-dark-pro [class*="text-[#8f3228]"],
+.theme-dark-pro [class*="text-[#c0392b]"] {
+  color: #ff9ea7 !important;
+}
+
+.theme-dark-pro [class*="text-[#92400e]"],
+.theme-dark-pro [class*="text-[#854d0e]"],
+.theme-dark-pro [class*="text-[#c8960a]"],
+.theme-dark-pro [class*="text-[#e09400]"],
+.theme-dark-pro [class*="text-[#9f7010]"] {
+  color: #f3c27c !important;
+}
+
+.theme-dark-pro [class*="text-[#1d4ed8]"] {
+  color: #9dc6ff !important;
+}
+
+.theme-dark-pro [class*="text-[#374151]"] {
+  color: #c8d7ea !important;
+}
+
 .theme-dark-pro button[class*="bg-[#111"],
 .theme-dark-pro a[class*="bg-[#111"] {
   background: #2b5ea8 !important;
@@ -205,12 +375,20 @@ body {
 }
 
 .theme-dark-pro [class*="fixed inset-0"][class*="z-[1000]"] > [class*="bg-white"],
-.theme-dark-pro [class*="fixed inset-0"][class*="z-[1050]"] > [class*="bg-white"] {
+.theme-dark-pro [class*="fixed inset-0"][class*="z-[1020]"] > [class*="bg-white"],
+.theme-dark-pro [class*="fixed inset-0"][class*="z-[1050]"] > [class*="bg-white"],
+.theme-dark-pro [class*="fixed inset-0"][class*="z-[1060]"] > [class*="bg-white"] {
   background: var(--dm-bg-1) !important;
   border: 1px solid var(--dm-border);
 }
 
 .theme-dark-pro [class*="fixed inset-0"][class*="z-[1000]"] [class*="border-[#f0f0f0]"],
-.theme-dark-pro [class*="fixed inset-0"][class*="z-[1050]"] [class*="border-[#f0f0f0]"] {
+.theme-dark-pro [class*="fixed inset-0"][class*="z-[1020]"] [class*="border-[#f0f0f0]"],
+.theme-dark-pro [class*="fixed inset-0"][class*="z-[1050]"] [class*="border-[#f0f0f0]"],
+.theme-dark-pro [class*="fixed inset-0"][class*="z-[1060]"] [class*="border-[#f0f0f0]"] {
   border-color: var(--dm-border) !important;
+}
+
+.theme-dark-pro [class*="bg-white/78"] {
+  background: rgb(15 23 35 / 78%) !important;
 }

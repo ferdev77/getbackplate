@@ -39,6 +39,44 @@ Si hay diferencias con secciones historicas de este archivo para RRHH, prevalece
 - Se estandarizo comportamiento de validacion previa a mutacion en RRHH API:
   - `PATCH/DELETE /api/company/employees` valida existencia previa y responde `404` cuando corresponde
   - `PATCH/DELETE /api/company/users` valida existencia previa y responde `404` cuando corresponde
+- Optimizaciones de performance aplicadas:
+  - cache TTL para resolucion de emails de Auth por `user_id` en `web/src/shared/lib/auth-users.ts`
+  - cache TTL de uso por organizacion para limites de plan en `web/src/shared/lib/plan-limits.ts`
+  - deduplicacion O(1) con `Set` en `web/src/shared/lib/scope-users-catalog.ts`
+  - conteo real paginado de documentos visibles en portal empleado (`web/src/app/(employee)/portal/layout.tsx`)
+- Limpieza tecnica aplicada:
+  - eliminados componentes legacy no usados en `web/src/shared/ui/*workspace.tsx` y `web/src/shared/ui/placeholder-page.tsx`
+  - eliminada accion muerta `submitChecklistRunAction` en `web/src/modules/checklists/actions.ts`
+- Validacion tecnica actual:
+  - `npm run build` OK
+  - smoke tecnico DB cross-modulo OK (lecturas core + RPC de modulos)
+  - `npm run lint` mantiene deuda historica fuera de este lote (pendiente remediacion dedicada)
+- Hardening C1 en progreso (reduccion admin client):
+  - migradas lecturas de catalogos UI a server client en:
+    - `web/src/app/(company)/app/documents/page.tsx`
+    - `web/src/app/(company)/app/checklists/page.tsx`
+    - `web/src/app/(company)/app/announcements/page.tsx`
+    - `web/src/app/(company)/app/employees/page.tsx`
+    - `web/src/app/(company)/app/users/page.tsx`
+  - estado: C1 cerrado
+- QA profundo automatizado ejecutado (2026-03-21):
+  - OK: `verify:smoke-modules`
+  - OK: `verify:module-role-e2e`
+  - OK: `verify:role-permissions`
+  - OK: `verify:rls-isolation`
+  - OK: `verify:reports-isolation`
+  - OK: `verify:document-guardrails`
+  - OK: `verify:operational-metrics-consistency`
+  - OK: `verify:operational-alerts`
+  - OK: `verify:audit-coverage`
+  - OK: `verify:plan-limit-enforcement`
+  - OK: `verify:plan-limit-messages`
+  - ERROR funcional de datos (no código): `verify:official-plan-packaging` por catálogo de planes no alineado en DB (`starter/growth/enterprise` ausentes)
+- Ajustes de scripts QA por arquitectura actual:
+  - `scripts/verify-plan-limit-enforcement.mjs` actualizado para chequear `src/app/api/company/users/route.ts` en lugar de `src/modules/employees/actions.ts`
+  - `scripts/verify-plan-limit-messages.mjs` actualizado para quitar referencias a archivos eliminados
+- Cobertura de auditoría:
+  - se agregaron eventos de auditoría en `updatePasswordAction` (`src/modules/auth/actions.ts`) para casos success/failed
 - Se elimino codigo en desuso:
   - `web/src/modules/employees/actions.ts`
 - Se validaron flujos con datos reales temporales en DB (con limpieza al finalizar):

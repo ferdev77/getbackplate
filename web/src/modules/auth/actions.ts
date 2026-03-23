@@ -6,7 +6,7 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { getCurrentUserMemberships } from "@/modules/memberships/queries";
-import { logAuthEvent } from "@/shared/lib/audit";
+import { logAuditEvent, logAuthEvent } from "@/shared/lib/audit";
 import { AUDIT_REASON_CODES } from "@/shared/lib/audit-taxonomy";
 import {
   getActiveOrganizationIdFromCookie,
@@ -314,6 +314,16 @@ export async function updatePasswordAction(formData: FormData) {
   const nextPath = String(formData.get("next") ?? "").trim();
 
   if (!password || password.length < 8) {
+    await logAuditEvent({
+      action: "password.update.failed",
+      entityType: "auth_session",
+      eventDomain: "auth",
+      outcome: "denied",
+      severity: "low",
+      metadata: {
+        reason: "password_too_short",
+      },
+    });
     redirect(
       "/auth/change-password?error=" +
         encodeURIComponent("La contrasena debe tener al menos 8 caracteres"),
@@ -321,6 +331,16 @@ export async function updatePasswordAction(formData: FormData) {
   }
 
   if (password !== confirmPassword) {
+    await logAuditEvent({
+      action: "password.update.failed",
+      entityType: "auth_session",
+      eventDomain: "auth",
+      outcome: "denied",
+      severity: "low",
+      metadata: {
+        reason: "password_confirmation_mismatch",
+      },
+    });
     redirect(
       "/auth/change-password?error=" +
         encodeURIComponent("La confirmacion de contrasena no coincide"),
@@ -333,6 +353,16 @@ export async function updatePasswordAction(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (!user) {
+    await logAuditEvent({
+      action: "password.update.failed",
+      entityType: "auth_session",
+      eventDomain: "auth",
+      outcome: "denied",
+      severity: "medium",
+      metadata: {
+        reason: "missing_authenticated_user",
+      },
+    });
     redirect("/auth/login?error=" + encodeURIComponent("Tu sesion expiro. Inicia sesion nuevamente"));
   }
 
@@ -351,11 +381,33 @@ export async function updatePasswordAction(formData: FormData) {
   });
 
   if (error) {
+    await logAuditEvent({
+      action: "password.update.failed",
+      entityType: "auth_session",
+      eventDomain: "auth",
+      outcome: "error",
+      severity: "high",
+      metadata: {
+        reason: "supabase_update_failed",
+        error_message: error.message,
+      },
+    });
     redirect(
       "/auth/change-password?error=" +
         encodeURIComponent(`No se pudo actualizar la contrasena: ${error.message}`),
     );
   }
+
+  await logAuditEvent({
+    action: "password.update.success",
+    entityType: "auth_session",
+    eventDomain: "auth",
+    outcome: "success",
+    severity: "low",
+    metadata: {
+      redirect_to: nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/app/dashboard",
+    },
+  });
 
   if (nextPath.startsWith("/") && !nextPath.startsWith("//")) {
     redirect(nextPath);
