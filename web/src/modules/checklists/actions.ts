@@ -43,7 +43,7 @@ async function resolveChecklistAudienceContacts(input: ChecklistAudienceInput) {
   const positionIds = Array.isArray(scope.position_ids) ? scope.position_ids.filter(Boolean) : [];
   const scopedUserIds = Array.isArray(scope.users) ? scope.users.filter(Boolean) : [];
 
-  const [{ data: employees }, { data: positionRows }] = await Promise.all([
+  const [{ data: employees }, { data: positionRows }, { data: memberships }, { data: profiles }] = await Promise.all([
     input.supabase
       .from("employees")
       .select("user_id, branch_id, department_id, position, status, phone_country_code, phone")
@@ -55,6 +55,17 @@ async function resolveChecklistAudienceContacts(input: ChecklistAudienceInput) {
       .select("id, name")
       .eq("organization_id", input.organizationId)
       .eq("is_active", true),
+    input.supabase
+      .from("memberships")
+      .select("user_id")
+      .eq("organization_id", input.organizationId)
+      .eq("status", "active")
+      .not("user_id", "is", null),
+    input.supabase
+      .from("organization_user_profiles")
+      .select("user_id, branch_id, department_id, position_id, phone, status")
+      .eq("organization_id", input.organizationId)
+      .eq("status", "active"),
   ]);
 
   const positionIdsByName = new Map<string, string[]>();
@@ -67,6 +78,7 @@ async function resolveChecklistAudienceContacts(input: ChecklistAudienceInput) {
   }
 
   const recipientUserIds = new Set<string>();
+  const membershipUserIds = new Set((memberships ?? []).map((row) => row.user_id).filter(Boolean));
 
   for (const employee of employees ?? []) {
     if (!employee.user_id) continue;
@@ -92,6 +104,38 @@ async function resolveChecklistAudienceContacts(input: ChecklistAudienceInput) {
 
     if (isInAudience) {
       recipientUserIds.add(employee.user_id);
+    }
+  }
+
+  const hasAnyScope =
+    locationIds.length > 0 || departmentIds.length > 0 || positionIds.length > 0 || scopedUserIds.length > 0;
+
+  for (const profile of profiles ?? []) {
+    if (!profile.user_id) continue;
+
+    const byTemplateBranch = Boolean(input.templateBranchId) && profile.branch_id === input.templateBranchId;
+    const byTemplateDepartment =
+      Boolean(input.templateDepartmentId) && profile.department_id === input.templateDepartmentId;
+    const byLocationScope =
+      locationIds.length > 0 && Boolean(profile.branch_id) && locationIds.includes(profile.branch_id);
+    const byDepartmentScope =
+      departmentIds.length > 0 && Boolean(profile.department_id) && departmentIds.includes(profile.department_id);
+    const byPositionScope =
+      positionIds.length > 0 && Boolean(profile.position_id) && positionIds.includes(profile.position_id);
+    const byUserScope = scopedUserIds.length > 0 && scopedUserIds.includes(profile.user_id);
+
+    const isInAudience = hasAnyScope
+      ? byLocationScope || byDepartmentScope || byPositionScope || byUserScope
+      : byTemplateBranch || byTemplateDepartment || (!input.templateBranchId && !input.templateDepartmentId);
+
+    if (isInAudience) {
+      recipientUserIds.add(profile.user_id);
+    }
+  }
+
+  if (!hasAnyScope && !input.templateBranchId && !input.templateDepartmentId) {
+    for (const userId of membershipUserIds) {
+      recipientUserIds.add(userId);
     }
   }
 
@@ -122,6 +166,16 @@ async function resolveChecklistAudienceContacts(input: ChecklistAudienceInput) {
     }
 
     recipientPhones.add(fullNumber);
+  }
+
+  for (const profile of profiles ?? []) {
+    if (!profile.user_id || !recipientUserIds.has(profile.user_id) || !profile.phone) {
+      continue;
+    }
+
+    const number = profile.phone.replace(/[^0-9+]/g, "");
+    if (!number) continue;
+    recipientPhones.add(number.startsWith("+") ? number : `+${number}`);
   }
 
   return {

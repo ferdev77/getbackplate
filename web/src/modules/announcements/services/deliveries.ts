@@ -144,7 +144,7 @@ async function resolveAnnouncementAudienceContacts(
     scope.position_ids.length > 0 || 
     scope.users.length > 0;
 
-  const [{ data: employees, error }, { data: positionRows }] = await Promise.all([
+  const [{ data: employees, error }, { data: positionRows }, { data: profiles }, { data: memberships }] = await Promise.all([
     supabase
       .from("employees")
       .select("user_id, branch_id, department_id, position, phone_country_code, phone, status")
@@ -155,18 +155,22 @@ async function resolveAnnouncementAudienceContacts(
       .select("id, name")
       .eq("organization_id", organizationId)
       .eq("is_active", true),
+    supabase
+      .from("organization_user_profiles")
+      .select("user_id, branch_id, department_id, position_id, phone, status")
+      .eq("organization_id", organizationId)
+      .eq("status", "active"),
+    supabase
+      .from("memberships")
+      .select("user_id")
+      .eq("organization_id", organizationId)
+      .eq("status", "active")
+      .not("user_id", "is", null),
   ]);
 
   if (error || !employees) {
     throw new Error(`No se pudo resolver audiencia de aviso: ${error?.message ?? "sin datos"}`);
   }
-
-  const { data: memberships } = await supabase
-    .from("memberships")
-    .select("user_id")
-    .eq("organization_id", organizationId)
-    .eq("status", "active")
-    .not("user_id", "is", null);
 
   const matchedPhones = new Set<string>();
   const matchedUserIds = new Set<string>();
@@ -199,25 +203,24 @@ async function resolveAnnouncementAudienceContacts(
 
     if (isMatch) {
       matchedUserIds.add(emp.user_id);
+    }
+  }
 
-      if (!emp.phone) continue;
-      // Format phone: e.g. +54 9 11 1234 5678 -> +5491112345678
-      const code = (emp.phone_country_code || "").replace(/[^0-9+]/g, "");
-      const number = emp.phone.replace(/[^0-9]/g, "");
-      
-      let fullNumber = number;
-      if (code && !number.startsWith(code) && !number.startsWith(code.replace("+", ""))) {
-         fullNumber = `${code}${number}`;
-      } else if (!code && !number.startsWith("+")) {
-         // Best effort fallback, guess it's already got a country code or needs one
-         fullNumber = `+${number}`; // Might fail in Twilio if not fully qualified
-      } else if (number.startsWith("+")) {
-        fullNumber = number;
-      } else {
-         fullNumber = `+${number}`;
-      }
+  for (const profile of profiles ?? []) {
+    if (!profile.user_id) continue;
 
-      matchedPhones.add(fullNumber);
+    let isMatch = false;
+    if (!hasSpecificScope) {
+      isMatch = membershipUserIds.has(profile.user_id);
+    } else {
+      if (profile.branch_id && scope.locations.includes(profile.branch_id)) isMatch = true;
+      if (profile.department_id && scope.department_ids.includes(profile.department_id)) isMatch = true;
+      if (profile.position_id && scope.position_ids.includes(profile.position_id)) isMatch = true;
+      if (scope.users.includes(profile.user_id)) isMatch = true;
+    }
+
+    if (isMatch) {
+      matchedUserIds.add(profile.user_id);
     }
   }
 
@@ -233,6 +236,27 @@ async function resolveAnnouncementAudienceContacts(
 
   const emailByUserId = await getAuthEmailByUserId([...matchedUserIds]);
   const emails = [...emailByUserId.values()].filter(Boolean);
+
+  for (const emp of employees ?? []) {
+    if (!emp.user_id || !matchedUserIds.has(emp.user_id) || !emp.phone) continue;
+
+    const code = (emp.phone_country_code || "").replace(/[^0-9+]/g, "");
+    const number = emp.phone.replace(/[^0-9]/g, "");
+    if (!number) continue;
+
+    if (code && !number.startsWith(code) && !number.startsWith(code.replace("+", ""))) {
+      matchedPhones.add(`${code}${number}`);
+    } else {
+      matchedPhones.add(number.startsWith("+") ? number : `+${number}`);
+    }
+  }
+
+  for (const profile of profiles ?? []) {
+    if (!profile.user_id || !matchedUserIds.has(profile.user_id) || !profile.phone) continue;
+    const number = profile.phone.replace(/[^0-9+]/g, "");
+    if (!number) continue;
+    matchedPhones.add(number.startsWith("+") ? number : `+${number}`);
+  }
 
   return {
     phones: Array.from(matchedPhones),
