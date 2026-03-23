@@ -17,7 +17,7 @@ Esta implementacion se considera un **nuevo modulo** del sistema, integrado con 
 ## Estado global
 
 - Version: `2.1`
-- Estado: `[~] En progreso`
+- Estado: `[x] Completado (fase inicial)`
 
 ---
 
@@ -55,12 +55,41 @@ Esta implementacion se considera un **nuevo modulo** del sistema, integrado con 
 - [x] Sincronizar `organization_modules` para organizaciones con plan `basico/pro`
 - [x] Verificar contrato con `verify:official-plan-packaging`
 
-### [~] 2.1.5 QA y cierre
+### [x] 2.1.5 QA y cierre
 
-- [ ] QA por rol (admin/manager/employee)
-- [ ] QA multiempresa (aislamiento)
-- [ ] QA performance (no degradar navegacion)
-- [ ] Documentacion final de release 2.1
+- [x] QA por rol (admin/manager permitido, employee restringido por diseño)
+- [x] QA multiempresa (aislamiento)
+- [x] QA performance (no degradar navegacion)
+- [x] Documentacion final de release 2.1
+
+## Evidencia de cierre 2.1
+
+- API operativa: `POST /api/company/ai/chat`
+- UI operativa: boton flotante + panel chat en shell empresa
+- Modo por plan:
+  - `basico`: OpenRouter -> fallback estructurado
+  - `pro`: OpenAI -> OpenRouter -> fallback estructurado
+- Integracion de modulo:
+  - `module_catalog.code = ai_assistant`
+  - `plan_modules` habilitado para `basico/pro`
+  - `organization_modules` sincronizado para tenants con esos planes
+- Verificaciones:
+  - `npm run verify:official-plan-packaging` OK
+  - `npm run build` OK
+- Mejora 2.1.1 (fase A) aplicada:
+  - prompt por dominio activo
+  - contexto operacional (`originModule`, rol, intencion) activo
+  - etiqueta de confianza visible en respuesta
+
+## Evidencia de cierre 2.1.1 (OpenRouter Pro)
+
+- Guardrails sensibles activos (bloqueo de preguntas fuera de alcance)
+- Memoria corta por sesion activa (ultimos turnos, con expiracion)
+- Reintento de calidad activo cuando respuesta inicial sale debil
+- Cache FAQ por tenant/pregunta activa (TTL corto)
+- Enrutamiento por complejidad activo (modelo rapido vs complejo)
+- Telemetria de costo/latencia activa en auditoria (`duration_ms`, tokens, costo estimado)
+- QA tecnico: build OK
 
 ---
 
