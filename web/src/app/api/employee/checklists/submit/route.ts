@@ -186,6 +186,8 @@ export async function POST(request: Request) {
     return fail("No tienes acceso a este checklist", 403, { template_id: templateId });
   }
 
+  const admin = createSupabaseAdminClient();
+
   const { data: existingSubmission } = await admin
     .from("checklist_submissions")
     .select("id, status, submitted_at")
@@ -226,8 +228,6 @@ export async function POST(request: Request) {
   }
 
   await ensureBucket();
-
-  const admin = createSupabaseAdminClient();
 
   const { data: submission, error: submissionError } = await admin
     .from("checklist_submissions")
