@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type Stripe from 'stripe';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/client/server';
 import { stripe } from '@/infrastructure/stripe/client';
+import { assertCompanyManagerModuleApi } from '@/shared/lib/access';
 import { isSuperadminImpersonating } from '@/shared/lib/impersonation';
 import { logAuditEvent } from '@/shared/lib/audit';
 
@@ -18,10 +19,14 @@ export async function POST(request: Request) {
     const protocol = headersList.get('x-forwarded-proto') || 'http';
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
 
+    const moduleAccess = await assertCompanyManagerModuleApi('dashboard');
+    if (!moduleAccess.ok) {
+      return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
+    }
+
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
+    if (!user || user.id !== moduleAccess.userId) {
       return NextResponse.json({ error: 'AuthRequired', message: 'You must be logged in to subscribe.' }, { status: 401 });
     }
 
@@ -39,42 +44,30 @@ export async function POST(request: Request) {
       );
     }
 
-    let organizationId: string | null = null;
+    const organizationId = moduleAccess.tenant.organizationId;
     let stripeCustomerId: string | undefined = undefined;
     let existingStripeSubscriptionId: string | null = null;
 
-    // Fetch organization + existing Stripe mapping for this user
-    const { data: membership } = await supabase
-      .from('memberships')
-      .select('organization_id')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .single();
+    const { data: stripeMapping } = await supabase
+      .from('stripe_customers')
+      .select('stripe_customer_id')
+      .eq('organization_id', organizationId)
+      .maybeSingle();
 
-    if (membership) {
-      organizationId = membership.organization_id;
+    if (stripeMapping) {
+      stripeCustomerId = stripeMapping.stripe_customer_id;
+    }
 
-      const { data: stripeMapping } = await supabase
-        .from('stripe_customers')
-        .select('stripe_customer_id')
-        .eq('organization_id', organizationId)
-        .single();
+    // Check if there's already an active subscription in our DB
+    const { data: existingSub } = await supabase
+      .from('subscriptions')
+      .select('stripe_subscription_id, status')
+      .eq('organization_id', organizationId)
+      .in('status', ['active', 'trialing'])
+      .maybeSingle();
 
-      if (stripeMapping) {
-        stripeCustomerId = stripeMapping.stripe_customer_id;
-      }
-
-      // Check if there's already an active subscription in our DB
-      const { data: existingSub } = await supabase
-        .from('subscriptions')
-        .select('stripe_subscription_id, status')
-        .eq('organization_id', organizationId)
-        .in('status', ['active', 'trialing'])
-        .single();
-
-      if (existingSub) {
-        existingStripeSubscriptionId = existingSub.stripe_subscription_id;
-      }
+    if (existingSub) {
+      existingStripeSubscriptionId = existingSub.stripe_subscription_id;
     }
 
     // ─────────────────────────────────────────────────────────
@@ -100,7 +93,7 @@ export async function POST(request: Request) {
         items: [{ id: currentItemId, price: priceId }],
         proration_behavior: 'create_prorations',
         metadata: {
-          organizationId: organizationId || '',
+          organizationId,
           userId: user.id,
           planId: planId || '',
         },
@@ -124,15 +117,15 @@ export async function POST(request: Request) {
       success_url: `${baseUrl}/app/dashboard?session_id={CHECKOUT_SESSION_ID}&success=true`,
       cancel_url: `${baseUrl}/app/dashboard?canceled=true`,
       tax_id_collection: { enabled: true },
-      client_reference_id: organizationId || 'guest',
+      client_reference_id: organizationId,
       metadata: {
-        organizationId: organizationId || '',
+        organizationId,
         userId: user?.id || '',
         planId: planId || '',
       },
       subscription_data: {
         metadata: {
-          organizationId: organizationId || '',
+          organizationId,
           userId: user?.id || '',
           planId: planId || '',
         },

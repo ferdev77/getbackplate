@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { EMPLOYEES_MESSAGES, employeesStorageLimitForSlot } from "@/shared/lib/employees-messages";
 import { analyzeUploadedFile } from "@/shared/lib/file-security";
@@ -42,23 +43,6 @@ async function ensureBucketExists() {
     public: false,
     fileSizeLimit: `${MAX_FILE_SIZE_BYTES}`,
   });
-}
-
-async function findAuthUserByEmail(email: string) {
-  const admin = createSupabaseAdminClient();
-  let page = 1;
-  const perPage = 200;
-
-  while (true) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
-    if (error) return null;
-
-    const found = data.users.find((user) => user.email?.toLowerCase() === email.toLowerCase());
-    if (found) return found;
-
-    if (data.users.length < perPage) return null;
-    page += 1;
-  }
 }
 
 async function rollbackEmployeeCreateFlow(input: {
@@ -1130,9 +1114,13 @@ export async function PATCH(request: Request) {
   }
 
   if (organizationUserProfileId) {
+    if (!isUserStatus) {
+      return NextResponse.json({ error: "Estado invalido para usuario" }, { status: 400 });
+    }
+
     const { data: previousProfile } = await supabase
       .from("organization_user_profiles")
-      .select("status")
+      .select("status, user_id")
       .eq("organization_id", tenant.organizationId)
       .eq("id", organizationUserProfileId)
       .maybeSingle();
@@ -1149,6 +1137,32 @@ export async function PATCH(request: Request) {
 
     if (profileError) {
       return NextResponse.json({ error: `No se pudo actualizar estado del usuario: ${profileError.message}` }, { status: 400 });
+    }
+
+    const { error: membershipError } = await supabase
+      .from("memberships")
+      .update({ status })
+      .eq("organization_id", tenant.organizationId)
+      .eq("user_id", previousProfile.user_id);
+
+    if (membershipError) {
+      await logAuditEvent({
+        action: "employee.status.update",
+        entityType: "organization_user_profile",
+        entityId: organizationUserProfileId,
+        organizationId: tenant.organizationId,
+        eventDomain: "employees",
+        outcome: "error",
+        severity: "medium",
+        metadata: {
+          actor_user_id: actorId,
+          status_scope: "membership_sync",
+          next_status: status,
+          error: membershipError.message,
+        },
+      });
+
+      return NextResponse.json({ error: `No se pudo sincronizar estado de acceso: ${membershipError.message}` }, { status: 400 });
     }
 
     await logAuditEvent({
@@ -1168,6 +1182,10 @@ export async function PATCH(request: Request) {
     });
 
     return NextResponse.json({ ok: true });
+  }
+
+  if (!isEmployeeStatus) {
+    return NextResponse.json({ error: "Estado invalido para empleado" }, { status: 400 });
   }
 
   const { data: previousEmployee } = await supabase
