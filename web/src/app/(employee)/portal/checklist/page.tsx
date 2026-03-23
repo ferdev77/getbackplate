@@ -106,7 +106,7 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
 
   const visibleTemplateIds = visibleTemplates.map((template) => template.id);
   const { data: visibleSubmissions } = visibleTemplateIds.length
-    ? await supabase
+    ? await admin
         .from("checklist_submissions")
         .select("template_id, status, submitted_at")
         .eq("organization_id", tenant.organizationId)
@@ -157,7 +157,7 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
     : { data: null };
 
   const { data: latestSubmission } = previewTemplate
-    ? await supabase
+    ? await admin
         .from("checklist_submissions")
         .select("id, status, submitted_at")
         .eq("organization_id", tenant.organizationId)
@@ -169,7 +169,7 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
     : { data: null };
 
   const { data: submissionItems } = latestSubmission
-    ? await supabase
+    ? await admin
         .from("checklist_submission_items")
         .select("id, template_item_id, is_checked, is_flagged")
         .eq("organization_id", tenant.organizationId)
@@ -181,18 +181,18 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
   const [{ data: submissionComments }, { data: submissionFlags }, { data: submissionAttachments }] =
     latestSubmission && submissionItemIds.length > 0
       ? await Promise.all([
-          supabase
+          admin
             .from("checklist_item_comments")
             .select("submission_item_id, comment, created_at")
             .eq("organization_id", tenant.organizationId)
             .in("submission_item_id", submissionItemIds)
             .order("created_at", { ascending: false }),
-          supabase
+          admin
             .from("checklist_flags")
             .select("submission_item_id, reason")
             .eq("organization_id", tenant.organizationId)
             .in("submission_item_id", submissionItemIds),
-          supabase
+          admin
             .from("checklist_item_attachments")
             .select("submission_item_id, file_path")
             .eq("organization_id", tenant.organizationId)
