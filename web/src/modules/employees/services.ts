@@ -4,8 +4,10 @@ export async function getEmployeeDirectoryView(
   supabase: SupabaseClient, 
   organizationId: string, 
   limit: number = 1000,
-  options: { includeModalsData?: boolean; includeUsersTab?: boolean } = {}
+  options: { includeModalsData?: boolean; includeUsersTab?: boolean; includeEmployeesData?: boolean } = {}
 ) {
+  const includeEmployeesData = options.includeEmployeesData ?? true;
+
   const [
     { data: employees }, 
     { data: branches }, 
@@ -14,17 +16,19 @@ export async function getEmployeeDirectoryView(
     { data: departments }, 
     { data: positions }
   ] = await Promise.all([
-    supabase
-      .from("employees")
-      .select(`
-        id, user_id, first_name, last_name, email, phone, phone_country_code, position, department, department_id, status, branch_id, hired_at, birth_date, sex, nationality, address_line1, address_city, address_state, address_postal_code, address_country, emergency_contact_name, emergency_contact_phone, emergency_contact_email, created_at,
-        document_type, document_number, personal_email,
-        branch:branches ( id, name ),
-        dept:organization_departments ( id, name )
-      `)
-      .eq("organization_id", organizationId)
-      .order("created_at", { ascending: false })
-      .limit(limit),
+    includeEmployeesData
+      ? supabase
+          .from("employees")
+          .select(`
+            id, user_id, first_name, last_name, email, phone, phone_country_code, position, department, department_id, status, branch_id, hired_at, birth_date, sex, nationality, address_line1, address_city, address_state, address_postal_code, address_country, emergency_contact_name, emergency_contact_phone, emergency_contact_email, created_at,
+            document_type, document_number, personal_email,
+            branch:branches ( id, name ),
+            dept:organization_departments ( id, name )
+          `)
+          .eq("organization_id", organizationId)
+          .order("created_at", { ascending: false })
+          .limit(limit)
+      : Promise.resolve({ data: [] }),
     (options.includeModalsData || options.includeUsersTab)
       ? supabase
           .from("branches")
@@ -62,7 +66,7 @@ export async function getEmployeeDirectoryView(
   const employeeIds = (employees ?? []).map((emp) => emp.id);
 
   const [{ data: documents }, { data: contracts }, { data: employeeDocs }] = await Promise.all([
-    options.includeModalsData
+    options.includeModalsData && includeEmployeesData
       ? supabase
           .from("documents")
           .select("id, title, created_at")
@@ -70,7 +74,7 @@ export async function getEmployeeDirectoryView(
           .order("created_at", { ascending: false })
           .limit(50)
       : Promise.resolve({ data: [] }),
-    employeeIds.length > 0 
+    includeEmployeesData && employeeIds.length > 0 
       ? supabase
           .from("employee_contracts")
           .select("employee_id, contract_type, contract_status, start_date, end_date, notes, signer_name, salary_amount, salary_currency, payment_frequency, signed_at, created_at")
@@ -78,7 +82,7 @@ export async function getEmployeeDirectoryView(
           .in("employee_id", employeeIds)
           .order("created_at", { ascending: false })
       : Promise.resolve({ data: [] }),
-    employeeIds.length > 0
+    includeEmployeesData && employeeIds.length > 0
       ? supabase
           .from("employee_documents")
           .select("employee_id, document_id, status")

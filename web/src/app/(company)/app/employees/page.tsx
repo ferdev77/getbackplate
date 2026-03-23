@@ -36,13 +36,14 @@ export const revalidate = 0;
 export default async function CompanyEmployeesPage({ searchParams }: CompanyEmployeesPageProps) {
   const tenant = await requireTenantModule("employees");
   const supabase = await createSupabaseServerClient();
-  const action = String((await searchParams).action ?? "").trim().toLowerCase();
+  const params = await searchParams;
+  const action = String(params.action ?? "").trim().toLowerCase();
   const openEmployeeModal = action === "create" || action === "edit" || action === "create-employee" || action === "edit-employee" || action === "edit-user";
 
   const editEmployeeId = (await searchParams).employeeId;
   const editProfileId = (await searchParams).profileId;
-  const statusParam = (await searchParams).status;
-  const messageParam = (await searchParams).message;
+  const statusParam = params.status;
+  const messageParam = params.message;
 
   const pageLimit = 100;
   
@@ -51,7 +52,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
     tenant.organizationId, 
     pageLimit,
     {
-      includeModalsData: true,
+      includeModalsData: openEmployeeModal,
       includeUsersTab: true,
     }
   );

@@ -40,7 +40,11 @@ export default async function CompanyLayout({
     ? activePlans.find((p) => p.id === organization.plan_id) ?? null
     : null;
 
-  const inferredCurrentPlan = currentPlanById ?? activePlans.find((plan) => plan.code === "starter") ?? null;
+  const inferredCurrentPlan =
+    currentPlanById ??
+    activePlans.find((plan) => plan.code === "basico") ??
+    activePlans[0] ??
+    null;
 
   const enabledModules = [
     "company_portal",
