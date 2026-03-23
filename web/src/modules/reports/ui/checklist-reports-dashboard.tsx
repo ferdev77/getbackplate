@@ -106,6 +106,7 @@ export function ChecklistReportsDashboard({
   attentionFeed,
 }: ChecklistReportsDashboardProps) {
   const router = useRouter();
+  const hasSingleLocationCard = locationCards.length === 1;
   const [query, setQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<"" | "ok" | "warn">("");
@@ -117,6 +118,10 @@ export function ChecklistReportsDashboard({
     () => reports.find((report) => report.id === selectedReportId) ?? null,
     [reports, selectedReportId],
   );
+
+  const locationCardsGridClass = hasSingleLocationCard
+    ? "grid gap-3 grid-cols-1"
+    : "grid gap-3 md:grid-cols-2";
 
   const locations = useMemo(
     () => [...new Set(reports.map((report) => report.locationName))].sort((a, b) => a.localeCompare(b, "es")),
@@ -186,14 +191,14 @@ export function ChecklistReportsDashboard({
 
       <section className="mb-7">
         <h2 className="mb-3 font-serif text-[22px] text-[#0e0e0e]">Estado por Ubicación - Hoy</h2>
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className={locationCardsGridClass}>
           {locationCards.map((card) => (
             <button
               key={card.branchId}
               type="button"
               onClick={() => card.reportId && setSelectedReportId(card.reportId)}
               disabled={!card.reportId}
-              className={`relative overflow-hidden rounded-[14px] border-[1.5px] bg-white px-5 py-4 text-left transition ${
+              className={`relative w-full overflow-hidden rounded-[14px] border-[1.5px] bg-white px-5 py-4 text-left transition ${
                 card.reportId
                   ? "border-[#e8e8e8] hover:-translate-y-[1px] hover:border-[#ddd] hover:shadow-[0_8px_24px_rgba(0,0,0,.08)]"
                   : "cursor-default border-[#ececec]"
@@ -281,13 +286,14 @@ export function ChecklistReportsDashboard({
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[860px] border-collapse">
+              <table className="w-full min-w-[920px] border-collapse">
                 <thead>
                   <tr className="border-b border-[#f0f0f0] bg-[#fafafa] text-left text-[11px] font-bold uppercase tracking-[0.1em] text-[#888]">
                     <th className="px-4 py-3">Nombre / Ubicación</th>
                     <th className="px-4 py-3">Fecha</th>
                     <th className="px-4 py-3">Progreso</th>
                     <th className="px-4 py-3">Atención</th>
+                    <th className="px-4 py-3">Revisión</th>
                     <th className="px-4 py-3">Estado</th>
                   </tr>
                 </thead>
@@ -326,6 +332,11 @@ export function ChecklistReportsDashboard({
                           ) : (
                             <span className="text-xs text-[#bbb]">-</span>
                           )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-bold ${report.dbStatus === "reviewed" ? "bg-[#dbeafe] text-[#1d4ed8]" : "bg-[#fee2e2] text-[#b91c1c]"}`}>
+                            {report.dbStatus === "reviewed" ? "Revisado" : "Pendiente"}
+                          </span>
                         </td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${report.status === "ok" ? "bg-[#dcfce7] text-[#15803d]" : "bg-[#fef3c7] text-[#92400e]"}`}>
