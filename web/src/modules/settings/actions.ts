@@ -28,22 +28,16 @@ export async function upsertOrganizationSettingsAction(formData: FormData) {
 
   const supportEmail = String(formData.get("support_email") ?? "").trim() || null;
   const supportPhone = String(formData.get("support_phone") ?? "").trim() || null;
-  const timezone = String(formData.get("timezone") ?? "").trim() || null;
-  const primaryColor = String(formData.get("primary_color") ?? "").trim() || null;
-  const accentColor = String(formData.get("accent_color") ?? "").trim() || null;
-  const dashboardNote = String(formData.get("dashboard_note") ?? "").trim() || null;
   const feedbackWhatsapp = String(formData.get("feedback_whatsapp") ?? "").trim() || null;
+  const websiteUrl = String(formData.get("website_url") ?? "").trim() || null;
 
   const { error } = await supabase.from("organization_settings").upsert(
     {
       organization_id: tenant.organizationId,
       support_email: supportEmail,
       support_phone: supportPhone,
-      timezone,
-      primary_color: primaryColor,
-      accent_color: accentColor,
-      dashboard_note: dashboardNote,
       feedback_whatsapp: feedbackWhatsapp,
+      website_url: websiteUrl,
       updated_by: authData.user?.id ?? null,
     },
     { onConflict: "organization_id" },
@@ -61,9 +55,8 @@ export async function upsertOrganizationSettingsAction(formData: FormData) {
     metadata: {
       supportEmail,
       supportPhone,
-      timezone,
-      primaryColor,
-      accentColor,
+      feedbackWhatsapp,
+      websiteUrl,
     },
     eventDomain: "settings",
     outcome: "success",
