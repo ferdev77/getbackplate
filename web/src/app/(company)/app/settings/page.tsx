@@ -58,7 +58,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
       .maybeSingle(),
     supabase
       .from("branches")
-      .select("id, name, city, state, country, address, is_active, created_at")
+      .select("id, name, city, state, country, address, phone, is_active, created_at")
       .eq("organization_id", tenant.organizationId)
       .order("created_at", { ascending: false })
       .limit(30),
@@ -169,6 +169,9 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
                   <div>
                     <p className={`text-sm font-semibold text-[#2a2420] ${DARK_TEXT_STRONG}`}>{branch.name}</p>
                     <p className={`text-xs text-[#8b817c] ${DARK_TEXT_MUTED}`}>{[branch.city, branch.state, branch.country].filter(Boolean).join(", ") || "Sin ubicacion"}</p>
+                    {branch.phone ? (
+                      <p className={`text-xs text-[#8b817c] ${DARK_TEXT_MUTED}`}>{branch.phone}</p>
+                    ) : null}
                   </div>
                   <form action={toggleBranchStatusAction}>
                     <input type="hidden" name="branch_id" value={branch.id} />
@@ -184,6 +187,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
                   <input name="city" defaultValue={branch.city ?? ""} placeholder="Ciudad" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
                   <input name="state" defaultValue={branch.state ?? ""} placeholder="Estado" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
                   <input name="country" defaultValue={branch.country ?? ""} placeholder="Pais" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
+                  <input name="phone" defaultValue={branch.phone ?? ""} placeholder="Telefono" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
                   <input name="address" defaultValue={branch.address ?? ""} placeholder="Direccion" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm sm:col-span-2 ${DARK_INPUT}`} />
                   <button type="submit" className="rounded-lg bg-[#111] px-3 py-2 text-xs font-semibold text-white hover:bg-[#2a2521] sm:w-fit [.theme-dark-pro_&]:bg-[#2b5ea8] [.theme-dark-pro_&]:hover:bg-[#3a73c6]">Guardar cambios</button>
                 </form>
@@ -276,6 +280,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
               <input name="city" placeholder="Ciudad" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
               <input name="state" placeholder="Estado" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
               <input name="country" placeholder="Pais" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
+              <input name="phone" placeholder="Telefono" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
               <input name="address" placeholder="Direccion" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm sm:col-span-2 ${DARK_INPUT}`} />
               <div className="sm:col-span-2 flex justify-end gap-2 pt-1"><Link href="/app/settings#org-structure" className={`rounded-lg border border-[#ddd5d0] bg-white px-3 py-2 text-xs font-semibold text-[#514b47] hover:bg-[#f7f3f1] ${DARK_BTN_GHOST}`}>Cancelar</Link><button type="submit" className="rounded-lg bg-[#111] px-3 py-2 text-xs font-bold text-white hover:bg-[#c0392b] [.theme-dark-pro_&]:bg-[#2b5ea8] [.theme-dark-pro_&]:hover:bg-[#3a73c6]">Guardar</button></div>
             </form>
