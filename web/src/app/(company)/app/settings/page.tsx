@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, MapPin, Plus, Settings2, Users2 } from "lucide-react";
+import { Building2, MapPin, Plus, Settings2 } from "lucide-react";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import {
@@ -11,8 +11,8 @@ import {
   toggleDepartmentStatusAction,
   updateBranchAction,
   updateDepartmentAction,
-  upsertOrganizationSettingsAction,
 } from "@/modules/settings/actions";
+import { CompanyContactSettingsCard } from "@/modules/settings/ui/company-contact-settings-card";
 import { requireTenantModule } from "@/shared/lib/access";
 
 type CompanySettingsPageProps = {
@@ -39,7 +39,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
 
   const [
     { data: organization },
-    { data: orgSettings },
+    { data: orgSettingsWithWebsite, error: orgSettingsWithWebsiteError },
     { data: branches },
     { data: departments },
     { data: positions },
@@ -52,7 +52,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
     supabase
       .from("organization_settings")
       .select(
-        "support_email, support_phone, timezone, primary_color, accent_color, dashboard_note, feedback_whatsapp",
+        "support_email, support_phone, feedback_whatsapp, website_url",
       )
       .eq("organization_id", tenant.organizationId)
       .maybeSingle(),
@@ -79,6 +79,26 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
   const activeBranches = (branches ?? []).filter((row) => row.is_active).length;
   const activeDepartments = (departments ?? []).filter((row) => row.is_active).length;
   const activePositions = (positions ?? []).filter((row) => row.is_active).length;
+
+  const orgSettingsMissingWebsiteColumn =
+    Boolean(orgSettingsWithWebsiteError?.message) &&
+    Boolean(orgSettingsWithWebsiteError?.message?.includes("website_url")) &&
+    Boolean(orgSettingsWithWebsiteError?.message?.toLowerCase().includes("column"));
+
+  const { data: orgSettingsFallback } = orgSettingsMissingWebsiteColumn
+    ? await supabase
+        .from("organization_settings")
+        .select("support_email, support_phone, feedback_whatsapp, dashboard_note")
+        .eq("organization_id", tenant.organizationId)
+        .maybeSingle()
+    : { data: null };
+
+  const orgSettings = orgSettingsMissingWebsiteColumn
+    ? {
+        ...(orgSettingsFallback ?? {}),
+        website_url: orgSettingsFallback?.dashboard_note ?? "",
+      }
+    : (orgSettingsWithWebsite ?? { website_url: "" });
 
   const openBranchModal = params.action === "new-branch";
   const openDepartmentModal = params.action === "new-department";
@@ -129,66 +149,13 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
       ) : null}
 
       <section className="grid gap-4">
-        <article className={`rounded-2xl border border-[#e7dfda] bg-white p-5 ${DARK_CARD}`}>
-          <p className={`mb-3 inline-flex items-center gap-1 text-xs font-semibold tracking-[0.1em] text-[#8d847f] uppercase ${DARK_TEXT_MUTED}`}>
-            <Settings2 className="h-3.5 w-3.5" /> Tenant
-          </p>
-          <p className={`mb-1 text-base font-semibold text-[#2a2420] ${DARK_TEXT_STRONG}`}>{organization?.name ?? "Empresa"}</p>
-          <p className={`text-sm text-[#7b726d] ${DARK_TEXT_MUTED}`}>Configuracion operativa persistida por organizacion.</p>
-
-          <form action={upsertOrganizationSettingsAction} className="mt-4 grid gap-3 sm:grid-cols-2">
-            <input
-              name="support_email"
-              type="email"
-              defaultValue={orgSettings?.support_email ?? ""}
-              placeholder="Email de soporte"
-              className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`}
-            />
-            <input
-              name="support_phone"
-              defaultValue={orgSettings?.support_phone ?? ""}
-              placeholder="Telefono soporte"
-              className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`}
-            />
-            <input
-              name="timezone"
-              defaultValue={orgSettings?.timezone ?? "America/Argentina/Buenos_Aires"}
-              placeholder="Timezone"
-              className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`}
-            />
-            <input
-              name="feedback_whatsapp"
-              defaultValue={orgSettings?.feedback_whatsapp ?? ""}
-              placeholder="WhatsApp feedback"
-              className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`}
-            />
-            <input
-              name="primary_color"
-              defaultValue={orgSettings?.primary_color ?? "#b63a2f"}
-              placeholder="Color primario"
-              className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`}
-            />
-            <input
-              name="accent_color"
-              defaultValue={orgSettings?.accent_color ?? "#231f1c"}
-              placeholder="Color acento"
-              className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`}
-            />
-            <textarea
-              name="dashboard_note"
-              defaultValue={orgSettings?.dashboard_note ?? ""}
-              placeholder="Nota operativa para el dashboard"
-              rows={3}
-              className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm sm:col-span-2 ${DARK_INPUT}`}
-            />
-            <button
-              type="submit"
-              className="rounded-lg bg-[#111111] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2a2521] sm:col-span-2 sm:w-fit [.theme-dark-pro_&]:bg-[#2b5ea8] [.theme-dark-pro_&]:hover:bg-[#3a73c6]"
-            >
-              Guardar configuracion
-            </button>
-          </form>
-        </article>
+        <CompanyContactSettingsCard
+          organizationName={organization?.name ?? "Empresa"}
+          supportEmail={orgSettings?.support_email ?? ""}
+          supportPhone={orgSettings?.support_phone ?? ""}
+          feedbackWhatsapp={orgSettings?.feedback_whatsapp ?? ""}
+          websiteUrl={orgSettings?.website_url ?? ""}
+        />
       </section>
 
       <section id="org-structure" className="grid gap-4 xl:grid-cols-2">
@@ -298,16 +265,6 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
             {!departments?.length ? <p className={`text-sm text-[#8b817c] ${DARK_TEXT_MUTED}`}>Aun no hay departamentos.</p> : null}
           </div>
         </article>
-      </section>
-
-      <section className={`rounded-2xl border border-[#e7dfda] bg-white p-5 ${DARK_CARD}`}>
-        <p className={`mb-3 inline-flex items-center gap-1 text-xs font-semibold tracking-[0.1em] text-[#8d847f] uppercase ${DARK_TEXT_MUTED}`}><Users2 className="h-3.5 w-3.5" /> Escalabilidad operativa</p>
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          <div className={`rounded-lg border border-[#efe7e2] bg-[#fffcfa] px-3 py-2 text-sm text-[#5f5853] ${DARK_CARD_SOFT} ${DARK_TEXT_MUTED}`}>Locaciones y departamentos aislados por tenant</div>
-          <div className={`rounded-lg border border-[#efe7e2] bg-[#fffcfa] px-3 py-2 text-sm text-[#5f5853] ${DARK_CARD_SOFT} ${DARK_TEXT_MUTED}`}>Estados activos/inactivos sin borrar historial</div>
-          <div className={`rounded-lg border border-[#efe7e2] bg-[#fffcfa] px-3 py-2 text-sm text-[#5f5853] ${DARK_CARD_SOFT} ${DARK_TEXT_MUTED}`}>Puestos por departamento para flujos de empleados y checklists</div>
-          <div className={`rounded-lg border border-[#efe7e2] bg-[#fffcfa] px-3 py-2 text-sm text-[#5f5853] ${DARK_CARD_SOFT} ${DARK_TEXT_MUTED}`}>Diseno responsive para desktop/tablet/mobile</div>
-        </div>
       </section>
 
       {openBranchModal ? (
