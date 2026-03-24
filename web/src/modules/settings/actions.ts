@@ -132,6 +132,7 @@ export async function createBranchAction(formData: FormData) {
   const state = String(formData.get("state") ?? "").trim() || null;
   const country = String(formData.get("country") ?? "").trim() || null;
   const address = String(formData.get("address") ?? "").trim() || null;
+  const phone = String(formData.get("phone") ?? "").trim() || null;
 
   if (!name) {
     redirect("/app/settings?status=error&message=" + qs("Nombre de locacion obligatorio") + "#org-structure");
@@ -170,6 +171,7 @@ export async function createBranchAction(formData: FormData) {
       state,
       country,
       address,
+      phone,
       is_active: true,
     })
     .select("id")
@@ -184,7 +186,7 @@ export async function createBranchAction(formData: FormData) {
     entityType: "branch",
     entityId: created?.id,
     organizationId: tenant.organizationId,
-    metadata: { name, city, state, country },
+    metadata: { name, city, state, country, phone },
     eventDomain: "settings",
     outcome: "success",
     severity: "high",
@@ -246,6 +248,7 @@ export async function updateBranchAction(formData: FormData) {
   const state = String(formData.get("state") ?? "").trim() || null;
   const country = String(formData.get("country") ?? "").trim() || null;
   const address = String(formData.get("address") ?? "").trim() || null;
+  const phone = String(formData.get("phone") ?? "").trim() || null;
 
   if (!branchId || !name) {
     redirect("/app/settings?status=error&message=" + qs("Locacion invalida") + "#org-structure");
@@ -274,6 +277,7 @@ export async function updateBranchAction(formData: FormData) {
       state,
       country,
       address,
+      phone,
     })
     .eq("organization_id", tenant.organizationId)
     .eq("id", branchId);
@@ -287,7 +291,7 @@ export async function updateBranchAction(formData: FormData) {
     entityType: "branch",
     entityId: branchId,
     organizationId: tenant.organizationId,
-    metadata: { name, city, state, country },
+    metadata: { name, city, state, country, phone },
     eventDomain: "settings",
     outcome: "success",
     severity: "high",
