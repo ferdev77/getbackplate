@@ -92,6 +92,23 @@ Administra su empresa:
 3. Publica.
 4. El personal lo ve en su portal.
 
+### Flujo D: tareas automatizadas (Avisos y Checklists recurrentes)
+
+El sistema cuenta con un **Motor de Recurrencia Inteligente** que trabaja en piloto automático. 
+
+#### Para Avisos Recurrentes (ej. "Cada Día"):
+1. Admin crea un aviso y configura la periocidad ("Diario", "Semanal", etc).
+2. El sistema programa un reloj interno automático.
+3. Llegada la fecha/hora, el sistema **duplica y publica automáticamente** un nuevo aviso con esa información.
+4. Vuelve a calcular el próximo día, esperando en silencio.
+
+#### Para Checklists Recurrentes (ej. "Limpieza Diaria"):
+1. Admin crea la plantilla y configura recurrencia.
+2. Llegada la fecha/hora, el sistema **NO crea reportes vacíos infinitos** (para no saturar). Simplemente dispara una notificación/email recordando a los responsables.
+3. Cuando el empleado entra a su portal, el sistema compara: *"¿Cuándo completó Juan este checklist por última vez?"*. 
+4. Si Juan no lo ha completado desde que sonó la alarma hoy, le aparece en **Tareas Pendientes**.
+5. Tan pronto como Juan lo completa, desaparece hasta que la alarma vuelva a sonar al siguiente ciclo.
+
 ## Idea clave de seguridad (explicado simple)
 
 Aunque dos empresas usen el mismo sistema, no pueden ver informacion entre ellas.
