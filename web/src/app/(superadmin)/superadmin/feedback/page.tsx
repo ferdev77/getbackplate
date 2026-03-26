@@ -4,7 +4,6 @@ import { es } from "date-fns/locale";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { updateFeedbackStatusAction } from "./actions";
-import { RealtimeFeedbackListener } from "./realtime-feedback";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +55,6 @@ export default async function SuperadminFeedbackPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
-      <RealtimeFeedbackListener />
       <section className="relative overflow-hidden rounded-[2.5rem] border border-[#2d2622] bg-[#171311] p-8 text-white shadow-xl">
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand/20 blur-3xl" />
         <div className="relative z-10">

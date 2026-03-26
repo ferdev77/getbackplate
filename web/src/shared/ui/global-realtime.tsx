@@ -1,32 +1,38 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 
-export function RealtimeFeedbackListener() {
+export function GlobalRealtimeListener() {
   const router = useRouter();
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
     
     const channel = supabase
-      .channel("changes_feedback")
+      .channel("global_public_changes")
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
-          table: "feedback_messages",
         },
         () => {
-          router.refresh();
+          if (timerRef.current) {
+            clearTimeout(timerRef.current);
+          }
+          timerRef.current = setTimeout(() => {
+            router.refresh();
+          }, 500);
         }
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [router]);
 
