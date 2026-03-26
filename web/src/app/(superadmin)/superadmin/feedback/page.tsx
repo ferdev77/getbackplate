@@ -4,6 +4,7 @@ import { es } from "date-fns/locale";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { updateFeedbackStatusAction } from "./actions";
+import { RealtimeFeedbackListener } from "./realtime-feedback";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,7 @@ export default async function SuperadminFeedbackPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
+      <RealtimeFeedbackListener />
       <section className="relative overflow-hidden rounded-[2.5rem] border border-[#2d2622] bg-[#171311] p-8 text-white shadow-xl">
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand/20 blur-3xl" />
         <div className="relative z-10">
@@ -140,28 +142,25 @@ export default async function SuperadminFeedbackPage() {
                   </div>
 
                   <div className="flex items-center gap-2 sm:self-start">
-                    <form action={updateFeedbackStatusAction}>
-                      <input type="hidden" name="id" value={msg.id} />
-                      {isResolved ? (
-                         <button
-                           type="submit"
-                           name="status"
-                           value="open"
-                           className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-amber-100 bg-amber-50 px-4 text-xs font-bold text-amber-700 transition-colors hover:bg-amber-100"
-                         >
-                           <RefreshCw className="h-4 w-4" /> Reabrir
-                         </button>
-                      ) : (
+                    {isResolved ? (
+                      <form action={updateFeedbackStatusAction.bind(null, msg.id, "open")}>
                         <button
                           type="submit"
-                          name="status"
-                          value="resolved"
+                          className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-amber-100 bg-amber-50 px-4 text-xs font-bold text-amber-700 transition-colors hover:bg-amber-100"
+                        >
+                          <RefreshCw className="h-4 w-4" /> Reabrir
+                        </button>
+                      </form>
+                    ) : (
+                      <form action={updateFeedbackStatusAction.bind(null, msg.id, "resolved")}>
+                        <button
+                          type="submit"
                           className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-foreground px-4 text-xs font-bold text-white shadow-lg shadow-black/10 transition-colors hover:bg-black"
                         >
                           <CheckCircle2 className="h-4 w-4" /> Marcar Resuelto
                         </button>
-                      )}
-                    </form>
+                      </form>
+                    )}
                   </div>
                 </article>
               );
