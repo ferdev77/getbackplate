@@ -121,3 +121,13 @@ Se considera que la etapa de madurez esta cerrada cuando:
 
 - Inicio del checklist maestro: 2026-03-13
 - Responsable operativo: equipo GetBackplate + asistente
+
+### Refactorizacion arquitectonica (2026-03-26)
+
+- [x] Extraccion de capa de servicios en 3 modulos criticos:
+  - `checklists/actions.ts` (843 → 270 ln, -68%) → `services/checklist-audience.service.ts` + `services/checklist-template.service.ts`
+  - `organizations/actions.ts` (992 → 380 ln, -62%) → `services/invitation.service.ts` + `services/organization.service.ts`
+  - `settings/actions.ts` (558 → 280 ln, -50%) → `services/org-structure.service.ts`
+- [x] 3 builds consecutivos OK (`next build` exit code 0)
+- [x] Cero cambios visuales, cero cambios en firmas exportadas
+- [x] Convencion documentada en `ESTRUCTURA_PROYECTO.md` y `reglas_desarrollo.md`

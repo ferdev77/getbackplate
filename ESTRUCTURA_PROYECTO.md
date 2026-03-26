@@ -49,16 +49,22 @@ web/src/
   modules/
     auth/
     organizations/
+      services/            # invitation.service.ts, organization.service.ts
     branches/
     memberships/
     modules-catalog/
     employees/
+      services.ts          # data-fetching con React.cache
     onboarding/
     documents/
     announcements/
+      services/            # deliveries.ts
     checklists/
+      services/            # checklist-audience.service.ts, checklist-template.service.ts
     reports/
     audit/
+    settings/
+      services/            # org-structure.service.ts
 
   shared/
     ui/
@@ -89,6 +95,18 @@ web/src/
 3. Toda operacion debe pasar por contexto tenant (`organization_id`).
 4. Modulos activados/desactivados deben validar en backend.
 5. Politicas RLS son obligatorias y siempre activas en tablas tenant.
+6. La logica de negocio pesada va en `services/` del modulo, no en `actions.ts`.
+
+## Patron de servicios por modulo
+
+Los `actions.ts` de cada modulo actuan como **controllers finos**: parsean FormData, validan auth/permisos, llaman al servicio, hacen audit y redirect.
+
+La logica de dominio vive en `services/{dominio}.service.ts`:
+
+- Reciben dependencias inyectadas (supabase client, organizationId).
+- Retornan discriminated unions (`{ ok: true } | { ok: false; message }`).
+- No usan `"use server"`, no hacen `redirect()`, no hacen `revalidatePath()`.
+- Son testeables de forma aislada.
 
 ## Rutas objetivo iniciales
 
