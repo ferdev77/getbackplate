@@ -57,6 +57,7 @@ export async function GET(_request: Request, { params }: Context) {
   const { data: document, error: docError } = await admin
     .from("documents")
     .select("id, file_path, organization_id, branch_id, folder_id, access_scope, mime_type, file_size_bytes")
+.is('deleted_at', null)
     .eq("id", documentId)
     .in("organization_id", orgIds)
     .single();

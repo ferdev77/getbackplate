@@ -11,6 +11,10 @@
     {
       "path": "/api/webhooks/cron/process-recurrence",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/webhooks/cron/purge-trash",
+      "schedule": "0 0 * * *"
     }
   ]
 }

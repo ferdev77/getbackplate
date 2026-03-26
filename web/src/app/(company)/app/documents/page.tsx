@@ -36,6 +36,7 @@ export default async function CompanyDocumentsPage({
       supabase
         .from("documents")
         .select("id, title, file_size_bytes, mime_type, file_path, folder_id, branch_id, access_scope, created_at")
+.is('deleted_at', null)
         .eq("organization_id", tenant.organizationId)
         .order("created_at", { ascending: false })
         .limit(100),

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Download, Eye, Pencil, Trash2, Users } from "lucide-react";
+import { Download, Eye, Mail, Pencil, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
 import { EmptyState } from "@/shared/ui/empty-state";
@@ -167,6 +167,21 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
     }
   }
 
+  async function resendInvitation(user: UserRow) {
+    try {
+      const response = await fetch("/api/company/invitations/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email, fullName: user.fullName }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "No se pudo reenviar invitación");
+      toast.success(data.message || `Invitación reenviada a ${user.email}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Error al reenviar invitación");
+    }
+  }
+
   async function downloadUser(user: UserRow) {
     const { jsPDF } = await import("jspdf");
     const doc = new jsPDF({ unit: "pt", format: "a4" });
@@ -236,6 +251,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
               <div className="flex items-center justify-end gap-1">
                 <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedMembershipId(row.membershipId); }} className={ACTION_BTN_NEUTRAL} title="Ver perfil"><Eye className="h-3.5 w-3.5" /></button>
                 <button type="button" onClick={(event) => { event.stopPropagation(); setEditMembershipId(row.membershipId); }} className={ACTION_BTN_NEUTRAL} title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
+                <button type="button" onClick={(event) => { event.stopPropagation(); void resendInvitation(row); }} className={ACTION_BTN_NEUTRAL} title="Reenviar invitación"><Mail className="h-3.5 w-3.5" /></button>
                 <button type="button" onClick={(event) => { event.stopPropagation(); void downloadUser(row); }} className={`hidden sm:inline-flex ${ACTION_BTN_NEUTRAL}`} title="Descargar perfil"><Download className="h-3.5 w-3.5" /></button>
                 <button type="button" onClick={(event) => { event.stopPropagation(); setDeleteTargetId(row.membershipId); }} className={ACTION_BTN_DANGER} title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
               </div>

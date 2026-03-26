@@ -39,6 +39,7 @@ export async function GET() {
     supabase
       .from("documents")
       .select("id, title, folder_id, branch_id, mime_type, file_size_bytes, created_at, access_scope")
+.is('deleted_at', null)
       .eq("organization_id", tenant.organizationId)
       .order("created_at", { ascending: false })
       .limit(5000),

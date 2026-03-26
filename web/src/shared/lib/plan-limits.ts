@@ -130,7 +130,8 @@ async function getUsage(orgId: string): Promise<OrganizationUsage> {
       .eq("organization_id", orgId)
       .in("status", ["active", "invited"]),
     admin.from("employees").select("id", { head: true, count: "exact" }).eq("organization_id", orgId),
-    admin.from("documents").select("file_size_bytes").eq("organization_id", orgId),
+    admin.from("documents").select("file_size_bytes")
+.is('deleted_at', null).eq("organization_id", orgId),
   ]);
 
   const storageBytes = (docs ?? []).reduce((sum, row) => sum + toSafeInt(row.file_size_bytes), 0);

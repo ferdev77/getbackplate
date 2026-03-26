@@ -101,7 +101,8 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
     supabase.from("branches").select("organization_id, is_active"),
     supabase.from("memberships").select("organization_id, status"),
     supabase.from("employees").select("organization_id, status"),
-    supabase.from("documents").select("organization_id, file_size_bytes"),
+    supabase.from("documents").select("organization_id, file_size_bytes")
+.is('deleted_at', null),
   ]);
 
   const companyAdminRoleId = roles?.find((role) => role.code === "company_admin")?.id;

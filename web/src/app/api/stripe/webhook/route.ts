@@ -3,6 +3,11 @@ import { NextResponse } from 'next/server';
 import { stripe } from '@/infrastructure/stripe/client';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
+import { 
+  sendRenewalReminderEmail, 
+  sendPlanChangedEmail, 
+  sendPaymentFailedEmail 
+} from '@/modules/billing/services/billing-notifications.service';
 
 
 export async function POST(req: Request) {
@@ -282,7 +287,57 @@ export async function POST(req: Request) {
             current_period_end: currentPeriodEnd,
         }, { onConflict: 'stripe_subscription_id' });
 
+        if (event.type === 'customer.subscription.updated' && isActive) {
+            // Check if price changed using previous attributes if available
+            const prevAttributes = event.data.previous_attributes as any;
+            const priceChanged = prevAttributes && prevAttributes.items && prevAttributes.items.data;
+            if (priceChanged) {
+                // Fetch the new plan name to send email
+                const { data: pData } = await supabase.from('plans').select('name').eq('stripe_price_id', priceId).single();
+                if (pData) {
+                    await sendPlanChangedEmail(organizationId, pData.name);
+                }
+            }
+        }
+
         console.log(`[Webhook] subscription.${event.type.split('.')[2]} processed for org ${organizationId}`);
+        break;
+      }
+
+      // -------------------------------------------------------
+      // TERTIARY HANDLERS: Invoices (Upcoming renewals, Payment Failures)
+      // -------------------------------------------------------
+      case 'invoice.upcoming':
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as Stripe.Invoice;
+        const stripeCustomerId = invoice.customer as string;
+
+        // Find the organization from the customer ID mapping
+        const { data: customerMapping } = await supabase
+            .from('stripe_customers')
+            .select('organization_id')
+            .eq('stripe_customer_id', stripeCustomerId)
+            .single();
+
+        const organizationId = customerMapping?.organization_id;
+
+        if (!organizationId) {
+            console.error(`[Webhook] No organizationId for invoice event on customer ${stripeCustomerId}`);
+            break;
+        }
+
+        if (event.type === 'invoice.upcoming') {
+            const amountStr = new Intl.NumberFormat('es-AR', { style: 'currency', currency: invoice.currency.toUpperCase() }).format(invoice.amount_due / 100);
+            const renewalDate = new Date(invoice.period_end * 1000).toLocaleDateString('es-AR');
+            
+            await sendRenewalReminderEmail(organizationId, renewalDate, amountStr);
+            console.log(`[Webhook] Sent renewal reminder for org ${organizationId}`);
+        } else if (event.type === 'invoice.payment_failed') {
+            const retryLink = invoice.hosted_invoice_url || `${process.env.APP_BASE_URL}/app/billing`;
+            
+            await sendPaymentFailedEmail(organizationId, retryLink);
+            console.log(`[Webhook] Sent payment failed email for org ${organizationId}`);
+        }
         break;
       }
 

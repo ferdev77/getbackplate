@@ -191,3 +191,12 @@ Con esto se evita que el sistema tome una empresa "al azar".
 - Ya se guardan en base los eventos de acciones criticas con: quien lo hizo, que hizo y cuando.
 - Eso queda en `audit_logs` y sirve para seguimiento operativo.
 - La pantalla visual para navegar auditoria en superadmin queda postergada para mas adelante.
+
+## Fase 4 (Agregados y Mejoras 2026-03-26)
+
+Esta fase trajo mejoras y comodidades clave para todos los actores:
+1. **Papelera de Reciclaje (Soft Delete)**: Los documentos y carpetas ahora no se eliminan permanentemente de inmediato. Se guardan en una "Papelera" durante 15 días (y 30 días para superadmins) por si fueron borrados por accidente y necesitan ser restaurados.
+2. **Dashboard de Empleado**: Los empleados ven un tablero interactivo rápido donde tienen avisos importantes fijados, checklists pendientes que deben completar en el día y documentos agregados recientemente. 
+3. **Estado de Documentación de Empleados**: Los managers pueden saber fácilmente en la vista de personal si un empleado tiene toda su documentación obligatoria ("Completo") o si le falta algo ("Incompleto").
+4. **Mails Automáticos**: Se enviará un correo automáticamente para invitar al personal al sistema, al igual que al dueño de la empresa cuando le facturen o cambie de plan.
+5. **Carpetas para el empleado**: Los empleados ahora también tienen su panel ordenado visualmente por carpetas y no con archivos sueltos.

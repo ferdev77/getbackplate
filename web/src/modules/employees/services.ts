@@ -72,6 +72,7 @@ export const getEmployeeDirectoryView = cache(async (
       ? supabase
           .from("documents")
           .select("id, title, created_at")
+.is('deleted_at', null)
           .eq("organization_id", organizationId)
           .order("created_at", { ascending: false })
           .limit(50)
@@ -101,8 +102,7 @@ export const getEmployeeDirectoryView = cache(async (
   const docsByEmployee = new Map<string, any[]>();
 
   for (const ed of employeeDocs ?? []) {
-    const docData = documentById.get(ed.document_id);
-    if (!docData) continue;
+    const docData = documentById.get(ed.document_id) || { id: ed.document_id, title: "Documento" };
     
     if (!docsByEmployee.has(ed.employee_id)) {
       docsByEmployee.set(ed.employee_id, []);

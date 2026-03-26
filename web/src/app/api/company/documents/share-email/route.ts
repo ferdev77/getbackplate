@@ -40,6 +40,7 @@ export async function POST(request: Request) {
   const { data: document, error: documentError } = await admin
     .from("documents")
     .select("id, title, file_path, organization_id")
+.is('deleted_at', null)
     .eq("id", documentId)
     .eq("organization_id", tenant.organizationId)
     .maybeSingle();

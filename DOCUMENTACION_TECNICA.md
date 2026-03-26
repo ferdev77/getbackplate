@@ -1425,3 +1425,20 @@ Separar responsabilidades: los `actions.ts` quedan como controllers finos (parse
 - 3 builds consecutivos con `npx next build` exit code 0 (uno despues de cada fase).
 - Cero cambios en firmas de funciones exportadas (sin impacto en UI).
 - Cero cambios visuales.
+
+## 31. Fase 4: Infraestructura y Producto (2026-03-26)
+
+Se implementaron las siguientes características:
+
+### Portal Empleado
+- Consolidación de un dashboard central para empleados que incluye: avisos fijados, checklists pendientes y documentos recientes.
+- Se agregó una etiqueta de estado (completo/incompleto) en los expedientes de empleado basándose en la documentación requerida obligatoria.
+- Habilitación para visualizar estructuras de carpetas dentro del portal de empleado.
+- Envío automático de notificaciones de bienvenida y accesos cuando son creados desde el panel empresa o de superadmin (`src/infrastructure/email/client.ts`). 
+
+### Superadmin & Infraestructura de Pagos
+- Botón de reenvío de invitación en la vista de empleados del panel de empresa.
+- Sistema de papelera (Soft delete) con retención de 15 días (rutas empresa) y 30 días para superadmin.
+- Panel en superadmin para visualizar y restaurar elementos eliminados de todas las empresas.
+- Webhook CRON implementado (`/api/webhooks/cron/purge-trash`) para depurar base de datos y storage periódicamente.
+- Mails automáticos ante cambios de plan, pagos fallidos o facturas inminentes mediante escucha de eventos `stripe.webhook` (`/api/stripe/webhook/route.ts`).
