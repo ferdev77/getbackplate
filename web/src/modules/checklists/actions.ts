@@ -4,250 +4,25 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { sendTransactionalEmail } from "@/infrastructure/email/client";
-import { sendTwilioMessage } from "@/infrastructure/twilio/client";
 import { requireTenantModule } from "@/shared/lib/access";
-import { getAuthEmailByUserId } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
-import { normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
+
+import { sendChecklistAudienceEmail, sendChecklistAudienceTwilio } from "./services/checklist-audience.service";
+import { upsertChecklistTemplate, deleteChecklistTemplate } from "./services/checklist-template.service";
+
+import { z } from "zod";
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function qs(message: string) {
   return encodeURIComponent(message);
 }
 
-function normalizePriority(value: string) {
-  const priority = value.trim().toLowerCase();
-  if (["low", "medium", "high"].includes(priority)) {
-    return priority;
-  }
-  return "medium";
-}
-
-type ChecklistAudienceInput = {
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
-  organizationId: string;
-  targetScope: {
-    locations?: string[];
-    department_ids?: string[];
-    position_ids?: string[];
-    users?: string[];
-  } | null;
-  templateBranchId?: string | null;
-  templateDepartmentId?: string | null;
-};
-
-async function resolveChecklistAudienceContacts(input: ChecklistAudienceInput) {
-  const scope = input.targetScope ?? {};
-  const locationIds = Array.isArray(scope.locations) ? scope.locations.filter(Boolean) : [];
-  const departmentIds = Array.isArray(scope.department_ids) ? scope.department_ids.filter(Boolean) : [];
-  const positionIds = Array.isArray(scope.position_ids) ? scope.position_ids.filter(Boolean) : [];
-  const scopedUserIds = Array.isArray(scope.users) ? scope.users.filter(Boolean) : [];
-
-  const [{ data: employees }, { data: positionRows }, { data: memberships }, { data: profiles }] = await Promise.all([
-    input.supabase
-      .from("employees")
-      .select("user_id, branch_id, department_id, position, status, phone_country_code, phone")
-      .eq("organization_id", input.organizationId)
-      .eq("status", "active")
-      .not("user_id", "is", null),
-    input.supabase
-      .from("department_positions")
-      .select("id, name")
-      .eq("organization_id", input.organizationId)
-      .eq("is_active", true),
-    input.supabase
-      .from("memberships")
-      .select("user_id")
-      .eq("organization_id", input.organizationId)
-      .eq("status", "active")
-      .not("user_id", "is", null),
-    input.supabase
-      .from("organization_user_profiles")
-      .select("user_id, branch_id, department_id, position_id, phone, status")
-      .eq("organization_id", input.organizationId)
-      .eq("status", "active"),
-  ]);
-
-  const positionIdsByName = new Map<string, string[]>();
-  for (const row of positionRows ?? []) {
-    const key = row.name.trim().toLowerCase();
-    if (!key) continue;
-    const list = positionIdsByName.get(key) ?? [];
-    list.push(row.id);
-    positionIdsByName.set(key, list);
-  }
-
-  const recipientUserIds = new Set<string>();
-  const membershipUserIds = new Set((memberships ?? []).map((row) => row.user_id).filter(Boolean));
-
-  for (const employee of employees ?? []) {
-    if (!employee.user_id) continue;
-    const byTemplateBranch = Boolean(input.templateBranchId) && employee.branch_id === input.templateBranchId;
-    const byTemplateDepartment =
-      Boolean(input.templateDepartmentId) && employee.department_id === input.templateDepartmentId;
-    const byLocationScope = locationIds.length > 0 && Boolean(employee.branch_id) && locationIds.includes(employee.branch_id);
-    const byDepartmentScope =
-      departmentIds.length > 0 && Boolean(employee.department_id) && departmentIds.includes(employee.department_id);
-    const employeePositionIds = employee.position
-      ? positionIdsByName.get(employee.position.trim().toLowerCase()) ?? []
-      : [];
-    const byPositionScope =
-      positionIds.length > 0 && employeePositionIds.some((positionId) => positionIds.includes(positionId));
-    const byUserScope = scopedUserIds.length > 0 && scopedUserIds.includes(employee.user_id);
-
-    const hasAnyScope =
-      locationIds.length > 0 || departmentIds.length > 0 || positionIds.length > 0 || scopedUserIds.length > 0;
-
-    const isInAudience = hasAnyScope
-      ? byLocationScope || byDepartmentScope || byPositionScope || byUserScope
-      : byTemplateBranch || byTemplateDepartment || (!input.templateBranchId && !input.templateDepartmentId);
-
-    if (isInAudience) {
-      recipientUserIds.add(employee.user_id);
-    }
-  }
-
-  const hasAnyScope =
-    locationIds.length > 0 || departmentIds.length > 0 || positionIds.length > 0 || scopedUserIds.length > 0;
-
-  for (const profile of profiles ?? []) {
-    if (!profile.user_id) continue;
-
-    const byTemplateBranch = Boolean(input.templateBranchId) && profile.branch_id === input.templateBranchId;
-    const byTemplateDepartment =
-      Boolean(input.templateDepartmentId) && profile.department_id === input.templateDepartmentId;
-    const byLocationScope =
-      locationIds.length > 0 && Boolean(profile.branch_id) && locationIds.includes(profile.branch_id);
-    const byDepartmentScope =
-      departmentIds.length > 0 && Boolean(profile.department_id) && departmentIds.includes(profile.department_id);
-    const byPositionScope =
-      positionIds.length > 0 && Boolean(profile.position_id) && positionIds.includes(profile.position_id);
-    const byUserScope = scopedUserIds.length > 0 && scopedUserIds.includes(profile.user_id);
-
-    const isInAudience = hasAnyScope
-      ? byLocationScope || byDepartmentScope || byPositionScope || byUserScope
-      : byTemplateBranch || byTemplateDepartment || (!input.templateBranchId && !input.templateDepartmentId);
-
-    if (isInAudience) {
-      recipientUserIds.add(profile.user_id);
-    }
-  }
-
-  if (!hasAnyScope && !input.templateBranchId && !input.templateDepartmentId) {
-    for (const userId of membershipUserIds) {
-      recipientUserIds.add(userId);
-    }
-  }
-
-  for (const scopedUserId of scopedUserIds) {
-    recipientUserIds.add(scopedUserId);
-  }
-
-  const emailByUserId = await getAuthEmailByUserId([...recipientUserIds]);
-  const recipients = [...new Set([...emailByUserId.values()].filter(Boolean))];
-
-  const recipientPhones = new Set<string>();
-  for (const employee of employees ?? []) {
-    if (!employee.user_id || !recipientUserIds.has(employee.user_id) || !employee.phone) {
-      continue;
-    }
-
-    const code = (employee.phone_country_code || "").replace(/[^0-9+]/g, "");
-    const number = employee.phone.replace(/[^0-9]/g, "");
-    if (!number) continue;
-
-    let fullNumber = number;
-    if (code && !number.startsWith(code) && !number.startsWith(code.replace("+", ""))) {
-      fullNumber = `${code}${number}`;
-    } else if (number.startsWith("+")) {
-      fullNumber = number;
-    } else {
-      fullNumber = `+${number}`;
-    }
-
-    recipientPhones.add(fullNumber);
-  }
-
-  for (const profile of profiles ?? []) {
-    if (!profile.user_id || !recipientUserIds.has(profile.user_id) || !profile.phone) {
-      continue;
-    }
-
-    const number = profile.phone.replace(/[^0-9+]/g, "");
-    if (!number) continue;
-    recipientPhones.add(number.startsWith("+") ? number : `+${number}`);
-  }
-
-  return {
-    emails: recipients,
-    phones: [...recipientPhones],
-  };
-}
-
-async function sendChecklistAudienceEmail(input: ChecklistAudienceInput & {
-  templateName: string;
-  event: "created" | "submitted";
-  itemsCount: number;
-  flaggedCount?: number;
-  actorEmail?: string;
-}) {
-  const contacts = await resolveChecklistAudienceContacts(input);
-  if (!contacts.emails.length) return 0;
-
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "";
-  const reportsUrl = appUrl ? `${appUrl}/app/reports` : "/app/reports";
-  const subject =
-    input.event === "created"
-      ? `Nuevo checklist creado: ${input.templateName}`
-      : `Checklist enviado: ${input.templateName}`;
-  const html =
-    input.event === "created"
-      ? `
-    <h2 style="margin:0 0 10px 0;">Nuevo checklist creado</h2>
-    <p style="margin:0 0 8px 0;color:#444;">Plantilla: <strong>${input.templateName}</strong></p>
-    <p style="margin:0 0 8px 0;color:#444;">Items: <strong>${input.itemsCount}</strong></p>
-    <p style="margin:0 0 14px 0;color:#444;">Creado por: <strong>${input.actorEmail ?? "Usuario interno"}</strong></p>
-    <p style="margin:14px 0 0 0;"><a href="${reportsUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">Ver checklists</a></p>
-  `
-      : `
-    <h2 style="margin:0 0 10px 0;">Checklist enviado</h2>
-    <p style="margin:0 0 8px 0;color:#444;">Plantilla: <strong>${input.templateName}</strong></p>
-    <p style="margin:0 0 8px 0;color:#444;">Items: <strong>${input.itemsCount}</strong></p>
-    <p style="margin:0 0 8px 0;color:#444;">Incidencias: <strong>${input.flaggedCount ?? 0}</strong></p>
-    <p style="margin:0 0 14px 0;color:#444;">Enviado por: <strong>${input.actorEmail ?? "Usuario interno"}</strong></p>
-    <p style="margin:14px 0 0 0;"><a href="${reportsUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">Ver en reportes</a></p>
-  `;
-  const text =
-    input.event === "created"
-      ? `Nuevo checklist creado\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nCreado por: ${input.actorEmail ?? "Usuario interno"}\nVer checklists: ${reportsUrl}`
-      : `Checklist enviado\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nIncidencias: ${input.flaggedCount ?? 0}\nEnviado por: ${input.actorEmail ?? "Usuario interno"}\nVer en reportes: ${reportsUrl}`;
-
-  await Promise.allSettled(contacts.emails.map((to) => sendTransactionalEmail({ to, subject, html, text })));
-  return contacts.emails.length;
-}
-
-async function sendChecklistAudienceTwilio(input: ChecklistAudienceInput & {
-  channel: "sms" | "whatsapp";
-  templateName: string;
-  itemsCount: number;
-  actorEmail?: string;
-}) {
-  const contacts = await resolveChecklistAudienceContacts(input);
-  if (!contacts.phones.length) return 0;
-
-  const body =
-    input.channel === "whatsapp"
-      ? `*Nuevo checklist creado*\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nCreado por: ${input.actorEmail ?? "Usuario interno"}`
-      : `Nuevo checklist creado\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nCreado por: ${input.actorEmail ?? "Usuario interno"}`;
-
-  const results = await Promise.allSettled(
-    contacts.phones.map((phone) => sendTwilioMessage(phone, body, input.channel)),
-  );
-
-  return results.filter((result) => result.status === "fulfilled" && result.value.success).length;
-}
-
-import { z } from "zod";
+// ---------------------------------------------------------------------------
+// Schema
+// ---------------------------------------------------------------------------
 
 const createChecklistSchema = z.object({
   template_id: z.string().trim().optional().transform(v => v || null),
@@ -268,18 +43,24 @@ const createChecklistSchema = z.object({
   items: z.string().trim().optional(),
 });
 
+// ---------------------------------------------------------------------------
+// Actions
+// ---------------------------------------------------------------------------
+
 export async function createChecklistTemplateAction(_prevState: unknown, formData: FormData) {
   const tenant = await requireTenantModule("checklists");
   const supabase = await createSupabaseServerClient();
 
   const { data: authData } = await supabase.auth.getUser();
 
+  // --- Parse notify channels ---
   const notifyChannels = [...new Set(formData.getAll("notify_channel").map(String))];
   const notifyVia = notifyChannels.filter(
     (channel): channel is "whatsapp" | "sms" => channel === "whatsapp" || channel === "sms",
   );
   const notifyByEmail = notifyChannels.includes("email");
 
+  // --- Validate input ---
   const parsed = createChecklistSchema.safeParse({
     template_id: String(formData.get("template_id") ?? ""),
     name: String(formData.get("name") ?? ""),
@@ -303,33 +84,15 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
     return { success: false, message: parsed.error.issues[0]?.message || "Datos invalidos" };
   }
 
-  const {
-    template_id: templateId,
-    name,
-    checklist_type: checklistType,
-    checklist_type_other: checklistTypeOther,
-    branch_id: branchId,
-    shift,
-    department_id: departmentId,
-    repeat_every: repeatEvery,
-    template_status: templateStatus,
-    sections_payload: sectionsPayloadRaw,
-    items: itemsInput,
-  } = parsed.data;
-  let department = parsed.data.department;
-
-  const locationScopes = normalizeScopeSelection(parsed.data.location_scope);
-  const departmentScopes = normalizeScopeSelection(parsed.data.department_scope);
-  const positionScopes = normalizeScopeSelection(parsed.data.position_scope);
-  const userScopes = normalizeScopeSelection(parsed.data.user_scope);
-
+  // --- Normalize sections ---
+  const { sections_payload: sectionsPayloadRaw, items: itemsInput } = parsed.data;
   let normalizedSections: Array<{ name: string; items: string[] }> = [];
 
   if (sectionsPayloadRaw) {
     try {
-      const parsed = JSON.parse(sectionsPayloadRaw);
-      if (Array.isArray(parsed)) {
-        normalizedSections = parsed
+      const sectionsParsed = JSON.parse(sectionsPayloadRaw);
+      if (Array.isArray(sectionsParsed)) {
+        normalizedSections = sectionsParsed
           .map((section: { name?: unknown; items?: unknown }) => ({
             name: typeof section?.name === "string" && section.name.trim() ? section.name.trim() : "General",
             items: Array.isArray(section?.items)
@@ -354,313 +117,120 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
     }
   }
 
-  const totalItems = normalizedSections.reduce((acc, section) => acc + section.items.length, 0);
-
-  if (!name) {
-    return { success: false, message: "Nombre de plantilla obligatorio" };
-  }
-
-  if (!totalItems) {
-    return { success: false, message: "Agrega al menos un item de checklist" };
-  }
-
-  if (branchId) {
-    const { data: branch, error: branchError } = await supabase
-      .from("branches")
-      .select("id")
-      .eq("organization_id", tenant.organizationId)
-      .eq("id", branchId)
-      .maybeSingle();
-
-    if (branchError || !branch) {
-      return { success: false, message: "Locacion base invalida para esta empresa" };
-    }
-  }
-
-  if (departmentId) {
-    const { data: departmentRow, error: departmentError } = await supabase
-      .from("organization_departments")
-      .select("id, name")
-      .eq("organization_id", tenant.organizationId)
-      .eq("id", departmentId)
-      .eq("is_active", true)
-      .maybeSingle();
-
-    if (departmentError || !departmentRow) {
-      return { success: false, message: "Departamento base invalido para esta empresa" };
-    }
-
-    department = departmentRow.name;
-  }
-
-  const scopeValidation = await validateTenantScopeReferences({
+  // --- Delegate to service ---
+  const result = await upsertChecklistTemplate({
     supabase,
     organizationId: tenant.organizationId,
-    locationIds: locationScopes,
-    departmentIds: departmentScopes,
-    positionIds: positionScopes,
-    userIds: userScopes,
-    userSource: "memberships",
+    createdBy: authData.user?.id ?? null,
+    templateId: parsed.data.template_id,
+    name: parsed.data.name,
+    checklistType: parsed.data.checklist_type,
+    checklistTypeOther: parsed.data.checklist_type_other,
+    branchId: parsed.data.branch_id,
+    shift: parsed.data.shift,
+    departmentId: parsed.data.department_id,
+    department: parsed.data.department,
+    repeatEvery: parsed.data.repeat_every,
+    templateStatus: parsed.data.template_status,
+    locationScopes: parsed.data.location_scope,
+    departmentScopes: parsed.data.department_scope,
+    positionScopes: parsed.data.position_scope,
+    userScopes: parsed.data.user_scope,
+    normalizedSections,
+    notifyVia,
   });
 
-  if (!scopeValidation.ok) {
-    const messageByField = {
-      locations: "Algunas locaciones de alcance no son validas",
-      departments: "Algunos departamentos de alcance no son validos",
-      positions: "Algunos puestos de alcance no son validos",
-      users: "Algunos usuarios seleccionados no son validos",
-    } as const;
-    redirect(
-      "/app/checklists?status=error&message=" +
-        qs(messageByField[scopeValidation.field]),
-    );
-  }
-
-  const templatePayload = {
-    branch_id: branchId,
-    name,
-    checklist_type: checklistType,
-    shift,
-    department,
-    department_id: departmentId,
-    repeat_every: repeatEvery,
-    target_scope: {
-      locations: locationScopes,
-      department_ids: departmentScopes,
-      position_ids: positionScopes,
-      users: userScopes,
-      notify_via: notifyVia,
-      checklist_type_other: checklistTypeOther || null,
-    },
-    is_active: templateStatus === "active",
-  };
-
-  let template: { id: string } | null = null;
-  let templateError: { message?: string } | null = null;
-  let preservedHistory = false;
-
-  if (templateId) {
-    const { data: existingTemplate } = await supabase
-      .from("checklist_templates")
-      .select("id")
-      .eq("organization_id", tenant.organizationId)
-      .eq("id", templateId)
-      .maybeSingle();
-
-    if (!existingTemplate) {
-      return { success: false, message: "No se encontro la plantilla a editar" };
+  if (!result.ok) {
+    if (result.redirect) {
+      redirect(result.redirect);
     }
-
-    const { data: hasSubmissions } = await supabase
-      .from("checklist_submissions")
-      .select("id")
-      .eq("organization_id", tenant.organizationId)
-      .eq("template_id", templateId)
-      .limit(1)
-      .maybeSingle();
-
-    if (hasSubmissions) {
-      preservedHistory = true;
-      await supabase
-        .from("checklist_templates")
-        .update({ is_active: false })
-        .eq("organization_id", tenant.organizationId)
-        .eq("id", templateId);
-
-      const insertResult = await supabase
-        .from("checklist_templates")
-        .insert({
-          organization_id: tenant.organizationId,
-          created_by: authData.user?.id ?? null,
-          ...templatePayload,
-        })
-        .select("id")
-        .single();
-
-      template = insertResult.data;
-      templateError = insertResult.error;
-    } else {
-      const updateResult = await supabase
-        .from("checklist_templates")
-        .update(templatePayload)
-        .eq("organization_id", tenant.organizationId)
-        .eq("id", templateId)
-        .select("id")
-        .single();
-
-      template = updateResult.data;
-      templateError = updateResult.error;
-    }
-  } else {
-    const insertResult = await supabase
-      .from("checklist_templates")
-      .insert({
-        organization_id: tenant.organizationId,
-        created_by: authData.user?.id ?? null,
-        ...templatePayload,
-      })
-      .select("id")
-      .single();
-
-    template = insertResult.data;
-    templateError = insertResult.error;
+    return { success: false, message: result.message };
   }
 
-  if (templateError || !template) {
-    return { success: false, message: `No se pudo crear plantilla: ${templateError?.message ?? "error"}` };
-  }
-
-  const { data: oldSections } = await supabase
-    .from("checklist_template_sections")
-    .select("id")
-    .eq("organization_id", tenant.organizationId)
-    .eq("template_id", template.id);
-
-  const oldSectionIds = (oldSections ?? []).map((row) => row.id);
-  if (oldSectionIds.length) {
-    await supabase
-      .from("checklist_template_items")
-      .delete()
-      .eq("organization_id", tenant.organizationId)
-      .in("section_id", oldSectionIds);
-
-    await supabase
-      .from("checklist_template_sections")
-      .delete()
-      .eq("organization_id", tenant.organizationId)
-      .eq("template_id", template.id);
-  }
-
-  let globalItemIndex = 0;
-  for (const [sectionIndex, section] of normalizedSections.entries()) {
-    const { data: sectionRow, error: sectionError } = await supabase
-      .from("checklist_template_sections")
-      .insert({
-        organization_id: tenant.organizationId,
-        template_id: template.id,
-        name: section.name,
-        sort_order: sectionIndex,
-      })
-      .select("id")
-      .single();
-
-    if (sectionError || !sectionRow) {
-      return {
-        success: false,
-        message: `Plantilla ${templateId ? "actualizada" : "creada"} pero seccion fallo: ${sectionError?.message ?? "error"}`
-      };
-    }
-
-    const itemsPayload = section.items.map((label, index) => ({
-      organization_id: tenant.organizationId,
-      section_id: sectionRow.id,
-      label,
-      priority: normalizePriority(globalItemIndex < 2 ? "high" : "medium"),
-      sort_order: index,
-    }));
-    globalItemIndex += section.items.length;
-
-    const { error: itemsError } = await supabase
-      .from("checklist_template_items")
-      .insert(itemsPayload);
-
-    if (itemsError) {
-      return {
-        success: false,
-        message: `Plantilla ${templateId ? "actualizada" : "creada"} pero items fallaron: ${itemsError.message}`
-      };
-    }
-  }
-
+  // --- Audit ---
   await logAuditEvent({
-    action: templateId ? "checklist.template.update" : "checklist.template.create",
+    action: parsed.data.template_id ? "checklist.template.update" : "checklist.template.create",
     entityType: "checklist_template",
-    entityId: template.id,
+    entityId: result.templateId,
     organizationId: tenant.organizationId,
-    branchId,
+    branchId: parsed.data.branch_id,
     metadata: {
-      name,
-      checklistType,
-      shift,
-      department,
-      departmentId,
-      repeatEvery,
-      templateStatus,
+      name: parsed.data.name,
+      checklistType: parsed.data.checklist_type,
+      shift: parsed.data.shift,
+      department: parsed.data.department,
+      departmentId: parsed.data.department_id,
+      repeatEvery: parsed.data.repeat_every,
+      templateStatus: parsed.data.template_status,
       notifyVia,
       notifyChannels,
-      checklistTypeOther,
-      itemsCount: totalItems,
+      checklistTypeOther: parsed.data.checklist_type_other,
+      itemsCount: result.totalItems,
       sectionsCount: normalizedSections.length,
-      preservedHistory,
+      preservedHistory: result.preservedHistory,
     },
     eventDomain: "checklists",
     outcome: "success",
-    severity: templateId ? "medium" : "high",
+    severity: parsed.data.template_id ? "medium" : "high",
   });
 
   revalidatePath("/app/checklists");
   revalidatePath("/app/reports");
 
+  // --- Notifications (only for new templates) ---
   let checklistAudienceEmailCount = 0;
   let checklistAudienceSmsCount = 0;
   let checklistAudienceWhatsappCount = 0;
-  if (!templateId && notifyByEmail) {
+  const scopePayload = {
+    locations: parsed.data.location_scope,
+    department_ids: parsed.data.department_scope,
+    position_ids: parsed.data.position_scope,
+    users: parsed.data.user_scope,
+  };
+
+  if (!parsed.data.template_id && notifyByEmail) {
     checklistAudienceEmailCount = await sendChecklistAudienceEmail({
       supabase,
       organizationId: tenant.organizationId,
-      templateName: name,
+      templateName: parsed.data.name,
       event: "created",
-      itemsCount: totalItems,
+      itemsCount: result.totalItems,
       actorEmail: authData.user?.email ?? "Usuario interno",
-      targetScope: {
-        locations: locationScopes,
-        department_ids: departmentScopes,
-        position_ids: positionScopes,
-        users: userScopes,
-      },
-      templateBranchId: branchId,
-      templateDepartmentId: departmentId,
+      targetScope: scopePayload,
+      templateBranchId: parsed.data.branch_id,
+      templateDepartmentId: parsed.data.department_id,
     });
   }
 
-  if (!templateId && notifyVia.includes("sms")) {
+  if (!parsed.data.template_id && notifyVia.includes("sms")) {
     checklistAudienceSmsCount = await sendChecklistAudienceTwilio({
       supabase,
       organizationId: tenant.organizationId,
       channel: "sms",
-      templateName: name,
-      itemsCount: totalItems,
+      templateName: parsed.data.name,
+      itemsCount: result.totalItems,
       actorEmail: authData.user?.email ?? "Usuario interno",
-      targetScope: {
-        locations: locationScopes,
-        department_ids: departmentScopes,
-        position_ids: positionScopes,
-        users: userScopes,
-      },
-      templateBranchId: branchId,
-      templateDepartmentId: departmentId,
+      targetScope: scopePayload,
+      templateBranchId: parsed.data.branch_id,
+      templateDepartmentId: parsed.data.department_id,
     });
   }
 
-  if (!templateId && notifyVia.includes("whatsapp")) {
+  if (!parsed.data.template_id && notifyVia.includes("whatsapp")) {
     checklistAudienceWhatsappCount = await sendChecklistAudienceTwilio({
       supabase,
       organizationId: tenant.organizationId,
       channel: "whatsapp",
-      templateName: name,
-      itemsCount: totalItems,
+      templateName: parsed.data.name,
+      itemsCount: result.totalItems,
       actorEmail: authData.user?.email ?? "Usuario interno",
-      targetScope: {
-        locations: locationScopes,
-        department_ids: departmentScopes,
-        position_ids: positionScopes,
-        users: userScopes,
-      },
-      templateBranchId: branchId,
-      templateDepartmentId: departmentId,
+      targetScope: scopePayload,
+      templateBranchId: parsed.data.branch_id,
+      templateDepartmentId: parsed.data.department_id,
     });
   }
 
+  // --- Build response ---
   const notificationsSummary: string[] = [];
   if (notifyByEmail) {
     notificationsSummary.push(`Emails enviados: ${checklistAudienceEmailCount}`);
@@ -674,8 +244,8 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
 
   return {
     success: true,
-    message: templateId
-      ? preservedHistory
+    message: parsed.data.template_id
+      ? result.preservedHistory
         ? "Checklist actualizado creando nueva version (se preservo historial)"
         : "Checklist actualizado correctamente"
       : notificationsSummary.length
@@ -740,103 +310,32 @@ export async function deleteChecklistTemplateAction(_prevState: unknown, formDat
     return { success: false, message: "Checklist invalido" };
   }
 
-  const { data: template } = await supabase
-    .from("checklist_templates")
-    .select("id, name, branch_id")
-    .eq("organization_id", tenant.organizationId)
-    .eq("id", templateId)
-    .maybeSingle();
+  // --- Delegate to service ---
+  const result = await deleteChecklistTemplate({
+    supabase,
+    organizationId: tenant.organizationId,
+    templateId,
+  });
 
-  if (!template) {
-    return { success: false, message: "Checklist no encontrado" };
+  if (!result.ok) {
+    return { success: false, message: result.message };
   }
 
-  const { count: submissionsCount } = await supabase
-    .from("checklist_submissions")
-    .select("id", { head: true, count: "exact" })
-    .eq("organization_id", tenant.organizationId)
-    .eq("template_id", templateId);
-
-  if ((submissionsCount ?? 0) > 0) {
-    const { error: archiveError } = await supabase
-      .from("checklist_templates")
-      .update({ is_active: false })
-      .eq("organization_id", tenant.organizationId)
-      .eq("id", templateId);
-
-    if (archiveError) {
-      return { success: false, message: `No se pudo archivar checklist: ${archiveError.message}` };
-    }
-
-    await logAuditEvent({
-      action: "checklist.template.archive",
-      entityType: "checklist_template",
-      entityId: templateId,
-      organizationId: tenant.organizationId,
-      branchId: template.branch_id,
-      metadata: { name: template.name, reason: "has_submissions", submissionsCount },
-      eventDomain: "checklists",
-      outcome: "success",
-      severity: "high",
-    });
-
-    revalidatePath("/app/checklists");
-    revalidatePath("/app/reports");
-    return { success: true, message: "Checklist archivado (tiene historial de ejecuciones)" };
-  }
-
-  const { data: sections } = await supabase
-    .from("checklist_template_sections")
-    .select("id")
-    .eq("organization_id", tenant.organizationId)
-    .eq("template_id", templateId);
-
-  const sectionIds = (sections ?? []).map((row) => row.id);
-  if (sectionIds.length) {
-    const { error: itemsDeleteError } = await supabase
-      .from("checklist_template_items")
-      .delete()
-      .eq("organization_id", tenant.organizationId)
-      .in("section_id", sectionIds);
-
-    if (itemsDeleteError) {
-      return { success: false, message: `No se pudieron eliminar items: ${itemsDeleteError.message}` };
-    }
-
-    const { error: sectionsDeleteError } = await supabase
-      .from("checklist_template_sections")
-      .delete()
-      .eq("organization_id", tenant.organizationId)
-      .eq("template_id", templateId);
-
-    if (sectionsDeleteError) {
-      return { success: false, message: `No se pudieron eliminar secciones: ${sectionsDeleteError.message}` };
-    }
-  }
-
-  const { error: templateDeleteError } = await supabase
-    .from("checklist_templates")
-    .delete()
-    .eq("organization_id", tenant.organizationId)
-    .eq("id", templateId);
-
-  if (templateDeleteError) {
-    return { success: false, message: `No se pudo eliminar checklist: ${templateDeleteError.message}` };
-  }
-
+  // --- Audit ---
   await logAuditEvent({
-    action: "checklist.template.delete",
+    action: result.archived ? "checklist.template.archive" : "checklist.template.delete",
     entityType: "checklist_template",
     entityId: templateId,
     organizationId: tenant.organizationId,
-    branchId: template.branch_id,
-    metadata: { name: template.name },
+    metadata: {
+      archived: result.archived,
+    },
     eventDomain: "checklists",
     outcome: "success",
-    severity: "critical",
+    severity: result.archived ? "high" : "critical",
   });
 
   revalidatePath("/app/checklists");
   revalidatePath("/app/reports");
-  return { success: true, message: "Checklist eliminado" };
+  return { success: true, message: result.message };
 }

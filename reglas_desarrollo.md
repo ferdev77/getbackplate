@@ -347,6 +347,30 @@ Objetivo:
 - menor confusión operativa
 - consistencia total entre backend y frontend
 
+## 12.3 Patron de servicios por modulo (obligatorio)
+
+Los `actions.ts` de cada modulo deben actuar como **controllers finos**: parsean FormData, validan auth/permisos, llaman al servicio, hacen audit y redirect.
+
+La logica de negocio pesada debe vivir en archivos `services/{dominio}.service.ts` dentro de cada modulo.
+
+Reglas:
+
+- El servicio recibe dependencias inyectadas (supabase client, organizationId), no las crea internamente.
+- El servicio retorna discriminated unions (`{ ok: true; ... } | { ok: false; message: string }`).
+- El servicio NO usa `"use server"`, NO hace `redirect()`, NO hace `revalidatePath()`.
+- El servicio es testeable de forma aislada.
+- El action se encarga de: auth, parseo, llamar al servicio, audit, revalidate, redirect.
+
+Patron existente (referencia):
+
+- `employees/services.ts` — data-fetching con `React.cache`
+- `announcements/services/deliveries.ts` — logica de delivery
+- `checklists/services/checklist-audience.service.ts` — resolucion de audiencia
+- `checklists/services/checklist-template.service.ts` — upsert/delete templates
+- `organizations/services/invitation.service.ts` — flujo de invitacion admin
+- `organizations/services/organization.service.ts` — provisioning de plan
+- `settings/services/org-structure.service.ts` — CRUD estructura organizacional
+
 ---
 
 ## 13. Responsive obligatorio

@@ -1382,3 +1382,42 @@ QA ejecutado post-implementacion:
   - `TWILIO_TRIAL_MODE` para pruebas en cuenta trial con normalizacion AR por canal y fallback.
   - soporte de telefonos de `organization_user_profiles` para usuarios no-empleado.
   - dependencia explicita de Brevo para canal email.
+
+## 30. Refactorizacion arquitectonica: capa de servicios (2026-03-26)
+
+Se extrajo la logica de negocio pesada de 3 modulos `actions.ts` hacia archivos `services/` dedicados, siguiendo el patron ya existente en `employees/services.ts` y `announcements/services/deliveries.ts`.
+
+### Objetivo
+
+Separar responsabilidades: los `actions.ts` quedan como controllers finos (parseo de FormData, auth, audit, redirect) y la logica de dominio se mueve a servicios reutilizables y testeables.
+
+### Archivos creados
+
+| Modulo | Archivo | Responsabilidad |
+|--------|---------|----------------|
+| Checklists | `web/src/modules/checklists/services/checklist-audience.service.ts` | Resolucion de audiencia, delivery email, SMS/WhatsApp |
+| Checklists | `web/src/modules/checklists/services/checklist-template.service.ts` | Upsert plantilla (con preservacion de historial), delete/archive |
+| Organizations | `web/src/modules/organizations/services/invitation.service.ts` | Flujo completo de invitacion admin (provisioning, OTP, membership) |
+| Organizations | `web/src/modules/organizations/services/organization.service.ts` | Provisioning desde plan, sync de plan, cleanup storage |
+| Settings | `web/src/modules/settings/services/org-structure.service.ts` | CRUD de branches, departments y positions |
+
+### Archivos modificados (reescritos como controllers)
+
+| Archivo | Antes | Despues | Reduccion |
+|---------|-------|---------|-----------|
+| `web/src/modules/checklists/actions.ts` | 843 ln | ~270 ln | -68% |
+| `web/src/modules/organizations/actions.ts` | 992 ln | ~380 ln | -62% |
+| `web/src/modules/settings/actions.ts` | 558 ln | ~280 ln | -50% |
+
+### Convencion de servicios
+
+- Nombre: `{dominio}.service.ts` dentro de `services/` del modulo.
+- Reciben dependencias inyectadas (supabase client, organizationId) en vez de crearlas internamente.
+- Retornan discriminated unions (`{ ok: true; ... } | { ok: false; message: string }`).
+- No usan `"use server"`, no hacen `redirect()`, no hacen `revalidatePath()` — eso queda en el action.
+
+### Verificacion
+
+- 3 builds consecutivos con `npx next build` exit code 0 (uno despues de cada fase).
+- Cero cambios en firmas de funciones exportadas (sin impacto en UI).
+- Cero cambios visuales.

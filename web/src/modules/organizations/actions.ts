@@ -9,300 +9,32 @@ import { requireSuperadmin } from "@/shared/lib/access";
 import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { createSuperadminImpersonationSession, setSuperadminImpersonationCookie } from "@/shared/lib/impersonation";
-import {
-  assertOrganizationCanSwitchToPlan,
-  getPlanLimitErrorMessage,
-} from "@/shared/lib/plan-limits";
 import { setActiveOrganizationIdCookie } from "@/shared/lib/tenant-selection";
 
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 50);
-}
+import {
+  sendOrganizationAdminInvitation,
+  getCompanyAdminRoleId,
+  buildTemporaryPasswordMetadata,
+} from "./services/invitation.service";
+import {
+  slugify,
+  toNullableInt,
+  provisionOrganizationFromPlan,
+  syncOrganizationPlan,
+  cleanupTenantStorageArtifacts,
+} from "./services/organization.service";
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function qs(message: string) {
   return encodeURIComponent(message);
 }
 
-function randomPassword() {
-  return `Gb!${Math.random().toString(36).slice(2)}${Date.now().toString(36)}A9`;
-}
-
-function invitationCode() {
-  return crypto.randomUUID();
-}
-
-function buildTemporaryPasswordMetadata(
-  base: unknown,
-  fullName: string,
-) {
-  const current = base && typeof base === "object" ? (base as Record<string, unknown>) : {};
-  return {
-    ...current,
-    full_name: fullName,
-    force_password_change: true,
-    temporary_password_set_at: new Date().toISOString(),
-  };
-}
-
-async function getCompanyAdminRoleId() {
-  const supabase = createSupabaseAdminClient();
-  const { data: role } = await supabase
-    .from("roles")
-    .select("id")
-    .eq("code", "company_admin")
-    .single();
-  return role?.id ?? null;
-}
-
-async function createInvitationRecord(params: {
-  organizationId: string;
-  email: string;
-  fullName: string;
-  sentBy: string | null;
-  metadata?: Record<string, unknown>;
-}) {
-  const supabase = createSupabaseAdminClient();
-  const code = invitationCode();
-  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString();
-
-  const { error } = await supabase.from("organization_invitations").insert({
-    organization_id: params.organizationId,
-    email: params.email,
-    full_name: params.fullName,
-    role_code: "company_admin",
-    status: "sent",
-    invitation_code: code,
-    sent_by: params.sentBy,
-    expires_at: expiresAt,
-    source: "superadmin",
-    metadata: params.metadata ?? {},
-  });
-
-  return error;
-}
-
-async function sendOrganizationAdminInvitation(params: {
-  organizationId: string;
-  email: string;
-  fullName: string;
-  password?: string;
-  activateMembership?: boolean;
-  sentBy: string | null;
-}) {
-  const supabase = createSupabaseAdminClient();
-  const roleId = await getCompanyAdminRoleId();
-  if (!roleId) {
-    return { ok: false as const, message: "No se encontro rol company_admin" };
-  }
-
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  const callbackRedirectTo = appUrl
-    ? `${appUrl.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent("/app/dashboard")}&org=${encodeURIComponent(params.organizationId)}`
-    : undefined;
-
-  async function sendAccessEmail(email: string) {
-    const server = await createSupabaseServerClient();
-    const { error: otpError } = await server.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo: callbackRedirectTo,
-      },
-    });
-
-    if (!otpError) {
-      return null;
-    }
-
-    const { error: recoveryError } = await supabase.auth.resetPasswordForEmail(
-      email,
-      callbackRedirectTo ? { redirectTo: callbackRedirectTo } : undefined,
-    );
-
-    return recoveryError ?? otpError;
-  }
-
-  const existingUser = await findAuthUserByEmail(params.email);
-  let userId = existingUser?.id ?? null;
-  let deliveryMode: "invite" | "recovery" = "invite";
-
-  if (userId) {
-    if (params.password) {
-      const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
-        password: params.password,
-        email_confirm: true,
-        user_metadata: buildTemporaryPasswordMetadata(existingUser?.user_metadata, params.fullName),
-      });
-      if (updateError) {
-        return { ok: false as const, message: updateError.message };
-      }
-    }
-
-    const recoveryError = await sendAccessEmail(params.email);
-    if (recoveryError) {
-      await logAuditEvent({
-        action: "organization.invitation.fallback_recovery.failed",
-        entityType: "organization_invitation",
-        organizationId: params.organizationId,
-        eventDomain: "superadmin",
-        outcome: "error",
-        severity: "medium",
-        metadata: {
-          email: params.email,
-          error: recoveryError.message,
-          reason: "existing_user",
-        },
-      });
-      return { ok: false as const, message: `No se pudo enviar correo de acceso: ${recoveryError.message}` };
-    } else {
-      deliveryMode = "recovery";
-      await logAuditEvent({
-        action: "organization.invitation.fallback_recovery.sent",
-        entityType: "organization_invitation",
-        organizationId: params.organizationId,
-        eventDomain: "superadmin",
-        outcome: "success",
-        severity: "low",
-        metadata: {
-          email: params.email,
-          reason: "existing_user",
-        },
-      });
-    }
-  }
-
-  if (!userId) {
-    const inviteOptions: {
-      redirectTo?: string;
-      data: Record<string, unknown>;
-    } = {
-      data: {
-        full_name: params.fullName,
-        login_email: params.email,
-        login_password: params.password ?? "",
-      },
-    };
-
-    if (callbackRedirectTo) {
-      inviteOptions.redirectTo = callbackRedirectTo;
-    }
-
-    const { data: invited, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
-      params.email,
-      inviteOptions,
-    );
-
-    if (inviteError) {
-      const recoveryError = await sendAccessEmail(params.email);
-      if (!recoveryError) {
-        deliveryMode = "recovery";
-        await logAuditEvent({
-          action: "organization.invitation.fallback_recovery.sent",
-          entityType: "organization_invitation",
-          organizationId: params.organizationId,
-          eventDomain: "superadmin",
-          outcome: "success",
-          severity: "low",
-          metadata: {
-            email: params.email,
-            reason: "invite_error",
-            invite_error: inviteError.message,
-          },
-        });
-      }
-
-      if (!recoveryError) {
-        return {
-          ok: true as const,
-          mode: "recovery" as const,
-          message: "Invite no disponible; se envio correo de recuperacion.",
-        };
-      }
-
-      return {
-        ok: false as const,
-        message: `${inviteError.message}. Fallback recovery fallo: ${recoveryError.message}`,
-      };
-    }
-
-    userId = invited.user?.id ?? null;
-
-    if (userId && params.password) {
-      await supabase.auth.admin.updateUserById(userId, {
-        password: params.password,
-        email_confirm: true,
-        user_metadata: buildTemporaryPasswordMetadata(invited.user?.user_metadata, params.fullName),
-      });
-    }
-
-    if (!userId) {
-      const tempPassword = randomPassword();
-      const { data: createdUser, error: createError } = await supabase.auth.admin.createUser({
-        email: params.email,
-        password: params.password ?? tempPassword,
-        email_confirm: false,
-        user_metadata: buildTemporaryPasswordMetadata(undefined, params.fullName),
-      });
-      if (createError) {
-        return { ok: false as const, message: createError.message };
-      }
-      userId = createdUser.user?.id ?? null;
-    }
-  }
-
-  if (!userId) {
-    return { ok: false as const, message: "No se pudo resolver usuario invitado" };
-  }
-
-  const { error: membershipError } = await supabase.from("memberships").upsert(
-    {
-      organization_id: params.organizationId,
-      user_id: userId,
-      role_id: roleId,
-      status: params.activateMembership ? "active" : "invited",
-    },
-    { onConflict: "organization_id,user_id" },
-  );
-
-  if (membershipError) {
-    return { ok: false as const, message: membershipError.message };
-  }
-
-  const invitationError = await createInvitationRecord({
-    organizationId: params.organizationId,
-    email: params.email,
-    fullName: params.fullName,
-    sentBy: params.sentBy,
-    metadata: { mode: "superadmin_invite" },
-  });
-
-  if (invitationError) {
-    return { ok: false as const, message: `No se pudo guardar invitacion: ${invitationError.message}` };
-  }
-
-  await logAuditEvent({
-    action: "organization.invitation.send",
-    entityType: "organization_invitation",
-    organizationId: params.organizationId,
-    eventDomain: "superadmin",
-    outcome: "success",
-    severity: "medium",
-    metadata: {
-      email: params.email,
-      role: "company_admin",
-      membership_status: params.activateMembership ? "active" : "invited",
-      fallback_recovery_enabled: true,
-    },
-  });
-
-  return { ok: true as const, mode: deliveryMode };
-}
+// ---------------------------------------------------------------------------
+// Create Organization
+// ---------------------------------------------------------------------------
 
 export async function createOrganizationAction(formData: FormData) {
   await requireSuperadmin();
@@ -353,50 +85,10 @@ export async function createOrganizationAction(formData: FormData) {
     );
   }
 
-  const { data: modules } = await supabase
-    .from("module_catalog")
-    .select("id, is_core");
+  // Provision modules + limits from plan
+  await provisionOrganizationFromPlan({ organizationId: org.id, planId });
 
-  let planModuleIds = new Set<string>();
-  if (planId) {
-    const { data: planModules } = await supabase
-      .from("plan_modules")
-      .select("module_id")
-      .eq("plan_id", planId)
-      .eq("is_enabled", true);
-    planModuleIds = new Set((planModules ?? []).map((row) => row.module_id));
-  }
-
-  if (modules?.length) {
-    await supabase.from("organization_modules").insert(
-      modules.map((mod) => ({
-        organization_id: org.id,
-        module_id: mod.id,
-        is_enabled: Boolean(mod.is_core) || planModuleIds.has(mod.id),
-        enabled_at: Boolean(mod.is_core) || planModuleIds.has(mod.id) ? new Date().toISOString() : null,
-      })),
-    );
-  }
-
-  if (planId) {
-    const { data: planLimits } = await supabase
-      .from("plans")
-      .select("max_branches, max_users, max_storage_mb, max_employees")
-      .eq("id", planId)
-      .maybeSingle();
-
-    await supabase.from("organization_limits").upsert(
-      {
-        organization_id: org.id,
-        max_branches: planLimits?.max_branches ?? null,
-        max_users: planLimits?.max_users ?? null,
-        max_storage_mb: planLimits?.max_storage_mb ?? null,
-        max_employees: planLimits?.max_employees ?? null,
-      },
-      { onConflict: "organization_id" },
-    );
-  }
-
+  // Send admin invitation
   const invitation = await sendOrganizationAdminInvitation({
     organizationId: org.id,
     email: adminEmail,
@@ -434,6 +126,10 @@ export async function createOrganizationAction(formData: FormData) {
       qs(successMessage),
   );
 }
+
+// ---------------------------------------------------------------------------
+// Toggle Module
+// ---------------------------------------------------------------------------
 
 export async function toggleOrganizationModuleAction(formData: FormData) {
   await requireSuperadmin();
@@ -517,6 +213,10 @@ export async function toggleOrganizationModuleAction(formData: FormData) {
   revalidatePath("/superadmin/organizations");
 }
 
+// ---------------------------------------------------------------------------
+// Update Organization
+// ---------------------------------------------------------------------------
+
 export async function updateOrganizationAction(formData: FormData) {
   await requireSuperadmin();
 
@@ -540,18 +240,12 @@ export async function updateOrganizationAction(formData: FormData) {
 
   const planChanged = (currentOrg?.plan_id ?? null) !== planId;
 
-  if (planChanged && planId) {
-    try {
-      await assertOrganizationCanSwitchToPlan(organizationId, planId);
-    } catch (error) {
+  // Sync plan if changed
+  if (planChanged) {
+    const syncResult = await syncOrganizationPlan({ organizationId, planId });
+    if (!syncResult.ok) {
       redirect(
-        "/superadmin/organizations?status=error&message=" +
-          qs(
-            getPlanLimitErrorMessage(
-              error,
-              "No se puede cambiar plan porque el uso actual supera los limites del plan destino.",
-            ),
-          ),
+        "/superadmin/organizations?status=error&message=" + qs(syncResult.message),
       );
     }
   }
@@ -576,57 +270,6 @@ export async function updateOrganizationAction(formData: FormData) {
     .update(organizationUpdatePayload)
     .eq("id", organizationId);
 
-  if (planChanged && planId) {
-    const { data: planLimits } = await supabase
-      .from("plans")
-      .select("max_branches, max_users, max_storage_mb, max_employees")
-      .eq("id", planId)
-      .maybeSingle();
-
-    await supabase.from("organization_limits").upsert(
-      {
-        organization_id: organizationId,
-        max_branches: planLimits?.max_branches ?? null,
-        max_users: planLimits?.max_users ?? null,
-        max_storage_mb: planLimits?.max_storage_mb ?? null,
-        max_employees: planLimits?.max_employees ?? null,
-      },
-      { onConflict: "organization_id" },
-    );
-  }
-
-  if (planChanged) {
-    const { data: modules } = await supabase
-      .from("module_catalog")
-      .select("id, is_core");
-
-    let planModuleIds = new Set<string>();
-    if (planId) {
-      const { data: planModules } = await supabase
-        .from("plan_modules")
-        .select("module_id")
-        .eq("plan_id", planId)
-        .eq("is_enabled", true);
-
-      planModuleIds = new Set((planModules ?? []).map((row) => row.module_id));
-    }
-
-    if (modules?.length) {
-      await supabase.from("organization_modules").upsert(
-        modules.map((mod) => {
-          const shouldEnable = Boolean(mod.is_core) || planModuleIds.has(mod.id);
-          return {
-            organization_id: organizationId,
-            module_id: mod.id,
-            is_enabled: shouldEnable,
-            enabled_at: shouldEnable ? new Date().toISOString() : null,
-          };
-        }),
-        { onConflict: "organization_id,module_id" },
-      );
-    }
-  }
-
   await logAuditEvent({
     action: "organization.update",
     entityType: "organization",
@@ -641,28 +284,9 @@ export async function updateOrganizationAction(formData: FormData) {
   revalidatePath("/superadmin/organizations");
 }
 
-async function cleanupTenantStorageArtifacts(organizationId: string) {
-  const supabase = createSupabaseAdminClient();
-  const bucketId = "tenant-documents";
-
-  const { data: objects } = await supabase
-    .schema("storage")
-    .from("objects")
-    .select("name")
-    .eq("bucket_id", bucketId)
-    .like("name", `${organizationId}/%`)
-    .limit(10000);
-
-  const paths = (objects ?? []).map((row) => row.name).filter(Boolean);
-  if (!paths.length) {
-    return;
-  }
-
-  for (let i = 0; i < paths.length; i += 100) {
-    const chunk = paths.slice(i, i + 100);
-    await supabase.storage.from(bucketId).remove(chunk);
-  }
-}
+// ---------------------------------------------------------------------------
+// Delete Organization
+// ---------------------------------------------------------------------------
 
 export async function deleteOrganizationAction(formData: FormData) {
   await requireSuperadmin();
@@ -734,6 +358,10 @@ export async function deleteOrganizationAction(formData: FormData) {
       qs(`Empresa '${organization.name}' eliminada junto con sus datos`),
   );
 }
+
+// ---------------------------------------------------------------------------
+// Impersonation
+// ---------------------------------------------------------------------------
 
 export async function startOrganizationImpersonationAction(formData: FormData) {
   await requireSuperadmin();
@@ -809,13 +437,9 @@ export async function startOrganizationImpersonationAction(formData: FormData) {
   redirect("/app/dashboard");
 }
 
-function toNullableInt(value: FormDataEntryValue | null): number | null {
-  const raw = String(value ?? "").trim();
-  if (!raw) return null;
-  const num = Number(raw);
-  if (!Number.isFinite(num) || num < 0) return null;
-  return Math.floor(num);
-}
+// ---------------------------------------------------------------------------
+// Upsert Organization Limits
+// ---------------------------------------------------------------------------
 
 export async function upsertOrganizationLimitsAction(formData: FormData) {
   await requireSuperadmin();
@@ -826,10 +450,10 @@ export async function upsertOrganizationLimitsAction(formData: FormData) {
     return;
   }
 
-  const maxBranches = toNullableInt(formData.get("max_branches"));
-  const maxUsers = toNullableInt(formData.get("max_users"));
-  const maxStorageMb = toNullableInt(formData.get("max_storage_mb"));
-  const maxEmployees = toNullableInt(formData.get("max_employees"));
+  const maxBranches = toNullableInt(String(formData.get("max_branches") ?? ""));
+  const maxUsers = toNullableInt(String(formData.get("max_users") ?? ""));
+  const maxStorageMb = toNullableInt(String(formData.get("max_storage_mb") ?? ""));
+  const maxEmployees = toNullableInt(String(formData.get("max_employees") ?? ""));
 
   const supabase = createSupabaseAdminClient();
   await supabase.from("organization_limits").upsert(
@@ -857,6 +481,10 @@ export async function upsertOrganizationLimitsAction(formData: FormData) {
   revalidatePath("/superadmin/organizations");
 }
 
+// ---------------------------------------------------------------------------
+// Assign Company Admin
+// ---------------------------------------------------------------------------
+
 export async function assignCompanyAdminAction(formData: FormData) {
   try {
     await requireSuperadmin();
@@ -882,13 +510,8 @@ export async function assignCompanyAdminAction(formData: FormData) {
 
     const supabase = createSupabaseAdminClient();
 
-    const { data: role, error: roleError } = await supabase
-      .from("roles")
-      .select("id")
-      .eq("code", "company_admin")
-      .single();
-
-    if (roleError || !role) {
+    const roleId = await getCompanyAdminRoleId();
+    if (!roleId) {
       redirect(
         "/superadmin/organizations?status=error&message=" +
           qs("No existe el rol company_admin en la base"),
@@ -949,7 +572,7 @@ export async function assignCompanyAdminAction(formData: FormData) {
       {
         organization_id: organizationId,
         user_id: userId,
-        role_id: role.id,
+        role_id: roleId,
         status: "active",
       },
       { onConflict: "organization_id,user_id" },
