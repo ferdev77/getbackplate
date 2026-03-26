@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Download, Eye, Pencil, Trash2 } from "lucide-react";
+import { Download, Eye, Pencil, Trash2, Users } from "lucide-react";
+import { toast } from "sonner";
+import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
+import { EmptyState } from "@/shared/ui/empty-state";
 
 type UserRow = {
   membershipId: string;
@@ -57,7 +60,6 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [busyDelete, setBusyDelete] = useState(false);
   const [busySave, setBusySave] = useState(false);
-  const [toast, setToast] = useState("");
 
   useEffect(() => {
     setRows(users);
@@ -78,12 +80,6 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
     setEditBranchId(editing.branchId ?? "");
   }, [editing]);
 
-  useEffect(() => {
-    if (!toast) return;
-    const timer = setTimeout(() => setToast(""), 2800);
-    return () => clearTimeout(timer);
-  }, [toast]);
-
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return rows.filter((item) => {
@@ -99,35 +95,42 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
   async function saveUser() {
     if (!editing) return;
     setBusySave(true);
+
+    const previousRows = [...rows];
+    const editingId = editing.membershipId;
+    const branchName = editBranchId
+      ? branchOptions.find((branch) => branch.id === editBranchId)?.name || "Sucursal"
+      : "Todas";
+
+    // Optimistic update
+    setRows((prev) =>
+      prev.map((item) =>
+        item.membershipId === editingId
+          ? { ...item, roleCode: editRole, status: editStatus, branchId: editBranchId || null, branchName }
+          : item,
+      ),
+    );
+    setEditMembershipId(null);
+
     try {
       const response = await fetch("/api/company/users", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          membershipId: editing.membershipId,
+          membershipId: editingId,
           roleCode: editRole,
           status: editStatus,
           branchId: editBranchId || null,
         }),
       });
       const data = await response.json().catch(() => ({}));
-       if (!response.ok) throw new Error(data.error || "No se pudo actualizar administrador");
+      if (!response.ok) throw new Error(data.error || "No se pudo actualizar administrador");
 
-      const branchName = editBranchId
-        ? branchOptions.find((branch) => branch.id === editBranchId)?.name || "Sucursal"
-        : "Todas";
-
-      setRows((prev) =>
-        prev.map((item) =>
-          item.membershipId === editing.membershipId
-            ? { ...item, roleCode: editRole, status: editStatus, branchId: editBranchId || null, branchName }
-            : item,
-        ),
-      );
-      setEditMembershipId(null);
-      setToast("Administrador actualizado correctamente");
+      toast.success("Administrador actualizado correctamente");
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "No se pudo actualizar administrador");
+      // Rollback
+      setRows(previousRows);
+      toast.error(error instanceof Error ? error.message : "No se pudo actualizar administrador");
     } finally {
       setBusySave(false);
     }
@@ -136,21 +139,29 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
   async function deleteUser() {
     if (!deleteTargetId) return;
     setBusyDelete(true);
+
+    const previousRows = [...rows];
+    const targetId = deleteTargetId;
+
+    // Optimistic delete
+    setRows((prev) => prev.filter((item) => item.membershipId !== targetId));
+    setSelectedMembershipId((prev) => (prev === targetId ? null : prev));
+    setDeleteTargetId(null);
+
     try {
       const response = await fetch("/api/company/users", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ membershipId: deleteTargetId }),
+        body: JSON.stringify({ membershipId: targetId }),
       });
       const data = await response.json().catch(() => ({}));
-       if (!response.ok) throw new Error(data.error || "No se pudo eliminar administrador");
+      if (!response.ok) throw new Error(data.error || "No se pudo eliminar administrador");
 
-      setRows((prev) => prev.filter((item) => item.membershipId !== deleteTargetId));
-      setSelectedMembershipId((prev) => (prev === deleteTargetId ? null : prev));
-      setDeleteTargetId(null);
-      setToast("Administrador eliminado correctamente");
+      toast.success("Administrador eliminado correctamente");
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "No se pudo eliminar administrador");
+      // Rollback
+      setRows(previousRows);
+      toast.error(error instanceof Error ? error.message : "No se pudo eliminar administrador");
     } finally {
       setBusyDelete(false);
     }
@@ -202,23 +213,35 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
       </p>
 
       <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white">
-        <div className="grid grid-cols-[minmax(190px,2fr)_minmax(170px,1.4fr)_minmax(120px,1fr)_minmax(100px,.8fr)_136px] gap-x-3 border-b-[1.5px] border-[#e8e8e8] bg-[#fafafa] px-5 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase"><p>Nombre</p><p>Email</p><p>Locacion</p><p>Acceso</p><p>Acciones</p></div>
+        <div className="grid grid-cols-[1fr_100px] md:grid-cols-[2fr_1fr_120px] lg:grid-cols-[minmax(190px,2fr)_minmax(170px,1.4fr)_minmax(120px,1fr)_minmax(100px,.8fr)_136px] gap-x-3 border-b-[1.5px] border-[#e8e8e8] bg-[#fafafa] px-5 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase">
+          <p>Nombre</p>
+          <p className="hidden lg:block">Email</p>
+          <p className="hidden md:block">Locacion</p>
+          <p className="hidden lg:block">Acceso</p>
+          <p>Acciones</p>
+        </div>
         <div>
           {filtered.map((row) => (
-            <div key={row.membershipId} onClick={() => setSelectedMembershipId(row.membershipId)} className="grid grid-cols-[minmax(190px,2fr)_minmax(170px,1.4fr)_minmax(120px,1fr)_minmax(100px,.8fr)_136px] items-center gap-x-3 border-b border-[#f0f0f0] px-5 py-3 hover:bg-[#fafafa]">
-              <div className="flex items-center gap-2.5"><span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#c0392b] text-[11px] font-bold text-white">{initials(row.fullName)}</span><div><p className="text-[13px] font-semibold text-[#111]">{row.fullName}</p><p className="text-[11px] text-[#aaa]">{roleLabel(row.roleCode)}</p></div></div>
-              <p className="truncate text-xs text-[#666]">{row.email || "Sin email"}</p>
-              <p className="text-xs text-[#666]">{row.branchName}</p>
-              <p><span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${row.status === "active" ? "bg-[#edfbf3] text-[#27ae60]" : "bg-[#f5f5f5] text-[#888]"}`}>{statusLabel(row.status)}</span></p>
-              <div className="flex items-center gap-1">
+            <div key={row.membershipId} onClick={() => setSelectedMembershipId(row.membershipId)} className="grid grid-cols-[1fr_100px] md:grid-cols-[2fr_1fr_120px] lg:grid-cols-[minmax(190px,2fr)_minmax(170px,1.4fr)_minmax(120px,1fr)_minmax(100px,.8fr)_136px] items-center gap-x-3 border-b border-[#f0f0f0] px-5 py-3 hover:bg-[#fafafa]">
+              <div className="flex items-center gap-2.5 overflow-hidden">
+                <span className="flex-shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#c0392b] text-[11px] font-bold text-white">{initials(row.fullName)}</span>
+                <div className="min-w-0">
+                  <p className="truncate text-[13px] font-semibold text-[#111]">{row.fullName}</p>
+                  <p className="truncate text-[11px] text-[#aaa]">{roleLabel(row.roleCode)}</p>
+                </div>
+              </div>
+              <p className="hidden truncate text-xs text-[#666] lg:block">{row.email || "Sin email"}</p>
+              <p className="hidden truncate text-xs text-[#666] md:block">{row.branchName}</p>
+              <p className="hidden lg:block"><span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${row.status === "active" ? "bg-[#edfbf3] text-[#27ae60]" : "bg-[#f5f5f5] text-[#888]"}`}>{statusLabel(row.status)}</span></p>
+              <div className="flex items-center justify-end gap-1">
                 <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedMembershipId(row.membershipId); }} className={ACTION_BTN_NEUTRAL} title="Ver perfil"><Eye className="h-3.5 w-3.5" /></button>
                 <button type="button" onClick={(event) => { event.stopPropagation(); setEditMembershipId(row.membershipId); }} className={ACTION_BTN_NEUTRAL} title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
-                <button type="button" onClick={(event) => { event.stopPropagation(); void downloadUser(row); }} className={ACTION_BTN_NEUTRAL} title="Descargar perfil"><Download className="h-3.5 w-3.5" /></button>
+                <button type="button" onClick={(event) => { event.stopPropagation(); void downloadUser(row); }} className={`hidden sm:inline-flex ${ACTION_BTN_NEUTRAL}`} title="Descargar perfil"><Download className="h-3.5 w-3.5" /></button>
                 <button type="button" onClick={(event) => { event.stopPropagation(); setDeleteTargetId(row.membershipId); }} className={ACTION_BTN_DANGER} title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
               </div>
             </div>
           ))}
-          {!filtered.length ? <div className="px-5 py-14 text-center text-sm text-[#aaa]">No hay administradores para los filtros seleccionados.</div> : null}
+          {!filtered.length ? <EmptyState icon={Users} title="No hay administradores" description="No se encontraron administradores para los filtros seleccionados." /> : null}
         </div>
       </section>
 
@@ -261,19 +284,16 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
       ) : null}
 
       {deleteTarget ? (
-        <div className="fixed inset-0 z-[1050] grid place-items-center bg-black/45 p-4" onClick={() => !busyDelete && setDeleteTargetId(null)}>
-          <div className="w-full max-w-[420px] rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]" onClick={(event) => event.stopPropagation()}>
-            <div className="border-b border-[#f0f0f0] px-6 py-4"><p className="font-serif text-[18px] font-bold text-[#111]">Eliminar administrador</p><p className="mt-1 text-sm text-[#777]">Se removera el acceso administrativo de esta persona en tu empresa.</p></div>
-            <div className="px-6 py-4 text-sm text-[#444]">Vas a eliminar el acceso de <span className="font-semibold">{deleteTarget.fullName}</span>. Esta accion no se puede deshacer.</div>
-            <div className="flex justify-end gap-2 border-t border-[#f0f0f0] px-6 py-4">
-              <button type="button" disabled={busyDelete} onClick={() => setDeleteTargetId(null)} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333] disabled:opacity-60">Cancelar</button>
-              <button type="button" disabled={busyDelete} onClick={deleteUser} className="rounded-lg border-[1.5px] border-[#f3cbc4] bg-[#fff3f1] px-4 py-2 text-sm font-bold text-[#b63a2f] hover:bg-[#ffe8e4] disabled:opacity-60">{busyDelete ? "Eliminando..." : "Eliminar"}</button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDeleteDialog
+          title="Eliminar administrador"
+          description="Se removera el acceso administrativo de esta persona en tu empresa."
+          busy={busyDelete}
+          onCancel={() => setDeleteTargetId(null)}
+          onConfirm={deleteUser}
+          confirmLabel="Eliminar"
+        />
       ) : null}
 
-      {toast ? <div className="fixed bottom-6 left-1/2 z-[1100] -translate-x-1/2 rounded-lg bg-[#111] px-4 py-2 text-sm font-semibold text-white">{toast}</div> : null}
     </>
   );
 }

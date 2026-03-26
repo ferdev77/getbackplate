@@ -21,7 +21,7 @@ const ROLE_OPTIONS = [
   { value: "company_admin", label: "Administrador" },
 ];
 
-export const dynamic = "force-dynamic";
+
 export const revalidate = 0;
 
 export default async function CompanyUsersPage({ searchParams }: CompanyUsersPageProps) {
@@ -37,13 +37,11 @@ export default async function CompanyUsersPage({ searchParams }: CompanyUsersPag
   const pageLimit = 50;
   
   const viewData = await getEmployeeDirectoryView(
-    supabase,
     tenant.organizationId, 
-    pageLimit,
+    100,
     {
-      includeModalsData: openUserModal,
-      includeUsersTab: true,
       includeEmployeesData: false,
+      includeUsersTab: true,
     }
   );
 

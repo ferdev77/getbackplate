@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { canReadDocumentInTenant } from "@/shared/lib/document-access";
 import { requireEmployeeModule } from "@/shared/lib/access";
+import { EmptyState } from "@/shared/ui/empty-state";
 
 function formatBytes(value: number | null) {
   const bytes = value ?? 0;
@@ -95,7 +96,7 @@ export default async function EmployeeDocumentsPage() {
         ))}
 
         {!visibleDocuments.length ? (
-          <div className="rounded-xl border border-dashed border-[#dccfca] bg-white px-4 py-8 text-center text-sm text-[#8b817c]">Aun no tienes documentos visibles o asignados.</div>
+          <EmptyState title="Sin documentos" description="Aun no tienes documentos visibles o asignados." />
         ) : null}
       </section>
 

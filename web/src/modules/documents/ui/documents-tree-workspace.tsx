@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Eye, Pencil, Search, Share2, Trash2, ChevronRight, Folder, Mail } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
+import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import { FadeIn, SlideUp, AnimatedList, AnimatedItem } from "@/shared/ui/animations";
@@ -90,16 +92,10 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
   const [shareFolderId, setShareFolderId] = useState<string | null>(null);
   const [emailShareDocId, setEmailShareDocId] = useState<string | null>(null);
   const [dropFolderId, setDropFolderId] = useState<string | null>(null);
-  const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
 
   const branchMap = useMemo(() => new Map(branches.map((row) => [row.id, row.name])), [branches]);
   const deptMap = useMemo(() => new Map(departments.map((row) => [row.id, row.name])), [departments]);
-  useEffect(() => {
-    if (!toast) return;
-    const timer = setTimeout(() => setToast(""), 2800);
-    return () => clearTimeout(timer);
-  }, [toast]);
 
   useEffect(() => {
     setFolderRows(folders);
@@ -232,9 +228,9 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
         ),
       );
       setEditDocId(null);
-      setToast("Documento actualizado");
+      toast.success("Documento actualizado");
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "Error actualizando documento");
+      toast.error(error instanceof Error ? error.message : "Error actualizando documento");
     } finally {
       setBusy(false);
     }
@@ -257,9 +253,9 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
         ),
       );
       setEditFolderId(null);
-      setToast("Carpeta actualizada");
+      toast.success("Carpeta actualizada");
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "Error actualizando carpeta");
+      toast.error(error instanceof Error ? error.message : "Error actualizando carpeta");
     } finally {
       setBusy(false);
     }
@@ -278,9 +274,9 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
 
       setDocumentRows((prev) => prev.filter((row) => row.id !== documentId));
       setDeleteDocId(null);
-      setToast("Documento eliminado");
+      toast.success("Documento eliminado");
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "Error eliminando documento");
+      toast.error(error instanceof Error ? error.message : "Error eliminando documento");
     } finally {
       setBusy(false);
     }
@@ -299,9 +295,9 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
 
       setFolderRows((prev) => prev.filter((row) => row.id !== folderId));
       setDeleteFolderId(null);
-      setToast("Carpeta eliminada");
+      toast.success("Carpeta eliminada");
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "Error eliminando carpeta");
+      toast.error(error instanceof Error ? error.message : "Error eliminando carpeta");
     } finally {
       setBusy(false);
     }
@@ -321,9 +317,9 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
       setDocumentRows((prev) =>
         prev.map((row) => (row.id === documentId ? { ...row, folder_id: folderId } : row)),
       );
-      setToast("Documento movido");
+      toast.success("Documento movido");
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "Error moviendo documento");
+      toast.error(error instanceof Error ? error.message : "Error moviendo documento");
     } finally {
       setBusy(false);
       setDropFolderId(null);
@@ -344,9 +340,9 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
       setFolderRows((prev) =>
         prev.map((row) => (row.id === folderId ? { ...row, parent_id: parentId } : row)),
       );
-      setToast("Carpeta movida");
+      toast.success("Carpeta movida");
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "Error moviendo carpeta");
+      toast.error(error instanceof Error ? error.message : "Error moviendo carpeta");
     } finally {
       setBusy(false);
       setDropFolderId(null);
@@ -416,9 +412,9 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
         setShareFolderId(null);
       }
 
-      setToast("Permisos actualizados");
+      toast.success("Permisos actualizados");
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "Error actualizando permisos");
+      toast.error(error instanceof Error ? error.message : "Error actualizando permisos");
     } finally {
       setBusy(false);
     }
@@ -434,10 +430,10 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "No se pudo compartir por email");
-      setToast(typeof data.message === "string" ? data.message : "Documento compartido por email");
+      toast.success(typeof data.message === "string" ? data.message : "Documento compartido por email");
       setEmailShareDocId(null);
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "Error compartiendo por email");
+      toast.error(error instanceof Error ? error.message : "Error compartiendo por email");
     } finally {
       setBusy(false);
     }
@@ -458,7 +454,7 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
         <AnimatedItem key={folder.id}>
           <div className="border-b border-[#f0f0f0]">
             <div
-              className={`grid grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] items-center px-4 py-2.5 hover:bg-[#fafafa] transition-colors ${dropFolderId === folder.id ? "bg-[#fff5f3]" : ""}`}
+              className={`grid grid-cols-[1fr_100px] md:grid-cols-[2fr_100px_110px_150px] lg:grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] items-center px-4 py-2.5 hover:bg-[#fafafa] transition-colors ${dropFolderId === folder.id ? "bg-[#fff5f3]" : ""}`}
               draggable
               onDragStart={(event) => {
                 event.dataTransfer.setData("application/x-folder-id", folder.id);
@@ -500,10 +496,10 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
                 <span className="truncate text-[13px] font-semibold text-[#111]">{folder.name}</span>
                 <span className="text-[11px] text-[#bbb]">({docList.length})</span>
               </button>
-              <p className="text-xs text-[#888]">{locLabel}</p>
-              <p className="text-xs text-[#888]">{deptLabel}</p>
-              <p className="text-xs text-[#888]">{sharedLabel}</p>
-              <p className="text-xs text-[#888]">{formatDate(folder.created_at)}</p>
+              <p className="hidden md:block text-xs text-[#888]">{locLabel}</p>
+              <p className="hidden lg:block text-xs text-[#888]">{deptLabel}</p>
+              <p className="hidden lg:block text-xs text-[#888]">{sharedLabel}</p>
+              <p className="hidden md:block text-xs text-[#888]">{formatDate(folder.created_at)}</p>
               <div className="flex items-center justify-end gap-1">
                 <button type="button" onClick={() => setEditFolderId(folder.id)} className={ACTION_BTN_NEUTRAL} title="Editar carpeta"><Pencil className="h-3.5 w-3.5" /></button>
                 <button type="button" onClick={() => setShareFolderId(folder.id)} className={ACTION_BTN_NEUTRAL} title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
@@ -521,15 +517,15 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
                       const docShared = docScope.locations.length || docScope.departments.length || docScope.positions.length || docScope.users.length ? "Segmentado" : "Todos";
 
                       return (
-                        <div key={doc.id} className="grid grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] items-center border-t border-[#f3f3f3] px-4 py-2.5 hover:bg-[#fcfcfc] transition-colors" draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; }}>
+                        <div key={doc.id} className="grid grid-cols-[1fr_100px] md:grid-cols-[2fr_100px_110px_150px] lg:grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] items-center border-t border-[#f3f3f3] px-4 py-2.5 hover:bg-[#fcfcfc] transition-colors" draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; }}>
                           <div className="min-w-0 pl-8">
                             <p className="truncate text-[12px] font-medium text-[#222]">{doc.title}</p>
-                            <p className="text-[11px] text-[#bbb]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p>
+                            <p className="truncate text-[11px] text-[#bbb]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p>
                           </div>
-                          <p className="text-xs text-[#888]">{docLoc}</p>
-                          <p className="text-xs text-[#888]">{docDept}</p>
-                          <p className="text-xs text-[#888]">{docShared}</p>
-                          <p className="text-xs text-[#888]">{formatDate(doc.created_at)}</p>
+                          <p className="hidden md:block text-xs text-[#888]">{docLoc}</p>
+                          <p className="hidden lg:block text-xs text-[#888]">{docDept}</p>
+                          <p className="hidden lg:block text-xs text-[#888]">{docShared}</p>
+                          <p className="hidden md:block text-xs text-[#888]">{formatDate(doc.created_at)}</p>
                           <div className="flex items-center justify-end gap-1">
                             <a href={`/api/documents/${doc.id}/download`} className={ACTION_BTN_NEUTRAL} title="Ver/Descargar"><Eye className="h-3.5 w-3.5" /></a>
                             <button type="button" onClick={() => setEditDocId(doc.id)} className={ACTION_BTN_NEUTRAL} title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
@@ -588,8 +584,13 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
 
       <SlideUp delay={0.2}>
         <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white">
-          <div className="grid grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] bg-[#fafafa] px-4 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase">
-            <p>Nombre</p><p>Locacion</p><p>Departamento</p><p>Compartido</p><p>Actualizacion</p><p className="text-right">Acciones</p>
+          <div className="grid grid-cols-[1fr_100px] md:grid-cols-[2fr_100px_110px_150px] lg:grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] bg-[#fafafa] px-4 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase">
+            <p>Nombre</p>
+            <p className="hidden md:block">Locacion</p>
+            <p className="hidden lg:block">Departamento</p>
+            <p className="hidden lg:block">Compartido</p>
+            <p className="hidden md:block">Actualizacion</p>
+            <p className="text-right">Acciones</p>
           </div>
           <div
             onDragOver={(event) => event.preventDefault()}
@@ -614,12 +615,12 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
                 const shared = scope.locations.length || scope.departments.length || scope.positions.length || scope.users.length ? "Segmentado" : "Todos";
                 return (
                   <AnimatedItem key={doc.id}>
-                    <div className="grid grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] items-center border-t border-[#f0f0f0] px-4 py-2.5 hover:bg-[#fcfcfc] transition-colors" draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; }}>
-                      <div className="min-w-0"><p className="truncate text-[12px] font-medium text-[#222]">{doc.title}</p><p className="text-[11px] text-[#bbb]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p></div>
-                      <p className="text-xs text-[#888]">{loc}</p>
-                      <p className="text-xs text-[#888]">{dept}</p>
-                      <p className="text-xs text-[#888]">{shared}</p>
-                      <p className="text-xs text-[#888]">{formatDate(doc.created_at)}</p>
+                    <div className="grid grid-cols-[1fr_100px] md:grid-cols-[2fr_100px_110px_150px] lg:grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] items-center border-t border-[#f0f0f0] px-4 py-2.5 hover:bg-[#fcfcfc] transition-colors" draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; }}>
+                      <div className="min-w-0"><p className="truncate text-[12px] font-medium text-[#222]">{doc.title}</p><p className="truncate text-[11px] text-[#bbb]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p></div>
+                      <p className="hidden md:block text-xs text-[#888]">{loc}</p>
+                      <p className="hidden lg:block text-xs text-[#888]">{dept}</p>
+                      <p className="hidden lg:block text-xs text-[#888]">{shared}</p>
+                      <p className="hidden md:block text-xs text-[#888]">{formatDate(doc.created_at)}</p>
                       <div className="flex items-center justify-end gap-1">
                         <a href={`/api/documents/${doc.id}/download`} className={ACTION_BTN_NEUTRAL} title="Ver"><Eye className="h-3.5 w-3.5" /></a>
                         <button type="button" onClick={() => setEditDocId(doc.id)} className={ACTION_BTN_NEUTRAL} title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
@@ -660,7 +661,7 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
       ) : null}
 
       {deleteDocument ? (
-        <ConfirmDeleteModal
+        <ConfirmDeleteDialog
           title="Eliminar documento"
           description={`Se eliminara \"${deleteDocument.title}\". Esta accion no se puede deshacer.`}
           busy={busy}
@@ -670,7 +671,7 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
       ) : null}
 
       {deleteFolder ? (
-        <ConfirmDeleteModal
+        <ConfirmDeleteDialog
           title="Eliminar carpeta"
           description={`Se eliminara la carpeta \"${deleteFolder.name}\" si esta vacia.`}
           busy={busy}
@@ -718,9 +719,6 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
         />
       ) : null}
 
-      <AnimatePresence>
-        {toast ? <FadeIn className="fixed bottom-6 left-1/2 z-[1100] -translate-x-1/2 rounded-lg bg-[#111] px-4 py-2 text-sm font-semibold text-white shadow-lg">{toast}</FadeIn> : null}
-      </AnimatePresence>
     </>
   );
 }
@@ -767,32 +765,6 @@ function ShareByEmailModal({
           <label className="grid gap-1.5"><span className={MODAL_LABEL}>Mensaje (opcional)</span><textarea value={message} onChange={(event) => setMessage(event.target.value)} rows={3} className={MODAL_INPUT} placeholder="Te comparto este archivo." /></label>
         </div>
         <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button><button type="button" disabled={busy || !email.trim()} onClick={() => onSubmit({ documentId: document.id, email: email.trim(), message: message.trim() })} className={MODAL_PRIMARY}>{busy ? "Enviando..." : "Enviar"}</button></div>
-      </div>
-    </div>
-  );
-}
-
-function ConfirmDeleteModal({
-  title,
-  description,
-  busy,
-  onCancel,
-  onConfirm,
-}: {
-  title: string;
-  description: string;
-  busy: boolean;
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-[1050] grid place-items-center bg-black/45 p-4" onClick={() => !busy && onCancel()}>
-      <div className={`w-full max-w-[420px] ${MODAL_PANEL}`} onClick={(event) => event.stopPropagation()}>
-        <div className="border-b border-[#f0f0f0] px-6 py-4 [.theme-dark-pro_&]:border-[#2b3646]"><p className="font-serif text-[18px] font-bold text-[#111] [.theme-dark-pro_&]:text-[#e7edf7]">{title}</p><p className="mt-1 text-sm text-[#777] [.theme-dark-pro_&]:text-[#9aabc3]">{description}</p></div>
-        <div className="flex justify-end gap-2 border-t border-[#f0f0f0] px-6 py-4 [.theme-dark-pro_&]:border-[#2b3646]">
-          <button type="button" disabled={busy} onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button>
-          <button type="button" disabled={busy} onClick={onConfirm} className={MODAL_DANGER}>{busy ? "Procesando..." : "Eliminar"}</button>
-        </div>
       </div>
     </div>
   );

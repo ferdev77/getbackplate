@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
@@ -20,52 +21,14 @@ async function ensureBucket() {
   });
 }
 
-async function rollbackChecklistSubmissionCreateFlow(input: {
-  organizationId: string;
-  submissionId: string;
-  submissionItemIds: string[];
-  uploadedEvidencePaths: string[];
-}) {
+// Minimal best-effort rollback for storage only
+async function rollbackStorage(uploadedEvidencePaths: string[]) {
+  if (!uploadedEvidencePaths.length) return;
   const admin = createSupabaseAdminClient();
-
   try {
-    if (input.uploadedEvidencePaths.length) {
-      await admin.storage.from(EVIDENCE_BUCKET).remove(input.uploadedEvidencePaths);
-    }
-
-    if (input.submissionItemIds.length) {
-      await admin
-        .from("checklist_item_attachments")
-        .delete()
-        .eq("organization_id", input.organizationId)
-        .in("submission_item_id", input.submissionItemIds);
-
-      await admin
-        .from("checklist_item_comments")
-        .delete()
-        .eq("organization_id", input.organizationId)
-        .in("submission_item_id", input.submissionItemIds);
-
-      await admin
-        .from("checklist_flags")
-        .delete()
-        .eq("organization_id", input.organizationId)
-        .in("submission_item_id", input.submissionItemIds);
-    }
-
-    await admin
-      .from("checklist_submission_items")
-      .delete()
-      .eq("organization_id", input.organizationId)
-      .eq("submission_id", input.submissionId);
-
-    await admin
-      .from("checklist_submissions")
-      .delete()
-      .eq("organization_id", input.organizationId)
-      .eq("id", input.submissionId);
+    await admin.storage.from(EVIDENCE_BUCKET).remove(uploadedEvidencePaths);
   } catch {
-    // rollback best-effort
+    // ignore
   }
 }
 
@@ -207,7 +170,7 @@ export async function POST(request: Request) {
     });
   }
 
-  const itemIds = [...new Set(items.map((item) => item.template_item_id).filter(Boolean))];
+  const itemIds = Array.from(new Set(items.map((item) => item.template_item_id).filter(Boolean)));
   const { data: validItems } = await supabase
     .from("checklist_template_items")
     .select("id")
@@ -229,117 +192,38 @@ export async function POST(request: Request) {
 
   await ensureBucket();
 
-  const { data: submission, error: submissionError } = await admin
-    .from("checklist_submissions")
-    .insert({
-      organization_id: tenant.organizationId,
-      branch_id: tenant.branchId ?? template.branch_id,
-      template_id: templateId,
-      submitted_by: userId,
-      status: "submitted",
-      submitted_at: new Date().toISOString(),
-    })
-    .select("id")
-    .single();
-
-  if (submissionError || !submission) {
-    return fail(`No se pudo crear envio: ${submissionError?.message ?? "error"}`, 400, { template_id: templateId });
-  }
-
-  const submissionItemIds: string[] = [];
+  const submissionId = crypto.randomUUID();
+  const branchId = tenant.branchId ?? template.branch_id;
+  
   const uploadedEvidencePaths: string[] = [];
+  const rpcItemsPayload: any[] = [];
 
   for (const item of items) {
-    const { data: submissionItem, error: submissionItemError } = await admin
-      .from("checklist_submission_items")
-      .insert({
-        organization_id: tenant.organizationId,
-        submission_id: submission.id,
-        template_item_id: item.template_item_id,
-        is_checked: item.checked,
-        is_flagged: item.flagged,
-      })
-      .select("id")
-      .single();
-
-      if (submissionItemError || !submissionItem) {
-      await rollbackChecklistSubmissionCreateFlow({
-        organizationId: tenant.organizationId,
-        submissionId: submission.id,
-        submissionItemIds,
-        uploadedEvidencePaths,
-      });
-      return fail(`Error guardando items: ${submissionItemError?.message ?? "error"}`, 400, {
-        template_id: templateId,
-        submission_id: submission.id,
-      });
-    }
-
-    submissionItemIds.push(submissionItem.id);
-
-    if (item.comment) {
-      const { error } = await admin.from("checklist_item_comments").insert({
-        organization_id: tenant.organizationId,
-        submission_item_id: submissionItem.id,
-        author_id: userId,
-        comment: item.comment,
-      });
-      if (error) {
-        await rollbackChecklistSubmissionCreateFlow({
-          organizationId: tenant.organizationId,
-          submissionId: submission.id,
-          submissionItemIds,
-          uploadedEvidencePaths,
-        });
-        return fail(`Error guardando comentario: ${error.message}`, 400, {
-          template_id: templateId,
-          submission_id: submission.id,
-        });
-      }
-    }
-
-    if (item.flagged) {
-      const { error } = await admin.from("checklist_flags").insert({
-        organization_id: tenant.organizationId,
-        submission_item_id: submissionItem.id,
-        reported_by: userId,
-        reason: item.comment || "Marcado para atencion",
-        status: "open",
-      });
-      if (error) {
-        await rollbackChecklistSubmissionCreateFlow({
-          organizationId: tenant.organizationId,
-          submissionId: submission.id,
-          submissionItemIds,
-          uploadedEvidencePaths,
-        });
-        return fail(`Error guardando flag: ${error.message}`, 400, {
-          template_id: templateId,
-          submission_id: submission.id,
-        });
-      }
-    }
+    const submissionItemId = crypto.randomUUID();
+    const rpcItem = {
+      id: submissionItemId,
+      template_item_id: item.template_item_id,
+      checked: item.checked,
+      flagged: item.flagged,
+      comment: item.comment,
+      attachments: [] as any[]
+    };
 
     const files = formData
-      .getAll(`photo_${item.template_item_id}`)
+      .getAll("photo_" + item.template_item_id)
       .filter((value): value is File => value instanceof File && value.size > 0);
 
     for (const file of files) {
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        await rollbackChecklistSubmissionCreateFlow({
-          organizationId: tenant.organizationId,
-          submissionId: submission.id,
-          submissionItemIds,
-          uploadedEvidencePaths,
-        });
+        await rollbackStorage(uploadedEvidencePaths);
         return fail(`La foto ${file.name} supera el limite`, 400, {
           template_id: templateId,
-          submission_id: submission.id,
+          submission_id: submissionId,
         });
       }
 
       const ext = file.name.includes(".") ? file.name.split(".").pop() : "bin";
-      const objectPath = `${tenant.organizationId}/${submission.id}/${submissionItem.id}/${crypto.randomUUID()}.${ext}`;
+      const objectPath = `${tenant.organizationId}/${submissionId}/${submissionItemId}/${crypto.randomUUID()}.${ext}`;
 
       const { error: uploadError } = await admin.storage.from(EVIDENCE_BUCKET).upload(objectPath, file, {
         contentType: file.type || "application/octet-stream",
@@ -347,49 +231,49 @@ export async function POST(request: Request) {
       });
 
       if (uploadError) {
-        await rollbackChecklistSubmissionCreateFlow({
-          organizationId: tenant.organizationId,
-          submissionId: submission.id,
-          submissionItemIds,
-          uploadedEvidencePaths,
-        });
+        await rollbackStorage(uploadedEvidencePaths);
         return fail(`No se pudo subir evidencia: ${uploadError.message}`, 400, {
           template_id: templateId,
-          submission_id: submission.id,
+          submission_id: submissionId,
         });
       }
 
       uploadedEvidencePaths.push(objectPath);
-
-      const { error: attachmentError } = await admin.from("checklist_item_attachments").insert({
-        organization_id: tenant.organizationId,
-        submission_item_id: submissionItem.id,
-        uploaded_by: userId,
+      rpcItem.attachments.push({
         file_path: objectPath,
         mime_type: file.type || null,
         file_size_bytes: file.size,
       });
-      if (attachmentError) {
-        await rollbackChecklistSubmissionCreateFlow({
-          organizationId: tenant.organizationId,
-          submissionId: submission.id,
-          submissionItemIds,
-          uploadedEvidencePaths,
-        });
-        return fail(`No se pudo registrar evidencia: ${attachmentError.message}`, 400, {
-          template_id: templateId,
-          submission_id: submission.id,
-        });
-      }
     }
+
+    rpcItemsPayload.push(rpcItem);
+  }
+
+  // Execute the atomic transaction
+  const { error: rpcError } = await supabase.rpc("submit_checklist_transaction", {
+    p_submission_id: submissionId,
+    p_organization_id: tenant.organizationId,
+    p_branch_id: branchId,
+    p_template_id: templateId,
+    p_submitted_by: userId,
+    p_items: rpcItemsPayload,
+    p_submitted_at: new Date().toISOString()
+  });
+
+  if (rpcError) {
+    await rollbackStorage(uploadedEvidencePaths);
+    return fail(`Hubo un error al guardar tu reporte: ${rpcError.message}`, 400, {
+      template_id: templateId,
+      submission_id: submissionId,
+    });
   }
 
   await logAuditEvent({
     action: "checklists.submission.create",
     entityType: "checklist_submission",
-    entityId: submission.id,
+    entityId: submissionId,
     organizationId: tenant.organizationId,
-    branchId: tenant.branchId ?? template.branch_id ?? null,
+    branchId: branchId ?? null,
     eventDomain: "checklists",
     outcome: "success",
     severity: "medium",
@@ -401,5 +285,5 @@ export async function POST(request: Request) {
     },
   });
 
-  return NextResponse.json({ ok: true, submissionId: submission.id });
+  return NextResponse.json({ ok: true, submissionId });
 }

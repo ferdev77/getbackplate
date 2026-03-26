@@ -3,10 +3,14 @@ import { Plus } from "lucide-react";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { EmployeesTableWorkspace } from "@/modules/employees/ui/employees-table-workspace";
-import { NewEmployeeModal } from "@/modules/employees/ui/new-employee-modal";
 import { getEmployeeDirectoryView } from "@/modules/employees/services";
 import { requireTenantModule } from "@/shared/lib/access";
 import { extractDisplayName } from "@/shared/lib/user";
+import dynamicImport from "next/dynamic";
+
+const NewEmployeeModal = dynamicImport(
+  () => import("@/modules/employees/ui/new-employee-modal").then((mod) => mod.NewEmployeeModal)
+);
 
 
 type CompanyEmployeesPageProps = {
@@ -30,7 +34,6 @@ type DirectoryMembershipUser = {
   createdAt: string;
 };
 
-export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function CompanyEmployeesPage({ searchParams }: CompanyEmployeesPageProps) {
@@ -48,7 +51,6 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   const pageLimit = 100;
   
   const viewData = await getEmployeeDirectoryView(
-    supabase,
     tenant.organizationId, 
     pageLimit,
     {
@@ -263,17 +265,19 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
 
       <EmployeesTableWorkspace employees={directoryRows} />
 
-      <NewEmployeeModal
-        key={initialEmployeeData?.id || initialEmployeeData?.organization_user_profile_id || "new"}
-        open={openEmployeeModal}
-        mode={(action === "edit" || action === "edit-employee" || action === "edit-user") ? "edit" : "create"}
-        initialEmployee={initialEmployeeData}
-        branches={viewData.branches}
-        recentDocuments={viewData.documents}
-        departments={viewData.departments}
-        positions={viewData.positions}
-        publisherName={publisherName}
-      />
+      {openEmployeeModal && (
+        <NewEmployeeModal
+          key={initialEmployeeData?.id || initialEmployeeData?.organization_user_profile_id || "new"}
+          open={true}
+          mode={(action === "edit" || action === "edit-employee" || action === "edit-user") ? "edit" : "create"}
+          initialEmployee={initialEmployeeData}
+          branches={viewData.branches}
+          recentDocuments={viewData.documents}
+          departments={viewData.departments}
+          positions={viewData.positions}
+          publisherName={publisherName}
+        />
+      )}
     </main>
   );
 }

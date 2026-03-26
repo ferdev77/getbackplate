@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, startTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -68,8 +68,10 @@ export function ChecklistUpsertModal({
     if (state.message) {
       if (state.success) {
         toast.success(state.message);
-        router.push("/app/checklists");
-        router.refresh();
+        startTransition(() => {
+          router.push("/app/checklists");
+          router.refresh();
+        });
       } else {
         toast.error(state.message);
       }

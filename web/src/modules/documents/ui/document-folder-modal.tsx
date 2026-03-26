@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useState, startTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -64,8 +64,10 @@ export function DocumentFolderModal({
       }
 
       toast.success("Carpeta creada");
-      router.push("/app/documents");
-      router.refresh();
+      startTransition(() => {
+        router.push("/app/documents");
+        router.refresh();
+      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo crear carpeta");
     } finally {

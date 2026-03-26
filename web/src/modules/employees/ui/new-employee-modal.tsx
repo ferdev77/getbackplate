@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, startTransition, type FormEvent } from "react";
 import { toast } from "sonner";
 import { SubmitButton } from "@/shared/ui/submit-button";
 
@@ -83,8 +83,10 @@ export function NewEmployeeModal({
       }
 
       toast.success(data.message || (mode === "edit" ? "Registro actualizado correctamente" : "Registro creado correctamente"));
-      router.refresh();
-      router.push("/app/employees");
+      startTransition(() => {
+        router.refresh();
+        router.push("/app/employees");
+      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo guardar el registro");
     } finally {

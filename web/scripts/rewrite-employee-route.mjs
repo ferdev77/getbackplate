@@ -1,111 +1,19 @@
-import { NextResponse } from "next/server";
-import { z } from "zod";
+import fs from "fs";
 
-import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
-import { findAuthUserByEmail } from "@/shared/lib/auth-users";
-import { logAuditEvent } from "@/shared/lib/audit";
-import { EMPLOYEES_MESSAGES, employeesStorageLimitForSlot } from "@/shared/lib/employees-messages";
-import { analyzeUploadedFile } from "@/shared/lib/file-security";
-import {
-  assertPlanLimitForEmployees,
-  assertPlanLimitForStorage,
-  assertPlanLimitForUsers,
-  getPlanLimitErrorMessage,
-} from "@/shared/lib/plan-limits";
-import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
-
-const ALLOWED_CREATE_MODES = new Set(["without_account", "with_account"]);
-const ALLOWED_CONTRACT_STATUSES = new Set(["draft", "active", "ended", "cancelled"]);
-const ALLOWED_EMPLOYMENT_STATUSES = new Set(["active", "inactive", "vacation", "leave"]);
-const BUCKET_NAME = "tenant-documents";
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-const ASYNC_POST_PROCESS_THRESHOLD_BYTES = 5 * 1024 * 1024;
-
-const emailSchema = z.string().email();
-const dateOnlySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-
-const DOCUMENT_SLOT_LABELS: Record<string, string> = {
-  photo: "Foto del Empleado",
-  id: "ID / Identificacion",
-  ssn: "Numero de Seguro Social",
-  rec1: "Carta de Recomendacion 1",
-  rec2: "Carta de Recomendacion 2",
-  other: "Otro Documento",
-};
-
-async function ensureBucketExists() {
-  const admin = createSupabaseAdminClient();
-  const { data: bucket } = await admin.storage.getBucket(BUCKET_NAME);
-  if (bucket) return;
-  await admin.storage.createBucket(BUCKET_NAME, {
-    public: false,
-    fileSizeLimit: `${MAX_FILE_SIZE_BYTES}`,
-  });
-}
-
-async function rollbackEmployeeCreateFlow(input: {
-  organizationId: string;
-  employeeId: string;
+const newCode = `async function rollbackStorageAndAuth(input: {
   uploadedPaths: string[];
-  uploadedDocumentIds: string[];
-  linkedUserId: string | null;
-  createdMembershipForLinkedUser: boolean;
   createdAuthUserId: string | null;
 }) {
   const admin = createSupabaseAdminClient();
-
   try {
     if (input.uploadedPaths.length) {
       await admin.storage.from(BUCKET_NAME).remove(input.uploadedPaths);
     }
-
-    if (input.uploadedDocumentIds.length) {
-      await admin
-        .from("document_processing_jobs")
-        .delete()
-        .eq("organization_id", input.organizationId)
-        .in("document_id", input.uploadedDocumentIds);
-
-      await admin
-        .from("documents")
-        .delete()
-        .eq("organization_id", input.organizationId)
-        .in("id", input.uploadedDocumentIds);
-    }
-
-    await admin
-      .from("employee_documents")
-      .delete()
-      .eq("organization_id", input.organizationId)
-      .eq("employee_id", input.employeeId);
-
-    await admin
-      .from("employee_contracts")
-      .delete()
-      .eq("organization_id", input.organizationId)
-      .eq("employee_id", input.employeeId);
-
-    await admin
-      .from("employees")
-      .delete()
-      .eq("organization_id", input.organizationId)
-      .eq("id", input.employeeId);
-
-    if (input.createdMembershipForLinkedUser && input.linkedUserId) {
-      await admin
-        .from("memberships")
-        .delete()
-        .eq("organization_id", input.organizationId)
-        .eq("user_id", input.linkedUserId);
-    }
-
     if (input.createdAuthUserId) {
       await admin.auth.admin.deleteUser(input.createdAuthUserId);
     }
   } catch {
-    // rollback best-effort
+    // best effort rollback
   }
 }
 
@@ -171,7 +79,7 @@ export async function POST(request: Request) {
     .getAll("employee_document_id")
     .map((value) => String(value).trim())
     .filter(Boolean);
-  const uniqueDocIds = Array.from(new Set(selectedDocIds));
+  const uniqueDocIds = [...new Set(selectedDocIds)];
 
   const uploadFiles: Array<{
     slotKey: string;
@@ -180,14 +88,14 @@ export async function POST(request: Request) {
     analysis: Awaited<ReturnType<typeof analyzeUploadedFile>>;
   }> = [];
   for (const [slotKey, slotLabel] of Object.entries(DOCUMENT_SLOT_LABELS)) {
-    const file = formData.get(`document_file_${slotKey}`);
+    const file = formData.get(\`document_file_\${slotKey}\`);
     if (file instanceof File && file.size > 0) {
       try {
         const analysis = await analyzeUploadedFile(file);
         uploadFiles.push({ slotKey, slotLabel, file, analysis });
       } catch (error) {
         return NextResponse.json(
-          { error: `${slotLabel}: ${error instanceof Error ? error.message : "archivo invalido"}` },
+          { error: \`\${slotLabel}: \${error instanceof Error ? error.message : "archivo invalido"}\` },
           { status: 400 },
         );
       }
@@ -341,7 +249,7 @@ export async function POST(request: Request) {
           email: loginEmail,
           password: accountPassword,
           email_confirm: true,
-          user_metadata: { full_name: `${firstName} ${lastName}`.trim() },
+          user_metadata: { full_name: \`\${firstName} \${lastName}\`.trim() },
         });
 
         if (!createUserError && createdUser.user) {
@@ -355,7 +263,7 @@ export async function POST(request: Request) {
             createUserError.message.toLowerCase().includes("registered");
           if (!exists) {
             return NextResponse.json(
-              { error: `${EMPLOYEES_MESSAGES.EMPLOYEE_ACCOUNT_CREATE_FAILED_PREFIX}: ${createUserError.message}` },
+              { error: \`\${EMPLOYEES_MESSAGES.EMPLOYEE_ACCOUNT_CREATE_FAILED_PREFIX}: \${createUserError.message}\` },
               { status: 400 },
             );
           }
@@ -408,7 +316,7 @@ export async function POST(request: Request) {
       );
 
       if (membershipError) {
-        return NextResponse.json({ error: `No se pudo asignar acceso al usuario: ${membershipError.message}` }, { status: 400 });
+        return NextResponse.json({ error: \`No se pudo asignar acceso al usuario: \${membershipError.message}\` }, { status: 400 });
       }
     }
 
@@ -437,7 +345,7 @@ export async function POST(request: Request) {
       : await admin.from("organization_user_profiles").insert(profilePayload);
 
     if (profileResult.error) {
-      return NextResponse.json({ error: `No se pudo guardar perfil de usuario: ${profileResult.error.message}` }, { status: 400 });
+      return NextResponse.json({ error: \`No se pudo guardar perfil de usuario: \${profileResult.error.message}\` }, { status: 400 });
     }
 
     await logAuditEvent({
@@ -463,6 +371,7 @@ export async function POST(request: Request) {
     });
   }
 
+  // --- EDIT MODE ---
   if (isEditMode) {
     const { data: existingEmployee, error: existingEmployeeError } = await supabase
       .from("employees")
@@ -521,7 +430,7 @@ export async function POST(request: Request) {
           error: updateEmployeeError.message,
         },
       });
-      return NextResponse.json({ error: `No se pudo actualizar empleado: ${updateEmployeeError.message}` }, { status: 400 });
+      return NextResponse.json({ error: \`No se pudo actualizar empleado: \${updateEmployeeError.message}\` }, { status: 400 });
     }
 
     const admin = createSupabaseAdminClient();
@@ -541,10 +450,10 @@ export async function POST(request: Request) {
           .limit(1)
           .maybeSingle();
 
-        const path = existingDuplicate?.file_path || `${tenant.organizationId}/employees/${employeeId}/${Date.now()}-${upload.slotKey}-${upload.analysis.safeName}`;
+        const path = existingDuplicate?.file_path || \`\${tenant.organizationId}/employees/\${employeeId}/\${Date.now()}-\${upload.slotKey}-\${upload.analysis.safeName}\`;
 
         if (!isSafeTenantStoragePath(path, tenant.organizationId)) {
-          return NextResponse.json({ error: `Ruta invalida para ${upload.slotLabel}` }, { status: 400 });
+          return NextResponse.json({ error: \`Ruta invalida para \${upload.slotLabel}\` }, { status: 400 });
         }
 
         try {
@@ -570,7 +479,7 @@ export async function POST(request: Request) {
             });
 
           if (uploadError) {
-            return NextResponse.json({ error: `No se pudo subir ${upload.slotLabel}: ${uploadError.message}` }, { status: 400 });
+            return NextResponse.json({ error: \`No se pudo subir \${upload.slotLabel}: \${uploadError.message}\` }, { status: 400 });
           }
 
           uploadedPaths.push(path);
@@ -581,8 +490,8 @@ export async function POST(request: Request) {
           .insert({
             organization_id: tenant.organizationId,
             branch_id: branchId,
-      owner_user_id: actorId,
-            title: `${upload.slotLabel} - ${firstName} ${lastName}`,
+            owner_user_id: actorId,
+            title: \`\${upload.slotLabel} - \${firstName} \${lastName}\`,
             file_path: path,
             mime_type: existingDuplicate?.mime_type || upload.analysis.normalizedMime,
             original_file_name: upload.analysis.originalName,
@@ -599,7 +508,7 @@ export async function POST(request: Request) {
 
         if (createDocError || !createdDoc) {
           await admin.storage.from(BUCKET_NAME).remove([path]);
-          return NextResponse.json({ error: `No se pudo registrar ${upload.slotLabel}: ${createDocError?.message ?? "error"}` }, { status: 400 });
+          return NextResponse.json({ error: \`No se pudo registrar \${upload.slotLabel}: \${createDocError?.message ?? "error"}\` }, { status: 400 });
         }
 
         uploadedDocumentIds.push(createdDoc.id);
@@ -621,7 +530,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const allDocumentIds = Array.from(new Set([...uniqueDocIds, ...uploadedDocumentIds]));
+    const allDocumentIds = [...new Set([...uniqueDocIds, ...uploadedDocumentIds])];
 
     if (allDocumentIds.length) {
       const payload = allDocumentIds.map((documentId) => ({
@@ -646,7 +555,7 @@ export async function POST(request: Request) {
             .eq("organization_id", tenant.organizationId)
             .in("id", uploadedDocumentIds);
         }
-        return NextResponse.json({ error: `No se pudieron vincular documentos: ${linkError.message}` }, { status: 400 });
+        return NextResponse.json({ error: \`No se pudieron vincular documentos: \${linkError.message}\` }, { status: 400 });
       }
     }
 
@@ -692,7 +601,7 @@ export async function POST(request: Request) {
           ).error;
 
       if (contractError) {
-        return NextResponse.json({ error: `No se pudo actualizar contrato: ${contractError.message}` }, { status: 400 });
+        return NextResponse.json({ error: \`No se pudo actualizar contrato: \${contractError.message}\` }, { status: 400 });
       }
     }
 
@@ -713,6 +622,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, employeeId, mode: "edit" });
   }
 
+  // --- NEW CREATION FLOW ---
   if (uniqueDocIds.length) {
     const { data: docs, error: docsError } = await supabase
       .from("documents")
@@ -725,19 +635,20 @@ export async function POST(request: Request) {
     }
 
     if ((docs?.length ?? 0) !== uniqueDocIds.length) {
-      return NextResponse.json({ error: "Uno o mas documentos no pertenecen a la empresa" }, { status: 400 });
+      return NextResponse.json({ error: "Uno o mas documentos preexistentes son invalidos" }, { status: 400 });
     }
   }
 
   for (const upload of uploadFiles) {
     if (upload.file.size > MAX_FILE_SIZE_BYTES) {
-      return NextResponse.json({ error: `El archivo de ${upload.slotLabel} supera 10MB` }, { status: 400 });
+      return NextResponse.json({ error: \`El archivo de \${upload.slotLabel} supera 10MB\` }, { status: 400 });
     }
   }
 
   let linkedUserId: string | null = null;
   let createdAuthUserId: string | null = null;
-  let createdMembershipForLinkedUser = false;
+  const admin = createSupabaseAdminClient();
+  let employeeRole: { id: string } | null = null;
 
   if (createMode === "with_account") {
     const loginEmail = accountEmailInput || email || "";
@@ -748,7 +659,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: EMPLOYEES_MESSAGES.ACCESS_PASSWORD_MIN }, { status: 400 });
     }
 
-    const admin = createSupabaseAdminClient();
     const { data: role, error: roleError } = await admin
       .from("roles")
       .select("id")
@@ -758,12 +668,13 @@ export async function POST(request: Request) {
     if (roleError || !role) {
       return NextResponse.json({ error: EMPLOYEES_MESSAGES.ROLE_EMPLOYEE_UNAVAILABLE }, { status: 400 });
     }
+    employeeRole = role;
 
     const { data: createdUser, error: createUserError } = await admin.auth.admin.createUser({
       email: loginEmail,
       password: accountPassword,
       email_confirm: true,
-      user_metadata: { full_name: `${firstName} ${lastName}`.trim() },
+      user_metadata: { full_name: \`\${firstName} \${lastName}\`.trim() },
     });
 
     if (!createUserError && createdUser.user) {
@@ -778,7 +689,7 @@ export async function POST(request: Request) {
         createUserError.message.toLowerCase().includes("registered");
       if (!exists) {
         return NextResponse.json(
-          { error: `${EMPLOYEES_MESSAGES.EMPLOYEE_ACCOUNT_CREATE_FAILED_PREFIX}: ${createUserError.message}` },
+          { error: \`\${EMPLOYEES_MESSAGES.EMPLOYEE_ACCOUNT_CREATE_FAILED_PREFIX}: \${createUserError.message}\` },
           { status: 400 },
         );
       }
@@ -798,94 +709,35 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (!existingMembership) {
-      createdMembershipForLinkedUser = true;
       try {
         await assertPlanLimitForUsers(tenant.organizationId, 1);
       } catch (error) {
+        if (createdAuthUserId) await admin.auth.admin.deleteUser(createdAuthUserId);
         return NextResponse.json(
-          {
-            error: getPlanLimitErrorMessage(
-              error,
-              EMPLOYEES_MESSAGES.PLAN_LIMIT_USERS,
-            ),
-          },
+          { error: getPlanLimitErrorMessage(error, EMPLOYEES_MESSAGES.PLAN_LIMIT_USERS) },
           { status: 400 },
         );
       }
     }
-
-    const { error: membershipError } = await admin.from("memberships").upsert(
-      {
-        organization_id: tenant.organizationId,
-        user_id: linkedUserId,
-        role_id: role.id,
-        branch_id: branchId,
-        status: "active",
-      },
-      { onConflict: "organization_id,user_id" },
-    );
-
-    if (membershipError) {
-      return NextResponse.json({ error: membershipError.message }, { status: 400 });
-    }
   }
 
-  const { data: employee, error: employeeError } = await supabase
-    .from("employees")
-    .insert({
-      organization_id: tenant.organizationId,
-      branch_id: branchId,
-      user_id: linkedUserId,
-      first_name: firstName,
-      last_name: lastName,
-      status: normalizedEmploymentStatus,
-      email,
-      phone,
-      position,
-      department,
-      department_id: departmentId,
-      hired_at: hiredAt,
-      birth_date: birthDate,
-      sex,
-      nationality,
-      phone_country_code: phoneCountryCode,
-      address_line1: addressLine1,
-      address_city: addressCity,
-      address_state: addressState,
-      address_postal_code: addressPostalCode,
-      address_country: addressCountry,
-      emergency_contact_name: emergencyName,
-      emergency_contact_phone: emergencyPhone,
-      emergency_contact_email: emergencyEmail,
-    })
-    .select("id")
-    .single();
-
-  if (employeeError || !employee) {
-    await logAuditEvent({
-      action: "employee.create",
-      entityType: "employee",
-      organizationId: tenant.organizationId,
-      eventDomain: "employees",
-      outcome: "error",
-      severity: "high",
-      metadata: {
-        actor_user_id: actorId,
-        mode: "create",
-        error: employeeError?.message ?? "No se pudo crear empleado",
-      },
-    });
-    return NextResponse.json({ error: employeeError?.message ?? "No se pudo crear empleado" }, { status: 400 });
-  }
-
-  const admin = createSupabaseAdminClient();
+  // Pre-upload files to Storage (using a random UUID to avoid needing the employee ID early)
   const uploadedPaths: string[] = [];
-  const uploadedDocumentIds: string[] = [];
+  const documentsPayload: any[] = [];
+  const storageFolderId = crypto.randomUUID();
+
+  // First, add existing document IDs
+  for (const docId of uniqueDocIds) {
+    documentsPayload.push({ id: docId });
+  }
 
   if (uploadFiles.length) {
     await ensureBucketExists();
 
     for (const upload of uploadFiles) {
+      let path = \`\${tenant.organizationId}/employees/\${storageFolderId}/\${Date.now()}-\${upload.slotKey}-\${upload.analysis.safeName}\`;
+
+      // basic dedup check
       const { data: existingDuplicate } = await supabase
         .from("documents")
         .select("id, file_path, mime_type")
@@ -895,40 +747,21 @@ export async function POST(request: Request) {
         .limit(1)
         .maybeSingle();
 
-      const path = existingDuplicate?.file_path || `${tenant.organizationId}/employees/${employee.id}/${Date.now()}-${upload.slotKey}-${upload.analysis.safeName}`;
+      if (existingDuplicate?.file_path) {
+        path = existingDuplicate.file_path;
+      }
 
       if (!isSafeTenantStoragePath(path, tenant.organizationId)) {
-        await rollbackEmployeeCreateFlow({
-          organizationId: tenant.organizationId,
-          employeeId: employee.id,
-          uploadedPaths,
-          uploadedDocumentIds,
-          linkedUserId,
-          createdMembershipForLinkedUser,
-          createdAuthUserId,
-        });
-        return NextResponse.json({ error: `Ruta invalida para ${upload.slotLabel}` }, { status: 400 });
+        await rollbackStorageAndAuth({ uploadedPaths, createdAuthUserId });
+        return NextResponse.json({ error: \`Ruta invalida para \${upload.slotLabel}\` }, { status: 400 });
       }
 
       try {
         await assertPlanLimitForStorage(tenant.organizationId, upload.file.size);
       } catch (error) {
-        await rollbackEmployeeCreateFlow({
-          organizationId: tenant.organizationId,
-          employeeId: employee.id,
-          uploadedPaths,
-          uploadedDocumentIds,
-          linkedUserId,
-          createdMembershipForLinkedUser,
-          createdAuthUserId,
-        });
+        await rollbackStorageAndAuth({ uploadedPaths, createdAuthUserId });
         return NextResponse.json(
-          {
-            error: getPlanLimitErrorMessage(
-              error,
-              employeesStorageLimitForSlot(upload.slotLabel),
-            ),
-          },
+          { error: getPlanLimitErrorMessage(error, employeesStorageLimitForSlot(upload.slotLabel)) },
           { status: 400 },
         );
       }
@@ -942,133 +775,107 @@ export async function POST(request: Request) {
           });
 
         if (uploadError) {
-          await rollbackEmployeeCreateFlow({
-            organizationId: tenant.organizationId,
-            employeeId: employee.id,
-            uploadedPaths,
-            uploadedDocumentIds,
-            linkedUserId,
-            createdMembershipForLinkedUser,
-            createdAuthUserId,
-          });
-          return NextResponse.json({ error: `No se pudo subir ${upload.slotLabel}: ${uploadError.message}` }, { status: 400 });
+          await rollbackStorageAndAuth({ uploadedPaths, createdAuthUserId });
+          return NextResponse.json({ error: \`No se pudo subir \${upload.slotLabel}: \${uploadError.message}\` }, { status: 400 });
         }
-
         uploadedPaths.push(path);
       }
 
-      const { data: createdDoc, error: createDocError } = await supabase
-        .from("documents")
-        .insert({
-          organization_id: tenant.organizationId,
-          branch_id: branchId,
-          owner_user_id: actorId,
-          title: `${upload.slotLabel} - ${firstName} ${lastName}`,
-          file_path: path,
-          mime_type: existingDuplicate?.mime_type || upload.analysis.normalizedMime,
-          original_file_name: upload.analysis.originalName,
-          checksum_sha256: upload.analysis.checksumSha256,
-          file_size_bytes: upload.file.size,
-          access_scope: {
-            locations: branchId ? [branchId] : [],
-            department_ids: departmentId ? [departmentId] : [],
-            users: linkedUserId ? [linkedUserId] : [],
-          },
-        })
-        .select("id")
-        .single();
-
-      if (createDocError || !createdDoc) {
-        await rollbackEmployeeCreateFlow({
-          organizationId: tenant.organizationId,
-          employeeId: employee.id,
-          uploadedPaths,
-          uploadedDocumentIds,
-          linkedUserId,
-          createdMembershipForLinkedUser,
-          createdAuthUserId,
-        });
-        return NextResponse.json({ error: `No se pudo registrar ${upload.slotLabel}: ${createDocError?.message ?? "error"}` }, { status: 400 });
-      }
-
-      uploadedDocumentIds.push(createdDoc.id);
+      const docObj: any = {
+        branch_id: branchId,
+        owner_user_id: actorId,
+        title: \`\${upload.slotLabel} - \${firstName} \${lastName}\`,
+        file_path: path,
+        mime_type: existingDuplicate?.mime_type || upload.analysis.normalizedMime,
+        original_file_name: upload.analysis.originalName,
+        checksum_sha256: upload.analysis.checksumSha256,
+        file_size_bytes: upload.file.size,
+        access_scope: {
+          locations: branchId ? [branchId] : [],
+          department_ids: departmentId ? [departmentId] : [],
+          users: linkedUserId ? [linkedUserId] : [],
+        }
+      };
 
       if (upload.file.size >= ASYNC_POST_PROCESS_THRESHOLD_BYTES) {
-        await supabase.from("document_processing_jobs").insert({
-          organization_id: tenant.organizationId,
-          document_id: createdDoc.id,
-          job_type: "post_upload",
-          status: "pending",
-          payload: {
+         docObj.processing_payload = {
             source: "employees.new.modal",
             slot: upload.slotKey,
             checksum: upload.analysis.checksumSha256,
             mime: upload.analysis.normalizedMime,
-          },
-        });
+         };
       }
+
+      documentsPayload.push(docObj);
     }
   }
 
-  const allDocumentIds = Array.from(new Set([...uniqueDocIds, ...uploadedDocumentIds]));
+  const salaryAmount = salaryAmountRaw ? Number(salaryAmountRaw) : null;
 
-  if (allDocumentIds.length) {
-    const payload = allDocumentIds.map((documentId) => ({
-      organization_id: tenant.organizationId,
-      employee_id: employee.id,
-      document_id: documentId,
-      status: "pending",
-    }));
-    const { error: linkError } = await supabase.from("employee_documents").insert(payload);
-    if (linkError) {
-      await rollbackEmployeeCreateFlow({
-        organizationId: tenant.organizationId,
-        employeeId: employee.id,
-        uploadedPaths,
-        uploadedDocumentIds,
-        linkedUserId,
-        createdMembershipForLinkedUser,
-        createdAuthUserId,
-      });
-      return NextResponse.json({ error: `No se pudo completar alta de empleado: ${linkError.message}` }, { status: 400 });
-    }
-  }
+  const { data: rpcResult, error: rpcError } = await supabase.rpc("create_employee_transaction", {
+    p_organization_id: tenant.organizationId,
+    p_linked_user_id: linkedUserId,
+    p_branch_id: branchId,
+    p_department_id: departmentId,
+    p_position_id: positionId,
+    p_position: position,
+    p_department: department,
+    p_first_name: firstName,
+    p_last_name: lastName,
+    p_email: email,
+    p_phone: phone,
+    p_status: normalizedEmploymentStatus,
+    p_hired_at: hiredAt,
+    p_birth_date: birthDate,
+    p_sex: sex,
+    p_nationality: nationality,
+    p_phone_country_code: phoneCountryCode,
+    p_address_line1: addressLine1,
+    p_address_city: addressCity,
+    p_address_state: addressState,
+    p_address_postal_code: addressPostalCode,
+    p_address_country: addressCountry,
+    p_emergency_contact_name: emergencyName,
+    p_emergency_contact_phone: emergencyPhone,
+    p_emergency_contact_email: emergencyEmail,
+    p_create_membership: createMode === "with_account",
+    p_role_id: employeeRole?.id ?? null,
+    p_profile_source: "users_employees_modal",
+    p_contract_type: contractType,
+    p_contract_status: contractStatus,
+    p_contract_start_date: contractStart,
+    p_contract_end_date: contractEnd,
+    p_salary_amount: Number.isNaN(salaryAmount ?? 0) ? null : salaryAmount,
+    p_salary_currency: salaryCurrency,
+    p_payment_frequency: paymentFrequency,
+    p_contract_notes: contractNotes,
+    p_contract_signer_name: contractSignerName,
+    p_contract_signed_at: contractSignedAt,
+    p_documents: documentsPayload
+  });
 
-  if (contractType || contractStart || salaryAmountRaw) {
-    const salaryAmount = salaryAmountRaw ? Number(salaryAmountRaw) : null;
-    const { error: contractError } = await supabase.from("employee_contracts").insert({
-      organization_id: tenant.organizationId,
-      employee_id: employee.id,
-      contract_type: contractType,
-      contract_status: contractStatus,
-      start_date: contractStart,
-      end_date: contractEnd,
-      salary_amount: Number.isNaN(salaryAmount ?? 0) ? null : salaryAmount,
-      salary_currency: salaryCurrency,
-      payment_frequency: paymentFrequency,
-      notes: contractNotes,
-      signer_name: contractSignerName,
-      signed_at: contractSignedAt,
-      created_by: actorId,
+  if (rpcError || !rpcResult) {
+    await rollbackStorageAndAuth({ uploadedPaths, createdAuthUserId });
+    await logAuditEvent({
+      action: "employee.create",
+      entityType: "employee",
+      organizationId: tenant.organizationId,
+      eventDomain: "employees",
+      outcome: "error",
+      severity: "high",
+      metadata: {
+        actor_user_id: actorId,
+        mode: "create",
+        error: rpcError?.message ?? "Transaccion RPC fallo al crear empleado",
+      },
     });
-    if (contractError) {
-      await rollbackEmployeeCreateFlow({
-        organizationId: tenant.organizationId,
-        employeeId: employee.id,
-        uploadedPaths,
-        uploadedDocumentIds,
-        linkedUserId,
-        createdMembershipForLinkedUser,
-        createdAuthUserId,
-      });
-      return NextResponse.json({ error: `No se pudo completar alta de empleado: ${contractError.message}` }, { status: 400 });
-    }
+    return NextResponse.json({ error: \`Error al guardar empleado: \${rpcError?.message ?? 'Desconocido'}\` }, { status: 400 });
   }
 
   await logAuditEvent({
     action: "employee.create",
     entityType: "employee",
-    entityId: employee.id,
+    entityId: rpcResult.employee_id,
     organizationId: tenant.organizationId,
     eventDomain: "employees",
     outcome: "success",
@@ -1081,289 +888,19 @@ export async function POST(request: Request) {
     },
   });
 
-  return NextResponse.json({ ok: true, employeeId: employee.id });
+  return NextResponse.json({ ok: true, employeeId: rpcResult.employee_id });
 }
+\`;
 
-export async function PATCH(request: Request) {
-  const moduleAccess = await assertCompanyManagerModuleApi("employees");
-  if (!moduleAccess.ok) {
-    return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
-  }
+const content = fs.readFileSync("c:/Users/pikachu/Downloads/saasresto/web/src/app/api/company/employees/route.ts", "utf8");
+const lines = content.split('\\n');
 
-  const tenant = moduleAccess.tenant;
-  const actorId = moduleAccess.userId;
-  const supabase = await createSupabaseServerClient();
+// 0 to 46 (incl) = lines 1-47
+const part1 = lines.slice(0, 47).join('\\n');
+// line index 1086 is "export async function PATCH"
+const part3 = lines.slice(1086).join('\\n');
 
-  const body = await request.json().catch(() => null) as {
-    employeeId?: string;
-    organizationUserProfileId?: string;
-    status?: string;
-  } | null;
-  const employeeId = String(body?.employeeId ?? "").trim();
-  const organizationUserProfileId = String(body?.organizationUserProfileId ?? "").trim();
-  const status = String(body?.status ?? "").trim();
+const fullNewContent = part1 + '\\n\\n' + newCode + '\\n\\n' + part3;
 
-  if (!employeeId && !organizationUserProfileId) {
-    return NextResponse.json({ error: "Registro invalido" }, { status: 400 });
-  }
-
-  const isEmployeeStatus = ALLOWED_EMPLOYMENT_STATUSES.has(status);
-  const isUserStatus = status === "active" || status === "inactive";
-  if (!isEmployeeStatus && !isUserStatus) {
-    return NextResponse.json({ error: "Estado invalido" }, { status: 400 });
-  }
-
-  if (organizationUserProfileId) {
-    if (!isUserStatus) {
-      return NextResponse.json({ error: "Estado invalido para usuario" }, { status: 400 });
-    }
-
-    const { data: previousProfile } = await supabase
-      .from("organization_user_profiles")
-      .select("status, user_id")
-      .eq("organization_id", tenant.organizationId)
-      .eq("id", organizationUserProfileId)
-      .maybeSingle();
-
-    if (!previousProfile) {
-      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
-    }
-
-    const { error: profileError } = await supabase
-      .from("organization_user_profiles")
-      .update({ status })
-      .eq("organization_id", tenant.organizationId)
-      .eq("id", organizationUserProfileId);
-
-    if (profileError) {
-      return NextResponse.json({ error: `No se pudo actualizar estado del usuario: ${profileError.message}` }, { status: 400 });
-    }
-
-    const { error: membershipError } = await supabase
-      .from("memberships")
-      .update({ status })
-      .eq("organization_id", tenant.organizationId)
-      .eq("user_id", previousProfile.user_id);
-
-    if (membershipError) {
-      await logAuditEvent({
-        action: "employee.status.update",
-        entityType: "organization_user_profile",
-        entityId: organizationUserProfileId,
-        organizationId: tenant.organizationId,
-        eventDomain: "employees",
-        outcome: "error",
-        severity: "medium",
-        metadata: {
-          actor_user_id: actorId,
-          status_scope: "membership_sync",
-          next_status: status,
-          error: membershipError.message,
-        },
-      });
-
-      return NextResponse.json({ error: `No se pudo sincronizar estado de acceso: ${membershipError.message}` }, { status: 400 });
-    }
-
-    await logAuditEvent({
-      action: "employee.status.update",
-      entityType: "organization_user_profile",
-      entityId: organizationUserProfileId,
-      organizationId: tenant.organizationId,
-      eventDomain: "employees",
-      outcome: "success",
-      severity: "low",
-      metadata: {
-        actor_user_id: actorId,
-        status_scope: "laboral",
-        previous_status: previousProfile?.status ?? null,
-        next_status: status,
-      },
-    });
-
-    return NextResponse.json({ ok: true });
-  }
-
-  if (!isEmployeeStatus) {
-    return NextResponse.json({ error: "Estado invalido para empleado" }, { status: 400 });
-  }
-
-  const { data: previousEmployee } = await supabase
-    .from("employees")
-    .select("status")
-    .eq("organization_id", tenant.organizationId)
-    .eq("id", employeeId)
-    .maybeSingle();
-
-  if (!previousEmployee) {
-    return NextResponse.json({ error: "Empleado no encontrado" }, { status: 404 });
-  }
-
-  const { error } = await supabase
-    .from("employees")
-    .update({ status })
-    .eq("organization_id", tenant.organizationId)
-    .eq("id", employeeId);
-
-  if (error) {
-    await logAuditEvent({
-      action: "employee.status.update",
-      entityType: "employee",
-      entityId: employeeId,
-      organizationId: tenant.organizationId,
-      eventDomain: "employees",
-      outcome: "error",
-      severity: "medium",
-      metadata: {
-        actor_user_id: actorId,
-        status_scope: "laboral",
-        previous_status: previousEmployee?.status ?? null,
-        next_status: status,
-        error: error.message,
-      },
-    });
-    return NextResponse.json({ error: `No se pudo actualizar estado: ${error.message}` }, { status: 400 });
-  }
-
-  await logAuditEvent({
-    action: "employee.status.update",
-    entityType: "employee",
-    entityId: employeeId,
-    organizationId: tenant.organizationId,
-    eventDomain: "employees",
-    outcome: "success",
-    severity: "low",
-    metadata: {
-      actor_user_id: actorId,
-      status_scope: "laboral",
-      previous_status: previousEmployee?.status ?? null,
-      next_status: status,
-    },
-  });
-
-  return NextResponse.json({ ok: true });
-}
-
-export async function DELETE(request: Request) {
-  const moduleAccess = await assertCompanyManagerModuleApi("employees");
-  if (!moduleAccess.ok) {
-    return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
-  }
-
-  const tenant = moduleAccess.tenant;
-  const actorId = moduleAccess.userId;
-  const supabase = await createSupabaseServerClient();
-
-  const body = await request.json().catch(() => null) as {
-    employeeId?: string;
-    organizationUserProfileId?: string;
-    membershipId?: string;
-  } | null;
-  const employeeId = String(body?.employeeId ?? "").trim();
-  const organizationUserProfileId = String(body?.organizationUserProfileId ?? "").trim();
-  const membershipId = String(body?.membershipId ?? "").trim();
-
-  if (!employeeId && !organizationUserProfileId) {
-    return NextResponse.json({ error: "Registro invalido" }, { status: 400 });
-  }
-
-  if (organizationUserProfileId) {
-    const { data: existingProfile } = await supabase
-      .from("organization_user_profiles")
-      .select("id")
-      .eq("organization_id", tenant.organizationId)
-      .eq("id", organizationUserProfileId)
-      .maybeSingle();
-
-    if (!existingProfile) {
-      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
-    }
-
-    if (membershipId) {
-      const { error: membershipDeleteError } = await supabase
-        .from("memberships")
-        .delete()
-        .eq("organization_id", tenant.organizationId)
-        .eq("id", membershipId);
-
-      if (membershipDeleteError) {
-        return NextResponse.json({ error: `No se pudo eliminar acceso de usuario: ${membershipDeleteError.message}` }, { status: 400 });
-      }
-    }
-
-    const { error: deleteProfileError } = await supabase
-      .from("organization_user_profiles")
-      .delete()
-      .eq("organization_id", tenant.organizationId)
-      .eq("id", organizationUserProfileId);
-
-    if (deleteProfileError) {
-      return NextResponse.json({ error: `No se pudo eliminar usuario: ${deleteProfileError.message}` }, { status: 400 });
-    }
-
-    await logAuditEvent({
-      action: "users.profile.delete",
-      entityType: "organization_user_profile",
-      entityId: organizationUserProfileId,
-      organizationId: tenant.organizationId,
-      eventDomain: "employees",
-      outcome: "success",
-      severity: "medium",
-      metadata: {
-        actor_user_id: actorId,
-        membership_id: membershipId || null,
-      },
-    });
-
-    return NextResponse.json({ ok: true });
-  }
-
-  const { data: employee } = await supabase
-    .from("employees")
-    .select("id")
-    .eq("organization_id", tenant.organizationId)
-    .eq("id", employeeId)
-    .maybeSingle();
-
-  if (!employee) {
-    return NextResponse.json({ error: "Empleado no encontrado" }, { status: 404 });
-  }
-
-  const { error: deleteError } = await supabase
-    .from("employees")
-    .delete()
-    .eq("organization_id", tenant.organizationId)
-    .eq("id", employeeId);
-
-  if (deleteError) {
-    await logAuditEvent({
-      action: "employee.delete",
-      entityType: "employee",
-      entityId: employeeId,
-      organizationId: tenant.organizationId,
-      eventDomain: "employees",
-      outcome: "error",
-      severity: "high",
-      metadata: {
-        actor_user_id: actorId,
-        error: deleteError.message,
-      },
-    });
-    return NextResponse.json({ error: `No se pudo eliminar empleado: ${deleteError.message}` }, { status: 400 });
-  }
-
-  await logAuditEvent({
-    action: "employee.delete",
-    entityType: "employee",
-    entityId: employeeId,
-    organizationId: tenant.organizationId,
-    eventDomain: "employees",
-    outcome: "success",
-    severity: "medium",
-    metadata: {
-      actor_user_id: actorId,
-    },
-  });
-
-  return NextResponse.json({ ok: true });
-}
+fs.writeFileSync("c:/Users/pikachu/Downloads/saasresto/web/src/app/api/company/employees/route.ts", fullNewContent);
+console.log("Successfully replaced route.ts!");

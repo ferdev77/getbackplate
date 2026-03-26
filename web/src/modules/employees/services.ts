@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { SupabaseClient } from "@supabase/supabase-js";
+import { cache } from "react";
+import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 
-export async function getEmployeeDirectoryView(
-  supabase: SupabaseClient, 
+export const getEmployeeDirectoryView = cache(async (
   organizationId: string, 
   limit: number = 1000,
   options: { includeModalsData?: boolean; includeUsersTab?: boolean; includeEmployeesData?: boolean } = {}
-) {
+) => {
+  const supabase = await createSupabaseServerClient();
   const includeEmployeesData = options.includeEmployeesData ?? true;
 
   const [
@@ -230,4 +231,4 @@ export async function getEmployeeDirectoryView(
     departments: departments ?? [],
     positions: positions ?? []
   };
-}
+});
