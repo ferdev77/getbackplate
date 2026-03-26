@@ -380,11 +380,12 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
       </p>
 
       <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white">
-        <div className="grid grid-cols-[1fr_80px] md:grid-cols-[1.5fr_1fr_120px] lg:grid-cols-[2fr_1fr_1.1fr_100px_90px_136px] xl:grid-cols-[minmax(180px,2fr)_minmax(100px,1fr)_minmax(120px,1.1fr)_minmax(100px,.8fr)_minmax(110px,.9fr)_minmax(90px,.8fr)_136px] gap-x-3 border-b-[1.5px] border-[#e8e8e8] bg-[#fafafa] px-5 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase">
+        <div className="grid grid-cols-[1fr_80px] md:grid-cols-[1.5fr_1fr_120px] lg:grid-cols-[2fr_1fr_1.1fr_100px_80px_90px_136px] xl:grid-cols-[minmax(180px,2fr)_minmax(100px,1fr)_minmax(120px,1.1fr)_minmax(100px,.8fr)_minmax(70px,.6fr)_minmax(110px,.9fr)_minmax(90px,.8fr)_136px] gap-x-3 border-b-[1.5px] border-[#e8e8e8] bg-[#fafafa] px-5 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase">
           <p>Nombre</p>
           <p className="hidden md:block">Locacion</p>
           <p className="hidden lg:block">Departamento</p>
           <p className="hidden xl:block">Es empleado</p>
+          <p className="hidden lg:block">Docs</p>
           <p className="hidden lg:block">Dashboard</p>
           <p className="hidden xl:block">Estado laboral</p>
           <p>Acciones</p>
@@ -395,7 +396,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
             return (
               <div
                 key={row.id}
-                className="grid grid-cols-[1fr_80px] md:grid-cols-[1.5fr_1fr_120px] lg:grid-cols-[2fr_1fr_1.1fr_100px_90px_136px] xl:grid-cols-[minmax(180px,2fr)_minmax(100px,1fr)_minmax(120px,1.1fr)_minmax(100px,.8fr)_minmax(110px,.9fr)_minmax(90px,.8fr)_136px] items-center gap-x-3 border-b border-[#f0f0f0] px-5 py-3 text-left hover:bg-[#fafafa]"
+                className="grid grid-cols-[1fr_80px] md:grid-cols-[1.5fr_1fr_120px] lg:grid-cols-[2fr_1fr_1.1fr_100px_80px_90px_136px] xl:grid-cols-[minmax(180px,2fr)_minmax(100px,1fr)_minmax(120px,1.1fr)_minmax(100px,.8fr)_minmax(70px,.6fr)_minmax(110px,.9fr)_minmax(90px,.8fr)_136px] items-center gap-x-3 border-b border-[#f0f0f0] px-5 py-3 text-left hover:bg-[#fafafa]"
                 onClick={() => setSelectedEmployeeId(row.id)}
               >
                 <div className="flex items-center gap-2.5 overflow-hidden">
@@ -408,6 +409,15 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                 <p className="hidden md:block truncate text-xs text-[#666]">{row.branchName}</p>
                 <p className="hidden lg:block truncate text-xs text-[#666]">{row.departmentName}</p>
                 <p className="hidden xl:block text-xs text-[#666]">{row.recordType === "employee" ? "Si" : "No"}</p>
+                <p className="hidden lg:block">
+                  {row.recordType === "employee" ? (
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${row.pendingDocuments === 0 ? "bg-[#dcfce7] text-[#15803d]" : "bg-[#fef3c7] text-[#92400e]"}`}>
+                      {row.pendingDocuments === 0 ? "✓" : row.pendingDocuments}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-[#bbb]">-</span>
+                  )}
+                </p>
                 <p className="hidden lg:block">
                   <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${row.dashboardAccess ? "bg-[#edfbf3] text-[#27ae60]" : "bg-[#f5f5f5] text-[#888]"}`}>
                     {row.dashboardAccess ? "Con acceso" : "Sin acceso"}

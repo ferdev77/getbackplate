@@ -103,6 +103,7 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
         ? supabase
             .from("documents")
             .select("id, title, created_at, branch_id, file_size_bytes")
+.is('deleted_at', null)
             .eq("organization_id", tenant.organizationId)
             .order("created_at", { ascending: false })
             .limit(6)

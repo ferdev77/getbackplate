@@ -22,6 +22,7 @@ import {
   Users,
   User,
   X,
+  Trash2
 } from "lucide-react";
 import { FloatingAiAssistant } from "@/shared/ui/floating-ai-assistant";
 import { toast } from "sonner";
@@ -99,6 +100,7 @@ const SECTIONS: SidebarSection[] = [
       { href: "/app/documents", label: "Documentos", icon: LayoutGrid, moduleCode: "documents" },
       { href: "/app/documents?action=create-folder", label: "Crear Carpeta", icon: FolderPlus, sub: true, moduleCode: "documents" },
       { href: "/app/documents?action=upload", label: "Subir Archivo", icon: Upload, sub: true, moduleCode: "documents" },
+      { href: "/app/trash", label: "Papelera", icon: Trash2, moduleCode: "documents" },
     ],
   },
   {
@@ -779,9 +781,6 @@ export function CompanyShell({
               <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">Descripcion detallada</label>
               <textarea value={fbMessage} onChange={(event) => setFbMessage(event.target.value)} rows={4} className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm" placeholder="Cuentanos con detalle..." />
                   <button type="button" disabled={busy || !fbTitle.trim() || !fbMessage.trim()} onClick={sendFeedback} className="mt-4 w-full rounded-lg px-3 py-2.5 text-sm font-bold text-white disabled:opacity-60" style={{ background: palette.accent }}>Enviar mensaje</button>
-              <div className="my-4 flex items-center gap-2 text-[11px] text-[#ddd]"><span className="h-px flex-1 bg-[#f0f0f0]" />o<span className="h-px flex-1 bg-[#f0f0f0]" /></div>
-              <p className="mb-2 text-center text-xs text-[#aaa]">iNecesitas ayuda urgente? Envia WhatsApp ahora.</p>
-              <a className="block w-full rounded-lg bg-[#25d366] px-3 py-2.5 text-center text-sm font-bold text-white hover:bg-[#1ebe5d]" href="https://wa.me/16018675309?text=Hola%2C%20necesito%20ayuda%20con%20GetBackplate" target="_blank">Abrir WhatsApp</a>
             </div>
           </div>
         </div>

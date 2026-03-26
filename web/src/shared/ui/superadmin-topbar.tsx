@@ -10,8 +10,10 @@ import { logoutAction } from "@/modules/auth/actions";
 const ITEMS = [
   { href: "/superadmin/dashboard", label: "Dashboard" },
   { href: "/superadmin/organizations", label: "Organizaciones" },
+  { href: "/superadmin/feedback", label: "Feedback" },
   { href: "/superadmin/modules", label: "Módulos" },
   { href: "/superadmin/plans", label: "Planes" },
+  { href: "/superadmin/trash", label: "Papelera" },
   { href: "/superadmin/guide", label: "Guía" },
 ];
 

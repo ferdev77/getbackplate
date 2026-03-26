@@ -109,6 +109,41 @@ async function rollbackEmployeeCreateFlow(input: {
   }
 }
 
+async function sendAccessInvitationEmail(
+  tenantId: string,
+  email: string,
+  fullName: string,
+  roleCode: string,
+) {
+  const admin = createSupabaseAdminClient();
+  const server = await createSupabaseServerClient();
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  const redirectTo = appUrl
+    ? `${appUrl.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent("/app/dashboard")}&org=${encodeURIComponent(tenantId)}`
+    : undefined;
+
+  await server.auth.signInWithOtp({
+    email,
+    options: {
+      shouldCreateUser: false,
+      emailRedirectTo: redirectTo,
+    },
+  });
+
+  const code = crypto.randomUUID();
+  await admin.from("organization_invitations").insert({
+    organization_id: tenantId,
+    email,
+    full_name: fullName,
+    role_code: roleCode,
+    status: "sent",
+    invitation_code: code,
+    source: "company_panel",
+    metadata: { mode: "invite" },
+    expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString(),
+  });
+}
+
 export async function POST(request: Request) {
   const moduleAccess = await assertCompanyManagerModuleApi("employees");
   if (!moduleAccess.ok) {
@@ -410,6 +445,15 @@ export async function POST(request: Request) {
       if (membershipError) {
         return NextResponse.json({ error: `No se pudo asignar acceso al usuario: ${membershipError.message}` }, { status: 400 });
       }
+
+      if (!existingMembership) {
+        await sendAccessInvitationEmail(
+          tenant.organizationId,
+          loginEmail,
+          `${firstName} ${lastName}`.trim(),
+          "employee"
+        );
+      }
     }
 
     const profilePayload = {
@@ -535,6 +579,7 @@ export async function POST(request: Request) {
         const { data: existingDuplicate } = await supabase
           .from("documents")
           .select("id, file_path, mime_type")
+.is('deleted_at', null)
           .eq("organization_id", tenant.organizationId)
           .eq("checksum_sha256", upload.analysis.checksumSha256)
           .eq("file_size_bytes", upload.file.size)
@@ -717,6 +762,7 @@ export async function POST(request: Request) {
     const { data: docs, error: docsError } = await supabase
       .from("documents")
       .select("id")
+.is('deleted_at', null)
       .eq("organization_id", tenant.organizationId)
       .in("id", uniqueDocIds);
 
@@ -828,6 +874,15 @@ export async function POST(request: Request) {
     if (membershipError) {
       return NextResponse.json({ error: membershipError.message }, { status: 400 });
     }
+
+    if (!existingMembership) {
+      await sendAccessInvitationEmail(
+        tenant.organizationId,
+        loginEmail,
+        `${firstName} ${lastName}`.trim(),
+        "employee"
+      );
+    }
   }
 
   const { data: employee, error: employeeError } = await supabase
@@ -889,6 +944,7 @@ export async function POST(request: Request) {
       const { data: existingDuplicate } = await supabase
         .from("documents")
         .select("id, file_path, mime_type")
+.is('deleted_at', null)
         .eq("organization_id", tenant.organizationId)
         .eq("checksum_sha256", upload.analysis.checksumSha256)
         .eq("file_size_bytes", upload.file.size)

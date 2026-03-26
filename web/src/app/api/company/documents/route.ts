@@ -455,7 +455,7 @@ export async function DELETE(request: Request) {
 
   const { error } = await supabase
     .from("documents")
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
     .eq("organization_id", tenant.organizationId)
     .eq("id", documentId);
 
@@ -477,13 +477,8 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: `No se pudo eliminar documento: ${error.message}` }, { status: 400 });
   }
 
-  if (
-    document.file_path &&
-    isSafeTenantStoragePath(document.file_path, tenant.organizationId, { allowLegacySeedPrefix: true })
-  ) {
-    const admin = createSupabaseAdminClient();
-    await admin.storage.from("tenant-documents").remove([document.file_path]);
-  }
+  // Soft delete means we don't delete the physical file from storage right now.
+  // The daily Cron job will permanently purge documents older than 30 days.
 
   await logAuditEvent({
     action: "documents.file.delete",

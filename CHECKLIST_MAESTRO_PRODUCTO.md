@@ -141,3 +141,15 @@ Se considera que la etapa de madurez esta cerrada cuando:
 - [x] `checklists`: Backend de servicio actualizado para hacer `upsert` silencioso de scheduled_jobs al guardar plantillas.
 - [x] Portal del Empleado: Feed de checklists ahora se cruza con `scheduled_jobs.last_run_at` para mostrar tareas pendientes recurrentes correctamente.
 - [x] Checkeo estático OK (`npm run verify:tsc`).
+
+### Fase 4: Infraestructura y Producto (2026-03-26)
+
+- [x] Portal Empleado consolidado (avisos fijados, checklists pendientes y documentos recientes en Dashboard).
+- [x] Habilitación visual de carpetas en vista de Empleados.
+- [x] Etiqueta de estado (completo/incompleto) incorporada en documentos del empleado.
+- [x] Botón para reenvío de invitación activado en la vista de empleados del panel de empresa.
+- [x] Envío automático de notificaciones vía Brevo al crear accesos.
+- [x] Sistema de papelera para documentos creado con retención (15 días empresas / 30 días superadmin).
+- [x] Webhook Cron purga implementado (`purge-trash`) periódicamente.
+- [x] Panel superadmin habilitado con visualización y restauración global de elementos.
+- [x] Notificaciones de billing (renovaciones, cambios de plan, pagos fallidos) enlazadas al Webhook de Stripe.

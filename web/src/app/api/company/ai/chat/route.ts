@@ -356,6 +356,7 @@ async function getFacts(organizationId: string): Promise<Facts> {
     supabase
       .from("documents")
       .select("id", { head: true, count: "exact" })
+.is('deleted_at', null)
       .eq("organization_id", organizationId),
     supabase
       .from("document_folders")
@@ -405,6 +406,7 @@ async function getFacts(organizationId: string): Promise<Facts> {
     supabase
       .from("documents")
       .select("title, created_at")
+.is('deleted_at', null)
       .eq("organization_id", organizationId)
       .order("created_at", { ascending: false })
       .limit(1)

@@ -339,6 +339,7 @@ export async function DELETE(request: Request) {
     supabase
       .from("documents")
       .select("id")
+.is('deleted_at', null)
       .eq("organization_id", tenant.organizationId)
       .eq("folder_id", folderId)
       .limit(1),

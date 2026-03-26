@@ -138,6 +138,18 @@ export async function requireSuperadmin() {
   }
 }
 
+export async function assertSuperadminApi() {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false, status: 401 as const, error: "No autenticado" };
+  }
+  const isSuperadmin = await isCurrentUserSuperadmin();
+  if (!isSuperadmin) {
+    return { ok: false, status: 403 as const, error: "No autorizado" };
+  }
+  return { ok: true, userId: user.id };
+}
+
 export async function requireTenantContext() {
   const user = await requireAuthenticatedUser();
 

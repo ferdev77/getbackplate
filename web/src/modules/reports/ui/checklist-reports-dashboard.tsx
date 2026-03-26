@@ -332,7 +332,7 @@ export function ChecklistReportsDashboard({
                           {report.flaggedItems > 0 ? (
                             <span className="inline-flex items-center gap-1 rounded-full bg-[#fef3c7] px-2.5 py-1 text-[11px] font-bold text-[#92400e]">⚑ {report.flaggedItems}</span>
                           ) : (
-                            <span className="text-xs text-[#bbb]">-</span>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[#dcfce7] px-2.5 py-1 text-[11px] font-bold text-[#15803d]">✓ OK</span>
                           )}
                         </td>
                         <td className="px-4 py-3">
