@@ -98,9 +98,9 @@ Este documento compara el estado real del proyecto contra el texto objetivo de "
   - Estado: **Cumplido**
   - Evidencia: canal `email` habilitado en `announcement_deliveries`, envio via Brevo al crear avisos/checklists segun toggle, deduplicacion de cola y feedback de cantidad enviada en `web/src/modules/announcements/services/deliveries.ts`, `web/src/modules/announcements/actions.ts`, `web/src/modules/checklists/actions.ts`, `web/src/shared/ui/announcement-create-modal.tsx`, `web/src/modules/checklists/ui/checklist-upsert-modal.tsx`.
 
-- [~] Recurrencia (diario, semanal, mensual, trimestral, anual, dias especificos)
-  - Estado: **Parcial**
-  - Evidencia: checklist soporta `daily/weekly/monthly`; no se observa trimestral/anual/dias especificos.
+- [-] Recurrencia (diario, semanal, mensual, trimestral, anual, dias especificos)
+  - Estado: **Parcial (Migrado a ACTUALIZACION_2.2_SAAS.md)**
+  - Evidencia: checklist soporta `daily/weekly/monthly`; el resto pasa a la fase 2.2.
 
 - [x] Archivos: compartir por email
   - Estado: **Cumplido**
@@ -253,7 +253,7 @@ Plan inteligente de implementación (quirúrgico)
   - Qué: flujo formal de invitación en alta/edición de organización.
   - Cómo: tabla organization_invitations, token, expiración, estado; botones en UI superadmin; endpoint de reenvío.
   - Riesgo: medio; requiere correo y seguridad de token.
-- P3. Recurrencia avanzada checklists
+- [-] P3. Recurrencia avanzada checklists (Migrado a ACTUALIZACION_2.2_SAAS.md)
   - Qué: sumar trimestral, anual y días específicos.
   - Cómo: ampliar esquema repeat_every + repeat_config; job scheduler incremental.
   - Riesgo: medio-alto; requiere motor de programación.
@@ -265,10 +265,10 @@ Plan inteligente de implementación (quirúrgico)
   - Qué: acción desde documentos.
   - Cómo: endpoint POST /api/company/documents/share-email, selección documento+destinatario, registro de delivery.
   - Riesgo: medio.
-- P3. Evento “primer login cliente”
+- [x] P3. Evento “primer login cliente” (Ya implementado)
   - Qué: detectar y notificar automáticamente.
-  - Cómo: flag/evento en auth lifecycle (primer last_sign_in_at), crear audit event + notificación.
-  - Riesgo: medio-bajo.
+  - Cómo: flag/evento en auth lifecycle, crear audit event.
+  - Riesgo: Resuelto en auth/callback/route.ts.
 - [x] P3. Suite QA tenant 7 locaciones
   - Qué: dataset y checklist de pruebas multi-tenant.
   - Cómo: seed controlado + script verify (permisos, filtros, dashboards).

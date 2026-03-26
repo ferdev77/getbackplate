@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { MessageSquare, Pin, Smartphone, Clock3, Mail } from "lucide-react";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, startTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -70,9 +70,11 @@ export function AnnouncementCreateModal({ branches, departments, positions, user
     if (state.message) {
       if (state.success) {
         toast.success(state.message);
-        router.refresh();
-        // Redirect to main list after success
-        router.push("/app/announcements");
+        startTransition(() => {
+          router.refresh();
+          // Redirect to main list after success
+          router.push("/app/announcements");
+        });
       } else {
         toast.error(state.message);
       }

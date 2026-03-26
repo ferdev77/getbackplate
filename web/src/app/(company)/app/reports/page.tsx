@@ -2,7 +2,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { ChecklistReportsDashboard, type ChecklistReportView } from "@/modules/reports/ui/checklist-reports-dashboard";
 import { requireTenantModule } from "@/shared/lib/access";
 
-export const dynamic = "force-dynamic";
+
 
 type ReportStatCard = {
   label: string;

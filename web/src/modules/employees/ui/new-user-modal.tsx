@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, startTransition, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -38,8 +38,10 @@ export function NewUserModal({ open, branches, roleOptions }: NewUserModalProps)
       }
 
       toast.success("Usuario creado correctamente");
-      router.refresh();
-      router.push("/app/users");
+      startTransition(() => {
+        router.refresh();
+        router.push("/app/users");
+      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo crear usuario");
     } finally {

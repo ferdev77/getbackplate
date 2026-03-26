@@ -1,7 +1,7 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
+import { getEnabledModules } from "@/modules/organizations/queries";
 import { requireAuthenticatedUser, requireEmployeeAccess } from "@/shared/lib/access";
 import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
-import { canReadDocumentInTenant } from "@/shared/lib/document-access";
 import { EmployeeShell } from "@/shared/ui/employee-shell";
 
 export const dynamic = "force-dynamic";
@@ -68,81 +68,25 @@ export default async function EmployeeLayout({
     employeePositionIds = (positionRows ?? []).map((row) => row.id);
   }
 
-  const [documentsModuleEnabled, checklistModuleEnabled, announcementsModuleEnabled, onboardingModuleEnabled] =
-    await Promise.all([
-      supabase.rpc("is_module_enabled", {
-        org_id: tenant.organizationId,
-        module_code: "documents",
-      }),
-      supabase.rpc("is_module_enabled", {
-        org_id: tenant.organizationId,
-        module_code: "checklists",
-      }),
-      supabase.rpc("is_module_enabled", {
-        org_id: tenant.organizationId,
-        module_code: "announcements",
-      }),
-      supabase.rpc("is_module_enabled", {
-        org_id: tenant.organizationId,
-        module_code: "onboarding",
-      }),
-    ]);
+  const enabledModuleCodes = await getEnabledModules(tenant.organizationId);
 
-  const isDocumentsEnabled = Boolean(documentsModuleEnabled.data);
-  const isChecklistEnabled = Boolean(checklistModuleEnabled.data);
-  const isAnnouncementsEnabled = Boolean(announcementsModuleEnabled.data);
-  const isOnboardingEnabled = Boolean(onboardingModuleEnabled.data);
+  const isDocumentsEnabled = enabledModuleCodes.has("documents");
+  const isChecklistEnabled = enabledModuleCodes.has("checklists");
+  const isAnnouncementsEnabled = enabledModuleCodes.has("announcements");
+  const isOnboardingEnabled = enabledModuleCodes.has("onboarding");
 
   let docsCount = 0;
 
-  if (isDocumentsEnabled) {
-    const assignedDocumentIds = new Set<string>();
-    if (employee?.id) {
-      const { data: links } = await supabase
-        .from("employee_documents")
-        .select("document_id")
-        .eq("organization_id", tenant.organizationId)
-        .eq("employee_id", employee.id);
-
-      for (const link of links ?? []) {
-        assignedDocumentIds.add(link.document_id);
-      }
-    }
-
-    const pageSize = 500;
-    let from = 0;
-
-    while (true) {
-      const { data: documents } = await supabase
-        .from("documents")
-        .select("id, branch_id, access_scope")
-        .eq("organization_id", tenant.organizationId)
-        .order("created_at", { ascending: false })
-        .range(from, from + pageSize - 1);
-
-      const batch = documents ?? [];
-      if (!batch.length) {
-        break;
-      }
-
-      docsCount += batch.filter((doc) =>
-        canReadDocumentInTenant({
-          roleCode: tenant.roleCode,
-          userId: user.id,
-          branchId: employeeBranchId,
-          departmentId: employee?.department_id ?? null,
-          positionIds: employeePositionIds,
-          isDirectlyAssigned: assignedDocumentIds.has(doc.id),
-          accessScope: doc.access_scope,
-        }),
-      ).length;
-
-      if (batch.length < pageSize) {
-        break;
-      }
-
-      from += pageSize;
-    }
+  if (isDocumentsEnabled && user.id && tenant.organizationId) {
+    const { data: countData } = await supabase.rpc("count_accessible_documents", {
+      p_organization_id: tenant.organizationId,
+      p_user_id: user.id,
+      p_role_code: tenant.roleCode,
+      p_branch_id: employeeBranchId,
+      p_department_id: employee?.department_id ?? null,
+      p_position_ids: employeePositionIds,
+    });
+    docsCount = countData ?? 0;
   }
 
   const employeeName = employee

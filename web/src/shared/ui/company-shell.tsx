@@ -24,6 +24,7 @@ import {
   X,
 } from "lucide-react";
 import { FloatingAiAssistant } from "@/shared/ui/floating-ai-assistant";
+import { toast } from "sonner";
 
 type SettingsSnapshot = {
   billingPlan: string;
@@ -229,7 +230,6 @@ export function CompanyShell({
     Object.fromEntries(SECTIONS.map((section) => [section.label, false])),
   );
   const [busy, setBusy] = useState(false);
-  const [toast, setToast] = useState("");
   const selectedBranch = searchParams.get("branch") ?? "";
 
   const enabledModuleSet = useMemo(() => new Set(enabledModules), [enabledModules]);
@@ -286,12 +286,6 @@ export function CompanyShell({
   const [fbMessage, setFbMessage] = useState("");
 
   useEffect(() => {
-    if (!toast) return;
-    const timer = setTimeout(() => setToast(""), 2500);
-    return () => clearTimeout(timer);
-  }, [toast]);
-
-  useEffect(() => {
     setCurrentAvatarUrl(sessionAvatarUrl);
   }, [sessionAvatarUrl]);
 
@@ -304,9 +298,9 @@ export function CompanyShell({
     const upgraded = searchParams.get('upgraded');
     const success = searchParams.get('success');
     if (upgraded === 'true') {
-      setToast('¡Plan actualizado exitosamente! 🎉');
+      toast.success('¡Plan actualizado exitosamente! 🎉');
     } else if (success === 'true') {
-      setToast('¡Suscripción activada exitosamente! 🎉');
+      toast.success('¡Suscripción activada exitosamente! 🎉');
     }
   }, [searchParams]);
 
@@ -347,9 +341,9 @@ export function CompanyShell({
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No se pudo guardar");
-      setToast("Configuracion guardada");
+      toast.success("Configuración guardada");
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "Error al guardar");
+      toast.error(error instanceof Error ? error.message : "Error al guardar");
     } finally {
       setBusy(false);
     }
@@ -357,7 +351,7 @@ export function CompanyShell({
 
   async function startCheckout(planId: string, priceId: string) {
     if (impersonationMode) {
-      setToast("Billing bloqueado en modo impersonacion");
+      toast.error("Billing bloqueado en modo impersonación");
       return;
     }
 
@@ -374,14 +368,14 @@ export function CompanyShell({
       // Redirect out softly to Stripe Checkout URL
       window.location.href = data.url;
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "Falló la conexión de pagos");
+      toast.error(error instanceof Error ? error.message : "Falló la conexión de pagos");
       setBusy(false);
     }
   }
 
   async function openBillingPortal() {
     if (impersonationMode) {
-      setToast("Billing bloqueado en modo impersonacion");
+      toast.error("Billing bloqueado en modo impersonación");
       return;
     }
 
@@ -393,7 +387,7 @@ export function CompanyShell({
       if (!data.url) throw new Error("No se encontro URL del portal de pagos");
       window.location.href = data.url;
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "No se pudo abrir el portal de pagos");
+      toast.error(error instanceof Error ? error.message : "No se pudo abrir el portal de pagos");
       setBusy(false);
     }
   }
@@ -416,9 +410,9 @@ export function CompanyShell({
       setFbTitle("");
       setFbMessage("");
       setFeedbackOpen(false);
-      setToast("Feedback enviado correctamente");
+      toast.success("Feedback enviado correctamente");
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "Error al enviar feedback");
+      toast.error(error instanceof Error ? error.message : "Error al enviar feedback");
     } finally {
       setBusy(false);
     }
@@ -677,9 +671,9 @@ export function CompanyShell({
                               setProfileAvatarPreview(data.avatarUrl);
                               setCurrentAvatarUrl(data.avatarUrl);
                             }
-                            setToast("Avatar actualizado");
+                            toast.success("Avatar actualizado");
                           } catch (error) {
-                            setToast(error instanceof Error ? error.message : "Error subiendo avatar");
+                            toast.error(error instanceof Error ? error.message : "Error subiendo avatar");
                           }
                         }}
                       />
@@ -690,7 +684,7 @@ export function CompanyShell({
                   <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
                     <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Account</p>
                     <div className="flex items-center justify-between border-b border-white/5 py-1.5"><span className="text-white/55">Email</span><span className="max-w-[160px] truncate text-[11px] tracking-[0.04em] text-white/45">{sessionUserEmail || "-"}</span></div>
-                    <div className="flex items-center justify-between border-b border-white/5 py-1.5"><span className="text-white/55">Password</span><button type="button" onClick={() => setToast("Email de cambio enviado")} className="rounded-md border border-[#60a5fa]/35 bg-[#60a5fa]/15 px-2 py-1 text-[10px] font-semibold text-[#9fc2ff]">Change Password</button></div>
+                    <div className="flex items-center justify-between border-b border-white/5 py-1.5"><span className="text-white/55">Password</span><button type="button" onClick={() => toast.success("Email de cambio enviado")} className="rounded-md border border-[#60a5fa]/35 bg-[#60a5fa]/15 px-2 py-1 text-[10px] font-semibold text-[#9fc2ff]">Change Password</button></div>
                     <div className="mt-2"><span className="text-white/55">Nombre</span><input value={profileName} onChange={(event) => setProfileName(event.target.value)} className="mt-1 w-full rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-white" /></div>
                   </div>
                   <button type="button" disabled={busy} onClick={() => saveSettings("profile", { fullName: profileName })} className="w-full rounded-md bg-white px-2 py-2 font-semibold text-[#111] disabled:opacity-60">Guardar profile</button>
@@ -711,8 +705,8 @@ export function CompanyShell({
                   </div>
                   <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
                     <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Add-ons</p>
-                    <div className="flex items-center justify-between border-b border-white/5 py-1.5"><span className="text-white/55">Extra Storage</span><button type="button" onClick={() => setToast("Proximamente")} className="rounded-md border border-[#60a5fa]/35 bg-[#60a5fa]/15 px-2 py-1 text-[10px] font-semibold text-[#9fc2ff]">Add Storage</button></div>
-                    <div className="flex items-center justify-between py-1.5"><span className="text-white/55">Extra Users</span><button type="button" onClick={() => setToast("Proximamente")} className="rounded-md border border-[#60a5fa]/35 bg-[#60a5fa]/15 px-2 py-1 text-[10px] font-semibold text-[#9fc2ff]">Add Users</button></div>
+                    <div className="flex items-center justify-between border-b border-white/5 py-1.5"><span className="text-white/55">Extra Storage</span><button type="button" onClick={() => toast.info("Próximamente")} className="rounded-md border border-[#60a5fa]/35 bg-[#60a5fa]/15 px-2 py-1 text-[10px] font-semibold text-[#9fc2ff]">Add Storage</button></div>
+                    <div className="flex items-center justify-between py-1.5"><span className="text-white/55">Extra Users</span><button type="button" onClick={() => toast.info("Próximamente")} className="rounded-md border border-[#60a5fa]/35 bg-[#60a5fa]/15 px-2 py-1 text-[10px] font-semibold text-[#9fc2ff]">Add Users</button></div>
                   </div>
                   <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
                     <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Pago y Facturación</p>
@@ -752,7 +746,7 @@ export function CompanyShell({
                   </div>
                   <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
                     <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Privacy</p>
-                    <div className="flex items-center justify-between"><span className="text-white/55">Cookie Settings</span><button type="button" onClick={() => setToast("Administrar cookies") } className="rounded-md border border-[#60a5fa]/35 bg-[#60a5fa]/15 px-2 py-1 text-[10px] font-semibold text-[#9fc2ff]">Manage</button></div>
+                    <div className="flex items-center justify-between"><span className="text-white/55">Cookie Settings</span><button type="button" onClick={() => toast.info("Administrar cookies") } className="rounded-md border border-[#60a5fa]/35 bg-[#60a5fa]/15 px-2 py-1 text-[10px] font-semibold text-[#9fc2ff]">Manage</button></div>
                     <label className="mt-2 inline-flex items-center gap-2"><input type="checkbox" checked={analyticsEnabled} onChange={(event) => setAnalyticsEnabled(event.target.checked)} /><span>Analytics</span></label>
                   </div>
                   <button type="button" disabled={busy} onClick={() => saveSettings("preferences", { theme, language, dateFormat, timezoneMode, timezoneManual, analyticsEnabled })} className="w-full rounded-md bg-white px-2 py-2 font-semibold text-[#111] disabled:opacity-60">Guardar preferences</button>
@@ -948,8 +942,6 @@ export function CompanyShell({
           </aside>
         </div>
       ) : null}
-
-      {toast ? <div className="fixed bottom-6 left-1/2 z-[1300] -translate-x-1/2 rounded-lg bg-[#111] px-4 py-2 text-sm font-semibold text-white">{toast}</div> : null}
     </div>
   );
 }

@@ -35,8 +35,8 @@ Cada paso se marca con check cuando queda terminado y validado.
 - [x] B2.e Script de consistencia de metricas disponible (`npm run verify:operational-metrics-consistency`).
 - [x] B3. Construir panel de observabilidad basico (errores, tiempos de respuesta, fallos de endpoints criticos).
 - [x] B3.a Card de observabilidad oculta temporalmente en UI para iteracion adicional antes de release visible.
-- [ ] B3.b Crear pantalla dedicada `Superadmin > Auditoria` con filtros y export (postergado para iteracion posterior).
-- [ ] B4. Completar y documentar `score` superadmin con acciones sugeridas por riesgo.
+- [-] B3.b Crear pantalla dedicada `Superadmin > Auditoria` con filtros y export (Migrado a ACTUALIZACION_2.2_SAAS.md).
+- [-] B4. Completar y documentar `score` superadmin con acciones sugeridas por riesgo (Migrado a ACTUALIZACION_2.2_SAAS.md).
 - [x] B5. Agregar alertas operativas minimas (tenant sin admins activos, modulos clave deshabilitados, sin actividad reciente).
 - [x] B5.a Helper backend de alertas operativas definido en `health-metrics.ts` (sin exponer UI aun).
 - [x] B5.b Evaluacion operativa ejecutable disponible (`npm run verify:operational-alerts`).
@@ -81,31 +81,31 @@ Cada paso se marca con check cuando queda terminado y validado.
 
 ## Bloque E - UX operativa y consistencia
 
-- [ ] E1. Estandarizar feedback de exito/error en todos los modulos activos.
-- [ ] E2. Estandarizar confirmaciones de acciones destructivas en toda la app.
-- [ ] E3. Revisar y corregir estados vacios y mensajes de error en rutas principales.
-- [ ] E4. Asegurar reflejo inmediato de cambios en UI (sin recarga manual).
-- [ ] E5. Validar responsive real en desktop/tablet/mobile para vistas clave.
+- [-] E1. Estandarizar feedback de exito/error en todos los modulos activos (Migrado a ACTUALIZACION_2.2_SAAS.md).
+- [-] E2. Estandarizar confirmaciones de acciones destructivas en toda la app (Migrado a ACTUALIZACION_2.2_SAAS.md).
+- [-] E3. Revisar y corregir estados vacios y mensajes de error en rutas principales (Migrado a ACTUALIZACION_2.2_SAAS.md).
+- [-] E4. Asegurar reflejo inmediato de cambios en UI sin recarga manual (Migrado a ACTUALIZACION_2.2_SAAS.md).
+- [-] E5. Validar responsive real en desktop/tablet/mobile para vistas clave (Migrado a ACTUALIZACION_2.2_SAAS.md).
 
 ## Bloque H - Consistencia transaccional de flujos criticos
 
 - [x] H1. Alta de empleado endurecida a comportamiento "todo o nada" con rollback best-effort en fallos posteriores.
 - [x] H2. Submit de checklist con evidencias endurecido a comportamiento "todo o nada" con rollback best-effort.
-- [ ] H3. Definir set minimo de operaciones criticas que deben ejecutarse en RPC transaccional.
+- [-] H3. Definir set minimo de operaciones criticas que deben ejecutarse en RPC transaccional (Migrado a ACTUALIZACION_2.2_SAAS.md).
 
 ## Bloque F - Datos y performance
 
-- [ ] F1. Revisar indices de tablas criticas por `organization_id`, `branch_id` y fechas de consulta.
-- [ ] F2. Definir vistas/materialized views para metricas superadmin y reportes pesados.
-- [ ] F3. Medir y optimizar consultas de dashboard, reports y portal empleado.
-- [ ] F4. Definir politica de retencion de logs y datos historicos.
+- [-] F1. Revisar indices de tablas criticas por `organization_id`, `branch_id` y fechas de consulta (Migrado a ACTUALIZACION_2.2_SAAS.md).
+- [-] F2. Definir vistas/materialized views para metricas superadmin y reportes pesados (Migrado a ACTUALIZACION_2.2_SAAS.md).
+- [-] F3. Medir y optimizar consultas de dashboard, reports y portal empleado (Migrado a ACTUALIZACION_2.2_SAAS.md).
+- [-] F4. Definir politica de retencion de logs y datos historicos (Migrado a ACTUALIZACION_2.2_SAAS.md).
 
 ## Bloque G - Operacion continua
 
-- [ ] G1. Definir runbook tecnico para soporte (diagnostico, mitigacion, escalado).
-- [ ] G2. Definir runbook funcional para onboarding de nuevos tenants.
-- [ ] G3. Definir checklist de alta de tenant (plan, modulos, admins, sucursales, permisos).
-- [ ] G4. Definir checklist de cierre/suspension de tenant con trazabilidad.
+- [-] G1. Definir runbook tecnico para soporte (Migrado a ACTUALIZACION_2.2_SAAS.md).
+- [-] G2. Definir runbook funcional para onboarding de nuevos tenants (Migrado a ACTUALIZACION_2.2_SAAS.md).
+- [-] G3. Definir checklist de alta de tenant (Migrado a ACTUALIZACION_2.2_SAAS.md).
+- [-] G4. Definir checklist de cierre/suspension de tenant con trazabilidad (Migrado a ACTUALIZACION_2.2_SAAS.md).
 
 ---
 

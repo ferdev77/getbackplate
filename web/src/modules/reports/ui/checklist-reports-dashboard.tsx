@@ -1,6 +1,7 @@
 "use client";
 
-import { Search, X } from "lucide-react";
+import { FileBarChart, Search, X } from "lucide-react";
+import { EmptyState } from "@/shared/ui/empty-state";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
@@ -352,7 +353,7 @@ export function ChecklistReportsDashboard({
             </div>
 
             {!filteredReports.length ? (
-              <div className="px-4 py-9 text-center text-sm text-[#8b817c]">No hay reportes para los filtros aplicados.</div>
+              <EmptyState icon={FileBarChart} title="No hay reportes" description="No se encontraron reportes para los filtros aplicados." />
             ) : null}
           </div>
         </div>
@@ -379,7 +380,7 @@ export function ChecklistReportsDashboard({
               </button>
             ))}
             {!attentionFeed.length ? (
-              <div className="px-4 py-8 text-center text-sm text-[#8b817c]">Sin incidencias abiertas.</div>
+              <EmptyState title="Sin incidencias" description="No hay incidencias abiertas en este momento." />
             ) : null}
           </div>
         </aside>

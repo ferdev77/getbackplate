@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Bell, BellPlus, CalendarClock, Pencil, Pin } from "lucide-react";
+import { EmptyState } from "@/shared/ui/empty-state";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { parseAnnouncementScope } from "@/modules/announcements/lib/scope";
@@ -280,7 +281,7 @@ const employeesQuery = supabase
           </AnimatedList>
         ) : (
           <SlideUp delay={0.2}>
-            <div className={`rounded-xl border border-dashed border-[#dccfca] bg-[#fffdfa] px-4 py-8 text-center text-sm text-[#8b817c] ${DARK_CARD} ${DARK_MUTED}`}>Aun no hay anuncios cargados.</div>
+            <EmptyState icon={Bell} title="Aun no hay anuncios" description="Publica tu primer aviso para que llegue a tu equipo." />
           </SlideUp>
         )}
       </section>

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ClipboardPlus, Eye, MapPin, Pencil, Trash2 } from "lucide-react";
+import { ClipboardCheck, ClipboardPlus, Eye, MapPin, Pencil, Trash2 } from "lucide-react";
+import { EmptyState } from "@/shared/ui/empty-state";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
@@ -281,26 +282,26 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
 
       <SlideUp delay={0.2}>
         <section className={`overflow-hidden rounded-xl border border-[#e7e0dc] bg-white ${DARK_CARD}`}>
-          <div className={`grid grid-cols-[minmax(180px,2fr)_100px_110px_130px_130px_90px_120px] gap-x-3 border-b-[1.5px] border-[#e8e8e8] bg-[#fafafa] px-4 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase ${DARK_CARD_SOFT} ${DARK_MUTED}`}>
-            <p>Checklist</p><p>Tipo</p><p>Shift</p><p>Locacion</p><p>Departamento</p><p>Estado</p><p>Acciones</p>
+          <div className={`grid grid-cols-[1fr_120px] md:grid-cols-[2fr_100px_90px_120px] lg:grid-cols-[minmax(180px,2fr)_100px_110px_130px_130px_90px_120px] gap-x-3 border-b-[1.5px] border-[#e8e8e8] bg-[#fafafa] px-4 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase ${DARK_CARD_SOFT} ${DARK_MUTED}`}>
+            <p>Checklist</p><p className="hidden md:block">Tipo</p><p className="hidden lg:block">Shift</p><p className="hidden lg:block">Locacion</p><p className="hidden lg:block">Departamento</p><p className="hidden md:block">Estado</p><p>Acciones</p>
           </div>
           <div>
             {filteredTemplates && filteredTemplates.length > 0 ? (
               <AnimatedList>
                 {filteredTemplates.map((template) => (
                   <AnimatedItem key={template.id}>
-                    <div className="grid grid-cols-[minmax(180px,2fr)_100px_110px_130px_130px_90px_120px] items-center gap-x-3 border-b border-[#f0f0f0] px-4 py-3 [.theme-dark-pro_&]:border-[#2b3646]">
+                    <div className="grid grid-cols-[1fr_120px] md:grid-cols-[2fr_100px_90px_120px] lg:grid-cols-[minmax(180px,2fr)_100px_110px_130px_130px_90px_120px] items-center gap-x-3 border-b border-[#f0f0f0] px-4 py-3 [.theme-dark-pro_&]:border-[#2b3646]">
                       <div>
                         <p className={`text-[13px] font-semibold text-[#111] ${DARK_TEXT}`}>{template.name}</p>
                         {template.itemsCount !== null && (
                           <p className={`text-[11px] text-[#aaa] ${DARK_MUTED}`}>{template.itemsCount} items</p>
                         )}
                       </div>
-                      <p className={`text-xs text-[#666] ${DARK_MUTED}`}>{typeLabel(template.checklist_type)}</p>
-                      <p className={`text-xs text-[#666] ${DARK_MUTED}`}>{template.shift || "-"}</p>
-                      <p className={`inline-flex items-center gap-1 text-xs text-[#666] ${DARK_MUTED}`}><MapPin className="h-3.5 w-3.5" />{template.branchName}</p>
-                      <p className={`text-xs text-[#666] ${DARK_MUTED}`}>{template.departmentName}</p>
-                      <span className={`inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] ${template.is_active ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-neutral-200 bg-neutral-100 text-neutral-600"}`}>{template.is_active ? "Activa" : "Inactiva"}</span>
+                      <p className={`hidden md:block text-xs text-[#666] ${DARK_MUTED}`}>{typeLabel(template.checklist_type)}</p>
+                      <p className={`hidden lg:block text-xs text-[#666] ${DARK_MUTED}`}>{template.shift || "-"}</p>
+                      <p className={`hidden lg:flex items-center gap-1 text-xs text-[#666] ${DARK_MUTED}`}><MapPin className="h-3.5 w-3.5" />{template.branchName}</p>
+                      <p className={`hidden lg:block text-xs text-[#666] ${DARK_MUTED}`}>{template.departmentName}</p>
+                      <span className={`hidden md:inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] ${template.is_active ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-neutral-200 bg-neutral-100 text-neutral-600"}`}>{template.is_active ? "Activa" : "Inactiva"}</span>
                       <div className="flex gap-1">
                         <Link href={`/app/checklists?preview=${template.id}`} className={ACTION_BTN_PREVIEW} title="Vista previa"><Eye className="h-3.5 w-3.5" /></Link>
                         <Link href={`/app/checklists?action=edit&templateId=${template.id}`} className={ACTION_BTN_NEUTRAL} title="Editar"><Pencil className="h-3.5 w-3.5" /></Link>
@@ -311,7 +312,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
                 ))}
               </AnimatedList>
             ) : (
-              <div className={`px-4 py-10 text-center text-sm text-[#8b817c] ${DARK_MUTED}`}>No hay checklists para los filtros seleccionados.</div>
+              <EmptyState icon={ClipboardCheck} title="No hay checklists" description="No se encontraron checklists para los filtros seleccionados." />
             )}
           </div>
         </section>

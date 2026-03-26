@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState, startTransition } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -109,8 +109,10 @@ export function UploadDocumentModal({
     }, 550);
 
     setTimeout(() => {
-      router.push("/app/documents");
-      router.refresh();
+      startTransition(() => {
+        router.push("/app/documents");
+        router.refresh();
+      });
     }, 900);
   }
 
