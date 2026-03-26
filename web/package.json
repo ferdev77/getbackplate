@@ -37,6 +37,7 @@
     "@supabase/supabase-js": "^2.99.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.37.0",
+    "cron-parser": "^5.5.0",
     "framer-motion": "^12.36.0",
     "jspdf": "^4.2.0",
     "lucide-react": "^0.577.0",

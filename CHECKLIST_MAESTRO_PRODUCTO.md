@@ -131,3 +131,13 @@ Se considera que la etapa de madurez esta cerrada cuando:
 - [x] 3 builds consecutivos OK (`next build` exit code 0)
 - [x] Cero cambios visuales, cero cambios en firmas exportadas
 - [x] Convencion documentada en `ESTRUCTURA_PROYECTO.md` y `reglas_desarrollo.md`
+
+### Motor de Recurrencia Avanzada (2026-03-26)
+
+- [x] Integración de la tabla `scheduled_jobs` como fuente de verdad para todas las tareas encoladas y recurrentes.
+- [x] Webhook Vercel Cron habilitado en `/api/webhooks/cron/process-recurrence` para ejecutarse y resolver triggers.
+- [x] `announcements`: Generador y form adaptados para usar el `scheduled_jobs` engine en lugar de campos planos.
+- [x] `checklists`: Creado campo `custom_days`, modificado el `AppChecklistTemplate` UI para usar `RecurrenceSelector`.
+- [x] `checklists`: Backend de servicio actualizado para hacer `upsert` silencioso de scheduled_jobs al guardar plantillas.
+- [x] Portal del Empleado: Feed de checklists ahora se cruza con `scheduled_jobs.last_run_at` para mostrar tareas pendientes recurrentes correctamente.
+- [x] Checkeo estático OK (`npm run verify:tsc`).

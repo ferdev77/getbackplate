@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Mail, MessageSquare, Smartphone } from "lucide-react";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import { SubmitButton } from "@/shared/ui/submit-button";
+import { RecurrenceSelector } from "@/shared/ui/recurrence-selector";
 import { ChecklistItemsBuilder } from "@/modules/checklists/ui/checklist-items-builder";
 import { createChecklistTemplateAction } from "@/modules/checklists/actions";
 
@@ -34,6 +35,7 @@ type EditingTemplate = {
   target_scope?: Record<string, string[]>;
   templateSections?: Array<{ name: string; items: string[] }>;
   templateItems?: Array<{ label: string }>;
+  scheduledJob?: { recurrence_type: string; custom_days: number[]; cron_expression?: string } | null;
 };
 
 type ChecklistUpsertModalProps = {
@@ -111,14 +113,16 @@ export function ChecklistUpsertModal({
                   <option>3er Shift</option>
                 </select>
               </label>
-              <label className="grid gap-1.5">
-                <span className={`text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase ${DARK_MUTED}`}>Frecuencia</span>
-                <select name="repeat_every" defaultValue={editingTemplate?.repeat_every ?? "daily"} className={`rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm ${DARK_GHOST}`}>
-                  <option value="daily">Diario</option>
-                  <option value="weekly">Semanal</option>
-                  <option value="monthly">Mensual</option>
-                </select>
-              </label>
+              <div className="grid gap-1.5 sm:col-span-2 mt-4 border-t border-[#f0f0f0] pt-4 [.theme-dark-pro_&]:border-[#2b3646]">
+                <RecurrenceSelector 
+                  initialType={
+                    (editingTemplate?.scheduledJob?.recurrence_type as any) || 
+                    (editingTemplate?.repeat_every as any) || 
+                    "daily"
+                  } 
+                  initialDays={editingTemplate?.scheduledJob?.custom_days || []} 
+                />
+              </div>
               <label className="grid gap-1.5">
                 <span className={`text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase ${DARK_MUTED}`}>Estado</span>
                 <select name="template_status" defaultValue={editingTemplate?.is_active ? "active" : "draft"} className={`rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm ${DARK_GHOST}`}>

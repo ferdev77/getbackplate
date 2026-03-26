@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
+import { calculateNextRunAt } from "@/shared/lib/cron-utils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -20,6 +21,8 @@ export type UpsertChecklistTemplateInput = {
   departmentId: string | null;
   department: string | null;
   repeatEvery: string;
+  recurrenceType: string;
+  customDays: number[];
   templateStatus: string;
   locationScopes: string[];
   departmentScopes: string[];
@@ -66,6 +69,8 @@ export async function upsertChecklistTemplate(
     checklistTypeOther,
     shift,
     repeatEvery,
+    recurrenceType,
+    customDays,
     templateStatus,
     normalizedSections,
     notifyVia,
@@ -301,6 +306,41 @@ export async function upsertChecklistTemplate(
         ok: false,
         message: `Plantilla ${templateId ? "actualizada" : "creada"} pero items fallaron: ${itemsError.message}`
       };
+    }
+  }
+
+  // Handle recurrence / scheduled_jobs
+  if (template.id) {
+    const nextRun = calculateNextRunAt(recurrenceType as any, null, customDays);
+    
+    // Attempt to update or create
+    const { data: existingJob } = await supabase
+      .from("scheduled_jobs")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .eq("job_type", "checklist_generator")
+      .eq("target_id", template.id)
+      .maybeSingle();
+
+    if (existingJob) {
+      if (templateStatus === "active") {
+        await supabase.from("scheduled_jobs").update({
+          recurrence_type: recurrenceType,
+          custom_days: customDays,
+          next_run_at: nextRun.toISOString()
+        }).eq("id", existingJob.id);
+      } else {
+        await supabase.from("scheduled_jobs").delete().eq("id", existingJob.id);
+      }
+    } else if (templateStatus === "active") {
+      await supabase.from("scheduled_jobs").insert({
+        organization_id: organizationId,
+        job_type: "checklist_generator",
+        target_id: template.id,
+        recurrence_type: recurrenceType,
+        custom_days: customDays,
+        next_run_at: nextRun.toISOString()
+      });
     }
   }
 

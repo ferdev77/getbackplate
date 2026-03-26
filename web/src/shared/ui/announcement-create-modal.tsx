@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { createAnnouncementAction } from "@/modules/announcements/actions";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import { SubmitButton } from "@/shared/ui/submit-button";
+import { RecurrenceSelector } from "@/shared/ui/recurrence-selector";
 
 type BranchOption = {
   id: string;
@@ -55,6 +56,9 @@ type AnnouncementCreateModalProps = {
     department_scope: string[];
     position_scope: string[];
     user_scope: string[];
+    is_recurring?: boolean;
+    recurrence_type?: string;
+    custom_days?: number[];
   };
 };
 
@@ -65,6 +69,7 @@ export function AnnouncementCreateModal({ branches, departments, positions, user
   const [notifySms, setNotifySms] = useState(false);
   const [notifyEmail, setNotifyEmail] = useState(true);
   const [hasExpiry, setHasExpiry] = useState(Boolean(initial?.expires_at));
+  const [isRecurring, setIsRecurring] = useState(Boolean(initial?.is_recurring));
 
   useEffect(() => {
     if (state.message) {
@@ -230,6 +235,30 @@ export function AnnouncementCreateModal({ branches, departments, positions, user
                   className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm"
                 />
               </div>
+            ) : null}
+
+            <div className="mt-3 mb-0 flex items-center justify-between rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2.5">
+              <div className="inline-flex items-center gap-2 text-[13px] text-[#333]">
+                <Clock3 className="h-3.5 w-3.5 text-[#555]" /> Enviar periódicamente
+              </div>
+              <label className="relative inline-flex h-[22px] w-[38px] cursor-pointer items-center">
+                <input
+                  type="checkbox"
+                  name="is_recurring"
+                  checked={isRecurring}
+                  onChange={(event) => setIsRecurring(event.target.checked)}
+                  className="peer sr-only"
+                  value="on"
+                />
+                <span className="absolute inset-0 rounded-[22px] bg-[#e0e0e0] transition peer-checked:bg-[#c0392b]" />
+                <span className="absolute left-[3px] top-[3px] h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-4" />
+              </label>
+            </div>
+            {isRecurring ? (
+              <RecurrenceSelector 
+                initialType={initial?.recurrence_type} 
+                initialDays={initial?.custom_days} 
+              />
             ) : null}
           </div>
 

@@ -495,7 +495,11 @@ Controlar:
   - `checklist_flags`
 - [x] Reportes conectados a datos reales (checklists + incidencias + volumen de documentos/anuncios)
 - [x] Migracion aplicada: `202603110008_checklist_template_metadata.sql`
-
+- [x] Motor de Recurrencia Avanzado integrado:
+  - Centralización de periodos de ejecución (daily, weekly, custom) mediante tabla `scheduled_jobs`.
+  - Desacople de ejecución usando Webhook Vercel Cron (`/api/webhooks/cron/process-recurrence`).
+  - Avisos (Announcements) adaptados a lógica recurrente real.
+  - Checklists actualizadas con UI `RecurrenceSelector`, `upserts` automáticos y vista de PENDIENTES inteligente en Portal del Empleado basada en `last_submission` < `scheduled_jobs.last_run_at`.
 ### Fase 4
 
 - auditoria avanzada, analytics, hardening
