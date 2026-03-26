@@ -4,11 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { requireSuperadmin } from "@/shared/lib/access";
 
-export async function updateFeedbackStatusAction(formData: FormData) {
+export async function updateFeedbackStatusAction(id: string, status: string) {
   await requireSuperadmin();
-  
-  const id = formData.get("id") as string;
-  const status = formData.get("status") as string;
   
   if (!id || !status) {
     throw new Error("Missing ID or status");

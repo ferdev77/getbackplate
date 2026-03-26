@@ -12,6 +12,7 @@ import {
   FilePlus2,
   FolderPlus,
   LayoutGrid,
+  Loader2,
   LogOut,
   MessageSquarePlus,
   MapPin,
@@ -780,7 +781,10 @@ export function CompanyShell({
               <input value={fbTitle} onChange={(event) => setFbTitle(event.target.value)} className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm" placeholder="Resume el problema o idea en una linea..." />
               <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">Descripcion detallada</label>
               <textarea value={fbMessage} onChange={(event) => setFbMessage(event.target.value)} rows={4} className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm" placeholder="Cuentanos con detalle..." />
-                  <button type="button" disabled={busy || !fbTitle.trim() || !fbMessage.trim()} onClick={sendFeedback} className="mt-4 w-full rounded-lg px-3 py-2.5 text-sm font-bold text-white disabled:opacity-60" style={{ background: palette.accent }}>Enviar mensaje</button>
+              <button type="button" disabled={busy || !fbTitle.trim() || !fbMessage.trim()} onClick={sendFeedback} className="mt-4 flex w-full items-center justify-center gap-2 flex-row rounded-lg px-3 py-2.5 text-sm font-bold text-white disabled:opacity-60" style={{ background: palette.accent }}>
+                {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                {busy ? "Enviando msj..." : "Enviar mensaje"}
+              </button>
             </div>
           </div>
         </div>
