@@ -106,15 +106,28 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
   );
 
   const visibleTemplateIds = visibleTemplates.map((template) => template.id);
-  const { data: visibleSubmissions } = visibleTemplateIds.length
-    ? await admin
-        .from("checklist_submissions")
-        .select("template_id, status, submitted_at")
-        .eq("organization_id", tenant.organizationId)
-        .eq("submitted_by", userId)
-        .in("template_id", visibleTemplateIds)
-        .order("submitted_at", { ascending: false })
-    : { data: null };
+  const [{ data: visibleSubmissions }, { data: scheduledJobs }] = visibleTemplateIds.length
+    ? await Promise.all([
+        admin
+          .from("checklist_submissions")
+          .select("template_id, status, submitted_at")
+          .eq("organization_id", tenant.organizationId)
+          .eq("submitted_by", userId)
+          .in("template_id", visibleTemplateIds)
+          .order("submitted_at", { ascending: false }),
+        admin
+          .from("scheduled_jobs")
+          .select("target_id, last_run_at")
+          .eq("organization_id", tenant.organizationId)
+          .eq("job_type", "checklist_generator")
+          .in("target_id", visibleTemplateIds)
+      ])
+    : [{ data: null }, { data: null }];
+
+  const lastRunByTemplateId = new Map<string, Date | null>();
+  for (const job of scheduledJobs ?? []) {
+    lastRunByTemplateId.set(job.target_id, job.last_run_at ? new Date(job.last_run_at) : null);
+  }
 
   const latestSubmissionByTemplateId = new Map<string, { status: string; submittedAt: string | null }>();
   for (const row of visibleSubmissions ?? []) {
@@ -126,9 +139,22 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
     }
   }
 
+  function isTemplateSentForCurrentPeriod(templateId: string) {
+    const latest = latestSubmissionByTemplateId.get(templateId);
+    if (!latest) return false;
+    
+    // If there is no scheduled job or it hasn't run yet, just knowing it was submitted once is enough
+    const lastRunAt = lastRunByTemplateId.get(templateId);
+    if (!lastRunAt) return true;
+
+    // It's sent for the current period if the last submission was AFTER the last cron run
+    const submittedAt = new Date(latest.submittedAt || 0);
+    return submittedAt >= lastRunAt;
+  }
+
   const templatesForDisplay = [...visibleTemplates].sort((a, b) => {
-    const aSent = latestSubmissionByTemplateId.has(a.id);
-    const bSent = latestSubmissionByTemplateId.has(b.id);
+    const aSent = isTemplateSentForCurrentPeriod(a.id);
+    const bSent = isTemplateSentForCurrentPeriod(b.id);
     if (aSent === bSent) return 0;
     return aSent ? 1 : -1;
   });
@@ -291,7 +317,7 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
                 <p className="truncate text-base font-semibold">{template.name}</p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                {latestSubmissionByTemplateId.has(template.id) ? (
+                {isTemplateSentForCurrentPeriod(template.id) ? (
                   (() => {
                     const latest = latestSubmissionByTemplateId.get(template.id);
                     const statusBadge = reportStatusBadge(latest?.status);

@@ -76,6 +76,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
     { data: positions },
     { count: completedCount },
     { count: pendingCount },
+    { data: scheduledJobs },
   ] = await Promise.all([
     supabase
       .from("branches")
@@ -113,6 +114,11 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
       .select("id", { count: "exact", head: true })
       .eq("organization_id", tenant.organizationId)
       .eq("status", "submitted"),
+    supabase
+      .from("scheduled_jobs")
+      .select("target_id, recurrence_type, custom_days, cron_expression")
+      .eq("organization_id", tenant.organizationId)
+      .eq("job_type", "checklist_generator")
   ]);
 
   const targetTemplateId = previewTemplateId || (action === "edit" ? templateId : null);
@@ -190,6 +196,10 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
     itemsBySection.set(item.section_id, list);
   }
 
+  const scheduledJobsByTemplateId = new Map(
+    (scheduledJobs ?? []).map((job) => [job.target_id, job])
+  );
+
   const templateRows = (templates ?? []).map((template) => {
     let templateItems: Array<{ id: string; label: string; priority: string; sort_order: number }> = [];
     let sectionViews: Array<{ id: string; name: string; items: string[] }> = [];
@@ -211,6 +221,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
       itemsCount,
       templateItems,
       templateSections: sectionViews,
+      scheduledJob: scheduledJobsByTemplateId.get(template.id) ?? null,
       branchName: template.branch_id ? branchNameMap.get(template.branch_id) ?? "Sucursal" : "Global",
       departmentName:
         (template.department_id ? departmentNameMap.get(template.department_id) : null) ??

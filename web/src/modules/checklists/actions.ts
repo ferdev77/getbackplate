@@ -34,6 +34,8 @@ const createChecklistSchema = z.object({
   department_id: z.string().trim().optional().transform(v => v || null),
   department: z.string().trim().optional().transform(v => v || null),
   repeat_every: z.string().trim().default("daily").transform(v => v || "daily"),
+  recurrence_type: z.string().trim().default("daily").transform(v => v || "daily"),
+  custom_days: z.string().trim().default("[]"),
   template_status: z.enum(["active", "draft"]).catch("active"),
   location_scope: z.array(z.string()).default([]),
   department_scope: z.array(z.string()).default([]),
@@ -71,6 +73,8 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
     department_id: String(formData.get("department_id") ?? ""),
     department: String(formData.get("department") ?? ""),
     repeat_every: String(formData.get("repeat_every") ?? ""),
+    recurrence_type: String(formData.get("recurrence_type") ?? "daily"),
+    custom_days: String(formData.get("custom_days") ?? "[]"),
     template_status: String(formData.get("template_status") ?? ""),
     location_scope: formData.getAll("location_scope").map(String),
     department_scope: formData.getAll("department_scope").map(String),
@@ -117,6 +121,11 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
     }
   }
 
+  let parsedCustomDays: number[] = [];
+  try {
+    parsedCustomDays = JSON.parse(parsed.data.custom_days);
+  } catch (e) {}
+
   // --- Delegate to service ---
   const result = await upsertChecklistTemplate({
     supabase,
@@ -131,6 +140,8 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
     departmentId: parsed.data.department_id,
     department: parsed.data.department,
     repeatEvery: parsed.data.repeat_every,
+    recurrenceType: parsed.data.recurrence_type,
+    customDays: parsedCustomDays,
     templateStatus: parsed.data.template_status,
     locationScopes: parsed.data.location_scope,
     departmentScopes: parsed.data.department_scope,
@@ -161,6 +172,8 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
       department: parsed.data.department,
       departmentId: parsed.data.department_id,
       repeatEvery: parsed.data.repeat_every,
+      recurrenceType: parsed.data.recurrence_type,
+      customDays: parsedCustomDays,
       templateStatus: parsed.data.template_status,
       notifyVia,
       notifyChannels,

@@ -13,6 +13,7 @@ import { processAnnouncementDeliveries } from "@/modules/announcements/services/
 import { logAuditEvent } from "@/shared/lib/audit";
 import { requireTenantModule } from "@/shared/lib/access";
 import { validateTenantScopeReferences } from "@/shared/lib/scope-validation";
+import { calculateNextRunAt, RecurrenceType } from "@/shared/lib/cron-utils";
 
 function qs(message: string) {
   return encodeURIComponent(message);
@@ -64,6 +65,14 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
   const channelsForDelivery = announcementId
     ? []
     : normalizedNotifyChannels;
+
+  const isRecurring = String(formData.get("is_recurring") ?? "") === "on";
+  const recurrenceType = String(formData.get("recurrence_type") ?? "daily");
+  const customDaysStr = String(formData.get("custom_days") ?? "[]");
+  let customDays: number[] = [];
+  try {
+    customDays = JSON.parse(customDaysStr);
+  } catch (e) {}
 
   const supabase = await createSupabaseServerClient();
   const { data: authData } = await supabase.auth.getUser();
@@ -179,6 +188,58 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
         sentContactsCount = deliveryResult.sentContactsCount;
       }
     }
+  }
+
+  // Handle scheduled job for recurrence
+  if (isRecurring) {
+    const nextRun = calculateNextRunAt(recurrenceType as RecurrenceType, null, customDays);
+    
+    if (announcementId) {
+      // Intenta actualizar si existe, si no, crear
+      const { data: existingJob } = await supabase
+        .from("scheduled_jobs")
+        .select("id")
+        .eq("organization_id", tenant.organizationId)
+        .eq("job_type", "announcement_delivery")
+        .eq("target_id", announcement.id)
+        .maybeSingle();
+
+      if (existingJob) {
+        await supabase.from("scheduled_jobs").update({
+          recurrence_type: recurrenceType,
+          custom_days: customDays,
+          next_run_at: nextRun.toISOString(),
+          metadata: { channels: normalizedNotifyChannels }
+        }).eq("id", existingJob.id);
+      } else {
+        await supabase.from("scheduled_jobs").insert({
+          organization_id: tenant.organizationId,
+          job_type: "announcement_delivery",
+          target_id: announcement.id,
+          recurrence_type: recurrenceType,
+          custom_days: customDays,
+          next_run_at: nextRun.toISOString(),
+          metadata: { channels: normalizedNotifyChannels }
+        });
+      }
+    } else {
+      await supabase.from("scheduled_jobs").insert({
+        organization_id: tenant.organizationId,
+        job_type: "announcement_delivery",
+        target_id: announcement.id,
+        recurrence_type: recurrenceType,
+        custom_days: customDays,
+        next_run_at: nextRun.toISOString(),
+        metadata: { channels: normalizedNotifyChannels }
+      });
+    }
+  } else if (announcementId) {
+    // Si no es recurrente pero viene un id (y quiza le sacaron el toggle) borramos el job
+    await supabase.from("scheduled_jobs")
+      .delete()
+      .eq("organization_id", tenant.organizationId)
+      .eq("job_type", "announcement_delivery")
+      .eq("target_id", announcementId);
   }
 
   await logAuditEvent({
