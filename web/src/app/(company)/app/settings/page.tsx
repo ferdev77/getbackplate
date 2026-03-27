@@ -12,6 +12,9 @@ import {
   updateBranchAction,
   updateDepartmentAction,
 } from "@/modules/settings/actions";
+import { InlineBranchForm } from "@/modules/settings/ui/inline-branch-form";
+import { InlineDepartmentForm } from "@/modules/settings/ui/inline-department-form";
+import { InlinePositionForm } from "@/modules/settings/ui/inline-position-form";
 import { CompanyContactSettingsCard } from "@/modules/settings/ui/company-contact-settings-card";
 import { requireTenantModule } from "@/shared/lib/access";
 
@@ -100,9 +103,6 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
       }
     : (orgSettingsWithWebsite ?? { website_url: "" });
 
-  const openBranchModal = params.action === "new-branch";
-  const openDepartmentModal = params.action === "new-department";
-
   const positionsByDepartment = new Map<string, Array<{ id: string; name: string; is_active: boolean }>>();
   for (const position of positions ?? []) {
     const list = positionsByDepartment.get(position.department_id) ?? [];
@@ -118,8 +118,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
           <h1 className="text-[18px] font-bold">Ajustes de Empresa</h1>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/app/settings?action=new-branch#org-structure" className={`inline-flex h-[33px] items-center gap-1 rounded-lg border border-[#ddd5d0] bg-white px-3 text-xs font-semibold text-[#514b47] hover:bg-[#f7f3f1] ${DARK_BTN_GHOST}`}><Plus className="h-3.5 w-3.5" /> Nueva Locacion</Link>
-          <Link href="/app/settings?action=new-department#org-structure" className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[#111] px-3 text-xs font-bold text-white hover:bg-[#c0392b] [.theme-dark-pro_&]:bg-[#2b5ea8] [.theme-dark-pro_&]:text-white [.theme-dark-pro_&]:hover:bg-[#3a73c6]"><Plus className="h-3.5 w-3.5" /> Nuevo Departamento</Link>
+          {/* Header buttons removed; actions are now closely placed inline to their respective sections */}
         </div>
       </section>
 
@@ -160,7 +159,10 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
 
       <section id="org-structure" className="grid gap-4 xl:grid-cols-2">
         <article className={`rounded-2xl border border-[#e7dfda] bg-white p-5 ${DARK_CARD}`}>
-          <div className="mb-3 flex items-center justify-between gap-2"><p className={`inline-flex items-center gap-1 text-xs font-semibold tracking-[0.1em] text-[#8d847f] uppercase ${DARK_TEXT_MUTED}`}><MapPin className="h-3.5 w-3.5" /> Locaciones</p><Link href="/app/settings?action=new-branch#org-structure" className={`inline-flex items-center gap-1 rounded-lg border border-[#ddd5d0] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#514b47] hover:bg-[#f7f3f1] ${DARK_BTN_GHOST}`}><Plus className="h-3.5 w-3.5" /> Agregar</Link></div>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <p className={`inline-flex items-center gap-1 text-xs font-semibold tracking-[0.1em] text-[#8d847f] uppercase ${DARK_TEXT_MUTED}`}><MapPin className="h-3.5 w-3.5" /> Locaciones</p>
+            <InlineBranchForm createAction={createBranchAction} />
+          </div>
 
           <div className="space-y-2">
             {(branches ?? []).map((branch) => (
@@ -198,7 +200,10 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
         </article>
 
         <article className={`rounded-2xl border border-[#e7dfda] bg-white p-5 ${DARK_CARD}`}>
-          <div className="mb-3 flex items-center justify-between gap-2"><p className={`inline-flex items-center gap-1 text-xs font-semibold tracking-[0.1em] text-[#8d847f] uppercase ${DARK_TEXT_MUTED}`}><Building2 className="h-3.5 w-3.5" /> Departamentos y Puestos</p><Link href="/app/settings?action=new-department#org-structure" className={`inline-flex items-center gap-1 rounded-lg border border-[#ddd5d0] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#514b47] hover:bg-[#f7f3f1] ${DARK_BTN_GHOST}`}><Plus className="h-3.5 w-3.5" /> Agregar</Link></div>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <p className={`inline-flex items-center gap-1 text-xs font-semibold tracking-[0.1em] text-[#8d847f] uppercase ${DARK_TEXT_MUTED}`}><Building2 className="h-3.5 w-3.5" /> Departamentos y Puestos</p>
+            <InlineDepartmentForm createAction={createDepartmentAction} />
+          </div>
 
           <div className="space-y-2">
             {(departments ?? []).map((department) => (
@@ -230,21 +235,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
                   <input name="description" defaultValue={department.description ?? ""} placeholder="Descripcion" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
                   <button type="submit" className="rounded-lg bg-[#111] px-3 py-2 text-xs font-semibold text-white hover:bg-[#2a2521] sm:w-fit [.theme-dark-pro_&]:bg-[#2b5ea8] [.theme-dark-pro_&]:hover:bg-[#3a73c6]">Guardar cambios</button>
                 </form>
-                <details className="group relative mt-3">
-                  <summary className={`inline-flex cursor-pointer list-none items-center gap-1 rounded-lg border border-[#ddd5d0] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#514b47] hover:bg-[#f7f3f1] ${DARK_BTN_GHOST}`}><Plus className="h-3.5 w-3.5" /> Agregar puesto</summary>
-                  <div className="grid grid-rows-[0fr] opacity-0 transition-all duration-200 ease-out group-open:grid-rows-[1fr] group-open:opacity-100">
-                    <div className="overflow-hidden">
-                      <div className={`mt-2 w-full rounded-xl border border-[#e8dfda] bg-[#fffdfa] p-3 ${DARK_CARD_SOFT}`}>
-                        <form action={createDepartmentPositionAction} className="grid gap-2">
-                          <input type="hidden" name="department_id" value={department.id} />
-                          <input name="name" required placeholder={`Nuevo puesto en ${department.name}`} className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
-                          <input name="description" placeholder="Descripcion (opcional)" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
-                          <div className="flex justify-end"><button type="submit" className="rounded-lg bg-[#111] px-3 py-2 text-xs font-bold text-white hover:bg-[#c0392b] [.theme-dark-pro_&]:bg-[#2b5ea8] [.theme-dark-pro_&]:hover:bg-[#3a73c6]">Guardar puesto</button></div>
-                        </form>
-                      </div>
-                    </div>
-                  </div>
-                </details>
+                <InlinePositionForm departmentId={department.id} departmentName={department.name} createAction={createDepartmentPositionAction} />
                 {(positionsByDepartment.get(department.id) ?? []).length ? (
                   <div className="mt-3 border-t border-[#efe7e2] pt-3 [.theme-dark-pro_&]:border-[#2c3646]">
                     <p className={`mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase ${DARK_TEXT_MUTED}`}>Puestos del departamento</p>
@@ -271,35 +262,6 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
         </article>
       </section>
 
-      {openBranchModal ? (
-        <div className="fixed inset-0 z-[1000] grid place-items-start bg-black/35 p-4 pt-24">
-          <div className={`w-full max-w-md rounded-2xl border border-[#e7dfda] bg-white p-4 shadow-[0_24px_70px_rgba(0,0,0,.18)] ${DARK_CARD}`}>
-            <div className="mb-3 flex items-center justify-between"><p className={`text-sm font-bold text-[#201a17] ${DARK_TEXT_STRONG}`}>Nueva Locacion</p><Link href="/app/settings#org-structure" className="grid h-7 w-7 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111] [.theme-dark-pro_&]:text-[#8ea1bc] [.theme-dark-pro_&]:hover:bg-[#1c2635] [.theme-dark-pro_&]:hover:text-[#e7edf7]">✕</Link></div>
-            <form action={createBranchAction} className="grid gap-2 sm:grid-cols-2">
-              <input name="name" required placeholder="Nombre de locacion" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
-              <input name="city" placeholder="Ciudad" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
-              <input name="state" placeholder="Estado" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
-              <input name="country" placeholder="Pais" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
-              <input name="phone" placeholder="Telefono" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
-              <input name="address" placeholder="Direccion" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm sm:col-span-2 ${DARK_INPUT}`} />
-              <div className="sm:col-span-2 flex justify-end gap-2 pt-1"><Link href="/app/settings#org-structure" className={`rounded-lg border border-[#ddd5d0] bg-white px-3 py-2 text-xs font-semibold text-[#514b47] hover:bg-[#f7f3f1] ${DARK_BTN_GHOST}`}>Cancelar</Link><button type="submit" className="rounded-lg bg-[#111] px-3 py-2 text-xs font-bold text-white hover:bg-[#c0392b] [.theme-dark-pro_&]:bg-[#2b5ea8] [.theme-dark-pro_&]:hover:bg-[#3a73c6]">Guardar</button></div>
-            </form>
-          </div>
-        </div>
-      ) : null}
-
-      {openDepartmentModal ? (
-        <div className="fixed inset-0 z-[1000] grid place-items-start bg-black/35 p-4 pt-24">
-          <div className={`w-full max-w-md rounded-2xl border border-[#e7dfda] bg-white p-4 shadow-[0_24px_70px_rgba(0,0,0,.18)] ${DARK_CARD}`}>
-            <div className="mb-3 flex items-center justify-between"><p className={`text-sm font-bold text-[#201a17] ${DARK_TEXT_STRONG}`}>Nuevo Departamento</p><Link href="/app/settings#org-structure" className="grid h-7 w-7 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111] [.theme-dark-pro_&]:text-[#8ea1bc] [.theme-dark-pro_&]:hover:bg-[#1c2635] [.theme-dark-pro_&]:hover:text-[#e7edf7]">✕</Link></div>
-            <form action={createDepartmentAction} className="grid gap-2">
-              <input name="name" required placeholder="Nombre de departamento" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
-              <input name="description" placeholder="Descripcion (opcional)" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
-              <div className="flex justify-end gap-2 pt-1"><Link href="/app/settings#org-structure" className={`rounded-lg border border-[#ddd5d0] bg-white px-3 py-2 text-xs font-semibold text-[#514b47] hover:bg-[#f7f3f1] ${DARK_BTN_GHOST}`}>Cancelar</Link><button type="submit" className="rounded-lg bg-[#111] px-3 py-2 text-xs font-bold text-white hover:bg-[#c0392b] [.theme-dark-pro_&]:bg-[#2b5ea8] [.theme-dark-pro_&]:hover:bg-[#3a73c6]">Guardar</button></div>
-            </form>
-          </div>
-        </div>
-      ) : null}
     </main>
   );
 }
