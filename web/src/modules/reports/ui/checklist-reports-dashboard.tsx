@@ -3,7 +3,8 @@
 import { FileBarChart, Search, X } from "lucide-react";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 
 export type ChecklistReportView = {
   id: string;
@@ -85,6 +86,7 @@ type AttentionFeedItem = {
 };
 
 type ChecklistReportsDashboardProps = {
+  organizationId: string;
   generatedAt: string;
   statCards: ReportStatCard[];
   locationCards: LocationCard[];
@@ -100,6 +102,7 @@ function toneClasses(tone: ReportStatCard["tone"]) {
 }
 
 export function ChecklistReportsDashboard({
+  organizationId,
   generatedAt,
   statCards,
   locationCards,
@@ -114,6 +117,45 @@ export function ChecklistReportsDashboard({
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [isReviewing, setIsReviewing] = useState(false);
   const [reviewError, setReviewError] = useState("");
+
+  // Supabase Realtime: auto-refresh when new submissions arrive or are updated
+  const orgIdRef = useRef(organizationId);
+  orgIdRef.current = organizationId;
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    const channel = supabase
+      .channel("checklist-reports-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "checklist_submissions",
+          filter: `organization_id=eq.${orgIdRef.current}`,
+        },
+        () => {
+          router.refresh();
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "checklist_submissions",
+          filter: `organization_id=eq.${orgIdRef.current}`,
+        },
+        () => {
+          router.refresh();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [router]);
 
   const selectedReport = useMemo(
     () => reports.find((report) => report.id === selectedReportId) ?? null,

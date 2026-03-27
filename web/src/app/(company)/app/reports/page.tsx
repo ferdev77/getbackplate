@@ -474,6 +474,7 @@ export default async function CompanyReportsPage() {
 
   return (
     <ChecklistReportsDashboard
+      organizationId={tenant.organizationId}
       generatedAt={now.toLocaleDateString("es-AR", {
         weekday: "long",
         day: "numeric",
