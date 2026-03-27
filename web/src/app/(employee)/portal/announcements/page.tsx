@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
+import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { requireEmployeeAccess } from "@/shared/lib/access";
 import { AlertCircle, CalendarClock, PartyPopper, Megaphone } from "lucide-react";
 
@@ -39,9 +40,12 @@ export default async function EmployeeAnnouncementsPage() {
   const authorIds = Array.from(new Set(announcements.map((a) => a.created_by).filter(Boolean)));
   const authorNameMap = new Map<string, string>();
   if (authorIds.length > 0) {
+    // Use admin client to bypass RLS — the author may be a company admin
+    // whose profile is not visible to the employee's session
+    const admin = createSupabaseAdminClient();
     const [{ data: employeesData }, { data: profilesData }] = await Promise.all([
-      supabase.from("employees").select("user_id, first_name, last_name, position").eq("organization_id", tenant.organizationId).in("user_id", authorIds),
-      supabase.from("organization_user_profiles").select("user_id, first_name, last_name").eq("organization_id", tenant.organizationId).in("user_id", authorIds),
+      admin.from("employees").select("user_id, first_name, last_name, position").eq("organization_id", tenant.organizationId).in("user_id", authorIds),
+      admin.from("organization_user_profiles").select("user_id, first_name, last_name").eq("organization_id", tenant.organizationId).in("user_id", authorIds),
     ]);
     for (const emp of employeesData ?? []) {
       if (emp.user_id) authorNameMap.set(emp.user_id, `${emp.first_name ?? ""} ${emp.last_name ?? ""}`.trim() || "Dirección");
