@@ -47,8 +47,9 @@ type ReportCategoryItem = {
   text: string;
   ok: boolean;
   flag: boolean;
-  note: string;
+  note?: string;
   photosCount: number;
+  photos?: string[];
   itemOrder: number;
 };
 
@@ -190,7 +191,7 @@ export default async function CompanyReportsPage() {
     submissionItemIds.length
       ? supabase
           .from("checklist_item_attachments")
-          .select("submission_item_id")
+          .select("submission_item_id, file_path")
           .eq("organization_id", tenant.organizationId)
           .in("submission_item_id", submissionItemIds)
       : Promise.resolve({ data: null }),
@@ -248,11 +249,18 @@ export default async function CompanyReportsPage() {
   }
 
   const attachmentCountBySubmissionItemId = new Map<string, number>();
+  const attachmentUrlsBySubmissionItemId = new Map<string, string[]>();
   for (const row of itemAttachments ?? []) {
     attachmentCountBySubmissionItemId.set(
       row.submission_item_id,
       (attachmentCountBySubmissionItemId.get(row.submission_item_id) ?? 0) + 1,
     );
+    const urls = attachmentUrlsBySubmissionItemId.get(row.submission_item_id) ?? [];
+    if (row.file_path) {
+      const { data } = supabase.storage.from("checklist-evidence").getPublicUrl(row.file_path);
+      urls.push(data.publicUrl);
+    }
+    attachmentUrlsBySubmissionItemId.set(row.submission_item_id, urls);
   }
 
   const sectionById = new Map(
@@ -322,6 +330,7 @@ export default async function CompanyReportsPage() {
         flag: submissionItem.flagged,
         note: flag?.reason ?? comment,
         photosCount: attachmentCountBySubmissionItemId.get(submissionItem.id) ?? 0,
+        photos: attachmentUrlsBySubmissionItemId.get(submissionItem.id) ?? [],
         itemOrder: itemMeta?.itemOrder ?? 999,
       });
 
@@ -343,7 +352,7 @@ export default async function CompanyReportsPage() {
           .map((item) => ({
             id: item.id,
             task: item.text,
-            note: item.note,
+            note: item.note ?? "",
             category: category.name,
           })),
       )
