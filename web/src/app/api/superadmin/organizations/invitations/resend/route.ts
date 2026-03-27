@@ -5,6 +5,8 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { requireSuperadmin } from "@/shared/lib/access";
 import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { sendEmail } from "@/shared/lib/brevo";
+import { resendReminderTemplate } from "@/shared/lib/email-templates/invitation";
 
 export async function POST(request: Request) {
   await requireSuperadmin();
@@ -23,26 +25,25 @@ export async function POST(request: Request) {
 
   const admin = createSupabaseAdminClient();
   const server = await createSupabaseServerClient();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  const redirectTo = appUrl
-    ? `${appUrl.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent("/app/dashboard")}&org=${encodeURIComponent(organizationId)}`
-    : undefined;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://getbackplate.com";
+  const redirectTo = `${appUrl.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent("/app/dashboard")}&org=${encodeURIComponent(organizationId)}`;
 
   const existingUser = await findAuthUserByEmail(email);
 
   let mode: "invite" | "recovery" = "invite";
 
   if (existingUser) {
-    const { error: otpError } = await server.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo: redirectTo,
-      },
+    const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
+    const recoveryUrl = `${appUrl.replace(/\/$/, "")}/auth/recovery`;
+
+    const emailResult = await sendEmail({
+      to: [{ email, name: fullName }],
+      subject: "Recordatorio de acceso a la plataforma",
+      htmlContent: resendReminderTemplate({ fullName, loginUrl, recoveryUrl })
     });
 
-    if (otpError) {
-      return NextResponse.json({ ok: false, error: `No se pudo reenviar correo de acceso: ${otpError.message}` }, { status: 400 });
+    if (!emailResult.ok) {
+      return NextResponse.json({ ok: false, error: emailResult.error }, { status: 400 });
     }
 
     mode = "recovery";
