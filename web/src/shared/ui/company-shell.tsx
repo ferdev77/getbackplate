@@ -887,6 +887,27 @@ export function CompanyShell({
               ))}
             </div>
             <div className={`mt-auto border-t px-4 py-3 ${isDarkTheme ? "border-white/10" : "border-black/10"}`}>
+              <div className="mb-3 flex items-center gap-2.5">
+                <span className="grid h-9 w-9 flex-shrink-0 place-items-center overflow-hidden rounded-full text-xs font-semibold text-white" style={{ background: palette.accent }}>
+                  {currentAvatarUrl ? (
+                    <Image
+                      src={currentAvatarUrl}
+                      alt={`Avatar de ${profileName}`}
+                      width={36}
+                      height={36}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    initials
+                  )}
+                </span>
+                <div className="min-w-0">
+                  <p className={`truncate text-[13px] font-semibold ${isDarkTheme ? "text-[#eef3fb]" : "text-[#222222]"}`}>{profileName}</p>
+                  <p className={`truncate text-[11px] ${isDarkTheme ? "text-[#aab6c8]" : "text-[#9a9a9a]"}`}>{sessionRoleLabel}</p>
+                  <p className={`truncate text-[10px] ${isDarkTheme ? "text-[#8693a7]" : "text-[#b0b0b0]"}`}>{sessionUserEmail || "Sin email"}</p>
+                </div>
+              </div>
+
               <button
                 type="button"
                 onClick={() => {
