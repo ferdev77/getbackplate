@@ -65,6 +65,30 @@ Supabase (plan Pro+) genera respaldos (Point in Time Recovery - PITR).
 
 ---
 
+## Nivel 3 (L3) - Tareas Programadas (Crons) e Infraestructura
+
+### 1. Límites de Vercel (Plan Hobby) y Arquitectura de Crons
+**Contexto:** El plan gratuito de Vercel tiene límites estrictos para tareas programadas (Cron Jobs) definidos en `vercel.json`:
+- **Máximo 2 cron jobs por proyecto.**
+- **Frecuencia máxima:** 1 vez al día (no permite tareas por hora ni por minuto).
+
+Si se excede alguno de estos límites, **Vercel rechaza el deployment instantáneamente** sin mostrar error en el dashboard (solo aparece una cruz roja en GitHub).
+
+**Estrategia actual de bypass:**
+1. **Consolidación Interna:** Los procesos de purga de papelera y reportes documentales se agruparon en un único "Master Cron" que corre 1 vez al día a la madrugada (08:00 UTC / 4:00 AM ET) llamando al endpoint `/api/internal/cron/daily`.
+2. **Procesamiento de Alta Frecuencia (Mails / WhatsApp):** Como enviar notificaciones 1 vez al día es inaceptable a nivel UX, la plataforma delega el desencadenante de alta frecuencia a un servicio externo gratuito: **cron-job.org**.
+
+### 2. Mantenimiento del Reloj Externo (cron-job.org)
+**Síntoma:** Los empleados y admins no reciben correos o llegan con horas de demora, y los anuncios se quedan atascados en la cola de envío.
+**Acción:**
+1. Ingresar a la cuenta de [cron-job.org](https://cron-job.org/).
+2. Verificar el estado del Job apuntado a `https://getbackplate.vercel.app/api/internal/cron/deliveries`.
+3. Asegurarse de que el Job tiene configurado el header HTTP de seguridad:
+   - `Authorization`: `Bearer TU_CRON_SECRET`
+4. Si la URL del sistema cambia de dominio, **debe actualizarse** obligatoriamente en cron-job.org para restaurar el flujo de correos.
+
+---
+
 ## 📅 Contactos de Emergencia (Plataformas)
 
 - **Supabase Support Dashboard:** Enviar ticket clasificado como `Urgent` o `Database Unresponsive`.
