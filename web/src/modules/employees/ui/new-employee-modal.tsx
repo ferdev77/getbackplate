@@ -58,6 +58,7 @@ export function NewEmployeeModal({
   initialEmployee,
 }: NewEmployeeModalProps) {
   const [isActionPending, setIsActionPending] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [selectedDept, setSelectedDept] = useState(initialEmployee?.department_id ?? "");
   const [createAccount, setCreateAccount] = useState(Boolean(initialEmployee?.has_dashboard_access));
   const [isEmployeeProfile, setIsEmployeeProfile] = useState(
@@ -65,6 +66,30 @@ export function NewEmployeeModal({
   );
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(0);
+
+  async function handleResendInvitation() {
+    const targetEmail = initialEmployee?.email;
+    if (!targetEmail) return;
+    setIsResending(true);
+    try {
+      const res = await fetch("/api/company/invitations/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: targetEmail,
+          fullName: `${initialEmployee?.first_name ?? ""} ${initialEmployee?.last_name ?? ""}`.trim(),
+          roleCode: "employee",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "No se pudo reenviar la invitación");
+      toast.success(data.message || `Invitación reenviada a ${targetEmail}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Error al reenviar invitación");
+    } finally {
+      setIsResending(false);
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -582,19 +607,38 @@ export function NewEmployeeModal({
           </div>
 
           {/* Footer */}
-           <div className="flex items-center justify-end gap-3 border-t border-[#f0f0f0] bg-white p-6 px-8 [.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#151b25]">
-            <Link
-              href="/app/employees"
-              className={`rounded-full px-6 py-2.5 text-sm font-bold text-[#888] transition-colors hover:bg-gray-100 ${DARK_GHOST}`}
-            >
-              Cancelar
-            </Link>
-            <SubmitButton
-              label={mode === "edit" ? "Actualizar Usuario / Empleado" : "Guardar Usuario / Empleado"}
-              pendingLabel={mode === "edit" ? "Actualizando..." : "Guardando..."}
-              pending={isActionPending}
-              className="rounded-full bg-[#111] px-10 py-2.5 text-sm font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
-            />
+           <div className="flex items-center justify-between gap-3 border-t border-[#f0f0f0] bg-white p-6 px-8 [.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#151b25]">
+            <div>
+              {mode === "edit" && initialEmployee?.email ? (
+                <button
+                  type="button"
+                  onClick={() => void handleResendInvitation()}
+                  disabled={isResending}
+                  className="inline-flex items-center gap-2 rounded-full border-[1.5px] border-[#e8e8e8] bg-[#fafafa] px-5 py-2.5 text-sm font-semibold text-[#555] transition-all hover:border-brand hover:bg-[#fff5f3] hover:text-brand disabled:opacity-50"
+                >
+                  {isResending ? (
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" /><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" /></svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
+                  )}
+                  {isResending ? "Enviando..." : "Reenviar Invitación"}
+                </button>
+              ) : <span />}
+            </div>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/app/employees"
+                className={`rounded-full px-6 py-2.5 text-sm font-bold text-[#888] transition-colors hover:bg-gray-100 ${DARK_GHOST}`}
+              >
+                Cancelar
+              </Link>
+              <SubmitButton
+                label={mode === "edit" ? "Actualizar Usuario / Empleado" : "Guardar Usuario / Empleado"}
+                pendingLabel={mode === "edit" ? "Actualizando..." : "Guardando..."}
+                pending={isActionPending}
+                className="rounded-full bg-[#111] px-10 py-2.5 text-sm font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
+              />
+            </div>
           </div>
         </form>
       </div>

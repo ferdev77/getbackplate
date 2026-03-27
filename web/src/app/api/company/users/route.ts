@@ -22,37 +22,82 @@ async function resolveOrCreateAuthUser(params: {
   fullName: string;
 }) {
   const admin = createSupabaseAdminClient();
+  const existingUser = await findAuthUserByEmail(params.email);
+  let userId = existingUser?.id ?? null;
 
-  const { data: createdUser, error: createUserError } = await admin.auth.admin.createUser({
-    email: params.email,
-    password: params.password,
-    email_confirm: true,
-    user_metadata: {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  const callbackRedirectTo = appUrl
+    ? `${appUrl.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent("/app/dashboard")}`
+    : undefined;
+
+  const userMeta = {
+    full_name: params.fullName,
+    force_password_change: true,
+    temporary_password_set_at: new Date().toISOString(),
+  };
+
+  if (userId) {
+    const { error: updateError } = await admin.auth.admin.updateUserById(userId, {
+      password: params.password,
+      email_confirm: true,
+      user_metadata: {
+        ...(existingUser?.user_metadata || {}),
+        ...userMeta,
+      },
+    });
+
+    if (updateError) {
+      return { userId: null, errorMessage: `Error actualizando credenciales: ${updateError.message}` };
+    }
+
+    const server = await createSupabaseServerClient();
+    const { error: otpError } = await server.auth.signInWithOtp({
+      email: params.email,
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: callbackRedirectTo,
+      },
+    });
+
+    if (otpError) {
+      await admin.auth.resetPasswordForEmail(
+        params.email,
+        callbackRedirectTo ? { redirectTo: callbackRedirectTo } : undefined,
+      );
+    }
+    
+    return { userId, errorMessage: null };
+  }
+
+  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(params.email, {
+    redirectTo: callbackRedirectTo,
+    data: {
       full_name: params.fullName,
+      login_email: params.email,
+      login_password: params.password,
     },
   });
 
-  if (!createUserError && createdUser.user?.id) {
-    return { userId: createdUser.user.id, errorMessage: null as string | null };
+  if (inviteError || !invited.user?.id) {
+    return { userId: null, errorMessage: `No se pudo enviar invitacion: ${inviteError?.message ?? "Error desconocido"}` };
   }
 
-  if (!createUserError) {
-    return { userId: null as string | null, errorMessage: "No se pudo resolver el usuario de autenticacion" };
+  userId = invited.user.id;
+
+  const { error: updateCreatedError } = await admin.auth.admin.updateUserById(userId, {
+    password: params.password,
+    email_confirm: true,
+    user_metadata: {
+      ...(invited.user.user_metadata || {}),
+      ...userMeta,
+    },
+  });
+
+  if (updateCreatedError) {
+    return { userId: null, errorMessage: `Invitacion enviada, pero error guardando contraseña inicial: ${updateCreatedError.message}` };
   }
 
-  if (!isAuthUserAlreadyRegisteredError(createUserError.message)) {
-    return {
-      userId: null as string | null,
-      errorMessage: `No se pudo crear usuario de autenticacion: ${createUserError.message}`,
-    };
-  }
-
-  const existing = await findAuthUserByEmail(params.email);
-  if (existing?.id) {
-    return { userId: existing.id, errorMessage: null as string | null };
-  }
-
-  return { userId: null as string | null, errorMessage: "No se pudo resolver el usuario de autenticacion" };
+  return { userId, errorMessage: null };
 }
 
 async function requireUserContext() {
