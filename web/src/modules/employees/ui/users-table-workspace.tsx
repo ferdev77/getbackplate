@@ -60,6 +60,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [busyDelete, setBusyDelete] = useState(false);
   const [busySave, setBusySave] = useState(false);
+  const [busyResend, setBusyResend] = useState(false);
 
   useEffect(() => {
     setRows(users);
@@ -168,17 +169,20 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
   }
 
   async function resendInvitation(user: UserRow) {
+    setBusyResend(true);
     try {
       const response = await fetch("/api/company/invitations/resend", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user.email, fullName: user.fullName }),
+        body: JSON.stringify({ email: user.email, fullName: user.fullName, roleCode: user.roleCode || "company_admin" }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "No se pudo reenviar invitación");
       toast.success(data.message || `Invitación reenviada a ${user.email}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Error al reenviar invitación");
+    } finally {
+      setBusyResend(false);
     }
   }
 
@@ -291,9 +295,12 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
                <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Acceso a plataforma</p><select value={editStatus} onChange={(event) => setEditStatus(event.target.value)} className="mt-1 h-9 w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-sm"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></div>
               <div className="sm:col-span-2"><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Locacion</p><select value={editBranchId} onChange={(event) => setEditBranchId(event.target.value)} className="mt-1 h-9 w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-sm"><option value="">Todas</option>{branchOptions.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></div>
             </div>
-            <div className="flex items-center justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4">
-              <button type="button" onClick={() => setEditMembershipId(null)} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]">Cancelar</button>
-              <button type="button" disabled={busySave} onClick={saveUser} className="rounded-lg bg-[#111] px-5 py-2 text-sm font-bold text-white hover:bg-[#c0392b] disabled:opacity-60">{busySave ? "Guardando..." : "Guardar cambios"}</button>
+            <div className="flex items-center justify-between gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4">
+              <button type="button" disabled={busyResend} onClick={() => void resendInvitation(editing)} className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#fafafa] px-3 py-2 text-sm font-semibold text-[#555] transition-all hover:border-[#c0392b] hover:bg-[#fff5f3] hover:text-[#c0392b] disabled:opacity-50">{busyResend ? "Enviando..." : "Reenviar Invitación"}</button>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => setEditMembershipId(null)} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]">Cancelar</button>
+                <button type="button" disabled={busySave} onClick={saveUser} className="rounded-lg bg-[#111] px-5 py-2 text-sm font-bold text-white hover:bg-[#c0392b] disabled:opacity-60">{busySave ? "Guardando..." : "Guardar cambios"}</button>
+              </div>
             </div>
           </div>
         </div>

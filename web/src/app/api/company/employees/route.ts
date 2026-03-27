@@ -122,13 +122,21 @@ async function sendAccessInvitationEmail(
     ? `${appUrl.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent("/app/dashboard")}&org=${encodeURIComponent(tenantId)}`
     : undefined;
 
-  await server.auth.signInWithOtp({
+  // Try magic link first, fall back to password reset
+  const { error: otpError } = await server.auth.signInWithOtp({
     email,
     options: {
       shouldCreateUser: false,
       emailRedirectTo: redirectTo,
     },
   });
+
+  if (otpError) {
+    await admin.auth.resetPasswordForEmail(
+      email,
+      redirectTo ? { redirectTo } : undefined,
+    );
+  }
 
   const code = crypto.randomUUID();
   await admin.from("organization_invitations").insert({
@@ -372,30 +380,56 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: EMPLOYEES_MESSAGES.ACCESS_PASSWORD_MIN }, { status: 400 });
         }
 
-        const { data: createdUser, error: createUserError } = await admin.auth.admin.createUser({
-          email: loginEmail,
-          password: accountPassword,
-          email_confirm: true,
-          user_metadata: { full_name: `${firstName} ${lastName}`.trim() },
-        });
+        // Check if user already exists
+        const existingAuthUser = await findAuthUserByEmail(loginEmail);
+        if (existingAuthUser?.id) {
+          linkedUserId = existingAuthUser.id;
+          // Update password for existing user
+          await admin.auth.admin.updateUserById(linkedUserId, {
+            password: accountPassword,
+            email_confirm: true,
+            user_metadata: {
+              ...(existingAuthUser.user_metadata || {}),
+              full_name: `${firstName} ${lastName}`.trim(),
+              force_password_change: true,
+              temporary_password_set_at: new Date().toISOString(),
+            },
+          });
+        } else {
+          // New user: invite via email
+          const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(loginEmail, {
+            redirectTo: (() => {
+              const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+              return appUrl
+                ? `${appUrl.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent("/app/dashboard")}`
+                : undefined;
+            })(),
+            data: {
+              full_name: `${firstName} ${lastName}`.trim(),
+              login_email: loginEmail,
+              login_password: accountPassword,
+            },
+          });
 
-        if (!createUserError && createdUser.user) {
-          linkedUserId = createdUser.user.id;
-        }
-
-        if (createUserError) {
-          const exists =
-            createUserError.message.toLowerCase().includes("already") ||
-            createUserError.message.toLowerCase().includes("exists") ||
-            createUserError.message.toLowerCase().includes("registered");
-          if (!exists) {
+          if (inviteError || !invited.user?.id) {
             return NextResponse.json(
-              { error: `${EMPLOYEES_MESSAGES.EMPLOYEE_ACCOUNT_CREATE_FAILED_PREFIX}: ${createUserError.message}` },
+              { error: `${EMPLOYEES_MESSAGES.EMPLOYEE_ACCOUNT_CREATE_FAILED_PREFIX}: ${inviteError?.message ?? "Error desconocido"}` },
               { status: 400 },
             );
           }
-          const existing = await findAuthUserByEmail(loginEmail);
-          linkedUserId = existing?.id ?? null;
+
+          linkedUserId = invited.user.id;
+
+          // Set the temporary password
+          await admin.auth.admin.updateUserById(linkedUserId, {
+            password: accountPassword,
+            email_confirm: true,
+            user_metadata: {
+              ...(invited.user.user_metadata || {}),
+              force_password_change: true,
+              temporary_password_set_at: new Date().toISOString(),
+            },
+          });
         }
       }
 
@@ -805,31 +839,57 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: EMPLOYEES_MESSAGES.ROLE_EMPLOYEE_UNAVAILABLE }, { status: 400 });
     }
 
-    const { data: createdUser, error: createUserError } = await admin.auth.admin.createUser({
-      email: loginEmail,
-      password: accountPassword,
-      email_confirm: true,
-      user_metadata: { full_name: `${firstName} ${lastName}`.trim() },
-    });
+    // Check if user already exists
+    const existingAuthUser = await findAuthUserByEmail(loginEmail);
+    if (existingAuthUser?.id) {
+      linkedUserId = existingAuthUser.id;
+      // Update password for existing user
+      await admin.auth.admin.updateUserById(linkedUserId, {
+        password: accountPassword,
+        email_confirm: true,
+        user_metadata: {
+          ...(existingAuthUser.user_metadata || {}),
+          full_name: `${firstName} ${lastName}`.trim(),
+          force_password_change: true,
+          temporary_password_set_at: new Date().toISOString(),
+        },
+      });
+    } else {
+      // New user: invite via email
+      const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(loginEmail, {
+        redirectTo: (() => {
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+          return appUrl
+            ? `${appUrl.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent("/app/dashboard")}`
+            : undefined;
+        })(),
+        data: {
+          full_name: `${firstName} ${lastName}`.trim(),
+          login_email: loginEmail,
+          login_password: accountPassword,
+        },
+      });
 
-    if (!createUserError && createdUser.user) {
-      linkedUserId = createdUser.user.id;
-      createdAuthUserId = createdUser.user.id;
-    }
-
-    if (createUserError) {
-      const exists =
-        createUserError.message.toLowerCase().includes("already") ||
-        createUserError.message.toLowerCase().includes("exists") ||
-        createUserError.message.toLowerCase().includes("registered");
-      if (!exists) {
+      if (inviteError || !invited.user?.id) {
         return NextResponse.json(
-          { error: `${EMPLOYEES_MESSAGES.EMPLOYEE_ACCOUNT_CREATE_FAILED_PREFIX}: ${createUserError.message}` },
+          { error: `${EMPLOYEES_MESSAGES.EMPLOYEE_ACCOUNT_CREATE_FAILED_PREFIX}: ${inviteError?.message ?? "Error desconocido"}` },
           { status: 400 },
         );
       }
-      const existing = await findAuthUserByEmail(loginEmail);
-      linkedUserId = existing?.id ?? null;
+
+      linkedUserId = invited.user.id;
+      createdAuthUserId = invited.user.id;
+
+      // Set the temporary password
+      await admin.auth.admin.updateUserById(linkedUserId, {
+        password: accountPassword,
+        email_confirm: true,
+        user_metadata: {
+          ...(invited.user.user_metadata || {}),
+          force_password_change: true,
+          temporary_password_set_at: new Date().toISOString(),
+        },
+      });
     }
 
     if (!linkedUserId) {

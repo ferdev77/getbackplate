@@ -10,11 +10,12 @@ export async function POST(request: Request) {
   const tenant = await requireCompanyAccess();
 
   const body = (await request.json().catch(() => null)) as
-    | { email?: string; fullName?: string }
+    | { email?: string; fullName?: string; roleCode?: string }
     | null;
 
   const email = String(body?.email ?? "").trim().toLowerCase();
   const fullName = String(body?.fullName ?? "").trim() || "Usuario";
+  const roleCode = String(body?.roleCode ?? "employee").trim();
 
   if (!email) {
     return NextResponse.json({ ok: false, error: "Falta el email para reenviar invitación" }, { status: 400 });
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
     organization_id: tenant.organizationId,
     email,
     full_name: fullName,
-    role_code: "company_admin",
+    role_code: roleCode,
     status: "sent",
     invitation_code: code,
     source: "company_panel",
