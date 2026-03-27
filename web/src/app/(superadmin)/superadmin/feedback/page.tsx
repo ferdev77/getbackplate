@@ -132,12 +132,6 @@ export default async function SuperadminFeedbackPage() {
 
                      <h3 className="mb-1 text-base font-bold text-foreground">{msg.title}</h3>
                      <p className="text-sm text-foreground/80 leading-relaxed max-w-4xl whitespace-pre-wrap">{msg.message}</p>
-                     
-                     {msg.page_path && (
-                       <p className="mt-3 text-[11px] font-medium text-muted-foreground">
-                         Enviado desde: <code className="rounded bg-muted/50 px-1 py-0.5 font-mono text-xs">{msg.page_path}</code>
-                       </p>
-                     )}
                   </div>
 
                   <div className="flex items-center gap-2 sm:self-start">
