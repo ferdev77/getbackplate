@@ -5,36 +5,111 @@ const client = new Client({
   connectionString: process.env.SUPABASE_DB_POOLER_URL
 });
 
+// Payload structure from route.ts:
+// {
+//   id: <submission_item_uuid>,       <- use as primary key
+//   template_item_id: <template_item_uuid>, <- FK to checklist_template_items
+//   checked: boolean,
+//   flagged: boolean,
+//   comment: string,
+//   attachments: []
+// }
+const fixSQL = `
+CREATE OR REPLACE FUNCTION public.submit_checklist_transaction(
+  p_submission_id uuid,
+  p_organization_id uuid,
+  p_branch_id uuid,
+  p_template_id bigint,
+  p_submitted_by uuid,
+  p_items jsonb,
+  p_submitted_at timestamptz
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_item         jsonb;
+  v_item_row_id  uuid;
+BEGIN
+  -- Insert Root Submission
+  INSERT INTO checklist_submissions (
+    id, organization_id, branch_id, template_id, submitted_by, submitted_at, status
+  ) VALUES (
+    p_submission_id,
+    p_organization_id,
+    p_branch_id,
+    p_template_id::uuid,
+    p_submitted_by,
+    p_submitted_at,
+    'submitted'
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  -- Loop over items
+  FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
+  LOOP
+    -- 'id' in payload = submission item UUID, 'template_item_id' = FK
+    v_item_row_id := (v_item->>'id')::uuid;
+
+    INSERT INTO checklist_submission_items (
+      id,
+      organization_id,
+      submission_id,
+      template_item_id,
+      is_checked,
+      is_flagged
+    ) VALUES (
+      v_item_row_id,
+      p_organization_id,
+      p_submission_id,
+      (v_item->>'template_item_id')::uuid,
+      (v_item->>'checked')::boolean,
+      (v_item->>'flagged')::boolean
+    )
+    ON CONFLICT (id) DO NOTHING;
+
+    -- Handle flags for flagged items
+    IF (v_item->>'flagged')::boolean = true THEN
+      INSERT INTO checklist_flags (
+        organization_id,
+        submission_item_id,
+        reported_by,
+        reason,
+        status
+      ) VALUES (
+        p_organization_id,
+        v_item_row_id,
+        p_submitted_by,
+        COALESCE(NULLIF(v_item->>'comment', ''), 'Sin comentario'),
+        'open'
+      )
+      ON CONFLICT DO NOTHING;
+    END IF;
+
+  END LOOP;
+
+END;
+$$;
+`;
+
 async function main() {
   await client.connect();
   
-  // Try enabling realtime
   try {
-    await client.query(`ALTER PUBLICATION supabase_realtime ADD TABLE feedback_messages;`);
-    console.log("Realtime enabled successfully");
+    await client.query(fixSQL);
+    console.log("✅ Function submit_checklist_transaction — version final correcta aplicada!");
+    
+    // Confirm it compiled OK by describing it
+    const res = await client.query(`
+      SELECT proname, pronargs 
+      FROM pg_proc 
+      WHERE proname = 'submit_checklist_transaction'
+    `);
+    console.log("Confirmed function exists:", res.rows);
   } catch (err) {
-    if (err.message.includes("already in publication")) {
-      console.log("Realtime already enabled");
-    } else {
-      console.log("Error enabling realtime:", err.message);
-    }
+    console.error("❌ Error:", err.message);
   }
-
-  // Check columns
-  const res = await client.query(`
-    SELECT column_name, data_type 
-    FROM information_schema.columns 
-    WHERE table_name = 'feedback_messages'
-  `);
-  console.log("\nSchema columns:");
-  console.log(res.rows);
-
-  // Check data
-  const dataRes = await client.query(`
-    SELECT id, status, resolved_at FROM feedback_messages LIMIT 5
-  `);
-  console.log("\nSample data:");
-  console.log(dataRes.rows);
 
   await client.end();
 }
