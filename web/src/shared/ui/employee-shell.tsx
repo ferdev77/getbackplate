@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 
 type EmployeeShellProps = {
   organizationName: string;
@@ -38,6 +40,28 @@ export function EmployeeShell({
   enabledModules,
 }: EmployeeShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Realtime: auto-refresh when any DB data changes
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    const channel = supabase
+      .channel("employee-shell-realtime")
+      .on("postgres_changes", { event: "*", schema: "public" }, () => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+          router.refresh();
+        }, 500);
+      })
+      .subscribe();
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      supabase.removeChannel(channel);
+    };
+  }, [router]);
+
   const hasChecklistTab = enabledModules.checklists;
   const hasDocumentsTab = enabledModules.documents;
   const hasOnboardingTab = enabledModules.onboarding;
