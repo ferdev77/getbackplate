@@ -6,7 +6,7 @@ import { EmployeeWelcomeModal } from "@/modules/onboarding/ui/employee-welcome-m
 import { requireEmployeeAccess } from "@/shared/lib/access";
 import { canReadDocumentInTenant } from "@/shared/lib/document-access";
 import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
-import { FileText, ClipboardCheck, ArrowRight } from "lucide-react";
+import { FileText, ClipboardCheck, ArrowRight, AlertCircle, CalendarClock, PartyPopper, Megaphone } from "lucide-react";
 
 function formatBytes(value: number | null) {
   const bytes = value ?? 0;
@@ -105,7 +105,7 @@ export default async function EmployeeHomePage() {
     const now = new Date();
     const { data } = await supabase
       .from("announcements")
-      .select("id, title, body, kind, publish_at, expires_at, target_scope")
+      .select("id, title, body, kind, publish_at, expires_at, target_scope, created_by")
       .eq("organization_id", tenant.organizationId)
       .order("publish_at", { ascending: false })
       .limit(60);
@@ -117,6 +117,24 @@ export default async function EmployeeHomePage() {
       const notExpired = !expiresAt || expiresAt >= now;
       return published && notExpired;
     });
+  }
+
+  // Fetch authors for announcements
+  const authorIds = Array.from(new Set(announcements.map((a) => a.created_by).filter(Boolean)));
+  const authorNameMap = new Map<string, string>();
+  if (authorIds.length > 0) {
+    const [{ data: employeesData }, { data: profilesData }] = await Promise.all([
+      supabase.from("employees").select("user_id, first_name, last_name, position").eq("organization_id", tenant.organizationId).in("user_id", authorIds),
+      supabase.from("organization_user_profiles").select("user_id, first_name, last_name").eq("organization_id", tenant.organizationId).in("user_id", authorIds),
+    ]);
+    for (const emp of employeesData ?? []) {
+      if (emp.user_id) authorNameMap.set(emp.user_id, `${emp.first_name ?? ""} ${emp.last_name ?? ""}`.trim() || "Dirección");
+    }
+    for (const prof of profilesData ?? []) {
+      if (prof.user_id && !authorNameMap.has(prof.user_id)) {
+        authorNameMap.set(prof.user_id, `${prof.first_name ?? ""} ${prof.last_name ?? ""}`.trim() || "Dirección");
+      }
+    }
   }
 
   // Fetch Documents
@@ -234,11 +252,36 @@ export default async function EmployeeHomePage() {
         <div className="absolute top-0 right-0 p-12 opacity-10 blur-2xl">
            <div className="w-64 h-64 bg-brand rounded-full"></div>
         </div>
-        <div className="relative z-10">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-[#e74c3c]">Mensaje de la Dirección</p>
-          <h2 className="font-serif text-3xl font-bold leading-tight">{heroAnnouncement?.title ?? "Bienvenido al Portal Interno"}</h2>
+        <div className="relative z-10 flex flex-col items-start">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="inline-flex rounded-full bg-[#111] border border-[#332b27] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-[#e74c3c]">
+              Mensaje Principal
+            </span>
+            {heroAnnouncement?.kind && (
+              <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-widest ${
+                heroAnnouncement.kind === "urgent" ? "bg-rose-500/20 text-rose-300" :
+                heroAnnouncement.kind === "reminder" ? "bg-amber-500/20 text-amber-300" :
+                heroAnnouncement.kind === "celebration" ? "bg-blue-500/20 text-blue-300" :
+                "bg-white/10 text-white/70"
+              }`}>
+                {heroAnnouncement.kind === "urgent" && "Urgente"}
+                {heroAnnouncement.kind === "reminder" && "Recordatorio"}
+                {heroAnnouncement.kind === "celebration" && "Celebración"}
+                {heroAnnouncement.kind === "general" && "General"}
+              </span>
+            )}
+          </div>
+          <h2 className="font-serif text-3xl font-bold leading-tight max-w-3xl">{heroAnnouncement?.title ?? "Bienvenido al Portal Interno"}</h2>
           <p className="mt-4 text-sm leading-7 text-[#b8b0aa] max-w-2xl">{heroAnnouncement?.body ?? "Aquí encontrarás avisos, checklists pendientes y documentos recientes de tu puesto."}</p>
-          <p className="mt-4 text-[11px] text-[#665f5a]">Publicado: {heroAnnouncement?.publish_at ? new Date(heroAnnouncement.publish_at).toLocaleDateString("es-AR") : "-"}</p>
+          <div className="mt-6 flex items-center gap-3">
+            <div className="grid h-8 w-8 place-items-center rounded-full bg-[#302824] text-[10px] font-bold text-[#e8e8e8]">
+              {(authorNameMap.get(heroAnnouncement?.created_by ?? "") || "DG").substring(0, 2).toUpperCase()}
+            </div>
+            <div className="text-[11px] leading-tight">
+              <p className="font-medium text-[#e8e8e8]">{authorNameMap.get(heroAnnouncement?.created_by ?? "") || "Dirección General"}</p>
+              <p className="text-[#665f5a]">{heroAnnouncement?.publish_at ? new Date(heroAnnouncement.publish_at).toLocaleDateString("es-AR") : "-"}</p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -328,12 +371,34 @@ export default async function EmployeeHomePage() {
 
           <div className="space-y-3">
             {recentAnnouncements.map((item) => (
-              <article key={item.id} className="flex gap-4 rounded-2xl border border-[#e8e8e8] bg-white p-5">
-                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#fff8f0] text-lg">📣</div>
-                <div>
-                  <h3 className="text-[14px] font-bold text-[#111]">{item.title}</h3>
+              <article key={item.id} className="group relative flex gap-4 overflow-hidden rounded-2xl border border-[#e8e8e8] bg-white p-5 transition-all hover:border-orange-200 hover:shadow-lg hover:shadow-orange-500/5">
+                <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl transition-colors ${
+                  item.kind === "urgent" ? "bg-rose-50 text-rose-500 group-hover:bg-rose-100" :
+                  item.kind === "reminder" ? "bg-amber-50 text-amber-500 group-hover:bg-amber-100" :
+                  item.kind === "celebration" ? "bg-blue-50 text-blue-500 group-hover:bg-blue-100" :
+                  "bg-[#fff8f0] text-orange-400 group-hover:bg-orange-100"
+                }`}>
+                  {item.kind === "urgent" && <AlertCircle className="h-5 w-5" />}
+                  {item.kind === "reminder" && <CalendarClock className="h-5 w-5" />}
+                  {item.kind === "celebration" && <PartyPopper className="h-5 w-5" />}
+                  {item.kind === "general" && <Megaphone className="h-5 w-5" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-[14px] font-bold text-[#111] pr-2">{item.title}</h3>
+                  </div>
                   <p className="mt-1 text-[13px] leading-6 text-[#666]">{item.body}</p>
-                  <p className="mt-2 text-[11px] font-medium text-[#bbb]">{item.publish_at ? new Date(item.publish_at).toLocaleDateString("es-AR") : "-"}</p>
+                  
+                  <div className="mt-3 flex items-center gap-3 border-t border-[#f5f5f5] pt-3">
+                    <span className="flex items-center gap-1.5 text-[11px] font-semibold text-[#888]">
+                      <div className="grid h-4 w-4 place-items-center rounded-full bg-[#f0f0f0] text-[8px] font-bold text-[#555]">
+                        {(authorNameMap.get(item.created_by ?? "") || "DG").substring(0, 1).toUpperCase()}
+                      </div>
+                      {authorNameMap.get(item.created_by ?? "") || "Dirección General"}
+                    </span>
+                    <span className="text-[10px] text-[#ccc]">•</span>
+                    <span className="text-[11px] font-medium text-[#bbb]">{item.publish_at ? new Date(item.publish_at).toLocaleDateString("es-AR") : "-"}</span>
+                  </div>
                 </div>
               </article>
             ))}
