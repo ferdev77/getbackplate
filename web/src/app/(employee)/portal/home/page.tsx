@@ -26,7 +26,7 @@ export default async function EmployeeHomePage() {
 
   const { data: employeeRow } = await supabase
     .from("employees")
-    .select("id, department_id, branch_id, hired_at, position, emergency_contact_name")
+    .select("id, department_id, branch_id, hired_at, position, emergency_contact_name, first_name, last_name")
     .eq("organization_id", tenant.organizationId)
     .eq("user_id", userId)
     .maybeSingle();
@@ -62,6 +62,41 @@ export default async function EmployeeHomePage() {
       .eq("user_id", userId)
       .maybeSingle(),
   ]);
+
+  const { data: department } = employeeRow?.department_id
+    ? await supabase
+        .from("organization_departments")
+        .select("name")
+        .eq("organization_id", tenant.organizationId)
+        .eq("id", employeeRow.department_id)
+        .maybeSingle()
+    : { data: null };
+
+  const resolvedBranch = employeeBranchId
+    ? await supabase
+        .from("branches")
+        .select("name")
+        .eq("organization_id", tenant.organizationId)
+        .eq("id", employeeBranchId)
+        .maybeSingle()
+    : { data: null };
+
+  let docsCount = 0;
+  if (documentsModuleEnabled && userId && tenant.organizationId) {
+    const { data: countData } = await supabase.rpc("count_accessible_documents", {
+      p_organization_id: tenant.organizationId,
+      p_user_id: userId,
+      p_role_code: tenant.roleCode,
+      p_branch_id: employeeBranchId,
+      p_department_id: employeeRow?.department_id ?? null,
+      p_position_ids: employeePositionIds,
+    });
+    docsCount = countData ?? 0;
+  }
+
+  const employeeName = employeeRow
+    ? `${employeeRow.first_name} ${employeeRow.last_name}`.trim()
+    : (typeof authData.user?.user_metadata?.full_name === "string" && authData.user.user_metadata.full_name.trim()) || authData.user?.email || "Empleado";
 
   let announcements: Array<any> = [];
   const hasAnnouncementsModule = Boolean(announcementsModuleEnabled);
@@ -180,6 +215,21 @@ export default async function EmployeeHomePage() {
 
   return (
     <>
+      <section className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-[#e8e8e8] bg-white p-6 shadow-sm sm:p-8">
+        <div>
+          <p className="text-xs text-[#aaa]">Bienvenido de vuelta</p>
+          <h1 className="mt-1 font-serif text-3xl font-bold text-[#111]">{employeeName}</h1>
+          <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-medium">
+            {resolvedBranch.data?.name && <span className="rounded-full border border-[#e8e8e8] bg-[#f5f5f5] px-3 py-1 text-[#666]">{resolvedBranch.data.name}</span>}
+            {department?.name && <span className="rounded-full border border-[#dbe7ff] bg-[#f2f6ff] px-3 py-1 text-[#3b5bdb]">{department.name}</span>}
+            {employeeRow?.position && <span className="rounded-full border border-[#f0d5d0] bg-[#fef0ed] px-3 py-1 text-[#c0392b]">{employeeRow.position}</span>}
+          </div>
+        </div>
+        <div className="rounded-xl bg-[#faf9f8] p-5 text-center min-w-[140px]">
+          <p className="font-serif text-5xl font-bold leading-none text-[#c0392b]">{docsCount}</p>
+          <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-[#8b817c]">Documentos</p>
+        </div>
+      </section>
       <section className="rounded-3xl bg-[#1e1a18] p-8 text-white shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 p-12 opacity-10 blur-2xl">
            <div className="w-64 h-64 bg-brand rounded-full"></div>
@@ -265,9 +315,16 @@ export default async function EmployeeHomePage() {
         </div>
 
         <section className="space-y-4">
-          <h3 className="text-[12px] font-bold uppercase tracking-[0.15em] text-[#8b817c]">
-            {hasAnnouncementsModule ? "Avisos Recientes" : "Comunicación Externa"}
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-[12px] font-bold uppercase tracking-[0.15em] text-[#8b817c]">
+              {hasAnnouncementsModule ? "Avisos Recientes" : "Comunicación Externa"}
+            </h3>
+            {hasAnnouncementsModule && (
+              <Link href="/portal/announcements" className="text-xs font-bold text-orange-600 hover:text-orange-800 flex items-center gap-1 group">
+                Ver todos <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            )}
+          </div>
 
           <div className="space-y-3">
             {recentAnnouncements.map((item) => (
