@@ -1436,7 +1436,7 @@ export async function DELETE(request: Request) {
 
   const { data: employee } = await supabase
     .from("employees")
-    .select("id")
+    .select("id, user_id")
     .eq("organization_id", tenant.organizationId)
     .eq("id", employeeId)
     .maybeSingle();
@@ -1467,6 +1467,27 @@ export async function DELETE(request: Request) {
     });
     return NextResponse.json({ error: `No se pudo eliminar empleado: ${deleteError.message}` }, { status: 400 });
   }
+
+  // Clean up orphaned data left by the employee's dashboard account (if they had one).
+  // These are scoped to this organization only — auth.users is NOT touched
+  // since the user may belong to other organizations.
+  const admin = createSupabaseAdminClient();
+
+  if (employee.user_id) {
+    // Remove membership in this org (prevents ghost "user" rows in the directory)
+    await admin
+      .from("memberships")
+      .delete()
+      .eq("organization_id", tenant.organizationId)
+      .eq("user_id", employee.user_id);
+  }
+
+  // Remove the linked organization_user_profile (is_employee = true) if it exists
+  await admin
+    .from("organization_user_profiles")
+    .delete()
+    .eq("organization_id", tenant.organizationId)
+    .eq("employee_id", employeeId);
 
   await logAuditEvent({
     action: "employee.delete",
