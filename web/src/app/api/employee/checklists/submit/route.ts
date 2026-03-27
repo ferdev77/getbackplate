@@ -16,7 +16,7 @@ async function ensureBucket() {
   if (bucket) return;
 
   await admin.storage.createBucket(EVIDENCE_BUCKET, {
-    public: false,
+    public: true,
     fileSizeLimit: `${MAX_FILE_SIZE_BYTES}`,
   });
 }

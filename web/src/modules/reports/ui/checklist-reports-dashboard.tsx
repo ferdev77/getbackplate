@@ -35,8 +35,9 @@ export type ChecklistReportView = {
       text: string;
       ok: boolean;
       flag: boolean;
-      note: string;
+      note?: string;
       photosCount: number;
+      photos?: string[];
       itemOrder: number;
     }>;
   }>;
@@ -371,17 +372,27 @@ export function ChecklistReportsDashboard({
                             <span className="text-xs text-[#888]">{report.completedItems}/{report.totalItems}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            {report.flaggedItems > 0 ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-[#fee2e2] px-2.5 py-1 text-[11px] font-bold text-[#991b1b]">⚑ {report.flaggedItems}</span>
-                            ) : null}
-                            {report.commentsCount > 0 ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-[#f3f4f6] px-2.5 py-1 text-[11px] font-bold text-[#4b5563]">💬 {report.commentsCount}</span>
-                            ) : null}
-                            {report.flaggedItems === 0 && report.commentsCount === 0 ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-[#dcfce7] px-2.5 py-1 text-[11px] font-bold text-[#15803d]">✓ OK</span>
-                            ) : null}
+                        <td className="w-24 whitespace-nowrap p-4 text-sm font-semibold text-[#0e0e0e]">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {report.flaggedItems === 0 ? (
+                              <span className="flex items-center gap-1 text-[11px] font-bold text-[#15803d]">✓ OK</span>
+                            ) : (
+                              <span className="inline-flex h-5 items-center gap-1 rounded bg-[#fef2f2] px-1.5 text-[10px] font-extrabold text-[#dc2626]">
+                                <span className="text-[#f87171]">⚑</span> {report.flaggedItems}
+                              </span>
+                            )}
+                            
+                            {report.commentsCount > 0 && (
+                              <span className="inline-flex h-5 items-center gap-1 rounded bg-[#f8f8f8] px-1.5 text-[10px] font-extrabold text-[#555]">
+                                <span className="opacity-80">💬</span> {report.commentsCount}
+                              </span>
+                            )}
+
+                            {report.photosCount > 0 && (
+                              <span className="inline-flex h-5 items-center gap-1 rounded bg-[#f8f8f8] px-1.5 text-[10px] font-extrabold text-[#555]">
+                                <span className="opacity-80">📷</span> {report.photosCount}
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="px-4 py-3">
@@ -503,7 +514,22 @@ export function ChecklistReportsDashboard({
                           <div className="min-w-0 flex-1">
                             <p>{item.text}</p>
                             {item.note ? <p className="mt-1 text-xs italic opacity-85">&quot;{item.note}&quot;</p> : null}
-                            {item.photosCount > 0 ? <p className="mt-1 text-xs opacity-85">📷 {item.photosCount} evidencia(s)</p> : null}
+                            {item.photos?.length ? (
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {item.photos.map((url, i) => (
+                                  <a
+                                    key={i}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="relative h-14 w-14 overflow-hidden rounded-md border border-black/10 transition hover:opacity-80"
+                                  >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={url} alt="Evidencia" className="h-full w-full object-cover" />
+                                  </a>
+                                ))}
+                              </div>
+                            ) : null}
                           </div>
                         </div>
                       </article>
