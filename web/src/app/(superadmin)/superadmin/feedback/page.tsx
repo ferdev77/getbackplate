@@ -4,6 +4,7 @@ import { es } from "date-fns/locale";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { updateFeedbackStatusAction } from "./actions";
+import { FeedbackStatusButton } from "./feedback-status-button";
 
 export const dynamic = "force-dynamic";
 
@@ -140,25 +141,7 @@ export default async function SuperadminFeedbackPage() {
                   </div>
 
                   <div className="flex items-center gap-2 sm:self-start">
-                    {isResolved ? (
-                      <form action={updateFeedbackStatusAction.bind(null, msg.id, "open")}>
-                        <button
-                          type="submit"
-                          className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-amber-100 bg-amber-50 px-4 text-xs font-bold text-amber-700 transition-colors hover:bg-amber-100"
-                        >
-                          <RefreshCw className="h-4 w-4" /> Reabrir
-                        </button>
-                      </form>
-                    ) : (
-                      <form action={updateFeedbackStatusAction.bind(null, msg.id, "resolved")}>
-                        <button
-                          type="submit"
-                          className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-foreground px-4 text-xs font-bold text-white shadow-lg shadow-black/10 transition-colors hover:bg-black"
-                        >
-                          <CheckCircle2 className="h-4 w-4" /> Marcar Resuelto
-                        </button>
-                      </form>
-                    )}
+                    <FeedbackStatusButton id={msg.id} isResolved={isResolved} />
                   </div>
                 </article>
               );
