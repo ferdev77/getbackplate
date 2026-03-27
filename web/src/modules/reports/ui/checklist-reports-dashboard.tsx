@@ -23,6 +23,7 @@ export type ChecklistReportView = {
   totalItems: number;
   completedItems: number;
   flaggedItems: number;
+  commentsCount: number;
   photosCount: number;
   status: "ok" | "warn";
   dbStatus: string;
@@ -336,7 +337,7 @@ export function ChecklistReportsDashboard({
                     <th className="px-4 py-3">Nombre / Ubicación</th>
                     <th className="px-4 py-3">Fecha</th>
                     <th className="px-4 py-3">Progreso</th>
-                    <th className="px-4 py-3">Atención</th>
+                    <th className="px-4 py-3">Observaciones</th>
                     <th className="px-4 py-3">Revisión</th>
                     <th className="px-4 py-3">Estado</th>
                   </tr>
@@ -371,11 +372,17 @@ export function ChecklistReportsDashboard({
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          {report.flaggedItems > 0 ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#fef3c7] px-2.5 py-1 text-[11px] font-bold text-[#92400e]">⚑ {report.flaggedItems}</span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#dcfce7] px-2.5 py-1 text-[11px] font-bold text-[#15803d]">✓ OK</span>
-                          )}
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {report.flaggedItems > 0 ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#fee2e2] px-2.5 py-1 text-[11px] font-bold text-[#991b1b]">⚑ {report.flaggedItems}</span>
+                            ) : null}
+                            {report.commentsCount > 0 ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#f3f4f6] px-2.5 py-1 text-[11px] font-bold text-[#4b5563]">💬 {report.commentsCount}</span>
+                            ) : null}
+                            {report.flaggedItems === 0 && report.commentsCount === 0 ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#dcfce7] px-2.5 py-1 text-[11px] font-bold text-[#15803d]">✓ OK</span>
+                            ) : null}
+                          </div>
                         </td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-bold ${report.dbStatus === "reviewed" ? "bg-[#dbeafe] text-[#1d4ed8]" : "bg-[#fee2e2] text-[#b91c1c]"}`}>
