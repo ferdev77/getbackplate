@@ -229,10 +229,15 @@ export default async function CompanyReportsPage() {
   const branchById = new Map((branches ?? []).map((row) => [row.id, row]));
 
   const latestCommentBySubmissionItemId = new Map<string, string>();
+  const commentCountBySubmissionItemId = new Map<string, number>();
   for (const row of itemComments ?? []) {
     if (!latestCommentBySubmissionItemId.has(row.submission_item_id)) {
       latestCommentBySubmissionItemId.set(row.submission_item_id, row.comment);
     }
+    commentCountBySubmissionItemId.set(
+      row.submission_item_id,
+      (commentCountBySubmissionItemId.get(row.submission_item_id) ?? 0) + 1,
+    );
   }
 
   const latestFlagBySubmissionItemId = new Map<string, { reason: string; status: string }>();
@@ -270,18 +275,19 @@ export default async function CompanyReportsPage() {
   );
 
   const itemsBySubmissionId = new Map<string, Array<{ id: string; templateItemId: string; checked: boolean; flagged: boolean }>>();
-  const metricsBySubmissionId = new Map<string, { total: number; done: number; flagged: number; photos: number }>();
+  const metricsBySubmissionId = new Map<string, { total: number; done: number; flagged: number; photos: number; comments: number }>();
 
   for (const row of submissionItems ?? []) {
     const list = itemsBySubmissionId.get(row.submission_id) ?? [];
     list.push({ id: row.id, templateItemId: row.template_item_id, checked: row.is_checked, flagged: row.is_flagged });
     itemsBySubmissionId.set(row.submission_id, list);
 
-    const metrics = metricsBySubmissionId.get(row.submission_id) ?? { total: 0, done: 0, flagged: 0, photos: 0 };
+    const metrics = metricsBySubmissionId.get(row.submission_id) ?? { total: 0, done: 0, flagged: 0, photos: 0, comments: 0 };
     metrics.total += 1;
     metrics.done += row.is_checked ? 1 : 0;
     metrics.flagged += row.is_flagged ? 1 : 0;
     metrics.photos += attachmentCountBySubmissionItemId.get(row.id) ?? 0;
+    metrics.comments += commentCountBySubmissionItemId.get(row.id) ?? 0;
     metricsBySubmissionId.set(row.submission_id, metrics);
   }
 
@@ -291,7 +297,7 @@ export default async function CompanyReportsPage() {
     const managerName = employeeNameByUserId.get(submission.submitted_by) ?? "Usuario";
     const managerInitials = initials(managerName);
     const managerColor = colorForUser(submission.submitted_by);
-    const metrics = metricsBySubmissionId.get(submission.id) ?? { total: 0, done: 0, flagged: 0, photos: 0 };
+    const metrics = metricsBySubmissionId.get(submission.id) ?? { total: 0, done: 0, flagged: 0, photos: 0, comments: 0 };
 
     const sectionMap = new Map<string, { id: string; name: string; order: number; items: ReportCategoryItem[] }>();
 
@@ -360,6 +366,7 @@ export default async function CompanyReportsPage() {
       totalItems: metrics.total,
       completedItems: metrics.done,
       flaggedItems: metrics.flagged,
+      commentsCount: metrics.comments,
       photosCount: metrics.photos,
       status: metrics.flagged > 0 ? "warn" : "ok",
       dbStatus: submission.status,
