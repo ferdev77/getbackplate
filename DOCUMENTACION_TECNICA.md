@@ -1442,3 +1442,23 @@ Se implementaron las siguientes características:
 - Panel en superadmin para visualizar y restaurar elementos eliminados de todas las empresas.
 - Webhook CRON implementado (`/api/webhooks/cron/purge-trash`) para depurar base de datos y storage periódicamente.
 - Mails automáticos ante cambios de plan, pagos fallidos o facturas inminentes mediante escucha de eventos `stripe.webhook` (`/api/stripe/webhook/route.ts`).
+
+## 32. Reportes de Checklists (2026-03-27)
+
+Se modernizó el Dashboard de Reportes de Checklists (`web/src/modules/reports/ui/checklist-reports-dashboard.tsx` y `web/src/app/(company)/app/reports/page.tsx`), estableciendo las siguientes reglas de negocio y arquitectónicas (Fuente de Verdad):
+
+### Reglas de Estado (Status)
+- **Estado (Métricas de banderitas):** El sistema calcula el status de un reporte *exclusivamente* contando la cantidad de ítems marcados para atención (`flaggedItems`).
+  - **`✓ Completo` (ok):** Si hay 0 ítems con banderitas. Sin importar si hay ítems con comentarios adicionales o fotografías, el reporte se considera exitoso y limpio.
+  - **`⚑ Atención` (warn):** Si existe 1 o más ítems marcados con banderita.
+- **Revisión (Base de datos):** Independiente del "Estado" derivado, la revisión (`dbStatus`) corresponde a la acción administrativa que cambia el estatus de un reporte de *Pendiente* a *Revisado* en la base de datos (`submission.status`).
+- **Observaciones Visuales:** 
+  - Al renderizar la tabla de métricas, una cuenta de `0` alertas mostrará siempre el indicador de éxito `✓ OK`. Las evidencias adicionales como fotos y notas puras se renderizan como contadores encapsulados auxiliares (`💬 N` y `📷 N`) complementando al check.
+
+### Fotografía y Storage (Evidencia)
+- **Bucket `checklist-evidence`:** Las imágenes subidas por un empleado durante el progreso del checklist interactivo se alojan bajo Supabase Storage en un bucket específico (`checklist-evidence`).
+  - Este compartimento debe ser **obligatoriamente Público (`public: true`)** para que el dashboard pueda solicitar el firmado público `getPublicUrl` sin obstrucciones (404 Bucket Not Found).
+- **Visualización Modular:** El modo de inspección detallado (Slide-over derecho interactivo) parsea individualmente las fotos subidas, mapeándolas por ítem completado.
+
+### Tiempo Real (Supabase Realtime)
+- El Dashboard general se beneficia de canal suscrito permanentemente a PostgreSQL (`auth`/`public`). Escucha inserciones o ediciones en la tabla `checklist_submissions`; cuando sucede alguna para la empresa logueada, dispara de manera autónoma un `router.refresh()` en su contexto que repuebla la tabla principal sin forzar al usuario a refrescar, habilitando control de área sincronizado global.
