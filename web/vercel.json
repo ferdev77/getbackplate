@@ -1,20 +1,12 @@
 {
   "crons": [
     {
-      "path": "/api/internal/cron/documents/process",
+      "path": "/api/internal/cron/daily",
       "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/internal/cron/deliveries",
-      "schedule": "0 8 * * *"
     },
     {
       "path": "/api/webhooks/cron/process-recurrence",
       "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/webhooks/cron/purge-trash",
-      "schedule": "0 0 * * *"
     }
   ]
 }
