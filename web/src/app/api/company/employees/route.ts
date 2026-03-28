@@ -16,6 +16,7 @@ import {
 } from "@/shared/lib/plan-limits";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
 import { sendEmail } from "@/shared/lib/brevo";
+import { provisionOrganizationUserAccount } from "@/shared/lib/user-provisioning.service";
 import { initialInviteTemplate } from "@/shared/lib/email-templates/invitation";
 
 const ALLOWED_CREATE_MODES = new Set(["without_account", "with_account"]);
@@ -37,14 +38,24 @@ const DOCUMENT_SLOT_LABELS: Record<string, string> = {
   other: "Otro Documento",
 };
 
+let bucketExistsChecked = false;
+
 async function ensureBucketExists() {
+  if (bucketExistsChecked) return;
+  
   const admin = createSupabaseAdminClient();
   const { data: bucket } = await admin.storage.getBucket(BUCKET_NAME);
-  if (bucket) return;
+  if (bucket) {
+    bucketExistsChecked = true;
+    return;
+  }
+  
   await admin.storage.createBucket(BUCKET_NAME, {
     public: false,
     fileSizeLimit: `${MAX_FILE_SIZE_BYTES}`,
   });
+  
+  bucketExistsChecked = true;
 }
 
 async function rollbackEmployeeCreateFlow(input: {
@@ -106,52 +117,9 @@ async function rollbackEmployeeCreateFlow(input: {
     if (input.createdAuthUserId) {
       await admin.auth.admin.deleteUser(input.createdAuthUserId);
     }
-  } catch {
-    // rollback best-effort
+  } catch (rollbackError) {
+    console.error("[rollbackEmployeeCreateFlow] Rollback failed:", rollbackError);
   }
-}
-
-async function sendAccessInvitationEmail(
-  tenantId: string,
-  email: string,
-  fullName: string,
-  roleCode: string,
-) {
-  const admin = createSupabaseAdminClient();
-  const server = await createSupabaseServerClient();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  const redirectTo = appUrl
-    ? `${appUrl.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent("/app/dashboard")}&org=${encodeURIComponent(tenantId)}`
-    : undefined;
-
-  // Try magic link first, fall back to password reset
-  const { error: otpError } = await server.auth.signInWithOtp({
-    email,
-    options: {
-      shouldCreateUser: false,
-      emailRedirectTo: redirectTo,
-    },
-  });
-
-  if (otpError) {
-    await admin.auth.resetPasswordForEmail(
-      email,
-      redirectTo ? { redirectTo } : undefined,
-    );
-  }
-
-  const code = crypto.randomUUID();
-  await admin.from("organization_invitations").insert({
-    organization_id: tenantId,
-    email,
-    full_name: fullName,
-    role_code: roleCode,
-    status: "sent",
-    invitation_code: code,
-    source: "company_panel",
-    metadata: { mode: "invite" },
-    expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString(),
-  });
 }
 
 export async function POST(request: Request) {
@@ -335,7 +303,7 @@ export async function POST(request: Request) {
     departmentId = positionRow.department_id;
     position = positionRow.name;
 
-    const { data: departmentRow, error: departmentError } = await supabase
+    const { data: posDepRow, error: posDepError } = await supabase
       .from("organization_departments")
       .select("name")
       .eq("organization_id", tenant.organizationId)
@@ -343,11 +311,11 @@ export async function POST(request: Request) {
       .eq("is_active", true)
       .maybeSingle();
 
-    if (departmentError || !departmentRow) {
+    if (posDepError || !posDepRow) {
       return NextResponse.json({ error: "Departamento no valido para el puesto seleccionado" }, { status: 400 });
     }
 
-    department = departmentRow.name;
+    department = posDepRow.name;
   }
 
   if (!isEmployeeProfile) {
@@ -374,83 +342,19 @@ export async function POST(request: Request) {
       const needsProvision = !linkedUserId || !existingDashboardAccess;
 
       if (needsProvision) {
-        if (!loginEmail) {
-          return NextResponse.json({ error: EMPLOYEES_MESSAGES.ACCESS_EMAIL_REQUIRED }, { status: 400 });
+        const provisionResult = await provisionOrganizationUserAccount({
+          admin,
+          loginEmail,
+          accountPassword,
+          firstName,
+          lastName,
+        });
+
+        if (!provisionResult.ok) {
+          return NextResponse.json({ error: provisionResult.error }, { status: 400 });
         }
 
-        if (accountPassword.length < 8) {
-          return NextResponse.json({ error: EMPLOYEES_MESSAGES.ACCESS_PASSWORD_MIN }, { status: 400 });
-        }
-
-        // Check if user already exists
-        const existingAuthUser = await findAuthUserByEmail(loginEmail);
-        if (existingAuthUser?.id) {
-          linkedUserId = existingAuthUser.id;
-          // Update password for existing user
-          await admin.auth.admin.updateUserById(linkedUserId, {
-            password: accountPassword,
-            email_confirm: true,
-            user_metadata: {
-              ...(existingAuthUser.user_metadata || {}),
-              full_name: `${firstName} ${lastName}`.trim(),
-              force_password_change: true,
-              temporary_password_set_at: new Date().toISOString(),
-            },
-          });
-
-          const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
-          const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
-
-          // Envío de correo con contraseña temporal por Brevo
-          await sendEmail({
-            to: [{ email: loginEmail, name: `${firstName} ${lastName}`.trim() }],
-            subject: "Tus credenciales de acceso a GetBackplate",
-            htmlContent: initialInviteTemplate({
-              fullName: `${firstName} ${lastName}`.trim(),
-              loginEmail,
-              loginPassword: accountPassword,
-              loginUrl,
-            }),
-          });
-        } else {
-          // New user: crear en auth y enviar correo Brevo
-          const { data: created, error: createError } = await admin.auth.admin.createUser({
-            email: loginEmail,
-            email_confirm: true,
-            password: accountPassword,
-            user_metadata: {
-              full_name: `${firstName} ${lastName}`.trim(),
-              login_email: loginEmail,
-              login_password: accountPassword,
-              force_password_change: true,
-              temporary_password_set_at: new Date().toISOString(),
-            },
-          });
-
-          if (createError || !created.user?.id) {
-            return NextResponse.json(
-              { error: `${EMPLOYEES_MESSAGES.EMPLOYEE_ACCOUNT_CREATE_FAILED_PREFIX}: ${createError?.message ?? "Error desconocido"}` },
-              { status: 400 },
-            );
-          }
-
-          linkedUserId = created.user.id;
-
-          const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
-          const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
-
-          // Envío de correo con contraseña temporal por Brevo
-          await sendEmail({
-            to: [{ email: loginEmail, name: `${firstName} ${lastName}`.trim() }],
-            subject: "Bienvenido(a) a GetBackplate - Tus credenciales",
-            htmlContent: initialInviteTemplate({
-              fullName: `${firstName} ${lastName}`.trim(),
-              loginEmail,
-              loginPassword: accountPassword,
-              loginUrl,
-            }),
-          });
-        }
+        linkedUserId = provisionResult.userId;
       }
 
       if (!linkedUserId) {
@@ -500,14 +404,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: `No se pudo asignar acceso al usuario: ${membershipError.message}` }, { status: 400 });
       }
 
-      if (!existingMembership) {
-        await sendAccessInvitationEmail(
-          tenant.organizationId,
-          loginEmail,
-          `${firstName} ${lastName}`.trim(),
-          "employee"
-        );
-      }
+
     }
 
     const profilePayload = {
@@ -841,13 +738,6 @@ export async function POST(request: Request) {
 
   if (createMode === "with_account") {
     const loginEmail = accountEmailInput || email || "";
-    if (!loginEmail) {
-      return NextResponse.json({ error: EMPLOYEES_MESSAGES.ACCESS_EMAIL_REQUIRED }, { status: 400 });
-    }
-    if (accountPassword.length < 8) {
-      return NextResponse.json({ error: EMPLOYEES_MESSAGES.ACCESS_PASSWORD_MIN }, { status: 400 });
-    }
-
     const admin = createSupabaseAdminClient();
     const { data: role, error: roleError } = await admin
       .from("roles")
@@ -859,75 +749,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: EMPLOYEES_MESSAGES.ROLE_EMPLOYEE_UNAVAILABLE }, { status: 400 });
     }
 
-    // Check if user already exists
-    const existingAuthUser = await findAuthUserByEmail(loginEmail);
-    if (existingAuthUser?.id) {
-      linkedUserId = existingAuthUser.id;
-      // Update password for existing user
-      await admin.auth.admin.updateUserById(linkedUserId, {
-        password: accountPassword,
-        email_confirm: true,
-        user_metadata: {
-          ...(existingAuthUser.user_metadata || {}),
-          full_name: `${firstName} ${lastName}`.trim(),
-          force_password_change: true,
-          temporary_password_set_at: new Date().toISOString(),
-        },
-      });
+    const provisionResult = await provisionOrganizationUserAccount({
+      admin,
+      loginEmail,
+      accountPassword,
+      firstName,
+      lastName,
+    });
 
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
-      const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
+    if (!provisionResult.ok) {
+      return NextResponse.json({ error: provisionResult.error }, { status: 400 });
+    }
 
-      // Envío de correo con contraseña temporal por Brevo
-      await sendEmail({
-        to: [{ email: loginEmail, name: `${firstName} ${lastName}`.trim() }],
-        subject: "Tus credenciales de acceso a GetBackplate",
-        htmlContent: initialInviteTemplate({
-          fullName: `${firstName} ${lastName}`.trim(),
-          loginEmail,
-          loginPassword: accountPassword,
-          loginUrl,
-        }),
-      });
-    } else {
-      // New user: crear en auth y enviar correo Brevo
-      const { data: created, error: createError } = await admin.auth.admin.createUser({
-        email: loginEmail,
-        email_confirm: true,
-        password: accountPassword,
-        user_metadata: {
-          full_name: `${firstName} ${lastName}`.trim(),
-          login_email: loginEmail,
-          login_password: accountPassword,
-          force_password_change: true,
-          temporary_password_set_at: new Date().toISOString(),
-        },
-      });
-
-      if (createError || !created.user?.id) {
-        return NextResponse.json(
-          { error: `${EMPLOYEES_MESSAGES.EMPLOYEE_ACCOUNT_CREATE_FAILED_PREFIX}: ${createError?.message ?? "Error desconocido"}` },
-          { status: 400 },
-        );
-      }
-
-      linkedUserId = created.user.id;
-      createdAuthUserId = created.user.id;
-
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
-      const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
-
-      // Envío de correo con contraseña temporal por Brevo
-      await sendEmail({
-        to: [{ email: loginEmail, name: `${firstName} ${lastName}`.trim() }],
-        subject: "Bienvenido(a) a GetBackplate - Tus credenciales",
-        htmlContent: initialInviteTemplate({
-          fullName: `${firstName} ${lastName}`.trim(),
-          loginEmail,
-          loginPassword: accountPassword,
-          loginUrl,
-        }),
-      });
+    linkedUserId = provisionResult.userId;
+    if (provisionResult.isNewUser) {
+      createdAuthUserId = provisionResult.userId;
     }
 
     if (!linkedUserId) {
@@ -973,14 +809,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: membershipError.message }, { status: 400 });
     }
 
-    if (!existingMembership) {
-      await sendAccessInvitationEmail(
-        tenant.organizationId,
-        loginEmail,
-        `${firstName} ${lastName}`.trim(),
-        "employee"
-      );
-    }
+
   }
 
   const { data: employee, error: employeeError } = await supabase

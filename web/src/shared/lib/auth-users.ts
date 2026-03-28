@@ -64,24 +64,32 @@ export async function findAuthUserByEmail(email: string) {
   }
 
   const admin = createSupabaseAdminClient();
+
+  // Use direct filter — avoids full-table pagination scan (O(n) → O(1))
+  const { data, error } = await admin.auth.admin.listUsers({
+    page: 1,
+    perPage: 1,
+    // @ts-expect-error — Supabase Admin API supports `filter` but types may lag
+    filter: `email eq "${normalizedEmail}"`,
+  });
+
+  if (!error && data?.users?.length) {
+    const found = data.users.find((u) => u.email?.toLowerCase() === normalizedEmail);
+    if (found) return found;
+  }
+
+  // Fallback: full scan for environments where filter param is unsupported
   let page = 1;
   const perPage = 200;
 
   while (true) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
-    if (error) {
-      return null;
-    }
+    const { data: pageData, error: pageError } = await admin.auth.admin.listUsers({ page, perPage });
+    if (pageError) return null;
 
-    const found = data.users.find((user) => user.email?.toLowerCase() === normalizedEmail);
-    if (found) {
-      return found;
-    }
+    const found = pageData.users.find((u) => u.email?.toLowerCase() === normalizedEmail);
+    if (found) return found;
 
-    if (data.users.length < perPage) {
-      return null;
-    }
-
+    if (pageData.users.length < perPage) return null;
     page += 1;
   }
 }

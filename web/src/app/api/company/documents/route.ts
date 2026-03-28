@@ -34,15 +34,24 @@ function parseDocumentScope(scope: unknown): DocumentScope {
   };
 }
 
+let bucketExistsChecked = false;
+
 async function ensureBucketExists() {
+  if (bucketExistsChecked) return;
+  
   const admin = createSupabaseAdminClient();
   const { data: bucket } = await admin.storage.getBucket(BUCKET_NAME);
-  if (bucket) return;
-
+  if (bucket) {
+    bucketExistsChecked = true;
+    return;
+  }
+  
   await admin.storage.createBucket(BUCKET_NAME, {
     public: false,
     fileSizeLimit: `${MAX_FILE_SIZE_BYTES}`,
   });
+  
+  bucketExistsChecked = true;
 }
 
 async function requireContext() {

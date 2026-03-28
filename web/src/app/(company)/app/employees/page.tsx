@@ -14,7 +14,7 @@ const NewEmployeeModal = dynamicImport(
 
 
 type CompanyEmployeesPageProps = {
-  searchParams: Promise<{ status?: string; message?: string; action?: string; employeeId?: string; profileId?: string; limit?: string }>;
+  searchParams: Promise<{ status?: string; message?: string; action?: string; employeeId?: string; profileId?: string; limit?: string; page?: string }>;
 };
 
 const DARK_CARD = "[.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#151b25]";
@@ -48,11 +48,12 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   const statusParam = params.status;
   const messageParam = params.message;
 
-  const pageLimit = 100;
+  const pageLimit = params.limit ? parseInt(params.limit, 10) : 100; const pageNumber = params.page ? parseInt(params.page, 10) : 1; const offset = Math.max(0, (pageNumber - 1) * pageLimit);
   
   const viewData = await getEmployeeDirectoryView(
     tenant.organizationId, 
-    pageLimit,
+    pageLimit, 
+    offset,
     {
       includeModalsData: openEmployeeModal,
       includeUsersTab: true,

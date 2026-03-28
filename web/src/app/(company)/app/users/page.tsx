@@ -39,6 +39,7 @@ export default async function CompanyUsersPage({ searchParams }: CompanyUsersPag
   const viewData = await getEmployeeDirectoryView(
     tenant.organizationId, 
     100,
+    0,
     {
       includeEmployeesData: false,
       includeUsersTab: true,

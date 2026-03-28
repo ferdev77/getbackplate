@@ -73,8 +73,6 @@ async function resolveOrCreateAuthUser(params: {
     email_confirm: true,
     user_metadata: {
       full_name: params.fullName,
-      login_email: params.email,
-      login_password: params.password,
       force_password_change: true,
       temporary_password_set_at: new Date().toISOString(),
     },

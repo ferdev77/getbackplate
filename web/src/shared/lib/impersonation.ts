@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { logAuditEvent } from "@/shared/lib/audit";
 
 export const SUPERADMIN_IMPERSONATION_COOKIE = "gb_superadmin_impersonation";
 export const SUPERADMIN_IMPERSONATION_MAX_AGE = 60 * 30;
@@ -95,6 +96,20 @@ export async function resolveActiveSuperadminImpersonationSession(superadminUser
     .maybeSingle<ImpersonationSessionRow>();
 
   if (error || !data || data.revoked_at || isSessionExpired(data.expires_at)) {
+    if (data && !data.revoked_at && isSessionExpired(data.expires_at)) {
+      await logAuditEvent({
+        action: "organization.impersonation.expired",
+        entityType: "superadmin_impersonation_session",
+        entityId: sessionId,
+        organizationId: data.organization_id,
+        eventDomain: "security",
+        outcome: "success",
+        severity: "low",
+        metadata: {
+          superadmin_user_id: data.superadmin_user_id,
+        },
+      });
+    }
     await clearSuperadminImpersonationCookie();
     return null;
   }
