@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ClipboardCheck, ClipboardPlus, Eye, MapPin, Pencil, Trash2 } from "lucide-react";
+import { ClipboardPlus, Eye, MapPin, Pencil, Trash2 } from "lucide-react";
 import { EmptyState } from "@/shared/ui/empty-state";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
@@ -323,7 +323,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
                 ))}
               </div>
             ) : (
-              <EmptyState icon={ClipboardCheck} title="No hay checklists" description="No se encontraron checklists para los filtros seleccionados." />
+              <EmptyState title="No hay checklists" description="No se encontraron checklists para los filtros seleccionados." />
             )}
           </div>
         </section>
