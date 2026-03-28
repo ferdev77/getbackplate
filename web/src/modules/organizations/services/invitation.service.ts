@@ -2,6 +2,8 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { sendEmail } from "@/shared/lib/brevo";
+import { initialInviteTemplate } from "@/shared/lib/email-templates/invitation";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -91,66 +93,36 @@ export async function sendOrganizationAdminInvitation(params: {
     return { ok: false as const, message: "No se encontro rol company_admin" };
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  const callbackRedirectTo = appUrl
-    ? `${appUrl.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent("/app/dashboard")}&org=${encodeURIComponent(params.organizationId)}`
-    : undefined;
-
-  async function sendAccessEmail(email: string) {
-    const server = await createSupabaseServerClient();
-    const { error: otpError } = await server.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo: callbackRedirectTo,
-      },
-    });
-
-    if (!otpError) {
-      return null;
-    }
-
-    const { error: recoveryError } = await supabase.auth.resetPasswordForEmail(
-      email,
-      callbackRedirectTo ? { redirectTo: callbackRedirectTo } : undefined,
-    );
-
-    return recoveryError ?? otpError;
-  }
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
+  const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
 
   const existingUser = await findAuthUserByEmail(params.email);
   let userId = existingUser?.id ?? null;
   let deliveryMode: "invite" | "recovery" = "invite";
+  const userPassword = params.password || randomPassword();
 
   if (userId) {
-    if (params.password) {
-      const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
-        password: params.password,
-        email_confirm: true,
-        user_metadata: buildTemporaryPasswordMetadata(existingUser?.user_metadata, params.fullName),
-      });
-      if (updateError) {
-        return { ok: false as const, message: updateError.message };
-      }
+    const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
+      password: userPassword,
+      email_confirm: true,
+      user_metadata: buildTemporaryPasswordMetadata(existingUser?.user_metadata, params.fullName),
+    });
+    
+    if (updateError) {
+      return { ok: false as const, message: updateError.message };
     }
 
-    const recoveryError = await sendAccessEmail(params.email);
-    if (recoveryError) {
-      await logAuditEvent({
-        action: "organization.invitation.fallback_recovery.failed",
-        entityType: "organization_invitation",
-        organizationId: params.organizationId,
-        eventDomain: "superadmin",
-        outcome: "error",
-        severity: "medium",
-        metadata: {
-          email: params.email,
-          error: recoveryError.message,
-          reason: "existing_user",
-        },
+    try {
+      await sendEmail({
+        to: [{ email: params.email, name: params.fullName }],
+        subject: "Tus credenciales de acceso a GetBackplate",
+        htmlContent: initialInviteTemplate({
+          fullName: params.fullName,
+          loginEmail: params.email,
+          loginPassword: userPassword,
+          loginUrl,
+        }),
       });
-      return { ok: false as const, message: `No se pudo enviar correo de acceso: ${recoveryError.message}` };
-    } else {
       deliveryMode = "recovery";
       await logAuditEvent({
         action: "organization.invitation.fallback_recovery.sent",
@@ -164,85 +136,65 @@ export async function sendOrganizationAdminInvitation(params: {
           reason: "existing_user",
         },
       });
+    } catch (recoveryError: any) {
+      await logAuditEvent({
+        action: "organization.invitation.fallback_recovery.failed",
+        entityType: "organization_invitation",
+        organizationId: params.organizationId,
+        eventDomain: "superadmin",
+        outcome: "error",
+        severity: "medium",
+        metadata: {
+          email: params.email,
+          error: recoveryError?.message ?? "Error",
+          reason: "existing_user",
+        },
+      });
+      return { ok: false as const, message: `No se pudo enviar correo de acceso: ${recoveryError?.message ?? "Error"}` };
     }
-  }
+  } else {
+    const { data: created, error: createError } = await supabase.auth.admin.createUser({
+      email: params.email,
+      password: userPassword,
+      email_confirm: true,
+      user_metadata: buildTemporaryPasswordMetadata(undefined, params.fullName),
+    });
 
-  if (!userId) {
-    const inviteOptions: {
-      redirectTo?: string;
-      data: Record<string, unknown>;
-    } = {
-      data: {
-        full_name: params.fullName,
-        login_email: params.email,
-        login_password: params.password ?? "",
-      },
-    };
-
-    if (callbackRedirectTo) {
-      inviteOptions.redirectTo = callbackRedirectTo;
+    if (createError || !created.user?.id) {
+      return { ok: false as const, message: createError?.message ?? "Error desconocido al crear usuario" };
     }
 
-    const { data: invited, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
-      params.email,
-      inviteOptions,
-    );
+    userId = created.user.id;
 
-    if (inviteError) {
-      const recoveryError = await sendAccessEmail(params.email);
-      if (!recoveryError) {
-        deliveryMode = "recovery";
-        await logAuditEvent({
-          action: "organization.invitation.fallback_recovery.sent",
-          entityType: "organization_invitation",
-          organizationId: params.organizationId,
-          eventDomain: "superadmin",
-          outcome: "success",
-          severity: "low",
-          metadata: {
-            email: params.email,
-            reason: "invite_error",
-            invite_error: inviteError.message,
-          },
-        });
-      }
-
-      if (!recoveryError) {
-        return {
-          ok: true as const,
-          mode: "recovery" as const,
-          message: "Invite no disponible; se envio correo de recuperacion.",
-        };
-      }
-
+    try {
+      await sendEmail({
+        to: [{ email: params.email, name: params.fullName }],
+        subject: "Bienvenido(a) a GetBackplate - Tus credenciales",
+        htmlContent: initialInviteTemplate({
+          fullName: params.fullName,
+          loginEmail: params.email,
+          loginPassword: userPassword,
+          loginUrl,
+        }),
+      });
+    } catch (inviteError: any) {
+      await logAuditEvent({
+        action: "organization.invitation.fallback_recovery.sent",
+        entityType: "organization_invitation",
+        organizationId: params.organizationId,
+        eventDomain: "superadmin",
+        outcome: "error",
+        severity: "medium",
+        metadata: {
+          email: params.email,
+          reason: "invite_error",
+          invite_error: inviteError?.message ?? "Error",
+        },
+      });
       return {
         ok: false as const,
-        message: `${inviteError.message}. Fallback recovery fallo: ${recoveryError.message}`,
+        message: `Usuario creado pero fallo envio de correo: ${inviteError?.message ?? "Error"}`,
       };
-    }
-
-    userId = invited.user?.id ?? null;
-
-    if (userId && params.password) {
-      await supabase.auth.admin.updateUserById(userId, {
-        password: params.password,
-        email_confirm: true,
-        user_metadata: buildTemporaryPasswordMetadata(invited.user?.user_metadata, params.fullName),
-      });
-    }
-
-    if (!userId) {
-      const tempPassword = randomPassword();
-      const { data: createdUser, error: createError } = await supabase.auth.admin.createUser({
-        email: params.email,
-        password: params.password ?? tempPassword,
-        email_confirm: false,
-        user_metadata: buildTemporaryPasswordMetadata(undefined, params.fullName),
-      });
-      if (createError) {
-        return { ok: false as const, message: createError.message };
-      }
-      userId = createdUser.user?.id ?? null;
     }
   }
 

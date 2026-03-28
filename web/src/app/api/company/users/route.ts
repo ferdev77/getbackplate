@@ -7,7 +7,8 @@ import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { USERS_API_MESSAGES } from "@/shared/lib/employees-messages";
 import { assertPlanLimitForUsers, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
-
+import { sendEmail } from "@/shared/lib/brevo";
+import { initialInviteTemplate } from "@/shared/lib/email-templates/invitation";
 const ALLOWED_ROLE_CODES = new Set(["employee", "manager", "company_admin"]);
 const ALLOWED_STATUSES = new Set(["active", "inactive"]);
 
@@ -25,10 +26,8 @@ async function resolveOrCreateAuthUser(params: {
   const existingUser = await findAuthUserByEmail(params.email);
   let userId = existingUser?.id ?? null;
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  const callbackRedirectTo = appUrl
-    ? `${appUrl.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent("/app/dashboard")}`
-    : undefined;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
+  const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
 
   const userMeta = {
     full_name: params.fullName,
@@ -50,51 +49,56 @@ async function resolveOrCreateAuthUser(params: {
       return { userId: null, errorMessage: `Error actualizando credenciales: ${updateError.message}` };
     }
 
-    const server = await createSupabaseServerClient();
-    const { error: otpError } = await server.auth.signInWithOtp({
-      email: params.email,
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo: callbackRedirectTo,
-      },
-    });
-
-    if (otpError) {
-      await admin.auth.resetPasswordForEmail(
-        params.email,
-        callbackRedirectTo ? { redirectTo: callbackRedirectTo } : undefined,
-      );
+    try {
+      await sendEmail({
+        to: [{ email: params.email, name: params.fullName }],
+        subject: "Tus credenciales de acceso a GetBackplate",
+        htmlContent: initialInviteTemplate({
+          fullName: params.fullName,
+          loginEmail: params.email,
+          loginPassword: params.password,
+          loginUrl,
+        }),
+      });
+    } catch (e) {
+      console.error("Error sending invite email for existing user:", e);
     }
     
     return { userId, errorMessage: null };
   }
 
-  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(params.email, {
-    redirectTo: callbackRedirectTo,
-    data: {
-      full_name: params.fullName,
-      login_email: params.email,
-      login_password: params.password,
-    },
-  });
-
-  if (inviteError || !invited.user?.id) {
-    return { userId: null, errorMessage: `No se pudo enviar invitacion: ${inviteError?.message ?? "Error desconocido"}` };
-  }
-
-  userId = invited.user.id;
-
-  const { error: updateCreatedError } = await admin.auth.admin.updateUserById(userId, {
+  const { data: created, error: createError } = await admin.auth.admin.createUser({
+    email: params.email,
     password: params.password,
     email_confirm: true,
     user_metadata: {
-      ...(invited.user.user_metadata || {}),
-      ...userMeta,
+      full_name: params.fullName,
+      login_email: params.email,
+      login_password: params.password,
+      force_password_change: true,
+      temporary_password_set_at: new Date().toISOString(),
     },
   });
 
-  if (updateCreatedError) {
-    return { userId: null, errorMessage: `Invitacion enviada, pero error guardando contraseña inicial: ${updateCreatedError.message}` };
+  if (createError || !created.user?.id) {
+    return { userId: null, errorMessage: `No se pudo enviar invitacion: ${createError?.message ?? "Error desconocido"}` };
+  }
+
+  userId = created.user.id;
+
+  try {
+    await sendEmail({
+      to: [{ email: params.email, name: params.fullName }],
+      subject: "Bienvenido(a) a GetBackplate - Tus credenciales",
+      htmlContent: initialInviteTemplate({
+        fullName: params.fullName,
+        loginEmail: params.email,
+        loginPassword: params.password,
+        loginUrl,
+      }),
+    });
+  } catch (e) {
+    console.error("Error sending invite email for new user:", e);
   }
 
   return { userId, errorMessage: null };
