@@ -15,6 +15,8 @@ import {
   getPlanLimitErrorMessage,
 } from "@/shared/lib/plan-limits";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
+import { sendEmail } from "@/shared/lib/brevo";
+import { initialInviteTemplate } from "@/shared/lib/email-templates/invitation";
 
 const ALLOWED_CREATE_MODES = new Set(["without_account", "with_account"]);
 const ALLOWED_CONTRACT_STATUSES = new Set(["draft", "active", "ended", "cancelled"]);
@@ -395,40 +397,58 @@ export async function POST(request: Request) {
               temporary_password_set_at: new Date().toISOString(),
             },
           });
+
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
+          const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
+
+          // Envío de correo con contraseña temporal por Brevo
+          await sendEmail({
+            to: [{ email: loginEmail, name: `${firstName} ${lastName}`.trim() }],
+            subject: "Tus credenciales de acceso a GetBackplate",
+            htmlContent: initialInviteTemplate({
+              fullName: `${firstName} ${lastName}`.trim(),
+              loginEmail,
+              loginPassword: accountPassword,
+              loginUrl,
+            }),
+          });
         } else {
-          // New user: invite via email
-          const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(loginEmail, {
-            redirectTo: (() => {
-              const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
-              return appUrl
-                ? `${appUrl.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent("/app/dashboard")}`
-                : undefined;
-            })(),
-            data: {
+          // New user: crear en auth y enviar correo Brevo
+          const { data: created, error: createError } = await admin.auth.admin.createUser({
+            email: loginEmail,
+            email_confirm: true,
+            password: accountPassword,
+            user_metadata: {
               full_name: `${firstName} ${lastName}`.trim(),
               login_email: loginEmail,
               login_password: accountPassword,
+              force_password_change: true,
+              temporary_password_set_at: new Date().toISOString(),
             },
           });
 
-          if (inviteError || !invited.user?.id) {
+          if (createError || !created.user?.id) {
             return NextResponse.json(
-              { error: `${EMPLOYEES_MESSAGES.EMPLOYEE_ACCOUNT_CREATE_FAILED_PREFIX}: ${inviteError?.message ?? "Error desconocido"}` },
+              { error: `${EMPLOYEES_MESSAGES.EMPLOYEE_ACCOUNT_CREATE_FAILED_PREFIX}: ${createError?.message ?? "Error desconocido"}` },
               { status: 400 },
             );
           }
 
-          linkedUserId = invited.user.id;
+          linkedUserId = created.user.id;
 
-          // Set the temporary password
-          await admin.auth.admin.updateUserById(linkedUserId, {
-            password: accountPassword,
-            email_confirm: true,
-            user_metadata: {
-              ...(invited.user.user_metadata || {}),
-              force_password_change: true,
-              temporary_password_set_at: new Date().toISOString(),
-            },
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
+          const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
+
+          // Envío de correo con contraseña temporal por Brevo
+          await sendEmail({
+            to: [{ email: loginEmail, name: `${firstName} ${lastName}`.trim() }],
+            subject: "Bienvenido(a) a GetBackplate - Tus credenciales",
+            htmlContent: initialInviteTemplate({
+              fullName: `${firstName} ${lastName}`.trim(),
+              loginEmail,
+              loginPassword: accountPassword,
+              loginUrl,
+            }),
           });
         }
       }
@@ -854,41 +874,59 @@ export async function POST(request: Request) {
           temporary_password_set_at: new Date().toISOString(),
         },
       });
+
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
+      const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
+
+      // Envío de correo con contraseña temporal por Brevo
+      await sendEmail({
+        to: [{ email: loginEmail, name: `${firstName} ${lastName}`.trim() }],
+        subject: "Tus credenciales de acceso a GetBackplate",
+        htmlContent: initialInviteTemplate({
+          fullName: `${firstName} ${lastName}`.trim(),
+          loginEmail,
+          loginPassword: accountPassword,
+          loginUrl,
+        }),
+      });
     } else {
-      // New user: invite via email
-      const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(loginEmail, {
-        redirectTo: (() => {
-          const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
-          return appUrl
-            ? `${appUrl.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent("/app/dashboard")}`
-            : undefined;
-        })(),
-        data: {
+      // New user: crear en auth y enviar correo Brevo
+      const { data: created, error: createError } = await admin.auth.admin.createUser({
+        email: loginEmail,
+        email_confirm: true,
+        password: accountPassword,
+        user_metadata: {
           full_name: `${firstName} ${lastName}`.trim(),
           login_email: loginEmail,
           login_password: accountPassword,
+          force_password_change: true,
+          temporary_password_set_at: new Date().toISOString(),
         },
       });
 
-      if (inviteError || !invited.user?.id) {
+      if (createError || !created.user?.id) {
         return NextResponse.json(
-          { error: `${EMPLOYEES_MESSAGES.EMPLOYEE_ACCOUNT_CREATE_FAILED_PREFIX}: ${inviteError?.message ?? "Error desconocido"}` },
+          { error: `${EMPLOYEES_MESSAGES.EMPLOYEE_ACCOUNT_CREATE_FAILED_PREFIX}: ${createError?.message ?? "Error desconocido"}` },
           { status: 400 },
         );
       }
 
-      linkedUserId = invited.user.id;
-      createdAuthUserId = invited.user.id;
+      linkedUserId = created.user.id;
+      createdAuthUserId = created.user.id;
 
-      // Set the temporary password
-      await admin.auth.admin.updateUserById(linkedUserId, {
-        password: accountPassword,
-        email_confirm: true,
-        user_metadata: {
-          ...(invited.user.user_metadata || {}),
-          force_password_change: true,
-          temporary_password_set_at: new Date().toISOString(),
-        },
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
+      const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
+
+      // Envío de correo con contraseña temporal por Brevo
+      await sendEmail({
+        to: [{ email: loginEmail, name: `${firstName} ${lastName}`.trim() }],
+        subject: "Bienvenido(a) a GetBackplate - Tus credenciales",
+        htmlContent: initialInviteTemplate({
+          fullName: `${firstName} ${lastName}`.trim(),
+          loginEmail,
+          loginPassword: accountPassword,
+          loginUrl,
+        }),
       });
     }
 
