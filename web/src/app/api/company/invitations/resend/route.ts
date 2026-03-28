@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { requireCompanyAccess } from "@/shared/lib/access";
 import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { sendEmail } from "@/shared/lib/brevo";
-import { initialInviteTemplate, resendReminderTemplate } from "@/shared/lib/email-templates/invitation";
+import { resendReminderTemplate } from "@/shared/lib/email-templates/invitation";
 
 export async function POST(request: Request) {
   const tenant = await requireCompanyAccess();
@@ -24,67 +23,83 @@ export async function POST(request: Request) {
   }
 
   const admin = createSupabaseAdminClient();
-  const server = await createSupabaseServerClient();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://getbackplate.com";
-  const redirectTo = `${appUrl.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent("/app/dashboard")}&org=${encodeURIComponent(tenant.organizationId)}`;
 
   const existingUser = await findAuthUserByEmail(email);
-
-  let mode: "invite" | "recovery" = "invite";
-
-  if (existingUser) {
-    const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
-    const recoveryUrl = `${appUrl.replace(/\/$/, "")}/auth/forgot-password`;
-
-    const emailResult = await sendEmail({
-      to: [{ email, name: fullName }],
-      subject: "Recordatorio de acceso a la plataforma",
-      htmlContent: resendReminderTemplate({ fullName, loginUrl, recoveryUrl })
-    });
-
-    if (!emailResult.ok) {
-      return NextResponse.json({ ok: false, error: emailResult.error }, { status: 400 });
-    }
-
-    mode = "recovery";
-  } else {
-    function randomPassword() {
-      return `Gb!${Math.random().toString(36).slice(2)}${Date.now().toString(36)}A9`;
-    }
-    const tempPassword = randomPassword();
-    
-    const { data: created, error: createError } = await admin.auth.admin.createUser({
-      email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: {
-        full_name: fullName,
-        force_password_change: true,
-        temporary_password_set_at: new Date().toISOString(),
+  if (!existingUser) {
+    await logAuditEvent({
+      action: "organization.invitation.resend",
+      entityType: "organization_invitation",
+      organizationId: tenant.organizationId,
+      eventDomain: "settings",
+      outcome: "denied",
+      severity: "medium",
+      metadata: {
+        email,
+        reason: "auth_user_not_found",
       },
     });
 
-    if (createError || !created.user) {
-      return NextResponse.json({ ok: false, error: `No se pudo reenviar invitación: ${createError?.message}` }, { status: 400 });
-    }
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "No existe una cuenta para este correo. Crea el usuario desde el alta y luego reintenta.",
+      },
+      { status: 404 },
+    );
+  }
 
-    const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
+  const currentMetadata =
+    existingUser.user_metadata && typeof existingUser.user_metadata === "object"
+      ? (existingUser.user_metadata as Record<string, unknown>)
+      : {};
 
-    const emailResult = await sendEmail({
-      to: [{ email, name: fullName }],
-      subject: "Bienvenido(a) a GetBackplate - Tus credenciales",
-      htmlContent: initialInviteTemplate({
-        fullName,
-        loginEmail: email,
-        loginPassword: tempPassword,
-        loginUrl,
-      })
+  const { error: updateError } = await admin.auth.admin.updateUserById(existingUser.id, {
+    email_confirm: true,
+    user_metadata: {
+      ...currentMetadata,
+      full_name: fullName,
+      force_password_change: true,
+      temporary_password_set_at: new Date().toISOString(),
+    },
+  });
+
+  if (updateError) {
+    return NextResponse.json(
+      { ok: false, error: `No se pudo actualizar la cuenta para reenvio: ${updateError.message}` },
+      { status: 400 },
+    );
+  }
+
+  const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
+  const recoveryUrl = `${appUrl.replace(/\/$/, "")}/auth/forgot-password`;
+
+  const emailResult = await sendEmail({
+    to: [{ email, name: fullName }],
+    subject: "Recordatorio de acceso a la plataforma",
+    htmlContent: resendReminderTemplate({ fullName, loginUrl, recoveryUrl })
+  });
+
+  if (!emailResult.ok) {
+    await logAuditEvent({
+      action: "organization.invitation.resend",
+      entityType: "organization_invitation",
+      organizationId: tenant.organizationId,
+      eventDomain: "settings",
+      outcome: "error",
+      severity: "medium",
+      metadata: {
+        email,
+        reason: "email_delivery_failed",
+        provider: "brevo",
+        error: emailResult.error,
+      },
     });
 
-    if (!emailResult.ok) {
-      return NextResponse.json({ ok: false, error: emailResult.error }, { status: 400 });
-    }
+    return NextResponse.json({ ok: false, error: emailResult.error }, { status: 400 });
   }
+
+  const mode = "recovery" as const;
 
   const code = crypto.randomUUID();
   await admin.from("organization_invitations").insert({
@@ -112,6 +127,6 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     mode,
-    message: mode === "recovery" ? `Correo de acceso reenviado a ${email}` : `Invitación reenviada a ${email}`,
+    message: `Recordatorio de acceso reenviado a ${email}`,
   });
 }

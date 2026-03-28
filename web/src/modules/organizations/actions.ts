@@ -6,15 +6,12 @@ import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { requireSuperadmin } from "@/shared/lib/access";
-import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { createSuperadminImpersonationSession, setSuperadminImpersonationCookie } from "@/shared/lib/impersonation";
 import { setActiveOrganizationIdCookie } from "@/shared/lib/tenant-selection";
 
 import {
   sendOrganizationAdminInvitation,
-  getCompanyAdminRoleId,
-  buildTemporaryPasswordMetadata,
 } from "./services/invitation.service";
 import {
   slugify,
@@ -508,98 +505,48 @@ export async function assignCompanyAdminAction(formData: FormData) {
       );
     }
 
-    const supabase = createSupabaseAdminClient();
+    const supabaseUser = await createSupabaseServerClient();
+    const { data: authData } = await supabaseUser.auth.getUser();
 
-    const roleId = await getCompanyAdminRoleId();
-    if (!roleId) {
-      redirect(
-        "/superadmin/organizations?status=error&message=" +
-          qs("No existe el rol company_admin en la base"),
-      );
-    }
-
-    let userId: string | null = null;
-
-    const { data: createdUser, error: createUserError } = await supabase.auth.admin.createUser({
+    const invitation = await sendOrganizationAdminInvitation({
+      organizationId,
       email,
+      fullName,
       password,
-      email_confirm: true,
-      user_metadata: buildTemporaryPasswordMetadata(undefined, fullName),
+      activateMembership: true,
+      sentBy: authData.user?.id ?? null,
     });
 
-    if (!createUserError && createdUser.user) {
-      userId = createdUser.user.id;
-    }
-
-    if (createUserError) {
-      const alreadyExists =
-        createUserError.message.toLowerCase().includes("already") ||
-        createUserError.message.toLowerCase().includes("exists") ||
-        createUserError.message.toLowerCase().includes("registered");
-
-      if (!alreadyExists) {
-        redirect(
-          "/superadmin/organizations?status=error&message=" +
-            qs(`No se pudo crear usuario admin: ${createUserError.message}`),
-        );
-      }
-
-      const existingUser = await findAuthUserByEmail(email);
-      userId = existingUser?.id ?? null;
-
-      if (!userId) {
-        redirect(
-          "/superadmin/organizations?status=error&message=" +
-            qs("El email ya existe pero no se pudo recuperar el usuario"),
-        );
-      }
-
-      const { error: updateUserError } = await supabase.auth.admin.updateUserById(userId, {
-        password,
-        email_confirm: true,
-        user_metadata: buildTemporaryPasswordMetadata(existingUser?.user_metadata, fullName),
-      });
-
-      if (updateUserError) {
-        redirect(
-          "/superadmin/organizations?status=error&message=" +
-            qs(`No se pudo actualizar credenciales del admin: ${updateUserError.message}`),
-        );
-      }
-    }
-
-    const { error: membershipError } = await supabase.from("memberships").upsert(
-      {
-        organization_id: organizationId,
-        user_id: userId,
-        role_id: roleId,
-        status: "active",
-      },
-      { onConflict: "organization_id,user_id" },
-    );
-
-    if (membershipError) {
+    if (!invitation.ok) {
       redirect(
         "/superadmin/organizations?status=error&message=" +
-          qs(`No se pudo asignar admin a la empresa: ${membershipError.message}`),
+          qs(`No se pudo asignar admin: ${invitation.message}`),
       );
     }
 
     await logAuditEvent({
       action: "organization.admin.assign",
       entityType: "membership",
-      entityId: userId,
+      entityId: null,
       organizationId,
       eventDomain: "superadmin",
       outcome: "success",
       severity: "high",
-      metadata: { email, role: "company_admin" },
+      metadata: {
+        email,
+        role: "company_admin",
+        delivery_mode: invitation.mode,
+      },
     });
 
     revalidatePath("/superadmin/organizations");
+    const successMessage =
+      invitation.mode === "recovery"
+        ? `Admin asignado. Usuario existente actualizado y correo de acceso enviado a ${email}`
+        : `Admin asignado e invitacion enviada a ${email}`;
     redirect(
       "/superadmin/organizations?status=success&message=" +
-        qs(`Admin asignado correctamente: ${email}`),
+        qs(successMessage),
     );
   } catch (error) {
     redirect(
