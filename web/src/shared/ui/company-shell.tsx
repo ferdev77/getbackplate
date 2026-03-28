@@ -306,6 +306,7 @@ export function CompanyShell({
   const [fbTitle, setFbTitle] = useState("");
   const [fbMessage, setFbMessage] = useState("");
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const billingToastHandledRef = useRef(false);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -419,16 +420,51 @@ export function CompanyShell({
     setBillingPlan(currentPlanName || settingsSnapshot.billingPlan);
   }, [currentPlanName, settingsSnapshot.billingPlan]);
 
-  // Show success toast after plan upgrade/change redirect
+  // Persist billing success markers from URL and clean query params first
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const upgraded = searchParams.get('upgraded');
     const success = searchParams.get('success');
-    if (upgraded === 'true') {
-      toast.success('¡Plan actualizado exitosamente! 🎉');
-    } else if (success === 'true') {
-      toast.success('¡Suscripción activada exitosamente! 🎉');
-    }
-  }, [searchParams]);
+
+    if (upgraded !== 'true' && success !== 'true') return;
+
+    const toastCode = upgraded === 'true' ? 'plan-updated' : 'subscription-activated';
+    window.sessionStorage.setItem('gb:billing-success-toast', toastCode);
+
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete('upgraded');
+    nextParams.delete('success');
+
+    const nextQuery = nextParams.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
+  }, [pathname, router, searchParams]);
+
+  // Show billing success toast after the page is stable
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (billingToastHandledRef.current) return;
+
+    const toastCode = window.sessionStorage.getItem('gb:billing-success-toast');
+    if (!toastCode) return;
+
+    billingToastHandledRef.current = true;
+
+    const timer = setTimeout(() => {
+      if (toastCode === 'plan-updated') {
+        toast.success('¡Plan actualizado exitosamente! 🎉');
+      } else {
+        toast.success('¡Suscripción activada exitosamente! 🎉');
+      }
+      window.sessionStorage.removeItem('gb:billing-success-toast');
+      billingToastHandledRef.current = false;
+    }, 450);
+
+    return () => {
+      clearTimeout(timer);
+      billingToastHandledRef.current = false;
+    };
+  }, [pathname]);
 
   const currentLabel = useMemo(() => {
     for (const section of visibleSections) {
