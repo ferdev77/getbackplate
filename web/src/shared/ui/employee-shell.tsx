@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { LayoutDashboard, ClipboardList, Folder, Bell, FileText, PanelsLeftRight, LogOut, Menu } from "lucide-react";
 
 type EmployeeShellProps = {
+  organizationId: string;
+  userId: string;
+  employeeId: string | null;
   organizationName: string;
   children: React.ReactNode;
   employeeName: string;
@@ -30,6 +33,9 @@ function initials(value: string) {
 }
 
 export function EmployeeShell({
+  organizationId,
+  userId,
+  employeeId,
   organizationName,
   children,
   employeeName,
@@ -41,31 +47,61 @@ export function EmployeeShell({
   enabledModules,
 }: EmployeeShellProps) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const router = useRouter();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [collapsed, setCollapsed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Realtime: auto-refresh when any DB data changes
+  // Realtime: auto-refresh when employee portal scoped data changes
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
-    const channel = supabase
-      .channel("employee-shell-realtime")
-      .on("postgres_changes", { event: "*", schema: "public" }, () => {
-        if (debounceRef.current) clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(() => {
-          router.refresh();
-        }, 500);
-      })
-      .subscribe();
+    const orgFilter = `organization_id=eq.${organizationId}`;
+    const ownSubmissionFilter = `organization_id=eq.${organizationId},submitted_by=eq.${userId}`;
+    const ownEmployeeFilter = `organization_id=eq.${organizationId},user_id=eq.${userId}`;
+    const ownPreferencesFilter = `organization_id=eq.${organizationId},user_id=eq.${userId}`;
+
+    function scheduleRefresh() {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        router.refresh();
+      }, 400);
+    }
+
+    const channelBuilder = supabase
+      .channel(`employee-shell-realtime-${organizationId}-${userId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "announcements", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "documents", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "document_folders", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_templates", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "scheduled_jobs", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "organization_modules", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_submissions", filter: ownSubmissionFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "employees", filter: ownEmployeeFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_preferences", filter: ownPreferencesFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_template_sections", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_template_items", filter: orgFilter }, scheduleRefresh);
+
+    if (employeeId) {
+      channelBuilder.on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "employee_documents",
+          filter: `organization_id=eq.${organizationId},employee_id=eq.${employeeId}`,
+        },
+        scheduleRefresh,
+      );
+    }
+
+    const channel = channelBuilder.subscribe();
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       supabase.removeChannel(channel);
     };
-  }, [router]);
+  }, [employeeId, organizationId, router, userId]);
 
   const items = [
     { href: "/portal/home", label: "Dashboard", icon: LayoutDashboard },
@@ -211,6 +247,11 @@ export function EmployeeShell({
               <span className="hidden rounded-full border border-[rgba(0,0,0,0.06)] bg-[#faf9f8] px-2.5 py-1 text-xs text-[#6f6965] sm:inline shadow-sm">
                 {branchName || "Sucursal"}
               </span>
+              {departmentName ? (
+                <span className="hidden rounded-full border border-[rgba(0,0,0,0.06)] bg-white px-2.5 py-1 text-xs text-[#6f6965] lg:inline shadow-sm">
+                  {departmentName}
+                </span>
+              ) : null}
               <span className="hidden rounded-full border border-[#f0d8d3] bg-[#fff4f2] px-2.5 py-1 text-xs text-[#8f3a30] sm:inline shadow-sm">
                 Soy Empleado
               </span>
@@ -230,4 +271,3 @@ export function EmployeeShell({
     </div>
   );
 }
-

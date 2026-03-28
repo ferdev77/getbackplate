@@ -121,6 +121,9 @@ export default async function EmployeeLayout({
 
   return (
     <EmployeeShell
+      organizationId={tenant.organizationId}
+      userId={user.id}
+      employeeId={employee?.id ?? null}
       organizationName={organization?.name ?? "Empresa"}
       employeeName={employeeName}
       employeePosition={employee?.position ?? null}
