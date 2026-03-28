@@ -34,7 +34,7 @@ export async function POST(request: Request) {
 
   if (existingUser) {
     const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
-    const recoveryUrl = `${appUrl.replace(/\/$/, "")}/auth/recovery`;
+    const recoveryUrl = `${appUrl.replace(/\/$/, "")}/auth/forgot-password`;
 
     const emailResult = await sendEmail({
       to: [{ email, name: fullName }],
