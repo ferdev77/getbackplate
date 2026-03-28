@@ -274,7 +274,7 @@ export function CompanyShell({
   }, [enabledModuleSet, branchOptions]);
 
   const [theme, setTheme] = useState(settingsSnapshot.theme);
-  const [profileName, setProfileName] = useState(sessionUserName);
+  const [profileName] = useState(sessionUserName);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState(sessionAvatarUrl);
   const [profileAvatarPreview, setProfileAvatarPreview] = useState("");
   const [billingPlan, setBillingPlan] = useState(currentPlanName || settingsSnapshot.billingPlan);
@@ -699,9 +699,6 @@ export function CompanyShell({
                 <div className="flex items-center justify-between border-b border-white/10 px-3.5 py-2.5"><span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#bbbbbb]">Settings</span><button type="button" onClick={() => setSettingsOpen(false)} className="grid h-5.5 w-5.5 place-items-center rounded-full bg-white/10 text-sm text-[#888] hover:bg-white/20 hover:text-white"><X className="h-3.5 w-3.5" /></button></div>
                 <div className="px-0 py-1">
                   <button type="button" onClick={() => setSettingsView("profile")} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[13px] text-white/70 hover:bg-white/10 hover:text-white"><User className="h-4 w-4 opacity-70" /><span className="flex-1">Profile</span><span className="opacity-40">›</span></button>
-                  <button type="button" onClick={() => setSettingsView("preferences")} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[13px] text-white/70 hover:bg-white/10 hover:text-white"><Settings className="h-4 w-4 opacity-70" /><span className="flex-1">Preferences</span><span className="opacity-40">›</span></button>
-                  <button type="button" onClick={() => setSettingsView("billing")} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[13px] text-white/70 hover:bg-white/10 hover:text-white"><CreditCard className="h-4 w-4 opacity-70" /><span className="flex-1">Billing</span><span className="opacity-40">›</span></button>
-                  <Link href="/app/settings#org-structure" onClick={() => setSettingsOpen(false)} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[13px] text-white/70 hover:bg-white/10 hover:text-white"><LayoutGrid className="h-4 w-4 opacity-70" /><span className="flex-1">Locaciones y Departamentos</span><span className="opacity-40">↗</span></Link>
                   <div className="my-1 h-px bg-white/10" />
                   <p className="px-3.5 pb-1 pt-2 text-[9px] font-bold uppercase tracking-[0.09em] text-[#555]">Tema</p>
                   <div className="grid grid-cols-4 gap-1.5 px-3.5">
@@ -794,10 +791,28 @@ export function CompanyShell({
                   <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
                     <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Account</p>
                     <div className="flex items-center justify-between border-b border-white/5 py-1.5"><span className="text-white/55">Email</span><span className="max-w-[160px] truncate text-[11px] tracking-[0.04em] text-white/45">{sessionUserEmail || "-"}</span></div>
-                    <div className="flex items-center justify-between border-b border-white/5 py-1.5"><span className="text-white/55">Password</span><button type="button" onClick={() => toast.success("Email de cambio enviado")} className="rounded-md border border-[#60a5fa]/35 bg-[#60a5fa]/15 px-2 py-1 text-[10px] font-semibold text-[#9fc2ff]">Change Password</button></div>
-                    <div className="mt-2"><span className="text-white/55">Nombre</span><input value={profileName} onChange={(event) => setProfileName(event.target.value)} className="mt-1 w-full rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-white" /></div>
+                    <div className="flex items-center justify-between border-b border-white/5 py-1.5">
+                      <span className="text-white/55">Password</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSettingsOpen(false);
+                          router.push("/auth/change-password?next=%2Fapp%2Fsettings");
+                        }}
+                        className="rounded-md border border-[#60a5fa]/35 bg-[#60a5fa]/15 px-2 py-1 text-[10px] font-semibold text-[#9fc2ff]"
+                      >
+                        Cambiar contraseña
+                      </button>
+                    </div>
+                    <div className="mt-2">
+                      <span className="text-white/55">Nombre</span>
+                      <input
+                        value={profileName}
+                        readOnly
+                        className="mt-1 w-full cursor-not-allowed rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-white/80"
+                      />
+                    </div>
                   </div>
-                  <button type="button" disabled={busy} onClick={() => saveSettings("profile", { fullName: profileName })} className="w-full rounded-md bg-white px-2 py-2 font-semibold text-[#111] disabled:opacity-60">Guardar profile</button>
                 </div>
               </div>
             ) : null}
@@ -947,9 +962,7 @@ export function CompanyShell({
               </div>
             </div>
 
-            <div className="mx-3.5 mb-3 mt-2 grid gap-2">
-              <button type="button" onClick={() => { setPlanOpen(false); setSettingsOpen(true); setSettingsView("billing"); }} className="w-full rounded-lg bg-[#f0b060] px-3 py-2 text-xs font-bold text-[#111] hover:opacity-90">Administrar mis métodos de pago -&gt;</button>
-            </div>
+            <div className="mx-3.5 mb-3 mt-2 grid gap-2" />
           </div>
         </div>
       ) : null}
