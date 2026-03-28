@@ -59,8 +59,6 @@ export async function POST(request: Request) {
       email_confirm: true,
       user_metadata: {
         full_name: fullName,
-        login_email: email,
-        login_password: tempPassword,
         force_password_change: true,
         temporary_password_set_at: new Date().toISOString(),
       },

@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 
 export const getEmployeeDirectoryView = cache(async (
   organizationId: string, 
-  limit: number = 1000,
+  limit: number = 1000, offset: number = 0,
   options: { includeModalsData?: boolean; includeUsersTab?: boolean; includeEmployeesData?: boolean } = {}
 ) => {
   const supabase = await createSupabaseServerClient();
@@ -29,7 +29,7 @@ export const getEmployeeDirectoryView = cache(async (
           `)
           .eq("organization_id", organizationId)
           .order("created_at", { ascending: false })
-          .limit(limit)
+          .range(offset, offset + limit - 1)
       : Promise.resolve({ data: [] }),
     (options.includeModalsData || options.includeUsersTab)
       ? supabase

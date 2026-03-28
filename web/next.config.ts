@@ -14,34 +14,57 @@ if (supabaseUrl) {
 
 const nextConfig: NextConfig = {
   async headers() {
+    const supabaseHost = supabaseHostname ?? "*.supabase.co";
+
+    // Build Content-Security-Policy — tight but allows known first/third-party origins
+    // Note: unsafe-inline & unsafe-eval are required by Next.js App Router internals and some UI libs.
+    // For a hardened prod setup, replace with nonce-based CSP via middleware.
+    const cspDirectives = [
+      `default-src 'self'`,
+      `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net`,
+      `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
+      `font-src 'self' https://fonts.gstatic.com`,
+      `img-src 'self' data: blob: https://${supabaseHost} https://*.supabase.co`,
+      `connect-src 'self' https://${supabaseHost} https://*.supabase.co wss://${supabaseHost} wss://*.supabase.co https://sentry.io https://*.sentry.io https://api.brevo.com`,
+      `frame-ancestors 'none'`,
+      `base-uri 'self'`,
+      `form-action 'self'`,
+      `object-src 'none'`,
+      `upgrade-insecure-requests`,
+    ].join("; ");
+
     return [
       {
         source: "/(.*)",
         headers: [
-          {
-            key: "X-DNS-Prefetch-Control",
-            value: "on",
-          },
+          { key: "X-DNS-Prefetch-Control", value: "on" },
           {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
           },
+          // DENY is stronger than SAMEORIGIN — app has no legitimate iframe embeds
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Content-Security-Policy", value: cspDirectives },
           {
-            key: "X-Frame-Options",
-            value: "SAMEORIGIN",
-          },
-          {
-            key: "X-Content-Type-Options",
-            value: "nosniff",
-          },
-          {
-            key: "Referrer-Policy",
-            value: "origin-when-cross-origin",
+            key: "Permissions-Policy",
+            value: [
+              "camera=()",
+              "microphone=()",
+              "geolocation=()",
+              "payment=()",
+              "usb=()",
+              "magnetometer=()",
+              "gyroscope=()",
+              "accelerometer=()",
+            ].join(", "),
           },
         ],
       },
     ];
   },
+
   images: {
     remotePatterns: [
       {
@@ -95,5 +118,5 @@ export default withSentryConfig(nextConfig, {
       // Automatically tree-shake Sentry logger statements to reduce bundle size
       removeDebugLogging: true,
     },
-  }
+  },
 });

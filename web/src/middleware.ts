@@ -22,7 +22,7 @@ if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
   });
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Rate limit API and auth routes
   const path = request.nextUrl.pathname;
 
