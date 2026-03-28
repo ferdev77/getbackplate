@@ -6,7 +6,7 @@ import { requireCompanyAccess } from "@/shared/lib/access";
 import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { sendEmail } from "@/shared/lib/brevo";
-import { resendReminderTemplate } from "@/shared/lib/email-templates/invitation";
+import { initialInviteTemplate, resendReminderTemplate } from "@/shared/lib/email-templates/invitation";
 
 export async function POST(request: Request) {
   const tenant = await requireCompanyAccess();
@@ -48,16 +48,43 @@ export async function POST(request: Request) {
 
     mode = "recovery";
   } else {
-    const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-      redirectTo,
-      data: {
+    function randomPassword() {
+      return `Gb!${Math.random().toString(36).slice(2)}${Date.now().toString(36)}A9`;
+    }
+    const tempPassword = randomPassword();
+    
+    const { data: created, error: createError } = await admin.auth.admin.createUser({
+      email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: {
         full_name: fullName,
         login_email: email,
+        login_password: tempPassword,
+        force_password_change: true,
+        temporary_password_set_at: new Date().toISOString(),
       },
     });
 
-    if (inviteError) {
-      return NextResponse.json({ ok: false, error: `No se pudo reenviar invitación: ${inviteError.message}` }, { status: 400 });
+    if (createError || !created.user) {
+      return NextResponse.json({ ok: false, error: `No se pudo reenviar invitación: ${createError?.message}` }, { status: 400 });
+    }
+
+    const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
+
+    const emailResult = await sendEmail({
+      to: [{ email, name: fullName }],
+      subject: "Bienvenido(a) a GetBackplate - Tus credenciales",
+      htmlContent: initialInviteTemplate({
+        fullName,
+        loginEmail: email,
+        loginPassword: tempPassword,
+        loginUrl,
+      })
+    });
+
+    if (!emailResult.ok) {
+      return NextResponse.json({ ok: false, error: emailResult.error }, { status: 400 });
     }
   }
 
