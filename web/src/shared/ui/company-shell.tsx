@@ -295,6 +295,68 @@ export function CompanyShell({
     const supabase = createSupabaseBrowserClient();
     const orgFilter = `organization_id=eq.${tenantId}`;
 
+    const subscriptions: Array<{ table: string; filter: string }> = [
+      { table: "organization_modules", filter: orgFilter },
+      { table: "organizations", filter: `id=eq.${tenantId}` },
+    ];
+
+    if (pathname.startsWith("/app/dashboard")) {
+      subscriptions.push(
+        { table: "announcements", filter: orgFilter },
+        { table: "checklist_submissions", filter: orgFilter },
+        { table: "checklist_flags", filter: orgFilter },
+        { table: "documents", filter: orgFilter },
+        { table: "branches", filter: orgFilter },
+        { table: "employees", filter: orgFilter },
+        { table: "organization_user_profiles", filter: orgFilter },
+        { table: "memberships", filter: orgFilter },
+      );
+    } else if (pathname.startsWith("/app/announcements")) {
+      subscriptions.push({ table: "announcements", filter: orgFilter });
+    } else if (pathname.startsWith("/app/checklists")) {
+      subscriptions.push(
+        { table: "checklist_templates", filter: orgFilter },
+        { table: "checklist_template_sections", filter: orgFilter },
+        { table: "checklist_template_items", filter: orgFilter },
+        { table: "scheduled_jobs", filter: orgFilter },
+        { table: "checklist_submissions", filter: orgFilter },
+      );
+    } else if (pathname.startsWith("/app/reports")) {
+      subscriptions.push(
+        { table: "checklist_submissions", filter: orgFilter },
+        { table: "checklist_submission_items", filter: orgFilter },
+        { table: "checklist_flags", filter: orgFilter },
+        { table: "checklist_item_comments", filter: orgFilter },
+        { table: "checklist_item_attachments", filter: orgFilter },
+        { table: "branches", filter: orgFilter },
+        { table: "employees", filter: orgFilter },
+        { table: "organization_user_profiles", filter: orgFilter },
+      );
+    } else if (pathname.startsWith("/app/documents") || pathname.startsWith("/app/trash")) {
+      subscriptions.push(
+        { table: "documents", filter: orgFilter },
+        { table: "document_folders", filter: orgFilter },
+      );
+    } else if (pathname.startsWith("/app/employees") || pathname.startsWith("/app/users")) {
+      subscriptions.push(
+        { table: "employees", filter: orgFilter },
+        { table: "memberships", filter: orgFilter },
+        { table: "organization_user_profiles", filter: orgFilter },
+        { table: "branches", filter: orgFilter },
+        { table: "organization_departments", filter: orgFilter },
+        { table: "department_positions", filter: orgFilter },
+      );
+    } else if (pathname.startsWith("/app/settings")) {
+      subscriptions.push(
+        { table: "branches", filter: orgFilter },
+        { table: "organization_departments", filter: orgFilter },
+        { table: "department_positions", filter: orgFilter },
+        { table: "employees", filter: orgFilter },
+        { table: "memberships", filter: orgFilter },
+        { table: "organization_user_profiles", filter: orgFilter },
+      );
+    }
+
     function scheduleRefresh() {
       if (refreshTimerRef.current) {
         clearTimeout(refreshTimerRef.current);
@@ -304,29 +366,26 @@ export function CompanyShell({
       }, 350);
     }
 
-    const channel = supabase
-      .channel(`company-shell-live-${tenantId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "announcements", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_templates", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_template_sections", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_template_items", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_submissions", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_submission_items", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_flags", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_item_comments", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_item_attachments", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "scheduled_jobs", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "documents", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "document_folders", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "employees", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "memberships", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "organization_user_profiles", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "branches", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "organization_departments", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "department_positions", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "organization_modules", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "organizations", filter: `id=eq.${tenantId}` }, scheduleRefresh)
-      .subscribe();
+    const uniqueSubscriptions = new Map<string, { table: string; filter: string }>();
+    for (const item of subscriptions) {
+      uniqueSubscriptions.set(`${item.table}::${item.filter}`, item);
+    }
+
+    let channelBuilder = supabase.channel(`company-shell-live-${tenantId}`);
+    for (const item of uniqueSubscriptions.values()) {
+      channelBuilder = channelBuilder.on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: item.table,
+          filter: item.filter,
+        },
+        scheduleRefresh,
+      );
+    }
+
+    const channel = channelBuilder.subscribe();
 
     return () => {
       if (refreshTimerRef.current) {
@@ -334,7 +393,7 @@ export function CompanyShell({
       }
       supabase.removeChannel(channel);
     };
-  }, [router, tenantId]);
+  }, [pathname, router, tenantId]);
 
   useEffect(() => {
     setCurrentAvatarUrl(sessionAvatarUrl);

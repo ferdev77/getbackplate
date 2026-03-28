@@ -14,10 +14,12 @@ Este documento audita que pantallas escuchan cambios en tiempo real y por que vi
 - `web/src/shared/ui/company-shell.tsx`
   - Listener scoped por tenant (`organization_id`) para modulo empresa.
   - Cubre cambios de anuncios, checklists, documentos, empleados, membresias, perfiles, estructura y modulos.
+  - Optimizado por ruta activa: se suscribe solo a tablas del modulo visible.
 
 - `web/src/shared/ui/employee-shell.tsx`
   - Listener scoped por tenant/usuario para portal empleado.
   - Cubre anuncios, documentos, carpetas, templates, jobs, modulos, submissions propias, perfil empleado y preferencias.
+  - Optimizado por ruta activa: reduce refrescos cuando el modulo no esta visible.
 
 - `web/src/shared/ui/superadmin-realtime-listener.tsx`
   - Listener dedicado para superadmin.
@@ -61,11 +63,12 @@ Este documento audita que pantallas escuchan cambios en tiempo real y por que vi
 - En empresa, la cobertura es fuerte: shell scoped + listeners especificos en modulos pesados.
 - En empleado, checklist tiene listener dedicado y el shell quedo scoped por tenant/usuario.
 - Superadmin ya no depende solo del fallback global: tiene listener dedicado por dominio.
+- Empresa y empleado ya aplican estrategia de ruta activa para bajar ruido de eventos.
 
 ## 4) Recomendacion tecnica (siguiente iteracion)
 
 Para seguir mejorando eficiencia y evitar refresh redundante:
 
-1. Reducir eventos de `employee-shell` por ruta activa (subscribirse solo a tablas del modulo visible).
-2. Reducir eventos de `company-shell` aplicando mismo criterio por ruta activa.
+1. Ajustar listeners de modulos internos para refrescar estado local antes de `router.refresh` cuando sea posible.
+2. Agregar metricas de frecuencia de refresh por ruta para detectar ruido residual.
 3. Mantener `global-realtime` como fallback de seguridad, no como mecanismo principal.
