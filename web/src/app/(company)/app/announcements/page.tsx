@@ -12,7 +12,7 @@ import { requireTenantModule } from "@/shared/lib/access";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { AnnouncementCreateModal } from "@/shared/ui/announcement-create-modal";
 import { ConfirmSubmitButton } from "@/shared/ui/confirm-submit-button";
-import {SlideUp, AnimatedList, AnimatedItem} from "@/shared/ui/animations";
+import { SlideUp } from "@/shared/ui/animations";
 import { extractDisplayName } from "@/shared/lib/user";
 
 type CompanyAnnouncementsPageProps = {
@@ -184,20 +184,20 @@ const employeesQuery = supabase
         </section>
       </SlideUp>
 
-      <AnimatedList className="mb-5 grid gap-3 sm:grid-cols-4">
-        <AnimatedItem className="h-full">
+      <div className="mb-5 grid gap-3 sm:grid-cols-4">
+        <div className="h-full">
           <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Avisos activos</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{announcements?.length ?? 0}</p><p className={`text-[11px] text-[#a7a09a] ${DARK_MUTED}`}>En todas las locaciones</p></article>
-        </AnimatedItem>
-        <AnimatedItem className="h-full">
+        </div>
+        <div className="h-full">
           <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Fijados</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{(announcements ?? []).filter((row) => row.is_featured).length}</p><p className={`text-[11px] text-[#a7a09a] ${DARK_MUTED}`}>Visible al top</p></article>
-        </AnimatedItem>
-        <AnimatedItem className="h-full">
+        </div>
+        <div className="h-full">
           <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Por vencer</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{porVencer}</p><p className={`text-[11px] text-[#a7a09a] ${DARK_MUTED}`}>Esta semana</p></article>
-        </AnimatedItem>
-        <AnimatedItem className="h-full">
+        </div>
+        <div className="h-full">
           <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Ultima publicacion</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{latestDate ? new Date(latestDate).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }) : "-"}</p><p className={`text-[11px] text-[#a7a09a] ${DARK_MUTED}`}>{latestAnnouncement ? employeeNameByUserId.get(latestAnnouncement.created_by ?? "") || "Direccion General" : "Sin avisos"}</p></article>
-        </AnimatedItem>
-      </AnimatedList>
+        </div>
+      </div>
 
       <SlideUp delay={0.1}>
         <p className={`mb-2 text-[11px] font-bold tracking-[0.11em] text-[#9c938d] uppercase ${DARK_MUTED}`}>Avisos publicados</p>
@@ -205,7 +205,7 @@ const employeesQuery = supabase
 
       <section className="space-y-3">
         {announcements && announcements.length > 0 ? (
-          <AnimatedList className="space-y-3">
+          <div className="space-y-3">
             {announcements.map((ann) => {
               const target = parseAnnouncementScope(ann.target_scope);
               const scopedLocations = target.locations;
@@ -216,7 +216,7 @@ const employeesQuery = supabase
                 scopedLocations.length > 0 || scopedDepartments.length > 0 || scopedPositions.length > 0 || scopedUsers.length > 0;
 
               return (
-                <AnimatedItem key={ann.id}>
+                <div key={ann.id}>
                   <article className={`rounded-xl border-[1.5px] bg-white px-5 py-4 ${DARK_CARD} ${ann.is_featured ? "border-[#e8e8e8] border-l-[3.5px] border-l-[#c0392b]" : "border-[#e8e8e8]"}`}>
                     <div className="mb-2 flex items-start justify-between gap-3">
                       <div>
@@ -275,10 +275,10 @@ const employeesQuery = supabase
                       </div>
                     </div>
                   </article>
-                </AnimatedItem>
+                </div>
               );
             })}
-          </AnimatedList>
+          </div>
         ) : (
           <SlideUp delay={0.2}>
             <EmptyState icon={Bell} title="Aun no hay anuncios" description="Publica tu primer aviso para que llegue a tu equipo." />
