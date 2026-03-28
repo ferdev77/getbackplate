@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type Stripe from 'stripe';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/client/server';
 import { stripe } from '@/infrastructure/stripe/client';
+import { sendPlanChangeDecisionEmail } from '@/modules/billing/services/plan-change-notifications.service';
 import { assertCompanyManagerModuleApi } from '@/shared/lib/access';
 import { isSuperadminImpersonating } from '@/shared/lib/impersonation';
 import { logAuditEvent } from '@/shared/lib/audit';
@@ -96,6 +97,36 @@ export async function POST(request: Request) {
           organizationId,
           userId: user.id,
           planId: planId || '',
+        },
+      });
+
+      const actorName =
+        typeof user.user_metadata?.full_name === 'string' && user.user_metadata.full_name.trim()
+          ? user.user_metadata.full_name.trim()
+          : user.email ?? 'Administrador';
+
+      const notificationResult = await sendPlanChangeDecisionEmail({
+        organizationId,
+        actorEmail: user.email ?? null,
+        actorFullName: actorName,
+        targetPlanId: typeof planId === 'string' ? planId : null,
+        targetPriceId: priceId,
+      });
+
+      await logAuditEvent({
+        action: 'organization.billing.plan_change.requested',
+        entityType: 'billing_plan_change',
+        organizationId,
+        eventDomain: 'billing',
+        outcome: notificationResult.ok ? 'success' : 'error',
+        severity: notificationResult.ok ? 'medium' : 'high',
+        metadata: {
+          actor_user_id: user.id,
+          actor_email: user.email,
+          target_plan_id: planId || null,
+          target_price_id: priceId,
+          notification_sent: notificationResult.ok,
+          notification_error: notificationResult.ok ? null : notificationResult.error,
         },
       });
 

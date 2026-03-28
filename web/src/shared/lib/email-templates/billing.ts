@@ -14,6 +14,128 @@ export function planRenewalReminderTemplate({ orgName, renewalDate, amount }: Re
   `;
 }
 
+type PlanChangeDecisionProps = {
+  orgName: string;
+  actorName: string;
+  actorEmail: string;
+  previousPlanName: string;
+  targetPlanName: string;
+  targetPlanPrice: string;
+  targetPlanLimits: Array<{ label: string; value: string }>;
+  modulesToEnable: string[];
+  modulesToDisable: string[];
+  direction: "upgrade" | "downgrade";
+  happenedAt: string;
+};
+
+function renderModuleList(items: string[], emptyLabel: string, accentColor: string, bgColor: string) {
+  if (!items.length) {
+    return `<p style="margin:0;color:#6b7280;font-size:12px;">${emptyLabel}</p>`;
+  }
+
+  return `
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      ${items
+        .map(
+          (item) =>
+            `<span style="display:inline-block;border:1px solid ${accentColor};background:${bgColor};color:${accentColor};padding:5px 10px;border-radius:999px;font-size:11px;font-weight:700;">${item}</span>`,
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+export function planChangeDecisionTemplate({
+  orgName,
+  actorName,
+  actorEmail,
+  previousPlanName,
+  targetPlanName,
+  targetPlanPrice,
+  targetPlanLimits,
+  modulesToEnable,
+  modulesToDisable,
+  direction,
+  happenedAt,
+}: PlanChangeDecisionProps) {
+  const isDowngrade = direction === "downgrade";
+  const title = isDowngrade ? "Se solicito un downgrade de plan" : "Se solicito un upgrade de plan";
+  const subtitle = isDowngrade
+    ? "Revisa los modulos que pueden quedar desactivados con el nuevo plan."
+    : "Tu organizacion desbloquea nuevas capacidades con el nuevo plan.";
+  const accent = isDowngrade ? "#d97706" : "#059669";
+  const accentSoft = isDowngrade ? "#fff7ed" : "#ecfdf5";
+
+  const limitsHtml = targetPlanLimits
+    .map(
+      (item) => `
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;font-size:12px;">${item.label}</td>
+          <td style="padding:8px 0;color:#111827;font-size:12px;font-weight:700;text-align:right;">${item.value}</td>
+        </tr>
+      `,
+    )
+    .join("");
+
+  return `
+    <div style="font-family:Inter,Segoe UI,Arial,sans-serif;max-width:680px;margin:0 auto;background:#f5f6f8;padding:24px;">
+      <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.06);">
+        <div style="height:6px;background:${accent};"></div>
+
+        <div style="padding:24px 24px 8px 24px;">
+          <p style="margin:0 0 6px 0;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;font-weight:700;">GetBackplate Billing</p>
+          <h2 style="margin:0;font-size:24px;line-height:1.2;color:#111827;">${title}</h2>
+          <p style="margin:10px 0 0 0;color:#4b5563;font-size:14px;line-height:1.5;">${subtitle}</p>
+        </div>
+
+        <div style="padding:16px 24px 0 24px;">
+          <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;background:#fafafa;">
+            <p style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Resumen del cambio</p>
+            <p style="margin:0;color:#111827;font-size:14px;"><strong>${previousPlanName}</strong> -> <strong>${targetPlanName}</strong></p>
+            <p style="margin:6px 0 0 0;color:#111827;font-size:14px;">Nuevo costo: <strong>${targetPlanPrice}</strong></p>
+          </div>
+        </div>
+
+        <div style="padding:16px 24px 0 24px;">
+          <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;">
+            <p style="margin:0 0 6px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Solicitado por</p>
+            <p style="margin:0;color:#111827;font-size:14px;"><strong>${actorName}</strong> (${actorEmail})</p>
+            <p style="margin:6px 0 0 0;color:#6b7280;font-size:12px;">Fecha: ${happenedAt}</p>
+          </div>
+        </div>
+
+        <div style="padding:16px 24px 0 24px;">
+          <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;background:${accentSoft};">
+            <p style="margin:0 0 10px 0;font-size:12px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Modulos que se activan</p>
+            ${renderModuleList(modulesToEnable, "No se detectaron nuevos modulos para este cambio.", "#047857", "#d1fae5")}
+            <div style="height:12px;"></div>
+            <p style="margin:0 0 10px 0;font-size:12px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Modulos que se desactivan</p>
+            ${renderModuleList(modulesToDisable, "No se detectaron modulos a desactivar.", "#b45309", "#ffedd5")}
+          </div>
+        </div>
+
+        <div style="padding:16px 24px 8px 24px;">
+          <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;">
+            <p style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Limites del nuevo plan</p>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+              <tbody>
+                ${limitsHtml}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="padding:12px 24px 24px 24px;">
+          <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">
+            Esta notificacion confirma que el cambio de plan fue solicitado desde la cuenta administradora de <strong>${orgName}</strong>.
+            Si no reconoces esta accion, revisa de inmediato los accesos en tu panel.
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 type PlanChangedProps = { orgName: string; planName: string };
 export function planChangedTemplate({ orgName, planName }: PlanChangedProps) {
   return `
