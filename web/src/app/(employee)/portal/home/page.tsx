@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { markEmployeeOnboardingSeenAction } from "@/modules/onboarding/actions";
 import { EmployeeWelcomeModal } from "@/modules/onboarding/ui/employee-welcome-modal";
 import { requireEmployeeAccess } from "@/shared/lib/access";
+import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
 import { canReadDocumentInTenant } from "@/shared/lib/document-access";
 import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
 import { FileText, ClipboardCheck, ArrowRight, AlertCircle, CalendarClock, PartyPopper, Megaphone } from "lucide-react";
@@ -18,7 +18,6 @@ function formatBytes(value: number | null) {
 export default async function EmployeeHomePage() {
   const tenant = await requireEmployeeAccess();
   const supabase = await createSupabaseServerClient();
-  const admin = createSupabaseAdminClient();
   const { data: authData } = await supabase.auth.getUser();
   const userId = authData.user?.id;
 
@@ -121,23 +120,10 @@ export default async function EmployeeHomePage() {
 
   // Fetch authors for announcements
   const authorIds = Array.from(new Set(announcements.map((a) => a.created_by).filter(Boolean)));
-  const authorNameMap = new Map<string, string>();
-  if (authorIds.length > 0) {
-    // Use admin client to bypass RLS — the author may be a company admin
-    // whose profile is not visible to the employee's session
-    const [{ data: employeesData }, { data: profilesData }] = await Promise.all([
-      admin.from("employees").select("user_id, first_name, last_name, position").eq("organization_id", tenant.organizationId).in("user_id", authorIds),
-      admin.from("organization_user_profiles").select("user_id, first_name, last_name").eq("organization_id", tenant.organizationId).in("user_id", authorIds),
-    ]);
-    for (const emp of employeesData ?? []) {
-      if (emp.user_id) authorNameMap.set(emp.user_id, `${emp.first_name ?? ""} ${emp.last_name ?? ""}`.trim() || "Dirección");
-    }
-    for (const prof of profilesData ?? []) {
-      if (prof.user_id && !authorNameMap.has(prof.user_id)) {
-        authorNameMap.set(prof.user_id, `${prof.first_name ?? ""} ${prof.last_name ?? ""}`.trim() || "Dirección");
-      }
-    }
-  }
+  const authorNameMap = await resolveAnnouncementAuthorNames({
+    organizationId: tenant.organizationId,
+    authorIds,
+  });
 
   // Fetch Documents
   let visibleDocuments: any[] = [];
