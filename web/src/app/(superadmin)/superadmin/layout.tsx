@@ -1,5 +1,6 @@
 import { logoutAction } from "@/modules/auth/actions";
 import { requireSuperadmin } from "@/shared/lib/access";
+import { SuperadminRealtimeListener } from "@/shared/ui/superadmin-realtime-listener";
 import { SuperadminTopbar } from "@/shared/ui/superadmin-topbar";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +12,7 @@ export default async function SuperadminLayout({
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#fcfaf8_0%,#f8f6f2_42%,#f5f3ef_100%)]">
+      <SuperadminRealtimeListener />
       <header className="sticky top-0 z-40 border-b border-line/40 bg-white/70 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-2.5">
           <SuperadminTopbar />
