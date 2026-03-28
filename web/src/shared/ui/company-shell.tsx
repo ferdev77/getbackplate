@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
-import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
   ChevronDown,
@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { FloatingAiAssistant } from "@/shared/ui/floating-ai-assistant";
 import { toast } from "sonner";
+import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 
 type SettingsSnapshot = {
   billingPlan: string;
@@ -223,6 +224,7 @@ export function CompanyShell({
 }: CompanyShellProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -287,6 +289,52 @@ export function CompanyShell({
   const [fbType, setFbType] = useState<"bug" | "idea">("bug");
   const [fbTitle, setFbTitle] = useState("");
   const [fbMessage, setFbMessage] = useState("");
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    const orgFilter = `organization_id=eq.${tenantId}`;
+
+    function scheduleRefresh() {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
+      refreshTimerRef.current = setTimeout(() => {
+        router.refresh();
+      }, 350);
+    }
+
+    const channel = supabase
+      .channel(`company-shell-live-${tenantId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "announcements", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_templates", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_template_sections", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_template_items", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_submissions", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_submission_items", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_flags", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_item_comments", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_item_attachments", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "scheduled_jobs", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "documents", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "document_folders", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "employees", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "memberships", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "organization_user_profiles", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "branches", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "organization_departments", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "department_positions", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "organization_modules", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "organizations", filter: `id=eq.${tenantId}` }, scheduleRefresh)
+      .subscribe();
+
+    return () => {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
+      supabase.removeChannel(channel);
+    };
+  }, [router, tenantId]);
 
   useEffect(() => {
     setCurrentAvatarUrl(sessionAvatarUrl);

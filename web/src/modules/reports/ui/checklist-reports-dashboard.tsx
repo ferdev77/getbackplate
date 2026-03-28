@@ -120,44 +120,83 @@ export function ChecklistReportsDashboard({
   const [isReviewing, setIsReviewing] = useState(false);
   const [reviewError, setReviewError] = useState("");
 
-  // Supabase Realtime: auto-refresh when new submissions arrive or are updated
-  const orgIdRef = useRef(organizationId);
-  orgIdRef.current = organizationId;
+  // Supabase Realtime: auto-refresh when reports-related data changes
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
+    const orgFilter = `organization_id=eq.${organizationId}`;
+
+    function scheduleRefresh() {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
+      refreshTimerRef.current = setTimeout(() => {
+        router.refresh();
+      }, 300);
+    }
+
     const channel = supabase
       .channel("checklist-reports-realtime")
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "checklist_submissions",
-          filter: `organization_id=eq.${orgIdRef.current}`,
+          filter: orgFilter,
         },
-        () => {
-          router.refresh();
-        },
+        scheduleRefresh,
       )
       .on(
         "postgres_changes",
         {
-          event: "UPDATE",
+          event: "*",
           schema: "public",
-          table: "checklist_submissions",
-          filter: `organization_id=eq.${orgIdRef.current}`,
+          table: "checklist_submission_items",
+          filter: orgFilter,
         },
-        () => {
-          router.refresh();
+        scheduleRefresh,
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "checklist_flags",
+          filter: orgFilter,
         },
+        scheduleRefresh,
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "checklist_item_comments",
+          filter: orgFilter,
+        },
+        scheduleRefresh,
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "checklist_item_attachments",
+          filter: orgFilter,
+        },
+        scheduleRefresh,
       )
       .subscribe();
 
     return () => {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
       supabase.removeChannel(channel);
     };
-  }, [router]);
+  }, [organizationId, router]);
 
   const selectedReport = useMemo(
     () => reports.find((report) => report.id === selectedReportId) ?? null,
