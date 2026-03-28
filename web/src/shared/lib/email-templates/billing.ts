@@ -136,6 +136,105 @@ export function planChangeDecisionTemplate({
   `;
 }
 
+type PlanChangeAppliedProps = {
+  orgName: string;
+  actorName: string;
+  actorEmail: string;
+  previousPlanName: string;
+  targetPlanName: string;
+  targetPlanPrice: string;
+  targetPlanLimits: Array<{ label: string; value: string }>;
+  modulesToEnable: string[];
+  modulesToDisable: string[];
+  direction: "upgrade" | "downgrade";
+  appliedAt: string;
+};
+
+export function planChangeAppliedTemplate({
+  orgName,
+  actorName,
+  actorEmail,
+  previousPlanName,
+  targetPlanName,
+  targetPlanPrice,
+  targetPlanLimits,
+  modulesToEnable,
+  modulesToDisable,
+  direction,
+  appliedAt,
+}: PlanChangeAppliedProps) {
+  const isDowngrade = direction === "downgrade";
+  const title = isDowngrade ? "Cambio de plan aplicado: downgrade completado" : "Cambio de plan aplicado: upgrade completado";
+  const accent = isDowngrade ? "#d97706" : "#059669";
+  const accentSoft = isDowngrade ? "#fff7ed" : "#ecfdf5";
+
+  const limitsHtml = targetPlanLimits
+    .map(
+      (item) => `
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;font-size:12px;">${item.label}</td>
+          <td style="padding:8px 0;color:#111827;font-size:12px;font-weight:700;text-align:right;">${item.value}</td>
+        </tr>
+      `,
+    )
+    .join("");
+
+  return `
+    <div style="font-family:Inter,Segoe UI,Arial,sans-serif;max-width:680px;margin:0 auto;background:#f5f6f8;padding:24px;">
+      <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.06);">
+        <div style="height:6px;background:${accent};"></div>
+
+        <div style="padding:24px 24px 8px 24px;">
+          <p style="margin:0 0 6px 0;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;font-weight:700;">GetBackplate Billing</p>
+          <h2 style="margin:0;font-size:24px;line-height:1.2;color:#111827;">${title}</h2>
+          <p style="margin:10px 0 0 0;color:#4b5563;font-size:14px;line-height:1.5;">El cambio fue confirmado por Stripe y ya esta activo para ${orgName}.</p>
+        </div>
+
+        <div style="padding:16px 24px 0 24px;">
+          <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;background:#fafafa;">
+            <p style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Resultado final</p>
+            <p style="margin:0;color:#111827;font-size:14px;"><strong>${previousPlanName}</strong> -> <strong>${targetPlanName}</strong></p>
+            <p style="margin:6px 0 0 0;color:#111827;font-size:14px;">Costo actual: <strong>${targetPlanPrice}</strong></p>
+          </div>
+        </div>
+
+        <div style="padding:16px 24px 0 24px;">
+          <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;">
+            <p style="margin:0 0 6px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Administrador responsable</p>
+            <p style="margin:0;color:#111827;font-size:14px;"><strong>${actorName}</strong> (${actorEmail})</p>
+            <p style="margin:6px 0 0 0;color:#6b7280;font-size:12px;">Aplicado: ${appliedAt}</p>
+          </div>
+        </div>
+
+        <div style="padding:16px 24px 0 24px;">
+          <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;background:${accentSoft};">
+            <p style="margin:0 0 10px 0;font-size:12px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Modulos activados</p>
+            ${renderModuleList(modulesToEnable, "Sin nuevas activaciones de modulos.", "#047857", "#d1fae5")}
+            <div style="height:12px;"></div>
+            <p style="margin:0 0 10px 0;font-size:12px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Modulos desactivados</p>
+            ${renderModuleList(modulesToDisable, "Sin desactivaciones de modulos.", "#b45309", "#ffedd5")}
+          </div>
+        </div>
+
+        <div style="padding:16px 24px 8px 24px;">
+          <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;">
+            <p style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Limites vigentes del plan</p>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+              <tbody>
+                ${limitsHtml}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="padding:12px 24px 24px 24px;">
+          <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">Este email confirma que el plan ya fue sincronizado en la plataforma. Puedes validar el estado actual desde el panel de empresa.</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 type PlanChangedProps = { orgName: string; planName: string };
 export function planChangedTemplate({ orgName, planName }: PlanChangedProps) {
   return `

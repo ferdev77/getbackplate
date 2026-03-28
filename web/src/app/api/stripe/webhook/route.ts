@@ -5,9 +5,26 @@ import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { 
   sendRenewalReminderEmail, 
-  sendPlanChangedEmail, 
   sendPaymentFailedEmail 
 } from '@/modules/billing/services/billing-notifications.service';
+import { sendPlanChangeAppliedEmail } from '@/modules/billing/services/plan-change-notifications.service';
+
+function extractPreviousPriceId(previousAttributes: any): string | null {
+  try {
+    const previousItems = previousAttributes?.items?.data;
+    if (!Array.isArray(previousItems) || previousItems.length === 0) return null;
+
+    const firstItem = previousItems[0];
+    const price = firstItem?.price;
+
+    if (typeof price === 'string') return price;
+    if (price && typeof price.id === 'string') return price.id;
+
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 
 export async function POST(req: Request) {
@@ -288,14 +305,24 @@ export async function POST(req: Request) {
         }, { onConflict: 'stripe_subscription_id' });
 
         if (event.type === 'customer.subscription.updated' && isActive) {
-            // Check if price changed using previous attributes if available
             const prevAttributes = event.data.previous_attributes as any;
-            const priceChanged = prevAttributes && prevAttributes.items && prevAttributes.items.data;
-            if (priceChanged) {
-                // Fetch the new plan name to send email
-                const { data: pData } = await supabase.from('plans').select('name').eq('stripe_price_id', priceId).single();
-                if (pData) {
-                    await sendPlanChangedEmail(organizationId, pData.name);
+            const previousPriceId = extractPreviousPriceId(prevAttributes);
+            const actorUserId = typeof subscription.metadata?.userId === 'string' ? subscription.metadata.userId : null;
+            const targetPlanIdFromMeta = typeof subscription.metadata?.planId === 'string' ? subscription.metadata.planId : null;
+
+            if (previousPriceId && previousPriceId !== priceId) {
+                const applyEmailResult = await sendPlanChangeAppliedEmail({
+                    organizationId,
+                    actorUserId,
+                    previousPriceId,
+                    targetPlanId: targetPlanIdFromMeta,
+                    targetPriceId: priceId,
+                });
+
+                if (!applyEmailResult.ok) {
+                    console.error(`[Webhook] Failed to send applied plan-change email: ${applyEmailResult.error}`);
+                } else {
+                    console.log(`[Webhook] Applied plan-change email sent to actor for org ${organizationId}`);
                 }
             }
         }
