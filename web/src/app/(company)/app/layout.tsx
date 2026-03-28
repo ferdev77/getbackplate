@@ -3,6 +3,7 @@ import {
   getOrganizationById, 
   getOrganizationSettings, 
   getActivePlans, 
+  getPlanModulesMap,
   getUserPreferences, 
   getEnabledModules,
   getActiveBranches,
@@ -28,10 +29,11 @@ export default async function CompanyLayout({
     ? await resolveActiveSuperadminImpersonationSession(user.id)
     : null;
 
-  const [orgSettings, preferences, activePlans, enabledModuleCodes, activeBranches] = await Promise.all([
+  const [orgSettings, preferences, activePlans, planModulesByPlanId, enabledModuleCodes, activeBranches] = await Promise.all([
     getOrganizationSettings(tenant.organizationId),
     user ? getUserPreferences(user.id, tenant.organizationId) : Promise.resolve(null),
     getActivePlans(),
+    getPlanModulesMap(),
     getEnabledModules(tenant.organizationId),
     getActiveBranches(tenant.organizationId),
   ]);
@@ -117,6 +119,7 @@ export default async function CompanyLayout({
       }))}
       currentPlanCode={inferredCurrentPlan?.code ?? null}
       currentPlanName={inferredCurrentPlan?.name ?? "Sin plan"}
+      planModulesByPlanId={planModulesByPlanId}
       enabledModules={enabledModules}
       branchOptions={activeBranches}
       impersonationMode={Boolean(impersonationSession)}

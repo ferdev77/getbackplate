@@ -47,6 +47,31 @@ export const getActivePlans = cache(async function getActivePlans() {
   return data ?? [];
 });
 
+export const getPlanModulesMap = cache(async function getPlanModulesMap() {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("plan_modules")
+    .select("plan_id, module_catalog!inner(code, name), is_enabled")
+    .eq("is_enabled", true);
+
+  const map: Record<string, Array<{ code: string; name: string }>> = {};
+
+  for (const row of data ?? []) {
+    const planId = typeof row.plan_id === "string" ? row.plan_id : null;
+    const catalog = row.module_catalog as unknown as { code?: string | null; name?: string | null } | null;
+    const code = typeof catalog?.code === "string" ? catalog.code : "";
+    const name = typeof catalog?.name === "string" ? catalog.name : code;
+
+    if (!planId || !code) continue;
+    if (!map[planId]) map[planId] = [];
+    if (!map[planId].some((item) => item.code === code)) {
+      map[planId].push({ code, name });
+    }
+  }
+
+  return map;
+});
+
 export const getUserPreferences = cache(async function getUserPreferences(userId: string, organizationId: string) {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
