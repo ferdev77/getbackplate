@@ -8,6 +8,7 @@ import {
   deleteAnnouncementAction,
   toggleAnnouncementFeaturedAction,
 } from "@/modules/announcements/actions";
+import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
 import { requireTenantModule } from "@/shared/lib/access";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { AnnouncementCreateModal } from "@/shared/ui/announcement-create-modal";
@@ -70,9 +71,9 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
   const uniqueDepartmentIds = new Set<string>();
   const uniquePositionIds = new Set<string>();
   const uniqueUserIds = new Set<string>();
+  const authorIds = Array.from(new Set((announcements ?? []).map((ann) => ann.created_by).filter(Boolean)));
 
   for (const ann of announcements || []) {
-    if (ann.created_by) uniqueUserIds.add(ann.created_by);
     const scope = parseAnnouncementScope(ann.target_scope);
     scope.locations.forEach(id => uniqueBranchIds.add(id));
     scope.department_ids.forEach(id => uniqueDepartmentIds.add(id));
@@ -139,6 +140,10 @@ const employeesQuery = supabase
 
   const branchNameMap = new Map((branches ?? []).map((row) => [row.id, row.name]));
   const departmentNameMap = new Map((departments ?? []).map((row) => [row.id, row.name]));
+  const authorNameMap = await resolveAnnouncementAuthorNames({
+    organizationId: tenant.organizationId,
+    authorIds,
+  });
   const employeeNameByUserId = new Map(
     (employees ?? [])
       .filter((row) => row.user_id)
@@ -195,7 +200,7 @@ const employeesQuery = supabase
           <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Por vencer</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{porVencer}</p><p className={`text-[11px] text-[#a7a09a] ${DARK_MUTED}`}>Esta semana</p></article>
         </div>
         <div className="h-full">
-          <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Ultima publicacion</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{latestDate ? new Date(latestDate).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }) : "-"}</p><p className={`text-[11px] text-[#a7a09a] ${DARK_MUTED}`}>{latestAnnouncement ? employeeNameByUserId.get(latestAnnouncement.created_by ?? "") || "Direccion General" : "Sin avisos"}</p></article>
+          <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Ultima publicacion</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{latestDate ? new Date(latestDate).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }) : "-"}</p><p className={`text-[11px] text-[#a7a09a] ${DARK_MUTED}`}>{latestAnnouncement ? authorNameMap.get(latestAnnouncement.created_by ?? "") || "Direccion General" : "Sin avisos"}</p></article>
         </div>
       </div>
 
@@ -222,7 +227,7 @@ const employeesQuery = supabase
                       <div>
                         <p className={`text-[14px] font-bold text-[#111] ${DARK_TEXT}`}>{ann.title}</p>
                         <div className={`mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-[#aaa] ${DARK_MUTED}`}>
-                          <span>📅 {ann.publish_at ? new Date(ann.publish_at).toLocaleDateString("es-AR") : "-"} · {employeeNameByUserId.get(ann.created_by ?? "") || "Direccion General"}</span>
+                          <span>📅 {ann.publish_at ? new Date(ann.publish_at).toLocaleDateString("es-AR") : "-"} · {authorNameMap.get(ann.created_by ?? "") || "Direccion General"}</span>
                           {ann.expires_at ? (
                             (() => {
                               const datePart = ann.expires_at.slice(0, 10);
