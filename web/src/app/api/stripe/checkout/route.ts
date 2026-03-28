@@ -117,7 +117,7 @@ export async function POST(request: Request) {
         action: 'organization.billing.plan_change.requested',
         entityType: 'billing_plan_change',
         organizationId,
-        eventDomain: 'billing',
+        eventDomain: 'settings',
         outcome: notificationResult.ok ? 'success' : 'error',
         severity: notificationResult.ok ? 'medium' : 'high',
         metadata: {
