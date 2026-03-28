@@ -62,7 +62,26 @@ Para futuras implementaciones o debugging, así funciona el ruteamiento y dispar
 
 ---
 
-## 4. Preguntas Frecuentes / Troubleshooting
+## 4. Flujos de Email en Billing (Cambio de Plan)
+
+Cuando un Company Admin confirma un cambio de plan desde el modal de "Planes Disponibles", el sistema dispara dos notificaciones separadas al mismo admin actor:
+
+1. **Correo de decision solicitada** (inmediato)
+   - Se envia en `POST /api/stripe/checkout` cuando el usuario confirma `Subir plan` o `Cambiar igual`.
+   - Incluye: plan actual vs plan destino, costo del nuevo plan, modulos que se activan/desactivan, limites del plan y quien ejecuta la accion.
+   - Servicio: `web/src/modules/billing/services/plan-change-notifications.service.ts` (`sendPlanChangeDecisionEmail`).
+
+2. **Correo de cambio aplicado** (confirmacion real)
+   - Se envia cuando Stripe confirma el cambio en webhook `customer.subscription.updated` con cambio de precio.
+   - Incluye el estado final aplicado con el mismo nivel de detalle funcional (precio, modulos, limites, actor).
+   - Servicio: `web/src/modules/billing/services/plan-change-notifications.service.ts` (`sendPlanChangeAppliedEmail`).
+
+**Proveedor de envio:**
+- Se utiliza el mismo canal oficial del sistema para correos transaccionales (`Brevo`) via `web/src/infrastructure/email/client.ts`.
+
+---
+
+## 5. Preguntas Frecuentes / Troubleshooting
 
 *   **¿Qué pasa si los enlaces de los correos tiran un error 404?**
     Revisa que la variable `NEXT_PUBLIC_APP_URL` esté cargada correctamente y no termine con un *slash* (/) adicional, ya que el servicio la limpia antes de pegar el path. Ejemplo: `https://www.mi-dominio.com` y NO `https://www.mi-dominio.com/`.

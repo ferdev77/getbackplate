@@ -1442,6 +1442,11 @@ Se implementaron las siguientes características:
 - Panel en superadmin para visualizar y restaurar elementos eliminados de todas las empresas.
 - Webhook CRON implementado (`/api/webhooks/cron/purge-trash`) para depurar base de datos y storage periódicamente.
 - Mails automáticos ante cambios de plan, pagos fallidos o facturas inminentes mediante escucha de eventos `stripe.webhook` (`/api/stripe/webhook/route.ts`).
+- Cambio de plan con doble notificación al admin actor:
+  - `plan_change.requested`: se dispara al confirmar el modal de upgrade/downgrade en `POST /api/stripe/checkout`.
+  - `plan_change.applied`: se dispara cuando Stripe confirma el cambio de precio en `customer.subscription.updated`.
+  - Plantillas premium y detalle de impacto (modulos + limites + costo): `web/src/shared/lib/email-templates/billing.ts`.
+  - Orquestación de envios: `web/src/modules/billing/services/plan-change-notifications.service.ts`.
 
 ## 32. Reportes de Checklists (2026-03-27)
 

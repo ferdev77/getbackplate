@@ -1,6 +1,6 @@
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { planChangeDecisionTemplate } from "@/shared/lib/email-templates/billing";
+import { planChangeAppliedTemplate, planChangeDecisionTemplate } from "@/shared/lib/email-templates/billing";
 
 type PlanRow = {
   id: string;
@@ -100,6 +100,34 @@ async function getEnabledModuleNamesByPlanId(planId: string | null): Promise<str
     .sort((a, b) => a.localeCompare(b));
 }
 
+async function getActorIdentity(params: { actorUserId?: string | null; actorEmail?: string | null; actorFullName?: string | null }) {
+  if (params.actorEmail && params.actorEmail.trim()) {
+    return {
+      actorEmail: params.actorEmail.trim(),
+      actorName: params.actorFullName?.trim() || params.actorEmail.trim(),
+    };
+  }
+
+  if (!params.actorUserId) {
+    return { actorEmail: null, actorName: params.actorFullName?.trim() || "Administrador" };
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase.auth.admin.getUserById(params.actorUserId);
+
+  if (error || !data.user?.email) {
+    return { actorEmail: null, actorName: params.actorFullName?.trim() || "Administrador" };
+  }
+
+  const metadata = data.user.user_metadata as Record<string, unknown> | null;
+  const fullName = typeof metadata?.full_name === "string" ? metadata.full_name.trim() : "";
+
+  return {
+    actorEmail: data.user.email,
+    actorName: fullName || params.actorFullName?.trim() || data.user.email,
+  };
+}
+
 export async function sendPlanChangeDecisionEmail(params: {
   organizationId: string;
   actorEmail: string | null;
@@ -162,6 +190,85 @@ export async function sendPlanChangeDecisionEmail(params: {
   const result = await sendTransactionalEmail({
     to: params.actorEmail,
     subject: `Cambio de plan solicitado: ${targetPlan.name}`,
+    html,
+  });
+
+  return result;
+}
+
+export async function sendPlanChangeAppliedEmail(params: {
+  organizationId: string;
+  actorUserId?: string | null;
+  actorEmail?: string | null;
+  actorFullName?: string | null;
+  previousPlanId?: string | null;
+  previousPriceId?: string | null;
+  targetPlanId?: string | null;
+  targetPriceId?: string | null;
+}) {
+  const actor = await getActorIdentity({
+    actorUserId: params.actorUserId,
+    actorEmail: params.actorEmail,
+    actorFullName: params.actorFullName,
+  });
+
+  if (!actor.actorEmail) {
+    return { ok: false as const, error: "No se encontro email del actor para notificacion aplicada" };
+  }
+
+  const [{ orgName }, prevById, prevByPrice, targetById, targetByPrice] = await Promise.all([
+    getOrganizationAndCurrentPlan(params.organizationId),
+    params.previousPlanId ? getPlanById(params.previousPlanId) : Promise.resolve(null),
+    params.previousPriceId ? getPlanByStripePriceId(params.previousPriceId) : Promise.resolve(null),
+    params.targetPlanId ? getPlanById(params.targetPlanId) : Promise.resolve(null),
+    params.targetPriceId ? getPlanByStripePriceId(params.targetPriceId) : Promise.resolve(null),
+  ]);
+
+  const previousPlan = prevById ?? prevByPrice;
+  const targetPlan = targetById ?? targetByPrice;
+
+  if (!targetPlan) {
+    return { ok: false as const, error: "No se pudo resolver el plan aplicado" };
+  }
+
+  const [previousModules, targetModules] = await Promise.all([
+    getEnabledModuleNamesByPlanId(previousPlan?.id ?? null),
+    getEnabledModuleNamesByPlanId(targetPlan.id),
+  ]);
+
+  const previousSet = new Set(previousModules);
+  const targetSet = new Set(targetModules);
+
+  const modulesToEnable = targetModules.filter((name) => !previousSet.has(name));
+  const modulesToDisable = previousModules.filter((name) => !targetSet.has(name));
+
+  const direction: "upgrade" | "downgrade" =
+    (targetPlan.price_amount ?? 0) < (previousPlan?.price_amount ?? 0) ? "downgrade" : "upgrade";
+
+  const limits = [
+    { label: "Sucursales", value: targetPlan.max_branches != null ? String(targetPlan.max_branches) : "Sin limite" },
+    { label: "Usuarios", value: targetPlan.max_users != null ? String(targetPlan.max_users) : "Sin limite" },
+    { label: "Empleados", value: targetPlan.max_employees != null ? String(targetPlan.max_employees) : "Sin limite" },
+    { label: "Storage", value: targetPlan.max_storage_mb != null ? `${targetPlan.max_storage_mb} MB` : "Sin limite" },
+  ];
+
+  const html = planChangeAppliedTemplate({
+    orgName,
+    actorName: actor.actorName,
+    actorEmail: actor.actorEmail,
+    previousPlanName: previousPlan?.name ?? "Sin plan",
+    targetPlanName: targetPlan.name,
+    targetPlanPrice: formatPlanPrice(targetPlan),
+    targetPlanLimits: limits,
+    modulesToEnable,
+    modulesToDisable,
+    direction,
+    appliedAt: new Date().toLocaleString("es-AR"),
+  });
+
+  const result = await sendTransactionalEmail({
+    to: actor.actorEmail,
+    subject: `Cambio de plan aplicado: ${targetPlan.name}`,
     html,
   });
 
