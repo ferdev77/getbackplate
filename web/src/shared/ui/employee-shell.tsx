@@ -61,6 +61,44 @@ export function EmployeeShell({
     const ownEmployeeFilter = `organization_id=eq.${organizationId},user_id=eq.${userId}`;
     const ownPreferencesFilter = `organization_id=eq.${organizationId},user_id=eq.${userId}`;
 
+    const subscriptions: Array<{ table: string; filter: string }> = [
+      { table: "organization_modules", filter: orgFilter },
+      { table: "employees", filter: ownEmployeeFilter },
+      { table: "user_preferences", filter: ownPreferencesFilter },
+    ];
+
+    if (pathname.startsWith("/portal/home")) {
+      subscriptions.push(
+        { table: "announcements", filter: orgFilter },
+        { table: "documents", filter: orgFilter },
+        { table: "document_folders", filter: orgFilter },
+        { table: "checklist_templates", filter: orgFilter },
+        { table: "scheduled_jobs", filter: orgFilter },
+        { table: "checklist_submissions", filter: ownSubmissionFilter },
+      );
+    } else if (pathname.startsWith("/portal/announcements")) {
+      subscriptions.push({ table: "announcements", filter: orgFilter });
+    } else if (pathname.startsWith("/portal/checklist")) {
+      subscriptions.push(
+        { table: "checklist_templates", filter: orgFilter },
+        { table: "checklist_template_sections", filter: orgFilter },
+        { table: "checklist_template_items", filter: orgFilter },
+        { table: "scheduled_jobs", filter: orgFilter },
+        { table: "checklist_submissions", filter: ownSubmissionFilter },
+      );
+    } else if (pathname.startsWith("/portal/documents")) {
+      subscriptions.push(
+        { table: "documents", filter: orgFilter },
+        { table: "document_folders", filter: orgFilter },
+      );
+      if (employeeId) {
+        subscriptions.push({
+          table: "employee_documents",
+          filter: `organization_id=eq.${organizationId},employee_id=eq.${employeeId}`,
+        });
+      }
+    }
+
     function scheduleRefresh() {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
@@ -68,28 +106,20 @@ export function EmployeeShell({
       }, 400);
     }
 
-    const channelBuilder = supabase
-      .channel(`employee-shell-realtime-${organizationId}-${userId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "announcements", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "documents", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "document_folders", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_templates", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "scheduled_jobs", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "organization_modules", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_submissions", filter: ownSubmissionFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "employees", filter: ownEmployeeFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "user_preferences", filter: ownPreferencesFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_template_sections", filter: orgFilter }, scheduleRefresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_template_items", filter: orgFilter }, scheduleRefresh);
+    const uniqueSubscriptions = new Map<string, { table: string; filter: string }>();
+    for (const item of subscriptions) {
+      uniqueSubscriptions.set(`${item.table}::${item.filter}`, item);
+    }
 
-    if (employeeId) {
-      channelBuilder.on(
+    let channelBuilder = supabase.channel(`employee-shell-realtime-${organizationId}-${userId}`);
+    for (const item of uniqueSubscriptions.values()) {
+      channelBuilder = channelBuilder.on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
-          table: "employee_documents",
-          filter: `organization_id=eq.${organizationId},employee_id=eq.${employeeId}`,
+          table: item.table,
+          filter: item.filter,
         },
         scheduleRefresh,
       );
@@ -101,7 +131,7 @@ export function EmployeeShell({
       if (debounceRef.current) clearTimeout(debounceRef.current);
       supabase.removeChannel(channel);
     };
-  }, [employeeId, organizationId, router, userId]);
+  }, [employeeId, organizationId, pathname, router, userId]);
 
   const items = [
     { href: "/portal/home", label: "Dashboard", icon: LayoutDashboard },
