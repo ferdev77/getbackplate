@@ -8,7 +8,7 @@ import { ChecklistUpsertModal } from "@/modules/checklists/ui/checklist-upsert-m
 import { ChecklistDeleteModal } from "@/modules/checklists/ui/checklist-delete-modal";
 import { requireTenantModule } from "@/shared/lib/access";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
-import { SlideUp, AnimatedList, AnimatedItem } from "@/shared/ui/animations";
+import { SlideUp } from "@/shared/ui/animations";
 
 type CompanyChecklistsPageProps = {
   searchParams: Promise<{
@@ -267,20 +267,20 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
         </section>
       </SlideUp>
 
-      <AnimatedList className="mb-5 grid gap-3 sm:grid-cols-4">
-        <AnimatedItem className="h-full">
+      <div className="mb-5 grid gap-3 sm:grid-cols-4">
+        <div className="h-full">
           <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Total Checklists</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{totalTemplates}</p></article>
-        </AnimatedItem>
-        <AnimatedItem className="h-full">
+        </div>
+        <div className="h-full">
           <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Activos hoy</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{activeTemplates}</p></article>
-        </AnimatedItem>
-        <AnimatedItem className="h-full">
+        </div>
+        <div className="h-full">
           <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Completados</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{completed}</p></article>
-        </AnimatedItem>
-        <AnimatedItem className="h-full">
+        </div>
+        <div className="h-full">
           <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Pendientes</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{pending}</p></article>
-        </AnimatedItem>
-      </AnimatedList>
+        </div>
+      </div>
 
       <SlideUp delay={0.1}>
         <form className={`mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#e7e0dc] bg-white p-3 ${DARK_CARD}`} method="get">
@@ -298,9 +298,9 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
           </div>
           <div>
             {filteredTemplates && filteredTemplates.length > 0 ? (
-              <AnimatedList>
+              <div>
                 {filteredTemplates.map((template) => (
-                  <AnimatedItem key={template.id}>
+                  <div key={template.id}>
                     <div className="grid grid-cols-[1fr_120px] md:grid-cols-[2fr_100px_90px_120px] lg:grid-cols-[minmax(180px,2fr)_100px_110px_130px_130px_90px_120px] items-center gap-x-3 border-b border-[#f0f0f0] px-4 py-3 [.theme-dark-pro_&]:border-[#2b3646]">
                       <div>
                         <p className={`text-[13px] font-semibold text-[#111] ${DARK_TEXT}`}>{template.name}</p>
@@ -319,9 +319,9 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
                         <Link href={`/app/checklists?delete=${template.id}`} className={ACTION_BTN_DANGER} title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></Link>
                       </div>
                     </div>
-                  </AnimatedItem>
+                  </div>
                 ))}
-              </AnimatedList>
+              </div>
             ) : (
               <EmptyState icon={ClipboardCheck} title="No hay checklists" description="No se encontraron checklists para los filtros seleccionados." />
             )}
