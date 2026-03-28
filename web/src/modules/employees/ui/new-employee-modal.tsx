@@ -82,7 +82,15 @@ export function NewEmployeeModal({
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "No se pudo reenviar la invitación");
+      if (!res.ok) {
+        const fallback = "No se pudo reenviar la invitación";
+        const baseMessage = typeof data.error === "string" ? data.error : fallback;
+        const message =
+          res.status === 404
+            ? `${baseMessage} Si no tiene cuenta creada, primero crea el acceso desde la pestaña Cuenta (App).`
+            : baseMessage;
+        throw new Error(message);
+      }
       toast.success(data.message || `Invitación reenviada a ${targetEmail}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Error al reenviar invitación");

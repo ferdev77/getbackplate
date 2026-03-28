@@ -39,7 +39,11 @@ export function ResendInvitationButton({ organizationId, email, fullName }: Rese
       });
 
       const payload = (await response.json().catch(() => null)) as RequestResult | null;
-      const message = payload?.message ?? payload?.error ?? "No se pudo reenviar la invitacion";
+      const baseMessage = payload?.message ?? payload?.error ?? "No se pudo reenviar la invitacion";
+      const message =
+        response.status === 404
+          ? `${baseMessage} Debes crear/asignar el admin primero para enviar recordatorio.`
+          : baseMessage;
 
       if (!response.ok || payload?.ok === false) {
         setResult({ type: "error", message });

@@ -177,7 +177,15 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
         body: JSON.stringify({ email: user.email, fullName: user.fullName, roleCode: user.roleCode || "company_admin" }),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "No se pudo reenviar invitación");
+      if (!response.ok) {
+        const fallback = "No se pudo reenviar invitación";
+        const baseMessage = typeof data.error === "string" ? data.error : fallback;
+        const message =
+          response.status === 404
+            ? `${baseMessage} Si no tiene cuenta, crea primero el usuario y luego reenvía.`
+            : baseMessage;
+        throw new Error(message);
+      }
       toast.success(data.message || `Invitación reenviada a ${user.email}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Error al reenviar invitación");
