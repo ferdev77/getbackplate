@@ -5,10 +5,10 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import {
+  AlertTriangle,
   Bell,
   ChevronDown,
   ClipboardList,
-  CreditCard,
   FilePlus2,
   FolderPlus,
   LayoutGrid,
@@ -18,6 +18,7 @@ import {
   MapPin,
   PanelsLeftRight,
   Settings,
+  Sparkles,
   Upload,
   UserPlus,
   Users,
@@ -68,6 +69,7 @@ type CompanyShellProps = {
   }>;
   currentPlanCode: string | null;
   currentPlanName: string;
+  planModulesByPlanId: Record<string, Array<{ code: string; name: string }>>;
   enabledModules: string[];
   branchOptions: Array<{ id: string; name: string }>;
   impersonationMode?: boolean;
@@ -185,6 +187,18 @@ const THEME_SWATCH_STYLE: Record<string, string> = {
   gray: "linear-gradient(145deg,#606878,#303845)",
 };
 
+const MODULE_LABELS: Record<string, string> = {
+  announcements: "Avisos",
+  checklists: "Checklists",
+  documents: "Documentos",
+  employees: "Usuarios y Empleados",
+  reports: "Reportes",
+  settings: "Ajustes",
+  ai_assistant: "Asistente IA",
+  dashboard: "Dashboard",
+  company_portal: "Portal Empresa",
+};
+
 function isActive(pathname: string, searchParams: URLSearchParams, href: string) {
   const cleanHref = href.split("?")[0];
   if (!(pathname === cleanHref || pathname.startsWith(`${cleanHref}/`))) {
@@ -217,6 +231,7 @@ export function CompanyShell({
   availablePlans,
   currentPlanCode,
   currentPlanName,
+  planModulesByPlanId,
   enabledModules,
   branchOptions,
   impersonationMode = false,
@@ -231,6 +246,7 @@ export function CompanyShell({
   const [settingsView, setSettingsView] = useState<"main" | "profile" | "billing" | "preferences">("main");
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
+  const [planChangeTargetId, setPlanChangeTargetId] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(SECTIONS.map((section) => [section.label, false])),
   );
@@ -483,6 +499,15 @@ export function CompanyShell({
     }
   }
 
+  function openPlanChangeDialog(planId: string) {
+    if (impersonationMode) {
+      toast.error("Billing bloqueado en modo impersonación");
+      return;
+    }
+    setPlanOpen(false);
+    setPlanChangeTargetId(planId);
+  }
+
   async function openBillingPortal() {
     if (impersonationMode) {
       toast.error("Billing bloqueado en modo impersonación");
@@ -535,6 +560,57 @@ export function CompanyShell({
     () => [...availablePlans].sort((a, b) => (a.priceAmount ?? 0) - (b.priceAmount ?? 0)),
     [availablePlans],
   );
+
+  const moduleNameByCode = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const modules of Object.values(planModulesByPlanId)) {
+      for (const moduleItem of modules) {
+        if (!map.has(moduleItem.code)) map.set(moduleItem.code, moduleItem.name);
+      }
+    }
+    return map;
+  }, [planModulesByPlanId]);
+
+  const currentPlan = useMemo(() => {
+    if (!normalizedCurrentPlanCode) return null;
+    return plansForDisplay.find((plan) => plan.code.toLowerCase() === normalizedCurrentPlanCode) ?? null;
+  }, [normalizedCurrentPlanCode, plansForDisplay]);
+
+  const planChangeTarget = useMemo(() => {
+    if (!planChangeTargetId) return null;
+    return plansForDisplay.find((plan) => plan.id === planChangeTargetId) ?? null;
+  }, [planChangeTargetId, plansForDisplay]);
+
+  const planChangeDirection = useMemo(() => {
+    if (!currentPlan || !planChangeTarget) return "upgrade" as const;
+    const currentPrice = typeof currentPlan.priceAmount === "number" ? currentPlan.priceAmount : 0;
+    const targetPrice = typeof planChangeTarget.priceAmount === "number" ? planChangeTarget.priceAmount : 0;
+    return targetPrice < currentPrice ? ("downgrade" as const) : ("upgrade" as const);
+  }, [currentPlan, planChangeTarget]);
+
+  const planModuleDiff = useMemo(() => {
+    const currentModulesFromPlan = currentPlan ? (planModulesByPlanId[currentPlan.id] ?? []) : [];
+    const currentModules =
+      currentModulesFromPlan.length > 0
+        ? currentModulesFromPlan
+        : enabledModules.map((code) => ({ code, name: MODULE_LABELS[code] || code }));
+    const targetModules = planChangeTarget ? (planModulesByPlanId[planChangeTarget.id] ?? []) : [];
+
+    const currentSet = new Set(currentModules.map((item) => item.code));
+    const targetSet = new Set(targetModules.map((item) => item.code));
+
+    const toEnable = Array.from(targetSet)
+      .filter((code) => !currentSet.has(code))
+      .map((code) => moduleNameByCode.get(code) || MODULE_LABELS[code] || code)
+      .sort((a, b) => a.localeCompare(b));
+
+    const toDisable = Array.from(currentSet)
+      .filter((code) => !targetSet.has(code))
+      .map((code) => moduleNameByCode.get(code) || MODULE_LABELS[code] || code)
+      .sort((a, b) => a.localeCompare(b));
+
+    return { toEnable, toDisable };
+  }, [currentPlan, enabledModules, moduleNameByCode, planChangeTarget, planModulesByPlanId]);
 
   function formatPlanPrice(plan: (typeof availablePlans)[number]) {
     if (typeof plan.priceAmount !== "number") return "Precio no definido";
@@ -948,7 +1024,7 @@ export function CompanyShell({
                         <button
                           type="button"
                           disabled={busy || !plan.stripePriceId}
-                          onClick={() => startCheckout(plan.id, plan.stripePriceId!)}
+                          onClick={() => openPlanChangeDialog(plan.id)}
                           className="mt-2 w-full rounded-md border border-white/20 bg-white/5 py-1.5 text-[10px] font-semibold text-white transition-colors hover:bg-white/10 disabled:opacity-50"
                         >
                           {busy ? "Procesando..." : "Elegir Plan"}
@@ -963,6 +1039,115 @@ export function CompanyShell({
             </div>
 
             <div className="mx-3.5 mb-3 mt-2 grid gap-2" />
+          </div>
+        </div>
+      ) : null}
+
+      {planChangeTarget ? (
+        <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-black/65 px-4 backdrop-blur-[2px]" onClick={() => setPlanChangeTargetId(null)}>
+          <div
+            className="w-full max-w-3xl overflow-hidden rounded-2xl border border-white/15 bg-[#111318] text-white shadow-[0_30px_90px_rgba(0,0,0,.58)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={`h-1.5 w-full ${planChangeDirection === "downgrade" ? "bg-[linear-gradient(90deg,#f59e0b,#f97316)]" : "bg-[linear-gradient(90deg,#10b981,#34d399)]"}`} />
+
+            <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <span className={`grid h-10 w-10 place-items-center rounded-xl ring-1 ring-inset ${planChangeDirection === "downgrade" ? "bg-amber-500/20 text-amber-300 ring-amber-300/35" : "bg-emerald-500/20 text-emerald-300 ring-emerald-300/35"}`}>
+                  {planChangeDirection === "downgrade" ? <AlertTriangle className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+                </span>
+                <div>
+                  <p className="text-base font-semibold leading-tight">
+                    {planChangeDirection === "downgrade" ? "Confirmar cambio a un plan menor" : "¡Excelente! Estas por subir de plan"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-white/65">Revisa el impacto antes de confirmar el cambio.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPlanChangeTargetId(null)}
+                className="grid h-8 w-8 place-items-center rounded-md border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-5 px-6 py-5">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.11em] text-white/45">Plan actual</p>
+                  <p className="mt-1 text-lg font-bold text-white">{currentPlan?.name ?? currentPlanName}</p>
+                  <p className="mt-1 text-xs text-white/60">{currentPlan ? formatPlanPrice(currentPlan) : "Precio no definido"}</p>
+                </div>
+                <div className={`rounded-xl border p-4 ${planChangeDirection === "downgrade" ? "border-amber-300/35 bg-amber-500/10" : "border-emerald-300/35 bg-emerald-500/10"}`}>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.11em] text-white/55">Plan destino</p>
+                  <p className="mt-1 text-lg font-bold text-white">{planChangeTarget.name}</p>
+                  <p className="mt-1 text-xs text-white/70">{formatPlanPrice(planChangeTarget)}</p>
+                </div>
+              </div>
+
+              {planChangeDirection === "downgrade" ? (
+                <div className="rounded-xl border border-amber-300/25 bg-amber-500/[0.08] p-4">
+                  <p className="mb-2 text-xs font-bold uppercase tracking-[0.1em] text-amber-300">Impacto del downgrade</p>
+                  <p className="mb-3 text-sm text-white/80">Si confirmas, estos modulos pueden quedar desactivados en tu empresa:</p>
+                  {planModuleDiff.toDisable.length ? (
+                    <div className="flex flex-wrap gap-2">
+                      {planModuleDiff.toDisable.map((name) => (
+                        <span key={name} className="rounded-full border border-amber-200/45 bg-[#2a2013] px-2.5 py-1 text-[11px] font-semibold text-amber-200">
+                          {name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-white/75">No se detectaron desactivaciones de modulos para este cambio.</p>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-emerald-300/25 bg-emerald-500/[0.08] p-4">
+                  <p className="mb-2 text-xs font-bold uppercase tracking-[0.1em] text-emerald-300">Impacto del upgrade</p>
+                  <p className="mb-3 text-sm text-white/80">¡Felicidades! Al confirmar, tu equipo ganara estas capacidades:</p>
+                  {planModuleDiff.toEnable.length ? (
+                    <div className="flex flex-wrap gap-2">
+                      {planModuleDiff.toEnable.map((name) => (
+                        <span key={name} className="rounded-full border border-emerald-200/45 bg-[#12251f] px-2.5 py-1 text-[11px] font-semibold text-emerald-200">
+                          {name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-white/75">Este cambio mejora limites del plan aunque no agregue nuevos modulos visibles.</p>
+                  )}
+                </div>
+              )}
+
+              <div className="flex flex-col-reverse gap-2 border-t border-white/10 pt-4 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setPlanChangeTargetId(null)}
+                  className="rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10 hover:text-white"
+                >
+                  Mantener plan
+                </button>
+                <button
+                  type="button"
+                  disabled={busy || !planChangeTarget.stripePriceId}
+                  onClick={() => {
+                    if (!planChangeTarget.stripePriceId) {
+                      toast.error("Este plan no tiene precio configurado en Stripe.");
+                      return;
+                    }
+                    void startCheckout(planChangeTarget.id, planChangeTarget.stripePriceId);
+                  }}
+                  className={`rounded-lg px-4 py-2 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,0,0,.35)] disabled:opacity-50 ${planChangeDirection === "downgrade" ? "bg-[linear-gradient(135deg,#d97706,#f59e0b)] hover:opacity-95" : "bg-[linear-gradient(135deg,#059669,#10b981)] hover:opacity-95"}`}
+                >
+                  {busy
+                    ? "Procesando..."
+                    : planChangeDirection === "downgrade"
+                      ? "Cambiar igual"
+                      : "Subir plan"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       ) : null}
