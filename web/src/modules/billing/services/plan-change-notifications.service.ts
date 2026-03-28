@@ -16,10 +16,27 @@ type PlanRow = {
 
 type ModuleRow = {
   plan_id: string;
-  module_catalog: {
-    code: string;
-    name: string;
-  } | null;
+  module_catalog:
+    | {
+        code: string;
+        name: string;
+      }
+    | {
+        code: string;
+        name: string;
+      }[]
+    | null;
+};
+
+function getModuleCatalogValue(value: ModuleRow["module_catalog"]) {
+  if (!value) return null;
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value;
+}
+
+type ModuleCatalogValue = {
+  code: string;
+  name: string;
 };
 
 function formatPlanPrice(plan: Pick<PlanRow, "price_amount" | "billing_period">) {
@@ -92,10 +109,13 @@ async function getEnabledModuleNamesByPlanId(planId: string | null): Promise<str
     .eq("plan_id", planId)
     .eq("is_enabled", true);
 
-  const rows = (data ?? []) as ModuleRow[];
+  const rows = (data ?? []) as unknown as ModuleRow[];
 
   return rows
-    .map((row) => normalizeModuleName(row.module_catalog?.code ?? "", row.module_catalog?.name ?? null))
+    .map((row) => {
+      const catalog = getModuleCatalogValue(row.module_catalog) as ModuleCatalogValue | null;
+      return normalizeModuleName(catalog?.code ?? "", catalog?.name ?? null);
+    })
     .filter(Boolean)
     .sort((a, b) => a.localeCompare(b));
 }
