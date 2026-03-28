@@ -281,7 +281,7 @@ const employeesQuery = supabase
           </div>
         ) : (
           <SlideUp delay={0.2}>
-            <EmptyState icon={Bell} title="Aun no hay anuncios" description="Publica tu primer aviso para que llegue a tu equipo." />
+            <EmptyState title="Aun no hay anuncios" description="Publica tu primer aviso para que llegue a tu equipo." />
           </SlideUp>
         )}
       </section>
