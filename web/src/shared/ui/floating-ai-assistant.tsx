@@ -15,6 +15,9 @@ type FloatingAiAssistantProps = {
 
 export function FloatingAiAssistant({ currentPlanCode }: FloatingAiAssistantProps) {
   const pathname = usePathname();
+  const isEmployeesPage = pathname.startsWith("/app/employees");
+  const launcherBottomClass = isEmployeesPage ? "bottom-[52px]" : "bottom-5";
+  const panelBottomClass = isEmployeesPage ? "bottom-[132px]" : "bottom-24";
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -80,14 +83,14 @@ export function FloatingAiAssistant({ currentPlanCode }: FloatingAiAssistantProp
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="fixed right-5 bottom-5 z-50 inline-flex items-center gap-2 rounded-full bg-[#111] px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-[#222]"
+        className={`fixed right-5 z-50 inline-flex items-center gap-2 rounded-full bg-[#111] px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-[#222] ${launcherBottomClass}`}
       >
         <Bot className="h-4 w-4" />
         Asistente IA
       </button>
 
       {open ? (
-        <section className="fixed right-5 bottom-24 z-50 flex h-[520px] w-[360px] flex-col overflow-hidden rounded-2xl border border-[#e5ddd8] bg-white shadow-2xl">
+        <section className={`fixed right-5 z-50 flex h-[520px] w-[360px] flex-col overflow-hidden rounded-2xl border border-[#e5ddd8] bg-white shadow-2xl ${panelBottomClass}`}>
           <header className="flex items-center justify-between border-b border-[#eee] px-4 py-3">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-[#d97706]" />
