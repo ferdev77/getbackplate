@@ -34,6 +34,21 @@ type DirectoryMembershipUser = {
   createdAt: string;
 };
 
+type EmployeeDocumentSlot = {
+  documentId: string;
+  title: string;
+  status: string;
+};
+
+const EMPLOYEE_DOCUMENT_SLOT_RULES: Array<{ slot: string; prefix: string }> = [
+  { slot: "photo", prefix: "Foto del Empleado - " },
+  { slot: "id", prefix: "ID / Identificacion - " },
+  { slot: "ssn", prefix: "Numero de Seguro Social - " },
+  { slot: "rec1", prefix: "Carta de Recomendacion 1 - " },
+  { slot: "rec2", prefix: "Carta de Recomendacion 2 - " },
+  { slot: "other", prefix: "Otro Documento - " },
+];
+
 export const revalidate = 0;
 
 export default async function CompanyEmployeesPage({ searchParams }: CompanyEmployeesPageProps) {
@@ -87,6 +102,32 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
     ? viewData.employees.find((item) => item.id === editEmployeeId)
     : null;
   const editContract = editEmployee ? (editEmployee.contracts?.[0] ?? null) : null;
+
+  const editEmployeeDocuments = editEmployee
+    ? await supabase
+        .from("employee_documents")
+        .select("document_id, status, linked_document:documents(id, title)")
+        .eq("organization_id", tenant.organizationId)
+        .eq("employee_id", editEmployee.id)
+    : { data: [] as unknown[] };
+
+  const editEmployeeDocumentsBySlot: Record<string, EmployeeDocumentSlot> = {};
+  for (const row of (editEmployeeDocuments.data ?? []) as Array<{
+    document_id: string;
+    status: string;
+    linked_document: { id?: string; title?: string }[] | { id?: string; title?: string } | null;
+  }>) {
+    const linked = Array.isArray(row.linked_document) ? row.linked_document[0] : row.linked_document;
+    const title = typeof linked?.title === "string" ? linked.title : "";
+    const slot = EMPLOYEE_DOCUMENT_SLOT_RULES.find((rule) => title.startsWith(rule.prefix))?.slot;
+    if (!slot) continue;
+    editEmployeeDocumentsBySlot[slot] = {
+      documentId: row.document_id,
+      title,
+      status: row.status,
+    };
+  }
+
   const editUserProfile = action === "edit-user" && editProfileId
     ? (organizationUserProfiles ?? []).find((item) => item.id === editProfileId)
     : null;
@@ -123,6 +164,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
         payment_frequency: editContract?.payment_frequency ?? null,
         salary_currency: editContract?.salary_currency ?? null,
         has_dashboard_access: Boolean(editEmployee.userId && activeMembershipUserIds.has(editEmployee.userId)),
+        documents_by_slot: editEmployeeDocumentsBySlot,
       }
     : editUserProfile
       ? {
