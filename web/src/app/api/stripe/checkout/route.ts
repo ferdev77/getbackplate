@@ -3,6 +3,7 @@ import type Stripe from 'stripe';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/client/server';
 import { stripe } from '@/infrastructure/stripe/client';
 import { sendPlanChangeDecisionEmail } from '@/modules/billing/services/plan-change-notifications.service';
+import { syncOrganizationPlan } from '@/modules/organizations/services/organization.service';
 import { assertCompanyManagerModuleApi } from '@/shared/lib/access';
 import { isSuperadminImpersonating } from '@/shared/lib/impersonation';
 import { logAuditEvent } from '@/shared/lib/audit';
@@ -158,6 +159,43 @@ export async function POST(request: Request) {
           billingPeriod: requestedPeriod,
         },
       });
+
+      const syncResult = await syncOrganizationPlan({
+        organizationId,
+        planId,
+      });
+
+      if (!syncResult.ok) {
+        await logAuditEvent({
+          action: 'organization.billing.plan_change.sync_failed',
+          entityType: 'billing_plan_change',
+          organizationId,
+          eventDomain: 'settings',
+          outcome: 'error',
+          severity: 'high',
+          metadata: {
+            target_plan_id: planId,
+            target_price_id: targetPriceId,
+            billing_period: requestedPeriod,
+            reason: syncResult.message,
+          },
+        });
+
+        return NextResponse.json(
+          {
+            error: syncResult.message,
+          },
+          { status: 400 },
+        );
+      }
+
+      await supabase.from('organization_settings').upsert(
+        {
+          organization_id: organizationId,
+          billing_period: requestedPeriod,
+        },
+        { onConflict: 'organization_id' },
+      );
 
       const actorName =
         typeof user.user_metadata?.full_name === 'string' && user.user_metadata.full_name.trim()
