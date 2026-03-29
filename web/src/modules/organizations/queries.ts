@@ -15,7 +15,7 @@ export const getOrganizationSettings = cache(async function getOrganizationSetti
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("organization_settings")
-    .select("billing_plan, billing_period, billed_to, billing_email, payment_last4, invoice_emails_enabled, dashboard_note, company_logo_url")
+    .select("billing_plan, billing_period, billed_to, billing_email, payment_last4, invoice_emails_enabled, dashboard_note, company_logo_url, company_logo_dark_url")
     .eq("organization_id", organizationId)
     .maybeSingle();
   return data;

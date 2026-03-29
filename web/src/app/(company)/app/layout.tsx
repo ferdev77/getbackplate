@@ -120,6 +120,7 @@ export default async function CompanyLayout({
       currentPlanCode={inferredCurrentPlan?.code ?? null}
       currentPlanName={inferredCurrentPlan?.name ?? "Sin plan"}
       companyLogoUrl={orgSettings?.company_logo_url ?? ""}
+      companyLogoDarkUrl={orgSettings?.company_logo_dark_url ?? ""}
       customBrandingEnabled={enabledModuleCodes.has("custom_branding")}
       planModulesByPlanId={planModulesByPlanId}
       enabledModules={enabledModules}

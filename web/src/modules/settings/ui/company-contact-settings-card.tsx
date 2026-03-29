@@ -11,6 +11,7 @@ type CompanyContactSettingsCardProps = {
   feedbackWhatsapp: string;
   websiteUrl: string;
   companyLogoUrl: string;
+  companyLogoDarkUrl: string;
   customBrandingEnabled: boolean;
 };
 
@@ -21,6 +22,7 @@ export function CompanyContactSettingsCard({
   feedbackWhatsapp,
   websiteUrl,
   companyLogoUrl,
+  companyLogoDarkUrl,
   customBrandingEnabled,
 }: CompanyContactSettingsCardProps) {
   const router = useRouter();
@@ -32,7 +34,8 @@ export function CompanyContactSettingsCard({
   const [phoneValue, setPhoneValue] = useState(supportPhone);
   const [whatsappValue, setWhatsappValue] = useState(feedbackWhatsapp);
   const [websiteValue, setWebsiteValue] = useState(websiteUrl);
-  const [logoUrl, setLogoUrl] = useState(companyLogoUrl);
+  const [lightLogoUrl, setLightLogoUrl] = useState(companyLogoUrl);
+  const [darkLogoUrl, setDarkLogoUrl] = useState(companyLogoDarkUrl);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
   async function handleSave() {
@@ -68,7 +71,7 @@ export function CompanyContactSettingsCard({
 
   const buttonLabel = isSaving ? "Guardando..." : savedPulse ? "Datos guardados" : isEditing ? "Guardar" : "Editar";
 
-  async function handleLogoUpload(file: File | null) {
+  async function handleLogoUpload(file: File | null, variant: "light" | "dark") {
     if (!file || uploadingLogo) return;
 
     setUploadingLogo(true);
@@ -76,6 +79,7 @@ export function CompanyContactSettingsCard({
 
     const formData = new FormData();
     formData.set("logo", file);
+    formData.set("variant", variant);
 
     const response = await fetch("/api/company/settings/company-logo", {
       method: "POST",
@@ -90,8 +94,13 @@ export function CompanyContactSettingsCard({
       return;
     }
 
-    setLogoUrl(payload.logoUrl);
-    setNotice({ tone: "success", message: "Logo actualizado correctamente" });
+    if (variant === "dark") {
+      setDarkLogoUrl(payload.logoUrl);
+      setNotice({ tone: "success", message: "Logo dark actualizado correctamente" });
+    } else {
+      setLightLogoUrl(payload.logoUrl);
+      setNotice({ tone: "success", message: "Logo claro actualizado correctamente" });
+    }
     router.refresh();
   }
 
@@ -106,30 +115,58 @@ export function CompanyContactSettingsCard({
       {customBrandingEnabled ? (
         <div className="mt-4 rounded-xl border border-[#e7dfda] bg-[#fcfaf8] p-3 [.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#111824]">
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#8d847f] [.theme-dark-pro_&]:text-[#9aabc3]">Branding personalizado</p>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-lg border border-[#ddd3ce] bg-white [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723]">
-              {logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoUrl} alt="Logo de empresa" className="h-full w-full object-contain" />
-              ) : (
-                <span className="text-[10px] font-bold text-[#9a9a9a]">Sin logo</span>
-              )}
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-lg border border-[#e7dfda] bg-white p-3 [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723]">
+              <p className="mb-2 text-[11px] font-semibold text-[#5b5652] [.theme-dark-pro_&]:text-[#c8d3e5]">Logo claro</p>
+              <div className="mb-2 grid h-14 w-full place-items-center overflow-hidden rounded-md border border-[#ddd3ce] bg-white [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0b111a]">
+                {lightLogoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={lightLogoUrl} alt="Logo claro de empresa" className="h-full w-full object-contain" />
+                ) : (
+                  <span className="text-[10px] font-bold text-[#9a9a9a]">Sin logo</span>
+                )}
+              </div>
+              <label className="inline-flex cursor-pointer items-center rounded-lg border border-[#ddd3ce] bg-white px-3 py-2 text-xs font-semibold text-[#444] hover:bg-[#f7f3f1] [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#dde7f5] [.theme-dark-pro_&]:hover:bg-[#172131]">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] ?? null;
+                    void handleLogoUpload(file, "light");
+                    event.currentTarget.value = "";
+                  }}
+                  disabled={uploadingLogo}
+                />
+                {uploadingLogo ? "Subiendo..." : "Cargar logo claro"}
+              </label>
             </div>
-            <label className="inline-flex cursor-pointer items-center rounded-lg border border-[#ddd3ce] bg-white px-3 py-2 text-xs font-semibold text-[#444] hover:bg-[#f7f3f1] [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#dde7f5] [.theme-dark-pro_&]:hover:bg-[#172131]">
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0] ?? null;
-                  void handleLogoUpload(file);
-                  event.currentTarget.value = "";
-                }}
-                disabled={uploadingLogo}
-              />
-              {uploadingLogo ? "Subiendo..." : "Cargar logo"}
-            </label>
-            <p className="text-[11px] text-[#7b726d] [.theme-dark-pro_&]:text-[#9aabc3]">PNG/JPG/WebP/GIF/SVG · Max 2MB</p>
+            <div className="rounded-lg border border-[#e7dfda] bg-[#0e1724] p-3 [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#08101b]">
+              <p className="mb-2 text-[11px] font-semibold text-[#d4deea]">Logo dark</p>
+              <div className="mb-2 grid h-14 w-full place-items-center overflow-hidden rounded-md border border-[#334155] bg-[#02070f]">
+                {darkLogoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={darkLogoUrl} alt="Logo dark de empresa" className="h-full w-full object-contain" />
+                ) : (
+                  <span className="text-[10px] font-bold text-[#8ea0b8]">Sin logo dark</span>
+                )}
+              </div>
+              <label className="inline-flex cursor-pointer items-center rounded-lg border border-[#334155] bg-[#0f1723] px-3 py-2 text-xs font-semibold text-[#dde7f5] hover:bg-[#172131]">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] ?? null;
+                    void handleLogoUpload(file, "dark");
+                    event.currentTarget.value = "";
+                  }}
+                  disabled={uploadingLogo}
+                />
+                {uploadingLogo ? "Subiendo..." : "Cargar logo dark"}
+              </label>
+            </div>
+            <p className="text-[11px] text-[#7b726d] [.theme-dark-pro_&]:text-[#9aabc3] md:col-span-2">PNG/JPG/WebP/GIF/SVG · Max 2MB</p>
           </div>
         </div>
       ) : (

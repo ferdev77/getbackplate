@@ -62,7 +62,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
       .maybeSingle(),
     supabase
       .from("organization_settings")
-      .select("company_logo_url")
+      .select("company_logo_url, company_logo_dark_url")
       .eq("organization_id", tenant.organizationId)
       .maybeSingle(),
     supabase
@@ -161,6 +161,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
           feedbackWhatsapp={orgSettings?.feedback_whatsapp ?? ""}
           websiteUrl={orgSettings?.website_url ?? ""}
           companyLogoUrl={brandingSettings?.company_logo_url ?? ""}
+          companyLogoDarkUrl={brandingSettings?.company_logo_dark_url ?? ""}
           customBrandingEnabled={customBrandingEnabled}
         />
       </section>
