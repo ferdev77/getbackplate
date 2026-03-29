@@ -207,8 +207,11 @@ export async function POST(request: Request) {
     }
   }
 
-  if (!firstName || !lastName) {
-    return NextResponse.json({ error: "Nombre y apellido son obligatorios" }, { status: 400 });
+  if (!firstName || !lastName || !email || !phone) {
+    return NextResponse.json(
+      { error: "Nombre, apellido, telefono y email son obligatorios" },
+      { status: 400 },
+    );
   }
 
   if (!isEditMode && !ALLOWED_CREATE_MODES.has(createMode)) {

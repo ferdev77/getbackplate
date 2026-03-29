@@ -276,7 +276,7 @@ export function NewEmployeeModal({
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[12px] font-bold text-[#444]">Apellidos</label>
+                  <label className="text-[12px] font-bold text-[#444]">Apellidos *</label>
                   <input
                     name="last_name"
                     required
@@ -289,19 +289,21 @@ export function NewEmployeeModal({
 
               <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="space-y-2">
-                  <label className="text-[12px] font-bold text-[#444]">Teléfono</label>
+                  <label className="text-[12px] font-bold text-[#444]">Teléfono *</label>
                   <input
                     name="phone"
+                    required
                     defaultValue={initialEmployee?.phone ?? ""}
                     className="w-full rounded-xl border-[1.5px] border-[#e8e8e8] bg-white px-4 py-3 text-sm outline-none transition-all focus:border-brand"
                     placeholder="+1 228 555 0000"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[12px] font-bold text-[#444]">Email</label>
+                  <label className="text-[12px] font-bold text-[#444]">Email *</label>
                   <input
                     name="email"
                     type="email"
+                    required
                     defaultValue={initialEmployee?.email ?? ""}
                     className="w-full rounded-xl border-[1.5px] border-[#e8e8e8] bg-white px-4 py-3 text-sm outline-none transition-all focus:border-brand"
                     placeholder="usuario@empresa.com"
