@@ -704,14 +704,14 @@ export function CompanyShell({
           <div className={`border-b py-3 ${isDarkTheme ? "border-white/10" : "border-black/10"} ${sidebarPaddingX}`}>
             <div className={`flex items-center gap-2 ${collapsed ? "justify-center" : ""}`}>
               {customBrandingEnabled && !collapsed ? (
-                <div className="flex h-[52px] flex-1 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-transparent px-2">
+                <div className="flex h-[112px] flex-1 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-transparent px-2">
                   {effectiveCompanyLogoUrl ? (
                     <Image
                       src={effectiveCompanyLogoUrl}
                       alt={`Logo de ${brandingName}`}
-                      width={190}
-                      height={48}
-                      className="h-[44px] w-[98%] object-contain object-center"
+                      width={330}
+                      height={106}
+                      className="h-[104px] w-[98%] object-contain object-center"
                     />
                   ) : (
                     <span className="text-xs font-bold uppercase tracking-[0.08em] text-white">{brandingName}</span>
@@ -1265,14 +1265,14 @@ export function CompanyShell({
           <aside className={`absolute left-0 top-0 flex h-full w-[280px] flex-col border-r ${isDarkTheme ? "border-white/10 text-[#e7edf6]" : "border-black/10 text-[#1a1a1a]"}`} style={{ background: palette.sidebarGradient }}>
             <div className={`border-b px-4 py-3 ${isDarkTheme ? "border-white/10" : "border-black/10"}`}>
               {customBrandingEnabled ? (
-                <div className="mb-1 flex h-[54px] items-center overflow-hidden rounded-md border border-white/10 bg-transparent px-2">
+                <div className="mb-1 flex h-[114px] items-center overflow-hidden rounded-md border border-white/10 bg-transparent px-2">
                   {effectiveCompanyLogoUrl ? (
                     <Image
                       src={effectiveCompanyLogoUrl}
                       alt={`Logo de ${brandingName}`}
-                      width={210}
-                      height={50}
-                      className="h-[46px] w-[98%] object-contain object-center"
+                      width={340}
+                      height={108}
+                      className="h-[106px] w-[98%] object-contain object-center"
                     />
                   ) : (
                     <p className="w-full text-center text-xs font-bold uppercase tracking-[0.08em] text-white">{brandingName}</p>

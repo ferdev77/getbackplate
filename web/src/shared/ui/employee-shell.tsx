@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -24,6 +25,8 @@ type EmployeeShellProps = {
     announcements: boolean;
     onboarding: boolean;
   };
+  customBrandingEnabled: boolean;
+  companyLogoUrl: string;
 };
 
 function initials(value: string) {
@@ -45,6 +48,8 @@ export function EmployeeShell({
   docsCount,
   checklistTemplateNames,
   enabledModules,
+  customBrandingEnabled,
+  companyLogoUrl,
 }: EmployeeShellProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -161,6 +166,8 @@ export function EmployeeShell({
   };
 
   const currentLabel = items.find(item => pathname.startsWith(item.href))?.label || "Portal";
+  const brandingName = customBrandingEnabled ? (organizationName || "Empresa") : "GetBackplate";
+  const effectiveCompanyLogoUrl = customBrandingEnabled ? companyLogoUrl : "";
 
   return (
     <div className="min-h-screen text-[#1a1a1a]" style={{ background: palette.pageGradient }}>
@@ -169,8 +176,24 @@ export function EmployeeShell({
         <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-black/10 transition-all duration-200 lg:sticky lg:top-0 lg:h-screen ${menuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} ${sidebarWidth}`} style={{ background: palette.sidebarGradient }}>
           <div className={`flex h-[60px] items-center border-b border-black/10 py-3 ${sidebarPaddingX}`}>
             <div className={`flex items-center gap-2 ${collapsed ? "justify-center w-full" : "w-full"}`}>
-              <div className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-[#111] text-xs font-bold text-white">EM</div>
-              {!collapsed ? <p className="truncate text-sm font-semibold text-[#0f1923]">{organizationName}</p> : null}
+              {customBrandingEnabled && !collapsed ? (
+                <div className="flex h-[84px] flex-1 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-transparent px-2">
+                  {effectiveCompanyLogoUrl ? (
+                    <Image
+                      src={effectiveCompanyLogoUrl}
+                      alt={`Logo de ${brandingName}`}
+                      width={300}
+                      height={90}
+                      className="h-[76px] w-[98%] object-contain object-center"
+                    />
+                  ) : (
+                    <span className="text-xs font-bold uppercase tracking-[0.08em] text-[#111111]">{brandingName}</span>
+                  )}
+                </div>
+              ) : (
+                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-[#111] text-xs font-bold text-white">EM</div>
+              )}
+              {!collapsed && !customBrandingEnabled ? <p className="truncate text-sm font-semibold text-[#0f1923]">{organizationName}</p> : null}
               <button
                 type="button"
                 onClick={() => setCollapsed((v) => !v)}
@@ -293,8 +316,8 @@ export function EmployeeShell({
           </main>
           
           <footer className="mt-auto flex justify-between border-t border-black/10 px-6 py-4 text-[11px] text-[#999] sm:px-9" style={{ background: palette.sidebarGradient }}>
-            <p className="font-semibold tracking-[0.02em] text-[#8e8e8e]">{organizationName}</p>
-            <p>© 2026 GetBackplate · v1</p>
+            <p className="font-semibold tracking-[0.02em] text-[#8e8e8e]">{customBrandingEnabled ? organizationName : "GetBackplate"}</p>
+            <p>© 2026 {customBrandingEnabled ? organizationName : "GetBackplate"}</p>
           </footer>
         </div>
       </div>

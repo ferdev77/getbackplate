@@ -35,6 +35,12 @@ export default async function EmployeeLayout({
       .maybeSingle(),
   ]);
 
+  const { data: brandingSettings } = await supabase
+    .from("organization_settings")
+    .select("company_logo_url")
+    .eq("organization_id", tenant.organizationId)
+    .maybeSingle();
+
   const { data: department } = employee?.department_id
     ? await supabase
         .from("organization_departments")
@@ -137,6 +143,8 @@ export default async function EmployeeLayout({
         announcements: isAnnouncementsEnabled,
         onboarding: isOnboardingEnabled,
       }}
+      customBrandingEnabled={enabledModuleCodes.has("custom_branding")}
+      companyLogoUrl={brandingSettings?.company_logo_url ?? ""}
     >
       {children}
     </EmployeeShell>
