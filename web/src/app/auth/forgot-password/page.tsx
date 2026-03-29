@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
-import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { requestPasswordRecoveryAction } from "@/modules/auth/actions";
+import { resolveTenantAuthBrandingByHint } from "@/shared/lib/tenant-auth-branding";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import { SlideUp } from "@/shared/ui/animations";
 
@@ -16,45 +16,7 @@ type ForgotPasswordPageProps = {
 export default async function ForgotPasswordPage({ searchParams }: ForgotPasswordPageProps) {
   const params = await searchParams;
   const organizationIdHint = String(params.org ?? "").trim();
-
-  let tenantBranding: { companyName: string; logoUrl: string; logoDarkUrl: string } | null = null;
-
-  if (organizationIdHint) {
-    const admin = createSupabaseAdminClient();
-    const { data: organization } = await admin
-      .from("organizations")
-      .select("id, name")
-      .eq("id", organizationIdHint)
-      .maybeSingle();
-
-    if (organization?.id) {
-      const [{ data: moduleRows }, { data: settings }] = await Promise.all([
-        admin
-          .from("organization_modules")
-          .select("module_catalog!inner(code)")
-          .eq("organization_id", organization.id)
-          .eq("is_enabled", true),
-        admin
-          .from("organization_settings")
-          .select("company_logo_url, company_logo_dark_url")
-          .eq("organization_id", organization.id)
-          .maybeSingle(),
-      ]);
-
-      const customBrandingEnabled = (moduleRows ?? []).some((row) => {
-        const catalog = row.module_catalog as unknown as { code?: string | null } | null;
-        return catalog?.code === "custom_branding";
-      });
-
-      if (customBrandingEnabled) {
-        tenantBranding = {
-          companyName: organization.name ?? "Empresa",
-          logoUrl: settings?.company_logo_url ?? "",
-          logoDarkUrl: settings?.company_logo_dark_url ?? "",
-        };
-      }
-    }
-  }
+  const tenantBranding = await resolveTenantAuthBrandingByHint(organizationIdHint);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-6 py-10">

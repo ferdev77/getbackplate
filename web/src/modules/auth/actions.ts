@@ -13,6 +13,7 @@ import {
   setActiveOrganizationIdCookie,
 } from "@/shared/lib/tenant-selection";
 import { normalizeOrganizationId } from "@/shared/lib/tenant-selection-shared";
+import { resolveOrganizationIdFromAuthHint } from "@/shared/lib/tenant-auth-branding";
 
 function getEmailDomain(email: string) {
   const parts = email.split("@");
@@ -68,9 +69,10 @@ export async function loginWithPasswordAction(formData: FormData) {
   try {
     const email = String(formData.get("email") ?? "").trim();
     const password = String(formData.get("password") ?? "");
-    const organizationIdHint = normalizeOrganizationId(
+    const organizationHint = normalizeOrganizationId(
       String(formData.get("organization_id_hint") ?? ""),
     );
+    const organizationIdHint = await resolveOrganizationIdFromAuthHint(organizationHint);
     const emailDomain = getEmailDomain(email);
 
     if (!email || !password) {
@@ -83,7 +85,7 @@ export async function loginWithPasswordAction(formData: FormData) {
           email_domain: emailDomain,
         },
       });
-      redirect(buildLoginPath({ error: "Completa email y contrasena", organizationIdHint }));
+      redirect(buildLoginPath({ error: "Completa email y contrasena", organizationIdHint: organizationHint }));
     }
 
     const supabase = await createSupabaseServerClient();
@@ -104,7 +106,7 @@ export async function loginWithPasswordAction(formData: FormData) {
           provider: "password",
         },
       });
-      redirect(buildLoginPath({ error: error.message, organizationIdHint }));
+      redirect(buildLoginPath({ error: error.message, organizationIdHint: organizationHint }));
     }
 
     const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -119,7 +121,7 @@ export async function loginWithPasswordAction(formData: FormData) {
           email_domain: emailDomain,
         },
       });
-      redirect(buildLoginPath({ error: "No se pudo validar la sesion", organizationIdHint }));
+      redirect(buildLoginPath({ error: "No se pudo validar la sesion", organizationIdHint: organizationHint }));
     }
 
     if (Boolean((authData.user.user_metadata as Record<string, unknown> | undefined)?.force_password_change)) {

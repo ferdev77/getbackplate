@@ -4,6 +4,7 @@ import { EMPLOYEES_MESSAGES } from "@/shared/lib/employees-messages";
 import { getTenantEmailBranding } from "@/shared/lib/email-branding";
 import { sendEmail } from "@/shared/lib/brevo";
 import { initialInviteTemplate } from "@/shared/lib/email-templates/invitation";
+import { buildTenantAuthUrls } from "@/shared/lib/tenant-auth-branding";
 
 export async function provisionOrganizationUserAccount(input: {
   admin: SupabaseClient;
@@ -25,7 +26,10 @@ export async function provisionOrganizationUserAccount(input: {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
-    const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login?org=${encodeURIComponent(organizationId)}`;
+    const { loginUrl } = await buildTenantAuthUrls({
+      appUrl,
+      organizationId,
+    });
     const fullName = `${firstName} ${lastName}`.trim();
     const branding = await getTenantEmailBranding(organizationId);
 

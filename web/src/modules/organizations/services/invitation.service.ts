@@ -5,6 +5,7 @@ import { logAuditEvent } from "@/shared/lib/audit";
 import { sendEmail } from "@/shared/lib/brevo";
 import { getTenantEmailBranding } from "@/shared/lib/email-branding";
 import { initialInviteTemplate } from "@/shared/lib/email-templates/invitation";
+import { buildTenantAuthUrls } from "@/shared/lib/tenant-auth-branding";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -95,7 +96,10 @@ export async function sendOrganizationAdminInvitation(params: {
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
-  const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login?org=${encodeURIComponent(params.organizationId)}`;
+  const { loginUrl } = await buildTenantAuthUrls({
+    appUrl,
+    organizationId: params.organizationId,
+  });
   const branding = await getTenantEmailBranding(params.organizationId);
 
   const existingUser = await findAuthUserByEmail(params.email);

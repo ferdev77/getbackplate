@@ -8,6 +8,7 @@ import { logAuditEvent } from "@/shared/lib/audit";
 import { USERS_API_MESSAGES } from "@/shared/lib/employees-messages";
 import { getTenantEmailBranding } from "@/shared/lib/email-branding";
 import { assertPlanLimitForUsers, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
+import { buildTenantAuthUrls } from "@/shared/lib/tenant-auth-branding";
 import { sendEmail } from "@/shared/lib/brevo";
 import { initialInviteTemplate } from "@/shared/lib/email-templates/invitation";
 const ALLOWED_ROLE_CODES = new Set(["employee", "manager", "company_admin"]);
@@ -29,7 +30,10 @@ async function resolveOrCreateAuthUser(params: {
   let userId = existingUser?.id ?? null;
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
-  const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login?org=${encodeURIComponent(params.organizationId)}`;
+  const { loginUrl } = await buildTenantAuthUrls({
+    appUrl,
+    organizationId: params.organizationId,
+  });
   const branding = await getTenantEmailBranding(params.organizationId);
 
   const userMeta = {
