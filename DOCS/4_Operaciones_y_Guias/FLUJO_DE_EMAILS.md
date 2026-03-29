@@ -79,6 +79,23 @@ Cuando un Company Admin confirma un cambio de plan desde el modal de "Planes Dis
 **Proveedor de envio:**
 - Se utiliza el mismo canal oficial del sistema para correos transaccionales (`Brevo`) via `web/src/infrastructure/email/client.ts`.
 
+### 4.1 Regla de Periodicidad (Mensual vs Anual)
+
+El selector de periodicidad en el modal de planes permite cambiar entre:
+
+- `Mensual`
+- `Anual (2 meses gratis)`
+
+Reglas de implementacion:
+
+1. El frontend envia `planId + billingPeriod` al endpoint de checkout.
+2. El backend resuelve de forma segura el `priceId` final en Stripe (no se confia en un `priceId` del cliente).
+3. El cambio puede ser:
+   - de plan (upgrade/downgrade),
+   - o de periodicidad dentro del mismo plan.
+4. Si el precio ya coincide con la suscripcion activa, no se fuerza cambio redundante.
+5. Los correos de decision/aplicado reflejan el nuevo costo y el impacto funcional del cambio.
+
 ---
 
 ## 5. Preguntas Frecuentes / Troubleshooting

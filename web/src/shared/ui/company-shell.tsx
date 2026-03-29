@@ -89,6 +89,8 @@ type SidebarSection = {
   items: SidebarItem[];
 };
 
+type BillingCycle = "monthly" | "yearly";
+
 const SECTIONS: SidebarSection[] = [
   {
     label: "Operaciones",
@@ -246,6 +248,7 @@ export function CompanyShell({
   const [settingsView, setSettingsView] = useState<"main" | "profile" | "billing" | "preferences">("main");
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
+  const [planBillingCycle, setPlanBillingCycle] = useState<BillingCycle>("monthly");
   const [planChangeTargetId, setPlanChangeTargetId] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(SECTIONS.map((section) => [section.label, false])),
@@ -511,7 +514,7 @@ export function CompanyShell({
     }
   }
 
-  async function startCheckout(planId: string, priceId: string) {
+  async function startCheckout(planId: string, cycle: BillingCycle) {
     if (impersonationMode) {
       toast.error("Billing bloqueado en modo impersonación");
       return;
@@ -522,7 +525,7 @@ export function CompanyShell({
       const response = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ planId, priceId }),
+        body: JSON.stringify({ planId, billingPeriod: cycle }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Error al conectar con Stripe");
@@ -597,6 +600,18 @@ export function CompanyShell({
     [availablePlans],
   );
 
+  function normalizePlanPeriod(value: string | null | undefined): BillingCycle {
+    return value === "yearly" || value === "annual" ? "yearly" : "monthly";
+  }
+
+  function getPlanAmountByCycle(plan: (typeof availablePlans)[number], cycle: BillingCycle) {
+    if (typeof plan.priceAmount !== "number") return null;
+    const sourcePeriod = normalizePlanPeriod(plan.billingPeriod);
+    if (sourcePeriod === cycle) return plan.priceAmount;
+    if (cycle === "yearly") return plan.priceAmount * 10;
+    return Math.round((plan.priceAmount / 10) * 100) / 100;
+  }
+
   const moduleNameByCode = useMemo(() => {
     const map = new Map<string, string>();
     for (const modules of Object.values(planModulesByPlanId)) {
@@ -648,10 +663,12 @@ export function CompanyShell({
     return { toEnable, toDisable };
   }, [currentPlan, enabledModules, moduleNameByCode, planChangeTarget, planModulesByPlanId]);
 
-  function formatPlanPrice(plan: (typeof availablePlans)[number]) {
-    if (typeof plan.priceAmount !== "number") return "Precio no definido";
-    const period = plan.billingPeriod === "yearly" || plan.billingPeriod === "annual" ? "ano" : "mes";
-    return `$${plan.priceAmount}/${period}`;
+  function formatPlanPrice(plan: (typeof availablePlans)[number], cycle?: BillingCycle) {
+    const selectedCycle = cycle ?? normalizePlanPeriod(plan.billingPeriod);
+    const amount = getPlanAmountByCycle(plan, selectedCycle);
+    if (typeof amount !== "number") return "Precio no definido";
+    const period = selectedCycle === "yearly" ? "ano" : "mes";
+    return `$${amount}/${period}`;
   }
 
   function toggleSection(label: string) {
@@ -729,7 +746,10 @@ export function CompanyShell({
             {!collapsed ? (
               <button
                 type="button"
-                onClick={() => setPlanOpen(true)}
+                onClick={() => {
+                  setPlanBillingCycle(currentPlan ? normalizePlanPeriod(currentPlan.billingPeriod) : "monthly");
+                  setPlanOpen(true);
+                }}
                 disabled={impersonationMode}
                 className={`mb-2.5 w-full rounded-lg border-[1.5px] px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-60 ${isDarkTheme ? "bg-white/5" : "bg-white/75"}`}
                 style={{ borderColor: palette.accent }}
@@ -1035,6 +1055,22 @@ export function CompanyShell({
             <div className="px-3.5 pb-2 pt-2">
               <p className="mb-1 text-[9px] font-extrabold uppercase tracking-[0.1em] text-[#f0b060]">Actual <span className="ml-2 rounded-full bg-[#f0b060]/15 px-2 py-[2px] text-[9px] text-[#f0b060]">{currentPlanName}</span></p>
               <p className="text-xs text-white/75">{billedTo || "-"} · {billingEmail || "-"}</p>
+              <div className="mt-2 inline-flex rounded-lg border border-white/15 bg-white/[0.03] p-1 text-[10px] font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setPlanBillingCycle("monthly")}
+                  className={`rounded-md px-2.5 py-1 transition ${planBillingCycle === "monthly" ? "bg-white text-[#111]" : "text-white/75 hover:text-white"}`}
+                >
+                  Mensual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPlanBillingCycle("yearly")}
+                  className={`rounded-md px-2.5 py-1 transition ${planBillingCycle === "yearly" ? "bg-[#10b981] text-white" : "text-white/75 hover:text-white"}`}
+                >
+                  Anual (2 meses gratis)
+                </button>
+              </div>
             </div>
 
             <div className="mx-3.5 h-px bg-white/10" />
@@ -1042,32 +1078,28 @@ export function CompanyShell({
             <div className="max-h-[280px] overflow-y-auto px-3.5 py-2">
               <div className="space-y-2">
                 {plansForDisplay.map((plan) => {
-                  const isCurrent = normalizedCurrentPlanCode && normalizedCurrentPlanCode === plan.code.toLowerCase();
+                  const isCurrentPlanCode = normalizedCurrentPlanCode && normalizedCurrentPlanCode === plan.code.toLowerCase();
                   return (
-                    <div key={plan.id} className={`rounded-lg border px-3 py-2 ${isCurrent ? "border-[#f0b060]/40 bg-[#f0b060]/10" : "border-white/10 bg-white/[0.03]"}`}>
+                    <div key={plan.id} className={`rounded-lg border px-3 py-2 ${isCurrentPlanCode ? "border-[#f0b060]/40 bg-[#f0b060]/10" : "border-white/10 bg-white/[0.03]"}`}>
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-white/80">{plan.name}</p>
-                        <span className="rounded-full bg-white/10 px-2 py-[2px] text-[10px] font-semibold text-white/80">{formatPlanPrice(plan)}</span>
+                        <span className="rounded-full bg-white/10 px-2 py-[2px] text-[10px] font-semibold text-white/80">{formatPlanPrice(plan, planBillingCycle)}</span>
                       </div>
-                      <p className="mt-1 text-[11px] text-white/60">{plan.code.toUpperCase()} · {plan.billingPeriod === "yearly" || plan.billingPeriod === "annual" ? "Anual" : "Mensual"}</p>
+                      <p className="mt-1 text-[11px] text-white/60">{plan.code.toUpperCase()} · {planBillingCycle === "yearly" ? "Anual" : "Mensual"}</p>
                       <div className="mb-2 mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-white/60">
                         <span>Sucursales: {plan.maxBranches ?? "-"}</span>
                         <span>Usuarios: {plan.maxUsers ?? "-"}</span>
                         <span>Empleados: {plan.maxEmployees ?? "-"}</span>
                         <span>Storage MB: {plan.maxStorageMb ?? "-"}</span>
                       </div>
-                      {!isCurrent ? (
-                        <button
-                          type="button"
-                          disabled={busy || !plan.stripePriceId}
-                          onClick={() => openPlanChangeDialog(plan.id)}
-                          className="mt-2 w-full rounded-md border border-white/20 bg-white/5 py-1.5 text-[10px] font-semibold text-white transition-colors hover:bg-white/10 disabled:opacity-50"
-                        >
-                          {busy ? "Procesando..." : "Elegir Plan"}
-                        </button>
-                      ) : (
-                        <div className="mt-2 w-full rounded-md bg-[#f0b060]/20 py-1.5 text-center text-[10px] font-semibold text-[#f0b060]">Plan Actual</div>
-                      )}
+                      <button
+                        type="button"
+                        disabled={busy || !plan.stripePriceId}
+                        onClick={() => openPlanChangeDialog(plan.id)}
+                        className="mt-2 w-full rounded-md border border-white/20 bg-white/5 py-1.5 text-[10px] font-semibold text-white transition-colors hover:bg-white/10 disabled:opacity-50"
+                      >
+                        {busy ? "Procesando..." : isCurrentPlanCode ? "Cambiar periodicidad o mantener" : "Elegir Plan"}
+                      </button>
                     </div>
                   );
                 })}
@@ -1118,7 +1150,7 @@ export function CompanyShell({
                 <div className={`rounded-xl border p-4 ${planChangeDirection === "downgrade" ? "border-amber-300/35 bg-amber-500/10" : "border-emerald-300/35 bg-emerald-500/10"}`}>
                   <p className="text-[10px] font-bold uppercase tracking-[0.11em] text-white/55">Plan destino</p>
                   <p className="mt-1 text-lg font-bold text-white">{planChangeTarget.name}</p>
-                  <p className="mt-1 text-xs text-white/70">{formatPlanPrice(planChangeTarget)}</p>
+                  <p className="mt-1 text-xs text-white/70">{formatPlanPrice(planChangeTarget, planBillingCycle)} · {planBillingCycle === "yearly" ? "Facturacion anual" : "Facturacion mensual"}</p>
                 </div>
               </div>
 
@@ -1166,13 +1198,9 @@ export function CompanyShell({
                 </button>
                 <button
                   type="button"
-                  disabled={busy || !planChangeTarget.stripePriceId}
+                  disabled={busy}
                   onClick={() => {
-                    if (!planChangeTarget.stripePriceId) {
-                      toast.error("Este plan no tiene precio configurado en Stripe.");
-                      return;
-                    }
-                    void startCheckout(planChangeTarget.id, planChangeTarget.stripePriceId);
+                    void startCheckout(planChangeTarget.id, planBillingCycle);
                   }}
                   className={`rounded-lg px-4 py-2 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,0,0,.35)] disabled:opacity-50 ${planChangeDirection === "downgrade" ? "bg-[linear-gradient(135deg,#d97706,#f59e0b)] hover:opacity-95" : "bg-[linear-gradient(135deg,#059669,#10b981)] hover:opacity-95"}`}
                 >
@@ -1253,6 +1281,7 @@ export function CompanyShell({
                 type="button"
                 onClick={() => {
                   setMenuOpen(false);
+                  setPlanBillingCycle(currentPlan ? normalizePlanPeriod(currentPlan.billingPeriod) : "monthly");
                   setPlanOpen(true);
                 }}
                 disabled={impersonationMode}
