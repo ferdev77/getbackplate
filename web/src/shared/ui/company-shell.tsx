@@ -69,6 +69,8 @@ type CompanyShellProps = {
   }>;
   currentPlanCode: string | null;
   currentPlanName: string;
+  companyLogoUrl: string;
+  customBrandingEnabled: boolean;
   planModulesByPlanId: Record<string, Array<{ code: string; name: string }>>;
   enabledModules: string[];
   branchOptions: Array<{ id: string; name: string }>;
@@ -233,12 +235,16 @@ export function CompanyShell({
   availablePlans,
   currentPlanCode,
   currentPlanName,
+  companyLogoUrl,
+  customBrandingEnabled,
   planModulesByPlanId,
   enabledModules,
   branchOptions,
   impersonationMode = false,
   children,
 }: CompanyShellProps) {
+  const brandingName = customBrandingEnabled ? (organizationLabel || "Empresa") : "GetBackplate";
+  const effectiveCompanyLogoUrl = customBrandingEnabled ? companyLogoUrl : "";
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -697,8 +703,32 @@ export function CompanyShell({
         <aside className={`hidden shrink-0 border-r transition-all duration-200 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col ${isDarkTheme ? "border-white/10" : "border-black/10"} ${sidebarWidth}`} style={{ background: palette.sidebarGradient }}>
           <div className={`border-b py-3 ${isDarkTheme ? "border-white/10" : "border-black/10"} ${sidebarPaddingX}`}>
             <div className={`flex items-center gap-2 ${collapsed ? "justify-center" : ""}`}>
-              <div className="grid h-7 w-7 place-items-center rounded-md bg-[#111111] text-xs font-bold text-white">GB</div>
-              {!collapsed ? <p className={`text-sm font-semibold ${isDarkTheme ? "text-[#edf3ff]" : "text-[#0f1923]"}`}>GetBackplate</p> : null}
+              {customBrandingEnabled && !collapsed ? (
+                <div className="flex h-[52px] flex-1 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-transparent px-2">
+                  {effectiveCompanyLogoUrl ? (
+                    <Image
+                      src={effectiveCompanyLogoUrl}
+                      alt={`Logo de ${brandingName}`}
+                      width={190}
+                      height={48}
+                      className="h-[44px] w-[98%] object-contain object-center"
+                    />
+                  ) : (
+                    <span className="text-xs font-bold uppercase tracking-[0.08em] text-white">{brandingName}</span>
+                  )}
+                </div>
+              ) : (
+                <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-md border border-black/10 bg-white">
+                  {effectiveCompanyLogoUrl ? (
+                    <Image src={effectiveCompanyLogoUrl} alt={`Logo de ${brandingName}`} width={36} height={36} className="h-full w-full object-contain" />
+                  ) : (
+                    <span className="grid h-full w-full place-items-center bg-[#111111] text-[10px] font-bold text-white">{(brandingName || "GB").slice(0, 2).toUpperCase()}</span>
+                  )}
+                </div>
+              )}
+              {!collapsed && !customBrandingEnabled ? (
+                <p className={`truncate text-sm font-semibold ${isDarkTheme ? "text-[#edf3ff]" : "text-[#0f1923]"}`}>{brandingName}</p>
+              ) : null}
               <button
                 type="button"
                 onClick={() => setCollapsed((v) => !v)}
@@ -825,8 +855,8 @@ export function CompanyShell({
           <div className="flex min-h-[calc(100vh-60px)] flex-col">
             <div className="flex-1">{children}</div>
             <footer className={`mt-auto flex items-center justify-between border-t px-6 py-4 text-[11px] sm:px-9 ${isDarkTheme ? "border-white/10 text-[#8ea0b8]" : "border-black/10 text-[#999]"}`} style={{ background: palette.sidebarGradient }}>
-              <p className={`font-semibold tracking-[0.02em] ${isDarkTheme ? "text-[#a8b7cb]" : "text-[#8e8e8e]"}`}>GetBackplate</p>
-              <p>© 2026 GetBackplate · v1</p>
+              <p className={`font-semibold tracking-[0.02em] ${isDarkTheme ? "text-[#a8b7cb]" : "text-[#8e8e8e]"}`}>{brandingName}</p>
+              <p>© 2026 {brandingName}</p>
             </footer>
           </div>
         </div>
@@ -1233,7 +1263,35 @@ export function CompanyShell({
         <div className="fixed inset-0 z-40 flex lg:hidden">
           <button type="button" className="h-full w-full bg-black/35" onClick={() => setMenuOpen(false)} aria-label="Cerrar menu" />
           <aside className={`absolute left-0 top-0 flex h-full w-[280px] flex-col border-r ${isDarkTheme ? "border-white/10 text-[#e7edf6]" : "border-black/10 text-[#1a1a1a]"}`} style={{ background: palette.sidebarGradient }}>
-            <div className={`border-b px-4 py-3 ${isDarkTheme ? "border-white/10" : "border-black/10"}`}><p className={`text-sm font-semibold ${isDarkTheme ? "text-[#edf3ff]" : ""}`}>GetBackplate</p><p className={`text-[10px] font-semibold tracking-[0.14em] uppercase ${isDarkTheme ? "text-[#8f9aad]" : "text-[#8f8a86]"}`}>Administrador</p></div>
+            <div className={`border-b px-4 py-3 ${isDarkTheme ? "border-white/10" : "border-black/10"}`}>
+              {customBrandingEnabled ? (
+                <div className="mb-1 flex h-[54px] items-center overflow-hidden rounded-md border border-white/10 bg-transparent px-2">
+                  {effectiveCompanyLogoUrl ? (
+                    <Image
+                      src={effectiveCompanyLogoUrl}
+                      alt={`Logo de ${brandingName}`}
+                      width={210}
+                      height={50}
+                      className="h-[46px] w-[98%] object-contain object-center"
+                    />
+                  ) : (
+                    <p className="w-full text-center text-xs font-bold uppercase tracking-[0.08em] text-white">{brandingName}</p>
+                  )}
+                </div>
+              ) : (
+                <div className="mb-1 flex items-center gap-2">
+                  <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-md border border-black/10 bg-white">
+                    {effectiveCompanyLogoUrl ? (
+                      <Image src={effectiveCompanyLogoUrl} alt={`Logo de ${brandingName}`} width={36} height={36} className="h-full w-full object-contain" />
+                    ) : (
+                      <span className="grid h-full w-full place-items-center bg-[#111111] text-[10px] font-bold text-white">{(brandingName || "GB").slice(0, 2).toUpperCase()}</span>
+                    )}
+                  </span>
+                  <p className={`truncate text-sm font-semibold ${isDarkTheme ? "text-[#edf3ff]" : ""}`}>{brandingName}</p>
+                </div>
+              )}
+              <p className={`text-[10px] font-semibold tracking-[0.14em] uppercase ${isDarkTheme ? "text-[#8f9aad]" : "text-[#8f8a86]"}`}>Administrador</p>
+            </div>
             <div className="flex-1 overflow-y-auto py-2">
               {visibleSections.map((section, idx) => (
                 <div key={section.label}>
