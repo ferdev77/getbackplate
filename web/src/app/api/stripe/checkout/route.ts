@@ -7,12 +7,48 @@ import { assertCompanyManagerModuleApi } from '@/shared/lib/access';
 import { isSuperadminImpersonating } from '@/shared/lib/impersonation';
 import { logAuditEvent } from '@/shared/lib/audit';
 
+type BillingPeriod = 'monthly' | 'yearly';
+
+function normalizeBillingPeriod(value: unknown): BillingPeriod {
+  return value === 'yearly' || value === 'annual' ? 'yearly' : 'monthly';
+}
+
+async function resolveTargetPriceForPeriod(params: {
+  basePriceId: string;
+  period: BillingPeriod;
+}): Promise<string | null> {
+  const basePrice = await stripe.prices.retrieve(params.basePriceId);
+  if (!basePrice.recurring) return null;
+
+  const targetInterval = params.period === 'yearly' ? 'year' : 'month';
+  if (basePrice.recurring.interval === targetInterval) return basePrice.id;
+
+  const productId = typeof basePrice.product === 'string' ? basePrice.product : basePrice.product?.id;
+  if (!productId) return null;
+
+  const prices = await stripe.prices.list({
+    product: productId,
+    active: true,
+    limit: 100,
+  });
+
+  const match = prices.data.find((price) => {
+    if (!price.recurring) return false;
+    if (price.recurring.interval !== targetInterval) return false;
+    return price.currency === basePrice.currency;
+  });
+
+  return match?.id ?? null;
+}
+
 export async function POST(request: Request) {
   try {
-    const { priceId, planId } = await request.json();
+    const payload = await request.json();
+    const planId = typeof payload.planId === 'string' ? payload.planId : '';
+    const requestedPeriod = normalizeBillingPeriod(payload.billingPeriod);
 
-    if (!priceId) {
-      return NextResponse.json({ error: 'Missing priceId' }, { status: 400 });
+    if (!planId) {
+      return NextResponse.json({ error: 'Missing planId' }, { status: 400 });
     }
 
     const headersList = request.headers;
@@ -46,6 +82,28 @@ export async function POST(request: Request) {
     }
 
     const organizationId = moduleAccess.tenant.organizationId;
+    const { data: targetPlan } = await supabase
+      .from('plans')
+      .select('id, stripe_price_id')
+      .eq('id', planId)
+      .maybeSingle();
+
+    if (!targetPlan?.stripe_price_id) {
+      return NextResponse.json({ error: 'Plan sin precio base configurado en Stripe' }, { status: 400 });
+    }
+
+    const targetPriceId = await resolveTargetPriceForPeriod({
+      basePriceId: targetPlan.stripe_price_id,
+      period: requestedPeriod,
+    });
+
+    if (!targetPriceId) {
+      return NextResponse.json(
+        { error: `No existe precio ${requestedPeriod === 'yearly' ? 'anual' : 'mensual'} para este plan en Stripe.` },
+        { status: 400 },
+      );
+    }
+
     let stripeCustomerId: string | undefined = undefined;
     let existingStripeSubscriptionId: string | null = null;
 
@@ -81,7 +139,7 @@ export async function POST(request: Request) {
       const currentPriceId = subscription.items.data[0].price.id;
 
       // If user clicked their own current plan, just open billing portal
-      if (currentPriceId === priceId) {
+      if (currentPriceId === targetPriceId) {
         const portalSession = await stripe.billingPortal.sessions.create({
           customer: stripeCustomerId,
           return_url: `${baseUrl}/app/dashboard`,
@@ -91,12 +149,13 @@ export async function POST(request: Request) {
 
       // Upgrade/downgrade: update subscription item to new price with proration
       await stripe.subscriptions.update(existingStripeSubscriptionId, {
-        items: [{ id: currentItemId, price: priceId }],
+        items: [{ id: currentItemId, price: targetPriceId }],
         proration_behavior: 'create_prorations',
         metadata: {
           organizationId,
           userId: user.id,
           planId: planId || '',
+          billingPeriod: requestedPeriod,
         },
       });
 
@@ -110,7 +169,7 @@ export async function POST(request: Request) {
         actorEmail: user.email ?? null,
         actorFullName: actorName,
         targetPlanId: typeof planId === 'string' ? planId : null,
-        targetPriceId: priceId,
+        targetPriceId,
       });
 
       await logAuditEvent({
@@ -124,7 +183,8 @@ export async function POST(request: Request) {
           actor_user_id: user.id,
           actor_email: user.email,
           target_plan_id: planId || null,
-          target_price_id: priceId,
+          target_price_id: targetPriceId,
+          billing_period: requestedPeriod,
           notification_sent: notificationResult.ok,
           notification_error: notificationResult.ok ? null : notificationResult.error,
         },
@@ -144,7 +204,7 @@ export async function POST(request: Request) {
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',
       payment_method_types: ['card'],
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items: [{ price: targetPriceId, quantity: 1 }],
       success_url: `${baseUrl}/app/dashboard?session_id={CHECKOUT_SESSION_ID}&success=true`,
       cancel_url: `${baseUrl}/app/dashboard?canceled=true`,
       tax_id_collection: { enabled: true },
@@ -153,12 +213,14 @@ export async function POST(request: Request) {
         organizationId,
         userId: user?.id || '',
         planId: planId || '',
+        billingPeriod: requestedPeriod,
       },
       subscription_data: {
         metadata: {
           organizationId,
           userId: user?.id || '',
           planId: planId || '',
+          billingPeriod: requestedPeriod,
         },
       },
     };
