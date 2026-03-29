@@ -69,10 +69,10 @@ function statusLabel(status: string) {
 }
 
 function statusClass(status: string) {
-  if (status === "active") return "bg-[#edfbf3] text-[#27ae60]";
-  if (status === "vacation") return "bg-[#eef4ff] text-[#2980b9]";
-  if (status === "leave") return "bg-[#fff5f3] text-[#c0392b]";
-  return "bg-[#f5f5f5] text-[#888]";
+  if (status === "active") return "bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]";
+  if (status === "vacation") return "bg-[var(--gbp-violet-soft)] text-[var(--gbp-violet)]";
+  if (status === "leave") return "bg-[var(--gbp-error-soft)] text-[var(--gbp-error)]";
+  return "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]";
 }
 
 function formatMoney(amount: number | null, currency: string | null) {
@@ -312,17 +312,17 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
   return (
     <>
       <section className="grid gap-4 sm:grid-cols-3">
-        <article className="rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white p-6">
-          <p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Total Empleados</p>
-          <p className="font-serif text-4xl leading-none font-bold text-[#111]">{totalEmployees}</p>
+        <article className="rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6">
+          <p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Total Empleados</p>
+          <p className="font-serif text-4xl leading-none font-bold text-[var(--gbp-text)]">{totalEmployees}</p>
         </article>
-        <article className="rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white p-6">
-          <p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Total Usuarios</p>
-          <p className="font-serif text-4xl leading-none font-bold text-[#111]">{totalUsers}</p>
+        <article className="rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6">
+          <p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Total Usuarios</p>
+          <p className="font-serif text-4xl leading-none font-bold text-[var(--gbp-text)]">{totalUsers}</p>
         </article>
-        <article className="rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white p-6">
-          <p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Activos (Total)</p>
-          <p className="font-serif text-4xl leading-none font-bold text-[#111]">{activeCount}</p>
+        <article className="rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6">
+          <p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Activos (Total)</p>
+          <p className="font-serif text-4xl leading-none font-bold text-[var(--gbp-text)]">{activeCount}</p>
         </article>
       </section>
 
@@ -331,14 +331,14 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            className="h-[34px] w-[210px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"
+            className="h-[34px] w-[210px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"
             placeholder="Buscar usuario/empleado..."
           />
         </div>
         <select
           value={recordTypeFilter}
           onChange={(event) => setRecordTypeFilter(event.target.value as "" | "employee" | "user")}
-          className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"
+          className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"
         >
           <option value="">Todos</option>
           <option value="employee">Empleado</option>
@@ -347,7 +347,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
         <select
           value={location}
           onChange={(event) => setLocation(event.target.value)}
-          className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"
+          className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"
         >
           <option value="">Todas las locaciones</option>
           {locationOptions.map((item) => (
@@ -357,7 +357,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
         <select
           value={department}
           onChange={(event) => setDepartment(event.target.value)}
-          className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"
+          className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"
         >
           <option value="">Todos los departamentos</option>
           {departmentOptions.map((item) => (
@@ -367,7 +367,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
         <select
           value={status}
           onChange={(event) => setStatus(event.target.value)}
-          className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"
+          className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"
         >
           <option value="">Todos los estados laborales</option>
           <option value="active">Activo</option>
@@ -377,12 +377,12 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
         </select>
       </section>
 
-      <p className="text-[11px] text-[#8b817c]">
+      <p className="text-[11px] text-[var(--gbp-text2)]">
         Estado laboral y acceso a plataforma se gestionan por separado.
       </p>
 
-      <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white">
-        <div className="grid grid-cols-[1fr_80px] md:grid-cols-[1.5fr_1fr_120px] lg:grid-cols-[2fr_1fr_1.1fr_100px_80px_90px_136px] xl:grid-cols-[minmax(180px,2fr)_minmax(100px,1fr)_minmax(120px,1.1fr)_minmax(100px,.8fr)_minmax(70px,.6fr)_minmax(110px,.9fr)_minmax(90px,.8fr)_136px] gap-x-3 border-b-[1.5px] border-[#e8e8e8] bg-[#fafafa] px-5 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase">
+      <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
+        <div className="grid grid-cols-[1fr_80px] gap-x-3 border-b-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-5 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[var(--gbp-muted)] uppercase md:grid-cols-[1.5fr_1fr_120px] lg:grid-cols-[2fr_1fr_1.1fr_100px_80px_90px_136px] xl:grid-cols-[minmax(180px,2fr)_minmax(100px,1fr)_minmax(120px,1.1fr)_minmax(100px,.8fr)_minmax(70px,.6fr)_minmax(110px,.9fr)_minmax(90px,.8fr)_136px]">
           <p>Nombre</p>
           <p className="hidden md:block">Locacion</p>
           <p className="hidden lg:block">Departamento</p>
@@ -398,32 +398,32 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
             return (
               <div
                 key={row.id}
-                className="grid grid-cols-[1fr_80px] md:grid-cols-[1.5fr_1fr_120px] lg:grid-cols-[2fr_1fr_1.1fr_100px_80px_90px_136px] xl:grid-cols-[minmax(180px,2fr)_minmax(100px,1fr)_minmax(120px,1.1fr)_minmax(100px,.8fr)_minmax(70px,.6fr)_minmax(110px,.9fr)_minmax(90px,.8fr)_136px] items-center gap-x-3 border-b border-[#f0f0f0] px-5 py-3 text-left hover:bg-[#fafafa]"
+                className="grid grid-cols-[1fr_80px] items-center gap-x-3 border-b border-[var(--gbp-border)] px-5 py-3 text-left hover:bg-[var(--gbp-bg)] md:grid-cols-[1.5fr_1fr_120px] lg:grid-cols-[2fr_1fr_1.1fr_100px_80px_90px_136px] xl:grid-cols-[minmax(180px,2fr)_minmax(100px,1fr)_minmax(120px,1.1fr)_minmax(100px,.8fr)_minmax(70px,.6fr)_minmax(110px,.9fr)_minmax(90px,.8fr)_136px]"
                 onClick={() => setSelectedEmployeeId(row.id)}
               >
                 <div className="flex items-center gap-2.5 overflow-hidden">
-                  <span className="flex-shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#c0392b] text-[11px] font-bold text-white">{initials(fullName)}</span>
+                  <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[var(--gbp-accent)] text-[11px] font-bold text-white">{initials(fullName)}</span>
                   <div className="min-w-0">
-                    <p className="truncate text-[13px] font-semibold text-[#111]">{fullName}</p>
-                    <p className="truncate text-[11px] text-[#aaa]">{row.position || "Sin puesto"}</p>
+                    <p className="truncate text-[13px] font-semibold text-[var(--gbp-text)]">{fullName}</p>
+                    <p className="truncate text-[11px] text-[var(--gbp-muted)]">{row.position || "Sin puesto"}</p>
                   </div>
                 </div>
-                <p className="hidden md:block truncate text-xs text-[#666]">{row.branchName}</p>
-                <p className="hidden lg:block truncate text-xs text-[#666]">{row.departmentName}</p>
-                <p className="hidden xl:block text-xs text-[#666]">{row.recordType === "employee" ? "Si" : "No"}</p>
+                <p className="hidden truncate text-xs text-[var(--gbp-text2)] md:block">{row.branchName}</p>
+                <p className="hidden truncate text-xs text-[var(--gbp-text2)] lg:block">{row.departmentName}</p>
+                <p className="hidden text-xs text-[var(--gbp-text2)] xl:block">{row.recordType === "employee" ? "Si" : "No"}</p>
                 <p className="hidden lg:block">
                   {row.recordType === "employee" ? (
-                    <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${row.docsCompletionStatus === "complete" ? "bg-[#dcfce7] text-[#15803d]" : "bg-[#fee2e2] text-[#b91c1c]"}`}>
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${row.docsCompletionStatus === "complete" ? "bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]" : "bg-[var(--gbp-error-soft)] text-[var(--gbp-error)]"}`}>
                       {`${6 - row.pendingDocuments}/6 · ${row.docsCompletionStatus === "complete" ? "Completa" : "Incompleta"}`}
                     </span>
                   ) : (
-                    <span className="inline-block rounded-full bg-[#eef2ff] px-2 py-0.5 text-[11px] font-semibold text-[#3730a3]">
+                    <span className="inline-block rounded-full bg-[var(--gbp-violet-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--gbp-violet)]">
                       {`${row.docsUploadedCount ?? 0} cargados`}
                     </span>
                   )}
                 </p>
                 <p className="hidden lg:block">
-                  <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${row.dashboardAccess ? "bg-[#edfbf3] text-[#27ae60]" : "bg-[#f5f5f5] text-[#888]"}`}>
+                  <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${row.dashboardAccess ? "bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]"}`}>
                     {row.dashboardAccess ? "Con acceso" : "Sin acceso"}
                   </span>
                 </p>
@@ -460,25 +460,25 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
 
       {selected ? (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
-          <div className="flex max-h-[90vh] w-[680px] max-w-[95vw] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-            <div className="flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5">
-              <p className="font-serif text-[15px] font-bold text-[#111]">Perfil de {selected.recordType === "employee" ? "Empleado" : "Usuario"}</p>
-              <button type="button" className="grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111]" onClick={() => setSelectedEmployeeId(null)}>✕</button>
+          <div className="flex max-h-[90vh] w-[680px] max-w-[95vw] flex-col overflow-hidden rounded-2xl bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
+            <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
+              <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Perfil de {selected.recordType === "employee" ? "Empleado" : "Usuario"}</p>
+              <button type="button" className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-bg)] hover:text-[var(--gbp-text)]" onClick={() => setSelectedEmployeeId(null)}>✕</button>
             </div>
-            <div className="flex items-center gap-4 border-b-[1.5px] border-[#f0f0f0] px-6 py-5">
-              <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#c0392b] text-xl font-bold text-white">
+            <div className="flex items-center gap-4 border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
+              <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-[var(--gbp-accent)] text-xl font-bold text-white">
                 {initials(`${selected.firstName} ${selected.lastName}`)}
               </div>
               <div>
-                <p className="font-serif text-xl font-bold text-[#111]">{selected.firstName} {selected.lastName}</p>
-                <p className="text-xs text-[#aaa]">{selected.position || "Sin puesto"}</p>
+                <p className="font-serif text-xl font-bold text-[var(--gbp-text)]">{selected.firstName} {selected.lastName}</p>
+                <p className="text-xs text-[var(--gbp-muted)]">{selected.position || "Sin puesto"}</p>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusClass(selected.status)}`}>Estado laboral: {statusLabel(selected.status)}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${selected.dashboardAccess ? "bg-[#edfbf3] text-[#27ae60]" : "bg-[#f5f5f5] text-[#888]"}`}>
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${selected.dashboardAccess ? "bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]"}`}>
                     {selected.dashboardAccess ? "Acceso plataforma: habilitado" : "Acceso plataforma: sin acceso"}
                   </span>
-                  <span className="rounded-full bg-[#eef4ff] px-2 py-0.5 text-[11px] font-semibold text-[#2980b9]">{selected.branchName}</span>
-                  <span className="rounded-full bg-[#fff5e8] px-2 py-0.5 text-[11px] font-semibold text-[#e67e22]">{selected.departmentName}</span>
+                  <span className="rounded-full bg-[var(--gbp-violet-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--gbp-violet)]">{selected.branchName}</span>
+                  <span className="rounded-full bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] font-semibold text-[var(--gbp-accent)]">{selected.departmentName}</span>
                 </div>
               </div>
             </div>
@@ -499,13 +499,13 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Firma contrato</p><p className="text-sm text-[#333]">{formatDate(selected.contractSignedAt)}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Docs</p><p className="text-sm text-[#333]">{selected.recordType === "employee" ? `${6 - selected.pendingDocuments}/6 · ${selected.docsCompletionStatus === "complete" ? "Completa" : `Incompleta (${selected.pendingDocuments} faltantes)`}` : `${selected.docsUploadedCount ?? 0} cargados`}</p></div>
             </div>
-            <div className="mx-6 mb-5 rounded-xl border border-[#ece3de] bg-[#fcfaf8] p-3">
-              <p className="mb-1 text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Cambiar estado laboral</p>
+            <div className="mx-6 mb-5 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
+              <p className="mb-1 text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Cambiar estado laboral</p>
               <div className="flex items-center gap-2">
                 <select
                   value={selectedStatus}
                   onChange={(event) => setSelectedStatus(event.target.value)}
-                  className="h-9 rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-sm"
+                  className="h-9 rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-sm"
                 >
                   <option value="active">Activo</option>
                   <option value="inactive">Inactivo</option>
@@ -516,17 +516,17 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                   type="button"
                   disabled={busyStatus || selectedStatus === selected.status}
                   onClick={updateEmployeeStatus}
-                  className="rounded-lg bg-[#111] px-4 py-2 text-sm font-bold text-white hover:bg-[#c0392b] disabled:opacity-60"
+                  className="rounded-lg bg-[var(--gbp-text)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--gbp-accent)] disabled:opacity-60"
                 >
                   {busyStatus ? "Guardando..." : "Guardar estado laboral"}
                 </button>
               </div>
             </div>
-            <div className="flex items-center justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4">
-              <button type="button" className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]" onClick={() => downloadProfile(selected)}>Descargar</button>
-              <button type="button" className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]" onClick={() => setSelectedEmployeeId(null)}>Cerrar</button>
-               {selected.recordType === "employee" ? (
-                 <Link href={`/app/employees?action=edit&employeeId=${selected.id}`} className="rounded-lg bg-[#111] px-5 py-2 text-sm font-bold text-white hover:bg-[#c0392b]">Editar</Link>
+            <div className="flex items-center justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
+              <button type="button" className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]" onClick={() => downloadProfile(selected)}>Descargar</button>
+              <button type="button" className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]" onClick={() => setSelectedEmployeeId(null)}>Cerrar</button>
+                {selected.recordType === "employee" ? (
+                 <Link href={`/app/employees?action=edit&employeeId=${selected.id}`} className="rounded-lg bg-[var(--gbp-text)] px-5 py-2 text-sm font-bold text-white hover:bg-[var(--gbp-accent)]">Editar</Link>
                ) : null}
              </div>
           </div>

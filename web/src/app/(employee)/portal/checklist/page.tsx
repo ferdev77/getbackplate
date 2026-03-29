@@ -36,17 +36,17 @@ function reportStatusBadge(status: string | null | undefined) {
   if (status === "reviewed") {
     return {
       label: "Reporte revisado",
-      className: "border-[#cfe0ff] bg-[#eef4ff] text-[#2a4f87]",
-      dotClassName: "bg-[#2a4f87]",
-      dateClassName: "text-[#5d7cab]",
+      className: "border-[color:color-mix(in_oklab,var(--gbp-violet)_30%,transparent)] bg-[var(--gbp-violet-soft)] text-[var(--gbp-violet)]",
+      dotClassName: "bg-[var(--gbp-violet)]",
+      dateClassName: "text-[var(--gbp-text2)]",
     };
   }
 
   return {
     label: "Reporte enviado",
-    className: "border-[#c8edd8] bg-[#eff8f2] text-[#2f6b45]",
-    dotClassName: "bg-[#2f6b45]",
-    dateClassName: "text-[#5a8a6c]",
+    className: "border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]",
+    dotClassName: "bg-[var(--gbp-success)]",
+    dateClassName: "text-[var(--gbp-text2)]",
   };
 }
 
@@ -300,11 +300,11 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
     <main>
       <EmployeeChecklistRealtimeRefresh organizationId={tenant.organizationId} userId={userId} />
       <RestoreChecklistScroll />
-      <section className="mb-5 rounded-2xl border border-[#e7dfda] bg-gradient-to-r from-[#fffdfa] to-[#fff8f5] p-6">
-        <p className="text-[11px] font-semibold tracking-[0.14em] text-[#9d948f] uppercase">Checklist asignado</p>
+      <section className="mb-5 rounded-2xl border border-[var(--gbp-border)] bg-gradient-to-r from-[var(--gbp-surface)] to-[var(--gbp-bg)] p-6">
+        <p className="text-[11px] font-semibold tracking-[0.14em] text-[var(--gbp-text2)] uppercase">Checklist asignado</p>
         <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-bold tracking-tight">Tus checklists visibles</h1>
-          <span className="inline-flex rounded-full border border-[#f0d5d0] bg-[#fff5f3] px-3 py-1 text-xs font-semibold text-[#b63a2f]">
+          <span className="inline-flex rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-3 py-1 text-xs font-semibold text-[var(--gbp-accent)]">
             {visibleTemplates.length} visible(s)
           </span>
         </div>
@@ -312,10 +312,10 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
 
       <section className="space-y-3">
         {templatesForDisplay.map((template) => (
-          <article key={template.id} className="rounded-xl border border-[#e7e0dc] bg-white p-4 transition-all duration-200 hover:-translate-y-[1px] hover:border-[#dfd4ce] hover:shadow-[0_8px_24px_rgba(0,0,0,.05)]">
+          <article key={template.id} className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 transition-all duration-200 hover:-translate-y-[1px] hover:border-[var(--gbp-border2)] hover:shadow-[0_8px_24px_rgba(0,0,0,.05)]">
             <div className="flex items-center gap-3">
-              <div className="flex min-w-0 flex-1 items-center gap-2 text-[#2a2420]">
-                <ClipboardCheck className="h-4 w-4 shrink-0 text-[#b63a2f]" />
+              <div className="flex min-w-0 flex-1 items-center gap-2 text-[var(--gbp-text)]">
+                <ClipboardCheck className="h-4 w-4 shrink-0 text-[var(--gbp-accent)]" />
                 <p className="truncate text-base font-semibold">{template.name}</p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -332,12 +332,12 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
                     );
                   })()
                 ) : (
-                  <div className="inline-flex items-center gap-2 rounded-full border border-[#f0d5d0] bg-[#fff5f3] px-3 py-1.5 text-[11px] font-semibold text-[#b63a2f]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#b63a2f]" />
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-3 py-1.5 text-[11px] font-semibold text-[var(--gbp-accent)]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--gbp-accent)]" />
                     <span>Reporte pendiente</span>
                   </div>
                 )}
-                <Link href={`/portal/checklist?preview=${template.id}`} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#d6e9dc] bg-[#eff8f2] text-[#2f6b45] transition-colors hover:bg-[#e6f3ea]" title="Ver checklist">
+                <Link href={`/portal/checklist?preview=${template.id}`} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--gbp-success)_18%,transparent)]" title="Ver checklist">
                   <Eye className="h-4 w-4" />
                 </Link>
               </div>
@@ -346,7 +346,7 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
         ))}
 
         {!visibleTemplates.length ? (
-          <div className="rounded-xl border border-dashed border-[#dccfca] bg-[#fffdfa] px-4 py-8 text-center text-sm text-[#8b817c]">
+          <div className="rounded-xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-8 text-center text-sm text-[var(--gbp-text2)]">
             No tienes checklists asignados para tu perfil.
           </div>
         ) : null}
