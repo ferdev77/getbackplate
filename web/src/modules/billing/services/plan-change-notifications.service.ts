@@ -1,4 +1,5 @@
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
+import { stripe } from "@/infrastructure/stripe/client";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { planChangeAppliedTemplate, planChangeDecisionTemplate } from "@/shared/lib/email-templates/billing";
 
@@ -43,6 +44,45 @@ function formatPlanPrice(plan: Pick<PlanRow, "price_amount" | "billing_period">)
   if (typeof plan.price_amount !== "number") return "Precio no definido";
   const period = plan.billing_period === "yearly" || plan.billing_period === "annual" ? "anual" : "mensual";
   return `$${plan.price_amount} / ${period}`;
+}
+
+async function resolvePricePresentation(params: {
+  targetPriceId?: string | null;
+  fallbackPlan: Pick<PlanRow, "price_amount" | "billing_period">;
+}) {
+  if (!params.targetPriceId) {
+    return {
+      label: formatPlanPrice(params.fallbackPlan),
+      amount: typeof params.fallbackPlan.price_amount === "number" ? params.fallbackPlan.price_amount : null,
+      period: params.fallbackPlan.billing_period === "yearly" || params.fallbackPlan.billing_period === "annual" ? "yearly" : "monthly",
+    } as const;
+  }
+
+  try {
+    const price = await stripe.prices.retrieve(params.targetPriceId);
+    const amount = typeof price.unit_amount === "number" ? price.unit_amount / 100 : null;
+    const period = price.recurring?.interval === "year" ? "yearly" : "monthly";
+
+    if (amount == null) {
+      return {
+        label: formatPlanPrice(params.fallbackPlan),
+        amount: typeof params.fallbackPlan.price_amount === "number" ? params.fallbackPlan.price_amount : null,
+        period,
+      } as const;
+    }
+
+    return {
+      label: `$${amount} / ${period === "yearly" ? "anual" : "mensual"}`,
+      amount,
+      period,
+    } as const;
+  } catch {
+    return {
+      label: formatPlanPrice(params.fallbackPlan),
+      amount: typeof params.fallbackPlan.price_amount === "number" ? params.fallbackPlan.price_amount : null,
+      period: params.fallbackPlan.billing_period === "yearly" || params.fallbackPlan.billing_period === "annual" ? "yearly" : "monthly",
+    } as const;
+  }
 }
 
 function normalizeModuleName(code: string, fallbackName?: string | null) {
@@ -183,8 +223,20 @@ export async function sendPlanChangeDecisionEmail(params: {
   const modulesToEnable = targetModules.filter((name) => !currentSet.has(name));
   const modulesToDisable = currentModules.filter((name) => !targetSet.has(name));
 
+  const currentPricePresentation = await resolvePricePresentation({
+    targetPriceId: currentPlan?.id ? null : null,
+    fallbackPlan: currentPlan ?? targetPlan,
+  });
+
+  const pricePresentation = await resolvePricePresentation({
+    targetPriceId: params.targetPriceId,
+    fallbackPlan: targetPlan,
+  });
+
   const direction: "upgrade" | "downgrade" =
-    (targetPlan.price_amount ?? 0) < (currentPlan?.price_amount ?? 0) ? "downgrade" : "upgrade";
+    (pricePresentation.amount ?? targetPlan.price_amount ?? 0) < (currentPricePresentation.amount ?? currentPlan?.price_amount ?? 0)
+      ? "downgrade"
+      : "upgrade";
 
   const limits = [
     { label: "Sucursales", value: targetPlan.max_branches != null ? String(targetPlan.max_branches) : "Sin limite" },
@@ -199,7 +251,7 @@ export async function sendPlanChangeDecisionEmail(params: {
     actorEmail: params.actorEmail,
     previousPlanName: currentPlan?.name ?? "Sin plan",
     targetPlanName: targetPlan.name,
-    targetPlanPrice: formatPlanPrice(targetPlan),
+    targetPlanPrice: pricePresentation.label,
     targetPlanLimits: limits,
     modulesToEnable,
     modulesToDisable,
@@ -262,8 +314,20 @@ export async function sendPlanChangeAppliedEmail(params: {
   const modulesToEnable = targetModules.filter((name) => !previousSet.has(name));
   const modulesToDisable = previousModules.filter((name) => !targetSet.has(name));
 
+  const previousPricePresentation = await resolvePricePresentation({
+    targetPriceId: params.previousPriceId,
+    fallbackPlan: previousPlan ?? targetPlan,
+  });
+
+  const pricePresentation = await resolvePricePresentation({
+    targetPriceId: params.targetPriceId,
+    fallbackPlan: targetPlan,
+  });
+
   const direction: "upgrade" | "downgrade" =
-    (targetPlan.price_amount ?? 0) < (previousPlan?.price_amount ?? 0) ? "downgrade" : "upgrade";
+    (pricePresentation.amount ?? targetPlan.price_amount ?? 0) < (previousPricePresentation.amount ?? previousPlan?.price_amount ?? 0)
+      ? "downgrade"
+      : "upgrade";
 
   const limits = [
     { label: "Sucursales", value: targetPlan.max_branches != null ? String(targetPlan.max_branches) : "Sin limite" },
@@ -278,7 +342,7 @@ export async function sendPlanChangeAppliedEmail(params: {
     actorEmail: actor.actorEmail,
     previousPlanName: previousPlan?.name ?? "Sin plan",
     targetPlanName: targetPlan.name,
-    targetPlanPrice: formatPlanPrice(targetPlan),
+    targetPlanPrice: pricePresentation.label,
     targetPlanLimits: limits,
     modulesToEnable,
     modulesToDisable,
