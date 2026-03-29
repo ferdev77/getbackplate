@@ -196,7 +196,10 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       emergencyName: emp.emergencyContactName,
       emergencyPhone: emp.emergencyContactPhone,
       emergencyEmail: emp.emergencyContactEmail,
-      pendingDocuments: emp.pendingDocuments?.length ?? 0,
+      pendingDocuments: typeof emp.pendingDocuments === "number" ? emp.pendingDocuments : 0,
+      docsCompletionStatus: (emp.documentsCompletionStatus === "complete" ? "complete" : "incomplete") as
+        | "complete"
+        | "incomplete",
       organizationUserProfileId: null,
     };
   });
@@ -237,6 +240,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       emergencyPhone: null,
       emergencyEmail: null,
       pendingDocuments: 0,
+      docsCompletionStatus: "incomplete" as const,
       organizationUserProfileId: profile.id,
     };
   });

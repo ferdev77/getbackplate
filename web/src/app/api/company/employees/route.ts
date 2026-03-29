@@ -618,7 +618,6 @@ export async function POST(request: Request) {
     }
 
     const allDocumentIds = Array.from(new Set([...uniqueDocIds, ...uploadedDocumentIds]));
-
     if (allDocumentIds.length) {
       const payload = allDocumentIds.map((documentId) => ({
         organization_id: tenant.organizationId,
@@ -994,7 +993,6 @@ export async function POST(request: Request) {
   }
 
   const allDocumentIds = Array.from(new Set([...uniqueDocIds, ...uploadedDocumentIds]));
-
   if (allDocumentIds.length) {
     const payload = allDocumentIds.map((documentId) => ({
       organization_id: tenant.organizationId,

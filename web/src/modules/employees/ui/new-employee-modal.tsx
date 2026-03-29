@@ -66,6 +66,7 @@ export function NewEmployeeModal({
   );
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(0);
+  const [selectedDocumentFiles, setSelectedDocumentFiles] = useState<Record<string, string>>({});
 
   async function handleResendInvitation() {
     const targetEmail = initialEmployee?.email;
@@ -413,14 +414,36 @@ export function NewEmployeeModal({
                   <div
                     key={doc.id}
                     onClick={() => document.getElementById(doc.id)?.click()}
-                    className="group relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#e8e8e8] p-8 transition-all hover:border-brand hover:bg-[#fffcfc]"
+                    className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 transition-all hover:border-brand hover:bg-[#fffcfc] ${selectedDocumentFiles[doc.name] ? "border-[#16a34a] bg-[#f0fdf4]" : "border-[#e8e8e8]"}`}
                   >
-                    <input type="file" id={doc.id} name={doc.name} accept="image/*,.pdf" className="hidden" />
+                    <input
+                      type="file"
+                      id={doc.id}
+                      name={doc.name}
+                      accept="image/*,.pdf"
+                      className="hidden"
+                      onChange={(event) => {
+                        const fileName = event.target.files?.[0]?.name ?? "";
+                        setSelectedDocumentFiles((prev) => ({
+                          ...prev,
+                          [doc.name]: fileName,
+                        }));
+                      }}
+                    />
                     <span className="mb-3 text-4xl transition-transform group-hover:scale-110">{doc.icon}</span>
                     <span className="text-center text-[13px] font-bold text-[#666]">{doc.label}</span>
-                    <div className="absolute right-3 top-3 hidden h-6 w-6 items-center justify-center rounded-full bg-green-500 text-[12px] text-white">
-                      ✓
-                    </div>
+                    {selectedDocumentFiles[doc.name] ? (
+                      <>
+                        <div className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-[12px] text-white">
+                          ✓
+                        </div>
+                        <p className="mt-2 line-clamp-1 max-w-[220px] text-center text-[11px] font-semibold text-[#166534]">
+                          {selectedDocumentFiles[doc.name]}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="mt-2 text-center text-[11px] text-[#9ca3af]">Haz clic para adjuntar</p>
+                    )}
                   </div>
                 ))}
               </div>
