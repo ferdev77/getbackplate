@@ -9,6 +9,10 @@ import {
 } from '@/modules/billing/services/billing-notifications.service';
 import { sendPlanChangeAppliedEmail } from '@/modules/billing/services/plan-change-notifications.service';
 
+function mapStripeIntervalToBillingPeriod(interval: string | null | undefined): 'monthly' | 'yearly' {
+  return interval === 'year' ? 'yearly' : 'monthly';
+}
+
 function extractPreviousPriceId(previousAttributes: any): string | null {
   try {
     const previousItems = previousAttributes?.items?.data;
@@ -96,6 +100,7 @@ export async function POST(req: Request) {
         const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
         const status = subscription.status;
         const priceId = subscription.items.data[0].price.id;
+        const billingPeriod = mapStripeIntervalToBillingPeriod(subscription.items.data[0].price.recurring?.interval);
         const quantity = subscription.items.data[0].quantity || 1;
         const cancelAtPeriodEnd = subscription.cancel_at_period_end;
 
@@ -146,6 +151,14 @@ export async function POST(req: Request) {
                 }, { onConflict: 'organization_id' });
                 if (limErr) console.error('[Webhook] Error syncing limits:', limErr);
                 else console.log('[Webhook] organization_limits upserted OK');
+
+                await supabase.from('organization_settings').upsert(
+                    {
+                        organization_id: organizationId,
+                        billing_period: billingPeriod,
+                    },
+                    { onConflict: 'organization_id' },
+                );
             }
 
             // 7. Sync modules
@@ -219,6 +232,7 @@ export async function POST(req: Request) {
 
         const status = subscription.status;
         const priceId = subscription.items.data[0].price.id;
+        const billingPeriod = mapStripeIntervalToBillingPeriod(subscription.items.data[0].price.recurring?.interval);
         const quantity = subscription.items.data[0].quantity || 1;
         const cancelAtPeriodEnd = subscription.cancel_at_period_end;
 
@@ -287,6 +301,14 @@ export async function POST(req: Request) {
                     max_storage_mb: planData.max_storage_mb ?? null,
                     max_employees: planData.max_employees ?? null,
                 }, { onConflict: 'organization_id' });
+
+                await supabase.from('organization_settings').upsert(
+                    {
+                        organization_id: organizationId,
+                        billing_period: billingPeriod,
+                    },
+                    { onConflict: 'organization_id' },
+                );
 
                 // Sync modules for the new plan
                 const { data: allModules } = await supabase.from('module_catalog').select('id, is_core');

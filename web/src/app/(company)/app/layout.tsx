@@ -91,7 +91,7 @@ export default async function CompanyLayout({
       tenantId={tenant.organizationId}
       settingsSnapshot={{
         billingPlan: inferredCurrentPlan?.name ?? orgSettings?.billing_plan ?? "Sin plan",
-        billingPeriod: inferredCurrentPlan?.billing_period ?? orgSettings?.billing_period ?? "monthly",
+        billingPeriod: orgSettings?.billing_period ?? inferredCurrentPlan?.billing_period ?? "monthly",
         billedTo: orgSettings?.billed_to ?? organization?.name ?? "",
         billingEmail: orgSettings?.billing_email ?? user?.email ?? "",
         paymentLast4: orgSettings?.payment_last4 ?? "4242",
