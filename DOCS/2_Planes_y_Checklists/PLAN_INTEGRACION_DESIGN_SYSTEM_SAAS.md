@@ -175,6 +175,23 @@ Checklist:
 - [x] superadmin migrado completo.
 - [x] resto de vistas core migradas y unificadas con tokens DS.
 
+Avance registrado (2026-03-29, tanda portal empleado y modales):
+
+- Migracion visual a tokens DS en portal empleado:
+  - `web/src/app/(employee)/portal/home/page.tsx`
+  - `web/src/app/(employee)/portal/checklist/page.tsx`
+- Migracion visual en modales/checklists onboarding:
+  - `web/src/modules/checklists/ui/employee-checklist-preview-modal.tsx`
+  - `web/src/modules/onboarding/ui/employee-welcome-modal.tsx`
+- Migracion visual en vistas operativas internas:
+  - `web/src/modules/documents/ui/documents-tree-workspace.tsx`
+  - `web/src/modules/employees/ui/employees-table-workspace.tsx`
+  - `web/src/modules/employees/ui/new-employee-modal.tsx`
+- Validacion tecnica ejecutada post-cambios:
+  - `npm run lint -- <archivos tocados>` OK.
+  - `npm run build` OK.
+  - Warning conocido y preexistente de Next.js sobre deprecacion `middleware` -> `proxy`.
+
 ### Fase 4 - Hardening visual y cierre
 
 Objetivo: cerrar consistencia y calidad final.

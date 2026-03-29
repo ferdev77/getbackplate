@@ -8,12 +8,34 @@ import { canReadDocumentInTenant } from "@/shared/lib/document-access";
 import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
 import { FileText, ClipboardCheck, ArrowRight, AlertCircle, CalendarClock, PartyPopper, Megaphone } from "lucide-react";
 
-function formatBytes(value: number | null) {
-  const bytes = value ?? 0;
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+type AnnouncementRow = {
+  id: string;
+  title: string;
+  body: string;
+  kind: "urgent" | "reminder" | "celebration" | "general" | string | null;
+  publish_at: string | null;
+  expires_at: string | null;
+  target_scope: string | null;
+  created_by: string | null;
+};
+
+type VisibleDocument = {
+  id: string;
+  title: string;
+  mime_type: string;
+  file_size_bytes: number | null;
+  created_at: string;
+  access_scope: string | null;
+};
+
+type VisibleTemplate = {
+  id: string;
+  name: string;
+  branch_id: string | null;
+  department_id: string | null;
+  target_scope: string | null;
+  updated_at: string;
+};
 
 export default async function EmployeeHomePage() {
   const tenant = await requireEmployeeAccess();
@@ -97,7 +119,7 @@ export default async function EmployeeHomePage() {
     ? `${employeeRow.first_name} ${employeeRow.last_name}`.trim()
     : (typeof authData.user?.user_metadata?.full_name === "string" && authData.user.user_metadata.full_name.trim()) || authData.user?.email || "Empleado";
 
-  let announcements: Array<any> = [];
+  let announcements: AnnouncementRow[] = [];
   const hasAnnouncementsModule = Boolean(announcementsModuleEnabled);
 
   if (hasAnnouncementsModule) {
@@ -119,14 +141,20 @@ export default async function EmployeeHomePage() {
   }
 
   // Fetch authors for announcements
-  const authorIds = Array.from(new Set(announcements.map((a) => a.created_by).filter(Boolean)));
+  const authorIds = Array.from(
+    new Set(
+      announcements
+        .map((a) => a.created_by)
+        .filter((value): value is string => typeof value === "string" && value.length > 0),
+    ),
+  );
   const authorNameMap = await resolveAnnouncementAuthorNames({
     organizationId: tenant.organizationId,
     authorIds,
   });
 
   // Fetch Documents
-  let visibleDocuments: any[] = [];
+  let visibleDocuments: VisibleDocument[] = [];
   const hasDocumentsModule = Boolean(documentsModuleEnabled);
   if (hasDocumentsModule) {
     const { data: documents } = await supabase
@@ -164,7 +192,7 @@ export default async function EmployeeHomePage() {
   }
 
   // Fetch Checklists
-  let visibleTemplates: any[] = [];
+  let visibleTemplates: VisibleTemplate[] = [];
   const hasChecklistsModule = Boolean(checklistsModuleEnabled);
   if (hasChecklistsModule) {
     const { data: templates } = await supabase
@@ -221,28 +249,28 @@ export default async function EmployeeHomePage() {
 
   return (
     <>
-      <section className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-[#e8e8e8] bg-white p-6 shadow-sm sm:p-8">
+      <section className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-sm sm:p-8">
         <div>
-          <p className="text-xs text-[#aaa]">Bienvenido de vuelta</p>
-          <h1 className="mt-1 font-serif text-3xl font-bold text-[#111]">{employeeName}</h1>
+          <p className="text-xs text-[var(--gbp-muted)]">Bienvenido de vuelta</p>
+          <h1 className="mt-1 font-serif text-3xl font-bold text-[var(--gbp-text)]">{employeeName}</h1>
           <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-medium">
-            {resolvedBranch.data?.name && <span className="rounded-full border border-[#e8e8e8] bg-[#f5f5f5] px-3 py-1 text-[#666]">{resolvedBranch.data.name}</span>}
-            {department?.name && <span className="rounded-full border border-[#dbe7ff] bg-[#f2f6ff] px-3 py-1 text-[#3b5bdb]">{department.name}</span>}
-            {employeeRow?.position && <span className="rounded-full border border-[#f0d5d0] bg-[#fef0ed] px-3 py-1 text-[#c0392b]">{employeeRow.position}</span>}
+            {resolvedBranch.data?.name && <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-1 text-[var(--gbp-text2)]">{resolvedBranch.data.name}</span>}
+            {department?.name && <span className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-violet)_30%,transparent)] bg-[var(--gbp-violet-soft)] px-3 py-1 text-[var(--gbp-violet)]">{department.name}</span>}
+            {employeeRow?.position && <span className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-3 py-1 text-[var(--gbp-accent)]">{employeeRow.position}</span>}
           </div>
         </div>
-        <div className="rounded-xl bg-[#faf9f8] p-5 text-center min-w-[140px]">
-          <p className="font-serif text-5xl font-bold leading-none text-[#c0392b]">{docsCount}</p>
-          <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-[#8b817c]">Documentos</p>
+        <div className="min-w-[140px] rounded-xl bg-[var(--gbp-bg)] p-5 text-center">
+          <p className="font-serif text-5xl font-bold leading-none text-[var(--gbp-accent)]">{docsCount}</p>
+          <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-[var(--gbp-text2)]">Documentos</p>
         </div>
       </section>
-      <section className="rounded-3xl bg-[#1e1a18] p-8 text-white shadow-xl relative overflow-hidden">
+      <section className="relative overflow-hidden rounded-3xl bg-[linear-gradient(145deg,var(--gbp-text)_0%,#151922_100%)] p-8 text-white shadow-xl">
         <div className="absolute top-0 right-0 p-12 opacity-10 blur-2xl">
            <div className="w-64 h-64 bg-brand rounded-full"></div>
         </div>
         <div className="relative z-10 flex flex-col items-start">
           <div className="mb-3 flex items-center gap-2">
-            <span className="inline-flex rounded-full bg-[#111] border border-[#332b27] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-[#e74c3c]">
+            <span className="inline-flex rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_12%,transparent)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--gbp-accent)]">
               Mensaje Principal
             </span>
             {heroAnnouncement?.kind && (
@@ -260,14 +288,14 @@ export default async function EmployeeHomePage() {
             )}
           </div>
           <h2 className="font-serif text-3xl font-bold leading-tight max-w-3xl">{heroAnnouncement?.title ?? "Bienvenido al Portal Interno"}</h2>
-          <p className="mt-4 text-sm leading-7 text-[#b8b0aa] max-w-2xl">{heroAnnouncement?.body ?? "Aquí encontrarás avisos, checklists pendientes y documentos recientes de tu puesto."}</p>
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-white/70">{heroAnnouncement?.body ?? "Aquí encontrarás avisos, checklists pendientes y documentos recientes de tu puesto."}</p>
           <div className="mt-6 flex items-center gap-3">
-            <div className="grid h-8 w-8 place-items-center rounded-full bg-[#302824] text-[10px] font-bold text-[#e8e8e8]">
+            <div className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-[10px] font-bold text-[#e8e8e8]">
               {(authorNameMap.get(heroAnnouncement?.created_by ?? "") || "DG").substring(0, 2).toUpperCase()}
             </div>
             <div className="text-[11px] leading-tight">
               <p className="font-medium text-[#e8e8e8]">{authorNameMap.get(heroAnnouncement?.created_by ?? "") || "Dirección General"}</p>
-              <p className="text-[#665f5a]">{heroAnnouncement?.publish_at ? new Date(heroAnnouncement.publish_at).toLocaleDateString("es-AR") : "-"}</p>
+              <p className="text-white/45">{heroAnnouncement?.publish_at ? new Date(heroAnnouncement.publish_at).toLocaleDateString("es-AR") : "-"}</p>
             </div>
           </div>
         </div>
@@ -291,18 +319,18 @@ export default async function EmployeeHomePage() {
               <div className="space-y-3">
                 {visibleTemplates.map((template) => (
                   <Link href={`/portal/checklist?preview=${template.id}`} key={template.id} className="block group">
-                    <article className="flex items-center gap-4 rounded-2xl border border-[#e8e8e8] bg-white p-4 transition-all hover:border-brand/40 hover:shadow-lg hover:shadow-brand/5">
+                    <article className="flex items-center gap-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 transition-all hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_40%,transparent)] hover:shadow-lg hover:shadow-black/5">
                       <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-600 transition-colors group-hover:bg-amber-100"><ClipboardCheck className="h-5 w-5" /></div>
                       <div>
-                        <h4 className="text-[14px] font-bold text-[#111] group-hover:text-brand transition-colors">{template.name}</h4>
-                        <p className="text-[11px] text-[#888] mt-0.5">Pendiente de completar</p>
+                        <h4 className="text-[14px] font-bold text-[var(--gbp-text)] transition-colors group-hover:text-[var(--gbp-accent)]">{template.name}</h4>
+                        <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">Pendiente de completar</p>
                       </div>
                     </article>
                   </Link>
                 ))}
               </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-[#dccfca] bg-white/50 px-4 py-8 text-center text-sm text-[#8b817c]">
+              <div className="rounded-2xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-surface)]/70 px-4 py-8 text-center text-sm text-[var(--gbp-text2)]">
                 {!hasChecklistsModule ? "Módulo inactivo" : "No tienes checklists pendientes."}
               </div>
             )}
@@ -324,11 +352,11 @@ export default async function EmployeeHomePage() {
               <div className="space-y-3">
                 {visibleDocuments.map((doc) => (
                   <a href={`/api/documents/${doc.id}/download`} target="_blank" key={doc.id} className="block group">
-                    <article className="flex items-center gap-4 rounded-2xl border border-[#e8e8e8] bg-white p-4 transition-all hover:border-blue-300 hover:shadow-lg hover:shadow-blue-500/5">
+                    <article className="flex items-center gap-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 transition-all hover:border-[color:color-mix(in_oklab,var(--gbp-violet)_35%,transparent)] hover:shadow-lg hover:shadow-black/5">
                       <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-100"><FileText className="h-5 w-5" /></div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="truncate text-[14px] font-bold text-[#111] group-hover:text-blue-600 transition-colors">{doc.title}</h4>
-                        <p className="text-[11px] text-[#888] mt-0.5 mt-1 flex gap-2">
+                        <h4 className="truncate text-[14px] font-bold text-[var(--gbp-text)] transition-colors group-hover:text-[var(--gbp-violet)]">{doc.title}</h4>
+                        <p className="mt-1 mt-0.5 flex gap-2 text-[11px] text-[var(--gbp-text2)]">
                            <span className="uppercase">{doc.mime_type}</span>
                            <span>{new Date(doc.created_at).toLocaleDateString("es-AR")}</span>
                         </p>
@@ -338,7 +366,7 @@ export default async function EmployeeHomePage() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-[#dccfca] bg-white/50 px-4 py-8 text-center text-sm text-[#8b817c]">
+              <div className="rounded-2xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-surface)]/70 px-4 py-8 text-center text-sm text-[var(--gbp-text2)]">
                 {!hasDocumentsModule ? "Módulo inactivo" : "No tienes documentos recientes."}
               </div>
             )}
@@ -359,7 +387,7 @@ export default async function EmployeeHomePage() {
 
           <div className="space-y-3">
             {recentAnnouncements.map((item) => (
-              <article key={item.id} className="group relative flex gap-4 overflow-hidden rounded-2xl border border-[#e8e8e8] bg-white p-5 transition-all hover:border-orange-200 hover:shadow-lg hover:shadow-orange-500/5">
+              <article key={item.id} className="group relative flex gap-4 overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-5 transition-all hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] hover:shadow-lg hover:shadow-black/5">
                 <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl transition-colors ${
                   item.kind === "urgent" ? "bg-rose-50 text-rose-500 group-hover:bg-rose-100" :
                   item.kind === "reminder" ? "bg-amber-50 text-amber-500 group-hover:bg-amber-100" :
@@ -373,26 +401,26 @@ export default async function EmployeeHomePage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="text-[14px] font-bold text-[#111] pr-2">{item.title}</h3>
+                    <h3 className="pr-2 text-[14px] font-bold text-[var(--gbp-text)]">{item.title}</h3>
                   </div>
-                  <p className="mt-1 text-[13px] leading-6 text-[#666]">{item.body}</p>
+                  <p className="mt-1 text-[13px] leading-6 text-[var(--gbp-text2)]">{item.body}</p>
                   
-                  <div className="mt-3 flex items-center gap-3 border-t border-[#f5f5f5] pt-3">
-                    <span className="flex items-center gap-1.5 text-[11px] font-semibold text-[#888]">
-                      <div className="grid h-4 w-4 place-items-center rounded-full bg-[#f0f0f0] text-[8px] font-bold text-[#555]">
+                  <div className="mt-3 flex items-center gap-3 border-t border-[var(--gbp-border)] pt-3">
+                    <span className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--gbp-text2)]">
+                      <div className="grid h-4 w-4 place-items-center rounded-full bg-[var(--gbp-surface2)] text-[8px] font-bold text-[var(--gbp-text)]">
                         {(authorNameMap.get(item.created_by ?? "") || "DG").substring(0, 1).toUpperCase()}
                       </div>
                       {authorNameMap.get(item.created_by ?? "") || "Dirección General"}
                     </span>
-                    <span className="text-[10px] text-[#ccc]">•</span>
-                    <span className="text-[11px] font-medium text-[#bbb]">{item.publish_at ? new Date(item.publish_at).toLocaleDateString("es-AR") : "-"}</span>
+                    <span className="text-[10px] text-[var(--gbp-muted)]">•</span>
+                    <span className="text-[11px] font-medium text-[var(--gbp-muted)]">{item.publish_at ? new Date(item.publish_at).toLocaleDateString("es-AR") : "-"}</span>
                   </div>
                 </div>
               </article>
             ))}
 
             {!announcements.length ? (
-              <div className="rounded-2xl border border-dashed border-[#dccfca] bg-white/50 px-4 py-8 text-center text-sm text-[#8b817c]">
+              <div className="rounded-2xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-surface)]/70 px-4 py-8 text-center text-sm text-[var(--gbp-text2)]">
                 {hasAnnouncementsModule
                   ? "No hay avisos vigentes para tu perfil."
                   : "El módulo de avisos no está habilitado."}

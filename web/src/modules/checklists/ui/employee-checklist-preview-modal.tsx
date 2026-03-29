@@ -59,9 +59,9 @@ function priorityLabel(priority: string) {
 }
 
 function priorityClass(priority: string) {
-  if (priority === "high") return "bg-[#fff0ee] text-[#c0392b]";
-  if (priority === "low") return "bg-[#f0f4ff] text-[#3b5bdb]";
-  return "bg-[#fff8e1] text-[#e09400]";
+  if (priority === "high") return "bg-[var(--gbp-error-soft)] text-[var(--gbp-error)]";
+  if (priority === "low") return "bg-[var(--gbp-violet-soft)] text-[var(--gbp-violet)]";
+  return "bg-[color:color-mix(in_oklab,var(--gbp-accent)_16%,transparent)] text-[var(--gbp-accent)]";
 }
 
 export function EmployeeChecklistPreviewModal({
@@ -251,16 +251,16 @@ export function EmployeeChecklistPreviewModal({
   return (
     <>
       <div className={`fixed inset-0 z-[1050] flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-[1px] transition-opacity duration-200 sm:p-6 ${visible ? "opacity-100" : "opacity-0"}`} onClick={closeModal}>
-        <div className={`w-full max-w-[760px] overflow-hidden rounded-[20px] bg-white shadow-[0_32px_80px_rgba(0,0,0,.4)] transition-all duration-300 ${visible ? "translate-y-0 scale-100 opacity-100" : "translate-y-8 scale-[0.99] opacity-0"}`} onClick={(event) => event.stopPropagation()}>
-          <div className="relative overflow-hidden bg-[#0e0e0e] px-8 pb-6 pt-7 text-white">
+        <div className={`w-full max-w-[760px] overflow-hidden rounded-[20px] bg-[var(--gbp-surface)] shadow-[0_32px_80px_rgba(0,0,0,.4)] transition-all duration-300 ${visible ? "translate-y-0 scale-100 opacity-100" : "translate-y-8 scale-[0.99] opacity-0"}`} onClick={(event) => event.stopPropagation()}>
+          <div className="relative overflow-hidden bg-[linear-gradient(145deg,var(--gbp-text)_0%,#151922_100%)] px-8 pb-6 pt-7 text-white">
             <div className="pointer-events-none absolute -right-12 -top-12 h-[210px] w-[210px] rounded-full bg-[radial-gradient(circle,rgba(192,57,43,.26)_0%,transparent_70%)]" />
             <div className="relative z-10 mb-5 flex items-start justify-between gap-3">
               <div>
-                <span className="mb-2 inline-flex items-center gap-1 rounded-full border border-[#8a3328] bg-[#4a1813] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[#f29a90]">📋 Apertura</span>
+                <span className="mb-2 inline-flex items-center gap-1 rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_45%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_16%,transparent)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">📋 Apertura</span>
                 <h2 className="font-serif text-[26px] leading-tight">{templateName}</h2>
                 <p className="mt-1 text-[13px] text-white/45">{readOnly ? "Reporte enviado" : "Vista de ejecucion para empleado"}</p>
               </div>
-              <button type="button" onClick={closeModal} className="grid h-[34px] w-[34px] cursor-pointer place-items-center rounded-lg border border-white/10 bg-white/10 text-[18px] text-white/60 hover:border-[#c0392b] hover:bg-[#c0392b] hover:text-white">✕</button>
+               <button type="button" onClick={closeModal} className="grid h-[34px] w-[34px] cursor-pointer place-items-center rounded-lg border border-white/10 bg-white/10 text-[18px] text-white/60 hover:border-[var(--gbp-accent)] hover:bg-[var(--gbp-accent)] hover:text-white">✕</button>
             </div>
 
             {!readOnly ? (
@@ -277,7 +277,7 @@ export function EmployeeChecklistPreviewModal({
 
             <div>
               <div className="mb-2 flex items-center justify-between text-xs text-white/55"><span>Progreso del turno</span><span className="font-semibold text-white">{doneCount} ✓ {flaggedWithComment.length ? `· ⚑ ${flaggedWithComment.length}` : ""}</span></div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[linear-gradient(90deg,#c0392b,#e74c3c)] transition-all duration-500" style={{ width: `${progressPct}%` }} /></div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[linear-gradient(90deg,var(--gbp-accent),var(--gbp-accent-hover))] transition-all duration-500" style={{ width: `${progressPct}%` }} /></div>
             </div>
           </div>
 
@@ -286,10 +286,10 @@ export function EmployeeChecklistPreviewModal({
               const sectionDone = section.items.filter((item) => itemsState[item.id]?.checked).length;
               return (
                 <section key={section.id} className="mb-7">
-                  <div className="mb-3 flex items-center gap-2 border-b-[1.5px] border-[#f0f0f0] pb-2.5">
+                  <div className="mb-3 flex items-center gap-2 border-b-[1.5px] border-[var(--gbp-border)] pb-2.5">
                     <span className="text-lg">{sectionIcon(section.name)}</span>
-                    <p className="flex-1 font-serif text-[17px] text-[#0e0e0e]">{section.name}</p>
-                    <span className="rounded-full bg-[#f5f5f5] px-2 py-0.5 text-[11px] font-semibold text-[#888]">{sectionDone}/{section.items.length}</span>
+                    <p className="flex-1 font-serif text-[17px] text-[var(--gbp-text)]">{section.name}</p>
+                    <span className="rounded-full bg-[var(--gbp-surface2)] px-2 py-0.5 text-[11px] font-semibold text-[var(--gbp-text2)]">{sectionDone}/{section.items.length}</span>
                   </div>
 
                   <div className="space-y-2">
@@ -297,11 +297,11 @@ export function EmployeeChecklistPreviewModal({
                       const s = itemsState[item.id];
                       const panelType = openPanels[item.id];
                       return (
-                        <article key={item.id} className={`overflow-hidden rounded-xl border-[1.5px] transition-all duration-200 ${s.checked ? "border-[#c8edd8] bg-[#f6fff9]" : s.flagged ? "border-[#f5e0a0] bg-[#fffdf0]" : "border-[#e8e8e8] bg-white"}`}>
+                        <article key={item.id} className={`overflow-hidden rounded-xl border-[1.5px] transition-all duration-200 ${s.checked ? "border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-success)_8%,var(--gbp-surface))]" : s.flagged ? "border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_8%,var(--gbp-surface))]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)]"}`}>
                           <div className="flex items-center gap-3 px-4 py-3">
-                            <button type="button" disabled={readOnly} onClick={() => toggleCheck(item.id)} className={`grid h-[26px] w-[26px] place-items-center rounded-[7px] border-2 text-[12px] font-black ${s.checked ? "border-[#27ae60] bg-[#27ae60] text-white" : "border-[#ddd] bg-white text-transparent"}`}>✓</button>
+                            <button type="button" disabled={readOnly} onClick={() => toggleCheck(item.id)} className={`grid h-[26px] w-[26px] place-items-center rounded-[7px] border-2 text-[12px] font-black ${s.checked ? "border-[var(--gbp-success)] bg-[var(--gbp-success)] text-white" : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-transparent"}`}>✓</button>
                             <button type="button" disabled={readOnly} onClick={() => toggleCheck(item.id)} className="min-w-0 flex-1 text-left">
-                              <p className={`text-[14px] font-medium leading-6 ${s.checked ? "text-[#888] line-through decoration-[#c8edd8]" : "text-[#0e0e0e]"}`}>{item.label}</p>
+                              <p className={`text-[14px] font-medium leading-6 ${s.checked ? "text-[var(--gbp-text2)] line-through decoration-[var(--gbp-success-soft)]" : "text-[var(--gbp-text)]"}`}>{item.label}</p>
                               <div className="mt-1 flex flex-wrap items-center gap-1.5">
                                 <span className={`rounded-full px-2 py-[1px] text-[10px] font-extrabold uppercase tracking-[0.08em] ${priorityClass(item.priority)}`}>{priorityLabel(item.priority)}</span>
                                 {s.flagged ? <span className="h-2 w-2 rounded-full bg-[#ca8a04]" /> : null}
@@ -351,15 +351,15 @@ export function EmployeeChecklistPreviewModal({
               );
             })}
 
-            {!totalItems ? <div className="rounded-xl border border-dashed border-[#dccfca] bg-[#fffdfa] px-4 py-8 text-center text-sm text-[#8b817c]">Este checklist no tiene items cargados.</div> : null}
+             {!totalItems ? <div className="rounded-xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-8 text-center text-sm text-[var(--gbp-text2)]">Este checklist no tiene items cargados.</div> : null}
           </div>
 
-          <div className="flex items-center justify-between gap-3 border-t-[1.5px] border-[#f0f0f0] bg-[#fafafa] px-8 pb-7 pt-5">
-            <p className="text-[13px] text-[#888]"><strong className="text-[#0e0e0e]">Resumen:</strong> {summaryText}</p>
+          <div className="flex items-center justify-between gap-3 border-t-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-8 pb-7 pt-5">
+            <p className="text-[13px] text-[var(--gbp-text2)]"><strong className="text-[var(--gbp-text)]">Resumen:</strong> {summaryText}</p>
             {readOnly ? (
-              <button type="button" onClick={closeModal} className="rounded-[10px] bg-[#0e0e0e] px-6 py-3 text-sm font-bold text-white hover:bg-[#c0392b]">Cerrar</button>
+              <button type="button" onClick={closeModal} className="rounded-[10px] bg-[var(--gbp-text)] px-6 py-3 text-sm font-bold text-white hover:bg-[var(--gbp-accent)]">Cerrar</button>
             ) : (
-              <button type="button" onClick={submitReport} disabled={!canSubmit || isSubmitting} className="inline-flex items-center gap-2 rounded-[10px] bg-[#0e0e0e] px-6 py-3 text-sm font-bold text-white transition-all hover:-translate-y-[1px] hover:bg-[#c0392b] disabled:cursor-not-allowed disabled:bg-[#ccc]">{isSubmitting ? "Enviando..." : "Enviar Reporte"}</button>
+              <button type="button" onClick={submitReport} disabled={!canSubmit || isSubmitting} className="inline-flex items-center gap-2 rounded-[10px] bg-[var(--gbp-text)] px-6 py-3 text-sm font-bold text-white transition-all hover:-translate-y-[1px] hover:bg-[var(--gbp-accent)] disabled:cursor-not-allowed disabled:bg-[var(--gbp-muted)]">{isSubmitting ? "Enviando..." : "Enviar Reporte"}</button>
             )}
           </div>
 
@@ -369,17 +369,17 @@ export function EmployeeChecklistPreviewModal({
 
       {successOpen ? (
         <div className={`fixed inset-0 z-[1120] flex items-center justify-center bg-black/70 p-4 transition-opacity duration-200 ${successVisible ? "opacity-100" : "opacity-0"}`}>
-          <div className={`w-full max-w-[420px] rounded-[20px] bg-white px-8 py-10 text-center shadow-[0_32px_80px_rgba(0,0,0,.4)] transition-all duration-200 ${successVisible ? "scale-100 opacity-100" : "scale-95 opacity-0"}`}>
-            <div className="mx-auto mb-5 grid h-[72px] w-[72px] place-items-center rounded-full border-2 border-[#c8edd8] bg-[#e8f8ef] text-[32px]">✅</div>
-            <h3 className="font-serif text-[26px] text-[#0e0e0e]">Apertura Completada</h3>
-            <p className="mt-2 text-[14px] leading-6 text-[#888]">El reporte fue registrado exitosamente y esta listo para revision.</p>
-            <div className="mt-5 rounded-[10px] bg-[#f8f8f8] px-4 py-3 text-left text-[12px] leading-7 text-[#888]">
-              <p><strong className="text-[#0e0e0e]">Fecha:</strong> {new Date().toLocaleDateString("es-AR")}</p>
-              <p><strong className="text-[#0e0e0e]">Hora:</strong> {new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</p>
-              <p><strong className="text-[#0e0e0e]">Items resueltos:</strong> {resolvedCount}/{totalItems}</p>
-              <p><strong className="text-[#0e0e0e]">Atencion requerida:</strong> {flaggedIds.length}</p>
+          <div className={`w-full max-w-[420px] rounded-[20px] bg-[var(--gbp-surface)] px-8 py-10 text-center shadow-[0_32px_80px_rgba(0,0,0,.4)] transition-all duration-200 ${successVisible ? "scale-100 opacity-100" : "scale-95 opacity-0"}`}>
+            <div className="mx-auto mb-5 grid h-[72px] w-[72px] place-items-center rounded-full border-2 border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[32px]">✅</div>
+            <h3 className="font-serif text-[26px] text-[var(--gbp-text)]">Apertura Completada</h3>
+            <p className="mt-2 text-[14px] leading-6 text-[var(--gbp-text2)]">El reporte fue registrado exitosamente y esta listo para revision.</p>
+            <div className="mt-5 rounded-[10px] bg-[var(--gbp-bg)] px-4 py-3 text-left text-[12px] leading-7 text-[var(--gbp-text2)]">
+              <p><strong className="text-[var(--gbp-text)]">Fecha:</strong> {new Date().toLocaleDateString("es-AR")}</p>
+              <p><strong className="text-[var(--gbp-text)]">Hora:</strong> {new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</p>
+              <p><strong className="text-[var(--gbp-text)]">Items resueltos:</strong> {resolvedCount}/{totalItems}</p>
+              <p><strong className="text-[var(--gbp-text)]">Atencion requerida:</strong> {flaggedIds.length}</p>
             </div>
-            <button type="button" onClick={closeSuccessAndModal} className="mt-6 rounded-[10px] bg-[#0e0e0e] px-7 py-3 text-sm font-bold text-white transition-colors hover:bg-[#c0392b]">Volver al portal</button>
+            <button type="button" onClick={closeSuccessAndModal} className="mt-6 rounded-[10px] bg-[var(--gbp-text)] px-7 py-3 text-sm font-bold text-white transition-colors hover:bg-[var(--gbp-accent)]">Volver al portal</button>
           </div>
         </div>
       ) : null}

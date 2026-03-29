@@ -452,9 +452,9 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
 
       const row = (
         <AnimatedItem key={folder.id}>
-          <div className="border-b border-[#f0f0f0]">
+          <div className="border-b border-[var(--gbp-border)]">
             <div
-              className={`grid grid-cols-[1fr_100px] md:grid-cols-[2fr_100px_110px_150px] lg:grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] items-center px-4 py-2.5 hover:bg-[#fafafa] transition-colors ${dropFolderId === folder.id ? "bg-[#fff5f3]" : ""}`}
+              className={`grid grid-cols-[1fr_100px] md:grid-cols-[2fr_100px_110px_150px] lg:grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] items-center px-4 py-2.5 transition-colors hover:bg-[var(--gbp-bg)] ${dropFolderId === folder.id ? "bg-[var(--gbp-accent-glow)]" : ""}`}
               draggable
               onDragStart={(event) => {
                 event.dataTransfer.setData("application/x-folder-id", folder.id);
@@ -491,15 +491,15 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
                 className="flex min-w-0 items-center gap-1.5 text-left"
                 style={{ paddingLeft: `${depth * 18}px` }}
               >
-                <ChevronRight className={`h-4 w-4 text-[#888] transition ${isOpen ? "rotate-90" : ""}`} />
-                <Folder className="h-4 w-4 text-[#888]" />
-                <span className="truncate text-[13px] font-semibold text-[#111]">{folder.name}</span>
-                <span className="text-[11px] text-[#bbb]">({docList.length})</span>
+                <ChevronRight className={`h-4 w-4 text-[var(--gbp-text2)] transition ${isOpen ? "rotate-90" : ""}`} />
+                <Folder className="h-4 w-4 text-[var(--gbp-text2)]" />
+                <span className="truncate text-[13px] font-semibold text-[var(--gbp-text)]">{folder.name}</span>
+                <span className="text-[11px] text-[var(--gbp-muted)]">({docList.length})</span>
               </button>
-              <p className="hidden md:block text-xs text-[#888]">{locLabel}</p>
-              <p className="hidden lg:block text-xs text-[#888]">{deptLabel}</p>
-              <p className="hidden lg:block text-xs text-[#888]">{sharedLabel}</p>
-              <p className="hidden md:block text-xs text-[#888]">{formatDate(folder.created_at)}</p>
+              <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{locLabel}</p>
+              <p className="hidden text-xs text-[var(--gbp-text2)] lg:block">{deptLabel}</p>
+              <p className="hidden text-xs text-[var(--gbp-text2)] lg:block">{sharedLabel}</p>
+              <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{formatDate(folder.created_at)}</p>
               <div className="flex items-center justify-end gap-1">
                 <button type="button" onClick={() => setEditFolderId(folder.id)} className={ACTION_BTN_NEUTRAL} title="Editar carpeta"><Pencil className="h-3.5 w-3.5" /></button>
                 <button type="button" onClick={() => setShareFolderId(folder.id)} className={ACTION_BTN_NEUTRAL} title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
@@ -509,7 +509,7 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
             <AnimatePresence>
               {isOpen && (
                 <FadeIn delay={0.05}>
-                  <div className="border-l-[3px] border-[#e8e8e8]">
+                  <div className="border-l-[3px] border-[var(--gbp-border)]">
                     {docList.map((doc) => {
                       const docScope = getEffectiveDocumentScope(doc);
                       const docLoc = doc.branch_id ? branchMap.get(doc.branch_id) ?? "Locacion" : docScope.locations[0] ? branchMap.get(docScope.locations[0]) ?? "Locacion" : "Global";
@@ -517,15 +517,15 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
                       const docShared = docScope.locations.length || docScope.departments.length || docScope.positions.length || docScope.users.length ? "Segmentado" : "Todos";
 
                       return (
-                        <div key={doc.id} className="grid grid-cols-[1fr_100px] md:grid-cols-[2fr_100px_110px_150px] lg:grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] items-center border-t border-[#f3f3f3] px-4 py-2.5 hover:bg-[#fcfcfc] transition-colors" draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; }}>
+                        <div key={doc.id} className="grid grid-cols-[1fr_100px] items-center border-t border-[var(--gbp-border)] px-4 py-2.5 transition-colors hover:bg-[var(--gbp-bg)] md:grid-cols-[2fr_100px_110px_150px] lg:grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px]" draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; }}>
                           <div className="min-w-0 pl-8">
-                            <p className="truncate text-[12px] font-medium text-[#222]">{doc.title}</p>
-                            <p className="truncate text-[11px] text-[#bbb]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p>
+                            <p className="truncate text-[12px] font-medium text-[var(--gbp-text)]">{doc.title}</p>
+                            <p className="truncate text-[11px] text-[var(--gbp-muted)]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p>
                           </div>
-                          <p className="hidden md:block text-xs text-[#888]">{docLoc}</p>
-                          <p className="hidden lg:block text-xs text-[#888]">{docDept}</p>
-                          <p className="hidden lg:block text-xs text-[#888]">{docShared}</p>
-                          <p className="hidden md:block text-xs text-[#888]">{formatDate(doc.created_at)}</p>
+                          <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{docLoc}</p>
+                          <p className="hidden text-xs text-[var(--gbp-text2)] lg:block">{docDept}</p>
+                          <p className="hidden text-xs text-[var(--gbp-text2)] lg:block">{docShared}</p>
+                          <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{formatDate(doc.created_at)}</p>
                           <div className="flex items-center justify-end gap-1">
                             <a href={`/api/documents/${doc.id}/download`} className={ACTION_BTN_NEUTRAL} title="Ver/Descargar"><Eye className="h-3.5 w-3.5" /></a>
                             <button type="button" onClick={() => setEditDocId(doc.id)} className={ACTION_BTN_NEUTRAL} title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
@@ -565,26 +565,26 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
   return (
     <>
       <AnimatedList className="mb-5 grid gap-3 sm:grid-cols-4">
-        <AnimatedItem><article className="rounded-xl border border-[#e5ddd8] bg-white p-4 h-full"><p className="text-xs text-[#8d847f]">Carpetas</p><p className="mt-1 text-2xl font-bold text-[#251f1b]">{folderRows.length}</p><p className="text-[11px] text-[#a7a09a]">Con permisos activos</p></article></AnimatedItem>
-        <AnimatedItem><article className="rounded-xl border border-[#e5ddd8] bg-white p-4 h-full"><p className="text-xs text-[#8d847f]">Total Documentos</p><p className="mt-1 text-2xl font-bold text-[#251f1b]">{totalDocuments}</p><p className="text-[11px] text-[#a7a09a]"><span className="text-[#2d8f4f]">+{Math.max(0, docsThisMonth - docsPrevMonth)}</span> este mes</p></article></AnimatedItem>
-        <AnimatedItem><article className="rounded-xl border border-[#e5ddd8] bg-white p-4 h-full"><p className="text-xs text-[#8d847f]">Descargas (mes)</p><p className="mt-1 text-2xl font-bold text-[#251f1b]">{downloadsMonth}</p><p className="text-[11px] text-[#a7a09a]"><span className="text-[#2d8f4f]">↑ {downloadsTrend}%</span> vs anterior</p></article></AnimatedItem>
-        <AnimatedItem><article className="rounded-xl border border-[#e5ddd8] bg-white p-4 h-full"><p className="text-xs text-[#8d847f]">Usuarios Activos</p><p className="mt-1 text-2xl font-bold text-[#251f1b]">{activeUsers}</p><p className="text-[11px] text-[#a7a09a]">{branches.length} locaciones</p></article></AnimatedItem>
+        <AnimatedItem><article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4"><p className="text-xs text-[var(--gbp-text2)]">Carpetas</p><p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{folderRows.length}</p><p className="text-[11px] text-[var(--gbp-muted)]">Con permisos activos</p></article></AnimatedItem>
+        <AnimatedItem><article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4"><p className="text-xs text-[var(--gbp-text2)]">Total Documentos</p><p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{totalDocuments}</p><p className="text-[11px] text-[var(--gbp-muted)]"><span className="text-[var(--gbp-success)]">+{Math.max(0, docsThisMonth - docsPrevMonth)}</span> este mes</p></article></AnimatedItem>
+        <AnimatedItem><article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4"><p className="text-xs text-[var(--gbp-text2)]">Descargas (mes)</p><p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{downloadsMonth}</p><p className="text-[11px] text-[var(--gbp-muted)]"><span className="text-[var(--gbp-success)]">↑ {downloadsTrend}%</span> vs anterior</p></article></AnimatedItem>
+        <AnimatedItem><article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4"><p className="text-xs text-[var(--gbp-text2)]">Usuarios Activos</p><p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{activeUsers}</p><p className="text-[11px] text-[var(--gbp-muted)]">{branches.length} locaciones</p></article></AnimatedItem>
       </AnimatedList>
 
-      <section className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#e7e0dc] bg-white p-3">
+      <section className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#aaa]" />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-[34px] w-[220px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white pl-9 pr-3 text-xs" placeholder="Buscar documentos..." />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--gbp-muted)]" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-[34px] w-[220px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] pl-9 pr-3 text-xs" placeholder="Buscar documentos..." />
         </div>
-        <select value={folderFilter} onChange={(event) => setFolderFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"><option value="">Todas las carpetas</option>{folderOptions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
-        <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"><option value="">Todas las locaciones</option>{branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
-        <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"><option value="">Todos los departamentos</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
-        <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"><option value="date-desc">Mas recientes primero</option><option value="date-asc">Mas antiguos primero</option><option value="name-asc">Nombre A-Z</option><option value="name-desc">Nombre Z-A</option><option value="size-desc">Mayor tamano</option><option value="size-asc">Menor tamano</option></select>
+        <select value={folderFilter} onChange={(event) => setFolderFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las carpetas</option>{folderOptions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
+        <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las locaciones</option>{branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
+        <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todos los departamentos</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
+        <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="date-desc">Mas recientes primero</option><option value="date-asc">Mas antiguos primero</option><option value="name-asc">Nombre A-Z</option><option value="name-desc">Nombre Z-A</option><option value="size-desc">Mayor tamano</option><option value="size-asc">Menor tamano</option></select>
       </section>
 
       <SlideUp delay={0.2}>
-        <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white">
-          <div className="grid grid-cols-[1fr_100px] md:grid-cols-[2fr_100px_110px_150px] lg:grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] bg-[#fafafa] px-4 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase">
+        <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
+          <div className="grid grid-cols-[1fr_100px] bg-[var(--gbp-bg)] px-4 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[var(--gbp-muted)] uppercase md:grid-cols-[2fr_100px_110px_150px] lg:grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px]">
             <p>Nombre</p>
             <p className="hidden md:block">Locacion</p>
             <p className="hidden lg:block">Departamento</p>
@@ -615,12 +615,12 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
                 const shared = scope.locations.length || scope.departments.length || scope.positions.length || scope.users.length ? "Segmentado" : "Todos";
                 return (
                   <AnimatedItem key={doc.id}>
-                    <div className="grid grid-cols-[1fr_100px] md:grid-cols-[2fr_100px_110px_150px] lg:grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] items-center border-t border-[#f0f0f0] px-4 py-2.5 hover:bg-[#fcfcfc] transition-colors" draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; }}>
-                      <div className="min-w-0"><p className="truncate text-[12px] font-medium text-[#222]">{doc.title}</p><p className="truncate text-[11px] text-[#bbb]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p></div>
-                      <p className="hidden md:block text-xs text-[#888]">{loc}</p>
-                      <p className="hidden lg:block text-xs text-[#888]">{dept}</p>
-                      <p className="hidden lg:block text-xs text-[#888]">{shared}</p>
-                      <p className="hidden md:block text-xs text-[#888]">{formatDate(doc.created_at)}</p>
+                    <div className="grid grid-cols-[1fr_100px] items-center border-t border-[var(--gbp-border)] px-4 py-2.5 transition-colors hover:bg-[var(--gbp-bg)] md:grid-cols-[2fr_100px_110px_150px] lg:grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px]" draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; }}>
+                      <div className="min-w-0"><p className="truncate text-[12px] font-medium text-[var(--gbp-text)]">{doc.title}</p><p className="truncate text-[11px] text-[var(--gbp-muted)]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p></div>
+                      <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{loc}</p>
+                      <p className="hidden text-xs text-[var(--gbp-text2)] lg:block">{dept}</p>
+                      <p className="hidden text-xs text-[var(--gbp-text2)] lg:block">{shared}</p>
+                      <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{formatDate(doc.created_at)}</p>
                       <div className="flex items-center justify-end gap-1">
                         <a href={`/api/documents/${doc.id}/download`} className={ACTION_BTN_NEUTRAL} title="Ver"><Eye className="h-3.5 w-3.5" /></a>
                         <button type="button" onClick={() => setEditDocId(doc.id)} className={ACTION_BTN_NEUTRAL} title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
@@ -723,21 +723,19 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
   );
 }
 
-const ACTION_BTN_NEUTRAL = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6] transition-opacity [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#c8d7ea] [.theme-dark-pro_&]:hover:bg-[#172131]";
-const ACTION_BTN_MAIL = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#dce8fb] bg-[#f2f7ff] text-[#2a4f87] hover:bg-[#e7f0ff] transition-opacity [.theme-dark-pro_&]:border-[#365a87] [.theme-dark-pro_&]:bg-[#18283d] [.theme-dark-pro_&]:text-[#9dc6ff] [.theme-dark-pro_&]:hover:bg-[#1f334d]";
-const ACTION_BTN_DANGER = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f3cbc4] bg-[#fff3f1] text-[#b63a2f] hover:bg-[#ffe8e4] transition-opacity [.theme-dark-pro_&]:border-[#6a3a42] [.theme-dark-pro_&]:bg-[#2a1c1f] [.theme-dark-pro_&]:text-[#ff9ea7] [.theme-dark-pro_&]:hover:bg-[#352328]";
-const MODAL_PANEL = "overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)] [.theme-dark-pro_&]:border [.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#151b25]";
-const MODAL_HEADER = "flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5 [.theme-dark-pro_&]:border-[#2b3646]";
-const MODAL_TITLE = "font-serif text-[15px] font-bold text-[#111] [.theme-dark-pro_&]:text-[#e7edf7]";
-const MODAL_CLOSE = "grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] [.theme-dark-pro_&]:border [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#c8d7ea] [.theme-dark-pro_&]:hover:bg-[#172131]";
-const MODAL_SOFT_BOX = "rounded-lg border border-[#e8e8e8] bg-[#f8f8f8] p-3 [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#111824]";
-const MODAL_LABEL = "text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase [.theme-dark-pro_&]:text-[#9aabc3]";
-const MODAL_INPUT = "rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#d8e3f2]";
-const MODAL_FOOTER = "flex justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4 [.theme-dark-pro_&]:border-[#2b3646]";
-const MODAL_CANCEL = "rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#c8d7ea] [.theme-dark-pro_&]:hover:bg-[#172131]";
-const MODAL_PRIMARY = "rounded-lg bg-[#111] px-5 py-2 text-sm font-bold text-white hover:bg-[#c0392b] disabled:opacity-60 [.theme-dark-pro_&]:bg-[#2b5ea8] [.theme-dark-pro_&]:hover:bg-[#3a73c6]";
-const MODAL_DANGER = "rounded-lg border-[1.5px] border-[#f3cbc4] bg-[#fff3f1] px-4 py-2 text-sm font-bold text-[#b63a2f] hover:bg-[#ffe8e4] [.theme-dark-pro_&]:border-[#6a3a42] [.theme-dark-pro_&]:bg-[#2a1c1f] [.theme-dark-pro_&]:text-[#ff9ea7] [.theme-dark-pro_&]:hover:bg-[#352328]";
-
+const ACTION_BTN_NEUTRAL = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] transition-opacity hover:bg-[var(--gbp-surface2)] [.theme-dark-pro_&]:border-[var(--gbp-border2)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)] [.theme-dark-pro_&]:text-[var(--gbp-text2)] [.theme-dark-pro_&]:hover:bg-[var(--gbp-surface2)]";
+const ACTION_BTN_MAIL = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-violet)_30%,transparent)] bg-[var(--gbp-violet-soft)] text-[var(--gbp-violet)] transition-opacity hover:bg-[color:color-mix(in_oklab,var(--gbp-violet)_16%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-violet)_40%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-violet-soft)] [.theme-dark-pro_&]:text-[var(--gbp-violet)]";
+const ACTION_BTN_DANGER = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] text-[var(--gbp-error)] transition-opacity hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_16%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-error)_45%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-error-soft)] [.theme-dark-pro_&]:text-[var(--gbp-error)]";
+const MODAL_PANEL = "overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]";
+const MODAL_HEADER = "flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5";
+const MODAL_TITLE = "font-serif text-[15px] font-bold text-[var(--gbp-text)]";
+const MODAL_CLOSE = "grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-bg)]";
+const MODAL_SOFT_BOX = "rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3";
+const MODAL_LABEL = "text-[11px] font-bold tracking-[0.1em] text-[var(--gbp-text2)] uppercase";
+const MODAL_INPUT = "rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]";
+const MODAL_FOOTER = "flex justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4";
+const MODAL_CANCEL = "rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
+const MODAL_PRIMARY = "rounded-lg bg-[var(--gbp-text)] px-5 py-2 text-sm font-bold text-white hover:bg-[var(--gbp-accent)] disabled:opacity-60";
 function ShareByEmailModal({
   document,
   busy,
@@ -758,8 +756,8 @@ function ShareByEmailModal({
         <div className={MODAL_HEADER}><p className={MODAL_TITLE}>Compartir por email</p><button type="button" className={MODAL_CLOSE} onClick={onCancel}>✕</button></div>
         <div className="space-y-3 px-6 py-5">
           <div className={MODAL_SOFT_BOX}>
-            <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[#aaa] uppercase [.theme-dark-pro_&]:text-[#9aabc3]">Documento</p>
-            <p className="text-sm font-semibold text-[#111] [.theme-dark-pro_&]:text-[#e7edf7]">{document.title}</p>
+            <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[var(--gbp-text2)] uppercase">Documento</p>
+            <p className="text-sm font-semibold text-[var(--gbp-text)]">{document.title}</p>
           </div>
           <label className="grid gap-1.5"><span className={MODAL_LABEL}>Email destino</span><input value={email} onChange={(event) => setEmail(event.target.value)} type="email" placeholder="usuario@empresa.com" className={MODAL_INPUT} /></label>
           <label className="grid gap-1.5"><span className={MODAL_LABEL}>Mensaje (opcional)</span><textarea value={message} onChange={(event) => setMessage(event.target.value)} rows={3} className={MODAL_INPUT} placeholder="Te comparto este archivo." /></label>
@@ -895,13 +893,13 @@ function ShareAccessModal({
         >
           <div className="max-h-[68vh] overflow-y-auto px-6 py-4">
             <div className={MODAL_SOFT_BOX}>
-              <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[#aaa] uppercase [.theme-dark-pro_&]:text-[#9aabc3]">Elemento</p>
-              <p className="text-sm font-semibold text-[#111] [.theme-dark-pro_&]:text-[#e7edf7]">{itemName}</p>
+              <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[var(--gbp-text2)] uppercase">Elemento</p>
+              <p className="text-sm font-semibold text-[var(--gbp-text)]">{itemName}</p>
             </div>
 
             {loading ? (
               <div className="flex items-center justify-center p-12">
-                <span className="animate-pulse text-xs font-semibold text-[#888] [.theme-dark-pro_&]:text-[#9aabc3]">Cargando permisos...</span>
+                <span className="animate-pulse text-xs font-semibold text-[var(--gbp-text2)]">Cargando permisos...</span>
               </div>
             ) : (
               <ScopeSelector
