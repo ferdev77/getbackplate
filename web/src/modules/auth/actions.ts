@@ -12,6 +12,7 @@ import {
   getActiveOrganizationIdFromCookie,
   setActiveOrganizationIdCookie,
 } from "@/shared/lib/tenant-selection";
+import { normalizeOrganizationId } from "@/shared/lib/tenant-selection-shared";
 
 function getEmailDomain(email: string) {
   const parts = email.split("@");
@@ -28,10 +29,48 @@ function getAppUrl() {
   return null;
 }
 
+function buildLoginPath(options?: { error?: string; organizationIdHint?: string | null }) {
+  const search = new URLSearchParams();
+  if (options?.error) {
+    search.set("error", options.error);
+  }
+  if (options?.organizationIdHint) {
+    search.set("org", options.organizationIdHint);
+  }
+  const query = search.toString();
+  return query ? `/auth/login?${query}` : "/auth/login";
+}
+
+function buildForgotPasswordPath(options?: {
+  error?: string;
+  status?: "success";
+  message?: string;
+  organizationIdHint?: string | null;
+}) {
+  const search = new URLSearchParams();
+  if (options?.error) {
+    search.set("error", options.error);
+  }
+  if (options?.status) {
+    search.set("status", options.status);
+  }
+  if (options?.message) {
+    search.set("message", options.message);
+  }
+  if (options?.organizationIdHint) {
+    search.set("org", options.organizationIdHint);
+  }
+  const query = search.toString();
+  return query ? `/auth/forgot-password?${query}` : "/auth/forgot-password";
+}
+
 export async function loginWithPasswordAction(formData: FormData) {
   try {
     const email = String(formData.get("email") ?? "").trim();
     const password = String(formData.get("password") ?? "");
+    const organizationIdHint = normalizeOrganizationId(
+      String(formData.get("organization_id_hint") ?? ""),
+    );
     const emailDomain = getEmailDomain(email);
 
     if (!email || !password) {
@@ -44,7 +83,7 @@ export async function loginWithPasswordAction(formData: FormData) {
           email_domain: emailDomain,
         },
       });
-      redirect("/auth/login?error=Completa+email+y+contrasena");
+      redirect(buildLoginPath({ error: "Completa email y contrasena", organizationIdHint }));
     }
 
     const supabase = await createSupabaseServerClient();
@@ -65,7 +104,7 @@ export async function loginWithPasswordAction(formData: FormData) {
           provider: "password",
         },
       });
-      redirect(`/auth/login?error=${encodeURIComponent(error.message)}`);
+      redirect(buildLoginPath({ error: error.message, organizationIdHint }));
     }
 
     const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -80,7 +119,7 @@ export async function loginWithPasswordAction(formData: FormData) {
           email_domain: emailDomain,
         },
       });
-      redirect("/auth/login?error=" + encodeURIComponent("No se pudo validar la sesion"));
+      redirect(buildLoginPath({ error: "No se pudo validar la sesion", organizationIdHint }));
     }
 
     if (Boolean((authData.user.user_metadata as Record<string, unknown> | undefined)?.force_password_change)) {
@@ -178,11 +217,14 @@ export async function loginWithPasswordAction(formData: FormData) {
     const organizations = [...new Set(membershipContexts.map((row) => row.organizationId))];
 
     const preferredOrganizationId = await getActiveOrganizationIdFromCookie();
+    const hintMatchesMembership = Boolean(
+      organizationIdHint && organizations.includes(organizationIdHint),
+    );
     const hasPreferredOrganization = Boolean(
       preferredOrganizationId && organizations.includes(preferredOrganizationId),
     );
 
-    if (organizations.length > 1 && !hasPreferredOrganization) {
+    if (organizations.length > 1 && !hintMatchesMembership && !hasPreferredOrganization) {
       await logAuthEvent({
         action: "login.success",
         outcome: "success",
@@ -196,7 +238,9 @@ export async function loginWithPasswordAction(formData: FormData) {
     }
 
     const resolvedOrganizationId =
-      (hasPreferredOrganization ? preferredOrganizationId : organizations[0]) ?? null;
+      (hintMatchesMembership
+        ? organizationIdHint
+        : (hasPreferredOrganization ? preferredOrganizationId : organizations[0])) ?? null;
 
     if (resolvedOrganizationId) {
       await setActiveOrganizationIdCookie(resolvedOrganizationId);
@@ -268,19 +312,24 @@ export async function loginWithPasswordAction(formData: FormData) {
     });
 
     redirect(
-      "/auth/login?error=" +
-        encodeURIComponent(
-          `Error en inicio de sesion: ${error instanceof Error ? error.message : "desconocido"}`,
+      buildLoginPath({
+        error: `Error en inicio de sesion: ${error instanceof Error ? error.message : "desconocido"}`,
+        organizationIdHint: normalizeOrganizationId(
+          String(formData.get("organization_id_hint") ?? ""),
         ),
+      }),
     );
   }
 }
 
 export async function requestPasswordRecoveryAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const organizationIdHint = normalizeOrganizationId(
+    String(formData.get("organization_id_hint") ?? ""),
+  );
 
   if (!email) {
-    redirect("/auth/forgot-password?error=" + encodeURIComponent("Ingresa un email valido"));
+    redirect(buildForgotPasswordPath({ error: "Ingresa un email valido", organizationIdHint }));
   }
 
   const supabase = await createSupabaseServerClient();
@@ -296,16 +345,17 @@ export async function requestPasswordRecoveryAction(formData: FormData) {
   );
 
   if (error) {
-    redirect(
-      "/auth/forgot-password?error=" +
-        encodeURIComponent(`No se pudo enviar el correo de recuperacion: ${error.message}`),
-    );
+    redirect(buildForgotPasswordPath({
+      error: `No se pudo enviar el correo de recuperacion: ${error.message}`,
+      organizationIdHint,
+    }));
   }
 
-  redirect(
-    "/auth/forgot-password?status=success&message=" +
-      encodeURIComponent("Te enviamos un enlace para restablecer tu contrasena"),
-  );
+  redirect(buildForgotPasswordPath({
+    status: "success",
+    message: "Te enviamos un enlace para restablecer tu contrasena",
+    organizationIdHint,
+  }));
 }
 
 export async function updatePasswordAction(formData: FormData) {

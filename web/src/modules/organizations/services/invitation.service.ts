@@ -95,7 +95,7 @@ export async function sendOrganizationAdminInvitation(params: {
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
-  const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
+  const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login?org=${encodeURIComponent(params.organizationId)}`;
   const branding = await getTenantEmailBranding(params.organizationId);
 
   const existingUser = await findAuthUserByEmail(params.email);
