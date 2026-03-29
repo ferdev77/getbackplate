@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { Building2, MapPin, Plus, Settings2 } from "lucide-react";
+import { Building2, MapPin, Settings2 } from "lucide-react";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import {
@@ -16,7 +15,7 @@ import { InlineBranchForm } from "@/modules/settings/ui/inline-branch-form";
 import { InlineDepartmentForm } from "@/modules/settings/ui/inline-department-form";
 import { InlinePositionForm } from "@/modules/settings/ui/inline-position-form";
 import { CompanyContactSettingsCard } from "@/modules/settings/ui/company-contact-settings-card";
-import { requireTenantModule } from "@/shared/lib/access";
+import { isModuleEnabledForOrganization, requireTenantModule } from "@/shared/lib/access";
 
 type CompanySettingsPageProps = {
   searchParams: Promise<{ status?: string; message?: string; action?: string; departmentId?: string }>;
@@ -39,10 +38,12 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
   const params = await searchParams;
   const tenant = await requireTenantModule("settings");
   const supabase = await createSupabaseServerClient();
+  const customBrandingEnabled = await isModuleEnabledForOrganization(tenant.organizationId, "custom_branding");
 
   const [
     { data: organization },
     { data: orgSettingsWithWebsite, error: orgSettingsWithWebsiteError },
+    { data: brandingSettings },
     { data: branches },
     { data: departments },
     { data: positions },
@@ -57,6 +58,11 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
       .select(
         "support_email, support_phone, feedback_whatsapp, website_url",
       )
+      .eq("organization_id", tenant.organizationId)
+      .maybeSingle(),
+    supabase
+      .from("organization_settings")
+      .select("company_logo_url")
       .eq("organization_id", tenant.organizationId)
       .maybeSingle(),
     supabase
@@ -154,6 +160,8 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
           supportPhone={orgSettings?.support_phone ?? ""}
           feedbackWhatsapp={orgSettings?.feedback_whatsapp ?? ""}
           websiteUrl={orgSettings?.website_url ?? ""}
+          companyLogoUrl={brandingSettings?.company_logo_url ?? ""}
+          customBrandingEnabled={customBrandingEnabled}
         />
       </section>
 
