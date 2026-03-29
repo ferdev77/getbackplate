@@ -310,6 +310,7 @@ export function CompanyShell({
   const [fbMessage, setFbMessage] = useState("");
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const billingToastHandledRef = useRef(false);
+  const currentPlanCardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -422,6 +423,14 @@ export function CompanyShell({
   useEffect(() => {
     setBillingPlan(currentPlanName || settingsSnapshot.billingPlan);
   }, [currentPlanName, settingsSnapshot.billingPlan]);
+
+  useEffect(() => {
+    if (!planOpen) return;
+    const timer = setTimeout(() => {
+      currentPlanCardRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [planOpen]);
 
   // Persist billing success markers from URL and clean query params first
   useEffect(() => {
@@ -747,7 +756,7 @@ export function CompanyShell({
               <button
                 type="button"
                 onClick={() => {
-                  setPlanBillingCycle(currentPlan ? normalizePlanPeriod(currentPlan.billingPeriod) : "monthly");
+                  setPlanBillingCycle(normalizePlanPeriod(billingPeriod));
                   setPlanOpen(true);
                 }}
                 disabled={impersonationMode}
@@ -1080,12 +1089,16 @@ export function CompanyShell({
                 {plansForDisplay.map((plan) => {
                   const isCurrentPlanCode = normalizedCurrentPlanCode && normalizedCurrentPlanCode === plan.code.toLowerCase();
                   return (
-                    <div key={plan.id} className={`rounded-lg border px-3 py-2 ${isCurrentPlanCode ? "border-[#f0b060]/40 bg-[#f0b060]/10" : "border-white/10 bg-white/[0.03]"}`}>
+                    <div
+                      key={plan.id}
+                      ref={isCurrentPlanCode ? currentPlanCardRef : null}
+                      className={`rounded-lg border px-3 py-2 ${isCurrentPlanCode ? "border-[#f0b060]/40 bg-[#f0b060]/10" : "border-white/10 bg-white/[0.03]"}`}
+                    >
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-white/80">{plan.name}</p>
                         <span className="rounded-full bg-white/10 px-2 py-[2px] text-[10px] font-semibold text-white/80">{formatPlanPrice(plan, planBillingCycle)}</span>
                       </div>
-                      <p className="mt-1 text-[11px] text-white/60">{plan.code.toUpperCase()} · {planBillingCycle === "yearly" ? "Anual" : "Mensual"}</p>
+                      <p className="mt-1 text-[11px] text-white/60">{plan.code.toUpperCase()} · {planBillingCycle === "yearly" ? "Anual" : "Mensual"}{isCurrentPlanCode ? ` · Periodo actual: ${normalizePlanPeriod(billingPeriod) === "yearly" ? "Anual" : "Mensual"}` : ""}</p>
                       <div className="mb-2 mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-white/60">
                         <span>Sucursales: {plan.maxBranches ?? "-"}</span>
                         <span>Usuarios: {plan.maxUsers ?? "-"}</span>
@@ -1281,7 +1294,7 @@ export function CompanyShell({
                 type="button"
                 onClick={() => {
                   setMenuOpen(false);
-                  setPlanBillingCycle(currentPlan ? normalizePlanPeriod(currentPlan.billingPeriod) : "monthly");
+                  setPlanBillingCycle(normalizePlanPeriod(billingPeriod));
                   setPlanOpen(true);
                 }}
                 disabled={impersonationMode}

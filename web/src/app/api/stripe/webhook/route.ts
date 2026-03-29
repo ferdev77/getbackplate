@@ -232,6 +232,7 @@ export async function POST(req: Request) {
 
         const isActive = ['active', 'trialing'].includes(status);
         const isCanceled = ['canceled', 'unpaid', 'incomplete_expired'].includes(status);
+        const targetPlanIdFromMeta = typeof subscription.metadata?.planId === 'string' ? subscription.metadata.planId : null;
 
         if (isCanceled) {
             await supabase.from('organizations').update({ plan_id: null }).eq('id', organizationId);
@@ -248,11 +249,31 @@ export async function POST(req: Request) {
                 );
             }
         } else if (isActive) {
-            const { data: planData } = await supabase
-                .from('plans')
-                .select('id, max_branches, max_users, max_storage_mb, max_employees')
-                .eq('stripe_price_id', priceId)
-                .maybeSingle();
+            let planData: {
+              id: string;
+              max_branches: number | null;
+              max_users: number | null;
+              max_storage_mb: number | null;
+              max_employees: number | null;
+            } | null = null;
+
+            if (targetPlanIdFromMeta) {
+                const { data: byId } = await supabase
+                    .from('plans')
+                    .select('id, max_branches, max_users, max_storage_mb, max_employees')
+                    .eq('id', targetPlanIdFromMeta)
+                    .maybeSingle();
+                planData = byId;
+            }
+
+            if (!planData) {
+                const { data: byPrice } = await supabase
+                    .from('plans')
+                    .select('id, max_branches, max_users, max_storage_mb, max_employees')
+                    .eq('stripe_price_id', priceId)
+                    .maybeSingle();
+                planData = byPrice;
+            }
 
             if (planData) {
                 // Update org plan
@@ -308,7 +329,6 @@ export async function POST(req: Request) {
             const prevAttributes = event.data.previous_attributes as any;
             const previousPriceId = extractPreviousPriceId(prevAttributes);
             const actorUserId = typeof subscription.metadata?.userId === 'string' ? subscription.metadata.userId : null;
-            const targetPlanIdFromMeta = typeof subscription.metadata?.planId === 'string' ? subscription.metadata.planId : null;
 
             if (previousPriceId && previousPriceId !== priceId) {
                 const applyEmailResult = await sendPlanChangeAppliedEmail({

@@ -1447,6 +1447,11 @@ Se implementaron las siguientes características:
   - `plan_change.applied`: se dispara cuando Stripe confirma el cambio de precio en `customer.subscription.updated`.
   - Plantillas premium y detalle de impacto (modulos + limites + costo): `web/src/shared/lib/email-templates/billing.ts`.
   - Orquestación de envios: `web/src/modules/billing/services/plan-change-notifications.service.ts`.
+  - Soporte de periodicidad comercial (`monthly` / `yearly`):
+    - el modal de planes permite elegir mensual o anual (2 meses gratis),
+    - el backend resuelve `priceId` final desde Stripe usando `planId + billingPeriod`,
+    - se permite cambio de periodicidad incluso dentro del mismo plan,
+    - archivos clave: `web/src/shared/ui/company-shell.tsx` y `web/src/app/api/stripe/checkout/route.ts`.
 
 ## 32. Reportes de Checklists (2026-03-27)
 
