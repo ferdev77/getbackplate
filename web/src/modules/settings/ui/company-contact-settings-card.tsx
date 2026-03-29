@@ -118,10 +118,10 @@ export function CompanyContactSettingsCard({
           <div className="grid gap-3 md:grid-cols-2">
             <div className="rounded-lg border border-[#e7dfda] bg-white p-3 [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723]">
               <p className="mb-2 text-[11px] font-semibold text-[#5b5652] [.theme-dark-pro_&]:text-[#c8d3e5]">Logo claro</p>
-              <div className="mb-2 grid h-14 w-full place-items-center overflow-hidden rounded-md border border-[#ddd3ce] bg-white [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0b111a]">
+              <div className="mb-2 grid min-h-[92px] w-full place-items-center rounded-md border border-[#ddd3ce] bg-white p-2 [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0b111a]">
                 {lightLogoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={lightLogoUrl} alt="Logo claro de empresa" className="h-full w-full object-contain" />
+                  <img src={lightLogoUrl} alt="Logo claro de empresa" className="block h-auto max-h-[76px] w-auto max-w-full object-contain" />
                 ) : (
                   <span className="text-[10px] font-bold text-[#9a9a9a]">Sin logo</span>
                 )}
@@ -143,10 +143,10 @@ export function CompanyContactSettingsCard({
             </div>
             <div className="rounded-lg border border-[#e7dfda] bg-[#0e1724] p-3 [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#08101b]">
               <p className="mb-2 text-[11px] font-semibold text-[#d4deea]">Logo dark</p>
-              <div className="mb-2 grid h-14 w-full place-items-center overflow-hidden rounded-md border border-[#334155] bg-[#02070f]">
+              <div className="mb-2 grid min-h-[92px] w-full place-items-center rounded-md border border-[#334155] bg-[#02070f] p-2">
                 {darkLogoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={darkLogoUrl} alt="Logo dark de empresa" className="h-full w-full object-contain" />
+                  <img src={darkLogoUrl} alt="Logo dark de empresa" className="block h-auto max-h-[76px] w-auto max-w-full object-contain" />
                 ) : (
                   <span className="text-[10px] font-bold text-[#8ea0b8]">Sin logo dark</span>
                 )}
