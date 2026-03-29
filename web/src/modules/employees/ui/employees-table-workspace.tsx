@@ -41,6 +41,7 @@ type EmployeeRow = {
   emergencyEmail: string | null;
   pendingDocuments: number;
   docsCompletionStatus?: "complete" | "incomplete";
+  docsUploadedCount?: number;
 };
 
 type EmployeesTableWorkspaceProps = {
@@ -413,10 +414,12 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                 <p className="hidden lg:block">
                   {row.recordType === "employee" ? (
                     <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${row.docsCompletionStatus === "complete" ? "bg-[#dcfce7] text-[#15803d]" : "bg-[#fee2e2] text-[#b91c1c]"}`}>
-                      {row.docsCompletionStatus === "complete" ? "Completa" : "Incompleta"}
+                      {`${6 - row.pendingDocuments}/6 · ${row.docsCompletionStatus === "complete" ? "Completa" : "Incompleta"}`}
                     </span>
                   ) : (
-                    <span className="text-xs text-[#bbb]">-</span>
+                    <span className="inline-block rounded-full bg-[#eef2ff] px-2 py-0.5 text-[11px] font-semibold text-[#3730a3]">
+                      {`${row.docsUploadedCount ?? 0} cargados`}
+                    </span>
                   )}
                 </p>
                 <p className="hidden lg:block">
@@ -494,7 +497,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Email emergencia</p><p className="text-sm text-[#333]">{selected.emergencyEmail || "-"}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Contrato</p><p className="text-sm text-[#333]">{selected.contractStatus || "-"}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Firma contrato</p><p className="text-sm text-[#333]">{formatDate(selected.contractSignedAt)}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Docs</p><p className="text-sm text-[#333]">{selected.recordType === "employee" ? (selected.docsCompletionStatus === "complete" ? "Completa" : `Incompleta (${selected.pendingDocuments} faltantes)`) : "-"}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Docs</p><p className="text-sm text-[#333]">{selected.recordType === "employee" ? `${6 - selected.pendingDocuments}/6 · ${selected.docsCompletionStatus === "complete" ? "Completa" : `Incompleta (${selected.pendingDocuments} faltantes)`}` : `${selected.docsUploadedCount ?? 0} cargados`}</p></div>
             </div>
             <div className="mx-6 mb-5 rounded-xl border border-[#ece3de] bg-[#fcfaf8] p-3">
               <p className="mb-1 text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Cambiar estado laboral</p>

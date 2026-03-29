@@ -429,10 +429,127 @@ export async function POST(request: Request) {
           .update(profilePayload)
           .eq("organization_id", tenant.organizationId)
           .eq("id", organizationUserProfileId)
-      : await admin.from("organization_user_profiles").insert(profilePayload);
+          .select("id")
+          .single()
+      : await admin.from("organization_user_profiles").insert(profilePayload).select("id").single();
 
     if (profileResult.error) {
       return NextResponse.json({ error: `No se pudo guardar perfil de usuario: ${profileResult.error.message}` }, { status: 400 });
+    }
+
+    const profileId = organizationUserProfileId || profileResult.data?.id || null;
+
+    if (uploadFiles.length) {
+      if (!linkedUserId) {
+        return NextResponse.json(
+          { error: "Para cargar documentos a un usuario sin perfil de empleado, primero habilita su cuenta de acceso." },
+          { status: 400 },
+        );
+      }
+
+      await ensureBucketExists();
+
+      const uploadedPaths: string[] = [];
+      const uploadedDocumentIds: string[] = [];
+
+      for (const upload of uploadFiles) {
+        try {
+          await assertPlanLimitForStorage(tenant.organizationId, upload.file.size);
+        } catch (error) {
+          if (uploadedPaths.length) {
+            await admin.storage.from(BUCKET_NAME).remove(uploadedPaths);
+          }
+          if (uploadedDocumentIds.length) {
+            await admin
+              .from("documents")
+              .delete()
+              .eq("organization_id", tenant.organizationId)
+              .in("id", uploadedDocumentIds);
+          }
+          return NextResponse.json(
+            {
+              error: getPlanLimitErrorMessage(
+                error,
+                employeesStorageLimitForSlot(upload.slotLabel),
+              ),
+            },
+            { status: 400 },
+          );
+        }
+
+        const path = `${tenant.organizationId}/users/${profileId ?? linkedUserId}/${Date.now()}-${upload.slotKey}-${upload.analysis.safeName}`;
+        if (!isSafeTenantStoragePath(path, tenant.organizationId)) {
+          return NextResponse.json({ error: `Ruta invalida para ${upload.slotLabel}` }, { status: 400 });
+        }
+
+        const { error: uploadError } = await admin.storage
+          .from(BUCKET_NAME)
+          .upload(path, upload.file, {
+            contentType: upload.analysis.normalizedMime,
+            upsert: false,
+          });
+
+        if (uploadError) {
+          return NextResponse.json({ error: `No se pudo subir ${upload.slotLabel}: ${uploadError.message}` }, { status: 400 });
+        }
+
+        uploadedPaths.push(path);
+
+        const { data: createdDoc, error: createDocError } = await admin
+          .from("documents")
+          .insert({
+            organization_id: tenant.organizationId,
+            branch_id: branchId,
+            owner_user_id: actorId,
+            title: `${upload.slotLabel} - ${firstName} ${lastName}`,
+            file_path: path,
+            mime_type: upload.analysis.normalizedMime,
+            original_file_name: upload.analysis.originalName,
+            checksum_sha256: upload.analysis.checksumSha256,
+            file_size_bytes: upload.file.size,
+            access_scope: {
+              locations: branchId ? [branchId] : [],
+              department_ids: departmentId ? [departmentId] : [],
+              users: [linkedUserId],
+            },
+          })
+          .select("id")
+          .single();
+
+        if (createDocError || !createdDoc) {
+          if (uploadedPaths.length) {
+            await admin.storage.from(BUCKET_NAME).remove(uploadedPaths);
+          }
+          if (uploadedDocumentIds.length) {
+            await admin
+              .from("documents")
+              .delete()
+              .eq("organization_id", tenant.organizationId)
+              .in("id", uploadedDocumentIds);
+          }
+          return NextResponse.json(
+            { error: `No se pudo registrar ${upload.slotLabel}: ${createDocError?.message ?? "error"}` },
+            { status: 400 },
+          );
+        }
+
+        uploadedDocumentIds.push(createdDoc.id);
+
+        if (upload.file.size >= ASYNC_POST_PROCESS_THRESHOLD_BYTES) {
+          await admin.from("document_processing_jobs").insert({
+            organization_id: tenant.organizationId,
+            document_id: createdDoc.id,
+            job_type: "post_upload",
+            status: "pending",
+            payload: {
+              source: "users.no_employee.modal",
+              slot: upload.slotKey,
+              checksum: upload.analysis.checksumSha256,
+              mime: upload.analysis.normalizedMime,
+            },
+          });
+        }
+      }
     }
 
     await logAuditEvent({

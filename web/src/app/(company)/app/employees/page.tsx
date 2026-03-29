@@ -49,6 +49,11 @@ const EMPLOYEE_DOCUMENT_SLOT_RULES: Array<{ slot: string; prefix: string }> = [
   { slot: "other", prefix: "Otro Documento - " },
 ];
 
+function resolveDocumentSlotFromTitle(title: string | null | undefined) {
+  if (!title) return null;
+  return EMPLOYEE_DOCUMENT_SLOT_RULES.find((rule) => title.startsWith(rule.prefix))?.slot ?? null;
+}
+
 export const revalidate = 0;
 
 export default async function CompanyEmployeesPage({ searchParams }: CompanyEmployeesPageProps) {
@@ -94,6 +99,53 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       .map((membership) => membership.user_id),
   );
 
+  const profileUserIds = Array.from(
+    new Set((organizationUserProfiles ?? []).map((profile) => profile.user_id).filter(Boolean)),
+  ) as string[];
+
+  const userDocumentsCountByUserId = new Map<string, number>();
+
+  if (profileUserIds.length > 0) {
+    const { data: profileScopedDocuments } = await supabase
+      .from("documents")
+      .select("id, title, access_scope")
+      .eq("organization_id", tenant.organizationId)
+      .is("deleted_at", null)
+      .or([
+        "title.ilike.Foto del Empleado - %",
+        "title.ilike.ID / Identificacion - %",
+        "title.ilike.Numero de Seguro Social - %",
+        "title.ilike.Carta de Recomendacion 1 - %",
+        "title.ilike.Carta de Recomendacion 2 - %",
+        "title.ilike.Otro Documento - %",
+      ].join(","));
+
+    const docIdsByUser = new Map<string, Set<string>>();
+
+    for (const row of profileScopedDocuments ?? []) {
+      const title = typeof row.title === "string" ? row.title : null;
+      const slot = resolveDocumentSlotFromTitle(title);
+      if (!slot) continue;
+
+      const accessScope = row.access_scope as { users?: unknown } | null;
+      const users = Array.isArray(accessScope?.users)
+        ? (accessScope?.users.filter((value): value is string => typeof value === "string") ?? [])
+        : [];
+
+      for (const userId of users) {
+        if (!profileUserIds.includes(userId)) continue;
+        if (!docIdsByUser.has(userId)) {
+          docIdsByUser.set(userId, new Set<string>());
+        }
+        docIdsByUser.get(userId)!.add(row.id);
+      }
+    }
+
+    for (const userId of profileUserIds) {
+      userDocumentsCountByUserId.set(userId, docIdsByUser.get(userId)?.size ?? 0);
+    }
+  }
+
   const { data: authData } = await supabase.auth.getUser();
 
   const publisherName = extractDisplayName(authData.user);
@@ -131,6 +183,42 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   const editUserProfile = action === "edit-user" && editProfileId
     ? (organizationUserProfiles ?? []).find((item) => item.id === editProfileId)
     : null;
+
+  let editUserDocumentsBySlot: Record<string, EmployeeDocumentSlot> = {};
+  if (editUserProfile?.user_id) {
+    const { data: userScopedDocuments } = await supabase
+      .from("documents")
+      .select("id, title, access_scope")
+      .eq("organization_id", tenant.organizationId)
+      .is("deleted_at", null)
+      .or([
+        "title.ilike.Foto del Empleado - %",
+        "title.ilike.ID / Identificacion - %",
+        "title.ilike.Numero de Seguro Social - %",
+        "title.ilike.Carta de Recomendacion 1 - %",
+        "title.ilike.Carta de Recomendacion 2 - %",
+        "title.ilike.Otro Documento - %",
+      ].join(","));
+
+    const filteredRows = (userScopedDocuments ?? []).filter((row) => {
+      const scope = row.access_scope as { users?: unknown } | null;
+      const users = Array.isArray(scope?.users)
+        ? scope.users.filter((value): value is string => typeof value === "string")
+        : [];
+      return users.includes(editUserProfile.user_id as string);
+    });
+
+    editUserDocumentsBySlot = {};
+    for (const row of filteredRows) {
+      const slot = resolveDocumentSlotFromTitle(typeof row.title === "string" ? row.title : null);
+      if (!slot) continue;
+      editUserDocumentsBySlot[slot] = {
+        documentId: row.id,
+        title: row.title,
+        status: "uploaded",
+      };
+    }
+  }
 
   const initialEmployeeData = editEmployee
     ? {
@@ -199,6 +287,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
           payment_frequency: null,
           salary_currency: null,
           has_dashboard_access: Boolean(editUserProfile.user_id && activeMembershipUserIds.has(editUserProfile.user_id)),
+          documents_by_slot: editUserDocumentsBySlot,
         }
     : undefined;
 
@@ -221,7 +310,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       status: emp.status,
       dashboardAccess: Boolean(emp.userId && activeMembershipUserIds.has(emp.userId)),
       hiredAt: emp.hiredAt,
-      branchName: emp.branchName,
+      branchName: emp.branchName ?? "Sin locacion",
       departmentName: emp.department ?? "Sin departamento",
       salaryAmount: defaultContract?.salary_amount ?? null,
       salaryCurrency: defaultContract?.salary_currency ?? null,
@@ -283,6 +372,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       emergencyEmail: null,
       pendingDocuments: 0,
       docsCompletionStatus: "incomplete" as const,
+      docsUploadedCount: profile.user_id ? (userDocumentsCountByUserId.get(profile.user_id) ?? 0) : 0,
       organizationUserProfileId: profile.id,
     };
   });
