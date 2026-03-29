@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, startTransition, type FormEvent } from "react";
+import { useEffect, useMemo, useState, startTransition, type FormEvent } from "react";
 import { toast } from "sonner";
 import { SubmitButton } from "@/shared/ui/submit-button";
 
@@ -40,6 +40,7 @@ type NewEmployeeModalProps = {
     salary_amount?: number | null;
     payment_frequency?: string | null;
     has_dashboard_access?: boolean;
+    documents_by_slot?: Record<string, { documentId: string; title: string; status: string }>;
   };
   recentDocuments?: ModalDocument[];
 };
@@ -67,6 +68,31 @@ export function NewEmployeeModal({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(0);
   const [selectedDocumentFiles, setSelectedDocumentFiles] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!initialEmployee?.documents_by_slot) {
+      setSelectedDocumentFiles({});
+      return;
+    }
+
+    const byName: Record<string, string> = {};
+    const rules: Array<{ slot: string; inputName: string }> = [
+      { slot: "photo", inputName: "document_file_photo" },
+      { slot: "id", inputName: "document_file_id" },
+      { slot: "ssn", inputName: "document_file_ssn" },
+      { slot: "rec1", inputName: "document_file_rec1" },
+      { slot: "rec2", inputName: "document_file_rec2" },
+      { slot: "other", inputName: "document_file_other" },
+    ];
+
+    for (const rule of rules) {
+      const row = initialEmployee.documents_by_slot?.[rule.slot];
+      if (!row?.title) continue;
+      byName[rule.inputName] = row.title;
+    }
+
+    setSelectedDocumentFiles(byName);
+  }, [initialEmployee?.documents_by_slot]);
 
   async function handleResendInvitation() {
     const targetEmail = initialEmployee?.email;
@@ -404,12 +430,12 @@ export function NewEmployeeModal({
               </h3>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {[
-                  { id: "empInputFoto", name: "document_file_photo", icon: "📷", label: "Foto del Empleado" },
-                  { id: "empInputId", name: "document_file_id", icon: "🪪", label: "ID / Identificación" },
-                  { id: "empInputSs", name: "document_file_ssn", icon: "📋", label: "Número de Seguro Social" },
-                  { id: "empInputRec1", name: "document_file_rec1", icon: "📄", label: "Carta de Recomendación 1" },
-                  { id: "empInputRec2", name: "document_file_rec2", icon: "📄", label: "Carta de Recomendación 2" },
-                  { id: "empInputOther", name: "document_file_other", icon: "🖇️", label: "Otro Documento" },
+                  { id: "empInputFoto", slot: "photo", name: "document_file_photo", icon: "📷", label: "Foto del Empleado" },
+                  { id: "empInputId", slot: "id", name: "document_file_id", icon: "🪪", label: "ID / Identificación" },
+                  { id: "empInputSs", slot: "ssn", name: "document_file_ssn", icon: "📋", label: "Número de Seguro Social" },
+                  { id: "empInputRec1", slot: "rec1", name: "document_file_rec1", icon: "📄", label: "Carta de Recomendación 1" },
+                  { id: "empInputRec2", slot: "rec2", name: "document_file_rec2", icon: "📄", label: "Carta de Recomendación 2" },
+                  { id: "empInputOther", slot: "other", name: "document_file_other", icon: "🖇️", label: "Otro Documento" },
                 ].map((doc) => (
                   <div
                     key={doc.id}
@@ -432,6 +458,28 @@ export function NewEmployeeModal({
                     />
                     <span className="mb-3 text-4xl transition-transform group-hover:scale-110">{doc.icon}</span>
                     <span className="text-center text-[13px] font-bold text-[#666]">{doc.label}</span>
+                    {initialEmployee?.documents_by_slot?.[doc.slot] ? (
+                      <div className="mt-2 flex items-center gap-2">
+                        <a
+                          href={`/api/documents/${initialEmployee.documents_by_slot[doc.slot].documentId}/download`}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(event) => event.stopPropagation()}
+                          className="rounded-md border border-[#d0e8d6] bg-white px-2.5 py-1 text-[10px] font-semibold text-[#166534] hover:bg-[#f4fbf6]"
+                        >
+                          Ver
+                        </a>
+                        <a
+                          href={`/api/documents/${initialEmployee.documents_by_slot[doc.slot].documentId}/download`}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(event) => event.stopPropagation()}
+                          className="rounded-md border border-[#d0e8d6] bg-white px-2.5 py-1 text-[10px] font-semibold text-[#166534] hover:bg-[#f4fbf6]"
+                        >
+                          Descargar
+                        </a>
+                      </div>
+                    ) : null}
                     {selectedDocumentFiles[doc.name] ? (
                       <>
                         <div className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-[12px] text-white">
