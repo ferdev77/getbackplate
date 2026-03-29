@@ -25,7 +25,7 @@ export async function provisionOrganizationUserAccount(input: {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
-    const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
+    const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login?org=${encodeURIComponent(organizationId)}`;
     const fullName = `${firstName} ${lastName}`.trim();
     const branding = await getTenantEmailBranding(organizationId);
 

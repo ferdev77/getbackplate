@@ -73,8 +73,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
-  const recoveryUrl = `${appUrl.replace(/\/$/, "")}/auth/forgot-password`;
+  const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login?org=${encodeURIComponent(tenant.organizationId)}`;
+  const recoveryUrl = `${appUrl.replace(/\/$/, "")}/auth/forgot-password?org=${encodeURIComponent(tenant.organizationId)}`;
 
   const emailResult = await sendEmail({
     to: [{ email, name: fullName }],
