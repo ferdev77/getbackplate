@@ -11,9 +11,9 @@ export default async function SuperadminLayout({
   await requireSuperadmin();
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#fcfaf8_0%,#f8f6f2_42%,#f5f3ef_100%)]">
+    <div className="min-h-screen bg-[linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-bg)_42%,var(--gbp-bg2)_100%)]">
       <SuperadminRealtimeListener />
-      <header className="sticky top-0 z-40 border-b border-line/40 bg-white/70 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-[var(--gbp-border)]/70 bg-[color:color-mix(in_oklab,var(--gbp-surface)_82%,transparent)] backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-2.5">
           <SuperadminTopbar />
 
@@ -21,7 +21,7 @@ export default async function SuperadminLayout({
             <form action={logoutAction}>
               <button
                 type="submit"
-                className="rounded-xl border border-line bg-white px-4 py-2 text-sm font-bold text-muted-foreground transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-600 shadow-sm"
+                className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-4 py-2 text-sm font-bold text-[var(--gbp-text2)] transition-all hover:border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] hover:bg-[var(--gbp-error-soft)] hover:text-[var(--gbp-error)] shadow-sm"
               >
                 Cerrar sesión
               </button>

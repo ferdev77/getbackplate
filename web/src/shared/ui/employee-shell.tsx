@@ -158,11 +158,11 @@ export function EmployeeShell({
   const sidebarPaddingX = collapsed ? "px-2" : "px-4";
 
   const palette = {
-    accent: "#c0392b",
-    sidebarGradient: "linear-gradient(170deg,#f8f8fa 0%,#f2f2f5 100%)",
-    pageGradient: "linear-gradient(180deg,#f8f5f2 0%,#f5f4f0 45%,#f3f2ee 100%)",
-    pageBg: "#f5f4f0",
-    headerBg: "#ffffff",
+    accent: "var(--gbp-accent)",
+    sidebarGradient: "linear-gradient(170deg,var(--gbp-surface) 0%,var(--gbp-bg) 100%)",
+    pageGradient: "linear-gradient(180deg,var(--gbp-bg) 0%,var(--gbp-bg) 45%,var(--gbp-bg2) 100%)",
+    pageBg: "var(--gbp-bg)",
+    headerBg: "var(--gbp-surface)",
   };
 
   const currentLabel = items.find(item => pathname.startsWith(item.href))?.label || "Portal";
@@ -170,11 +170,11 @@ export function EmployeeShell({
   const effectiveCompanyLogoUrl = customBrandingEnabled ? companyLogoUrl : "";
 
   return (
-    <div className="min-h-screen text-[#1a1a1a]" style={{ background: palette.pageGradient }}>
+    <div className="min-h-screen text-[var(--gbp-text)]" style={{ background: palette.pageGradient }}>
       <div className="flex min-h-screen">
         {/* Sidebar */}
-        <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-black/10 transition-all duration-200 lg:sticky lg:top-0 lg:h-screen ${menuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} ${sidebarWidth}`} style={{ background: palette.sidebarGradient }}>
-          <div className={`flex h-[60px] items-center border-b border-black/10 py-3 ${sidebarPaddingX}`}>
+        <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-[var(--gbp-border)] transition-all duration-200 lg:sticky lg:top-0 lg:h-screen ${menuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} ${sidebarWidth}`} style={{ background: palette.sidebarGradient }}>
+          <div className={`flex h-[60px] items-center border-b border-[var(--gbp-border)] py-3 ${sidebarPaddingX}`}>
             <div className={`flex items-center gap-2 ${collapsed ? "justify-center w-full" : "w-full"}`}>
               {customBrandingEnabled && !collapsed ? (
                 <div className="flex h-[84px] flex-1 items-center justify-center overflow-hidden rounded-md bg-transparent px-2">
@@ -187,17 +187,17 @@ export function EmployeeShell({
                       className="h-[76px] w-[98%] object-contain object-center"
                     />
                   ) : (
-                    <span className="text-xs font-bold uppercase tracking-[0.08em] text-[#111111]">{brandingName}</span>
+                    <span className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--gbp-text)]">{brandingName}</span>
                   )}
                 </div>
               ) : (
-                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-[#111] text-xs font-bold text-white">EM</div>
+                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-[var(--gbp-accent)] text-xs font-bold text-white">EM</div>
               )}
-              {!collapsed && !customBrandingEnabled ? <p className="truncate text-sm font-semibold text-[#0f1923]">{organizationName}</p> : null}
+              {!collapsed && !customBrandingEnabled ? <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{organizationName}</p> : null}
               <button
                 type="button"
                 onClick={() => setCollapsed((v) => !v)}
-                className={`ml-auto hidden h-8 w-8 place-items-center rounded-md bg-black/5 text-black/60 hover:bg-black/10 hover:text-black/90 lg:grid ${collapsed ? "ml-0" : ""}`}
+                className={`ml-auto hidden h-8 w-8 place-items-center rounded-md bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)] lg:grid ${collapsed ? "ml-0" : ""}`}
                 aria-label="Alternar sidebar"
               >
                 <PanelsLeftRight className="h-4 w-4" />
@@ -205,7 +205,7 @@ export function EmployeeShell({
               <button 
                 type="button" 
                 onClick={() => setMenuOpen(false)} 
-                className="ml-auto grid h-8 w-8 place-items-center rounded-md bg-black/5 text-black/60 hover:bg-black/10 hover:text-black/90 lg:hidden"
+                className="ml-auto grid h-8 w-8 place-items-center rounded-md bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)] lg:hidden"
               >
                 <Menu className="h-4 w-4" />
               </button>
@@ -213,7 +213,7 @@ export function EmployeeShell({
           </div>
 
           <nav className="min-h-0 flex-1 overflow-y-auto py-4">
-            <p className={`mb-2 px-5 text-[10px] font-bold uppercase tracking-[0.13em] text-black/35 ${collapsed ? "text-center px-0" : ""}`}>
+            <p className={`mb-2 px-5 text-[10px] font-bold uppercase tracking-[0.13em] text-[var(--gbp-muted)] ${collapsed ? "text-center px-0" : ""}`}>
               {collapsed ? "..." : "Navegación"}
             </p>
             <div className="space-y-0.5">
@@ -227,8 +227,8 @@ export function EmployeeShell({
                       collapsed ? "justify-center px-0 py-2.5" : "px-5 py-2"
                     } ${
                       active
-                        ? "bg-black/5 font-semibold text-[#111]"
-                        : "border-l-transparent text-black/60 hover:border-l-black/20 hover:bg-black/5 hover:text-black/85"
+                        ? "bg-[var(--gbp-surface2)] font-semibold text-[var(--gbp-text)]"
+                        : "border-l-transparent text-[var(--gbp-text2)] hover:border-l-[var(--gbp-border2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"
                     }`}
                     style={active ? { borderLeftColor: palette.accent } : undefined}
                     onClick={() => setMenuOpen(false)}
@@ -236,12 +236,12 @@ export function EmployeeShell({
                     <item.icon className="h-4 w-4 shrink-0" />
                     {!collapsed ? <span>{item.label}</span> : null}
                     {!collapsed && active && item.href === "/portal/documents" && docsCount > 0 && (
-                      <span className="ml-auto rounded-full bg-[#c0392b] px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                      <span className="ml-auto rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
                         {docsCount}
                       </span>
                     )}
                     {!collapsed && active && item.href === "/portal/checklist" && checklistTemplateNames.length > 0 && (
-                      <span className="ml-auto rounded-full bg-[#c0392b] px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                      <span className="ml-auto rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
                         {checklistTemplateNames.length}
                       </span>
                     )}
@@ -251,22 +251,22 @@ export function EmployeeShell({
             </div>
           </nav>
 
-          <div className={`mt-auto border-t border-black/10 py-4 ${sidebarPaddingX}`} style={{ background: palette.sidebarGradient }}>
+          <div className={`mt-auto border-t border-[var(--gbp-border)] py-4 ${sidebarPaddingX}`} style={{ background: palette.sidebarGradient }}>
             {!collapsed ? (
               <div className="mb-4 flex items-center gap-2.5 px-1">
                 <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full text-xs font-semibold text-white" style={{ background: palette.accent }}>
                   {initials(employeeName)}
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate text-[13px] font-semibold text-[#222]">{employeeName}</p>
-                  <p className="truncate text-[11px] text-[#9a9a9a]">{employeePosition || "Empleado"}</p>
+                  <p className="truncate text-[13px] font-semibold text-[var(--gbp-text)]">{employeeName}</p>
+                  <p className="truncate text-[11px] text-[var(--gbp-text2)]">{employeePosition || "Empleado"}</p>
                 </div>
               </div>
             ) : null}
 
             <a
               href="/auth/logout"
-              className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-black/10 bg-black/5 py-2 text-xs text-[#666] transition hover:bg-black/10 hover:text-[#222] ${
+              className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] py-2 text-xs text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)] ${
                 collapsed ? "h-9 w-9 p-0" : "px-2"
               }`}
               title="Cerrar Sesión"
@@ -284,28 +284,28 @@ export function EmployeeShell({
 
         {/* Main Content Area */}
         <div className="min-w-0 flex-1 flex flex-col" style={{ background: palette.pageBg }}>
-          <header className="sticky top-0 z-30 flex h-[60px] items-center justify-between border-b-[1.5px] border-[#e8e8e8] px-4 sm:px-8" style={{ background: palette.headerBg }}>
+          <header className="sticky top-0 z-30 flex h-[60px] items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-4 sm:px-8" style={{ background: palette.headerBg }}>
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#ddd5d0] bg-white text-[#4c4a48] lg:hidden"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] lg:hidden"
                 onClick={() => setMenuOpen((prev) => !prev)}
                 aria-label="Abrir menu"
               >
                 <Menu className="h-5 w-5" />
               </button>
-              <p className="font-serif text-[19px] font-bold text-[#111]">{currentLabel}</p>
+              <p className="font-serif text-[19px] font-bold text-[var(--gbp-text)]">{currentLabel}</p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="hidden rounded-full border border-[rgba(0,0,0,0.06)] bg-[#faf9f8] px-2.5 py-1 text-xs text-[#6f6965] sm:inline shadow-sm">
+              <span className="hidden rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-2.5 py-1 text-xs text-[var(--gbp-text2)] sm:inline shadow-sm">
                 {branchName || "Sucursal"}
               </span>
               {departmentName ? (
-                <span className="hidden rounded-full border border-[rgba(0,0,0,0.06)] bg-white px-2.5 py-1 text-xs text-[#6f6965] lg:inline shadow-sm">
+                <span className="hidden rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2.5 py-1 text-xs text-[var(--gbp-text2)] lg:inline shadow-sm">
                   {departmentName}
                 </span>
               ) : null}
-              <span className="hidden rounded-full border border-[#f0d8d3] bg-[#fff4f2] px-2.5 py-1 text-xs text-[#8f3a30] sm:inline shadow-sm">
+              <span className="hidden rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-2.5 py-1 text-xs text-[var(--gbp-accent)] sm:inline shadow-sm">
                 Soy Empleado
               </span>
             </div>
@@ -315,8 +315,8 @@ export function EmployeeShell({
             <div className="mx-auto max-w-[1000px] w-full">{children}</div>
           </main>
           
-          <footer className="mt-auto flex justify-between border-t border-black/10 px-6 py-4 text-[11px] text-[#999] sm:px-9" style={{ background: palette.sidebarGradient }}>
-            <p className="font-semibold tracking-[0.02em] text-[#8e8e8e]">{customBrandingEnabled ? organizationName : "GetBackplate"}</p>
+          <footer className="mt-auto flex justify-between border-t border-[var(--gbp-border)] px-6 py-4 text-[11px] text-[var(--gbp-muted)] sm:px-9" style={{ background: palette.sidebarGradient }}>
+            <p className="font-semibold tracking-[0.02em] text-[var(--gbp-text2)]">{customBrandingEnabled ? organizationName : "GetBackplate"}</p>
             <p>© 2026 {customBrandingEnabled ? organizationName : "GetBackplate"}</p>
           </footer>
         </div>

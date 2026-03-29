@@ -4,6 +4,8 @@ import { requestPasswordRecoveryAction } from "@/modules/auth/actions";
 import { resolveTenantAuthBrandingByHint } from "@/shared/lib/tenant-auth-branding";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import { SlideUp } from "@/shared/ui/animations";
+import { TagPill } from "@/shared/ui/tag-pill";
+import { ThemeToggle } from "@/shared/ui/theme-toggle";
 
 export const metadata: Metadata = {
   title: "Recuperar contrasena | GetBackplate",
@@ -19,14 +21,19 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
   const tenantBranding = await resolveTenantAuthBrandingByHint(organizationIdHint);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-6 py-10">
+    <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_var(--gbp-surface)_0%,_var(--gbp-bg)_48%,_var(--gbp-bg2)_100%)] px-6 py-10">
       <SlideUp className="w-full max-w-md">
-        <section className="rounded-2xl border border-line bg-panel p-8 shadow-[0_8px_30px_rgba(0,0,0,0.05)]">
+        <section className="rounded-[var(--gbp-radius-3xl)] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-8 shadow-[var(--gbp-shadow-lg)]">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <TagPill>Recuperacion</TagPill>
+            <ThemeToggle showLabel={false} />
+          </div>
+
           {tenantBranding ? (
-            <div className="mb-5 rounded-xl border border-[#eadfd8] bg-[linear-gradient(160deg,#fffaf7_0%,#f8f1ec_100%)] p-3">
-              <p className="mb-2 text-[11px] font-semibold tracking-[0.1em] text-[#9b6c52] uppercase">Recuperacion de empresa</p>
+            <div className="mb-5 rounded-[var(--gbp-radius-xl)] border border-[var(--gbp-border)] bg-[linear-gradient(160deg,var(--gbp-surface)_0%,var(--gbp-bg)_100%)] p-3">
+              <p className="mb-2 text-[11px] font-semibold tracking-[0.1em] text-[var(--gbp-text2)] uppercase">Recuperacion de empresa</p>
               <div className="flex items-center gap-3">
-                <div className="grid min-h-[56px] min-w-[96px] place-items-center rounded-lg bg-white px-2 py-2 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                <div className="grid min-h-[56px] min-w-[96px] place-items-center rounded-[var(--gbp-radius-lg)] bg-[var(--gbp-surface)] px-2 py-2 shadow-[inset_0_0_0_1px_var(--gbp-border)]">
                   {tenantBranding.logoUrl ? (
                     <picture>
                       {tenantBranding.logoDarkUrl ? (
@@ -35,20 +42,19 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
                       <img src={tenantBranding.logoUrl} alt={`Logo ${tenantBranding.companyName}`} className="block h-auto max-h-10 w-auto max-w-[88px] object-contain" />
                     </picture>
                   ) : (
-                    <span className="text-[10px] font-bold tracking-[0.06em] text-[#8f7e72] uppercase">{tenantBranding.companyName}</span>
+                    <span className="text-[10px] font-bold tracking-[0.06em] text-[var(--gbp-text2)] uppercase">{tenantBranding.companyName}</span>
                   )}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-[#33261f]">{tenantBranding.companyName}</p>
-                  <p className="text-xs text-[#7e7068]">Te ayudamos a recuperar acceso a tu portal</p>
+                  <p className="text-sm font-semibold text-[var(--gbp-text)]">{tenantBranding.companyName}</p>
+                  <p className="text-xs text-[var(--gbp-text2)]">Te ayudamos a recuperar acceso a tu portal</p>
                 </div>
               </div>
             </div>
           ) : null}
 
-          <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-brand uppercase">Acceso</p>
           <h1 className="mb-1 text-2xl font-bold tracking-tight">Recuperar contrasena</h1>
-          <p className="mb-6 text-sm text-neutral-600">
+          <p className="mb-6 text-sm text-[var(--gbp-text2)]">
             Te enviaremos un enlace para definir una nueva contrasena.
           </p>
 
@@ -81,7 +87,7 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
                 name="email"
                 type="email"
                 required
-                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none ring-brand/20 transition focus:ring-2"
+                className="w-full rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm outline-none ring-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] transition focus:ring-2"
                 placeholder="admin@empresa.com"
               />
             </div>

@@ -4,7 +4,7 @@ import { requireTenantModule } from "@/shared/lib/access";
 import { DocumentTrashList } from "@/modules/trash/ui/document-trash-list";
 import { SlideUp } from "@/shared/ui/animations";
 
-const DARK_TEXT = "[.theme-dark-pro_&]:text-[#e7edf7]";
+const DARK_TEXT = "[.theme-dark-pro_&]:text-[var(--gbp-text)]";
 
 export default async function CompanyTrashPage() {
   const tenant = await requireTenantModule("documents");

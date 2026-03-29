@@ -700,12 +700,12 @@ export function CompanyShell({
   return (
     <div
       data-theme={isDarkTheme ? "dark-pro" : theme}
-      className={`min-h-screen ${isDarkTheme ? "theme-dark-pro text-[#e7edf6]" : "text-[#1a1a1a]"}`}
+      className={`min-h-screen ${isDarkTheme ? "theme-dark-pro text-[var(--gbp-text)]" : "text-[var(--gbp-text)]"}`}
       style={{ ["--gb-accent" as string]: palette.accent, background: palette.pageGradient } as CSSProperties}
     >
       <div className="flex min-h-screen">
-        <aside className={`hidden shrink-0 border-r transition-all duration-200 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col ${isDarkTheme ? "border-white/10" : "border-black/10"} ${sidebarWidth}`} style={{ background: palette.sidebarGradient }}>
-          <div className={`border-b py-3 ${isDarkTheme ? "border-white/10" : "border-black/10"} ${sidebarPaddingX}`}>
+          <aside className={`hidden shrink-0 border-r transition-all duration-200 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"} ${sidebarWidth}`} style={{ background: palette.sidebarGradient }}>
+          <div className={`border-b py-3 ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"} ${sidebarPaddingX}`}>
             <div className={`flex items-center gap-2 ${collapsed ? "justify-center" : ""}`}>
               {customBrandingEnabled && !collapsed ? (
                 <div className="flex h-[112px] flex-1 items-center justify-center overflow-hidden rounded-md bg-transparent px-2">
@@ -722,21 +722,21 @@ export function CompanyShell({
                   )}
                 </div>
               ) : (
-                <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-md border border-black/10 bg-white">
+                <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
                   {effectiveCompanyLogoUrl ? (
                     <Image src={effectiveCompanyLogoUrl} alt={`Logo de ${brandingName}`} width={36} height={36} className="h-full w-full object-contain" />
                   ) : (
-                    <span className="grid h-full w-full place-items-center bg-[#111111] text-[10px] font-bold text-white">{(brandingName || "GB").slice(0, 2).toUpperCase()}</span>
+                    <span className="grid h-full w-full place-items-center bg-[var(--gbp-accent)] text-[10px] font-bold text-white">{(brandingName || "GB").slice(0, 2).toUpperCase()}</span>
                   )}
                 </div>
               )}
               {!collapsed && !customBrandingEnabled ? (
-                <p className={`truncate text-sm font-semibold ${isDarkTheme ? "text-[#edf3ff]" : "text-[#0f1923]"}`}>{brandingName}</p>
+                <p className={`truncate text-sm font-semibold ${isDarkTheme ? "text-[#edf3ff]" : "text-[var(--gbp-text)]"}`}>{brandingName}</p>
               ) : null}
               <button
                 type="button"
                 onClick={() => setCollapsed((v) => !v)}
-                className={`ml-auto grid h-8 w-8 place-items-center rounded-md ${isDarkTheme ? "bg-white/5 text-white/65 hover:bg-white/10 hover:text-white" : "bg-black/5 text-black/60 hover:bg-black/10 hover:text-black/90"} ${collapsed ? "ml-0" : ""}`}
+                className={`ml-auto grid h-8 w-8 place-items-center rounded-md ${isDarkTheme ? "bg-white/5 text-white/65 hover:bg-white/10 hover:text-white" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "ml-0" : ""}`}
                 aria-label="Alternar sidebar"
               >
                 <PanelsLeftRight className="h-4 w-4" />
@@ -768,7 +768,7 @@ export function CompanyShell({
                           href={hrefWithBranch(item.href)}
                           className={`flex items-center gap-2.5 border-l-[2.5px] text-[13px] transition ${
                              collapsed ? "justify-center px-0 py-2.5" : item.sub ? "px-5 py-1.5 pl-7" : "px-5 py-2"
-                           } ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-black/5 font-semibold text-[#111111]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-black/60 hover:border-l-black/20 hover:bg-black/5 hover:text-black/85")}`}
+                            } ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-[var(--gbp-surface2)] font-semibold text-[var(--gbp-text)]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-[var(--gbp-text2)] hover:border-l-[var(--gbp-border2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]")}`}
                            style={active ? { borderLeftColor: palette.accent } : undefined}
                            onClick={() => setMenuOpen(false)}
                          >
@@ -828,10 +828,10 @@ export function CompanyShell({
             ) : null}
 
             <div className="space-y-1.5">
-               <a href="/auth/logout" className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-[#b9c3d3] hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 text-[#666666] hover:bg-black/10 hover:text-[#222222]"} ${collapsed ? "h-9 w-9 p-0" : "px-2"}`} title="Cerrar sesion"><LogOut className="h-3.5 w-3.5" />{!collapsed ? <span>Cerrar Sesion</span> : null}</a>
-               <button type="button" onClick={() => { setSettingsOpen(true); setSettingsView("main"); }} className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-[#b9c3d3] hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 text-[#666666] hover:bg-black/10 hover:text-[#222222]"} ${collapsed ? "h-9 w-9 p-0" : "px-2"}`} title="Settings"><Settings className="h-3.5 w-3.5" />{!collapsed ? <span>Settings</span> : null}</button>
-               <button type="button" onClick={() => setFeedbackOpen(true)} className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-[#b9c3d3] hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 text-[#666666] hover:bg-black/10 hover:text-[#222222]"} ${collapsed ? "h-9 w-9 p-0" : "px-2"}`} title="Feedback"><MessageSquarePlus className="h-3.5 w-3.5" />{!collapsed ? <span>Feedback</span> : null}</button>
-            </div>
+               <a href="/auth/logout" className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-[#b9c3d3] hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9 p-0" : "px-2"}`} title="Cerrar sesion"><LogOut className="h-3.5 w-3.5" />{!collapsed ? <span>Cerrar Sesion</span> : null}</a>
+               <button type="button" onClick={() => { setSettingsOpen(true); setSettingsView("main"); }} className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-[#b9c3d3] hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9 p-0" : "px-2"}`} title="Settings"><Settings className="h-3.5 w-3.5" />{!collapsed ? <span>Settings</span> : null}</button>
+               <button type="button" onClick={() => setFeedbackOpen(true)} className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-[#b9c3d3] hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9 p-0" : "px-2"}`} title="Feedback"><MessageSquarePlus className="h-3.5 w-3.5" />{!collapsed ? <span>Feedback</span> : null}</button>
+             </div>
           </div>
         </aside>
 
@@ -847,11 +847,11 @@ export function CompanyShell({
             ) : null}
             <div className="flex h-[60px] items-center justify-between gap-3 px-4 sm:px-8">
             <div className="flex items-center gap-3">
-              <button type="button" className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border lg:hidden ${isDarkTheme ? "border-white/15 bg-white/5 text-[#d3dcec]" : "border-[#ddd5d0] bg-white text-[#4c4a48]"}`} onClick={() => setMenuOpen((prev) => !prev)} aria-label="Abrir menu">☰</button>
-              <p className={`font-serif text-[19px] font-bold ${isDarkTheme ? "text-[#edf3ff]" : "text-[#111111]"}`}>{currentLabel}</p>
+              <button type="button" className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border lg:hidden ${isDarkTheme ? "border-white/15 bg-white/5 text-[#d3dcec]" : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"}`} onClick={() => setMenuOpen((prev) => !prev)} aria-label="Abrir menu">☰</button>
+              <p className={`font-serif text-[19px] font-bold ${isDarkTheme ? "text-[#edf3ff]" : "text-[var(--gbp-text)]"}`}>{currentLabel}</p>
             </div>
             <div className="flex items-center gap-2">
-              {organizationLabel ? <span className={`hidden rounded-full border px-2.5 py-1 text-xs sm:inline ${isDarkTheme ? "border-white/15 bg-white/5 text-[#c6d0df]" : "border-[#e6dfda] bg-white text-[#6f6965]"}`}>{organizationLabel}</span> : null}
+              {organizationLabel ? <span className={`hidden rounded-full border px-2.5 py-1 text-xs sm:inline ${isDarkTheme ? "border-white/15 bg-white/5 text-[#c6d0df]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"}`}>{organizationLabel}</span> : null}
               <span className={`hidden rounded-full border px-2.5 py-1 text-xs sm:inline ${isDarkTheme ? "border-[#4d6b93] bg-[#18283c] text-[#8fc2ff]" : "border-[#f0d8d3] bg-[#fff4f2] text-[#8f3a30]"}`}>{sessionRoleLabel}</span>
             </div>
             </div>

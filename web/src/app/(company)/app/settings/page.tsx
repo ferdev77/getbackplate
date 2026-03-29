@@ -15,6 +15,7 @@ import { InlineBranchForm } from "@/modules/settings/ui/inline-branch-form";
 import { InlineDepartmentForm } from "@/modules/settings/ui/inline-department-form";
 import { InlinePositionForm } from "@/modules/settings/ui/inline-position-form";
 import { CompanyContactSettingsCard } from "@/modules/settings/ui/company-contact-settings-card";
+import { Button } from "@/shared/ui/button";
 import { isModuleEnabledForOrganization, requireTenantModule } from "@/shared/lib/access";
 
 type CompanySettingsPageProps = {
@@ -27,12 +28,12 @@ function statusPill(active: boolean) {
     : "border-neutral-200 bg-neutral-100 text-neutral-600";
 }
 
-const DARK_CARD = "[.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#151b25]";
-const DARK_CARD_SOFT = "[.theme-dark-pro_&]:border-[#263244] [.theme-dark-pro_&]:bg-[#111824]";
-const DARK_INPUT = "[.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#dde7f5] [.theme-dark-pro_&]:placeholder:text-[#7f8ea3]";
-const DARK_TEXT_STRONG = "[.theme-dark-pro_&]:text-[#e7edf7]";
-const DARK_TEXT_MUTED = "[.theme-dark-pro_&]:text-[#9aabc3]";
-const DARK_BTN_GHOST = "[.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#d8e3f2] [.theme-dark-pro_&]:hover:bg-[#172131]";
+const CARD = "border-[var(--gbp-border)] bg-[var(--gbp-surface)]";
+const CARD_SOFT = "border-[var(--gbp-border)] bg-[var(--gbp-bg)]";
+const INPUT = "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)]";
+const TEXT_STRONG = "text-[var(--gbp-text)]";
+const TEXT_MUTED = "text-[var(--gbp-text2)]";
+const BTN_GHOST = "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
 
 export default async function CompanySettingsPage({ searchParams }: CompanySettingsPageProps) {
   const params = await searchParams;
@@ -119,7 +120,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
       <section className="mb-1 flex flex-wrap items-center justify-between gap-3">
-        <div className={`inline-flex items-center gap-2 text-[#1f1a17] ${DARK_TEXT_STRONG}`}>
+        <div className={`inline-flex items-center gap-2 ${TEXT_STRONG}`}>
           <Settings2 className="h-4 w-4" />
           <h1 className="text-[18px] font-bold">Ajustes de Empresa</h1>
         </div>
@@ -129,10 +130,10 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <article className={`rounded-xl border border-[#e7dfda] bg-white p-4 ${DARK_CARD}`}><p className={`text-xs text-[#8d847f] ${DARK_TEXT_MUTED}`}>Empresa</p><p className={`mt-1 truncate text-lg font-bold text-[#221d19] ${DARK_TEXT_STRONG}`}>{organization?.name ?? "Empresa"}</p></article>
-        <article className={`rounded-xl border border-[#e7dfda] bg-white p-4 ${DARK_CARD}`}><p className={`text-xs text-[#8d847f] ${DARK_TEXT_MUTED}`}>Locaciones activas</p><p className={`mt-1 text-lg font-bold text-[#221d19] ${DARK_TEXT_STRONG}`}>{activeBranches}</p></article>
-        <article className={`rounded-xl border border-[#e7dfda] bg-white p-4 ${DARK_CARD}`}><p className={`text-xs text-[#8d847f] ${DARK_TEXT_MUTED}`}>Departamentos activos</p><p className={`mt-1 text-lg font-bold text-[#221d19] ${DARK_TEXT_STRONG}`}>{activeDepartments}</p></article>
-        <article className={`rounded-xl border border-[#e7dfda] bg-white p-4 ${DARK_CARD}`}><p className={`text-xs text-[#8d847f] ${DARK_TEXT_MUTED}`}>Puestos activos</p><p className={`mt-1 text-lg font-bold text-[#221d19] ${DARK_TEXT_STRONG}`}>{activePositions}</p></article>
+        <article className={`rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Empresa</p><p className={`mt-1 truncate text-lg font-bold ${TEXT_STRONG}`}>{organization?.name ?? "Empresa"}</p></article>
+        <article className={`rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Locaciones activas</p><p className={`mt-1 text-lg font-bold ${TEXT_STRONG}`}>{activeBranches}</p></article>
+        <article className={`rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Departamentos activos</p><p className={`mt-1 text-lg font-bold ${TEXT_STRONG}`}>{activeDepartments}</p></article>
+        <article className={`rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Puestos activos</p><p className={`mt-1 text-lg font-bold ${TEXT_STRONG}`}>{activePositions}</p></article>
       </section>
 
       {params.message ? (
@@ -167,21 +168,21 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
       </section>
 
       <section id="org-structure" className="grid gap-4 xl:grid-cols-2">
-        <article className={`rounded-2xl border border-[#e7dfda] bg-white p-5 ${DARK_CARD}`}>
+        <article className={`rounded-2xl border p-5 ${CARD}`}>
           <div className="mb-3 flex items-center justify-between gap-2">
-            <p className={`inline-flex items-center gap-1 text-xs font-semibold tracking-[0.1em] text-[#8d847f] uppercase ${DARK_TEXT_MUTED}`}><MapPin className="h-3.5 w-3.5" /> Locaciones</p>
+            <p className={`inline-flex items-center gap-1 text-xs font-semibold tracking-[0.1em] uppercase ${TEXT_MUTED}`}><MapPin className="h-3.5 w-3.5" /> Locaciones</p>
             <InlineBranchForm createAction={createBranchAction} />
           </div>
 
           <div className="space-y-2">
             {(branches ?? []).map((branch) => (
-              <details key={branch.id} className={`rounded-lg border border-[#ece4df] bg-[#fffdfa] p-3 ${DARK_CARD_SOFT}`}>
+              <details key={branch.id} className={`rounded-lg border p-3 ${CARD_SOFT}`}>
                 <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className={`text-sm font-semibold text-[#2a2420] ${DARK_TEXT_STRONG}`}>{branch.name}</p>
-                    <p className={`text-xs text-[#8b817c] ${DARK_TEXT_MUTED}`}>{[branch.city, branch.state, branch.country].filter(Boolean).join(", ") || "Sin ubicacion"}</p>
+                    <p className={`text-sm font-semibold ${TEXT_STRONG}`}>{branch.name}</p>
+                    <p className={`text-xs ${TEXT_MUTED}`}>{[branch.city, branch.state, branch.country].filter(Boolean).join(", ") || "Sin ubicacion"}</p>
                     {branch.phone ? (
-                      <p className={`text-xs text-[#8b817c] ${DARK_TEXT_MUTED}`}>{branch.phone}</p>
+                      <p className={`text-xs ${TEXT_MUTED}`}>{branch.phone}</p>
                     ) : null}
                   </div>
                   <form action={toggleBranchStatusAction}>
@@ -194,38 +195,38 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
                 </summary>
                 <form action={updateBranchAction} className="mt-3 grid gap-2 sm:grid-cols-2">
                   <input type="hidden" name="branch_id" value={branch.id} />
-                  <input name="name" defaultValue={branch.name} required className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
-                  <input name="city" defaultValue={branch.city ?? ""} placeholder="Ciudad" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
-                  <input name="state" defaultValue={branch.state ?? ""} placeholder="Estado" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
-                  <input name="country" defaultValue={branch.country ?? ""} placeholder="Pais" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
-                  <input name="phone" defaultValue={branch.phone ?? ""} placeholder="Telefono" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
-                  <input name="address" defaultValue={branch.address ?? ""} placeholder="Direccion" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm sm:col-span-2 ${DARK_INPUT}`} />
-                  <button type="submit" className="rounded-lg bg-[#111] px-3 py-2 text-xs font-semibold text-white hover:bg-[#2a2521] sm:w-fit [.theme-dark-pro_&]:bg-[#2b5ea8] [.theme-dark-pro_&]:hover:bg-[#3a73c6]">Guardar cambios</button>
+                  <input name="name" defaultValue={branch.name} required className={`rounded-lg border px-3 py-2 text-sm ${INPUT}`} />
+                  <input name="city" defaultValue={branch.city ?? ""} placeholder="Ciudad" className={`rounded-lg border px-3 py-2 text-sm ${INPUT}`} />
+                  <input name="state" defaultValue={branch.state ?? ""} placeholder="Estado" className={`rounded-lg border px-3 py-2 text-sm ${INPUT}`} />
+                  <input name="country" defaultValue={branch.country ?? ""} placeholder="Pais" className={`rounded-lg border px-3 py-2 text-sm ${INPUT}`} />
+                  <input name="phone" defaultValue={branch.phone ?? ""} placeholder="Telefono" className={`rounded-lg border px-3 py-2 text-sm ${INPUT}`} />
+                  <input name="address" defaultValue={branch.address ?? ""} placeholder="Direccion" className={`rounded-lg border px-3 py-2 text-sm sm:col-span-2 ${INPUT}`} />
+                  <Button type="submit" size="sm" className="sm:w-fit">Guardar cambios</Button>
                 </form>
               </details>
             ))}
-            {!branches?.length ? <p className={`text-sm text-[#8b817c] ${DARK_TEXT_MUTED}`}>Aun no hay locaciones.</p> : null}
+            {!branches?.length ? <p className={`text-sm ${TEXT_MUTED}`}>Aun no hay locaciones.</p> : null}
           </div>
         </article>
 
-        <article className={`rounded-2xl border border-[#e7dfda] bg-white p-5 ${DARK_CARD}`}>
+        <article className={`rounded-2xl border p-5 ${CARD}`}>
           <div className="mb-3 flex items-center justify-between gap-2">
-            <p className={`inline-flex items-center gap-1 text-xs font-semibold tracking-[0.1em] text-[#8d847f] uppercase ${DARK_TEXT_MUTED}`}><Building2 className="h-3.5 w-3.5" /> Departamentos y Puestos</p>
+            <p className={`inline-flex items-center gap-1 text-xs font-semibold tracking-[0.1em] uppercase ${TEXT_MUTED}`}><Building2 className="h-3.5 w-3.5" /> Departamentos y Puestos</p>
             <InlineDepartmentForm createAction={createDepartmentAction} />
           </div>
 
           <div className="space-y-2">
             {(departments ?? []).map((department) => (
-              <details key={department.id} className={`rounded-lg border border-[#ece4df] bg-[#fffdfa] p-3 ${DARK_CARD_SOFT}`}>
+              <details key={department.id} className={`rounded-lg border p-3 ${CARD_SOFT}`}>
                 <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className={`text-sm font-semibold text-[#2a2420] ${DARK_TEXT_STRONG}`}>{department.name}</p>
-                    <p className={`text-xs text-[#8b817c] ${DARK_TEXT_MUTED}`}>{department.description || "Sin descripcion"}</p>
+                    <p className={`text-sm font-semibold ${TEXT_STRONG}`}>{department.name}</p>
+                    <p className={`text-xs ${TEXT_MUTED}`}>{department.description || "Sin descripcion"}</p>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {(positionsByDepartment.get(department.id) ?? []).map((position) => (
                         <span key={position.id} className={`rounded-full border px-2 py-0.5 text-[10px] ${position.is_active ? "border-[#d9eadf] bg-[#f3fbf6] text-[#2d8f4f]" : "border-neutral-200 bg-neutral-100 text-neutral-600"}`}>{position.name}</span>
                       ))}
-                      {!(positionsByDepartment.get(department.id) ?? []).length ? <span className={`rounded-full border border-[#ece4df] bg-white px-2 py-0.5 text-[10px] text-[#8b817c] ${DARK_BTN_GHOST}`}>Sin puestos</span> : null}
+                      {!(positionsByDepartment.get(department.id) ?? []).length ? <span className={`rounded-full border px-2 py-0.5 text-[10px] ${BTN_GHOST}`}>Sin puestos</span> : null}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -240,18 +241,18 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
                 </summary>
                 <form action={updateDepartmentAction} className="mt-3 grid gap-2">
                   <input type="hidden" name="department_id" value={department.id} />
-                  <input name="name" defaultValue={department.name} required className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
-                  <input name="description" defaultValue={department.description ?? ""} placeholder="Descripcion" className={`rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm ${DARK_INPUT}`} />
-                  <button type="submit" className="rounded-lg bg-[#111] px-3 py-2 text-xs font-semibold text-white hover:bg-[#2a2521] sm:w-fit [.theme-dark-pro_&]:bg-[#2b5ea8] [.theme-dark-pro_&]:hover:bg-[#3a73c6]">Guardar cambios</button>
+                  <input name="name" defaultValue={department.name} required className={`rounded-lg border px-3 py-2 text-sm ${INPUT}`} />
+                  <input name="description" defaultValue={department.description ?? ""} placeholder="Descripcion" className={`rounded-lg border px-3 py-2 text-sm ${INPUT}`} />
+                  <Button type="submit" size="sm" className="sm:w-fit">Guardar cambios</Button>
                 </form>
                 <InlinePositionForm departmentId={department.id} departmentName={department.name} createAction={createDepartmentPositionAction} />
                 {(positionsByDepartment.get(department.id) ?? []).length ? (
-                  <div className="mt-3 border-t border-[#efe7e2] pt-3 [.theme-dark-pro_&]:border-[#2c3646]">
-                    <p className={`mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase ${DARK_TEXT_MUTED}`}>Puestos del departamento</p>
+                  <div className="mt-3 border-t border-[var(--gbp-border)] pt-3">
+                    <p className={`mb-2 text-[11px] font-bold tracking-[0.1em] uppercase ${TEXT_MUTED}`}>Puestos del departamento</p>
                     <div className="space-y-2">
                       {(positionsByDepartment.get(department.id) ?? []).map((position) => (
-                        <div key={position.id} className={`flex items-center justify-between rounded-lg border border-[#ece4df] bg-white px-3 py-2 ${DARK_CARD_SOFT}`}>
-                          <p className={`text-xs font-semibold text-[#2a2420] ${DARK_TEXT_STRONG}`}>{position.name}</p>
+                        <div key={position.id} className={`flex items-center justify-between rounded-lg border px-3 py-2 ${CARD_SOFT}`}>
+                          <p className={`text-xs font-semibold ${TEXT_STRONG}`}>{position.name}</p>
                           <form action={toggleDepartmentPositionStatusAction}>
                             <input type="hidden" name="position_id" value={position.id} />
                             <input type="hidden" name="next_status" value={position.is_active ? "inactive" : "active"} />
@@ -266,7 +267,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
                 ) : null}
               </details>
             ))}
-            {!departments?.length ? <p className={`text-sm text-[#8b817c] ${DARK_TEXT_MUTED}`}>Aun no hay departamentos.</p> : null}
+            {!departments?.length ? <p className={`text-sm ${TEXT_MUTED}`}>Aun no hay departamentos.</p> : null}
           </div>
         </article>
       </section>

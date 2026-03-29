@@ -13,9 +13,9 @@ type CompanyDocumentsPageProps = {
   searchParams: Promise<{ status?: string; message?: string; action?: string }>;
 };
 
-const DARK_TEXT = "[.theme-dark-pro_&]:text-[#e7edf7]";
-const DARK_GHOST = "[.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#d8e3f2] [.theme-dark-pro_&]:hover:bg-[#172131]";
-const DARK_PRIMARY = "[.theme-dark-pro_&]:bg-[#2b5ea8] [.theme-dark-pro_&]:text-white [.theme-dark-pro_&]:hover:bg-[#3a73c6]";
+const DARK_TEXT = "[.theme-dark-pro_&]:text-[var(--gbp-text)]";
+const DARK_GHOST = "[.theme-dark-pro_&]:border-[var(--gbp-border2)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)] [.theme-dark-pro_&]:text-[var(--gbp-text2)] [.theme-dark-pro_&]:hover:bg-[var(--gbp-surface2)]";
+const DARK_PRIMARY = "[.theme-dark-pro_&]:bg-[var(--gbp-accent)] [.theme-dark-pro_&]:text-white [.theme-dark-pro_&]:hover:bg-[var(--gbp-accent-hover)]";
 
 export default async function CompanyDocumentsPage({
   searchParams,

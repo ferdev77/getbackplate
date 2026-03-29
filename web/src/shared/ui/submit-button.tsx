@@ -18,11 +18,11 @@ type SubmitButtonProps = {
 
 const variantClasses: Record<NonNullable<SubmitButtonProps["variant"]>, string> = {
   primary:
-    "bg-brand text-white hover:bg-brand-dark disabled:opacity-60",
+    "bg-[var(--gbp-accent)] text-white shadow-[var(--gbp-shadow-accent)] hover:bg-[var(--gbp-accent-hover)] disabled:opacity-60",
   danger:
-    "bg-[#b63a2f] text-white hover:bg-[#8f2e26] disabled:opacity-60",
+    "bg-[var(--gbp-error)] text-white hover:bg-[#dc2626] disabled:opacity-60",
   ghost:
-    "border border-[#ddd3ce] bg-white text-[#4e4743] hover:bg-[#f8f3f1] disabled:opacity-60",
+    "border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] disabled:opacity-60",
 };
 
 export function SubmitButton({

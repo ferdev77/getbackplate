@@ -83,12 +83,12 @@ export default function SuperadminGuidePage() {
       </section>
 
       {/* Deep Dive: El Score de Salud */}
-      <section className="rounded-[3rem] border border-line/60 bg-white p-8 md:p-12 shadow-sm overflow-hidden relative">
+      <section className="rounded-[3rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-8 md:p-12 shadow-sm overflow-hidden relative">
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand/5 blur-3xl" />
         
         <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
           <div>
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-xs font-bold text-emerald-700">
+             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-xs font-bold text-emerald-700">
                <ShieldCheck className="h-4 w-4" /> Algoritmo de Salud Operativa
             </div>
             <h2 className="mb-6 text-3xl font-serif font-light text-foreground md:text-5xl leading-tight">
@@ -128,7 +128,7 @@ export default function SuperadminGuidePage() {
           </div>
 
           <div className="relative">
-             <div className="rounded-[2rem] border border-line/60 bg-panel p-8 shadow-2xl">
+              <div className="rounded-[2rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-8 shadow-2xl">
                 <div className="mb-8 flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Ejemplo de Radar</span>
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand/10 text-brand">
@@ -171,13 +171,13 @@ export default function SuperadminGuidePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="rounded-[2.5rem] bg-[#171311] p-10 text-center text-white shadow-2xl relative overflow-hidden">
+      <section className="rounded-[2.5rem] bg-[linear-gradient(145deg,var(--gbp-text)_0%,#151922_100%)] p-10 text-center text-white shadow-2xl relative overflow-hidden">
         <div className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full bg-brand/20 blur-3xl" />
         <h2 className="mb-6 text-2xl font-serif font-light md:text-3xl">¿Listo para empezar la auditoría?</h2>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="inline-block">
           <a
             href="/superadmin/dashboard"
-            className="inline-flex items-center gap-2 rounded-full bg-brand px-10 py-4 text-lg font-bold text-white shadow-xl shadow-brand/20 hover:bg-brand-dark transition-all"
+            className="inline-flex items-center gap-2 rounded-full bg-[var(--gbp-accent)] px-10 py-4 text-lg font-bold text-white shadow-[var(--gbp-shadow-accent)] hover:bg-[var(--gbp-accent-hover)] transition-all"
           >
             Ir al Dashboard <Zap className="h-5 w-5" />
           </a>

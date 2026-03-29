@@ -45,10 +45,10 @@ type NewEmployeeModalProps = {
   recentDocuments?: ModalDocument[];
 };
 
-const DARK_PANEL = "[.theme-dark-pro_&]:border [.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#151b25]";
-const DARK_TEXT = "[.theme-dark-pro_&]:text-[#e7edf7]";
-const DARK_MUTED = "[.theme-dark-pro_&]:text-[#9aabc3]";
-const DARK_GHOST = "[.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#d8e3f2] [.theme-dark-pro_&]:hover:bg-[#172131]";
+const DARK_PANEL = "[.theme-dark-pro_&]:border [.theme-dark-pro_&]:border-[var(--gbp-border)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)]";
+const DARK_TEXT = "[.theme-dark-pro_&]:text-[var(--gbp-text)]";
+const DARK_MUTED = "[.theme-dark-pro_&]:text-[var(--gbp-text2)]";
+const DARK_GHOST = "[.theme-dark-pro_&]:border-[var(--gbp-border2)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)] [.theme-dark-pro_&]:text-[var(--gbp-text2)] [.theme-dark-pro_&]:hover:bg-[var(--gbp-surface2)]";
 
 export function NewEmployeeModal({
   open,

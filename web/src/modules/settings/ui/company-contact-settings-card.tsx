@@ -105,28 +105,28 @@ export function CompanyContactSettingsCard({
   }
 
   return (
-    <article className="rounded-2xl border border-[#e7dfda] bg-white p-5 [.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#151b25]">
-      <p className="mb-3 inline-flex items-center gap-1 text-xs font-semibold tracking-[0.1em] text-[#8d847f] uppercase [.theme-dark-pro_&]:text-[#9aabc3]">
+    <article className="rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-5">
+      <p className="mb-3 inline-flex items-center gap-1 text-xs font-semibold tracking-[0.1em] text-[var(--gbp-text2)] uppercase">
         <Settings2 className="h-3.5 w-3.5" /> Datos de la empresa
       </p>
-      <p className="mb-1 text-base font-semibold text-[#2a2420] [.theme-dark-pro_&]:text-[#e7edf7]">{organizationName}</p>
-      <p className="text-sm text-[#7b726d] [.theme-dark-pro_&]:text-[#9aabc3]">Canales de contacto visibles para la operacion diaria.</p>
+      <p className="mb-1 text-base font-semibold text-[var(--gbp-text)]">{organizationName}</p>
+      <p className="text-sm text-[var(--gbp-text2)]">Canales de contacto visibles para la operacion diaria.</p>
 
       {customBrandingEnabled ? (
-        <div className="mt-4 rounded-xl border border-[#e7dfda] bg-[#fcfaf8] p-3 [.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#111824]">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#8d847f] [.theme-dark-pro_&]:text-[#9aabc3]">Branding personalizado</p>
+        <div className="mt-4 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Branding personalizado</p>
           <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded-lg border border-[#e7dfda] bg-white p-3 [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723]">
-              <p className="mb-2 text-[11px] font-semibold text-[#5b5652] [.theme-dark-pro_&]:text-[#c8d3e5]">Logo claro</p>
-              <div className="mb-2 grid min-h-[92px] w-full place-items-center rounded-md border border-[#ddd3ce] bg-white p-2 [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0b111a]">
+            <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3">
+              <p className="mb-2 text-[11px] font-semibold text-[var(--gbp-text2)]">Logo claro</p>
+              <div className="mb-2 grid min-h-[92px] w-full place-items-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] p-2">
                 {lightLogoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={lightLogoUrl} alt="Logo claro de empresa" className="block h-auto max-h-[76px] w-auto max-w-full object-contain" />
                 ) : (
-                  <span className="text-[10px] font-bold text-[#9a9a9a]">Sin logo</span>
+                  <span className="text-[10px] font-bold text-[var(--gbp-muted)]">Sin logo</span>
                 )}
               </div>
-              <label className="inline-flex cursor-pointer items-center rounded-lg border border-[#ddd3ce] bg-white px-3 py-2 text-xs font-semibold text-[#444] hover:bg-[#f7f3f1] [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#dde7f5] [.theme-dark-pro_&]:hover:bg-[#172131]">
+              <label className="inline-flex cursor-pointer items-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]">
                 <input
                   type="file"
                   accept="image/*"
@@ -141,17 +141,17 @@ export function CompanyContactSettingsCard({
                 {uploadingLogo ? "Subiendo..." : "Cargar logo claro"}
               </label>
             </div>
-            <div className="rounded-lg border border-[#e7dfda] bg-[#0e1724] p-3 [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#08101b]">
-              <p className="mb-2 text-[11px] font-semibold text-[#d4deea]">Logo dark</p>
-              <div className="mb-2 grid min-h-[92px] w-full place-items-center rounded-md border border-[#334155] bg-[#02070f] p-2">
+            <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg2)] p-3">
+              <p className="mb-2 text-[11px] font-semibold text-[var(--gbp-text)]">Logo dark</p>
+              <div className="mb-2 grid min-h-[92px] w-full place-items-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] p-2">
                 {darkLogoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={darkLogoUrl} alt="Logo dark de empresa" className="block h-auto max-h-[76px] w-auto max-w-full object-contain" />
                 ) : (
-                  <span className="text-[10px] font-bold text-[#8ea0b8]">Sin logo dark</span>
+                  <span className="text-[10px] font-bold text-[var(--gbp-muted)]">Sin logo dark</span>
                 )}
               </div>
-              <label className="inline-flex cursor-pointer items-center rounded-lg border border-[#334155] bg-[#0f1723] px-3 py-2 text-xs font-semibold text-[#dde7f5] hover:bg-[#172131]">
+              <label className="inline-flex cursor-pointer items-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text)] hover:bg-[var(--gbp-surface2)]">
                 <input
                   type="file"
                   accept="image/*"
@@ -166,17 +166,17 @@ export function CompanyContactSettingsCard({
                 {uploadingLogo ? "Subiendo..." : "Cargar logo dark"}
               </label>
             </div>
-            <p className="text-[11px] text-[#7b726d] [.theme-dark-pro_&]:text-[#9aabc3] md:col-span-2">PNG/JPG/WebP/GIF/SVG · Max 2MB</p>
+            <p className="text-[11px] text-[var(--gbp-text2)] md:col-span-2">PNG/JPG/WebP/GIF/SVG · Max 2MB</p>
           </div>
         </div>
       ) : (
-        <div className="mt-4 rounded-xl border border-[#ece4df] bg-[#faf7f5] p-3 text-xs text-[#7b726d] [.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#111824] [.theme-dark-pro_&]:text-[#9aabc3]">
+        <div className="mt-4 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3 text-xs text-[var(--gbp-text2)]">
           El modulo <strong>Custom Branding</strong> esta desactivado para esta empresa. Un superadmin puede activarlo desde el panel de modulos.
         </div>
       )}
 
       <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={(event) => event.preventDefault()}>
-        <label className="grid gap-1 text-xs font-semibold text-[#7b726d] [.theme-dark-pro_&]:text-[#9aabc3]">
+        <label className="grid gap-1 text-xs font-semibold text-[var(--gbp-text2)]">
           Email
           <input
             name="support_email"
@@ -185,10 +185,10 @@ export function CompanyContactSettingsCard({
             onChange={(event) => setEmailValue(event.target.value)}
             placeholder="empresa@dominio.com"
             disabled={!isEditing || isSaving}
-            className="rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-[#f8f4f2] disabled:text-[#7f7772] [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#dde7f5] [.theme-dark-pro_&]:placeholder:text-[#7f8ea3] [.theme-dark-pro_&]:disabled:bg-[#0b111a] [.theme-dark-pro_&]:disabled:text-[#91a3bc]"
+            className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] disabled:cursor-not-allowed disabled:bg-[var(--gbp-bg)] disabled:text-[var(--gbp-muted)]"
           />
         </label>
-        <label className="grid gap-1 text-xs font-semibold text-[#7b726d] [.theme-dark-pro_&]:text-[#9aabc3]">
+        <label className="grid gap-1 text-xs font-semibold text-[var(--gbp-text2)]">
           Telefono
           <input
             name="support_phone"
@@ -196,10 +196,10 @@ export function CompanyContactSettingsCard({
             onChange={(event) => setPhoneValue(event.target.value)}
             placeholder="+54 11 ..."
             disabled={!isEditing || isSaving}
-            className="rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-[#f8f4f2] disabled:text-[#7f7772] [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#dde7f5] [.theme-dark-pro_&]:placeholder:text-[#7f8ea3] [.theme-dark-pro_&]:disabled:bg-[#0b111a] [.theme-dark-pro_&]:disabled:text-[#91a3bc]"
+            className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] disabled:cursor-not-allowed disabled:bg-[var(--gbp-bg)] disabled:text-[var(--gbp-muted)]"
           />
         </label>
-        <label className="grid gap-1 text-xs font-semibold text-[#7b726d] [.theme-dark-pro_&]:text-[#9aabc3]">
+        <label className="grid gap-1 text-xs font-semibold text-[var(--gbp-text2)]">
           WhatsApp
           <input
             name="feedback_whatsapp"
@@ -207,10 +207,10 @@ export function CompanyContactSettingsCard({
             onChange={(event) => setWhatsappValue(event.target.value)}
             placeholder="+54 9 11 ..."
             disabled={!isEditing || isSaving}
-            className="rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-[#f8f4f2] disabled:text-[#7f7772] [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#dde7f5] [.theme-dark-pro_&]:placeholder:text-[#7f8ea3] [.theme-dark-pro_&]:disabled:bg-[#0b111a] [.theme-dark-pro_&]:disabled:text-[#91a3bc]"
+            className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] disabled:cursor-not-allowed disabled:bg-[var(--gbp-bg)] disabled:text-[var(--gbp-muted)]"
           />
         </label>
-        <label className="grid gap-1 text-xs font-semibold text-[#7b726d] [.theme-dark-pro_&]:text-[#9aabc3]">
+        <label className="grid gap-1 text-xs font-semibold text-[var(--gbp-text2)]">
           URL
           <input
             name="website_url"
@@ -218,7 +218,7 @@ export function CompanyContactSettingsCard({
             onChange={(event) => setWebsiteValue(event.target.value)}
             placeholder="https://tuempresa.com"
             disabled={!isEditing || isSaving}
-            className="rounded-lg border border-[#ddd3ce] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-[#f8f4f2] disabled:text-[#7f7772] [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#dde7f5] [.theme-dark-pro_&]:placeholder:text-[#7f8ea3] [.theme-dark-pro_&]:disabled:bg-[#0b111a] [.theme-dark-pro_&]:disabled:text-[#91a3bc]"
+            className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] disabled:cursor-not-allowed disabled:bg-[var(--gbp-bg)] disabled:text-[var(--gbp-muted)]"
           />
         </label>
 
@@ -234,14 +234,14 @@ export function CompanyContactSettingsCard({
             setIsEditing(true);
           }}
           disabled={isSaving}
-          className="rounded-lg bg-[#111111] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2a2521] disabled:cursor-not-allowed disabled:opacity-80 sm:col-span-2 sm:w-fit [.theme-dark-pro_&]:bg-[#2b5ea8] [.theme-dark-pro_&]:hover:bg-[#3a73c6]"
+          className="rounded-lg bg-[var(--gbp-accent)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--gbp-accent-hover)] disabled:cursor-not-allowed disabled:opacity-80 sm:col-span-2 sm:w-fit"
         >
           {buttonLabel}
         </button>
         {notice ? (
           <p
             className={`sm:col-span-2 text-xs font-semibold ${
-              notice.tone === "success" ? "text-emerald-700 [.theme-dark-pro_&]:text-emerald-300" : "text-rose-700 [.theme-dark-pro_&]:text-rose-300"
+              notice.tone === "success" ? "text-emerald-700" : "text-rose-700"
             }`}
           >
             {notice.message}

@@ -179,12 +179,12 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
-      <section className="relative overflow-hidden rounded-[2.5rem] border border-[#2d2622] bg-[#171311] p-8 text-white shadow-xl">
+      <section className="relative overflow-hidden rounded-[2.5rem] border border-[var(--gbp-border)] bg-[linear-gradient(145deg,var(--gbp-text)_0%,#151922_100%)] p-8 text-white shadow-xl">
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand/20 blur-3xl" />
         <div className="relative z-10">
           <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-light/60">Superadmin Control</p>
           <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Organizaciones</h1>
-          <p className="mt-4 max-w-2xl text-base text-[#c7bbb3]/80 leading-relaxed">
+          <p className="mt-4 max-w-2xl text-base text-white/70 leading-relaxed">
             Gestión centralizada de infraestructura multi-tenant. Administra planes, límites y capacidades para cada empresa en la plataforma.
           </p>
         </div>
@@ -206,7 +206,7 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
 
       <section className="grid gap-4 sm:grid-cols-3">
         {[
-          { label: "Total Empresas", val: totalOrgs, icon: Building2, color: "text-[#251f1b]", bg: "bg-white" },
+          { label: "Total Empresas", val: totalOrgs, icon: Building2, color: "text-[var(--gbp-text)]", bg: "bg-[var(--gbp-surface)]" },
           { label: "Operacionales", val: activeOrgs, icon: BadgeCheck, color: "text-emerald-700", bg: "bg-emerald-50/50" },
           { label: "Pausas / Alertas", val: pausedOrSuspended, icon: Settings2, color: "text-red-700", bg: "bg-red-50/50" },
         ].map((stat, idx) => (
@@ -215,7 +215,7 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.1 }}
-            className={`rounded-3xl border border-line/60 ${stat.bg} p-5 shadow-sm`}
+            className={`rounded-3xl border border-[var(--gbp-border)] ${stat.bg} p-5 shadow-sm`}
           >
             <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               <stat.icon className="h-3.5 w-3.5" /> {stat.label}
@@ -225,16 +225,16 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
         ))}
       </section>
 
-      <section className="rounded-[2rem] border border-line/60 bg-white p-6 shadow-sm">
+      <section className="rounded-[2rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-sm">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <h2 className="text-lg font-bold tracking-tight text-foreground">Directorio Organizado</h2>
-            <div className="flex items-center gap-2 rounded-xl bg-muted/30 px-3 py-1.5 border border-line/20">
+            <div className="flex items-center gap-2 rounded-xl bg-[var(--gbp-bg)] px-3 py-1.5 border border-[var(--gbp-border)]">
                <Search className="h-3.5 w-3.5 text-muted-foreground" />
                <input type="text" placeholder="Buscar..." className="bg-transparent text-xs outline-none w-24 placeholder:text-muted-foreground/60" />
             </div>
           </div>
-          <Link href="/superadmin/organizations?action=create" className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-brand/20 transition-all hover:bg-brand-dark hover:scale-[1.02] active:scale-[0.98]">
+           <Link href="/superadmin/organizations?action=create" className="inline-flex items-center gap-2 rounded-xl bg-[var(--gbp-accent)] px-5 py-2.5 text-xs font-bold text-white shadow-[var(--gbp-shadow-accent)] transition-all hover:bg-[var(--gbp-accent-hover)] hover:scale-[1.02] active:scale-[0.98]">
             <Plus className="h-4 w-4" /> Nueva Organización
           </Link>
         </div>
@@ -247,7 +247,7 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
             return (
               <motion.article 
                 key={org.id} 
-                className="group relative grid items-center gap-4 rounded-2xl border border-line/40 bg-[#fffdfa]/50 px-5 py-4 transition-all hover:bg-white hover:shadow-xl hover:shadow-black/5 sm:grid-cols-[2fr_1.5fr_1fr_1fr_auto]"
+                className="group relative grid items-center gap-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-5 py-4 transition-all hover:bg-[var(--gbp-surface)] hover:shadow-xl hover:shadow-black/5 sm:grid-cols-[2fr_1.5fr_1fr_1fr_auto]"
               >
                 <div className="min-w-0">
                   <p className="truncate text-base font-bold text-foreground">{org.name}</p>
@@ -298,9 +298,9 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className={`relative z-10 w-full rounded-[2.5rem] border border-line/40 bg-white p-8 shadow-2xl ${action === 'edit' ? 'max-w-4xl' : action === 'create' ? 'max-w-3xl' : 'max-w-2xl'}`}
+              className={`relative z-10 w-full rounded-[2.5rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-8 shadow-2xl ${action === 'edit' ? 'max-w-4xl' : action === 'create' ? 'max-w-3xl' : 'max-w-2xl'}`}
             >
-              <div className="mb-6 flex items-center justify-between border-b border-line/20 pb-6">
+              <div className="mb-6 flex items-center justify-between border-b border-[var(--gbp-border)] pb-6">
                 <div>
                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 mb-1">Operación Superadmin</p>
                    <h3 className="text-2xl font-bold tracking-tight text-foreground">
@@ -310,7 +310,7 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
                     {action === 'delete' && 'Protocolo de Eliminación'}
                    </h3>
                 </div>
-                <Link href="/superadmin/organizations" className="group rounded-full bg-muted/40 p-2 text-muted-foreground transition-all hover:bg-muted hover:text-foreground">
+                  <Link href="/superadmin/organizations" className="group rounded-full bg-[var(--gbp-surface2)] p-2 text-[var(--gbp-text2)] transition-all hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]">
                   <X className="h-5 w-5 transition-transform group-hover:rotate-90" />
                 </Link>
               </div>
@@ -329,7 +329,7 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
 
               {action === "create" && (
                 <form action={createOrganizationAction} autoComplete="off" className="space-y-6">
-                  <div className="rounded-2xl border border-line/30 bg-muted/10 p-5">
+                  <div className="rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-5">
                     <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">Datos de la organización</p>
                     <div className="grid gap-4 md:grid-cols-2">
                       <SuperadminInputField label="Organización" name="name" required placeholder="Nombre comercial de la empresa" className="md:col-span-2" />
@@ -342,7 +342,7 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-line/30 bg-white p-5">
+                  <div className="rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-5">
                     <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-brand">Credenciales del Administrador</p>
                     <div className="grid gap-4 md:grid-cols-2">
                       <SuperadminInputField label="Nombre Completo" name="admin_full_name" required placeholder="Nombre del responsable" className="md:col-span-2" />
@@ -355,7 +355,7 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
                   </div>
 
                   <div className="flex flex-wrap justify-end gap-3 pt-1">
-                    <Link href="/superadmin/organizations" className="rounded-xl border border-line bg-white px-6 py-2.5 text-sm font-bold text-muted-foreground transition-all hover:bg-muted">Cancelar</Link>
+                     <Link href="/superadmin/organizations" className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-6 py-2.5 text-sm font-bold text-[var(--gbp-text2)] transition-all hover:bg-[var(--gbp-bg)]">Cancelar</Link>
                     <SubmitButton
                       label="Crear y enviar invitación"
                       pendingLabel="Creando organización y enviando..."

@@ -1,12 +1,19 @@
-import { MessageSquare, CircleOff, CheckCircle2, ChevronRight, Eye, RefreshCw, Archive, Sparkles, Bug } from "lucide-react";
+import { MessageSquare, CircleOff, CheckCircle2, RefreshCw, Sparkles, Bug } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { updateFeedbackStatusAction } from "./actions";
 import { FeedbackStatusButton } from "./feedback-status-button";
 
 export const dynamic = "force-dynamic";
+
+function getOrganizationName(
+  organizations: { name?: string } | Array<{ name?: string }> | null | undefined,
+) {
+  if (!organizations) return "Empresa Borrada";
+  if (Array.isArray(organizations)) return organizations[0]?.name || "Empresa Borrada";
+  return organizations.name || "Empresa Borrada";
+}
 
 async function getAuthUserMap() {
   const supabase = createSupabaseAdminClient();
@@ -56,12 +63,12 @@ export default async function SuperadminFeedbackPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
-      <section className="relative overflow-hidden rounded-[2.5rem] border border-[#2d2622] bg-[#171311] p-8 text-white shadow-xl">
+      <section className="relative overflow-hidden rounded-[2.5rem] border border-[var(--gbp-border)] bg-[linear-gradient(145deg,var(--gbp-text)_0%,#151922_100%)] p-8 text-white shadow-xl">
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand/20 blur-3xl" />
         <div className="relative z-10">
           <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-light/60">Superadmin Control</p>
           <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Feedback Inbox</h1>
-          <p className="mt-4 max-w-2xl text-base text-[#c7bbb3]/80 leading-relaxed">
+          <p className="mt-4 max-w-2xl text-base text-white/70 leading-relaxed">
              Bandeja de entrada centralizada. Administra los reportes de errores e ideas enviados por los usuarios de las distintas empresas.
           </p>
         </div>
@@ -69,13 +76,13 @@ export default async function SuperadminFeedbackPage() {
 
       <section className="grid gap-4 sm:grid-cols-3">
         {[
-          { label: "Total Recibidos", val: total, icon: MessageSquare, color: "text-[#251f1b]", bg: "bg-white" },
+          { label: "Total Recibidos", val: total, icon: MessageSquare, color: "text-[var(--gbp-text)]", bg: "bg-[var(--gbp-surface)]" },
           { label: "Pendientes", val: openCount, icon: RefreshCw, color: "text-amber-700", bg: "bg-amber-50/50" },
           { label: "Resueltos", val: resolvedCount, icon: CheckCircle2, color: "text-emerald-700", bg: "bg-emerald-50/50" },
-        ].map((stat, idx) => (
+        ].map((stat) => (
           <article 
             key={stat.label}
-            className={`rounded-3xl border border-line/60 ${stat.bg} p-5 shadow-sm`}
+            className={`rounded-3xl border border-[var(--gbp-border)] ${stat.bg} p-5 shadow-sm`}
           >
             <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               <stat.icon className="h-3.5 w-3.5" /> {stat.label}
@@ -85,7 +92,7 @@ export default async function SuperadminFeedbackPage() {
         ))}
       </section>
 
-      <section className="rounded-[2rem] border border-line/60 bg-white p-6 shadow-sm">
+      <section className="rounded-[2rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-sm">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-lg font-bold tracking-tight text-foreground">Mensajes Recientes</h2>
         </div>
@@ -116,7 +123,7 @@ export default async function SuperadminFeedbackPage() {
                        </span>
                        
                        <div className="flex items-center gap-1.5 rounded-full border border-line/40 bg-muted/20 px-2.5 py-0.5 text-[10px] uppercase font-bold text-muted-foreground">
-                          {((msg.organizations as unknown) as any)?.name ?? "Empresa Borrada"}
+                           {getOrganizationName(msg.organizations as { name?: string } | Array<{ name?: string }> | null)}
                        </div>
 
                        <div className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground/60">

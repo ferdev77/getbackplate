@@ -7,6 +7,60 @@
   --brand-dark: #8f2e26;
   --panel: #fffdfb;
   --line: #e7e0dc;
+
+  /* Design System foundation tokens (light) */
+  --gbp-bg: #f7f8fc;
+  --gbp-bg2: #edeef5;
+  --gbp-surface: #ffffff;
+  --gbp-surface2: #f2f3f9;
+  --gbp-text: #111827;
+  --gbp-text2: #4b5563;
+  --gbp-muted: #9ca3af;
+  --gbp-border: #e5e7f0;
+  --gbp-border2: #d1d5e0;
+  --gbp-accent: #d4531a;
+  --gbp-accent-hover: #e06030;
+  --gbp-accent-glow: rgba(212, 83, 26, 0.13);
+  --gbp-violet: #6c47ff;
+  --gbp-violet-hover: #7b5cff;
+  --gbp-violet-soft: rgba(108, 71, 255, 0.1);
+  --gbp-success: #22c55e;
+  --gbp-success-soft: rgba(34, 197, 94, 0.1);
+  --gbp-error: #ef4444;
+  --gbp-error-soft: rgba(239, 68, 68, 0.1);
+
+  --gbp-radius-sm: 6px;
+  --gbp-radius-md: 8px;
+  --gbp-radius-lg: 10px;
+  --gbp-radius-xl: 12px;
+  --gbp-radius-2xl: 14px;
+  --gbp-radius-3xl: 16px;
+  --gbp-radius-pill: 9999px;
+
+  --gbp-shadow-sm: 0 1px 3px rgba(17, 24, 39, 0.07), 0 4px 16px rgba(17, 24, 39, 0.05);
+  --gbp-shadow-md: 0 4px 12px rgba(17, 24, 39, 0.08), 0 2px 6px rgba(17, 24, 39, 0.05);
+  --gbp-shadow-lg: 0 8px 32px rgba(17, 24, 39, 0.1), 0 2px 8px rgba(17, 24, 39, 0.06);
+  --gbp-shadow-xl: 0 20px 60px rgba(17, 24, 39, 0.12), 0 4px 16px rgba(17, 24, 39, 0.06);
+  --gbp-shadow-accent: 0 4px 14px rgba(212, 83, 26, 0.25);
+  --gbp-shadow-violet: 0 4px 14px rgba(108, 71, 255, 0.25);
+}
+
+[data-theme="dark"],
+[data-theme="dark-pro"],
+.theme-dark-pro {
+  --gbp-bg: #0d0f14;
+  --gbp-bg2: #13161e;
+  --gbp-surface: #1a1d27;
+  --gbp-surface2: #21253a;
+  --gbp-text: #edf0ff;
+  --gbp-text2: #b0b8d0;
+  --gbp-muted: #737b96;
+  --gbp-border: #252836;
+  --gbp-border2: #343748;
+  --gbp-accent: #ff6b35;
+  --gbp-accent-hover: #ff7d4a;
+  --gbp-violet: #8b6fff;
+  --gbp-violet-hover: #9b82ff;
 }
 
 @theme inline {
@@ -16,6 +70,37 @@
   --color-brand-dark: var(--brand-dark);
   --color-panel: var(--panel);
   --color-line: var(--line);
+
+  /* Design System semantic aliases */
+  --color-accent: var(--gbp-accent);
+  --color-accent-hover: var(--gbp-accent-hover);
+  --color-accent-glow: var(--gbp-accent-glow);
+  --color-violet: var(--gbp-violet);
+  --color-violet-hover: var(--gbp-violet-hover);
+  --color-violet-soft: var(--gbp-violet-soft);
+  --color-success: var(--gbp-success);
+  --color-success-soft: var(--gbp-success-soft);
+  --color-error: var(--gbp-error);
+  --color-error-soft: var(--gbp-error-soft);
+  --color-gbp-bg: var(--gbp-bg);
+  --color-gbp-bg2: var(--gbp-bg2);
+  --color-gbp-surface: var(--gbp-surface);
+  --color-gbp-surface2: var(--gbp-surface2);
+  --color-gbp-text: var(--gbp-text);
+  --color-gbp-text2: var(--gbp-text2);
+  --color-gbp-muted: var(--gbp-muted);
+  --color-gbp-border: var(--gbp-border);
+  --color-gbp-border2: var(--gbp-border2);
+
+  --radius-pill: var(--gbp-radius-pill);
+  --radius-xl: var(--gbp-radius-xl);
+  --shadow-sm: var(--gbp-shadow-sm);
+  --shadow-md: var(--gbp-shadow-md);
+  --shadow-lg: var(--gbp-shadow-lg);
+  --shadow-xl: var(--gbp-shadow-xl);
+  --shadow-accent: var(--gbp-shadow-accent);
+  --shadow-violet: var(--gbp-shadow-violet);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -24,6 +109,42 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), sans-serif;
+}
+
+.grad-orange {
+  background: linear-gradient(90deg, var(--gbp-accent) 0%, #ff8c42 50%, var(--gbp-accent) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: grad-shift 4s linear infinite;
+}
+
+.grad-violet {
+  background: linear-gradient(90deg, var(--gbp-violet) 0%, #a78bfa 50%, var(--gbp-violet) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: grad-shift 5s linear infinite;
+}
+
+.grad-mixed {
+  background: linear-gradient(90deg, var(--gbp-accent) 0%, #ff8a50 30%, var(--gbp-violet) 70%, var(--gbp-accent) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: grad-shift 5s linear infinite;
+}
+
+@keyframes grad-shift {
+  0% {
+    background-position: 0% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
 }
 
 .theme-dark-pro {

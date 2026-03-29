@@ -29,7 +29,7 @@ export function SuperadminTopbar() {
     <>
       <div className="flex items-center gap-8">
         <Link href="/superadmin/dashboard" className="flex items-center gap-2 group mr-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand text-white shadow-lg shadow-brand/20 transition-transform group-hover:scale-105">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--gbp-accent)] text-white shadow-[var(--gbp-shadow-accent)] transition-transform group-hover:scale-105">
             <span className="text-lg font-bold italic">S</span>
           </div>
           <span className="hidden text-lg font-bold tracking-tight text-foreground sm:block">Superadmin</span>
@@ -45,15 +45,15 @@ export function SuperadminTopbar() {
                 href={item.href}
                 className={`relative px-4 py-2 text-sm font-medium transition-all rounded-xl ${
                   active
-                    ? "text-brand bg-brand/5 font-bold"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                     ? "text-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] font-bold"
+                     : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)] hover:bg-[var(--gbp-surface2)]"
                 }`}
               >
                 {item.label}
                 {active && (
                   <motion.div
                     layoutId="active-pill"
-                    className="absolute inset-0 z-[-1] rounded-xl bg-brand/5 border border-brand/10"
+                    className="absolute inset-0 z-[-1] rounded-xl bg-[var(--gbp-accent-glow)] border border-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)]"
                     transition={{ type: "spring", duration: 0.5 }}
                   />
                 )}
@@ -67,7 +67,7 @@ export function SuperadminTopbar() {
         {/* Mobile menu toggle */}
         <button 
           onClick={() => setIsOpen(!isOpen)}
-          className="grid h-10 w-10 place-items-center rounded-xl border border-line bg-white text-muted-foreground transition-colors hover:text-foreground md:hidden"
+          className="grid h-10 w-10 place-items-center rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] transition-colors hover:text-[var(--gbp-text)] md:hidden"
         >
           {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
@@ -84,7 +84,7 @@ export function SuperadminTopbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="absolute top-full left-0 z-50 w-full border-b border-line bg-panel p-6 shadow-2xl md:hidden"
+            className="absolute top-full left-0 z-50 w-full border-b border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-2xl md:hidden"
           >
             <div className="flex flex-col gap-2">
               {ITEMS.map((item) => {
@@ -96,8 +96,8 @@ export function SuperadminTopbar() {
                     onClick={() => setIsOpen(false)}
                     className={`flex items-center justify-between rounded-xl px-4 py-3.5 transition-all ${
                       active 
-                        ? "bg-brand/5 text-brand font-bold" 
-                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                        ? "bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)] font-bold" 
+                        : "text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"
                     }`}
                   >
                     <span className="text-[15px]">{item.label}</span>
@@ -106,11 +106,11 @@ export function SuperadminTopbar() {
                 );
               })}
 
-              <div className="mt-4 pt-4 border-t border-line">
+              <div className="mt-4 pt-4 border-t border-[var(--gbp-border)]">
                 <form action={logoutAction}>
                   <button
                     type="submit"
-                    className="flex w-full items-center gap-3 rounded-xl bg-red-50 px-4 py-3.5 text-[15px] font-bold text-red-600 transition-colors hover:bg-red-100"
+                    className="flex w-full items-center gap-3 rounded-xl bg-[var(--gbp-error-soft)] px-4 py-3.5 text-[15px] font-bold text-[var(--gbp-error)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_16%,transparent)]"
                   >
                     <LogOut className="h-5 w-5" />
                     Cerrar sesión

@@ -29,12 +29,12 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
-      <section className="relative overflow-hidden rounded-[2.5rem] border border-[#2d2622] bg-[#171311] p-8 text-white shadow-xl">
+      <section className="relative overflow-hidden rounded-[2.5rem] border border-[var(--gbp-border)] bg-[linear-gradient(145deg,var(--gbp-text)_0%,#151922_100%)] p-8 text-white shadow-xl">
         <div className="pointer-events-none absolute -right-20 -bottom-20 h-64 w-64 rounded-full bg-brand/20 blur-3xl" />
         <div className="relative z-10">
           <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-light/60">Infraestructura & Capacidades</p>
           <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Catálogo de Módulos</h1>
-          <p className="mt-4 max-w-2xl text-base text-[#c7bbb3]/80 leading-relaxed">
+          <p className="mt-4 max-w-2xl text-base text-white/70 leading-relaxed">
             Gestione la arquitectura funcional del sistema. Defina qué componentes son piezas fundamentales del núcleo y cuáles son extensiones comerciales.
           </p>
         </div>
@@ -56,7 +56,7 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
 
       <section className="grid gap-4 sm:grid-cols-2">
         {[
-          { label: "Módulos Registrados", val: modules?.length ?? 0, icon: Puzzle, color: "text-[#251f1b]", bg: "bg-white" },
+          { label: "Módulos Registrados", val: modules?.length ?? 0, icon: Puzzle, color: "text-[var(--gbp-text)]", bg: "bg-[var(--gbp-surface)]" },
           { label: "Implementaciones Activas", val: tenantBindings ?? 0, icon: Boxes, color: "text-brand-dark", bg: "bg-brand/5" },
         ].map((stat, idx) => (
           <motion.article 
@@ -64,7 +64,7 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.1 }}
-            className={`rounded-3xl border border-line/60 ${stat.bg} p-5 shadow-sm`}
+            className={`rounded-3xl border border-[var(--gbp-border)] ${stat.bg} p-5 shadow-sm`}
           >
             <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               <stat.icon className="h-3.5 w-3.5" /> {stat.label}
@@ -74,7 +74,7 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
         ))}
       </section>
 
-      <section className="rounded-[2.5rem] border border-line/60 bg-white p-6 shadow-sm overflow-hidden">
+      <section className="rounded-[2.5rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-sm overflow-hidden">
         <div className="mb-8 px-2">
            <h2 className="text-xl font-bold tracking-tight text-foreground">Inventario de Componentes</h2>
            <p className="text-xs text-muted-foreground mt-1">Configure las propiedades de cada módulo en el ecosistema.</p>
@@ -89,7 +89,7 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: idx * 0.05 }}
-                className="group relative overflow-hidden rounded-[2rem] border border-line/40 bg-[#fffdfa]/50 p-4 transition-all hover:bg-white sm:px-8 sm:py-6"
+                className="group relative overflow-hidden rounded-[2rem] border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4 transition-all hover:bg-[var(--gbp-surface)] sm:px-8 sm:py-6"
               >
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
                   <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -138,7 +138,7 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
                           </div>
                        </label>
 
-                       <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-xl bg-foreground px-8 py-3 text-xs font-bold text-white shadow-lg shadow-black/10 transition-all hover:bg-black hover:scale-[1.02]">
+                        <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--gbp-text)] px-8 py-3 text-xs font-bold text-white shadow-lg shadow-black/10 transition-all hover:opacity-90 hover:scale-[1.02]">
                           <Save className="h-4 w-4" /> Sincronizar Módulo
                        </button>
                     </div>
