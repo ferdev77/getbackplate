@@ -88,7 +88,7 @@ export const getEmployeeDirectoryView = cache(async (
     includeEmployeesData && employeeIds.length > 0
       ? supabase
           .from("employee_documents")
-          .select("employee_id, document_id, status")
+          .select("employee_id, document_id, status, linked_document:documents(title)")
           .eq("organization_id", organizationId)
           .in("employee_id", employeeIds)
       : Promise.resolve({ data: [] }),
@@ -100,9 +100,25 @@ export const getEmployeeDirectoryView = cache(async (
 
   const documentById = new Map((documents ?? []).map((row) => [row.id, row]));
   const docsByEmployee = new Map<string, any[]>();
+  const requiredDocumentSlots = ["photo", "id", "ssn", "rec1", "rec2", "other"] as const;
+  const slotFromTitle: Array<{ prefix: string; slot: (typeof requiredDocumentSlots)[number] }> = [
+    { prefix: "Foto del Empleado - ", slot: "photo" },
+    { prefix: "ID / Identificacion - ", slot: "id" },
+    { prefix: "Numero de Seguro Social - ", slot: "ssn" },
+    { prefix: "Carta de Recomendacion 1 - ", slot: "rec1" },
+    { prefix: "Carta de Recomendacion 2 - ", slot: "rec2" },
+    { prefix: "Otro Documento - ", slot: "other" },
+  ];
 
   for (const ed of employeeDocs ?? []) {
     const docData = documentById.get(ed.document_id) || { id: ed.document_id, title: "Documento" };
+    const linkedDoc = Array.isArray(ed.linked_document) ? ed.linked_document[0] : ed.linked_document;
+    const linkedTitle = typeof linkedDoc?.title === "string" ? linkedDoc.title : null;
+
+    let slotKey = null as string | null;
+    if (linkedTitle) {
+      slotKey = slotFromTitle.find((rule) => linkedTitle.startsWith(rule.prefix))?.slot ?? null;
+    }
     
     if (!docsByEmployee.has(ed.employee_id)) {
       docsByEmployee.set(ed.employee_id, []);
@@ -110,6 +126,7 @@ export const getEmployeeDirectoryView = cache(async (
     docsByEmployee.get(ed.employee_id)!.push({
       ...docData,
       status: ed.status,
+      slot_key: slotKey,
       employee_id: ed.employee_id
     });
   }
@@ -160,6 +177,14 @@ export const getEmployeeDirectoryView = cache(async (
        if (matchingPos) positionId = matchingPos.id;
     }
 
+    const employeeDocs = docsByEmployee.get(emp.id) ?? [];
+    const resolvedSlots = new Set(
+      employeeDocs
+        .filter((doc) => doc.slot_key && doc.status !== "rejected")
+        .map((doc) => doc.slot_key),
+    );
+    const missingRequiredDocuments = requiredDocumentSlots.filter((slot) => !resolvedSlots.has(slot)).length;
+
     return {
       id: emp.id,
       userId: emp.user_id,
@@ -193,8 +218,9 @@ export const getEmployeeDirectoryView = cache(async (
       documentType: emp.document_type,
       documentNumber: emp.document_number,
       contracts: contractsByEmployee.get(emp.id) ?? [],
-      pendingDocuments: (docsByEmployee.get(emp.id) ?? []).filter(d => d.status === "pending" || d.status === "rejected"),
+      pendingDocuments: missingRequiredDocuments,
       completedDocumentsCount: (docsByEmployee.get(emp.id) ?? []).filter(d => d.status === "signed" || d.status === "approved").length,
+      documentsCompletionStatus: missingRequiredDocuments === 0 ? "complete" : "incomplete",
     };
   });
 

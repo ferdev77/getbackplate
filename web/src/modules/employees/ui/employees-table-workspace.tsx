@@ -40,6 +40,7 @@ type EmployeeRow = {
   emergencyPhone: string | null;
   emergencyEmail: string | null;
   pendingDocuments: number;
+  docsCompletionStatus?: "complete" | "incomplete";
 };
 
 type EmployeesTableWorkspaceProps = {
@@ -270,7 +271,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
         ["Salario", formatMoney(row.salaryAmount, row.salaryCurrency)],
         ["Contrato", row.contractStatus || "-"],
         ["Firma contrato", formatDate(row.contractSignedAt)],
-        ["Docs pendientes", String(row.pendingDocuments)],
+        ["Docs", row.recordType === "employee" ? (row.docsCompletionStatus === "complete" ? "Completa" : "Incompleta") : "-"],
       ];
 
       for (const [label, value] of rowsText) {
@@ -411,8 +412,8 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                 <p className="hidden xl:block text-xs text-[#666]">{row.recordType === "employee" ? "Si" : "No"}</p>
                 <p className="hidden lg:block">
                   {row.recordType === "employee" ? (
-                    <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${row.pendingDocuments === 0 ? "bg-[#dcfce7] text-[#15803d]" : "bg-[#fef3c7] text-[#92400e]"}`}>
-                      {row.pendingDocuments === 0 ? "✓" : row.pendingDocuments}
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${row.docsCompletionStatus === "complete" ? "bg-[#dcfce7] text-[#15803d]" : "bg-[#fee2e2] text-[#b91c1c]"}`}>
+                      {row.docsCompletionStatus === "complete" ? "Completa" : "Incompleta"}
                     </span>
                   ) : (
                     <span className="text-xs text-[#bbb]">-</span>
@@ -493,7 +494,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Email emergencia</p><p className="text-sm text-[#333]">{selected.emergencyEmail || "-"}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Contrato</p><p className="text-sm text-[#333]">{selected.contractStatus || "-"}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Firma contrato</p><p className="text-sm text-[#333]">{formatDate(selected.contractSignedAt)}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Docs pendientes</p><p className="text-sm text-[#333]">{selected.pendingDocuments}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Docs</p><p className="text-sm text-[#333]">{selected.recordType === "employee" ? (selected.docsCompletionStatus === "complete" ? "Completa" : `Incompleta (${selected.pendingDocuments} faltantes)`) : "-"}</p></div>
             </div>
             <div className="mx-6 mb-5 rounded-xl border border-[#ece3de] bg-[#fcfaf8] p-3">
               <p className="mb-1 text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Cambiar estado laboral</p>
