@@ -1,6 +1,7 @@
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { stripe } from "@/infrastructure/stripe/client";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { getTenantEmailBranding } from "@/shared/lib/email-branding";
 import { planChangeAppliedTemplate, planChangeDecisionTemplate } from "@/shared/lib/email-templates/billing";
 
 type PlanRow = {
@@ -257,6 +258,7 @@ export async function sendPlanChangeDecisionEmail(params: {
     modulesToDisable,
     direction,
     happenedAt: new Date().toLocaleString("es-AR"),
+    branding: await getTenantEmailBranding(params.organizationId),
   });
 
   const result = await sendTransactionalEmail({
@@ -348,6 +350,7 @@ export async function sendPlanChangeAppliedEmail(params: {
     modulesToDisable,
     direction,
     appliedAt: new Date().toLocaleString("es-AR"),
+    branding: await getTenantEmailBranding(params.organizationId),
   });
 
   const result = await sendTransactionalEmail({

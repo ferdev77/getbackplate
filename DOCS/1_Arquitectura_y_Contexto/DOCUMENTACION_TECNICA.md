@@ -1452,6 +1452,11 @@ Se implementaron las siguientes características:
     - el backend resuelve `priceId` final desde Stripe usando `planId + billingPeriod`,
     - se permite cambio de periodicidad incluso dentro del mismo plan,
     - archivos clave: `web/src/shared/ui/company-shell.tsx` y `web/src/app/api/stripe/checkout/route.ts`.
+  - Personalizacion visual de emails por tenant (modulo `custom_branding`):
+    - helper central: `web/src/shared/lib/email-branding.ts`,
+    - templates extendidos: `web/src/shared/lib/email-templates/invitation.ts` y `web/src/shared/lib/email-templates/billing.ts`,
+    - aplica a invitaciones/reenvios y a billing plan-change,
+    - fallback automatico a marca plataforma cuando el modulo esta desactivado.
 
 ## 32. Reportes de Checklists (2026-03-27)
 

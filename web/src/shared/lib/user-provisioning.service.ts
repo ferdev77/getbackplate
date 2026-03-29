@@ -1,18 +1,20 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { EMPLOYEES_MESSAGES } from "@/shared/lib/employees-messages";
+import { getTenantEmailBranding } from "@/shared/lib/email-branding";
 import { sendEmail } from "@/shared/lib/brevo";
 import { initialInviteTemplate } from "@/shared/lib/email-templates/invitation";
 
 export async function provisionOrganizationUserAccount(input: {
   admin: SupabaseClient;
+  organizationId: string;
   loginEmail: string;
   accountPassword: string;
   firstName: string;
   lastName: string;
 }): Promise<{ ok: true; userId: string; isNewUser: boolean } | { ok: false; error: string }> {
   try {
-    const { admin, loginEmail, accountPassword, firstName, lastName } = input;
+    const { admin, organizationId, loginEmail, accountPassword, firstName, lastName } = input;
     
     if (!loginEmail) {
       return { ok: false, error: EMPLOYEES_MESSAGES.ACCESS_EMAIL_REQUIRED };
@@ -25,6 +27,7 @@ export async function provisionOrganizationUserAccount(input: {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
     const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
     const fullName = `${firstName} ${lastName}`.trim();
+    const branding = await getTenantEmailBranding(organizationId);
 
     const existingAuthUser = await findAuthUserByEmail(loginEmail);
     
@@ -55,6 +58,7 @@ export async function provisionOrganizationUserAccount(input: {
           loginEmail,
           loginPassword: accountPassword,
           loginUrl,
+          branding,
         }),
       });
       
@@ -88,6 +92,7 @@ export async function provisionOrganizationUserAccount(input: {
           loginEmail,
           loginPassword: accountPassword,
           loginUrl,
+          branding,
         }),
       });
       

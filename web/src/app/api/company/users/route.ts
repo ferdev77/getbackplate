@@ -6,6 +6,7 @@ import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
 import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { USERS_API_MESSAGES } from "@/shared/lib/employees-messages";
+import { getTenantEmailBranding } from "@/shared/lib/email-branding";
 import { assertPlanLimitForUsers, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
 import { sendEmail } from "@/shared/lib/brevo";
 import { initialInviteTemplate } from "@/shared/lib/email-templates/invitation";
@@ -18,6 +19,7 @@ function isAuthUserAlreadyRegisteredError(message: string) {
 }
 
 async function resolveOrCreateAuthUser(params: {
+  organizationId: string;
   email: string;
   password: string;
   fullName: string;
@@ -28,6 +30,7 @@ async function resolveOrCreateAuthUser(params: {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
   const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
+  const branding = await getTenantEmailBranding(params.organizationId);
 
   const userMeta = {
     full_name: params.fullName,
@@ -58,6 +61,7 @@ async function resolveOrCreateAuthUser(params: {
           loginEmail: params.email,
           loginPassword: params.password,
           loginUrl,
+          branding,
         }),
       });
     } catch (e) {
@@ -88,13 +92,14 @@ async function resolveOrCreateAuthUser(params: {
     await sendEmail({
       to: [{ email: params.email, name: params.fullName }],
       subject: "Bienvenido(a) a GetBackplate - Tus credenciales",
-      htmlContent: initialInviteTemplate({
-        fullName: params.fullName,
-        loginEmail: params.email,
-        loginPassword: params.password,
-        loginUrl,
-      }),
-    });
+        htmlContent: initialInviteTemplate({
+          fullName: params.fullName,
+          loginEmail: params.email,
+          loginPassword: params.password,
+          loginUrl,
+          branding,
+        }),
+      });
   } catch (e) {
     console.error("Error sending invite email for new user:", e);
   }
@@ -303,6 +308,7 @@ export async function POST(request: Request) {
   }
 
   const authResult = await resolveOrCreateAuthUser({
+    organizationId: tenant.organizationId,
     email,
     password,
     fullName,

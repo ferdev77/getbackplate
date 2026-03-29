@@ -79,6 +79,32 @@ Cuando un Company Admin confirma un cambio de plan desde el modal de "Planes Dis
 **Proveedor de envio:**
 - Se utiliza el mismo canal oficial del sistema para correos transaccionales (`Brevo`) via `web/src/infrastructure/email/client.ts`.
 
+### 4.2 Personalizacion visual de emails por modulo `custom_branding`
+
+Regla funcional:
+
+- Si la organizacion tiene activo el modulo `custom_branding`, los emails del tenant renderizan branding de empresa (logo + nombre de empresa) en header y firma.
+- Si el modulo esta desactivado, los emails mantienen branding default `GetBackplate`.
+
+Implementacion:
+
+- Resolucion tenant-aware de branding: `web/src/shared/lib/email-branding.ts`.
+- Plantillas con soporte de branding:
+  - Invitaciones y reenvios: `web/src/shared/lib/email-templates/invitation.ts`.
+  - Billing (plan change requested/applied): `web/src/shared/lib/email-templates/billing.ts`.
+
+Flujos cubiertos:
+
+- Invitacion inicial de usuario/admin.
+- Reenvio de invitacion (company y superadmin).
+- Cambio de plan solicitado.
+- Cambio de plan aplicado.
+
+Notas:
+
+- El branding de email depende del estado del modulo a nivel tenant (`is_module_enabled(..., 'custom_branding')`).
+- El fallback visual (si no hay logo cargado) usa nombre de empresa en header.
+
 ### 4.1 Regla de Periodicidad (Mensual vs Anual)
 
 El selector de periodicidad en el modal de planes permite cambiar entre:

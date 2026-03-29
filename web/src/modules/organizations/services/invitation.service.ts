@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { sendEmail } from "@/shared/lib/brevo";
+import { getTenantEmailBranding } from "@/shared/lib/email-branding";
 import { initialInviteTemplate } from "@/shared/lib/email-templates/invitation";
 
 // ---------------------------------------------------------------------------
@@ -95,6 +96,7 @@ export async function sendOrganizationAdminInvitation(params: {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
   const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login`;
+  const branding = await getTenantEmailBranding(params.organizationId);
 
   const existingUser = await findAuthUserByEmail(params.email);
   let userId = existingUser?.id ?? null;
@@ -121,6 +123,7 @@ export async function sendOrganizationAdminInvitation(params: {
           loginEmail: params.email,
           loginPassword: userPassword,
           loginUrl,
+          branding,
         }),
       });
       deliveryMode = "recovery";
@@ -136,7 +139,8 @@ export async function sendOrganizationAdminInvitation(params: {
           reason: "existing_user",
         },
       });
-    } catch (recoveryError: any) {
+    } catch (recoveryError: unknown) {
+      const recoveryMessage = recoveryError instanceof Error ? recoveryError.message : "Error";
       await logAuditEvent({
         action: "organization.invitation.fallback_recovery.failed",
         entityType: "organization_invitation",
@@ -146,11 +150,11 @@ export async function sendOrganizationAdminInvitation(params: {
         severity: "medium",
         metadata: {
           email: params.email,
-          error: recoveryError?.message ?? "Error",
+          error: recoveryMessage,
           reason: "existing_user",
         },
       });
-      return { ok: false as const, message: `No se pudo enviar correo de acceso: ${recoveryError?.message ?? "Error"}` };
+      return { ok: false as const, message: `No se pudo enviar correo de acceso: ${recoveryMessage}` };
     }
   } else {
     const { data: created, error: createError } = await supabase.auth.admin.createUser({
@@ -175,9 +179,11 @@ export async function sendOrganizationAdminInvitation(params: {
           loginEmail: params.email,
           loginPassword: userPassword,
           loginUrl,
+          branding,
         }),
       });
-    } catch (inviteError: any) {
+    } catch (inviteError: unknown) {
+      const inviteMessage = inviteError instanceof Error ? inviteError.message : "Error";
       await logAuditEvent({
         action: "organization.invitation.fallback_recovery.sent",
         entityType: "organization_invitation",
@@ -188,12 +194,12 @@ export async function sendOrganizationAdminInvitation(params: {
         metadata: {
           email: params.email,
           reason: "invite_error",
-          invite_error: inviteError?.message ?? "Error",
+          invite_error: inviteMessage,
         },
       });
       return {
         ok: false as const,
-        message: `Usuario creado pero fallo envio de correo: ${inviteError?.message ?? "Error"}`,
+        message: `Usuario creado pero fallo envio de correo: ${inviteMessage}`,
       };
     }
   }
