@@ -7,6 +7,7 @@ import { logAuditEvent } from "@/shared/lib/audit";
 import { sendEmail } from "@/shared/lib/brevo";
 import { getTenantEmailBranding } from "@/shared/lib/email-branding";
 import { resendReminderTemplate } from "@/shared/lib/email-templates/invitation";
+import { buildTenantAuthUrls } from "@/shared/lib/tenant-auth-branding";
 
 export async function POST(request: Request) {
   await requireSuperadmin();
@@ -73,13 +74,16 @@ export async function POST(request: Request) {
     );
   }
 
-  const loginUrl = `${appUrl.replace(/\/$/, "")}/auth/login?org=${encodeURIComponent(organizationId)}`;
-  const recoveryUrl = `${appUrl.replace(/\/$/, "")}/auth/forgot-password?org=${encodeURIComponent(organizationId)}`;
+  const { loginUrl, recoveryUrl } = await buildTenantAuthUrls({
+    appUrl,
+    organizationId,
+    includeRecovery: true,
+  });
 
   const emailResult = await sendEmail({
     to: [{ email, name: fullName }],
     subject: "Recordatorio de acceso a la plataforma",
-    htmlContent: resendReminderTemplate({ fullName, loginUrl, recoveryUrl, branding })
+    htmlContent: resendReminderTemplate({ fullName, loginUrl, recoveryUrl: recoveryUrl ?? `${appUrl.replace(/\/$/, "")}/auth/forgot-password`, branding })
   });
 
   if (!emailResult.ok) {
