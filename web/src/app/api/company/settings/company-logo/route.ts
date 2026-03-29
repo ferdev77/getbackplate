@@ -17,6 +17,8 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const file = formData.get("logo");
+  const rawVariant = formData.get("variant");
+  const variant = rawVariant === "dark" ? "dark" : "light";
   const validation = validateOrganizationLogoFile(file instanceof File ? file : null);
 
   if (!validation.ok) {
@@ -26,7 +28,7 @@ export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
   const { data: existingSettings } = await supabase
     .from("organization_settings")
-    .select("company_logo_path")
+    .select("company_logo_path, company_logo_dark_path")
     .eq("organization_id", moduleAccess.tenant.organizationId)
     .maybeSingle();
 
@@ -35,7 +37,11 @@ export async function POST(request: Request) {
   const uploadResult = await uploadOrganizationLogo({
     organizationId: moduleAccess.tenant.organizationId,
     file: file as File,
-    previousLogoPath: existingSettings?.company_logo_path ?? null,
+    variant,
+    previousLogoPath:
+      variant === "dark"
+        ? (existingSettings?.company_logo_dark_path ?? null)
+        : (existingSettings?.company_logo_path ?? null),
   });
 
   if (!uploadResult.ok) {
@@ -57,8 +63,15 @@ export async function POST(request: Request) {
   const { error: updateError } = await supabase.from("organization_settings").upsert(
     {
       organization_id: moduleAccess.tenant.organizationId,
-      company_logo_url: uploadResult.logoUrl,
-      company_logo_path: uploadResult.logoPath,
+      ...(variant === "dark"
+        ? {
+            company_logo_dark_url: uploadResult.logoUrl,
+            company_logo_dark_path: uploadResult.logoPath,
+          }
+        : {
+            company_logo_url: uploadResult.logoUrl,
+            company_logo_path: uploadResult.logoPath,
+          }),
       updated_by: moduleAccess.userId,
     },
     { onConflict: "organization_id" },
@@ -90,8 +103,9 @@ export async function POST(request: Request) {
     metadata: {
       actor_user_id: moduleAccess.userId,
       logo_path: uploadResult.logoPath,
+      variant,
     },
   });
 
-  return NextResponse.json({ ok: true, logoUrl: uploadResult.logoUrl });
+  return NextResponse.json({ ok: true, logoUrl: uploadResult.logoUrl, variant });
 }

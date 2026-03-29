@@ -70,6 +70,7 @@ type CompanyShellProps = {
   currentPlanCode: string | null;
   currentPlanName: string;
   companyLogoUrl: string;
+  companyLogoDarkUrl: string;
   customBrandingEnabled: boolean;
   planModulesByPlanId: Record<string, Array<{ code: string; name: string }>>;
   enabledModules: string[];
@@ -236,6 +237,7 @@ export function CompanyShell({
   currentPlanCode,
   currentPlanName,
   companyLogoUrl,
+  companyLogoDarkUrl,
   customBrandingEnabled,
   planModulesByPlanId,
   enabledModules,
@@ -244,7 +246,6 @@ export function CompanyShell({
   children,
 }: CompanyShellProps) {
   const brandingName = customBrandingEnabled ? (organizationLabel || "Empresa") : "GetBackplate";
-  const effectiveCompanyLogoUrl = customBrandingEnabled ? companyLogoUrl : "";
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -501,6 +502,9 @@ export function CompanyShell({
   }
 
   const isDarkTheme = theme === "dark-pro" || theme === "dark";
+  const effectiveCompanyLogoUrl = customBrandingEnabled
+    ? (isDarkTheme ? (companyLogoDarkUrl || companyLogoUrl) : companyLogoUrl)
+    : "";
   const palette = THEME_PALETTES[theme] ?? (theme === "dark" ? THEME_PALETTES["dark-pro"] : THEME_PALETTES.default);
 
   const initials =
