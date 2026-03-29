@@ -78,7 +78,7 @@ export default async function SuperadminDashboardPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
-      <section className="relative overflow-hidden rounded-[2.5rem] border border-[#2b2521] bg-[#171311] p-8 text-white shadow-2xl">
+      <section className="relative overflow-hidden rounded-[2.5rem] border border-[var(--gbp-border)] bg-[linear-gradient(145deg,var(--gbp-text)_0%,#151922_100%)] p-8 text-white shadow-2xl">
         <div className="pointer-events-none absolute -right-14 -top-16 h-[320px] w-[320px] rounded-full bg-[radial-gradient(circle,rgba(192,57,43,.40)_0%,transparent_70%)] opacity-50" />
         <div className="pointer-events-none absolute -left-20 -bottom-20 h-[320px] w-[320px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,.1)_0%,transparent_70%)] opacity-30" />
         
@@ -89,7 +89,7 @@ export default async function SuperadminDashboardPage() {
               <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
             </div>
             <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Panel de Control</h1>
-            <p className="mt-4 text-base leading-relaxed text-[#c6bbb3]/80">
+            <p className="mt-4 text-base leading-relaxed text-white/70">
               Visibilidad operativa en tiempo real del ecosistema. Monitorea riesgos, actividad y cobertura de servicios por organización.
             </p>
           </div>
@@ -99,10 +99,10 @@ export default async function SuperadminDashboardPage() {
               <TrendingUp className="h-6 w-6 text-emerald-400" />
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#b8aaa2]">Salud del Ecosistema</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/65">Salud del Ecosistema</p>
               <div className="flex items-baseline gap-2">
                 <p className="font-serif text-4xl font-medium tracking-tighter">{healthyOrgs}</p>
-                <p className="text-sm text-[#b8aaa2]">sanos de {orgCount}</p>
+                <p className="text-sm text-white/65">sanos de {orgCount}</p>
               </div>
             </div>
           </div>
@@ -111,8 +111,8 @@ export default async function SuperadminDashboardPage() {
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: "Organizaciones", val: orgCount, icon: Building2, color: "text-[#251f1b]", bg: "bg-white", border: "border-line/60" },
-          { label: "Módulos Activos", val: modulesCount, icon: Layers3, color: "text-[#251f1b]", bg: "bg-white", border: "border-line/60" },
+          { label: "Organizaciones", val: orgCount, icon: Building2, color: "text-[var(--gbp-text)]", bg: "bg-[var(--gbp-surface)]", border: "border-[var(--gbp-border)]" },
+          { label: "Módulos Activos", val: modulesCount, icon: Layers3, color: "text-[var(--gbp-text)]", bg: "bg-[var(--gbp-surface)]", border: "border-[var(--gbp-border)]" },
           { label: "Técnicamente Sanos", val: healthyOrgs, icon: ShieldCheck, color: "text-emerald-700", bg: "bg-emerald-50/50", border: "border-emerald-100" },
           { label: "Riesgo Detectado", val: orgsWithRisk, icon: AlertTriangle, color: "text-red-700", bg: "bg-red-50/50", border: "border-red-100" },
         ].map((stat, idx) => (
@@ -134,8 +134,8 @@ export default async function SuperadminDashboardPage() {
       </section>
 
       <section className="grid items-start gap-6 xl:grid-cols-[1fr_320px]">
-        <article className="overflow-hidden rounded-[2.5rem] border border-line/60 bg-white shadow-sm transition-all hover:shadow-md">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line/40 px-6 py-6">
+        <article className="overflow-hidden rounded-[2.5rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-sm transition-all hover:shadow-md">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--gbp-border)] px-6 py-6">
             <div>
               <h2 className="text-lg font-bold tracking-tight text-foreground">Radar de Organizaciones</h2>
               <p className="max-w-md text-sm text-muted-foreground">Top 10 entidades con mayor riesgo operativo basado en configuración y uso.</p>
@@ -148,7 +148,7 @@ export default async function SuperadminDashboardPage() {
             </Link>
           </div>
 
-          <div className="divide-y divide-line/30">
+          <div className="divide-y divide-[var(--gbp-border)]">
             {topByRisk.map((row) => (
               <div key={row.organizationId} className="group px-6 py-5 transition-colors hover:bg-muted/30">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -168,7 +168,7 @@ export default async function SuperadminDashboardPage() {
                   </div>
                 </div>
                 
-                <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-muted/60">
+                <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-[var(--gbp-surface2)]">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.max(8, row.score)}%` }}
@@ -195,7 +195,7 @@ export default async function SuperadminDashboardPage() {
                   </div>
                 </div>
                 
-                <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-line/20 pt-4">
+                <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-[var(--gbp-border)] pt-4">
                   <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><FileText className="h-4 w-4 text-brand/60" /> {row.docs30d} docs</span>
                   <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><ClipboardList className="h-4 w-4 text-brand/60" /> {row.checklist7d} checks</span>
                   <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Megaphone className="h-4 w-4 text-brand/60" /> {row.activeAnnouncements} avisos</span>
@@ -231,7 +231,7 @@ export default async function SuperadminDashboardPage() {
         </article>
 
         <aside className="space-y-4">
-          <article className="rounded-3xl border border-line/60 bg-white p-6 shadow-sm">
+          <article className="rounded-3xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-sm">
             <h3 className="mb-4 flex items-center gap-2 text-sm font-bold tracking-tight text-foreground uppercase">
               <Activity className="h-4 w-4 text-brand" /> Actividad Global
             </h3>
@@ -242,7 +242,7 @@ export default async function SuperadminDashboardPage() {
                 { label: "Checklists (7d)", val: checklist7dTotal, icon: ClipboardList },
                 { label: "Avisos Activos", val: announcementsTotal, icon: Megaphone },
               ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between rounded-xl border border-line/20 bg-muted/20 px-4 py-3">
+                <div key={item.label} className="flex items-center justify-between rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3">
                   <span className="text-[13px] font-medium text-muted-foreground">{item.label}</span>
                   <strong className="text-[15px] font-bold text-foreground">{item.val}</strong>
                 </div>
@@ -259,9 +259,9 @@ export default async function SuperadminDashboardPage() {
              </article>
           )}
 
-          <article className="rounded-3xl border border-brand/20 bg-brand/5 p-6 border-dashed">
-            <p className="text-xs font-bold text-brand uppercase tracking-widest mb-2">Tip de operación</p>
-            <p className="text-sm leading-relaxed text-brand-dark/80">
+          <article className="rounded-3xl border border-[color:color-mix(in_oklab,var(--gbp-accent)_25%,transparent)] bg-[var(--gbp-accent-glow)] p-6 border-dashed">
+            <p className="text-xs font-bold text-[var(--gbp-accent)] uppercase tracking-widest mb-2">Tip de operación</p>
+            <p className="text-sm leading-relaxed text-[var(--gbp-text2)]">
               Las organizaciones con score inferior a <span className="font-bold">60</span> suelen carecer de un administrador asignado o no han registrado actividad en los últimos 15 días.
             </p>
           </article>

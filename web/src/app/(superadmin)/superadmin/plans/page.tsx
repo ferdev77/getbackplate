@@ -84,12 +84,12 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
-      <section className="relative overflow-hidden rounded-[2.5rem] border border-[#2d2622] bg-[#171311] p-8 text-white shadow-xl">
+      <section className="relative overflow-hidden rounded-[2.5rem] border border-[var(--gbp-border)] bg-[linear-gradient(145deg,var(--gbp-text)_0%,#151922_100%)] p-8 text-white shadow-xl">
         <div className="pointer-events-none absolute -right-20 -bottom-20 h-64 w-64 rounded-full bg-brand/20 blur-3xl" />
         <div className="relative z-10">
           <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-light/60">Monetización & Escala</p>
           <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Planes Maestros</h1>
-          <p className="mt-4 max-w-2xl text-base text-[#c7bbb3]/80 leading-relaxed">
+          <p className="mt-4 max-w-2xl text-base text-white/70 leading-relaxed">
             Estructura tu propuesta comercial. Define límites técnicos, precios y capacidades modulares para cada segmento de clientes.
           </p>
         </div>
@@ -111,7 +111,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
 
       <section className="grid gap-4 sm:grid-cols-3">
         {[
-          { label: "Planes Definidos", val: plans?.length ?? 0, icon: BadgeDollarSign, color: "text-[#251f1b]", bg: "bg-white" },
+          { label: "Planes Definidos", val: plans?.length ?? 0, icon: BadgeDollarSign, color: "text-[var(--gbp-text)]", bg: "bg-[var(--gbp-surface)]" },
           { label: "Empresas en Producción", val: totalOrgsInAnyPlan, icon: Building2, color: "text-emerald-700", bg: "bg-emerald-50/50" },
           { label: "Planes Publicados", val: (plans ?? []).filter(p => p.is_active).length, icon: ShieldCheck, color: "text-blue-700", bg: "bg-blue-50/50" },
         ].map((stat, idx) => (
@@ -120,7 +120,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.1 }}
-            className={`rounded-3xl border border-line/60 ${stat.bg} p-5 shadow-sm`}
+            className={`rounded-3xl border border-[var(--gbp-border)] ${stat.bg} p-5 shadow-sm`}
           >
             <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               <stat.icon className="h-3.5 w-3.5" /> {stat.label}
@@ -130,7 +130,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
         ))}
       </section>
 
-      <section className="rounded-[2.5rem] border border-line/60 bg-white p-6 shadow-sm overflow-hidden">
+      <section className="rounded-[2.5rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-sm overflow-hidden">
         <div className="mb-8 flex items-center justify-between px-2">
             <div>
                <h2 className="text-xl font-bold tracking-tight text-foreground">Gestión de Oferta Comercial</h2>
@@ -138,13 +138,13 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
             </div>
             <details className="relative">
               <summary className="list-none">
-                <div className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand px-6 py-3 text-xs font-bold text-white shadow-lg shadow-brand/20 transition-all hover:bg-brand-dark hover:scale-[1.02]">
+                <div className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[var(--gbp-accent)] px-6 py-3 text-xs font-bold text-white shadow-[var(--gbp-shadow-accent)] transition-all hover:bg-[var(--gbp-accent-hover)] hover:scale-[1.02]">
                   <Plus className="h-4 w-4" /> Nuevo Plan
                 </div>
               </summary>
               <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-                 <div className="relative z-10 w-full max-w-4xl rounded-[2.5rem] bg-white p-8 shadow-2xl border border-line/40">
-                   <div className="mb-6 flex items-center justify-between border-b border-line/20 pb-6">
+                  <div className="relative z-10 w-full max-w-4xl rounded-[2.5rem] bg-[var(--gbp-surface)] p-8 shadow-2xl border border-[var(--gbp-border)]">
+                   <div className="mb-6 flex items-center justify-between border-b border-[var(--gbp-border)] pb-6">
                       <h3 className="text-2xl font-bold text-foreground">Configurar Nueva Propuesta</h3>
                       <DetailsCloseButton />
                    </div>
@@ -173,11 +173,11 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                          </div>
                       </div>
 
-                      <div className="md:col-span-6 rounded-2xl border border-line/40 p-6">
-                        <p className="mb-4 text-xs font-bold uppercase tracking-widest text-[#7a706a]">Infraestructura de Módulos Incluidos</p>
+                      <div className="md:col-span-6 rounded-2xl border border-[var(--gbp-border)] p-6">
+                        <p className="mb-4 text-xs font-bold uppercase tracking-widest text-[var(--gbp-text2)]">Infraestructura de Módulos Incluidos</p>
                         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                           {(modulesCatalog ?? []).map((module) => (
-                            <label key={module.id} className="group flex cursor-pointer items-center justify-between rounded-xl border border-line/40 bg-[#fffdfa] px-4 py-3 transition-all hover:bg-white hover:border-brand/40">
+                            <label key={module.id} className="group flex cursor-pointer items-center justify-between rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3 transition-all hover:bg-[var(--gbp-surface)] hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)]">
                               <span className="text-sm font-bold text-foreground/80">
                                 {module.name}
                                 {module.is_core && <span className="ml-2 text-[9px] uppercase tracking-tighter text-brand">Core</span>}
@@ -195,16 +195,16 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 flex items-center justify-between border-t border-line/20 pt-6">
+                       <div className="md:col-span-6 flex items-center justify-between border-t border-[var(--gbp-border)] pt-6">
                         <label className="flex items-center gap-3 cursor-pointer">
                            <input type="checkbox" name="is_active" defaultChecked className="h-6 w-11 rounded-full accent-brand" />
                            <span className="text-sm font-bold text-foreground">Publicar Inmediatamente</span>
                         </label>
                         <div className="flex gap-3">
-                           <DetailsCloseButton className="rounded-xl border border-line px-6 py-2.5 text-sm font-bold text-muted-foreground">
+                           <DetailsCloseButton className="rounded-xl border border-[var(--gbp-border)] px-6 py-2.5 text-sm font-bold text-[var(--gbp-text2)]">
                              Cancelar
                            </DetailsCloseButton>
-                           <button type="submit" className="rounded-xl bg-brand px-10 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/20">Registrar Plan</button>
+                           <button type="submit" className="rounded-xl bg-[var(--gbp-accent)] px-10 py-2.5 text-sm font-bold text-white shadow-[var(--gbp-shadow-accent)]">Registrar Plan</button>
                         </div>
                       </div>
                    </form>
@@ -224,7 +224,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                 key={plan.id}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="group relative overflow-hidden rounded-[2rem] border border-line/40 bg-[#fffdfa]/50 p-6 transition-all hover:bg-white hover:shadow-xl sm:p-8"
+                className="group relative overflow-hidden rounded-[2rem] border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-6 transition-all hover:bg-[var(--gbp-surface)] hover:shadow-xl sm:p-8"
               >
                 <div className="absolute right-0 top-0 h-2 w-full bg-gradient-to-r from-transparent via-brand/10 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
                 
@@ -286,12 +286,12 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                   </div>
 
                   <div className="flex flex-col gap-3 lg:w-48">
-                    <details className="group/details">
-                       <summary className="flex items-center justify-between rounded-xl border border-line/40 bg-white px-4 py-3 text-xs font-bold text-foreground cursor-pointer transition-colors hover:border-brand/40">
+                       <details className="group/details">
+                        <summary className="flex items-center justify-between rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-4 py-3 text-xs font-bold text-foreground cursor-pointer transition-colors hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)]">
                           <span>{activeModules.length} Módulos</span>
                           <ChevronDown className="h-4 w-4 transition-transform group-open/details:rotate-180" />
                        </summary>
-                       <div className="absolute right-6 top-full mt-2 z-50 w-64 rounded-[1.5rem] border border-line/40 bg-white p-4 shadow-2xl backdrop-blur-xl">
+                        <div className="absolute right-6 top-full mt-2 z-50 w-64 rounded-[1.5rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 shadow-2xl backdrop-blur-xl">
                           <p className="text-[10px] font-bold uppercase tracking-widest text-brand mb-3">Capacidades del Plan</p>
                           <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-hide">
                             {activeModules.map(m => (
@@ -305,12 +305,12 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                     </details>
                     
                     <details className="group/edit">
-                       <summary className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-700 cursor-pointer hover:bg-amber-100">
+                        <summary className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-700 cursor-pointer hover:bg-amber-100">
                           <PencilLine className="h-4 w-4" /> Editar Plan
                        </summary>
                        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-                          <div className="relative z-10 w-full max-w-4xl rounded-[2.5rem] bg-white p-8 shadow-2xl border border-line/40">
-                            <div className="mb-6 flex items-center justify-between border-b border-line/20 pb-6">
+                          <div className="relative z-10 w-full max-w-4xl rounded-[2.5rem] bg-[var(--gbp-surface)] p-8 shadow-2xl border border-[var(--gbp-border)]">
+                             <div className="mb-6 flex items-center justify-between border-b border-[var(--gbp-border)] pb-6">
                                <h3 className="text-2xl font-bold text-foreground">Ajustar Propuesta Comercial</h3>
                                <DetailsCloseButton />
                             </div>
@@ -339,13 +339,13 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                                   </div>
                                </div>
 
-                               <div className="md:col-span-6 rounded-2xl border border-line/40 p-6 bg-[#fcfaf8]">
+                                <div className="md:col-span-6 rounded-2xl border border-[var(--gbp-border)] p-6 bg-[var(--gbp-bg)]">
                                  <p className="mb-4 text-xs font-bold uppercase tracking-widest text-foreground">Matriz de Módulos Activos</p>
                                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                                    {(modulesCatalog ?? []).map((module) => {
                                       const isChecked = selectedSet.has(module.id);
                                       return (
-                                        <label key={module.id} className="group flex cursor-pointer items-center justify-between rounded-xl border border-line/40 bg-white px-4 py-3 hover:border-brand/40">
+                                         <label key={module.id} className="group flex cursor-pointer items-center justify-between rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-4 py-3 hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)]">
                                           <span className="text-sm font-bold text-foreground/80">
                                             {module.name}
                                             {module.is_core && <span className="ml-2 text-[9px] uppercase tracking-tighter text-brand">Core</span>}
@@ -364,13 +364,13 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                                  </div>
                                </div>
 
-                               <div className="md:col-span-6 flex items-center justify-between border-t border-line/20 pt-6">
+                                <div className="md:col-span-6 flex items-center justify-between border-t border-[var(--gbp-border)] pt-6">
                                  <label className="flex items-center gap-3 cursor-pointer">
                                     <input type="checkbox" name="is_active" defaultChecked={plan.is_active} className="h-6 w-11 rounded-full accent-brand" />
                                     <span className="text-sm font-bold text-foreground">Estado del Plan (Habilitado)</span>
                                  </label>
                                  <div className="flex gap-3">
-                                    <DetailsCloseButton className="rounded-xl border border-line px-6 py-2.5 text-sm font-bold text-muted-foreground">
+                                     <DetailsCloseButton className="rounded-xl border border-[var(--gbp-border)] px-6 py-2.5 text-sm font-bold text-[var(--gbp-text2)]">
                                       Cancelar
                                     </DetailsCloseButton>
                                     <button type="submit" className="rounded-xl bg-foreground px-10 py-2.5 text-sm font-bold text-white shadow-lg shadow-black/10">Sincronizar Cambios</button>

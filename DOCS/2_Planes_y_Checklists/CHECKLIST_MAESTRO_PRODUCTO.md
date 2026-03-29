@@ -86,6 +86,12 @@ Cada paso se marca con check cuando queda terminado y validado.
 - [-] E3. Revisar y corregir estados vacios y mensajes de error en rutas principales (Migrado a ACTUALIZACION_2.2_SAAS.md).
 - [-] E4. Asegurar reflejo inmediato de cambios en UI sin recarga manual (Migrado a ACTUALIZACION_2.2_SAAS.md).
 - [-] E5. Validar responsive real en desktop/tablet/mobile para vistas clave (Migrado a ACTUALIZACION_2.2_SAAS.md).
+- [ ] E6. Integrar Design System unificado en SaaS por fases (ver `DOCS/2_Planes_y_Checklists/PLAN_INTEGRACION_DESIGN_SYSTEM_SAAS.md`).
+- [x] E6.a Foundation aplicada: tokens + aliases `@theme` + compatibilidad dark en `globals.css`.
+- [x] E6.b Primitives UI base + migracion auth completadas (`Button`, `TagPill`, `ThemeToggle`).
+- [x] E6.c Shells + Settings migrados a tokens DS (sin romper flujos funcionales).
+- [x] E6.d Superadmin (pages + componentes internos) migrado a tokens DS y validado en build.
+- [x] E6.e Vistas operativas company (empleados/usuarios/avisos/checklists/documentos/trash/location) alineadas a tokens DS.
 
 ## Bloque H - Consistencia transaccional de flujos criticos
 

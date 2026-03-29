@@ -7,11 +7,11 @@ type DashboardByLocationPageProps = {
   searchParams: Promise<{ branch?: string; q?: string; selectPlanId?: string }>;
 };
 
-const DARK_CARD = "[.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#151b25]";
-const DARK_MUTED = "[.theme-dark-pro_&]:text-[#9aabc3]";
-const DARK_PILL = "[.theme-dark-pro_&]:border-[#2a4870] [.theme-dark-pro_&]:bg-[#162337] [.theme-dark-pro_&]:text-[#98c4ff]";
-const DARK_GHOST = "[.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#d8e3f2] [.theme-dark-pro_&]:hover:bg-[#172131]";
-const DARK_PRIMARY = "[.theme-dark-pro_&]:border-[#2b5ea8] [.theme-dark-pro_&]:bg-[#2b5ea8] [.theme-dark-pro_&]:text-white [.theme-dark-pro_&]:hover:bg-[#3a73c6]";
+const DARK_CARD = "[.theme-dark-pro_&]:border-[var(--gbp-border)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)]";
+const DARK_MUTED = "[.theme-dark-pro_&]:text-[var(--gbp-text2)]";
+const DARK_PILL = "[.theme-dark-pro_&]:border-[var(--gbp-border2)] [.theme-dark-pro_&]:bg-[var(--gbp-surface2)] [.theme-dark-pro_&]:text-[var(--gbp-text)]";
+const DARK_GHOST = "[.theme-dark-pro_&]:border-[var(--gbp-border2)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)] [.theme-dark-pro_&]:text-[var(--gbp-text2)] [.theme-dark-pro_&]:hover:bg-[var(--gbp-surface2)]";
+const DARK_PRIMARY = "[.theme-dark-pro_&]:border-[var(--gbp-accent)] [.theme-dark-pro_&]:bg-[var(--gbp-accent)] [.theme-dark-pro_&]:text-white [.theme-dark-pro_&]:hover:bg-[var(--gbp-accent-hover)]";
 
 export default async function DashboardByLocationPage({ searchParams }: DashboardByLocationPageProps) {
   const params = await searchParams;

@@ -4,10 +4,10 @@ import { useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { useFormStatus } from "react-dom";
 
-const DARK_BTN_GHOST = "[.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#d8e3f2] [.theme-dark-pro_&]:hover:bg-[#172131]";
-const DARK_INPUT = "[.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#dde7f5] [.theme-dark-pro_&]:placeholder:text-[#7f8ea3]";
-const DARK_CARD_SOFT = "[.theme-dark-pro_&]:border-[#263244] [.theme-dark-pro_&]:bg-[#111824]";
-const DARK_TEXT_STRONG = "[.theme-dark-pro_&]:text-[#e7edf7]";
+const DARK_BTN_GHOST = "[.theme-dark-pro_&]:border-[var(--gbp-border2)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)] [.theme-dark-pro_&]:text-[var(--gbp-text2)] [.theme-dark-pro_&]:hover:bg-[var(--gbp-surface2)]";
+const DARK_INPUT = "[.theme-dark-pro_&]:border-[var(--gbp-border2)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)] [.theme-dark-pro_&]:text-[var(--gbp-text)] [.theme-dark-pro_&]:placeholder:text-[var(--gbp-muted)]";
+const DARK_CARD_SOFT = "[.theme-dark-pro_&]:border-[var(--gbp-border)] [.theme-dark-pro_&]:bg-[var(--gbp-bg)]";
+const DARK_TEXT_STRONG = "[.theme-dark-pro_&]:text-[var(--gbp-text)]";
 
 function SubmitButton() {
   const { pending } = useFormStatus();

@@ -25,15 +25,15 @@ type CompanyChecklistsPageProps = {
   }>;
 };
 
-const DARK_TEXT = "[.theme-dark-pro_&]:text-[#e7edf7]";
-const DARK_MUTED = "[.theme-dark-pro_&]:text-[#9aabc3]";
-const DARK_CARD = "[.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#151b25]";
-const DARK_CARD_SOFT = "[.theme-dark-pro_&]:border-[#263244] [.theme-dark-pro_&]:bg-[#111824]";
-const DARK_GHOST = "[.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#d8e3f2] [.theme-dark-pro_&]:hover:bg-[#172131]";
-const DARK_PRIMARY = "[.theme-dark-pro_&]:bg-[#2b5ea8] [.theme-dark-pro_&]:text-white [.theme-dark-pro_&]:hover:bg-[#3a73c6]";
-const ACTION_BTN_NEUTRAL = `inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e8e8e8] bg-white text-[#666] hover:bg-[#f6f6f6] ${DARK_GHOST}`;
-const ACTION_BTN_PREVIEW = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#d6e9dc] bg-[#eff8f2] text-[#2f6b45] hover:bg-[#e6f3ea] [.theme-dark-pro_&]:border-[#2f5f4a] [.theme-dark-pro_&]:bg-[#15281f] [.theme-dark-pro_&]:text-[#7fd8a8] [.theme-dark-pro_&]:hover:bg-[#1d3428]";
-const ACTION_BTN_DANGER = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#f0d7d3] bg-[#fff3f1] text-[#a44a3f] hover:bg-[#ffe9e5] [.theme-dark-pro_&]:border-[#6a3a42] [.theme-dark-pro_&]:bg-[#2a1c1f] [.theme-dark-pro_&]:text-[#ff9ea7] [.theme-dark-pro_&]:hover:bg-[#352328]";
+const DARK_TEXT = "[.theme-dark-pro_&]:text-[var(--gbp-text)]";
+const DARK_MUTED = "[.theme-dark-pro_&]:text-[var(--gbp-text2)]";
+const DARK_CARD = "[.theme-dark-pro_&]:border-[var(--gbp-border)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)]";
+const DARK_CARD_SOFT = "[.theme-dark-pro_&]:border-[var(--gbp-border)] [.theme-dark-pro_&]:bg-[var(--gbp-bg)]";
+const DARK_GHOST = "[.theme-dark-pro_&]:border-[var(--gbp-border2)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)] [.theme-dark-pro_&]:text-[var(--gbp-text2)] [.theme-dark-pro_&]:hover:bg-[var(--gbp-surface2)]";
+const DARK_PRIMARY = "[.theme-dark-pro_&]:bg-[var(--gbp-accent)] [.theme-dark-pro_&]:text-white [.theme-dark-pro_&]:hover:bg-[var(--gbp-accent-hover)]";
+const ACTION_BTN_NEUTRAL = `inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] ${DARK_GHOST}`;
+const ACTION_BTN_PREVIEW = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)] hover:bg-[color:color-mix(in_oklab,var(--gbp-success)_18%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-success)_45%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-success-soft)] [.theme-dark-pro_&]:text-[var(--gbp-success)]";
+const ACTION_BTN_DANGER = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] text-[var(--gbp-error)] hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_16%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-error)_45%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-error-soft)] [.theme-dark-pro_&]:text-[var(--gbp-error)]";
 
 function firstParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) return value[0] ?? "";

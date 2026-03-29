@@ -41,7 +41,7 @@ export function FeedbackStatusButton({ id, isResolved }: Props) {
       type="button"
       disabled={isPending}
       onClick={handleClick}
-      className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-foreground px-4 text-xs font-bold text-white shadow-lg shadow-black/10 transition-all hover:bg-black disabled:opacity-60"
+      className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-[var(--gbp-text)] px-4 text-xs font-bold text-white shadow-lg shadow-black/10 transition-all hover:opacity-90 disabled:opacity-60"
     >
       {isPending ? (
         <><Loader2 className="h-4 w-4 animate-spin" /> Marcando...</>

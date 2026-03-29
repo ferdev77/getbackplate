@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { updatePasswordAction } from "@/modules/auth/actions";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import { SlideUp } from "@/shared/ui/animations";
+import { TagPill } from "@/shared/ui/tag-pill";
+import { ThemeToggle } from "@/shared/ui/theme-toggle";
 
 export const metadata: Metadata = {
   title: "Cambiar contrasena | GetBackplate",
@@ -18,12 +20,15 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
   const nextPath = params.next && params.next.startsWith("/") ? params.next : "/app/dashboard";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-6 py-10">
+    <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_var(--gbp-surface)_0%,_var(--gbp-bg)_48%,_var(--gbp-bg2)_100%)] px-6 py-10">
       <SlideUp className="w-full max-w-md">
-        <section className="rounded-2xl border border-line bg-panel p-8 shadow-[0_8px_30px_rgba(0,0,0,0.05)]">
-          <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-brand uppercase">Seguridad</p>
+        <section className="rounded-[var(--gbp-radius-3xl)] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-8 shadow-[var(--gbp-shadow-lg)]">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <TagPill variant="violet">Seguridad</TagPill>
+            <ThemeToggle showLabel={false} />
+          </div>
           <h1 className="mb-1 text-2xl font-bold tracking-tight">Cambiar contrasena</h1>
-          <p className="mb-6 text-sm text-neutral-600">
+          <p className="mb-6 text-sm text-[var(--gbp-text2)]">
             {reason === "first_login"
               ? "Por seguridad, debes cambiar la contrasena temporal antes de continuar."
               : "Define tu nueva contrasena para recuperar acceso a la plataforma."}
@@ -47,7 +52,7 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
                 type="password"
                 minLength={8}
                 required
-                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none ring-brand/20 transition focus:ring-2"
+                className="w-full rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm outline-none ring-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] transition focus:ring-2"
                 placeholder="Minimo 8 caracteres"
               />
             </div>
@@ -62,7 +67,7 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
                 type="password"
                 minLength={8}
                 required
-                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none ring-brand/20 transition focus:ring-2"
+                className="w-full rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm outline-none ring-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] transition focus:ring-2"
                 placeholder="Repite la contrasena"
               />
             </div>

@@ -22,12 +22,6 @@ type SuperadminDocumentTrashListProps = {
   documents: TrashedDocumentAdmin[];
 };
 
-const DARK_TEXT = "[.theme-dark-pro_&]:text-[#e7edf7]";
-const DARK_MUTED = "[.theme-dark-pro_&]:text-[#94a3b8]";
-const DARK_BORDER = "[.theme-dark-pro_&]:border-[#334155]";
-const DARK_BG = "[.theme-dark-pro_&]:bg-[#1e293b]";
-const DARK_HOVER = "[.theme-dark-pro_&]:hover:bg-[#334155]";
-
 export function SuperadminDocumentTrashList({ documents }: SuperadminDocumentTrashListProps) {
   const router = useRouter();
   const [isRestoring, setIsRestoring] = useState<string | null>(null);
@@ -47,8 +41,8 @@ export function SuperadminDocumentTrashList({ documents }: SuperadminDocumentTra
       
       toast.success("Documento restaurado exitosamente");
       router.refresh();
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Error al restaurar");
     } finally {
       setIsRestoring(null);
     }
@@ -67,8 +61,8 @@ export function SuperadminDocumentTrashList({ documents }: SuperadminDocumentTra
       
       toast.success("Documento eliminado definitivamente");
       router.refresh();
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Error al eliminar");
     } finally {
       setIsDeleting(null);
       setShowConfirmDelete(null);
@@ -77,12 +71,12 @@ export function SuperadminDocumentTrashList({ documents }: SuperadminDocumentTra
 
   if (documents.length === 0) {
     return (
-      <div className={`flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#dcd6d2] bg-[#fdfaf8] p-12 text-center ${DARK_BG} ${DARK_BORDER}`}>
-        <div className={`mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-600 [.theme-dark-pro_&]:bg-slate-800 [.theme-dark-pro_&]:text-slate-400`}>
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-12 text-center">
+        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]">
           <Trash2 className="h-6 w-6" />
         </div>
-        <h3 className={`text-lg font-bold text-[#1f1a17] ${DARK_TEXT}`}>Papelera global vacía</h3>
-        <p className={`mt-1 text-sm text-[#736a64] ${DARK_MUTED}`}>
+        <h3 className="text-lg font-bold text-[var(--gbp-text)]">Papelera global vacía</h3>
+        <p className="mt-1 text-sm text-[var(--gbp-text2)]">
           Los documentos eliminados de todas las empresas aparecerán aquí. Retención máxima: 30 días.
         </p>
       </div>
@@ -99,38 +93,38 @@ export function SuperadminDocumentTrashList({ documents }: SuperadminDocumentTra
   const retentionDays = 30;
 
   return (
-    <div className={`overflow-hidden rounded-2xl border border-[#ece7e4] bg-white shadow-sm ${DARK_BG} ${DARK_BORDER}`}>
-      <div className={`border-b border-[#ece7e4] bg-[#fbf9f8] px-5 py-3 ${DARK_BORDER} [.theme-dark-pro_&]:bg-[#1e293b]/50`}>
-        <div className="grid grid-cols-[1fr_150px_100px_120px] items-center gap-4 text-xs font-semibold uppercase tracking-wider text-[#a0948b]">
+    <div className="overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-sm">
+      <div className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-5 py-3">
+        <div className="grid grid-cols-[1fr_150px_100px_120px] items-center gap-4 text-xs font-semibold uppercase tracking-wider text-[var(--gbp-muted)]">
           <div>Documento y Empresa</div>
           <div>Eliminado hace</div>
           <div>Tamaño</div>
           <div className="text-right">Acciones</div>
         </div>
       </div>
-      <div className="divide-y divide-[#ece7e4] [.theme-dark-pro_&]:divide-[#334155]">
+      <div className="divide-y divide-[var(--gbp-border)]">
         {documents.map((doc) => {
           const deletedDate = new Date(doc.deleted_at);
           const daysSinceDeletion = Math.floor((Date.now() - deletedDate.getTime()) / (1000 * 60 * 60 * 24));
           const daysLeft = Math.max(0, retentionDays - daysSinceDeletion);
-          const orgData = (doc.organizations as any); // Cast for array or object representation from supabase
+          const orgData = doc.organizations;
 
           return (
-            <div key={doc.id} className={`grid grid-cols-[1fr_150px_100px_120px] items-center gap-4 px-5 py-3 transition-colors hover:bg-[#fbf9f8] ${DARK_HOVER}`}>
+            <div key={doc.id} className="grid grid-cols-[1fr_150px_100px_120px] items-center gap-4 px-5 py-3 transition-colors hover:bg-[var(--gbp-bg)]">
               <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600 [.theme-dark-pro_&]:bg-red-500/20 [.theme-dark-pro_&]:text-red-400">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--gbp-error-soft)] text-[var(--gbp-error)]">
                   <FileText className="h-4 w-4" />
                 </div>
                 <div>
-                  <h4 className={`text-sm font-semibold text-[#1f1a17] line-clamp-1 ${DARK_TEXT}`}>
+                  <h4 className="text-sm font-semibold text-[var(--gbp-text)] line-clamp-1">
                     {doc.title}
                   </h4>
                   <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-slate-500">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-[var(--gbp-text2)]">
                       <Building2 className="h-3 w-3" />
                       {orgData?.name || "Empresa Borrada"}
                     </span>
-                    <span className={`text-[10px] text-red-500 font-medium [.theme-dark-pro_&]:text-red-400`}>
+                    <span className="text-[10px] font-medium text-[var(--gbp-error)]">
                       Purga: {daysLeft}d
                     </span>
                   </div>
@@ -139,12 +133,12 @@ export function SuperadminDocumentTrashList({ documents }: SuperadminDocumentTra
               
               <div className="flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className={`text-xs text-[#514b47] ${DARK_MUTED}`}>
+                <span className="text-xs text-[var(--gbp-text2)]">
                   {formatDistanceToNow(deletedDate, { locale: es })}
                 </span>
               </div>
               
-              <div className={`text-xs font-medium text-[#736a64] ${DARK_MUTED}`}>
+              <div className="text-xs font-medium text-[var(--gbp-text2)]">
                 {formatBytes(doc.file_size_bytes)}
               </div>
               
@@ -153,7 +147,7 @@ export function SuperadminDocumentTrashList({ documents }: SuperadminDocumentTra
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => setShowConfirmDelete(null)}
-                      className={`flex h-8 w-8 items-center justify-center rounded-md border border-[#ece7e4] text-[#514b47] hover:bg-gray-100 ${DARK_BORDER} ${DARK_TEXT} [.theme-dark-pro_&]:hover:bg-slate-700`}
+                      className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--gbp-border)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -171,14 +165,14 @@ export function SuperadminDocumentTrashList({ documents }: SuperadminDocumentTra
                     <button
                       onClick={() => handleRestore(doc.id)}
                       disabled={isRestoring === doc.id}
-                      className={`flex h-8 w-8 items-center justify-center rounded-md border border-[#ece7e4] bg-white text-green-600 hover:border-green-200 hover:bg-green-50 disabled:opacity-50 ${DARK_BORDER} [.theme-dark-pro_&]:bg-transparent [.theme-dark-pro_&]:text-green-400 [.theme-dark-pro_&]:hover:bg-green-500/10`}
+                      className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-green-600 hover:border-green-200 hover:bg-green-50 disabled:opacity-50"
                       title="Restaurar"
                     >
                       <RefreshCw className={`h-4 w-4 ${isRestoring === doc.id ? "animate-spin" : ""}`} />
                     </button>
                     <button
                       onClick={() => setShowConfirmDelete(doc.id)}
-                      className={`flex h-8 w-8 items-center justify-center rounded-md border border-[#ece7e4] bg-white text-red-500 hover:border-red-200 hover:bg-red-50 ${DARK_BORDER} [.theme-dark-pro_&]:bg-transparent [.theme-dark-pro_&]:text-red-400 [.theme-dark-pro_&]:hover:bg-red-500/10`}
+                      className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-red-500 hover:border-red-200 hover:bg-red-50"
                       title="Eliminar permanentemente"
                     >
                       <Trash2 className="h-4 w-4" />

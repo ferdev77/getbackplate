@@ -12,10 +12,10 @@ type CompanyUsersPageProps = {
   searchParams: Promise<{ status?: string; message?: string; action?: string; limit?: string }>;
 };
 
-const DARK_CARD = "[.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#151b25]";
-const DARK_TEXT = "[.theme-dark-pro_&]:text-[#e7edf7]";
-const DARK_MUTED = "[.theme-dark-pro_&]:text-[#9aabc3]";
-const DARK_PRIMARY = "[.theme-dark-pro_&]:bg-[#2b5ea8] [.theme-dark-pro_&]:text-white [.theme-dark-pro_&]:hover:bg-[#3a73c6]";
+const DARK_CARD = "[.theme-dark-pro_&]:border-[var(--gbp-border)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)]";
+const DARK_TEXT = "[.theme-dark-pro_&]:text-[var(--gbp-text)]";
+const DARK_MUTED = "[.theme-dark-pro_&]:text-[var(--gbp-text2)]";
+const DARK_PRIMARY = "[.theme-dark-pro_&]:bg-[var(--gbp-accent)] [.theme-dark-pro_&]:text-white [.theme-dark-pro_&]:hover:bg-[var(--gbp-accent-hover)]";
 
 const ROLE_OPTIONS = [
   { value: "company_admin", label: "Administrador" },
