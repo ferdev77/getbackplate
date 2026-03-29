@@ -1092,7 +1092,7 @@ export function CompanyShell({
                     <div
                       key={plan.id}
                       ref={isCurrentPlanCode ? currentPlanCardRef : null}
-                      className={`rounded-lg border px-3 py-2 ${isCurrentPlanCode ? "border-[#f0b060]/40 bg-[#f0b060]/10" : "border-white/10 bg-white/[0.03]"}`}
+                      className={`rounded-lg border px-3 py-2 transition-all duration-300 ${isCurrentPlanCode ? "border-[#f0b060]/40 bg-[#f0b060]/10 shadow-[0_0_0_1px_rgba(240,176,96,.25),0_12px_28px_rgba(0,0,0,.28)] animate-[pulse_1.15s_ease-in-out_1]" : "border-white/10 bg-white/[0.03]"}`}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-white/80">{plan.name}</p>
