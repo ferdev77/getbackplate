@@ -182,7 +182,12 @@ Si un usuario tiene acceso a mas de una empresa:
 
 - puede elegir con cual empresa entrar desde una pantalla de seleccion
 - el sistema recuerda su ultima empresa elegida para el proximo ingreso
-- tambien puede forzar empresa por URL usando `?org=<id_empresa>`
+- tambien puede forzar empresa por URL usando `?org=<slug_o_id_empresa>`
+
+Tip de uso:
+
+- En invitaciones y reenvios el sistema ya envia enlaces tenant-aware con `org`.
+- Si `custom_branding` esta activo, login y recuperacion muestran logo/nombre de la empresa en la pantalla de auth.
 
 Con esto se evita que el sistema tome una empresa "al azar".
 

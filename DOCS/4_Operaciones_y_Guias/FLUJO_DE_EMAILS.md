@@ -16,6 +16,7 @@ Todo administrador o empleado nuevo (y todos los existentes que reciben reenvio)
 }
 ```
 *   **Comportamiento esperado**: La persona inicia sesión por `/auth/login` con la contraseña explícita enviada en el correo. Inmediatamente el sistema lo detecta en el Middleware/Guards y la redirige forzosamente y sin salida a `/auth/change-password?reason=first_login`.
+*   **Contexto tenant-aware en auth**: cuando el correo incluye `?org=<organization_hint>`, login/recovery muestran marca de empresa si `custom_branding` esta activo.
 
 ---
 
@@ -27,14 +28,14 @@ Las plantillas HTML procesadas se encuentran alojadas de manera centralizada en 
 Se envía **únicamente cuando a la persona se le da alta o permiso** (ya sea generando una contraseña aleatoria o asignando una explícitamente).
 *   **Contenido esperado:** Mensaje de bienvenida indicando que se ha creado un usuario temporal. Mostrará en pantalla claramente el *Usuario (correo)* y la *Contraseña Temporal*.
 *   **Botones de Acción:**
-    1.  **"Ingresá con tus credenciales"**: Un único botón primario que envía al usuario directamente al portal base `[TU_DOMINIO]/auth/login`.
+    1.  **"Ingresá con tus credenciales"**: Un único botón primario que envía al usuario a `[TU_DOMINIO]/auth/login?org=<organization_hint>` (slug preferido, fallback UUID).
 
 ### 2.2 Plantilla de Reenvio o Recordatorio (`resendReminderTemplate`)
 Se envía cuando el administrador de empresa o el superadministrador abren las tablas y clickean en la acción **"Reenviar Invitación"**.
 *   **Contenido esperado:** Un mensaje de que tiene su cuenta activa pero requiere que el usuario lo recuerde y proceda a acceder. Ya NO se le muestra la contraseña nuevamente (por motivos de seguridad, ya que podría estar cambiada).
 *   **Botones de Acción:**
-    1.  **"Ingresá con tus credenciales"**: Redirige a `[TU_DOMINIO]/auth/login`.
-    2.  **"Olvidé mi contraseña"**: Pensando en que el usuario perdió el correo original con la temporal, este enlace redirige a `[TU_DOMINIO]/auth/forgot-password` para que él mismo genere un blanqueo hacia su email.
+    1.  **"Ingresá con tus credenciales"**: Redirige a `[TU_DOMINIO]/auth/login?org=<organization_hint>`.
+    2.  **"Olvidé mi contraseña"**: Pensando en que el usuario perdió el correo original con la temporal, este enlace redirige a `[TU_DOMINIO]/auth/forgot-password?org=<organization_hint>` para que él mismo genere un blanqueo hacia su email.
 *   **Regla funcional obligatoria:** El reenvio **nunca crea usuarios**. Si el correo no existe en Auth, el backend responde error de negocio para que se use el flujo de alta.
 
 ---
@@ -56,7 +57,7 @@ Para futuras implementaciones o debugging, así funciona el ruteamiento y dispar
 
 ### C. Contrato final del sistema (obligatorio)
 1. **Altas/Asignaciones**: crean o actualizan credenciales y envian correo inicial con `initialInviteTemplate`.
-2. **Reenvios**: solo recordatorio con 2 botones (`/auth/login` y `/auth/forgot-password`), sin password en email.
+2. **Reenvios**: solo recordatorio con 2 botones (`/auth/login?org=...` y `/auth/forgot-password?org=...`), sin password en email.
 3. **Primer login**: siempre forzado a cambio de contraseña cuando `force_password_change=true`.
 4. **No mezcla de flujos**: reenvio no reemplaza ni ejecuta alta.
 
@@ -104,6 +105,27 @@ Notas:
 
 - El branding de email depende del estado del modulo a nivel tenant (`is_module_enabled(..., 'custom_branding')`).
 - El fallback visual (si no hay logo cargado) usa nombre de empresa en header.
+
+### 4.3 Auth co-branded desde enlaces de email
+
+Regla funcional:
+
+- Los links tenant-aware en emails transportan `organization_hint` en query (`org`), donde hint = `slug` publico si existe, o `organization_id` como fallback.
+- Las pantallas publicas:
+  - `/auth/login?org=<organization_hint>`
+  - `/auth/forgot-password?org=<organization_hint>`
+  renderizan co-branding (logo + nombre de empresa) solo si `custom_branding` esta activo para ese tenant.
+
+Resolucion tecnica:
+
+- Resolver hint a tenant y branding: `web/src/shared/lib/tenant-auth-branding.ts`.
+- Login co-branded: `web/src/app/auth/login/page.tsx`.
+- Recovery co-branded: `web/src/app/auth/forgot-password/page.tsx`.
+- Accion de login preserva y valida `organization_id_hint`: `web/src/modules/auth/actions.ts`.
+
+Comportamiento de fallback:
+
+- Si el hint no resuelve o el modulo no esta activo, el usuario ve login/recovery generico de GetBackplate sin error visual.
 
 ### 4.1 Regla de Periodicidad (Mensual vs Anual)
 

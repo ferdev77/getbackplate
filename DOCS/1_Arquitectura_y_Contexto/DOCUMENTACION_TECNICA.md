@@ -1077,7 +1077,7 @@ Se implemento seleccion estable de empresa activa para usuarios con acceso a mul
 
 Regla aplicada:
 
-1. Si la URL incluye `?org=<organization_id>`, se toma esa empresa y se guarda como activa.
+1. Si la URL incluye `?org=<organization_hint>`, se toma esa empresa y se guarda como activa.
 2. Si no viene en URL, se usa la ultima empresa activa guardada en cookie (`gb_active_org_id`) si el usuario tiene acceso a ella.
 3. Si el usuario tiene acceso a multiples empresas y no hay empresa activa guardada, se redirige a selector de empresa.
 4. Si el usuario solo tiene acceso a una empresa, se usa esa directamente.
@@ -1090,6 +1090,39 @@ Cambios tecnicos relevantes:
 - acceso backend alineado al tenant activo por cookie + selector: `web/src/shared/lib/access.ts`
 - captura de `org` en URL y persistencia en cookie desde proxy: `web/src/proxy.ts`
 - utilidades de tenant activo: `web/src/shared/lib/tenant-selection.ts` y `web/src/shared/lib/tenant-selection-shared.ts`
+
+Notas de resolucion de `organization_hint`:
+
+- `organization_hint` acepta `id` (UUID) o `slug` publico de empresa.
+- La resolucion canonica para auth branding/login esta centralizada en `web/src/shared/lib/tenant-auth-branding.ts`.
+- Si el hint no resuelve una empresa valida, el login sigue en modo generico (sin romper flujo).
+
+## 29.1 Login y recovery co-branded por tenant (modulo `custom_branding`)
+
+Se implemento personalizacion visual en auth publica para mejorar onboarding y experiencia de marca de clientes.
+
+Regla funcional:
+
+1. `GET /auth/login` y `GET /auth/forgot-password` aceptan `?org=<organization_hint>`.
+2. Si el hint resuelve una empresa y el modulo `custom_branding` esta activo:
+   - se muestra bloque visual co-branded (logo + nombre de empresa),
+   - se usa `company_logo_dark_url` en preferencia de tema oscuro (fallback a logo claro).
+3. Si el hint no existe o el modulo no esta activo:
+   - se muestra UI auth generica de GetBackplate.
+4. En submit de login/recovery se propaga hidden `organization_id_hint` para mantener contexto tenant en errores y redirects.
+
+Implementacion tecnica:
+
+- Resolucion branding/public hint: `web/src/shared/lib/tenant-auth-branding.ts`.
+- Login co-branded: `web/src/app/auth/login/page.tsx`.
+- Recovery co-branded: `web/src/app/auth/forgot-password/page.tsx`.
+- Login action con resolucion segura de hint -> `organization_id`: `web/src/modules/auth/actions.ts`.
+- URLs tenant-aware de invitacion/reenvio (slug preferente, fallback UUID):
+  - `web/src/modules/organizations/services/invitation.service.ts`
+  - `web/src/shared/lib/user-provisioning.service.ts`
+  - `web/src/app/api/company/users/route.ts`
+  - `web/src/app/api/company/invitations/resend/route.ts`
+  - `web/src/app/api/superadmin/organizations/invitations/resend/route.ts`
 
 ## 30. Auditoria de actor/accion/fecha en datos (sin pantalla nueva)
 

@@ -109,8 +109,9 @@ Evidencia tecnica registrada:
   - Reenvio actualiza metadata de seguridad (`force_password_change`, `temporary_password_set_at`) en usuario existente.
   - Reenvio devuelve error funcional cuando la cuenta no existe.
 - Verificacion de plantillas:
-  - `resendReminderTemplate` mantiene los 2 botones (`/auth/login` y `/auth/forgot-password`).
+  - `resendReminderTemplate` mantiene los 2 botones tenant-aware (`/auth/login?org=<hint>` y `/auth/forgot-password?org=<hint>`).
   - `initialInviteTemplate` se mantiene para altas/asignaciones.
+  - `org` acepta slug publico o UUID (fallback), segun resolucion en auth.
 - Verificacion de flujo de alta superadmin:
   - Asignacion de admin unificada con `sendOrganizationAdminInvitation`.
 
