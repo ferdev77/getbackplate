@@ -1,3 +1,5 @@
+import type { TenantEmailBranding } from "@/shared/lib/email-branding";
+
 /** Escapes HTML special characters to prevent layout breakage via user-controlled values. */
 function escapeHtml(text: string): string {
   return text
@@ -12,6 +14,7 @@ type ReminderProps = {
   fullName: string;
   loginUrl: string;
   recoveryUrl: string;
+  branding?: TenantEmailBranding;
 };
 
 type InitialInviteProps = {
@@ -20,19 +23,35 @@ type InitialInviteProps = {
   loginPassword?: string;
   loginUrl: string;
   organizationName?: string;
+  branding?: TenantEmailBranding;
 };
 
-export function initialInviteTemplate({ fullName, loginEmail, loginPassword, loginUrl, organizationName }: InitialInviteProps) {
+function renderEmailBrandingHeader(branding: TenantEmailBranding | undefined) {
+  if (!branding?.isCustom) return "";
+
+  const safeCompany = escapeHtml(branding.companyName || "Empresa");
+  const safeLogo = branding.logoUrl ? escapeHtml(branding.logoUrl) : "";
+
+  return `
+    <div style="margin:0 0 18px 0;padding:12px 14px;border:1px solid #e8e8e8;border-radius:10px;background:#fafafa;">
+      ${safeLogo ? `<img src="${safeLogo}" alt="Logo ${safeCompany}" style="max-height:44px;width:auto;display:block;" />` : `<p style="margin:0;font-weight:700;color:#171311;">${safeCompany}</p>`}
+    </div>
+  `;
+}
+
+export function initialInviteTemplate({ fullName, loginEmail, loginPassword, loginUrl, organizationName, branding }: InitialInviteProps) {
   const safeName = escapeHtml(fullName);
   const safeEmail = escapeHtml(loginEmail);
   const safePassword = loginPassword ? escapeHtml(loginPassword) : null;
   const safeOrg = organizationName ? escapeHtml(organizationName) : null;
   const orgText = safeOrg ? ` a <strong>${safeOrg}</strong>` : "";
+  const brandName = branding?.isCustom ? escapeHtml(branding.companyName) : "GetBackplate";
 
   return `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #171311; line-height: 1.6;">
+      ${renderEmailBrandingHeader(branding)}
       <h2>Hola ${safeName},</h2>
-      <p>Has sido invitado${orgText} en la plataforma <strong>GetBackplate</strong>.</p>
+      <p>Has sido invitado${orgText} en la plataforma <strong>${brandName}</strong>.</p>
       
       <p>Tu cuenta ya está lista. A continuación te detallamos tus credenciales de acceso temporal. Por tu seguridad, te solicitaremos que cambies la contraseña la primera vez que ingreses:</p>
       
@@ -52,18 +71,20 @@ export function initialInviteTemplate({ fullName, loginEmail, loginPassword, log
       </p>
 
       <hr style="border: none; border-top: 1px solid #eaeaea; margin: 24px 0;" />
-      <p style="color: #888; font-size: 12px;">El equipo de GetBackplate</p>
+      <p style="color: #888; font-size: 12px;">El equipo de ${brandName}</p>
     </div>
   `;
 }
 
 
-export function resendReminderTemplate({ fullName, loginUrl, recoveryUrl }: ReminderProps) {
+export function resendReminderTemplate({ fullName, loginUrl, recoveryUrl, branding }: ReminderProps) {
   const safeName = escapeHtml(fullName);
+  const brandName = branding?.isCustom ? escapeHtml(branding.companyName) : "GetBackplate";
   return `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #171311; line-height: 1.6;">
+      ${renderEmailBrandingHeader(branding)}
       <h2>Hola ${safeName},</h2>
-      <p>Este es un mensaje recordatorio de que tu acceso a la plataforma <strong>GetBackplate</strong> ya está habilitado.</p>
+      <p>Este es un mensaje recordatorio de que tu acceso a la plataforma <strong>${brandName}</strong> ya está habilitado.</p>
       
       <p>Puedes ingresar directamente a tu cuenta o, si no recuerdas tu clave o no la configuraste, puedes restablecerla fácilmente mediante los siguientes accesos directos:</p>
       
@@ -81,8 +102,7 @@ export function resendReminderTemplate({ fullName, loginUrl, recoveryUrl }: Remi
       </p>
 
       <hr style="border: none; border-top: 1px solid #eaeaea; margin: 24px 0;" />
-      <p style="color: #888; font-size: 12px;">El equipo de GetBackplate</p>
+      <p style="color: #888; font-size: 12px;">El equipo de ${brandName}</p>
     </div>
   `;
 }
-

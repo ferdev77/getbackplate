@@ -347,6 +347,7 @@ export async function POST(request: Request) {
       if (needsProvision) {
         const provisionResult = await provisionOrganizationUserAccount({
           admin,
+          organizationId: tenant.organizationId,
           loginEmail,
           accountPassword,
           firstName,
@@ -870,6 +871,7 @@ export async function POST(request: Request) {
 
     const provisionResult = await provisionOrganizationUserAccount({
       admin,
+      organizationId: tenant.organizationId,
       loginEmail,
       accountPassword,
       firstName,

@@ -5,6 +5,7 @@ import { requireCompanyAccess } from "@/shared/lib/access";
 import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { sendEmail } from "@/shared/lib/brevo";
+import { getTenantEmailBranding } from "@/shared/lib/email-branding";
 import { resendReminderTemplate } from "@/shared/lib/email-templates/invitation";
 
 export async function POST(request: Request) {
@@ -24,6 +25,7 @@ export async function POST(request: Request) {
 
   const admin = createSupabaseAdminClient();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://getbackplate.com";
+  const branding = await getTenantEmailBranding(tenant.organizationId);
 
   const existingUser = await findAuthUserByEmail(email);
   if (!existingUser) {
@@ -77,7 +79,7 @@ export async function POST(request: Request) {
   const emailResult = await sendEmail({
     to: [{ email, name: fullName }],
     subject: "Recordatorio de acceso a la plataforma",
-    htmlContent: resendReminderTemplate({ fullName, loginUrl, recoveryUrl })
+    htmlContent: resendReminderTemplate({ fullName, loginUrl, recoveryUrl, branding })
   });
 
   if (!emailResult.ok) {

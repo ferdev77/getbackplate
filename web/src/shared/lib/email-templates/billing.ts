@@ -1,3 +1,5 @@
+import type { TenantEmailBranding } from "@/shared/lib/email-branding";
+
 type RenewalReminderProps = { orgName: string; renewalDate: string; amount: string };
 export function planRenewalReminderTemplate({ orgName, renewalDate, amount }: RenewalReminderProps) {
   return `
@@ -26,7 +28,28 @@ type PlanChangeDecisionProps = {
   modulesToDisable: string[];
   direction: "upgrade" | "downgrade";
   happenedAt: string;
+  branding?: TenantEmailBranding;
 };
+
+function renderBrandingHeader(branding?: TenantEmailBranding) {
+  if (!branding?.isCustom) {
+    return `<p style="margin:0 0 6px 0;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;font-weight:700;">GetBackplate Billing</p>`;
+  }
+
+  const logo = branding.logoUrl
+    ? `<img src="${branding.logoUrl}" alt="Logo ${branding.companyName}" style="max-height:42px;width:auto;display:block;" />`
+    : `<p style="margin:0;font-size:12px;font-weight:700;color:#374151;">${branding.companyName}</p>`;
+
+  return `
+    <div style="margin:0 0 10px 0;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;background:#f9fafb;display:inline-block;">
+      ${logo}
+    </div>
+  `;
+}
+
+function resolveBillingBrandName(branding?: TenantEmailBranding) {
+  return branding?.isCustom ? branding.companyName : "GetBackplate";
+}
 
 function renderModuleList(items: string[], emptyLabel: string, accentColor: string, bgColor: string) {
   if (!items.length) {
@@ -57,6 +80,7 @@ export function planChangeDecisionTemplate({
   modulesToDisable,
   direction,
   happenedAt,
+  branding,
 }: PlanChangeDecisionProps) {
   const isDowngrade = direction === "downgrade";
   const title = isDowngrade ? "Se solicito un downgrade de plan" : "Se solicito un upgrade de plan";
@@ -77,13 +101,15 @@ export function planChangeDecisionTemplate({
     )
     .join("");
 
+  const brandName = resolveBillingBrandName(branding);
+
   return `
     <div style="font-family:Inter,Segoe UI,Arial,sans-serif;max-width:680px;margin:0 auto;background:#f5f6f8;padding:24px;">
       <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.06);">
         <div style="height:6px;background:${accent};"></div>
 
         <div style="padding:24px 24px 8px 24px;">
-          <p style="margin:0 0 6px 0;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;font-weight:700;">GetBackplate Billing</p>
+          ${renderBrandingHeader(branding)}
           <h2 style="margin:0;font-size:24px;line-height:1.2;color:#111827;">${title}</h2>
           <p style="margin:10px 0 0 0;color:#4b5563;font-size:14px;line-height:1.5;">${subtitle}</p>
         </div>
@@ -130,6 +156,7 @@ export function planChangeDecisionTemplate({
             Esta notificacion confirma que el cambio de plan fue solicitado desde la cuenta administradora de <strong>${orgName}</strong>.
             Si no reconoces esta accion, revisa de inmediato los accesos en tu panel.
           </p>
+          <p style="margin:10px 0 0 0;color:#9ca3af;font-size:11px;">${brandName} Billing</p>
         </div>
       </div>
     </div>
@@ -148,6 +175,7 @@ type PlanChangeAppliedProps = {
   modulesToDisable: string[];
   direction: "upgrade" | "downgrade";
   appliedAt: string;
+  branding?: TenantEmailBranding;
 };
 
 export function planChangeAppliedTemplate({
@@ -162,6 +190,7 @@ export function planChangeAppliedTemplate({
   modulesToDisable,
   direction,
   appliedAt,
+  branding,
 }: PlanChangeAppliedProps) {
   const isDowngrade = direction === "downgrade";
   const title = isDowngrade ? "Cambio de plan aplicado: downgrade completado" : "Cambio de plan aplicado: upgrade completado";
@@ -179,13 +208,15 @@ export function planChangeAppliedTemplate({
     )
     .join("");
 
+  const brandName = resolveBillingBrandName(branding);
+
   return `
     <div style="font-family:Inter,Segoe UI,Arial,sans-serif;max-width:680px;margin:0 auto;background:#f5f6f8;padding:24px;">
       <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.06);">
         <div style="height:6px;background:${accent};"></div>
 
         <div style="padding:24px 24px 8px 24px;">
-          <p style="margin:0 0 6px 0;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;font-weight:700;">GetBackplate Billing</p>
+          ${renderBrandingHeader(branding)}
           <h2 style="margin:0;font-size:24px;line-height:1.2;color:#111827;">${title}</h2>
           <p style="margin:10px 0 0 0;color:#4b5563;font-size:14px;line-height:1.5;">El cambio fue confirmado por Stripe y ya esta activo para ${orgName}.</p>
         </div>
@@ -229,6 +260,7 @@ export function planChangeAppliedTemplate({
 
         <div style="padding:12px 24px 24px 24px;">
           <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">Este email confirma que el plan ya fue sincronizado en la plataforma. Puedes validar el estado actual desde el panel de empresa.</p>
+          <p style="margin:10px 0 0 0;color:#9ca3af;font-size:11px;">${brandName} Billing</p>
         </div>
       </div>
     </div>
