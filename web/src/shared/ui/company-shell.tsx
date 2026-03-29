@@ -708,7 +708,7 @@ export function CompanyShell({
           <div className={`border-b py-3 ${isDarkTheme ? "border-white/10" : "border-black/10"} ${sidebarPaddingX}`}>
             <div className={`flex items-center gap-2 ${collapsed ? "justify-center" : ""}`}>
               {customBrandingEnabled && !collapsed ? (
-                <div className="flex h-[112px] flex-1 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-transparent px-2">
+                <div className="flex h-[112px] flex-1 items-center justify-center overflow-hidden rounded-md bg-transparent px-2">
                   {effectiveCompanyLogoUrl ? (
                     <Image
                       src={effectiveCompanyLogoUrl}

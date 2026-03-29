@@ -177,7 +177,7 @@ export function EmployeeShell({
           <div className={`flex h-[60px] items-center border-b border-black/10 py-3 ${sidebarPaddingX}`}>
             <div className={`flex items-center gap-2 ${collapsed ? "justify-center w-full" : "w-full"}`}>
               {customBrandingEnabled && !collapsed ? (
-                <div className="flex h-[84px] flex-1 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-transparent px-2">
+                <div className="flex h-[84px] flex-1 items-center justify-center overflow-hidden rounded-md bg-transparent px-2">
                   {effectiveCompanyLogoUrl ? (
                     <Image
                       src={effectiveCompanyLogoUrl}
