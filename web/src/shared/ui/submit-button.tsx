@@ -20,7 +20,7 @@ const variantClasses: Record<NonNullable<SubmitButtonProps["variant"]>, string> 
   primary:
     "bg-[var(--gbp-accent)] text-white shadow-[var(--gbp-shadow-accent)] hover:bg-[var(--gbp-accent-hover)] disabled:opacity-60",
   danger:
-    "bg-[var(--gbp-error)] text-white hover:bg-[#dc2626] disabled:opacity-60",
+    "bg-[var(--gbp-error)] text-white hover:brightness-95 disabled:opacity-60",
   ghost:
     "border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] disabled:opacity-60",
 };

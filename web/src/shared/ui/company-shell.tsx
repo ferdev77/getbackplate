@@ -163,33 +163,33 @@ const THEME_NAMES: Record<string, string> = {
 };
 
 const THEME_PALETTES: Record<string, { accent: string; sidebarGradient: string; pageGradient: string; pageBg: string; headerBg: string }> = {
-  "dark-pro": { accent: "#5aa9ff", sidebarGradient: "linear-gradient(170deg,#171a1f 0%,#12151a 100%)", pageGradient: "linear-gradient(180deg,#11151c 0%,#0e1218 55%,#0b0f14 100%)", pageBg: "#0f1319", headerBg: "#141922" },
-  default: { accent: "#c0392b", sidebarGradient: "linear-gradient(170deg,#f8f8fa 0%,#f2f2f5 100%)", pageGradient: "linear-gradient(180deg,#f8f5f2 0%,#f5f4f0 45%,#f3f2ee 100%)", pageBg: "#f5f4f0", headerBg: "#ffffff" },
-  sky: { accent: "#3d6bd4", sidebarGradient: "linear-gradient(170deg,#eef3ff 0%,#e2ebff 100%)", pageGradient: "linear-gradient(180deg,#f4f7ff 0%,#eef3ff 55%,#e7eeff 100%)", pageBg: "#eef3ff", headerBg: "#ffffff" },
-  turquoise: { accent: "#0f9b7a", sidebarGradient: "linear-gradient(170deg,#edfaf6 0%,#dcf5ee 100%)", pageGradient: "linear-gradient(180deg,#f2fcf8 0%,#eaf8f3 55%,#def3ea 100%)", pageBg: "#eaf8f3", headerBg: "#ffffff" },
-  teal: { accent: "#0e8f8f", sidebarGradient: "linear-gradient(170deg,#e9f9f9 0%,#d8f0f0 100%)", pageGradient: "linear-gradient(180deg,#effbfb 0%,#e7f7f7 55%,#daefef 100%)", pageBg: "#e7f7f7", headerBg: "#ffffff" },
-  matcha: { accent: "#5a8232", sidebarGradient: "linear-gradient(170deg,#eff7e7 0%,#e2efd5 100%)", pageGradient: "linear-gradient(180deg,#f5faef 0%,#edf6e4 55%,#e4efd7 100%)", pageBg: "#edf6e4", headerBg: "#ffffff" },
-  sunshine: { accent: "#b07a00", sidebarGradient: "linear-gradient(170deg,#fff8e8 0%,#fff0cc 100%)", pageGradient: "linear-gradient(180deg,#fffdf4 0%,#fff7e7 55%,#fff0d3 100%)", pageBg: "#fff7e7", headerBg: "#ffffff" },
-  peach: { accent: "#c04a38", sidebarGradient: "linear-gradient(170deg,#fff1ee 0%,#ffe5e0 100%)", pageGradient: "linear-gradient(180deg,#fff8f6 0%,#fff0ec 55%,#ffe6e1 100%)", pageBg: "#fff0ec", headerBg: "#ffffff" },
-  lilac: { accent: "#7050a8", sidebarGradient: "linear-gradient(170deg,#f4efff 0%,#e9deff 100%)", pageGradient: "linear-gradient(180deg,#f8f4ff 0%,#f1eaff 55%,#e8ddff 100%)", pageBg: "#f1eaff", headerBg: "#ffffff" },
-  ebony: { accent: "#7a5a30", sidebarGradient: "linear-gradient(170deg,#f7f1e8 0%,#eee3d3 100%)", pageGradient: "linear-gradient(180deg,#fbf8f3 0%,#f4ede2 55%,#ebdfcf 100%)", pageBg: "#f4ede2", headerBg: "#ffffff" },
-  navy: { accent: "#2a4a80", sidebarGradient: "linear-gradient(170deg,#edf2ff 0%,#dce6fb 100%)", pageGradient: "linear-gradient(180deg,#f3f6ff 0%,#eaf0ff 55%,#dfe8fb 100%)", pageBg: "#eaf0ff", headerBg: "#ffffff" },
-  gray: { accent: "#5a6070", sidebarGradient: "linear-gradient(170deg,#f2f3f6 0%,#e7e9ee 100%)", pageGradient: "linear-gradient(180deg,#f6f7fa 0%,#eef0f4 55%,#e5e8ef 100%)", pageBg: "#eef0f4", headerBg: "#ffffff" },
+  "dark-pro": { accent: "var(--gbp-violet)", sidebarGradient: "linear-gradient(170deg,var(--gbp-bg2)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,color-mix(in_oklab,var(--gbp-bg)_82%,black)_55%,color-mix(in_oklab,var(--gbp-bg)_72%,black)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  default: { accent: "var(--gbp-accent)", sidebarGradient: "linear-gradient(170deg,var(--gbp-bg)_0%,var(--gbp-bg2)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-bg2)_55%,color-mix(in_oklab,var(--gbp-bg2)_86%,white)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  sky: { accent: "var(--gbp-violet)", sidebarGradient: "linear-gradient(170deg,var(--gbp-violet-soft)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-violet-soft)_55%,var(--gbp-bg)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  turquoise: { accent: "var(--gbp-success)", sidebarGradient: "linear-gradient(170deg,var(--gbp-success-soft)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-success-soft)_55%,var(--gbp-bg)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  teal: { accent: "var(--gbp-success)", sidebarGradient: "linear-gradient(170deg,var(--gbp-success-soft)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-success-soft)_55%,var(--gbp-bg)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  matcha: { accent: "var(--gbp-success)", sidebarGradient: "linear-gradient(170deg,var(--gbp-success-soft)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-success-soft)_55%,var(--gbp-bg)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  sunshine: { accent: "var(--gbp-accent)", sidebarGradient: "linear-gradient(170deg,var(--gbp-accent-glow)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-accent-glow)_55%,var(--gbp-bg)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  peach: { accent: "var(--gbp-accent)", sidebarGradient: "linear-gradient(170deg,var(--gbp-accent-glow)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-accent-glow)_55%,var(--gbp-bg)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  lilac: { accent: "var(--gbp-violet)", sidebarGradient: "linear-gradient(170deg,var(--gbp-violet-soft)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-violet-soft)_55%,var(--gbp-bg)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  ebony: { accent: "var(--gbp-text)", sidebarGradient: "linear-gradient(170deg,var(--gbp-bg2)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-bg2)_55%,var(--gbp-bg)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  navy: { accent: "var(--gbp-violet)", sidebarGradient: "linear-gradient(170deg,var(--gbp-violet-soft)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-violet-soft)_55%,var(--gbp-bg)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  gray: { accent: "var(--gbp-text2)", sidebarGradient: "linear-gradient(170deg,var(--gbp-bg2)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-bg2)_55%,var(--gbp-bg)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
 };
 
 const THEME_SWATCH_STYLE: Record<string, string> = {
-  "dark-pro": "linear-gradient(145deg,#1f2530,#0f141d)",
-  default: "#e8e8e8",
-  sky: "linear-gradient(145deg,#7fa8f5,#5b82e8)",
-  turquoise: "linear-gradient(145deg,#42e0b0,#1fb897)",
-  teal: "linear-gradient(145deg,#2ec9c9,#1aabab)",
-  matcha: "linear-gradient(145deg,#8dbd5a,#6ea040)",
-  sunshine: "linear-gradient(145deg,#f5c84a,#d9a820)",
-  peach: "linear-gradient(145deg,#f08070,#d96050)",
-  lilac: "linear-gradient(145deg,#c4a8f0,#9070cc)",
-  ebony: "linear-gradient(145deg,#c9a070,#a87d50)",
-  navy: "linear-gradient(145deg,#3a5a9a,#1a2e60)",
-  gray: "linear-gradient(145deg,#606878,#303845)",
+  "dark-pro": "linear-gradient(145deg,var(--gbp-bg2),var(--gbp-bg))",
+  default: "linear-gradient(145deg,var(--gbp-surface),var(--gbp-bg2))",
+  sky: "linear-gradient(145deg,var(--gbp-violet),var(--gbp-violet-hover))",
+  turquoise: "linear-gradient(145deg,var(--gbp-success),color-mix(in_oklab,var(--gbp-success)_65%,black))",
+  teal: "linear-gradient(145deg,var(--gbp-success),color-mix(in_oklab,var(--gbp-success)_58%,black))",
+  matcha: "linear-gradient(145deg,var(--gbp-success),color-mix(in_oklab,var(--gbp-success)_52%,black))",
+  sunshine: "linear-gradient(145deg,var(--gbp-accent),var(--gbp-accent-hover))",
+  peach: "linear-gradient(145deg,var(--gbp-accent),color-mix(in_oklab,var(--gbp-accent)_72%,black))",
+  lilac: "linear-gradient(145deg,var(--gbp-violet-hover),var(--gbp-violet))",
+  ebony: "linear-gradient(145deg,var(--gbp-text2),var(--gbp-text))",
+  navy: "linear-gradient(145deg,var(--gbp-violet),color-mix(in_oklab,var(--gbp-violet)_70%,black))",
+  gray: "linear-gradient(145deg,var(--gbp-text2),color-mix(in_oklab,var(--gbp-text2)_55%,black))",
 };
 
 const MODULE_LABELS: Record<string, string> = {
@@ -731,7 +731,7 @@ export function CompanyShell({
                 </div>
               )}
               {!collapsed && !customBrandingEnabled ? (
-                <p className={`truncate text-sm font-semibold ${isDarkTheme ? "text-[#edf3ff]" : "text-[var(--gbp-text)]"}`}>{brandingName}</p>
+                <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{brandingName}</p>
               ) : null}
               <button
                 type="button"
@@ -742,7 +742,7 @@ export function CompanyShell({
                 <PanelsLeftRight className="h-4 w-4" />
               </button>
             </div>
-            {!collapsed ? <p className={`mt-2 text-[10px] font-bold uppercase tracking-[0.14em] ${isDarkTheme ? "text-[#8f9aad]" : "text-[#8f8a86]"}`}>Administrador</p> : null}
+            {!collapsed ? <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--gbp-muted)]">Administrador</p> : null}
           </div>
 
           <nav className="min-h-0 flex-1 overflow-y-auto py-2">
@@ -797,7 +797,7 @@ export function CompanyShell({
                 className={`mb-2.5 w-full rounded-lg border-[1.5px] px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-60 ${isDarkTheme ? "bg-white/5" : "bg-white/75"}`}
                 style={{ borderColor: palette.accent }}
               >
-                <div className="mb-1 flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full" style={{ background: palette.accent }} /><p className={`text-[10px] font-bold uppercase tracking-[0.12em] ${isDarkTheme ? "text-[#d8e4f5]" : "text-[#333333]"}`}>{currentPlanName}</p></div>
+                <div className="mb-1 flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full" style={{ background: palette.accent }} /><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-text)]">{currentPlanName}</p></div>
                 <p className="text-xs font-bold" style={{ color: palette.accent }}>
                   {impersonationMode ? "Billing bloqueado" : "Upgrade Plan →"}
                 </p>
@@ -820,23 +820,23 @@ export function CompanyShell({
                   )}
                 </span>
                 <div className="min-w-0">
-                   <p className={`truncate text-[13px] font-semibold ${isDarkTheme ? "text-[#eef3fb]" : "text-[#222222]"}`}>{profileName}</p>
-                   <p className={`truncate text-[11px] ${isDarkTheme ? "text-[#aab6c8]" : "text-[#9a9a9a]"}`}>{sessionRoleLabel}</p>
-                   <p className={`truncate text-[10px] ${isDarkTheme ? "text-[#8693a7]" : "text-[#b0b0b0]"}`}>{sessionUserEmail || "Sin email"}</p>
+                   <p className="truncate text-[13px] font-semibold text-[var(--gbp-text)]">{profileName}</p>
+                   <p className="truncate text-[11px] text-[var(--gbp-text2)]">{sessionRoleLabel}</p>
+                   <p className="truncate text-[10px] text-[var(--gbp-muted)]">{sessionUserEmail || "Sin email"}</p>
                 </div>
               </div>
             ) : null}
 
             <div className="space-y-1.5">
-               <a href="/auth/logout" className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-[#b9c3d3] hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9 p-0" : "px-2"}`} title="Cerrar sesion"><LogOut className="h-3.5 w-3.5" />{!collapsed ? <span>Cerrar Sesion</span> : null}</a>
-               <button type="button" onClick={() => { setSettingsOpen(true); setSettingsView("main"); }} className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-[#b9c3d3] hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9 p-0" : "px-2"}`} title="Settings"><Settings className="h-3.5 w-3.5" />{!collapsed ? <span>Settings</span> : null}</button>
-               <button type="button" onClick={() => setFeedbackOpen(true)} className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-[#b9c3d3] hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9 p-0" : "px-2"}`} title="Feedback"><MessageSquarePlus className="h-3.5 w-3.5" />{!collapsed ? <span>Feedback</span> : null}</button>
+               <a href="/auth/logout" className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-white/75 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9 p-0" : "px-2"}`} title="Cerrar sesion"><LogOut className="h-3.5 w-3.5" />{!collapsed ? <span>Cerrar Sesion</span> : null}</a>
+               <button type="button" onClick={() => { setSettingsOpen(true); setSettingsView("main"); }} className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-white/75 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9 p-0" : "px-2"}`} title="Settings"><Settings className="h-3.5 w-3.5" />{!collapsed ? <span>Settings</span> : null}</button>
+               <button type="button" onClick={() => setFeedbackOpen(true)} className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-white/75 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9 p-0" : "px-2"}`} title="Feedback"><MessageSquarePlus className="h-3.5 w-3.5" />{!collapsed ? <span>Feedback</span> : null}</button>
              </div>
           </div>
         </aside>
 
         <div className="min-w-0 flex-1" style={{ background: palette.pageBg }}>
-          <header className={`sticky top-0 z-30 border-b-[1.5px] ${isDarkTheme ? "border-white/10" : "border-[#e8e8e8]"}`} style={{ background: palette.headerBg }}>
+          <header className={`sticky top-0 z-30 border-b-[1.5px] ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`} style={{ background: palette.headerBg }}>
             {impersonationMode ? (
               <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900 sm:px-8">
                 <p className="font-semibold">Modo superadmin activo: estas operando dentro de una organizacion en modo impersonacion.</p>
@@ -847,19 +847,19 @@ export function CompanyShell({
             ) : null}
             <div className="flex h-[60px] items-center justify-between gap-3 px-4 sm:px-8">
             <div className="flex items-center gap-3">
-              <button type="button" className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border lg:hidden ${isDarkTheme ? "border-white/15 bg-white/5 text-[#d3dcec]" : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"}`} onClick={() => setMenuOpen((prev) => !prev)} aria-label="Abrir menu">☰</button>
-              <p className={`font-serif text-[19px] font-bold ${isDarkTheme ? "text-[#edf3ff]" : "text-[var(--gbp-text)]"}`}>{currentLabel}</p>
+              <button type="button" className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border lg:hidden ${isDarkTheme ? "border-white/15 bg-white/5 text-white/80" : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"}`} onClick={() => setMenuOpen((prev) => !prev)} aria-label="Abrir menu">☰</button>
+              <p className="font-serif text-[19px] font-bold text-[var(--gbp-text)]">{currentLabel}</p>
             </div>
             <div className="flex items-center gap-2">
-              {organizationLabel ? <span className={`hidden rounded-full border px-2.5 py-1 text-xs sm:inline ${isDarkTheme ? "border-white/15 bg-white/5 text-[#c6d0df]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"}`}>{organizationLabel}</span> : null}
-              <span className={`hidden rounded-full border px-2.5 py-1 text-xs sm:inline ${isDarkTheme ? "border-[#4d6b93] bg-[#18283c] text-[#8fc2ff]" : "border-[#f0d8d3] bg-[#fff4f2] text-[#8f3a30]"}`}>{sessionRoleLabel}</span>
+              {organizationLabel ? <span className={`hidden rounded-full border px-2.5 py-1 text-xs sm:inline ${isDarkTheme ? "border-white/15 bg-white/5 text-white/80" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"}`}>{organizationLabel}</span> : null}
+              <span className={`hidden rounded-full border px-2.5 py-1 text-xs sm:inline ${isDarkTheme ? "border-[var(--gbp-violet)]/40 bg-[var(--gbp-violet-soft)] text-[var(--gbp-violet)]" : "border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"}`}>{sessionRoleLabel}</span>
             </div>
             </div>
           </header>
           <div className="flex min-h-[calc(100vh-60px)] flex-col">
             <div className="flex-1">{children}</div>
-            <footer className={`mt-auto flex items-center justify-between border-t px-6 py-4 text-[11px] sm:px-9 ${isDarkTheme ? "border-white/10 text-[#8ea0b8]" : "border-black/10 text-[#999]"}`} style={{ background: palette.sidebarGradient }}>
-              <p className={`font-semibold tracking-[0.02em] ${isDarkTheme ? "text-[#a8b7cb]" : "text-[#8e8e8e]"}`}>{brandingName}</p>
+            <footer className={`mt-auto flex items-center justify-between border-t px-6 py-4 text-[11px] sm:px-9 ${isDarkTheme ? "border-white/10 text-white/60" : "border-black/10 text-[var(--gbp-muted)]"}`} style={{ background: palette.sidebarGradient }}>
+              <p className={`font-semibold tracking-[0.02em] ${isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}`}>{brandingName}</p>
               <p>© 2026 {brandingName}</p>
             </footer>
           </div>
@@ -868,14 +868,14 @@ export function CompanyShell({
 
       {settingsOpen ? (
         <div className="fixed inset-0 z-[1200]" onClick={() => setSettingsOpen(false)}>
-          <div className="absolute bottom-[185px] left-4 h-[420px] w-[300px] overflow-hidden rounded-[14px] border border-white/10 bg-[#1c1c1e] text-white shadow-[0_12px_40px_rgba(0,0,0,.7)]" onClick={(event) => event.stopPropagation()}>
+          <div className="absolute bottom-[185px] left-4 h-[420px] w-[300px] overflow-hidden rounded-[14px] border border-white/10 bg-[var(--gbp-surface)] text-[var(--gbp-text)] shadow-[0_12px_40px_rgba(0,0,0,.7)]" onClick={(event) => event.stopPropagation()}>
             {settingsView === "main" ? (
               <>
-                <div className="flex items-center justify-between border-b border-white/10 px-3.5 py-2.5"><span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#bbbbbb]">Settings</span><button type="button" onClick={() => setSettingsOpen(false)} className="grid h-5.5 w-5.5 place-items-center rounded-full bg-white/10 text-sm text-[#888] hover:bg-white/20 hover:text-white"><X className="h-3.5 w-3.5" /></button></div>
+                <div className="flex items-center justify-between border-b border-white/10 px-3.5 py-2.5"><span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--gbp-muted)]">Settings</span><button type="button" onClick={() => setSettingsOpen(false)} className="grid h-5.5 w-5.5 place-items-center rounded-full bg-white/10 text-sm text-white/60 hover:bg-white/20 hover:text-white"><X className="h-3.5 w-3.5" /></button></div>
                 <div className="px-0 py-1">
                   <button type="button" onClick={() => setSettingsView("profile")} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[13px] text-white/70 hover:bg-white/10 hover:text-white"><User className="h-4 w-4 opacity-70" /><span className="flex-1">Profile</span><span className="opacity-40">›</span></button>
                   <div className="my-1 h-px bg-white/10" />
-                  <p className="px-3.5 pb-1 pt-2 text-[9px] font-bold uppercase tracking-[0.09em] text-[#555]">Tema</p>
+                  <p className="px-3.5 pb-1 pt-2 text-[9px] font-bold uppercase tracking-[0.09em] text-[var(--gbp-text2)]">Tema</p>
                   <div className="grid grid-cols-4 gap-1.5 px-3.5">
                     {THEMES.map((item) => (
                       <button
@@ -888,7 +888,7 @@ export function CompanyShell({
                         className="group flex flex-col items-center gap-1"
                       >
                         <span
-                           className={`relative h-10 w-10 rounded-[10px] border transition group-hover:scale-105 ${item === "dark-pro" ? "border-[#2e3b4f]" : "border-black/10"}`}
+                           className={`relative h-10 w-10 rounded-[10px] border transition group-hover:scale-105 ${item === "dark-pro" ? "border-[var(--gbp-border2)]" : "border-black/10"}`}
                            style={{ background: THEME_SWATCH_STYLE[item] }}
                         >
                           <span className={`absolute inset-0 grid place-items-center rounded-[10px] ${theme === item ? "bg-black/20 opacity-100" : "opacity-0"}`}>
@@ -907,10 +907,10 @@ export function CompanyShell({
 
             {settingsView === "profile" ? (
               <div className="h-full overflow-y-auto">
-                <div className="flex items-center justify-between border-b border-white/10 px-3.5 py-2.5"><button type="button" onClick={() => setSettingsView("main")} className="text-xs text-white/70 hover:text-white">← Back</button><span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#bbbbbb]">Profile</span><button type="button" onClick={() => setSettingsOpen(false)} className="grid h-5.5 w-5.5 place-items-center rounded-full bg-white/10 text-sm text-[#888] hover:bg-white/20 hover:text-white"><X className="h-3.5 w-3.5" /></button></div>
+                <div className="flex items-center justify-between border-b border-white/10 px-3.5 py-2.5"><button type="button" onClick={() => setSettingsView("main")} className="text-xs text-white/70 hover:text-white">← Back</button><span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--gbp-muted)]">Profile</span><button type="button" onClick={() => setSettingsOpen(false)} className="grid h-5.5 w-5.5 place-items-center rounded-full bg-white/10 text-sm text-white/60 hover:bg-white/20 hover:text-white"><X className="h-3.5 w-3.5" /></button></div>
                 <div className="space-y-3 p-3.5 text-xs">
                   <div className="flex flex-col items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3">
-                    <label className="relative inline-flex h-16 w-16 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-white/10 bg-[#c0392b] text-xl font-bold text-white">
+                    <label className="relative inline-flex h-16 w-16 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-white/10 bg-[var(--gbp-accent)] text-xl font-bold text-white">
                       {profileAvatarPreview || currentAvatarUrl ? (
                         <Image
                           src={profileAvatarPreview || currentAvatarUrl}
@@ -923,7 +923,7 @@ export function CompanyShell({
                       ) : (
                         initials
                       )}
-                      <span className="absolute bottom-0 right-0 grid h-[22px] w-[22px] place-items-center rounded-full border-2 border-[#1c1c1e] bg-[#3b82f6] text-[10px] text-white">✎</span>
+                      <span className="absolute bottom-0 right-0 grid h-[22px] w-[22px] place-items-center rounded-full border-2 border-[var(--gbp-surface)] bg-[var(--gbp-violet)] text-[10px] text-white">✎</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -974,7 +974,7 @@ export function CompanyShell({
                           setSettingsOpen(false);
                           router.push("/auth/change-password?next=%2Fapp%2Fsettings");
                         }}
-                        className="rounded-md border border-[#60a5fa]/35 bg-[#60a5fa]/15 px-2 py-1 text-[10px] font-semibold text-[#9fc2ff]"
+                        className="rounded-md border border-[var(--gbp-violet)]/35 bg-[var(--gbp-violet-soft)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-violet)]"
                       >
                         Cambiar contraseña
                       </button>
@@ -994,19 +994,19 @@ export function CompanyShell({
 
             {settingsView === "billing" ? (
               <div className="h-full overflow-y-auto">
-                <div className="flex items-center justify-between border-b border-white/10 px-3.5 py-2.5"><button type="button" onClick={() => setSettingsView("main")} className="text-xs text-white/70 hover:text-white">← Back</button><span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#bbbbbb]">Billing</span><button type="button" onClick={() => setSettingsOpen(false)} className="grid h-5.5 w-5.5 place-items-center rounded-full bg-white/10 text-sm text-[#888] hover:bg-white/20 hover:text-white"><X className="h-3.5 w-3.5" /></button></div>
+                <div className="flex items-center justify-between border-b border-white/10 px-3.5 py-2.5"><button type="button" onClick={() => setSettingsView("main")} className="text-xs text-white/70 hover:text-white">← Back</button><span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--gbp-muted)]">Billing</span><button type="button" onClick={() => setSettingsOpen(false)} className="grid h-5.5 w-5.5 place-items-center rounded-full bg-white/10 text-sm text-white/60 hover:bg-white/20 hover:text-white"><X className="h-3.5 w-3.5" /></button></div>
                 <div className="space-y-3 p-3.5 text-xs">
                   <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
                     <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Plan</p>
-                    <div className="flex items-center justify-between"><span className="text-white/55">Current Plan</span><span className="rounded-full bg-[#f0b060]/15 px-2 py-[2px] text-[10px] font-bold text-[#f0b060]">{billingPlan}</span></div>
+                    <div className="flex items-center justify-between"><span className="text-white/55">Current Plan</span><span className="rounded-full bg-[var(--gbp-accent-glow)] px-2 py-[2px] text-[10px] font-bold text-[var(--gbp-accent)]">{billingPlan}</span></div>
                     <div className="mt-2"><span className="text-white/55">Plan asignado</span><select value={billingPlan} onChange={(event) => setBillingPlan(event.target.value)} disabled className="mt-1 w-full rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-white disabled:opacity-60">{plansForDisplay.map((plan) => <option key={plan.id} value={plan.name}>{plan.name}</option>)}</select></div>
                     <p className="mt-2 text-[11px] text-white/50">El cambio de plan se gestiona desde Superadmin para mantener consistencia del tenant.</p>
                     <div className="mt-2"><span className="text-white/55">Billing Period</span><div className="mt-1 flex gap-2"><label className="inline-flex items-center gap-1.5"><input type="radio" name="bp" checked={billingPeriod === "monthly"} onChange={() => setBillingPeriod("monthly")} />Monthly</label><label className="inline-flex items-center gap-1.5"><input type="radio" name="bp" checked={billingPeriod === "annual"} onChange={() => setBillingPeriod("annual")} />Annual</label></div></div>
                   </div>
                   <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
                     <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Add-ons</p>
-                    <div className="flex items-center justify-between border-b border-white/5 py-1.5"><span className="text-white/55">Extra Storage</span><button type="button" onClick={() => toast.info("Próximamente")} className="rounded-md border border-[#60a5fa]/35 bg-[#60a5fa]/15 px-2 py-1 text-[10px] font-semibold text-[#9fc2ff]">Add Storage</button></div>
-                    <div className="flex items-center justify-between py-1.5"><span className="text-white/55">Extra Users</span><button type="button" onClick={() => toast.info("Próximamente")} className="rounded-md border border-[#60a5fa]/35 bg-[#60a5fa]/15 px-2 py-1 text-[10px] font-semibold text-[#9fc2ff]">Add Users</button></div>
+                    <div className="flex items-center justify-between border-b border-white/5 py-1.5"><span className="text-white/55">Extra Storage</span><button type="button" onClick={() => toast.info("Próximamente")} className="rounded-md border border-[var(--gbp-violet)]/35 bg-[var(--gbp-violet-soft)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-violet)]">Add Storage</button></div>
+                    <div className="flex items-center justify-between py-1.5"><span className="text-white/55">Extra Users</span><button type="button" onClick={() => toast.info("Próximamente")} className="rounded-md border border-[var(--gbp-violet)]/35 bg-[var(--gbp-violet-soft)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-violet)]">Add Users</button></div>
                   </div>
                   <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
                     <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Pago y Facturación</p>
@@ -1017,7 +1017,7 @@ export function CompanyShell({
                       type="button"
                       onClick={openBillingPortal}
                       disabled={busy || impersonationMode}
-                      className="w-full rounded-md bg-white px-2 py-2 font-semibold text-[#111] transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="w-full rounded-md bg-white px-2 py-2 font-semibold text-[var(--gbp-text)] transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         Abrir Portal de Pagos
                     </button>
@@ -1031,7 +1031,7 @@ export function CompanyShell({
 
             {settingsView === "preferences" ? (
               <div className="h-full overflow-y-auto">
-                <div className="flex items-center justify-between border-b border-white/10 px-3.5 py-2.5"><button type="button" onClick={() => setSettingsView("main")} className="text-xs text-white/70 hover:text-white">← Back</button><span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#bbbbbb]">Preferences</span><button type="button" onClick={() => setSettingsOpen(false)} className="grid h-5.5 w-5.5 place-items-center rounded-full bg-white/10 text-sm text-[#888] hover:bg-white/20 hover:text-white"><X className="h-3.5 w-3.5" /></button></div>
+                <div className="flex items-center justify-between border-b border-white/10 px-3.5 py-2.5"><button type="button" onClick={() => setSettingsView("main")} className="text-xs text-white/70 hover:text-white">← Back</button><span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--gbp-muted)]">Preferences</span><button type="button" onClick={() => setSettingsOpen(false)} className="grid h-5.5 w-5.5 place-items-center rounded-full bg-white/10 text-sm text-white/60 hover:bg-white/20 hover:text-white"><X className="h-3.5 w-3.5" /></button></div>
                 <div className="space-y-3 p-3.5 text-xs">
                   <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
                     <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Appearance</p>
@@ -1046,10 +1046,10 @@ export function CompanyShell({
                   </div>
                   <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
                     <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Privacy</p>
-                    <div className="flex items-center justify-between"><span className="text-white/55">Cookie Settings</span><button type="button" onClick={() => toast.info("Administrar cookies") } className="rounded-md border border-[#60a5fa]/35 bg-[#60a5fa]/15 px-2 py-1 text-[10px] font-semibold text-[#9fc2ff]">Manage</button></div>
+                    <div className="flex items-center justify-between"><span className="text-white/55">Cookie Settings</span><button type="button" onClick={() => toast.info("Administrar cookies") } className="rounded-md border border-[var(--gbp-violet)]/35 bg-[var(--gbp-violet-soft)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-violet)]">Manage</button></div>
                     <label className="mt-2 inline-flex items-center gap-2"><input type="checkbox" checked={analyticsEnabled} onChange={(event) => setAnalyticsEnabled(event.target.checked)} /><span>Analytics</span></label>
                   </div>
-                  <button type="button" disabled={busy} onClick={() => saveSettings("preferences", { theme, language, dateFormat, timezoneMode, timezoneManual, analyticsEnabled })} className="w-full rounded-md bg-white px-2 py-2 font-semibold text-[#111] disabled:opacity-60">Guardar preferences</button>
+                  <button type="button" disabled={busy} onClick={() => saveSettings("preferences", { theme, language, dateFormat, timezoneMode, timezoneManual, analyticsEnabled })} className="w-full rounded-md bg-white px-2 py-2 font-semibold text-[var(--gbp-text)] disabled:opacity-60">Guardar preferences</button>
                 </div>
               </div>
             ) : null}
@@ -1065,19 +1065,19 @@ export function CompanyShell({
         <div className="fixed inset-0 z-[1200] grid place-items-center bg-black/45 p-4" onClick={() => setFeedbackOpen(false)}>
           <div className="w-full max-w-[480px] rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]" onClick={(event) => event.stopPropagation()}>
             <div className="relative p-6 pb-2">
-              <button type="button" onClick={() => setFeedbackOpen(false)} className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111]"><X className="h-4 w-4" /></button>
-              <p className="font-serif text-lg font-bold text-[#111]">Feedback</p>
-              <p className="text-sm text-[#aaa]">iAyudanos a mejorar!</p>
+              <button type="button" onClick={() => setFeedbackOpen(false)} className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"><X className="h-4 w-4" /></button>
+              <p className="font-serif text-lg font-bold text-[var(--gbp-text)]">Feedback</p>
+              <p className="text-sm text-[var(--gbp-muted)]">iAyudanos a mejorar!</p>
             </div>
             <div className="grid grid-cols-2 gap-2 px-6 pb-4">
-              <button type="button" onClick={() => setFbType("bug")} className={`rounded-[10px] border-[1.5px] px-3 py-2 text-sm font-semibold ${fbType === "bug" ? "bg-[#fff5f3]" : "border-[#e8e8e8] bg-[#fafafa] text-[#555]"}`} style={fbType === "bug" ? { borderColor: palette.accent, color: palette.accent } : undefined}>Reportar problema</button>
-              <button type="button" onClick={() => setFbType("idea")} className={`rounded-[10px] border-[1.5px] px-3 py-2 text-sm font-semibold ${fbType === "idea" ? "border-[#f0a500] bg-[#fffbf0] text-[#d48f00]" : "border-[#e8e8e8] bg-[#fafafa] text-[#555]"}`}>Nueva idea / integracion</button>
+              <button type="button" onClick={() => setFbType("bug")} className={`rounded-[10px] border-[1.5px] px-3 py-2 text-sm font-semibold ${fbType === "bug" ? "bg-[var(--gbp-error-soft)]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"}`} style={fbType === "bug" ? { borderColor: palette.accent, color: palette.accent } : undefined}>Reportar problema</button>
+              <button type="button" onClick={() => setFbType("idea")} className={`rounded-[10px] border-[1.5px] px-3 py-2 text-sm font-semibold ${fbType === "idea" ? "border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"}`}>Nueva idea / integracion</button>
             </div>
             <div className="px-6 pb-6">
-              <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">Titulo del mensaje</label>
-              <input value={fbTitle} onChange={(event) => setFbTitle(event.target.value)} className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm" placeholder="Resume el problema o idea en una linea..." />
-              <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">Descripcion detallada</label>
-              <textarea value={fbMessage} onChange={(event) => setFbMessage(event.target.value)} rows={4} className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm" placeholder="Cuentanos con detalle..." />
+              <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Titulo del mensaje</label>
+              <input value={fbTitle} onChange={(event) => setFbTitle(event.target.value)} className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]" placeholder="Resume el problema o idea en una linea..." />
+              <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Descripcion detallada</label>
+              <textarea value={fbMessage} onChange={(event) => setFbMessage(event.target.value)} rows={4} className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]" placeholder="Cuentanos con detalle..." />
               <button type="button" disabled={busy || !fbTitle.trim() || !fbMessage.trim()} onClick={sendFeedback} className="mt-4 flex w-full items-center justify-center gap-2 flex-row rounded-lg px-3 py-2.5 text-sm font-bold text-white disabled:opacity-60" style={{ background: palette.accent }}>
                 {busy && <Loader2 className="h-4 w-4 animate-spin" />}
                 {busy ? "Enviando msj..." : "Enviar mensaje"}
@@ -1089,27 +1089,27 @@ export function CompanyShell({
 
       {planOpen ? (
         <div className="fixed inset-0 z-[1200]" onClick={() => setPlanOpen(false)}>
-          <div className="absolute bottom-[72px] left-3 w-[280px] overflow-hidden rounded-[14px] border border-white/10 bg-[#1c1c1e] text-white shadow-[0_12px_40px_rgba(0,0,0,.7)]" onClick={(event) => event.stopPropagation()}>
+          <div className="absolute bottom-[72px] left-3 w-[280px] overflow-hidden rounded-[14px] border border-white/10 bg-[var(--gbp-surface)] text-white shadow-[0_12px_40px_rgba(0,0,0,.7)]" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-white/10 px-3.5 py-2.5">
-              <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#bbb]">Planes Disponibles</span>
-              <button type="button" onClick={() => setPlanOpen(false)} className="grid h-[22px] w-[22px] place-items-center rounded-full bg-white/10 text-[#888] hover:bg-white/20 hover:text-white"><X className="h-3.5 w-3.5" /></button>
+              <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--gbp-muted)]">Planes Disponibles</span>
+              <button type="button" onClick={() => setPlanOpen(false)} className="grid h-[22px] w-[22px] place-items-center rounded-full bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"><X className="h-3.5 w-3.5" /></button>
             </div>
 
             <div className="px-3.5 pb-2 pt-2">
-              <p className="mb-1 text-[9px] font-extrabold uppercase tracking-[0.1em] text-[#f0b060]">Actual <span className="ml-2 rounded-full bg-[#f0b060]/15 px-2 py-[2px] text-[9px] text-[#f0b060]">{currentPlanName}</span></p>
+              <p className="mb-1 text-[9px] font-extrabold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">Actual <span className="ml-2 rounded-full bg-[var(--gbp-accent-glow)] px-2 py-[2px] text-[9px] text-[var(--gbp-accent)]">{currentPlanName}</span></p>
               <p className="text-xs text-white/75">{billedTo || "-"} · {billingEmail || "-"}</p>
               <div className="mt-2 inline-flex rounded-lg border border-white/15 bg-white/[0.03] p-1 text-[10px] font-semibold">
                 <button
                   type="button"
                   onClick={() => setPlanBillingCycle("monthly")}
-                  className={`rounded-md px-2.5 py-1 transition ${planBillingCycle === "monthly" ? "bg-white text-[#111]" : "text-white/75 hover:text-white"}`}
+                  className={`rounded-md px-2.5 py-1 transition ${planBillingCycle === "monthly" ? "bg-white text-[var(--gbp-text)]" : "text-white/75 hover:text-white"}`}
                 >
                   Mensual
                 </button>
                 <button
                   type="button"
                   onClick={() => setPlanBillingCycle("yearly")}
-                  className={`rounded-md px-2.5 py-1 transition ${planBillingCycle === "yearly" ? "bg-[#10b981] text-white" : "text-white/75 hover:text-white"}`}
+                  className={`rounded-md px-2.5 py-1 transition ${planBillingCycle === "yearly" ? "bg-[var(--gbp-success)] text-white" : "text-white/75 hover:text-white"}`}
                 >
                   Anual (2 meses gratis)
                 </button>
@@ -1126,7 +1126,7 @@ export function CompanyShell({
                     <div
                       key={plan.id}
                       ref={isCurrentPlanCode ? currentPlanCardRef : null}
-                      className={`rounded-lg border px-3 py-2 transition-all duration-300 ${isCurrentPlanCode ? "border-[#f0b060]/40 bg-[#f0b060]/10 shadow-[0_0_0_1px_rgba(240,176,96,.25),0_12px_28px_rgba(0,0,0,.28)] animate-[pulse_1.15s_ease-in-out_1]" : "border-white/10 bg-white/[0.03]"}`}
+                      className={`rounded-lg border px-3 py-2 transition-all duration-300 ${isCurrentPlanCode ? "border-[var(--gbp-accent)]/40 bg-[var(--gbp-accent-glow)] shadow-[0_0_0_1px_rgba(0,0,0,.25),0_12px_28px_rgba(0,0,0,.28)] animate-[pulse_1.15s_ease-in-out_1]" : "border-white/10 bg-white/[0.03]"}`}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-white/80">{plan.name}</p>
@@ -1161,10 +1161,10 @@ export function CompanyShell({
       {planChangeTarget ? (
         <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-black/65 px-4 backdrop-blur-[2px]" onClick={() => setPlanChangeTargetId(null)}>
           <div
-            className="w-full max-w-3xl overflow-hidden rounded-2xl border border-white/15 bg-[#111318] text-white shadow-[0_30px_90px_rgba(0,0,0,.58)]"
+            className="w-full max-w-3xl overflow-hidden rounded-2xl border border-white/15 bg-[var(--gbp-surface)] text-white shadow-[0_30px_90px_rgba(0,0,0,.58)]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className={`h-1.5 w-full ${planChangeDirection === "downgrade" ? "bg-[linear-gradient(90deg,#f59e0b,#f97316)]" : "bg-[linear-gradient(90deg,#10b981,#34d399)]"}`} />
+            <div className={`h-1.5 w-full ${planChangeDirection === "downgrade" ? "bg-[linear-gradient(90deg,var(--gbp-accent),color-mix(in_oklab,var(--gbp-accent)_75%,black))]" : "bg-[linear-gradient(90deg,var(--gbp-success),color-mix(in_oklab,var(--gbp-success)_72%,black))]"}`} />
 
             <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
               <div className="flex items-center gap-3">
@@ -1208,7 +1208,7 @@ export function CompanyShell({
                   {planModuleDiff.toDisable.length ? (
                     <div className="flex flex-wrap gap-2">
                       {planModuleDiff.toDisable.map((name) => (
-                        <span key={name} className="rounded-full border border-amber-200/45 bg-[#2a2013] px-2.5 py-1 text-[11px] font-semibold text-amber-200">
+                        <span key={name} className="rounded-full border border-amber-200/45 bg-[var(--gbp-accent-glow)] px-2.5 py-1 text-[11px] font-semibold text-amber-200">
                           {name}
                         </span>
                       ))}
@@ -1224,7 +1224,7 @@ export function CompanyShell({
                   {planModuleDiff.toEnable.length ? (
                     <div className="flex flex-wrap gap-2">
                       {planModuleDiff.toEnable.map((name) => (
-                        <span key={name} className="rounded-full border border-emerald-200/45 bg-[#12251f] px-2.5 py-1 text-[11px] font-semibold text-emerald-200">
+                        <span key={name} className="rounded-full border border-emerald-200/45 bg-[var(--gbp-success-soft)] px-2.5 py-1 text-[11px] font-semibold text-emerald-200">
                           {name}
                         </span>
                       ))}
@@ -1249,7 +1249,7 @@ export function CompanyShell({
                   onClick={() => {
                     void startCheckout(planChangeTarget.id, planBillingCycle);
                   }}
-                  className={`rounded-lg px-4 py-2 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,0,0,.35)] disabled:opacity-50 ${planChangeDirection === "downgrade" ? "bg-[linear-gradient(135deg,#d97706,#f59e0b)] hover:opacity-95" : "bg-[linear-gradient(135deg,#059669,#10b981)] hover:opacity-95"}`}
+                  className={`rounded-lg px-4 py-2 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,0,0,.35)] disabled:opacity-50 ${planChangeDirection === "downgrade" ? "bg-[linear-gradient(135deg,color-mix(in_oklab,var(--gbp-accent)_70%,black),var(--gbp-accent))] hover:opacity-95" : "bg-[linear-gradient(135deg,color-mix(in_oklab,var(--gbp-success)_70%,black),var(--gbp-success))] hover:opacity-95"}`}
                 >
                   {busy
                     ? "Procesando..."
@@ -1266,7 +1266,7 @@ export function CompanyShell({
       {menuOpen ? (
         <div className="fixed inset-0 z-40 flex lg:hidden">
           <button type="button" className="h-full w-full bg-black/35" onClick={() => setMenuOpen(false)} aria-label="Cerrar menu" />
-          <aside className={`absolute left-0 top-0 flex h-full w-[280px] flex-col border-r ${isDarkTheme ? "border-white/10 text-[#e7edf6]" : "border-black/10 text-[#1a1a1a]"}`} style={{ background: palette.sidebarGradient }}>
+          <aside className={`absolute left-0 top-0 flex h-full w-[280px] flex-col border-r ${isDarkTheme ? "border-white/10 text-[var(--gbp-text)]" : "border-black/10 text-[var(--gbp-text)]"}`} style={{ background: palette.sidebarGradient }}>
             <div className={`border-b px-4 py-3 ${isDarkTheme ? "border-white/10" : "border-black/10"}`}>
               {customBrandingEnabled ? (
                 <div className="mb-1 flex h-[114px] items-center overflow-hidden rounded-md border border-white/10 bg-transparent px-2">
@@ -1288,13 +1288,13 @@ export function CompanyShell({
                     {effectiveCompanyLogoUrl ? (
                       <Image src={effectiveCompanyLogoUrl} alt={`Logo de ${brandingName}`} width={36} height={36} className="h-full w-full object-contain" />
                     ) : (
-                      <span className="grid h-full w-full place-items-center bg-[#111111] text-[10px] font-bold text-white">{(brandingName || "GB").slice(0, 2).toUpperCase()}</span>
+                      <span className="grid h-full w-full place-items-center bg-[var(--gbp-text)] text-[10px] font-bold text-white">{(brandingName || "GB").slice(0, 2).toUpperCase()}</span>
                     )}
                   </span>
-                  <p className={`truncate text-sm font-semibold ${isDarkTheme ? "text-[#edf3ff]" : ""}`}>{brandingName}</p>
+                  <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{brandingName}</p>
                 </div>
               )}
-              <p className={`text-[10px] font-semibold tracking-[0.14em] uppercase ${isDarkTheme ? "text-[#8f9aad]" : "text-[#8f8a86]"}`}>Administrador</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--gbp-muted)]">Administrador</p>
             </div>
             <div className="flex-1 overflow-y-auto py-2">
               {visibleSections.map((section, idx) => (
@@ -1315,7 +1315,7 @@ export function CompanyShell({
                           <Link
                             key={item.href}
                             href={hrefWithBranch(item.href)}
-                            className={`flex items-center gap-2.5 border-l-[2.5px] px-4 text-[13px] transition ${item.sub ? "py-1.5 pl-6" : "py-2"} ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-black/5 font-semibold text-[#111111]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-black/60 hover:border-l-black/20 hover:bg-black/5 hover:text-black/85")}`}
+                            className={`flex items-center gap-2.5 border-l-[2.5px] px-4 text-[13px] transition ${item.sub ? "py-1.5 pl-6" : "py-2"} ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-black/5 font-semibold text-[var(--gbp-text)]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-black/60 hover:border-l-black/20 hover:bg-black/5 hover:text-black/85")}`}
                             style={active ? { borderLeftColor: palette.accent } : undefined}
                             onClick={() => setMenuOpen(false)}
                           >
@@ -1346,9 +1346,9 @@ export function CompanyShell({
                   )}
                 </span>
                 <div className="min-w-0">
-                  <p className={`truncate text-[13px] font-semibold ${isDarkTheme ? "text-[#eef3fb]" : "text-[#222222]"}`}>{profileName}</p>
-                  <p className={`truncate text-[11px] ${isDarkTheme ? "text-[#aab6c8]" : "text-[#9a9a9a]"}`}>{sessionRoleLabel}</p>
-                  <p className={`truncate text-[10px] ${isDarkTheme ? "text-[#8693a7]" : "text-[#b0b0b0]"}`}>{sessionUserEmail || "Sin email"}</p>
+                  <p className="truncate text-[13px] font-semibold text-[var(--gbp-text)]">{profileName}</p>
+                  <p className="truncate text-[11px] text-[var(--gbp-text2)]">{sessionRoleLabel}</p>
+                  <p className="truncate text-[10px] text-[var(--gbp-muted)]">{sessionUserEmail || "Sin email"}</p>
                 </div>
               </div>
 
@@ -1365,7 +1365,7 @@ export function CompanyShell({
               >
                 <div className="mb-1 flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full" style={{ background: palette.accent }} />
-                  <p className={`text-[10px] font-bold uppercase tracking-[0.12em] ${isDarkTheme ? "text-[#d8e4f5]" : "text-[#333333]"}`}>{currentPlanName}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-text)]">{currentPlanName}</p>
                 </div>
                 <p className="text-xs font-bold" style={{ color: palette.accent }}>
                   {impersonationMode ? "Billing bloqueado" : "Upgrade Plan →"}
@@ -1375,7 +1375,7 @@ export function CompanyShell({
               <div className="space-y-1.5">
                 <a
                   href="/auth/logout"
-                  className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-[#b9c3d3] hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 text-[#666666] hover:bg-black/10 hover:text-[#222222]"}`}
+                  className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-white/75 hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 text-[var(--gbp-text2)] hover:bg-black/10 hover:text-[var(--gbp-text)]"}`}
                   title="Cerrar sesion"
                 >
                   <LogOut className="h-3.5 w-3.5" />
@@ -1388,7 +1388,7 @@ export function CompanyShell({
                     setSettingsOpen(true);
                     setSettingsView("main");
                   }}
-                  className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-[#b9c3d3] hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 text-[#666666] hover:bg-black/10 hover:text-[#222222]"}`}
+                  className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-white/75 hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 text-[var(--gbp-text2)] hover:bg-black/10 hover:text-[var(--gbp-text)]"}`}
                   title="Settings"
                 >
                   <Settings className="h-3.5 w-3.5" />
@@ -1400,7 +1400,7 @@ export function CompanyShell({
                     setMenuOpen(false);
                     setFeedbackOpen(true);
                   }}
-                  className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-[#b9c3d3] hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 text-[#666666] hover:bg-black/10 hover:text-[#222222]"}`}
+                  className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-white/75 hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 text-[var(--gbp-text2)] hover:bg-black/10 hover:text-[var(--gbp-text)]"}`}
                   title="Feedback"
                 >
                   <MessageSquarePlus className="h-3.5 w-3.5" />

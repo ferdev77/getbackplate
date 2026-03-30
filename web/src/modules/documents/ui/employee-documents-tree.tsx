@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Download, Eye, Search, ChevronRight, Folder } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
-import { FadeIn, SlideUp, AnimatedList, AnimatedItem } from "@/shared/ui/animations";
+import { FadeIn, SlideUp, AnimatedItem } from "@/shared/ui/animations";
 import { EmptyState } from "@/shared/ui/empty-state";
 
 type FolderRow = {
@@ -27,10 +27,6 @@ type Props = {
   folders: FolderRow[];
   documents: DocumentRow[];
 };
-
-function formatDate(dateText: string) {
-  return new Date(dateText).toLocaleDateString("es-AR");
-}
 
 function formatSize(bytes: number | null) {
   if (!bytes) return "-";
@@ -87,8 +83,8 @@ export function EmployeeDocumentsTree({ folders, documents }: Props) {
 
       const row = (
         <AnimatedItem key={folder.id}>
-          <div className="border-b border-[#f0f0f0]">
-            <div className="flex items-center justify-between px-4 py-3 hover:bg-[#fafafa] transition-colors">
+          <div className="border-b border-[var(--gbp-border)]">
+            <div className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]">
               <button
                 type="button"
                 onClick={() =>
@@ -102,36 +98,36 @@ export function EmployeeDocumentsTree({ folders, documents }: Props) {
                 className="flex min-w-0 flex-1 items-center gap-2 text-left"
                 style={{ paddingLeft: `${depth * 20}px` }}
               >
-                <ChevronRight className={`h-4 w-4 text-[#888] transition ${isOpen ? "rotate-90" : ""}`} />
-                <Folder className="h-5 w-5 text-[#888]" />
-                <span className="truncate text-sm font-semibold text-[#111]">{folder.name}</span>
-                <span className="text-xs text-[#bbb]">({docList.length})</span>
+                <ChevronRight className={`h-4 w-4 text-[var(--gbp-text2)] transition ${isOpen ? "rotate-90" : ""}`} />
+                <Folder className="h-5 w-5 text-[var(--gbp-text2)]" />
+                <span className="truncate text-sm font-semibold text-[var(--gbp-text)]">{folder.name}</span>
+                <span className="text-xs text-[var(--gbp-muted)]">({docList.length})</span>
               </button>
             </div>
             
             <AnimatePresence>
               {isOpen && (
                 <FadeIn delay={0.05}>
-                  <div className="border-l-[3px] border-[#e8e8e8]">
+                  <div className="border-l-[3px] border-[var(--gbp-border)]">
                     {docList.map((doc) => (
-                      <div key={doc.id} className="flex flex-wrap items-center justify-between gap-4 border-t border-[#f3f3f3] px-4 py-3 hover:bg-[#fcfcfc] transition-colors">
+                      <div key={doc.id} className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]">
                         <div className="min-w-0 flex-1 flex items-center gap-3" style={{ paddingLeft: `${(depth + 1) * 20}px` }}>
-                           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[#f0d5d0] bg-[#fff5f3] text-lg">📄</div>
+                           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-lg">📄</div>
                            <div className="min-w-0">
-                             <p className="truncate text-sm font-bold text-[#222]">
+                             <p className="truncate text-sm font-bold text-[var(--gbp-text)]">
                                {doc.title}
-                               {doc.is_new ? <span className="ml-2 rounded-full border border-[#c3efd4] bg-[#edfbf3] px-2 py-0.5 text-[10px] font-bold text-[#27ae60]">NUEVO</span> : null}
+                               {doc.is_new ? <span className="ml-2 rounded-full border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--gbp-success)]">NUEVO</span> : null}
                              </p>
-                             <p className="truncate text-xs text-[#bbb]">
+                             <p className="truncate text-xs text-[var(--gbp-muted)]">
                                {formatSize(doc.file_size_bytes)} · {(doc.mime_type ?? "archivo").toUpperCase()}
                              </p>
                            </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <a href={`/api/documents/${doc.id}/download`} target="_blank" className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-[#e8e8e8] bg-white px-3 text-xs font-semibold text-[#666] hover:bg-[#f6f6f6] transition-colors" title="Vista preliminar">
+                          <a href={`/api/documents/${doc.id}/download`} target="_blank" className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] transition-colors hover:bg-[var(--gbp-surface2)]" title="Vista preliminar">
                             <Eye className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Ver</span>
                           </a>
-                          <a href={`/api/documents/${doc.id}/download`} download className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[#111] px-3 text-xs font-bold text-white hover:bg-[#c0392b] transition-colors" title="Descargar">
+                          <a href={`/api/documents/${doc.id}/download`} download className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white transition-colors hover:bg-[var(--gbp-accent)]" title="Descargar">
                             <Download className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Descargar</span>
                           </a>
                         </div>
@@ -154,13 +150,13 @@ export function EmployeeDocumentsTree({ folders, documents }: Props) {
 
   return (
     <>
-      <section className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#e7e0dc] bg-white p-3">
+      <section className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#aaa]" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--gbp-muted)]" />
           <input 
             value={query} 
             onChange={(event) => setQuery(event.target.value)} 
-            className="w-full h-10 rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#fdfdfd] pl-10 pr-3 text-sm focus:border-[#c0392b] focus:outline-none transition-colors" 
+            className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] pl-10 pr-3 text-sm text-[var(--gbp-text)] transition-colors focus:border-[var(--gbp-accent)] focus:outline-none" 
             placeholder="Buscar documentos..." 
           />
         </div>
@@ -170,8 +166,8 @@ export function EmployeeDocumentsTree({ folders, documents }: Props) {
         <EmptyState title="Sin documentos" description="Aun no tienes documentos visibles o asignados." />
       ) : (
         <SlideUp delay={0.1}>
-          <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white">
-            <div className="bg-[#fafafa] px-4 py-3 text-xs font-bold tracking-[0.07em] text-[#aaa] uppercase border-b border-[#e8e8e8]">
+          <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
+            <div className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3 text-xs font-bold uppercase tracking-[0.07em] text-[var(--gbp-muted)]">
               Explorador de Archivos
             </div>
             <div>
@@ -179,24 +175,24 @@ export function EmployeeDocumentsTree({ folders, documents }: Props) {
               <AnimatePresence>
                 {rootDocuments.map((doc) => (
                   <AnimatedItem key={doc.id}>
-                    <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#f0f0f0] px-4 py-3 hover:bg-[#fcfcfc] transition-colors">
+                    <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]">
                       <div className="min-w-0 flex-1 flex items-center gap-3">
-                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[#f0d5d0] bg-[#fff5f3] text-lg">📄</div>
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-lg">📄</div>
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-bold text-[#222]">
+                          <p className="truncate text-sm font-bold text-[var(--gbp-text)]">
                             {doc.title}
-                            {doc.is_new ? <span className="ml-2 rounded-full border border-[#c3efd4] bg-[#edfbf3] px-2 py-0.5 text-[10px] font-bold text-[#27ae60]">NUEVO</span> : null}
+                            {doc.is_new ? <span className="ml-2 rounded-full border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--gbp-success)]">NUEVO</span> : null}
                           </p>
-                          <p className="truncate text-xs text-[#bbb]">
+                          <p className="truncate text-xs text-[var(--gbp-muted)]">
                             {formatSize(doc.file_size_bytes)} · {(doc.mime_type ?? "archivo").toUpperCase()}
                           </p>
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <a href={`/api/documents/${doc.id}/download`} target="_blank" className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-[#e8e8e8] bg-white px-3 text-xs font-semibold text-[#666] hover:bg-[#eee] transition-colors" title="Vista preliminar">
+                        <a href={`/api/documents/${doc.id}/download`} target="_blank" className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] transition-colors hover:bg-[var(--gbp-surface2)]" title="Vista preliminar">
                           <Eye className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Ver</span>
                         </a>
-                        <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[#111] px-3 text-xs font-bold text-white hover:bg-[#c0392b] transition-colors" title="Descargar">
+                        <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white transition-colors hover:bg-[var(--gbp-accent)]" title="Descargar">
                           <Download className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Descargar</span>
                         </a>
                       </div>
@@ -206,8 +202,8 @@ export function EmployeeDocumentsTree({ folders, documents }: Props) {
               </AnimatePresence>
               
               {!rootDocuments.length && !folders.length && query && (
-                <div className="p-8 text-center text-[#888] text-sm">
-                  No se encontraron resultados para "{query}"
+                <div className="p-8 text-center text-sm text-[var(--gbp-text2)]">
+                  No se encontraron resultados para &quot;{query}&quot;
                 </div>
               )}
             </div>

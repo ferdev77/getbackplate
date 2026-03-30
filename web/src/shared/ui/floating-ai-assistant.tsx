@@ -83,20 +83,20 @@ export function FloatingAiAssistant({ currentPlanCode }: FloatingAiAssistantProp
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className={`fixed right-5 z-50 inline-flex items-center gap-2 rounded-full bg-[#111] px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-[#222] ${launcherBottomClass}`}
+        className={`fixed right-5 z-50 inline-flex items-center gap-2 rounded-full bg-[var(--gbp-text)] px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-[var(--gbp-accent)] ${launcherBottomClass}`}
       >
         <Bot className="h-4 w-4" />
         Asistente IA
       </button>
 
       {open ? (
-        <section className={`fixed right-5 z-50 flex h-[520px] w-[360px] flex-col overflow-hidden rounded-2xl border border-[#e5ddd8] bg-white shadow-2xl ${panelBottomClass}`}>
-          <header className="flex items-center justify-between border-b border-[#eee] px-4 py-3">
+        <section className={`fixed right-5 z-50 flex h-[520px] w-[360px] flex-col overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-2xl ${panelBottomClass}`}>
+          <header className="flex items-center justify-between border-b border-[var(--gbp-border)] px-4 py-3">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-[#d97706]" />
-              <p className="text-sm font-semibold text-[#333]">Asistente IA</p>
+              <Sparkles className="h-4 w-4 text-[var(--gbp-accent)]" />
+              <p className="text-sm font-semibold text-[var(--gbp-text)]">Asistente IA</p>
             </div>
-            <button type="button" onClick={() => setOpen(false)} className="rounded p-1 text-[#666] hover:bg-[#f2f2f2]">
+            <button type="button" onClick={() => setOpen(false)} className="rounded p-1 text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]">
               <X className="h-4 w-4" />
             </button>
           </header>
@@ -107,17 +107,17 @@ export function FloatingAiAssistant({ currentPlanCode }: FloatingAiAssistantProp
                 key={`${message.role}-${index}`}
                 className={`max-w-[90%] rounded-xl px-3 py-2 text-sm whitespace-pre-wrap ${
                   message.role === "user"
-                    ? "ml-auto bg-[#111] text-white"
-                    : "bg-[#f6f6f6] text-[#333]"
+                    ? "ml-auto bg-[var(--gbp-text)] text-white"
+                    : "bg-[var(--gbp-bg)] text-[var(--gbp-text)]"
                 }`}
               >
                 {message.content}
               </article>
             ))}
-            {loading ? <p className="text-xs text-[#8a817b]">Consultando...</p> : null}
+            {loading ? <p className="text-xs text-[var(--gbp-text2)]">Consultando...</p> : null}
           </div>
 
-          <footer className="border-t border-[#eee] p-3">
+          <footer className="border-t border-[var(--gbp-border)] p-3">
             <div className="flex items-center gap-2">
               <input
                 value={input}
@@ -129,13 +129,13 @@ export function FloatingAiAssistant({ currentPlanCode }: FloatingAiAssistantProp
                   }
                 }}
                 placeholder="Preguntame algo sobre tu operacion"
-                className="h-10 flex-1 rounded-lg border border-[#ddd] px-3 text-sm outline-none focus:border-[#888]"
+                className="h-10 flex-1 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-sm text-[var(--gbp-text)] outline-none focus:border-[var(--gbp-accent)]"
               />
               <button
                 type="button"
                 onClick={() => void sendQuestion()}
                 disabled={loading}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#111] text-white disabled:opacity-50"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--gbp-text)] text-white hover:bg-[var(--gbp-accent)] disabled:opacity-50"
               >
                 <Send className="h-4 w-4" />
               </button>

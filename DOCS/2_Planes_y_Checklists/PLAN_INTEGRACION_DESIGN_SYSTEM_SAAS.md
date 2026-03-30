@@ -258,6 +258,16 @@ Avance registrado (2026-03-29, cierre visual en reportes):
 - Validacion tecnica puntual:
   - `npm run lint -- src/modules/reports/ui/checklist-reports-dashboard.tsx` OK.
 
+Avance registrado (2026-03-29, barrido final DS full UI):
+
+- Migracion final de estilos hardcodeados restantes en `shared/ui` y `modules/documents/ui`, incluyendo shell principal, modales, selector de alcance, dashboard workspace y asistentes flotantes.
+- Resultado de barrido tecnico en componentes React:
+  - `grep "#[0-9A-Fa-f]{3,8}\\b" web/src --include="*.tsx"` => sin coincidencias.
+- QA tecnico ejecutado sobre archivos tocados:
+  - `npm run lint -- <archivos UI tocados>` OK.
+  - `npm run build` OK.
+  - warning preexistente de Next.js: `middleware` -> `proxy`.
+
 ## 5) Riesgos y mitigacion
 
 Riesgos:
