@@ -11,11 +11,11 @@ type ConfirmDeleteDialogProps = {
 };
 
 const PANEL =
-  "overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)] [.theme-dark-pro_&]:border [.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#151b25]";
+  "overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]";
 const CANCEL =
-  "rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] disabled:opacity-60 [.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#c8d7ea] [.theme-dark-pro_&]:hover:bg-[#172131]";
+  "rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] disabled:opacity-60";
 const DANGER =
-  "rounded-lg border-[1.5px] border-[#f3cbc4] bg-[#fff3f1] px-4 py-2 text-sm font-bold text-[#b63a2f] hover:bg-[#ffe8e4] disabled:opacity-60 [.theme-dark-pro_&]:border-[#6a3a42] [.theme-dark-pro_&]:bg-[#2a1c1f] [.theme-dark-pro_&]:text-[#ff9ea7] [.theme-dark-pro_&]:hover:bg-[#352328]";
+  "rounded-lg border-[1.5px] border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] px-4 py-2 text-sm font-bold text-[var(--gbp-error)] hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_16%,transparent)] disabled:opacity-60";
 
 export function ConfirmDeleteDialog({
   title,
@@ -35,15 +35,15 @@ export function ConfirmDeleteDialog({
         className={`w-full max-w-[420px] ${PANEL}`}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="border-b border-[#f0f0f0] px-6 py-4 [.theme-dark-pro_&]:border-[#2b3646]">
-          <p className="font-serif text-[18px] font-bold text-[#111] [.theme-dark-pro_&]:text-[#e7edf7]">
+        <div className="border-b border-[var(--gbp-border)] px-6 py-4">
+          <p className="font-serif text-[18px] font-bold text-[var(--gbp-text)]">
             {title}
           </p>
-          <p className="mt-1 text-sm text-[#777] [.theme-dark-pro_&]:text-[#9aabc3]">
+          <p className="mt-1 text-sm text-[var(--gbp-text2)]">
             {description}
           </p>
         </div>
-        <div className="flex justify-end gap-2 border-t border-[#f0f0f0] px-6 py-4 [.theme-dark-pro_&]:border-[#2b3646]">
+        <div className="flex justify-end gap-2 border-t border-[var(--gbp-border)] px-6 py-4">
           <button type="button" disabled={busy} onClick={onCancel} className={CANCEL}>
             {cancelLabel}
           </button>

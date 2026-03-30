@@ -88,12 +88,12 @@ export function AnnouncementCreateModal({ branches, departments, positions, user
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
-      <div className="max-h-[90vh] w-[540px] max-w-[95vw] overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-        <div className="flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5">
-          <p className="font-serif text-[15px] font-bold text-[#111]">{mode === "edit" ? "Editar Aviso" : "Nuevo Aviso"}</p>
+      <div className="max-h-[90vh] w-[540px] max-w-[95vw] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
+        <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
+          <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">{mode === "edit" ? "Editar Aviso" : "Nuevo Aviso"}</p>
           <Link
             href="/app/announcements"
-            className="grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111]"
+            className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"
           >
             ✕
           </Link>
@@ -102,38 +102,38 @@ export function AnnouncementCreateModal({ branches, departments, positions, user
         <form action={formAction}>
           {mode === "edit" && initial ? <input type="hidden" name="announcement_id" value={initial.id} /> : null}
           <div className="max-h-[68vh] overflow-y-auto px-6 py-5">
-            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#888]">Tipo de aviso</label>
-            <select name="kind" defaultValue={initial?.kind ?? "general"} className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm text-[#111]">
+            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Tipo de aviso</label>
+            <select name="kind" defaultValue={initial?.kind ?? "general"} className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]">
               <option value="general">General</option>
               <option value="urgent">Urgente</option>
               <option value="reminder">Recordatorio</option>
               <option value="celebration">Celebracion</option>
             </select>
 
-            <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#888]">Publicado por</label>
+            <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Publicado por</label>
             <input
               value={publisherName}
               readOnly
-              className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f3f3f3] px-3 py-2 text-sm text-[#666]"
+              className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface2)] px-3 py-2 text-sm text-[var(--gbp-text2)]"
             />
 
-            <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#888]">Titulo del aviso</label>
+            <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Titulo del aviso</label>
               <input
                 name="title"
                 required
                 defaultValue={initial?.title ?? ""}
                 placeholder="ej. Reunion obligatoria"
-              className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm text-[#111]"
+              className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]"
             />
 
-            <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#888]">Mensaje</label>
+            <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Mensaje</label>
               <textarea
                 name="body"
                 required
                 rows={4}
                 defaultValue={initial?.body ?? ""}
                 placeholder="Escribe el mensaje completo"
-              className="w-full resize-y rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm text-[#111]"
+              className="w-full resize-y rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]"
             />
 
             <ScopeSelector
@@ -154,17 +154,17 @@ export function AnnouncementCreateModal({ branches, departments, positions, user
 
             {mode === "create" ? (
               <>
-                <div className="my-4 h-px bg-[#f0f0f0]" />
+                <div className="my-4 h-px bg-[var(--gbp-border)]" />
 
-                <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#888]">Notificar tambien via</label>
+                <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Notificar tambien via</label>
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => setNotifyWhatsapp((prev) => !prev)}
                     className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
                       notifyWhatsapp
-                        ? "border-[#c0392b] bg-[#fff5f3] text-[#c0392b]"
-                        : "border-[#e8e8e8] bg-white text-[#666]"
+                        ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
+                        : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"
                     }`}
                   >
                     <MessageSquare className="h-3.5 w-3.5" /> WhatsApp
@@ -174,8 +174,8 @@ export function AnnouncementCreateModal({ branches, departments, positions, user
                     onClick={() => setNotifySms((prev) => !prev)}
                     className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
                       notifySms
-                        ? "border-[#c0392b] bg-[#fff5f3] text-[#c0392b]"
-                        : "border-[#e8e8e8] bg-white text-[#666]"
+                        ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
+                        : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"
                     }`}
                   >
                     <Smartphone className="h-3.5 w-3.5" /> SMS
@@ -185,8 +185,8 @@ export function AnnouncementCreateModal({ branches, departments, positions, user
                     onClick={() => setNotifyEmail((prev) => !prev)}
                     className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
                       notifyEmail
-                        ? "border-[#c0392b] bg-[#fff5f3] text-[#c0392b]"
-                        : "border-[#e8e8e8] bg-white text-[#666]"
+                        ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
+                        : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"
                     }`}
                   >
                     <Mail className="h-3.5 w-3.5" /> Email
@@ -198,22 +198,22 @@ export function AnnouncementCreateModal({ branches, departments, positions, user
               </>
             ) : null}
 
-            <div className="my-4 h-px bg-[#f0f0f0]" />
+            <div className="my-4 h-px bg-[var(--gbp-border)]" />
 
-            <div className="mb-2 flex items-center justify-between rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2.5">
-              <div className="inline-flex items-center gap-2 text-[13px] text-[#333]">
-                <Pin className="h-3.5 w-3.5 text-[#555]" /> Fijar aviso arriba de la lista
+            <div className="mb-2 flex items-center justify-between rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2.5">
+              <div className="inline-flex items-center gap-2 text-[13px] text-[var(--gbp-text)]">
+                <Pin className="h-3.5 w-3.5 text-[var(--gbp-text2)]" /> Fijar aviso arriba de la lista
               </div>
               <label className="relative inline-flex h-[22px] w-[38px] cursor-pointer items-center">
                 <input type="checkbox" name="is_featured" defaultChecked={Boolean(initial?.is_featured)} className="peer sr-only" />
-                <span className="absolute inset-0 rounded-[22px] bg-[#e0e0e0] transition peer-checked:bg-[#c0392b]" />
+                <span className="absolute inset-0 rounded-[22px] bg-[var(--gbp-border2)] transition peer-checked:bg-[var(--gbp-accent)]" />
                 <span className="absolute left-[3px] top-[3px] h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-4" />
               </label>
             </div>
 
-            <div className="mb-0 flex items-center justify-between rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2.5">
-              <div className="inline-flex items-center gap-2 text-[13px] text-[#333]">
-                <Clock3 className="h-3.5 w-3.5 text-[#555]" /> Este aviso tiene caducidad
+            <div className="mb-0 flex items-center justify-between rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2.5">
+              <div className="inline-flex items-center gap-2 text-[13px] text-[var(--gbp-text)]">
+                <Clock3 className="h-3.5 w-3.5 text-[var(--gbp-text2)]" /> Este aviso tiene caducidad
               </div>
               <label className="relative inline-flex h-[22px] w-[38px] cursor-pointer items-center">
                 <input
@@ -222,7 +222,7 @@ export function AnnouncementCreateModal({ branches, departments, positions, user
                   onChange={(event) => setHasExpiry(event.target.checked)}
                   className="peer sr-only"
                 />
-                <span className="absolute inset-0 rounded-[22px] bg-[#e0e0e0] transition peer-checked:bg-[#c0392b]" />
+                <span className="absolute inset-0 rounded-[22px] bg-[var(--gbp-border2)] transition peer-checked:bg-[var(--gbp-accent)]" />
                 <span className="absolute left-[3px] top-[3px] h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-4" />
               </label>
             </div>
@@ -232,14 +232,14 @@ export function AnnouncementCreateModal({ branches, departments, positions, user
                   name="expires_at"
                   type="date"
                   defaultValue={initial?.expires_at ? initial.expires_at.slice(0, 10) : ""}
-                  className="w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm"
+                  className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]"
                 />
               </div>
             ) : null}
 
-            <div className="mt-3 mb-0 flex items-center justify-between rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2.5">
-              <div className="inline-flex items-center gap-2 text-[13px] text-[#333]">
-                <Clock3 className="h-3.5 w-3.5 text-[#555]" /> Enviar periódicamente
+            <div className="mb-0 mt-3 flex items-center justify-between rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2.5">
+              <div className="inline-flex items-center gap-2 text-[13px] text-[var(--gbp-text)]">
+                <Clock3 className="h-3.5 w-3.5 text-[var(--gbp-text2)]" /> Enviar periódicamente
               </div>
               <label className="relative inline-flex h-[22px] w-[38px] cursor-pointer items-center">
                 <input
@@ -250,7 +250,7 @@ export function AnnouncementCreateModal({ branches, departments, positions, user
                   className="peer sr-only"
                   value="on"
                 />
-                <span className="absolute inset-0 rounded-[22px] bg-[#e0e0e0] transition peer-checked:bg-[#c0392b]" />
+                <span className="absolute inset-0 rounded-[22px] bg-[var(--gbp-border2)] transition peer-checked:bg-[var(--gbp-accent)]" />
                 <span className="absolute left-[3px] top-[3px] h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-4" />
               </label>
             </div>
@@ -262,10 +262,10 @@ export function AnnouncementCreateModal({ branches, departments, positions, user
             ) : null}
           </div>
 
-          <div className="flex justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4">
+          <div className="flex justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
             <Link
               href="/app/announcements"
-              className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]"
+              className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"
             >
               Cancelar
             </Link>

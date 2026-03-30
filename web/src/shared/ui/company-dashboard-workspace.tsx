@@ -101,24 +101,24 @@ function DashboardMetricCard({
   progress?: { value: number; label: string };
 }) {
   return (
-    <article className="group flex h-full flex-col rounded-xl border border-[#e7e0dc] bg-white p-4 transition hover:-translate-y-[1px] hover:shadow-[0_10px_26px_rgba(0,0,0,.09)]">
-      <p className="flex items-center gap-1 text-xs text-[#8a817b]"><Icon className="h-3.5 w-3.5" /> {label}</p>
-      <p className="mt-1 text-2xl font-bold text-[#2a2420]">{value}</p>
-      {subtitle ? <p className="mt-1 text-[11px] text-[#8a817b]">{subtitle}</p> : null}
+    <article className="group flex h-full flex-col rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 transition hover:-translate-y-[1px] hover:shadow-[0_10px_26px_rgba(0,0,0,.09)]">
+      <p className="flex items-center gap-1 text-xs text-[var(--gbp-text2)]"><Icon className="h-3.5 w-3.5" /> {label}</p>
+      <p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{value}</p>
+      {subtitle ? <p className="mt-1 text-[11px] text-[var(--gbp-text2)]">{subtitle}</p> : null}
       {progress ? (
         <>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#efe8e4]">
-            <div className="h-full rounded-full bg-[#c0392b]" style={{ width: `${Math.max(0, Math.min(progress.value, 100))}%` }} />
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--gbp-border)]">
+            <div className="h-full rounded-full bg-[var(--gbp-accent)]" style={{ width: `${Math.max(0, Math.min(progress.value, 100))}%` }} />
           </div>
-          <p className="mt-1 text-[10px] text-[#9a908a]">{progress.label}</p>
+          <p className="mt-1 text-[10px] text-[var(--gbp-muted)]">{progress.label}</p>
         </>
       ) : null}
-      <div className="mt-auto pt-2 rounded-lg border border-[#ece4df] bg-[#fffdfa] p-2 transition duration-200 group-hover:border-[#dccfc8] group-hover:bg-[#fdf8f5]">
+      <div className="mt-auto rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-2 pt-2 transition duration-200 group-hover:border-[var(--gbp-border2)] group-hover:bg-[var(--gbp-surface2)]">
         <div className="grid gap-1">
           {details.map((detail) => (
-            <p key={detail.label} className="flex items-center justify-between gap-2 text-[11px] text-[#6f6762]">
+            <p key={detail.label} className="flex items-center justify-between gap-2 text-[11px] text-[var(--gbp-text2)]">
               <span>{detail.label}</span>
-              <span className="font-semibold text-[#3a332f]">{detail.value}</span>
+              <span className="font-semibold text-[var(--gbp-text)]">{detail.value}</span>
             </p>
           ))}
         </div>
@@ -163,14 +163,14 @@ export function CompanyDashboardWorkspace({
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
       <SlideUp>
-        <section className="mb-5 rounded-2xl border border-[#e7e0dc] bg-[#fffdfa] p-6">
-          <p className="text-[11px] font-semibold tracking-[0.14em] text-[#9d948f] uppercase">
+        <section className="mb-5 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-6">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gbp-muted)]">
             Dashboard Empresa
           </p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-[#231f1c]">
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">
             {organizationName}
           </h1>
-          <p className="mt-1 text-sm text-[#67605b]">
+          <p className="mt-1 text-sm text-[var(--gbp-text2)]">
             Centro operativo con estado diario, seguimiento de tareas y actividad reciente.
           </p>
         </section>
@@ -218,15 +218,15 @@ export function CompanyDashboardWorkspace({
           />
         </AnimatedItem>
         <AnimatedItem>
-          <article className="group flex h-full flex-col rounded-xl border border-[#e7e0dc] bg-white p-4 transition hover:-translate-y-[1px] hover:shadow-[0_10px_26px_rgba(0,0,0,.09)]">
-            <p className="text-xs text-[#8a817b]">Estado de empresa</p>
+          <article className="group flex h-full flex-col rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 transition hover:-translate-y-[1px] hover:shadow-[0_10px_26px_rgba(0,0,0,.09)]">
+            <p className="text-xs text-[var(--gbp-text2)]">Estado de empresa</p>
             <p className="mt-1 inline-block rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-sm font-semibold text-emerald-700">
               {statusLabel(organizationStatus)}
             </p>
-            <div className="mt-auto pt-2 rounded-lg border border-[#ece4df] bg-[#fffdfa] p-2 transition duration-200 group-hover:border-[#dccfc8] group-hover:bg-[#fdf8f5]">
-              <p className="flex items-center justify-between gap-2 text-[11px] text-[#6f6762]"><span>Pendientes revision</span><span className="font-semibold text-[#3a332f]">{pendingReviewValue}</span></p>
-              <p className="mt-1 flex items-center justify-between gap-2 text-[11px] text-[#6f6762]"><span>Incidencias abiertas</span><span className="font-semibold text-[#3a332f]">{openFlagsValue}</span></p>
-              <p className="mt-1 flex items-center justify-between gap-2 text-[11px] text-[#6f6762]"><span>Checklists semana</span><span className="font-semibold text-[#3a332f]">{checklistsWeekValue}</span></p>
+            <div className="mt-auto rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-2 pt-2 transition duration-200 group-hover:border-[var(--gbp-border2)] group-hover:bg-[var(--gbp-surface2)]">
+              <p className="flex items-center justify-between gap-2 text-[11px] text-[var(--gbp-text2)]"><span>Pendientes revision</span><span className="font-semibold text-[var(--gbp-text)]">{pendingReviewValue}</span></p>
+              <p className="mt-1 flex items-center justify-between gap-2 text-[11px] text-[var(--gbp-text2)]"><span>Incidencias abiertas</span><span className="font-semibold text-[var(--gbp-text)]">{openFlagsValue}</span></p>
+              <p className="mt-1 flex items-center justify-between gap-2 text-[11px] text-[var(--gbp-text2)]"><span>Checklists semana</span><span className="font-semibold text-[var(--gbp-text)]">{checklistsWeekValue}</span></p>
             </div>
           </article>
         </AnimatedItem>
@@ -234,14 +234,14 @@ export function CompanyDashboardWorkspace({
 
       <section className="mb-5 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
         <SlideUp delay={0.2}>
-          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#8b817c]">Acciones rapidas</h2>
+          <article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--gbp-text2)]">Acciones rapidas</h2>
             <div className="grid gap-2 sm:grid-cols-2">
               {visibleQuickActions.map((action) => (
                 <Link
                   key={action.label}
                   href={action.href}
-                  className="rounded-lg border border-[#ddd5d0] bg-[#faf8f6] px-3 py-2 text-left text-sm text-[#4f4944] hover:bg-[#f2ece8]"
+                  className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-left text-sm text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
                 >
                   <span className="inline-flex items-center gap-1.5">
                     <action.icon className="h-4 w-4" /> {action.label}
@@ -249,7 +249,7 @@ export function CompanyDashboardWorkspace({
                 </Link>
               ))}
               {!visibleQuickActions.length ? (
-                <div className="rounded-lg border border-dashed border-[#dccfca] bg-[#fffdfa] px-4 py-4 text-sm text-[#8b817c]">
+                <div className="rounded-lg border border-dashed border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-4 text-sm text-[var(--gbp-text2)]">
                   No hay acciones rapidas disponibles con los modulos activos.
                 </div>
               ) : null}
@@ -258,20 +258,20 @@ export function CompanyDashboardWorkspace({
         </SlideUp>
 
         <SlideUp delay={0.25}>
-          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#8b817c]">Seguimiento de checklist</h2>
+          <article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--gbp-text2)]">Seguimiento de checklist</h2>
             <div className="space-y-2">
-              <div className="rounded-lg border border-[#ece4df] bg-[#fffdfa] p-3">
-                <p className="inline-flex items-center gap-1 text-xs text-[#8b817c]"><CalendarClock className="h-3.5 w-3.5" /> Checklists semana</p>
-                <p className="mt-1 text-xl font-bold text-[#2a2420]">{showChecklistsPanel ? checklistWeekCount : 0}</p>
+              <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
+                <p className="inline-flex items-center gap-1 text-xs text-[var(--gbp-text2)]"><CalendarClock className="h-3.5 w-3.5" /> Checklists semana</p>
+                <p className="mt-1 text-xl font-bold text-[var(--gbp-text)]">{showChecklistsPanel ? checklistWeekCount : 0}</p>
               </div>
-              <div className="rounded-lg border border-[#ece4df] bg-[#fffdfa] p-3">
-                <p className="inline-flex items-center gap-1 text-xs text-[#8b817c]"><ClipboardCheck className="h-3.5 w-3.5" /> Pendientes de revision</p>
-                <p className="mt-1 text-xl font-bold text-[#2a2420]">{showChecklistsPanel ? pendingReviewCount : 0}</p>
+              <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
+                <p className="inline-flex items-center gap-1 text-xs text-[var(--gbp-text2)]"><ClipboardCheck className="h-3.5 w-3.5" /> Pendientes de revision</p>
+                <p className="mt-1 text-xl font-bold text-[var(--gbp-text)]">{showChecklistsPanel ? pendingReviewCount : 0}</p>
               </div>
-              <div className="rounded-lg border border-[#f0d6d2] bg-[#fff5f3] p-3">
-                <p className="inline-flex items-center gap-1 text-xs text-[#9d4a3f]"><Flag className="h-3.5 w-3.5" /> Incidencias abiertas</p>
-                <p className="mt-1 text-xl font-bold text-[#8f3228]">{showChecklistsPanel ? openFlagsCount : 0}</p>
+              <div className="rounded-lg border border-[var(--gbp-error)]/30 bg-[var(--gbp-error-soft)] p-3">
+                <p className="inline-flex items-center gap-1 text-xs text-[var(--gbp-error)]"><Flag className="h-3.5 w-3.5" /> Incidencias abiertas</p>
+                <p className="mt-1 text-xl font-bold text-[var(--gbp-error)]">{showChecklistsPanel ? openFlagsCount : 0}</p>
               </div>
             </div>
           </article>
@@ -280,25 +280,25 @@ export function CompanyDashboardWorkspace({
 
       <section className="grid gap-4 lg:grid-cols-2">
         <SlideUp delay={0.3}>
-          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#8b817c]">Avisos recientes</h2>
+          <article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--gbp-text2)]">Avisos recientes</h2>
             <div className="space-y-2">
               {showAnnouncementsPanel && announcements.length ? (
                 <AnimatedList className="space-y-2">
                   {announcements.map((notice) => (
                     <AnimatedItem key={notice.id}>
-                      <div className="rounded-lg border border-[#ece4df] bg-[#fffdfa] p-3">
+                      <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-sm font-medium text-[#292521]">{notice.title}</p>
+                          <p className="text-sm font-medium text-[var(--gbp-text)]">{notice.title}</p>
                           <span className={`rounded-full border px-2 py-0.5 text-[11px] ${kindClass(notice.kind)}`}>
                             {kindLabel(notice.kind)}
                           </span>
                         </div>
-                        <p className="mt-1 text-xs text-[#7b736d]">
+                        <p className="mt-1 text-xs text-[var(--gbp-text2)]">
                           {notice.branch_id ? branchNameMap.get(notice.branch_id) ?? "Sucursal" : "Todas las sucursales"}
                           {notice.is_featured ? " - Fijado" : ""}
                         </p>
-                        <p className="mt-1 text-xs text-[#9a918c]">
+                        <p className="mt-1 text-xs text-[var(--gbp-muted)]">
                           {notice.publish_at
                             ? `Publicado ${new Date(notice.publish_at).toLocaleDateString("es-AR")}`
                             : "Sin fecha de publicacion"}
@@ -308,7 +308,7 @@ export function CompanyDashboardWorkspace({
                   ))}
                 </AnimatedList>
               ) : (
-                <div className="rounded-lg border border-dashed border-[#dccfca] bg-[#fffdfa] px-4 py-6 text-center text-sm text-[#8b817c]">
+                <div className="rounded-lg border border-dashed border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-6 text-center text-sm text-[var(--gbp-text2)]">
                   {showAnnouncementsPanel ? "Sin anuncios recientes." : "Modulo de avisos deshabilitado para esta empresa."}
                 </div>
               )}
@@ -317,19 +317,19 @@ export function CompanyDashboardWorkspace({
         </SlideUp>
 
         <SlideUp delay={0.35}>
-          <article className="rounded-xl border border-[#e7e0dc] bg-white p-4 h-full">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#8b817c]">Documentos recientes</h2>
+          <article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--gbp-text2)]">Documentos recientes</h2>
             <div className="space-y-2">
               {showDocumentsPanel && recentDocuments.length ? (
                 <AnimatedList className="space-y-2">
                   {recentDocuments.map((doc) => (
                     <AnimatedItem key={doc.id}>
-                      <div className="rounded-lg border border-[#ece4df] bg-[#fffdfa] p-3">
-                        <p className="inline-flex items-center gap-1 text-sm font-medium text-[#292521]"><FileText className="h-4 w-4 text-[#7c736d]" /> {doc.title}</p>
-                        <p className="mt-1 text-xs text-[#7b736d]">
+                      <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
+                        <p className="inline-flex items-center gap-1 text-sm font-medium text-[var(--gbp-text)]"><FileText className="h-4 w-4 text-[var(--gbp-text2)]" /> {doc.title}</p>
+                        <p className="mt-1 text-xs text-[var(--gbp-text2)]">
                           {doc.branch_id ? branchNameMap.get(doc.branch_id) ?? "Sucursal" : "Empresa"}
                         </p>
-                        <p className="mt-1 text-xs text-[#9a918c]">
+                        <p className="mt-1 text-xs text-[var(--gbp-muted)]">
                           {new Date(doc.created_at).toLocaleDateString("es-AR")}
                           {typeof doc.file_size_bytes === "number"
                             ? ` - ${Math.max(Math.round(doc.file_size_bytes / 1024), 1)} KB`
@@ -340,7 +340,7 @@ export function CompanyDashboardWorkspace({
                   ))}
                 </AnimatedList>
               ) : (
-                <div className="rounded-lg border border-dashed border-[#dccfca] bg-[#fffdfa] px-4 py-6 text-center text-sm text-[#8b817c]">
+                <div className="rounded-lg border border-dashed border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-6 text-center text-sm text-[var(--gbp-text2)]">
                   {showDocumentsPanel ? "No hay documentos cargados todavia." : "Modulo de documentos deshabilitado para esta empresa."}
                 </div>
               )}

@@ -21,11 +21,6 @@ type DocumentFolderModalProps = {
   employees: Employee[];
 };
 
-const DARK_PANEL = "[.theme-dark-pro_&]:border [.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#151b25]";
-const DARK_TEXT = "[.theme-dark-pro_&]:text-[#e7edf7]";
-const DARK_MUTED = "[.theme-dark-pro_&]:text-[#9aabc3]";
-const DARK_GHOST = "[.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#d8e3f2] [.theme-dark-pro_&]:hover:bg-[#172131]";
-
 export function DocumentFolderModal({
   folders,
   branches,
@@ -77,18 +72,18 @@ export function DocumentFolderModal({
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
-      <div className={`max-h-[90vh] w-[480px] max-w-[95vw] overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)] ${DARK_PANEL}`}>
-        <div className="flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5 [.theme-dark-pro_&]:border-[#2b3646]">
-          <p className={`font-serif text-[15px] font-bold text-[#111] ${DARK_TEXT}`}>Nueva Carpeta</p>
-          <Link href="/app/documents" className={`grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111] ${DARK_GHOST}`}>✕</Link>
+      <div className="max-h-[90vh] w-[480px] max-w-[95vw] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
+        <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
+          <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Nueva Carpeta</p>
+          <Link href="/app/documents" className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</Link>
         </div>
         <form onSubmit={onSubmit}>
           <div className="max-h-[68vh] overflow-y-auto px-6 py-5">
-            <label className={`mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa] ${DARK_MUTED}`}>Nombre de la carpeta</label>
-            <input name="name" required className={`w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm ${DARK_GHOST}`} placeholder="ej. Manuales, Operaciones" />
+            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Nombre de la carpeta</label>
+            <input name="name" required className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]" placeholder="ej. Manuales, Operaciones" />
             
-            <label className={`mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa] ${DARK_MUTED}`}>Crear en</label>
-            <select name="parent_id" defaultValue="" className={`w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm ${DARK_GHOST}`}>
+            <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Crear en</label>
+            <select name="parent_id" defaultValue="" className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]">
               <option value="">Raiz</option>
               {folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
             </select>
@@ -107,8 +102,8 @@ export function DocumentFolderModal({
               />
             </div>
           </div>
-          <div className="flex justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4 [.theme-dark-pro_&]:border-[#2b3646]">
-            <Link href="/app/documents" className={`rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333] ${DARK_GHOST}`}>Cancelar</Link>
+          <div className="flex justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
+            <Link href="/app/documents" className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">Cancelar</Link>
             <SubmitButton 
               label="Crear Carpeta" 
               pendingLabel="Creando..." 

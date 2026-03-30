@@ -18,7 +18,7 @@ const variantClasses: Record<ButtonVariant, string> = {
   outline:
     "border border-[color:color-mix(in_oklab,var(--gbp-violet)_28%,transparent)] bg-transparent text-[var(--gbp-violet)] hover:bg-[var(--gbp-violet-soft)]",
   danger:
-    "bg-[var(--gbp-error)] text-white hover:bg-[#dc2626]",
+    "bg-[var(--gbp-error)] text-white hover:brightness-95",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

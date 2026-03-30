@@ -29,15 +29,15 @@ export function RecurrenceSelector({
   ];
 
   return (
-    <div className="mt-2 rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] p-3">
-      <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#888]">
+    <div className="mt-2 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
+      <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">
         Frecuencia
       </label>
       <select
         name="recurrence_type"
         value={type}
         onChange={(e) => setType(e.target.value)}
-        className="mb-3 w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 py-2 text-sm text-[#111]"
+        className="mb-3 w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]"
       >
         <option value="daily">Diaria</option>
         <option value="weekly">Semanal</option>
@@ -48,7 +48,7 @@ export function RecurrenceSelector({
 
       {type === "custom_days" && (
         <div>
-          <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#888]">
+          <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">
             Días de la semana
           </label>
           <div className="flex gap-1.5">
@@ -59,8 +59,8 @@ export function RecurrenceSelector({
                 onClick={() => toggleDay(d.value)}
                 className={`h-8 w-8 rounded-full text-xs font-bold transition-colors ${
                   days.includes(d.value)
-                    ? "bg-[#111] text-white"
-                    : "bg-[#e8e8e8] text-[#555] hover:bg-[#ddd]"
+                    ? "bg-[var(--gbp-text)] text-white"
+                    : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-border)]"
                 }`}
               >
                 {d.label}

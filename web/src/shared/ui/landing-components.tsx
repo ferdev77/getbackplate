@@ -160,7 +160,7 @@ export function LandingFooter() {
             </p>
           </div>
           <div>
-            <h4 className="mb-6 text-sm font-bold uppercase tracking-widest text-[#aaa]">Producto</h4>
+            <h4 className="mb-6 text-sm font-bold uppercase tracking-widest text-[var(--gbp-muted)]">Producto</h4>
             <ul className="space-y-4 text-sm font-medium">
               <li><Link href="#features" className="text-muted-foreground hover:text-brand">Funcionalidades</Link></li>
               <li><Link href="#pricing" className="text-muted-foreground hover:text-brand">Precios</Link></li>
@@ -168,7 +168,7 @@ export function LandingFooter() {
             </ul>
           </div>
           <div>
-            <h4 className="mb-6 text-sm font-bold uppercase tracking-widest text-[#aaa]">Compañía</h4>
+            <h4 className="mb-6 text-sm font-bold uppercase tracking-widest text-[var(--gbp-muted)]">Compañía</h4>
             <ul className="space-y-4 text-sm font-medium">
               <li><Link href="#" className="text-muted-foreground hover:text-brand">Sobre Nosotros</Link></li>
               <li><Link href="#" className="text-muted-foreground hover:text-brand">Contacto</Link></li>
@@ -176,7 +176,7 @@ export function LandingFooter() {
             </ul>
           </div>
         </div>
-        <div className="mt-20 border-t border-line pt-10 text-center text-xs font-semibold text-[#aaa] uppercase tracking-[0.1em]">
+        <div className="mt-20 border-t border-line pt-10 text-center text-xs font-semibold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">
           &copy; {new Date().getFullYear()} GetBackplate. Todos los derechos reservados.
         </div>
       </div>
