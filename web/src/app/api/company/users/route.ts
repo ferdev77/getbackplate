@@ -11,13 +11,10 @@ import { assertPlanLimitForUsers, getPlanLimitErrorMessage } from "@/shared/lib/
 import { buildTenantAuthUrls } from "@/shared/lib/tenant-auth-branding";
 import { sendEmail } from "@/shared/lib/brevo";
 import { initialInviteTemplate } from "@/shared/lib/email-templates/invitation";
+import { resendReminderTemplate } from "@/shared/lib/email-templates/invitation";
+import { isUserMemberOfOrganization } from "@/shared/lib/tenant-membership";
 const ALLOWED_ROLE_CODES = new Set(["employee", "manager", "company_admin"]);
 const ALLOWED_STATUSES = new Set(["active", "inactive"]);
-
-function isAuthUserAlreadyRegisteredError(message: string) {
-  const normalized = message.toLowerCase();
-  return normalized.includes("already") || normalized.includes("exists") || normalized.includes("registered");
-}
 
 async function resolveOrCreateAuthUser(params: {
   organizationId: string;
@@ -30,9 +27,10 @@ async function resolveOrCreateAuthUser(params: {
   let userId = existingUser?.id ?? null;
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
-  const { loginUrl } = await buildTenantAuthUrls({
+  const { loginUrl, recoveryUrl } = await buildTenantAuthUrls({
     appUrl,
     organizationId: params.organizationId,
+    includeRecovery: true,
   });
   const branding = await getTenantEmailBranding(params.organizationId);
 
@@ -43,6 +41,31 @@ async function resolveOrCreateAuthUser(params: {
   };
 
   if (userId) {
+    const isMember = await isUserMemberOfOrganization({
+      supabase: admin,
+      organizationId: params.organizationId,
+      userId,
+    });
+
+    if (!isMember) {
+      try {
+        await sendEmail({
+          to: [{ email: params.email, name: params.fullName }],
+          subject: "Acceso activado para una nueva empresa en GetBackplate",
+          htmlContent: resendReminderTemplate({
+            fullName: params.fullName,
+            loginUrl,
+            recoveryUrl: recoveryUrl ?? `${appUrl.replace(/\/$/, "")}/auth/forgot-password`,
+            branding,
+          }),
+        });
+      } catch (e) {
+        console.error("Error sending cross-tenant join email:", e);
+      }
+
+      return { userId, errorMessage: null };
+    }
+
     const { error: updateError } = await admin.auth.admin.updateUserById(userId, {
       password: params.password,
       email_confirm: true,

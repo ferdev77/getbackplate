@@ -9,6 +9,32 @@ import {
 } from '@/modules/billing/services/billing-notifications.service';
 import { sendPlanChangeAppliedEmail } from '@/modules/billing/services/plan-change-notifications.service';
 
+const processedStripeEvents = new Map<string, number>();
+const PROCESS_EVENT_TTL_MS = 24 * 60 * 60 * 1000;
+
+function hasBeenProcessed(eventId: string) {
+  const processedAt = processedStripeEvents.get(eventId);
+  if (!processedAt) return false;
+  if (Date.now() - processedAt > PROCESS_EVENT_TTL_MS) {
+    processedStripeEvents.delete(eventId);
+    return false;
+  }
+  return true;
+}
+
+function markProcessed(eventId: string) {
+  processedStripeEvents.set(eventId, Date.now());
+
+  if (processedStripeEvents.size > 2000) {
+    const now = Date.now();
+    for (const [id, timestamp] of processedStripeEvents.entries()) {
+      if (now - timestamp > PROCESS_EVENT_TTL_MS) {
+        processedStripeEvents.delete(id);
+      }
+    }
+  }
+}
+
 function mapStripeIntervalToBillingPeriod(interval: string | null | undefined): 'monthly' | 'yearly' {
   return interval === 'year' ? 'yearly' : 'monthly';
 }
@@ -56,6 +82,11 @@ export async function POST(req: Request) {
   );
 
   console.log(`[Webhook] Received event: ${event.type} (id: ${event.id})`);
+
+  if (hasBeenProcessed(event.id)) {
+    console.log(`[Webhook] Duplicate event ignored: ${event.id}`);
+    return NextResponse.json({ received: true, duplicate: true });
+  }
 
   try {
     switch (event.type) {
@@ -417,6 +448,8 @@ export async function POST(req: Request) {
     console.error(`[Webhook] Unhandled error processing event ${event.type}:`, err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+
+  markProcessed(event.id);
 
   return NextResponse.json({ received: true });
 }

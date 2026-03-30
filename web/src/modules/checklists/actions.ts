@@ -13,14 +13,6 @@ import { upsertChecklistTemplate, deleteChecklistTemplate } from "./services/che
 import { z } from "zod";
 
 // ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function qs(message: string) {
-  return encodeURIComponent(message);
-}
-
-// ---------------------------------------------------------------------------
 // Schema
 // ---------------------------------------------------------------------------
 
@@ -124,7 +116,7 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   let parsedCustomDays: number[] = [];
   try {
     parsedCustomDays = JSON.parse(parsed.data.custom_days);
-  } catch (e) {}
+  } catch {}
 
   // --- Delegate to service ---
   const result = await upsertChecklistTemplate({

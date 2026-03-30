@@ -12,7 +12,7 @@ export async function updateFeedbackStatusAction(id: string, status: string) {
   }
   
   const supabase = createSupabaseAdminClient();
-  const updateData: any = { status };
+  const updateData: { status: string; resolved_at?: string | null } = { status };
   
   if (status === "resolved") {
     updateData.resolved_at = new Date().toISOString();

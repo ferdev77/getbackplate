@@ -3,6 +3,8 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { calculateNextRunAt, RecurrenceType } from "@/shared/lib/cron-utils";
 import { processAnnouncementDeliveries } from "@/modules/announcements/services/deliveries";
 
+type JobError = { id: string; error: string };
+
 export async function POST(req: Request) {
   return await processRecurrence(req);
 }
@@ -18,9 +20,11 @@ async function processRecurrence(req: Request) {
     const authHeader = req.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
     
-    // Si no está configurado CRON_SECRET, permitimos en desarrollo con advertencia (opcional),
-    // pero en prod debe existir.
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (!cronSecret) {
+      return NextResponse.json({ error: "Cron secret not configured" }, { status: 500 });
+    }
+
+    if (authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -48,7 +52,7 @@ async function processRecurrence(req: Request) {
 
     let processedCount = 0;
     let pushDeliveriesToProcess = false;
-    const errors = [];
+    const errors: JobError[] = [];
 
     // 3. Process each job
     for (const job of jobs) {
@@ -59,13 +63,19 @@ async function processRecurrence(req: Request) {
            const { data: template } = await supabaseAdmin
              .from('checklist_templates')
              .select('name, target_scope, is_active, branch_id, department_id, organization_id')
+             .eq('organization_id', job.organization_id)
              .eq('id', job.target_id)
              .maybeSingle();
 
            if (template && template.is_active) {
-             const targetScope = template.target_scope as Record<string, any>;
-             const notifyVia = targetScope?.notify_via || 'none';
-             const notifyChannels = targetScope?.notify_channels || [];
+              const targetScope =
+                template.target_scope && typeof template.target_scope === "object"
+                  ? (template.target_scope as Record<string, unknown>)
+                  : {};
+              const notifyVia = targetScope?.notify_via || 'none';
+              const notifyChannels = Array.isArray(targetScope?.notify_channels)
+                ? targetScope.notify_channels
+                : [];
 
              const audienceInput = {
                supabase: supabaseAdmin,
@@ -80,7 +90,7 @@ async function processRecurrence(req: Request) {
                  // Import dynamico para no afectar ruta principal si falla
                  const { sendChecklistAudienceEmail, sendChecklistAudienceTwilio } = await import('@/modules/checklists/services/checklist-audience.service');
                  
-                 if (notifyChannels.includes("email") || notifyVia === "email" || notifyVia === "all") {
+                  if (notifyChannels.includes("email") || notifyVia === "email" || notifyVia === "all") {
                    await sendChecklistAudienceEmail({
                      ...audienceInput,
                      templateName: template.name,
@@ -146,6 +156,7 @@ async function processRecurrence(req: Request) {
             last_run_at: new Date().toISOString(), 
             next_run_at: nextRun.toISOString() 
           })
+          .eq('organization_id', job.organization_id)
           .eq('id', job.id);
           
         if (updateError) {
@@ -153,11 +164,11 @@ async function processRecurrence(req: Request) {
         }
 
         processedCount++;
-      } catch (err: any) {
-        console.error(`Error processing job ${job.id}:`, err);
-        errors.push({ id: job.id, error: err.message });
-      }
-    }
+       } catch (err: unknown) {
+         console.error(`Error processing job ${job.id}:`, err);
+         errors.push({ id: job.id, error: err instanceof Error ? err.message : "Unknown error" });
+       }
+     }
 
     if (pushDeliveriesToProcess) {
        // Fire and forget or await the execution of processAnnouncementDeliveries
@@ -171,7 +182,7 @@ async function processRecurrence(req: Request) {
       errors: errors.length > 0 ? errors : undefined
     }, { status: 200 });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Unhandled error in process-recurrence route:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { requireEmployeeAccess } from "@/shared/lib/access";
 import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
+import { canReadAnnouncementInTenant } from "@/shared/lib/announcement-access";
 import { AlertCircle, CalendarClock, PartyPopper, Megaphone } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -12,13 +13,39 @@ type AnnouncementRow = {
   kind: "urgent" | "reminder" | "celebration" | "general" | string | null;
   publish_at: string | null;
   expires_at: string | null;
-  target_scope: string | null;
+  target_scope: unknown;
   created_by: string | null;
 };
 
 export default async function EmployeeAnnouncementsPage() {
   const tenant = await requireEmployeeAccess();
   const supabase = await createSupabaseServerClient();
+  const { data: authData } = await supabase.auth.getUser();
+  const userId = authData.user?.id;
+
+  if (!userId) {
+    return null;
+  }
+
+  const { data: employeeRow } = await supabase
+    .from("employees")
+    .select("department_id, position, branch_id")
+    .eq("organization_id", tenant.organizationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  let employeePositionIds: string[] = [];
+  if (employeeRow?.position) {
+    const { data: positionRows } = await supabase
+      .from("department_positions")
+      .select("id")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .eq("name", employeeRow.position)
+      .limit(20);
+
+    employeePositionIds = (positionRows ?? []).map((row) => row.id);
+  }
 
   const { data: moduleData } = await supabase.rpc("is_module_enabled", { 
     org_id: tenant.organizationId, 
@@ -43,7 +70,16 @@ export default async function EmployeeAnnouncementsPage() {
       const expiresAt = item.expires_at ? new Date(item.expires_at) : null;
       const published = !publishAt || publishAt <= now;
       const notExpired = !expiresAt || expiresAt >= now;
-      return published && notExpired;
+      if (!published || !notExpired) return false;
+
+      return canReadAnnouncementInTenant({
+        roleCode: tenant.roleCode,
+        userId,
+        branchId: tenant.branchId ?? employeeRow?.branch_id ?? null,
+        departmentId: employeeRow?.department_id ?? null,
+        positionIds: employeePositionIds,
+        targetScope: item.target_scope,
+      });
     });
   }
 

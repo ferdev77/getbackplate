@@ -21,17 +21,10 @@ function classifyDocument(mimeType: string | null) {
 }
 
 function isAuthorized(request: Request) {
-  const cronHeader = request.headers.get("x-vercel-cron");
-  if (cronHeader === "1") return true;
-
   if (!CRON_SECRET) return false;
 
   const authHeader = request.headers.get("authorization") || "";
-  if (authHeader === `Bearer ${CRON_SECRET}`) return true;
-
-  const url = new URL(request.url);
-  const token = url.searchParams.get("token");
-  return token === CRON_SECRET;
+  return authHeader === `Bearer ${CRON_SECRET}`;
 }
 
 async function claimJob(client: pg.ClientBase) {

@@ -13,10 +13,18 @@ const MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024;
 async function ensureBucket() {
   const admin = createSupabaseAdminClient();
   const { data: bucket } = await admin.storage.getBucket(EVIDENCE_BUCKET);
-  if (bucket) return;
+  if (bucket) {
+    if (bucket.public) {
+      await admin.storage.updateBucket(EVIDENCE_BUCKET, {
+        public: false,
+        fileSizeLimit: `${MAX_FILE_SIZE_BYTES}`,
+      });
+    }
+    return;
+  }
 
   await admin.storage.createBucket(EVIDENCE_BUCKET, {
-    public: true,
+    public: false,
     fileSizeLimit: `${MAX_FILE_SIZE_BYTES}`,
   });
 }
@@ -37,6 +45,21 @@ type IncomingItem = {
   checked: boolean;
   flagged: boolean;
   comment: string;
+};
+
+type EvidenceAttachment = {
+  file_path: string;
+  mime_type: string | null;
+  file_size_bytes: number;
+};
+
+type SubmissionItemPayload = {
+  id: string;
+  template_item_id: string;
+  checked: boolean;
+  flagged: boolean;
+  comment: string;
+  attachments: EvidenceAttachment[];
 };
 
 export async function POST(request: Request) {
@@ -196,7 +219,7 @@ export async function POST(request: Request) {
   const branchId = tenant.branchId ?? template.branch_id;
   
   const uploadedEvidencePaths: string[] = [];
-  const rpcItemsPayload: any[] = [];
+  const rpcItemsPayload: SubmissionItemPayload[] = [];
 
   for (const item of items) {
     const submissionItemId = crypto.randomUUID();
@@ -206,7 +229,7 @@ export async function POST(request: Request) {
       checked: item.checked,
       flagged: item.flagged,
       comment: item.comment,
-      attachments: [] as any[]
+      attachments: [] as EvidenceAttachment[]
     };
 
     const files = formData

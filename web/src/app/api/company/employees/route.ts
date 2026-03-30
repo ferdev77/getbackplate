@@ -4,7 +4,6 @@ import { z } from "zod";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
-import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { EMPLOYEES_MESSAGES, employeesStorageLimitForSlot } from "@/shared/lib/employees-messages";
 import { analyzeUploadedFile } from "@/shared/lib/file-security";
@@ -15,9 +14,7 @@ import {
   getPlanLimitErrorMessage,
 } from "@/shared/lib/plan-limits";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
-import { sendEmail } from "@/shared/lib/brevo";
 import { provisionOrganizationUserAccount } from "@/shared/lib/user-provisioning.service";
-import { initialInviteTemplate } from "@/shared/lib/email-templates/invitation";
 
 const ALLOWED_CREATE_MODES = new Set(["without_account", "with_account"]);
 const ALLOWED_CONTRACT_STATUSES = new Set(["draft", "active", "ended", "cancelled"]);
@@ -1373,7 +1370,7 @@ export async function DELETE(request: Request) {
   if (organizationUserProfileId) {
     const { data: existingProfile } = await supabase
       .from("organization_user_profiles")
-      .select("id")
+      .select("id, user_id")
       .eq("organization_id", tenant.organizationId)
       .eq("id", organizationUserProfileId)
       .maybeSingle();
@@ -1383,6 +1380,36 @@ export async function DELETE(request: Request) {
     }
 
     if (membershipId) {
+      const { data: membershipToDelete } = await supabase
+        .from("memberships")
+        .select("id, user_id")
+        .eq("organization_id", tenant.organizationId)
+        .eq("id", membershipId)
+        .maybeSingle();
+
+      if (!membershipToDelete) {
+        return NextResponse.json({ error: "Acceso no encontrado" }, { status: 404 });
+      }
+
+      if (existingProfile.user_id && membershipToDelete.user_id !== existingProfile.user_id) {
+        await logAuditEvent({
+          action: "users.profile.delete",
+          entityType: "organization_user_profile",
+          entityId: organizationUserProfileId,
+          organizationId: tenant.organizationId,
+          eventDomain: "employees",
+          outcome: "denied",
+          severity: "high",
+          metadata: {
+            actor_user_id: actorId,
+            membership_id: membershipId,
+            reason: "membership_profile_mismatch",
+          },
+        });
+
+        return NextResponse.json({ error: "El acceso indicado no corresponde a este usuario" }, { status: 400 });
+      }
+
       const { error: membershipDeleteError } = await supabase
         .from("memberships")
         .delete()
