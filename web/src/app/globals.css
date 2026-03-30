@@ -101,14 +101,14 @@
   --shadow-accent: var(--gbp-shadow-accent);
   --shadow-violet: var(--gbp-shadow-violet);
 
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-plus-jakarta-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), sans-serif;
+  font-family: var(--font-plus-jakarta-sans), sans-serif;
 }
 
 .grad-orange {
