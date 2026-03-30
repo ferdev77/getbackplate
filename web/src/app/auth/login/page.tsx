@@ -7,7 +7,7 @@ import { SubmitButton } from "@/shared/ui/submit-button";
 import { SlideUp } from "@/shared/ui/animations";
 import { TagPill } from "@/shared/ui/tag-pill";
 import { ThemeToggle } from "@/shared/ui/theme-toggle";
-import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
+import { ThemeAwareGetBackplateLogo } from "@/shared/ui/theme-aware-getbackplate-logo";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 
 export const metadata: Metadata = {
@@ -28,14 +28,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_var(--gbp-surface)_0%,_var(--gbp-bg)_48%,_var(--gbp-bg2)_100%)] px-6 py-10">
       <SlideUp className="w-full max-w-md">
-        <section className="rounded-[var(--gbp-radius-3xl)] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-8 shadow-[var(--gbp-shadow-lg)]">
+        <section className="rounded-[var(--gbp-radius-3xl)] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-8 text-[var(--gbp-text)] shadow-[var(--gbp-shadow-lg)]">
           <div className="mb-4 flex items-center justify-between gap-2">
             <TagPill variant="accent">Acceso seguro</TagPill>
             <ThemeToggle showLabel={false} />
           </div>
 
           <div className="mb-5 flex justify-center">
-            <GetBackplateLogo variant="light" width={230} height={42} className={`${BRAND_SCALE.authHeight} w-auto`} priority />
+            <ThemeAwareGetBackplateLogo width={230} height={42} className={`${BRAND_SCALE.authHeight} w-auto`} priority />
           </div>
 
           {tenantBranding ? (
@@ -62,7 +62,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </div>
           ) : null}
 
-          <h1 className="mb-1 text-2xl font-bold tracking-tight">Iniciar sesion</h1>
+          <h1 className="mb-1 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Iniciar sesion</h1>
           <p className="mb-6 text-sm text-[var(--gbp-text2)]">
             Ingresa con tus credenciales para acceder al panel.
           </p>
@@ -76,7 +76,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <form action={loginWithPasswordAction} className="space-y-4">
             <input type="hidden" name="organization_id_hint" value={organizationIdHint} />
             <div>
-              <label htmlFor="email" className="mb-1 block text-sm font-medium">
+              <label htmlFor="email" className="mb-1 block text-sm font-medium text-[var(--gbp-text)]">
                 Email
               </label>
               <input
@@ -84,14 +84,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 name="email"
                 type="email"
                 required
-                className="w-full rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm outline-none ring-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] transition focus:ring-2"
+                className="auth-input w-full rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none ring-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] placeholder:text-[var(--gbp-muted)] transition focus:ring-2"
                 placeholder="admin@empresa.com"
               />
             </div>
             <div>
               <label
                 htmlFor="password"
-                className="mb-1 block text-sm font-medium"
+                className="mb-1 block text-sm font-medium text-[var(--gbp-text)]"
               >
                 Contrasena
               </label>
@@ -100,7 +100,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 name="password"
                 type="password"
                 required
-                className="w-full rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm outline-none ring-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] transition focus:ring-2"
+                className="auth-input w-full rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none ring-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] placeholder:text-[var(--gbp-muted)] transition focus:ring-2"
                 placeholder="********"
               />
               <div className="mt-2 text-right">

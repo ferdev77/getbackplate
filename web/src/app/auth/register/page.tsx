@@ -3,7 +3,7 @@ import Link from "next/link";
 import { registerPublicAction } from "@/modules/auth/public-actions";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import { SlideUp } from "@/shared/ui/animations";
-import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
+import { ThemeAwareGetBackplateLogo } from "@/shared/ui/theme-aware-getbackplate-logo";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 
 export const metadata: Metadata = {
@@ -29,7 +29,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
       <SlideUp className="w-full max-w-md">
         <section className="rounded-2xl border border-line bg-panel p-8 shadow-[0_8px_30px_rgba(0,0,0,0.05)]">
           <div className="mb-4 flex justify-center">
-            <GetBackplateLogo variant="light" width={230} height={42} className={`${BRAND_SCALE.authHeight} w-auto`} priority />
+            <ThemeAwareGetBackplateLogo width={230} height={42} className={`${BRAND_SCALE.authHeight} w-auto`} priority />
           </div>
           <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-brand uppercase">
             Únete a GetBackplate

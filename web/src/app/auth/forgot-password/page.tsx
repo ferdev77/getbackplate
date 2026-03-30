@@ -6,7 +6,7 @@ import { SubmitButton } from "@/shared/ui/submit-button";
 import { SlideUp } from "@/shared/ui/animations";
 import { TagPill } from "@/shared/ui/tag-pill";
 import { ThemeToggle } from "@/shared/ui/theme-toggle";
-import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
+import { ThemeAwareGetBackplateLogo } from "@/shared/ui/theme-aware-getbackplate-logo";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 
 export const metadata: Metadata = {
@@ -32,7 +32,7 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
           </div>
 
           <div className="mb-5 flex justify-center">
-            <GetBackplateLogo variant="light" width={230} height={42} className={`${BRAND_SCALE.authHeight} w-auto`} priority />
+            <ThemeAwareGetBackplateLogo width={230} height={42} className={`${BRAND_SCALE.authHeight} w-auto`} priority />
           </div>
 
           {tenantBranding ? (
