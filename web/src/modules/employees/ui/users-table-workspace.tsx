@@ -307,7 +307,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
               <button type="button" disabled={busyResend} onClick={() => void resendInvitation(editing)} className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm font-semibold text-[var(--gbp-text2)] transition-all hover:border-[var(--gbp-accent)] hover:bg-[var(--gbp-accent-glow)] hover:text-[var(--gbp-accent)] disabled:opacity-50">{busyResend ? "Enviando..." : "Reenviar Invitación"}</button>
               <div className="flex items-center gap-2">
                 <button type="button" onClick={() => setEditMembershipId(null)} className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">Cancelar</button>
-                <button type="button" disabled={busySave} onClick={saveUser} className="rounded-lg bg-[var(--gbp-text)] px-5 py-2 text-sm font-bold text-white hover:bg-[var(--gbp-accent)] disabled:opacity-60">{busySave ? "Guardando..." : "Guardar cambios"}</button>
+                <button type="button" disabled={busySave} onClick={saveUser} className="rounded-lg bg-[var(--gbp-accent)] px-5 py-2 text-sm font-bold text-white hover:bg-[var(--gbp-accent-hover)] disabled:cursor-not-allowed disabled:bg-[var(--gbp-muted)] disabled:text-white/80 disabled:hover:bg-[var(--gbp-muted)]">{busySave ? "Guardando..." : "Guardar cambios"}</button>
               </div>
             </div>
           </div>

@@ -34,9 +34,9 @@ export default async function DashboardByLocationPage({ searchParams }: Dashboar
             </p>
           ) : null}
           <div className="mt-3 flex flex-wrap gap-2">
-            <Link href="/app/dashboard/location" className={`rounded-md border px-2.5 py-1 text-xs ${!selectedBranch ? "border-[var(--gbp-text)] bg-[var(--gbp-text)] text-white hover:bg-[var(--gbp-accent)]" : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"}`}>Todas</Link>
+            <Link href="/app/dashboard/location" className={`rounded-md border px-2.5 py-1 text-xs ${!selectedBranch ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent)] text-white hover:bg-[var(--gbp-accent-hover)]" : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"}`}>Todas</Link>
             {(branches ?? []).map((branch) => (
-              <Link key={branch.id} href={`/app/dashboard/location?branch=${branch.id}`} className={`rounded-md border px-2.5 py-1 text-xs ${selectedBranch === branch.id ? "border-[var(--gbp-text)] bg-[var(--gbp-text)] text-white hover:bg-[var(--gbp-accent)]" : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"}`}>
+              <Link key={branch.id} href={`/app/dashboard/location?branch=${branch.id}`} className={`rounded-md border px-2.5 py-1 text-xs ${selectedBranch === branch.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent)] text-white hover:bg-[var(--gbp-accent-hover)]" : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"}`}>
                 {branch.name}
               </Link>
             ))}
