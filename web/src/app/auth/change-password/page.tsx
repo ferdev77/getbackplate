@@ -24,7 +24,7 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
   return (
     <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_var(--gbp-surface)_0%,_var(--gbp-bg)_48%,_var(--gbp-bg2)_100%)] px-6 py-10">
       <SlideUp className="w-full max-w-md">
-        <section className="rounded-[var(--gbp-radius-3xl)] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-8 shadow-[var(--gbp-shadow-lg)]">
+        <section className="rounded-[var(--gbp-radius-3xl)] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-8 text-[var(--gbp-text)] shadow-[var(--gbp-shadow-lg)]">
           <div className="mb-4 flex items-center justify-between gap-2">
             <TagPill variant="violet">Seguridad</TagPill>
             <ThemeToggle showLabel={false} />
@@ -48,7 +48,7 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
           <form action={updatePasswordAction} className="space-y-4">
             <input type="hidden" name="next" value={nextPath} />
             <div>
-              <label htmlFor="password" className="mb-1 block text-sm font-medium">
+              <label htmlFor="password" className="mb-1 block text-sm font-medium text-[var(--gbp-text)]">
                 Nueva contrasena
               </label>
               <input
@@ -57,13 +57,13 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
                 type="password"
                 minLength={8}
                 required
-                className="w-full rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm outline-none ring-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] transition focus:ring-2"
+                className="auth-input w-full rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none ring-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] placeholder:text-[var(--gbp-muted)] transition focus:ring-2"
                 placeholder="Minimo 8 caracteres"
               />
             </div>
 
             <div>
-              <label htmlFor="confirm_password" className="mb-1 block text-sm font-medium">
+              <label htmlFor="confirm_password" className="mb-1 block text-sm font-medium text-[var(--gbp-text)]">
                 Confirmar contrasena
               </label>
               <input
@@ -72,7 +72,7 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
                 type="password"
                 minLength={8}
                 required
-                className="w-full rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm outline-none ring-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] transition focus:ring-2"
+                className="auth-input w-full rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none ring-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] placeholder:text-[var(--gbp-muted)] transition focus:ring-2"
                 placeholder="Repite la contrasena"
               />
             </div>
