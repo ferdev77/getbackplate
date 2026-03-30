@@ -39,8 +39,8 @@ export const dsColors = {
 
 export const dsTypography = {
   font: {
-    display: "var(--font-geist-sans), sans-serif",
-    body: "var(--font-geist-sans), sans-serif",
+    display: "var(--font-plus-jakarta-sans), sans-serif",
+    body: "var(--font-plus-jakarta-sans), sans-serif",
   },
   tracking: {
     tightest: "-0.03em",
