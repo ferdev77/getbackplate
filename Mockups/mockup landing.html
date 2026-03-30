@@ -1,0 +1,2038 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22UTF-8%22%3F%3E%3Csvg%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20216%20216%22%3E%3Cpath%20d%3D%22M175.82%2C5.68h36.72v204.63h-36.72v-4.08h17.39V9.76h-17.39v-4.08Z%22%20style%3D%22fill%3A%23d4531a%3B%22/%3E%3Cpath%20d%3D%22M42.9%2C210.32H6.18V5.68h36.72v4.08h-17.39v196.47h17.39v4.08Z%22%20style%3D%22fill%3A%230f1923%3B%22/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22UTF-8%22%3F%3E%3Csvg%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20216%20216%22%3E%3Cpath%20d%3D%22M175.82%2C5.68h36.72v204.63h-36.72v-4.08h17.39V9.76h-17.39v-4.08Z%22%20style%3D%22fill%3A%23d4531a%3B%22/%3E%3Cpath%20d%3D%22M42.9%2C210.32H6.18V5.68h36.72v4.08h-17.39v196.47h17.39v4.08Z%22%20style%3D%22fill%3A%230f1923%3B%22/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22UTF-8%22%3F%3E%3Csvg%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20216%20216%22%3E%3Cpath%20d%3D%22M175.82%2C5.68h36.72v204.63h-36.72v-4.08h17.39V9.76h-17.39v-4.08Z%22%20style%3D%22fill%3A%23d4531a%3B%22/%3E%3Cpath%20d%3D%22M42.9%2C210.32H6.18V5.68h36.72v4.08h-17.39v196.47h17.39v4.08Z%22%20style%3D%22fill%3A%230f1923%3B%22/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22UTF-8%22%3F%3E%3Csvg%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20216%20216%22%3E%3Cpath%20d%3D%22M175.82%2C5.68h36.72v204.63h-36.72v-4.08h17.39V9.76h-17.39v-4.08Z%22%20style%3D%22fill%3A%23d4531a%3B%22/%3E%3Cpath%20d%3D%22M42.9%2C210.32H6.18V5.68h36.72v4.08h-17.39v196.47h17.39v4.08Z%22%20style%3D%22fill%3A%230f1923%3B%22/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22UTF-8%22%3F%3E%3Csvg%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20216%20216%22%3E%3Cpath%20d%3D%22M175.82%2C5.68h36.72v204.63h-36.72v-4.08h17.39V9.76h-17.39v-4.08Z%22%20style%3D%22fill%3A%23d4531a%3B%22/%3E%3Cpath%20d%3D%22M42.9%2C210.32H6.18V5.68h36.72v4.08h-17.39v196.47h17.39v4.08Z%22%20style%3D%22fill%3A%230f1923%3B%22/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22UTF-8%22%3F%3E%3Csvg%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20216%20216%22%3E%3Cpath%20d%3D%22M175.82%2C5.68h36.72v204.63h-36.72v-4.08h17.39V9.76h-17.39v-4.08Z%22%20style%3D%22fill%3A%23d4531a%3B%22/%3E%3Cpath%20d%3D%22M42.9%2C210.32H6.18V5.68h36.72v4.08h-17.39v196.47h17.39v4.08Z%22%20style%3D%22fill%3A%230f1923%3B%22/%3E%3C/svg%3E">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- ═══ PRIMARY SEO ═══ -->
+<title>GetBackplate — Restaurant Operations Platform | Run Your Restaurant, Not Just Your Register</title>
+<meta name="description" content="GetBackplate is the restaurant operations platform built for owners, managers, and teams. Manage checklists, staff, kitchen standards, compliance, and communication — all in one place. Not a POS. The system that runs everything your POS ignores.">
+<meta name="keywords" content="restaurant operations software, restaurant management platform, restaurant HR software, restaurant checklists, food safety compliance, restaurant scheduling, ghost kitchen software, food truck management, multi-location restaurant software">
+<meta name="robots" content="index, follow">
+<meta name="author" content="GetBackplate">
+<link rel="canonical" href="https://getbackplate.com/">
+
+<!-- ═══ OPEN GRAPH (Facebook, LinkedIn, WhatsApp) ═══ -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://getbackplate.com/">
+<meta property="og:title" content="GetBackplate — Run Your Restaurant. Not Just Your Register.">
+<meta property="og:description" content="The operations platform restaurant owners have been waiting for. Checklists, HR, kitchen systems, compliance, AI — everything your POS leaves behind. Now in one place.">
+<meta property="og:image" content="https://getbackplate.com/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="GetBackplate">
+<meta property="og:locale" content="en_US">
+
+<!-- ═══ TWITTER / X CARD ═══ -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:url" content="https://getbackplate.com/">
+<meta name="twitter:title" content="GetBackplate — Run Your Restaurant. Not Just Your Register.">
+<meta name="twitter:description" content="The operations platform restaurant owners have been waiting for. Checklists, HR, kitchen systems, compliance, AI — all in one place.">
+<meta name="twitter:image" content="https://getbackplate.com/og-image.jpg">
+
+<!-- ═══ SCHEMA MARKUP ═══ -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "GetBackplate",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "description": "Restaurant operations platform that manages everything your POS ignores — checklists, HR, kitchen standards, compliance, scheduling, and communication.",
+  "url": "https://getbackplate.com",
+  "offers": [
+    {
+      "@type": "Offer",
+      "name": "Starter",
+      "price": "49",
+      "priceCurrency": "USD",
+      "priceSpecification": {
+        "@type": "UnitPriceSpecification",
+        "price": "49",
+        "priceCurrency": "USD",
+        "unitText": "MONTH"
+      }
+    },
+    {
+      "@type": "Offer",
+      "name": "Growth",
+      "price": "129",
+      "priceCurrency": "USD",
+      "priceSpecification": {
+        "@type": "UnitPriceSpecification",
+        "price": "129",
+        "priceCurrency": "USD",
+        "unitText": "MONTH"
+      }
+    },
+    {
+      "@type": "Offer",
+      "name": "Pro",
+      "price": "249",
+      "priceCurrency": "USD",
+      "priceSpecification": {
+        "@type": "UnitPriceSpecification",
+        "price": "249",
+        "priceCurrency": "USD",
+        "unitText": "MONTH"
+      }
+    }
+  ],
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "5",
+    "reviewCount": "7"
+  }
+}
+</script>
+
+<!-- ═══ FAVICON ═══ -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48c3ZnIGlkPSJMYXllcl8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMTYgMjE2Ij48cGF0aCBkPSJNMTc5Ljk1LDE5Ljg4aDMxLjYydjE3Ni4yNGgtMzEuNjJ2LTMuNTFoMTQuOThWMjMuMzloLTE0Ljk4di0zLjUxWiIgc3R5bGU9ImZpbGw6I2Q0NTMxYTsiLz48cGF0aCBkPSJNMzYuMDUsMTk2LjEySDQuNDJWMTkuODhoMzEuNjJ2My41MWgtMTQuOTh2MTY5LjIxaDE0Ljk4djMuNTFaIiBzdHlsZT0iZmlsbDojMGYxOTIzOyIvPjxwYXRoIGQ9Ik04Ni4yMiw0My41NWMyLjM0LjgzLDQuNDIsMS45Niw2LjIyLDMuNDIsMS44LDEuNDUsMy4zMSwzLjExLDQuNTMsNC45OGwtNy4yOSw0LjU2Yy0uNzQtMS4xNy0xLjctMi4yMS0yLjktMy4xMy0xLjE5LS45MS0yLjUxLTEuNjMtMy45NC0yLjE1LTEuNDMtLjUyLTIuODYtLjc4LTQuMy0uNzgtMi44NiwwLTUuNC42Ni03LjYyLDEuOTktMi4yMSwxLjMyLTMuOTUsMy4xNC01LjIxLDUuNDQtMS4yNiwyLjMtMS44OSw0Ljk3LTEuODksOC4wMXMuNjIsNS42NiwxLjg2LDguMDFjMS4yNCwyLjM0LDIuOTgsNC4xOCw1LjI0LDUuNSwyLjI2LDEuMzIsNC44NiwxLjk5LDcuODEsMS45OSwyLjMsMCw0LjM1LS40Niw2LjE1LTEuMzcsMS44LS45MSwzLjIyLTIuMTksNC4yNi0zLjg0LDEuMDQtMS42NSwxLjU2LTMuNTYsMS41Ni01LjczbDguNDYtMS4zYzAsNC4zLS44OCw3Ljk3LTIuNjQsMTEtMS43NiwzLjA0LTQuMTksNS4zNS03LjI5LDYuOTMtMy4xLDEuNTktNi42NywyLjM4LTEwLjcxLDIuMzgtNC42NSwwLTguNzYtMS4wMS0xMi4zNC0zLjAzLTMuNTgtMi4wMi02LjM5LTQuOC04LjQzLTguMzMtMi4wNC0zLjU0LTMuMDYtNy42MS0zLjA2LTEyLjIxczEuMDItOC42NywzLjA2LTEyLjIxYzIuMDQtMy41NCw0Ljg1LTYuMzIsOC40My04LjMzLDMuNTgtMi4wMiw3LjY5LTMuMDMsMTIuMzQtMy4wMyIgc3R5bGU9ImZpbGw6IzE2MmEzYTsiLz48cG9seWdvbiBwb2ludHM9IjgwLjA0IDcxLjIyIDgwLjA0IDY0LjI2IDk5LjE4IDY0LjI2IDk5LjE4IDY5Ljc5IDk0LjM2IDcxLjIyIDgwLjA0IDcxLjIyIiBzdHlsZT0iZmlsbDojMTYyYTNhOyIvPjxwYXRoIGQ9Ik0xMTkuMjMsODkuNDVjLTMuMjEsMC02LjA2LS43My04LjUzLTIuMTgtMi40Ny0xLjQ1LTQuNDItMy40Ni01LjgzLTYuMDItMS40MS0yLjU2LTIuMTItNS41MS0yLjEyLTguODZzLjczLTYuMjksMi4xOC04Ljg1YzEuNDUtMi41NiwzLjQ1LTQuNTcsNS45OS02LjAyLDIuNTQtMS40NSw1LjQ2LTIuMTgsOC43Ni0yLjE4LDIuODYsMCw1LjUuNzUsNy45MSwyLjI1czQuMzQsMy42OSw1Ljc5LDYuNThjMS40NSwyLjg5LDIuMTgsNi4zOSwyLjE4LDEwLjUyaC0yNC42OGwuNzgtLjc4YzAsMS42MS40LDMuMDEsMS4yLDQuMi44LDEuMTksMS44NCwyLjExLDMuMTMsMi43MywxLjI4LjYzLDIuNjYuOTQsNC4xMy45NCwxLjc4LDAsMy4yMy0uMzgsNC4zNi0xLjE0LDEuMTMtLjc2LDItMS43NSwyLjYtMi45Nmw3LjY4LDIuOTljLS45MSwxLjgyLTIuMDksMy40LTMuNTUsNC43Mi0xLjQ1LDEuMzItMy4xOCwyLjMzLTUuMTgsMy4wMy0yLC42OS00LjI4LDEuMDQtNi44NCwxLjA0Wk0xMTIuMTMsNjkuMDdsLS43OC0uNzhoMTUuNjlsLS43Mi43OGMwLTEuNTYtLjM3LTIuODEtMS4xMS0zLjc0LS43NC0uOTMtMS42NC0xLjYyLTIuNy0yLjA1LTEuMDYtLjQzLTIuMDktLjY1LTMuMDktLjY1cy0yLjA2LjIyLTMuMTkuNjVjLTEuMTMuNDMtMi4wOSwxLjEyLTIuOSwyLjA1LS44LjkzLTEuMiwyLjE4LTEuMiwzLjc0WiIgc3R5bGU9ImZpbGw6IzE2MmEzYTsiLz48cGF0aCBkPSJNMTM3Ljc5LDYzLjQxdi03LjI5aDIyLjAxdjcuMjloLTIyLjAxWk0xNTQsODkuNDVjLTMuNiwwLTYuMzMtLjg5LTguMTctMi42Ny0xLjg1LTEuNzgtMi43Ny00LjMyLTIuNzctNy42MnYtMzMuMjFoOC41OXYzMS4zMmMwLDEuMzkuMywyLjQ0LjkxLDMuMTYuNjEuNzIsMS41LDEuMDcsMi42NywxLjA3LjQzLDAsLjkxLS4xLDEuNDMtLjI5czEuMDYtLjQ5LDEuNjMtLjg4bDMsNi40NWMtMS4wNC43OC0yLjIsMS40Mi0zLjQ4LDEuOTItMS4yOC41LTIuNTUuNzUtMy44MS43NVoiIHN0eWxlPSJmaWxsOiMxNjJhM2E7Ii8+PHBhdGggZD0iTTEwOS44MiwxNzMuNjl2LTc1LjAxaDEzLjI5bC44Niw5Ljg2djY1LjE1aC0xNC4xNVpNMTQwLjE0LDE1My41NGMtNC41LDAtOC4zLTEuMTQtMTEuNDEtMy40My0zLjExLTIuMjktNS40OC01LjU0LTcuMTMtOS43NS0xLjY0LTQuMjEtMi40Ni05LjE4LTIuNDYtMTQuOXMuODItMTAuNzcsMi40Ni0xNC45NWMxLjY0LTQuMTgsNC4wMi03LjQxLDcuMTMtOS43LDMuMTEtMi4yOCw2LjkxLTMuNDMsMTEuNDEtMy40Myw0LjkzLDAsOS4yLDEuMTQsMTIuODEsMy40MywzLjYxLDIuMjksNi40MSw1LjUyLDguNDEsOS43LDIsNC4xOCwzLDkuMTYsMywxNC45NXMtMSwxMC42OC0zLDE0LjljLTIsNC4yMi00LjgxLDcuNDctOC40MSw5Ljc1LTMuNjEsMi4yOS03Ljg4LDMuNDMtMTIuODEsMy40M1pNMTM2LjUsMTQwLjU3YzIuNTcsMCw0Ljg0LS42NCw2LjgtMS45MywxLjk2LTEuMjksMy41Mi0zLjA3LDQuNjYtNS4zNiwxLjE0LTIuMjgsMS43MS00Ljg5LDEuNzEtNy44MnMtLjU1LTUuNTQtMS42Ni03LjgyYy0xLjExLTIuMjktMi42NC00LjA1LTQuNjEtNS4zLTEuOTctMS4yNS00LjIzLTEuODgtNi44LTEuODgtMi40MywwLTQuNjEuNjQtNi41NCwxLjkzLTEuOTMsMS4yOS0zLjQzLDMuMDUtNC41LDUuMy0xLjA3LDIuMjUtMS42MSw0Ljg0LTEuNjEsNy43N3MuNTQsNS41NCwxLjYxLDcuODJjMS4wNywyLjI5LDIuNTUsNC4wNyw0LjQ1LDUuMzYsMS44OSwxLjI5LDQuMDUsMS45Myw2LjQ4LDEuOTNaIiBzdHlsZT0iZmlsbDojMTYyYTNhOyIvPjxwYXRoIGQ9Ik01MS42NCwxNzMuMDR2LTc1LjAxaDI1LjRjNS4xNCwwLDkuNjQuNzksMTMuNSwyLjM2LDMuODYsMS41Nyw2Ljg2LDMuOTUsOSw3LjEzLDIuMTQsMy4xOCwzLjIxLDcuMTMsMy4yMSwxMS44NCwwLDIuOTMtLjczLDUuNjMtMi4yLDguMDktMS40NywyLjQ2LTMuNTIsNC41OS02LjE2LDYuMzgsMy41LDEuNzksNi4yLDQuMTYsOC4wOSw3LjEzLDEuODksMi45NywyLjg0LDYuNTIsMi44NCwxMC42NiwwLDQuNTctMS4wNCw4LjQ3LTMuMTEsMTEuNjgtMi4wNywzLjIyLTQuOTcsNS42NC04LjY4LDcuMjktMy43MiwxLjY0LTguMDcsMi40Ni0xMy4wNywyLjQ2aC0yOC44M1pNNjYsMTI4LjU3aDExLjM2YzMuMjIsMCw1Ljc1LS44Miw3LjYxLTIuNDYsMS44Ni0xLjY0LDIuNzktMy45NiwyLjc5LTYuOTdzLTEuMDQtNS4zMi0zLjExLTYuOTdjLTIuMDctMS42NC00Ljg5LTIuNDYtOC40Ny0yLjQ2aC0xMC4xOHYxOC44NlpNNjYsMTYwLjA4aDEzLjA3YzMuNSwwLDYuMjUtLjg3LDguMjUtMi42MywyLTEuNzUsMy00LjA5LDMtNy4wMnMtMS4xMS01LjQ4LTMuMzItNy4yM2MtMi4yMi0xLjc1LTUuMjUtMi42My05LjExLTIuNjNoLTExLjg5djE5LjVaIiBzdHlsZT0iZmlsbDojMTYyYTNhOyIvPjwvc3ZnPg==">
+
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22UTF-8%22%3F%3E%3Csvg%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20216%20216%22%3E%3Cpath%20d%3D%22M175.82%2C5.68h36.72v204.63h-36.72v-4.08h17.39V9.76h-17.39v-4.08Z%22%20style%3D%22fill%3A%23d4531a%3B%22/%3E%3Cpath%20d%3D%22M42.9%2C210.32H6.18V5.68h36.72v4.08h-17.39v196.47h17.39v4.08Z%22%20style%3D%22fill%3A%230f1923%3B%22/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+
+<!-- ═══ GOOGLE ANALYTICS 4 — replace G-XXXXXXXXXX with your Measurement ID ═══ -->
+<!-- <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXXXX');
+</script> -->
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ═══ VARIABLES ═══ */
+:root {
+  --bg:#F7F8FC; --bg2:#EDEEF5; --surface:#FFFFFF; --surface2:#F2F3F9;
+  --text:#111827; --text2:#4B5563; --muted:#9CA3AF;
+  --accent:#D4531A; --accent-h:#E06030; --accent-glow:rgba(212,83,26,0.13);
+  --violet:#6C47FF; --violet-h:#7B5CFF; --violet-soft:rgba(108,71,255,0.1);
+  --border:#E5E7F0; --border2:#D1D5E0;
+  --shadow:0 1px 3px rgba(17,24,39,0.07),0 4px 16px rgba(17,24,39,0.05);
+  --shadow-lg:0 8px 32px rgba(17,24,39,0.1),0 2px 8px rgba(17,24,39,0.06);
+  --nav-bg:rgba(247,248,252,0.92);
+  --radius:12px; --radius-sm:8px; --tr:0.22s ease;
+}
+[data-theme="dark"] {
+  --bg:#0D0F14; --bg2:#13161E; --surface:#1A1D27; --surface2:#21253A;
+  --text:#EDF0FF; --text2:#B0B8D0; --muted:#737B96;
+  --accent:#FF6B35; --accent-h:#FF7D4A; --accent-glow:rgba(255,107,53,0.15);
+  --violet:#8B6FFF; --violet-h:#9B82FF; --violet-soft:rgba(139,111,255,0.12);
+  --border:#252836; --border2:#343748;
+  --shadow:0 1px 3px rgba(0,0,0,0.3),0 4px 16px rgba(0,0,0,0.2);
+  --shadow-lg:0 8px 32px rgba(0,0,0,0.4),0 2px 8px rgba(0,0,0,0.2);
+  --nav-bg:rgba(13,15,20,0.94);
+}
+
+/* ═══ BASE ═══ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Plus Jakarta Sans',sans-serif;font-weight:400;background:var(--bg);color:var(--text);overflow-x:hidden;transition:background 0.4s,color 0.4s;line-height:1.6}
+.container{max-width:1200px;margin:0 auto;padding:0 32px}
+.section{padding:96px 0}
+.nav-inner{max-width:1400px;margin:0 auto;padding:0 40px;width:100%;display:flex;align-items:center;justify-content:space-between}
+
+/* ═══ ANIMATED GRADIENT TEXT ═══ */
+.grad-text {
+  background: linear-gradient(90deg, var(--accent) 0%, #FF8A50 30%, var(--violet) 70%, var(--accent) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradShift 4s linear infinite;
+}
+@keyframes gradShift {
+  0%{background-position:0% center}
+  100%{background-position:200% center}
+}
+/* Orange-only gradient (no violet) */
+.grad-orange {
+  background: linear-gradient(90deg, #D4531A 0%, #FF8C42 50%, #D4531A 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradShift 5s linear infinite;
+}
+/* Violet-only gradient (AI) */
+.grad-violet {
+  background: linear-gradient(90deg, #6C47FF 0%, #A78BFA 50%, #6C47FF 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradShift 4s linear infinite;
+}
+
+/* ═══ TAG PILLS ═══ */
+.tag-pill {
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+  padding:5px 12px;border-radius:100px;
+  background:var(--accent-glow);color:var(--accent);
+  border:1px solid rgba(212,83,26,0.2);
+}
+[data-theme="dark"] .tag-pill{border-color:rgba(255,107,53,0.25)}
+.tag-pill.violet{background:var(--violet-soft);color:var(--violet);border-color:rgba(108,71,255,0.2)}
+[data-theme="dark"] .tag-pill.violet{border-color:rgba(139,111,255,0.25)}
+
+/* ═══ REVEAL ═══ */
+.reveal{opacity:0;transform:translateY(22px);transition:opacity 0.6s ease,transform 0.6s ease}
+.reveal.up{opacity:1;transform:translateY(0)}
+
+/* ═══ MEGA MENU ═══ */
+.mega-menu{
+  position:absolute;top:64px;left:0;right:0;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  box-shadow:0 20px 60px rgba(17,24,39,0.1),0 4px 16px rgba(17,24,39,0.06);
+  display:none;z-index:89;
+  animation:megaDown 0.2s cubic-bezier(0.16,1,0.3,1);
+}
+[data-theme="dark"] .mega-menu{box-shadow:0 20px 60px rgba(0,0,0,0.4),0 4px 16px rgba(0,0,0,0.3)}
+.mega-menu.open{display:block}
+@keyframes megaDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.mega-inner{
+  max-width:1400px;margin:0 auto;padding:36px 40px;
+  display:grid;grid-template-columns:1fr 1px 1fr 1px 1fr;gap:0;
+}
+.mega-divider{background:var(--border)}
+.mega-col{padding:0 36px}
+.mega-col:first-child{padding-left:0}
+.mega-col:last-child{padding-right:0}
+.mega-col-header{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:18px;padding-bottom:14px;
+  border-bottom:1px solid var(--border);
+}
+.mega-plan-badge{
+  font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;
+  padding:3px 10px;border-radius:100px;white-space:nowrap;
+}
+.mega-plan-badge.starter{background:rgba(34,197,94,0.1);color:#22C55E}
+.mega-plan-badge.growth{background:var(--violet-soft);color:var(--violet)}
+.mega-plan-badge.pro{background:var(--accent-glow);color:var(--accent)}
+.mega-plan-price{font-size:11px;color:var(--muted);white-space:nowrap}
+.mega-module-list{display:flex;flex-direction:column;gap:1px}
+.mega-mod{
+  display:flex;align-items:center;gap:10px;
+  padding:7px 10px;border-radius:var(--radius-sm);
+  cursor:pointer;transition:background 0.15s;
+  text-decoration:none;color:inherit;
+}
+.mega-mod:hover{background:var(--surface2)}
+.mega-mod-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.mega-col.starter .mega-mod-dot{background:#22C55E}
+.mega-col.growth .mega-mod-dot{background:var(--violet)}
+.mega-col.pro .mega-mod-dot{background:var(--accent)}
+.mega-mod-name{font-size:13px;font-weight:500;color:var(--text2);transition:color 0.15s;line-height:1.3}
+.mega-mod:hover .mega-mod-name{color:var(--text)}
+.mega-mod.ai-mod .mega-mod-dot{background:var(--violet)}
+.mega-mod.ai-mod .mega-mod-name{color:var(--violet);font-weight:600}
+.mega-footer-bar{
+  border-top:1px solid var(--border);
+  padding:16px 40px;
+  display:flex;align-items:center;justify-content:space-between;
+  max-width:1400px;margin:0 auto;
+}
+.mega-footer-text{font-size:13px;color:var(--muted)}
+.mega-footer-text strong{color:var(--text);font-weight:700}
+.mega-footer-cta{
+  font-size:12px;font-weight:700;color:var(--accent);
+  display:flex;align-items:center;gap:6px;
+  padding:8px 16px;border-radius:var(--radius-sm);
+  background:var(--accent-glow);border:1px solid rgba(212,83,26,0.2);
+  cursor:pointer;transition:all 0.18s;text-decoration:none;
+}
+.mega-footer-cta:hover{background:var(--accent);color:white}
+/* Modules nav btn */
+.nav-link.has-mega{display:flex;align-items:center;gap:5px;cursor:pointer;border:none;background:none;font-family:'Plus Jakarta Sans',sans-serif}
+.nav-link.has-mega::after{
+  content:'';width:6px;height:6px;
+  border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+  transform:rotate(45deg) translateY(-2px);
+  transition:transform 0.2s;display:inline-block;
+}
+.nav-link.has-mega.open::after{transform:rotate(-135deg) translateY(-2px)}
+/* Nav wrapper needs position relative */
+nav{position:fixed;}
+nav{position:fixed;top:0;left:0;right:0;z-index:999;height:64px;display:flex;align-items:center;
+  background:var(--nav-bg);backdrop-filter:blur(16px);border-bottom:1px solid transparent;
+  transition:border-color 0.3s,background 0.4s}
+nav.scrolled{border-bottom-color:var(--border)}
+
+
+/* Logos */
+.nav-logo{display:flex;align-items:center;text-decoration:none;height:28px}
+.nav-logo svg{height:28px;width:auto;max-width:180px}
+.logo-light{display:flex}
+.logo-dark{display:none}
+[data-theme="dark"] .logo-light{display:none!important}
+[data-theme="dark"] .logo-dark{display:flex!important}
+
+.nav-links{display:flex;align-items:center;gap:4px}
+.nav-link{font-size:13px;font-weight:500;color:var(--text2);text-decoration:none;padding:6px 12px;border-radius:var(--radius-sm);transition:color var(--tr),background var(--tr)}
+.nav-link:hover{color:var(--text);background:var(--surface2)}
+.nav-right{display:flex;align-items:center;gap:12px}
+
+/* Clock + Toggle */
+.nav-clock-toggle{display:flex;align-items:center;gap:8px}
+.theme-toggle{
+  width:48px;height:26px;border-radius:100px;
+  background:var(--border2);border:none;outline:none;cursor:pointer;
+  padding:0;overflow:hidden;
+  transition:background 0.25s;
+  position:relative;flex-shrink:0;
+}
+.theme-toggle.dark-on{background:var(--violet)}
+.toggle-pill{
+  position:absolute;top:3px;left:3px;
+  width:20px;height:20px;
+  border-radius:50%;background:white;
+  transition:transform 0.28s cubic-bezier(0.4,0,0.2,1);
+  box-shadow:0 1px 4px rgba(0,0,0,0.2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;line-height:1;
+}
+.theme-toggle.dark-on .toggle-pill{transform:translateX(22px)}
+.nav-cta{font-size:12px;font-weight:700;letter-spacing:0.03em;color:white;text-decoration:none;background:var(--accent);padding:8px 18px;border-radius:var(--radius-sm);border:none;cursor:pointer;transition:background var(--tr),transform 0.15s}
+.nav-cta:hover{background:var(--accent-h);transform:translateY(-1px)}
+
+/* ═══ MODAL — Try for Free ═══ */
+.modal-overlay{
+  position:fixed;inset:0;z-index:9000;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(17,24,39,0.5);
+  backdrop-filter:blur(4px);
+  opacity:0;pointer-events:none;
+  transition:opacity 0.25s;
+}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal-card{
+  background:white;border-radius:20px;
+  padding:48px 40px;width:min(520px,90vw);
+  text-align:center;
+  transform:translateY(12px) scale(0.98);
+  transition:transform 0.25s ease;
+  box-shadow:0 24px 64px rgba(0,0,0,0.18);
+  position:relative;
+}
+[data-theme="dark"] .modal-card{background:#1A1D27;border:1px solid #252836}
+.modal-overlay.open .modal-card{transform:translateY(0) scale(1)}
+.modal-close{
+  position:absolute;top:16px;right:16px;
+  width:32px;height:32px;border-radius:50%;background:var(--bg2);
+  border:none;cursor:pointer;font-size:16px;color:var(--text2);
+  display:flex;align-items:center;justify-content:center;
+  transition:background var(--tr);
+}
+.modal-close:hover{background:var(--border2)}
+.modal-logo{margin:0 auto 24px;height:36px}
+.modal-logo svg{height:36px;width:auto}
+.modal-title{font-size:26px;font-weight:800;color:#111827;letter-spacing:-0.03em;margin-bottom:8px}
+[data-theme="dark"] .modal-title{color:var(--text)}
+.modal-sub{font-size:14px;color:#6B7280;margin-bottom:28px}
+[data-theme="dark"] .modal-sub{color:var(--text2)}
+.modal-sub a{color:var(--violet);text-decoration:none;font-weight:600}
+.modal-sub a:hover{text-decoration:underline}
+.modal-input{
+  width:100%;padding:14px 16px;
+  border:1.5px solid #D1D5DB;border-radius:10px;
+  background:white;color:#111827;
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;
+  outline:none;margin-bottom:12px;
+  transition:border-color 0.2s,box-shadow 0.2s;
+}
+[data-theme="dark"] .modal-input{background:#13161E;border-color:#343748;color:var(--text)}
+.modal-input:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(108,71,255,0.15)}
+.modal-input::placeholder{color:#9CA3AF}
+.modal-btn{
+  width:100%;padding:15px;
+  background:#111827;color:white;
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:800;
+  border:none;border-radius:10px;cursor:pointer;
+  transition:background var(--tr),transform 0.15s;
+  letter-spacing:0.01em;
+}
+.modal-btn:hover{background:#1F2937;transform:translateY(-1px)}
+.modal-note{font-size:11px;color:#9CA3AF;margin-top:14px}
+
+/* ═══ HERO ═══ */
+.hero{min-height:100vh;padding:140px 0 80px;position:relative;overflow:hidden;display:flex;align-items:center}
+.hero-bg{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 65% 60% at 75% 35%,rgba(212,83,26,0.07) 0%,transparent 60%),
+             radial-gradient(ellipse 45% 50% at 15% 85%,rgba(108,71,255,0.05) 0%,transparent 55%)}
+.hero-inner{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;width:100%}
+
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+  padding:6px 14px;border-radius:100px;margin-bottom:24px;
+  background:var(--violet-soft);color:var(--violet);
+  border:1px solid rgba(108,71,255,0.2);
+  opacity:0;animation:fadeUp 0.6s ease 0.1s both;
+}
+[data-theme="dark"] .hero-badge{border-color:rgba(139,111,255,0.25)}
+.badge-dot{width:6px;height:6px;border-radius:50%;background:var(--violet);animation:pulse 2s ease infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+
+.hero h1{
+  font-size:clamp(42px,5.5vw,72px);font-weight:700;line-height:1.02;letter-spacing:-0.03em;
+  color:var(--text);margin-bottom:24px;
+  opacity:0;animation:fadeUp 0.6s ease 0.25s both;
+}
+
+.hero-sub{font-size:17px;line-height:1.75;color:var(--text2);max-width:460px;margin-bottom:40px;
+  opacity:0;animation:fadeUp 0.6s ease 0.4s both}
+
+.hero-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  opacity:0;animation:fadeUp 0.6s ease 0.55s both}
+
+.btn-primary{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:14px;font-weight:700;color:white;text-decoration:none;
+  background:var(--accent);padding:13px 26px;border-radius:var(--radius-sm);
+  border:none;cursor:pointer;
+  transition:background var(--tr),transform 0.15s,box-shadow 0.2s;
+  box-shadow:0 4px 14px var(--accent-glow);font-family:'Plus Jakarta Sans',sans-serif;
+}
+.btn-primary:hover{background:var(--accent-h);transform:translateY(-2px);box-shadow:0 6px 20px var(--accent-glow)}
+.btn-try{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:14px;font-weight:700;color:var(--text);text-decoration:none;
+  background:var(--surface);padding:13px 22px;border-radius:var(--radius-sm);
+  border:1.5px solid var(--border2);cursor:pointer;
+  transition:all var(--tr);font-family:'Plus Jakarta Sans',sans-serif;
+}
+.btn-try:hover{border-color:var(--text);color:var(--text);background:var(--surface2)}
+.btn-ghost{
+  font-size:14px;font-weight:600;color:var(--text2);text-decoration:none;
+  padding:13px 18px;border-radius:var(--radius-sm);
+  border:1.5px solid var(--border2);transition:all var(--tr);
+}
+.btn-ghost:hover{color:var(--text);border-color:var(--text);background:var(--surface2)}
+
+.hero-trust{margin-top:36px;display:flex;align-items:center;gap:14px;
+  opacity:0;animation:fadeUp 0.6s ease 0.7s both}
+.hero-trust-text{font-size:12px;color:var(--muted);font-weight:500}
+.hero-trust-avatars{display:flex}
+.avatar{width:30px;height:30px;border-radius:50%;border:2px solid var(--bg);
+  background:linear-gradient(135deg,var(--accent) 0%,#FF8A50 100%);
+  margin-left:-8px;font-size:10px;font-weight:700;color:white;
+  display:flex;align-items:center;justify-content:center}
+.avatar:first-child{margin-left:0}
+.avatar.v{background:linear-gradient(135deg,var(--violet) 0%,#A78BFA 100%)}
+
+/* Countdown */
+.hero-countdown{display:inline-flex;align-items:center;gap:6px;margin-top:32px;
+  opacity:0;animation:fadeUp 0.6s ease 0.85s both}
+.hc-unit{text-align:center}
+.hc-num{font-size:26px;font-weight:800;line-height:1;color:var(--text);display:block}
+.hc-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted)}
+.hc-sep{font-size:20px;font-weight:800;color:var(--accent);align-self:flex-start;margin-top:2px;line-height:1}
+.hc-caption{font-size:11px;color:var(--muted);margin-left:12px;border-left:1px solid var(--border2);padding-left:12px;line-height:1.4}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* Hero mock */
+.hero-visual{position:relative;opacity:0;animation:fadeUp 0.7s ease 0.4s both}
+.mock-window{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-lg);overflow:hidden}
+.mock-titlebar{display:flex;align-items:center;gap:7px;padding:11px 16px;background:var(--surface2);border-bottom:1px solid var(--border)}
+.mock-dot{width:10px;height:10px;border-radius:50%}
+.mock-dot.r{background:#FF5F57}.mock-dot.y{background:#FEBC2E}.mock-dot.g{background:#28C840}
+.mock-titlebar-label{font-size:11px;font-weight:600;color:var(--muted);margin-left:5px;letter-spacing:0.04em}
+.mock-body{padding:18px}
+.mock-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.mock-stat{background:var(--bg2);border-radius:10px;padding:12px;border:1px solid var(--border)}
+.mock-stat-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:5px}
+.mock-stat-val{font-size:22px;font-weight:800;color:var(--text);line-height:1}
+.mock-stat-val.g{color:#22C55E}.mock-stat-val.o{color:var(--accent)}.mock-stat-val.v{color:var(--violet)}
+.mock-stat-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.mock-slabel{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:8px}
+.mock-checklist{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.mock-check{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:8px;background:var(--bg2);border:1px solid var(--border);font-size:12px;color:var(--text2)}
+.mock-check.done{opacity:0.6}
+.mock-cb{width:15px;height:15px;border-radius:4px;flex-shrink:0;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:8px}
+.mock-cb.chk{background:#22C55E;border-color:#22C55E;color:white}
+.mock-badge{margin-left:auto;font-size:9px;font-weight:700;padding:2px 7px;border-radius:100px}
+.mock-badge.o{background:rgba(212,83,26,0.1);color:var(--accent)}
+.mock-badge.g{background:rgba(34,197,94,0.1);color:#22C55E}
+.mock-ai-strip{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:10px;
+  background:linear-gradient(135deg,var(--violet-soft),rgba(139,111,255,0.05));
+  border:1px solid rgba(108,71,255,0.15)}
+.mock-ai-text{font-size:11px;color:var(--text2)}.mock-ai-text strong{color:var(--text);font-weight:700}
+.mock-ai-b{margin-left:auto;font-size:9px;font-weight:700;text-transform:uppercase;padding:3px 8px;border-radius:100px;background:var(--violet);color:white}
+
+.hero-float{position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-lg);padding:9px 13px;font-size:11px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:7px;animation:floatBob 3s ease-in-out infinite;white-space:nowrap}
+.hero-float.f1{top:-18px;right:16px;animation-delay:0s}
+.hero-float.f2{bottom:30px;left:-24px;animation-delay:1.5s}
+.hf-dot{width:7px;height:7px;border-radius:50%}
+.hf-dot.g{background:#22C55E}.hf-dot.o{background:var(--accent)}
+@keyframes floatBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+
+/* scroll hint */
+.scroll-hint{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:7px;opacity:0;animation:fadeUp 0.6s ease 1s both}
+.sh-line{width:1px;height:36px;background:linear-gradient(to bottom,var(--muted),transparent);animation:shPulse 1.8s ease-in-out infinite}
+@keyframes shPulse{0%,100%{opacity:0.4}50%{opacity:1}}
+.sh-text{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted)}
+
+/* ═══ CONCEPTS MARQUEE ═══ */
+.concepts-marquee{
+  background:var(--bg);
+  border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  padding:22px 0;
+  overflow:hidden;
+  position:relative;
+  display:flex;
+  align-items:center;
+}
+.mq-built-for{
+  font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.14em;
+  color:var(--muted);white-space:nowrap;
+  padding:0 28px 0 40px;
+  flex-shrink:0;position:relative;z-index:2;
+  background:var(--bg);
+}
+.mq-built-for::after{
+  content:'';position:absolute;right:0;top:0;bottom:0;
+  width:48px;
+  background:linear-gradient(to right,var(--bg),transparent);
+}
+.marquee-track{
+  flex:1;overflow:hidden;position:relative;
+}
+.marquee-track::after{
+  content:'';position:absolute;right:0;top:0;bottom:0;width:80px;z-index:2;
+  background:linear-gradient(to left,var(--bg),transparent);pointer-events:none;
+}
+.marquee-inner{
+  display:flex;align-items:center;gap:0;
+  white-space:nowrap;
+  animation:marqueeScroll 32s linear infinite;
+}
+.marquee-inner:hover{animation-play-state:paused}
+@keyframes marqueeScroll{
+  0%{transform:translateX(0)}
+  100%{transform:translateX(-50%)}
+}
+.mq-item{
+  font-size:15px;font-weight:600;color:var(--text2);
+  padding:0 20px;
+  transition:color 0.2s;cursor:default;
+  letter-spacing:-0.01em;
+}
+.mq-item.hi{color:var(--accent);font-weight:700}
+.mq-item:hover{color:var(--text)}
+.mq-item.hi:hover{color:var(--accent-h)}
+.mq-sep{
+  color:var(--border2);font-size:14px;
+  flex-shrink:0;opacity:0.7;
+}
+
+/* ═══ SECTIONS COMMON ═══ */
+.section-h2{font-size:clamp(34px,4vw,52px);font-weight:700;line-height:1.05;letter-spacing:-0.03em;color:var(--text);margin:14px 0 0}
+.section-sub{font-size:16px;line-height:1.8;color:var(--text2);margin-bottom:20px}
+
+/* ═══ REALITY ═══ */
+.reality{background:var(--bg);padding:96px 0}
+.reality-inner{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center}
+.reality-list{list-style:none;margin-top:28px}
+.reality-list li{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--border);font-size:14px;color:var(--text2);font-weight:500}
+.reality-list li:first-child{border-top:1px solid var(--border)}
+.rl-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0}
+
+/* ═══ PLATFORM ═══ */
+.platform{background:var(--surface);padding:96px 0;border-top:1px solid var(--border)}
+.platform-header{text-align:center;margin-bottom:60px}
+.platform-sub{font-size:16px;color:var(--text2);max-width:560px;margin:14px auto 0;line-height:1.7}
+.platform-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.platform-card{background:var(--surface);padding:38px 34px;transition:background var(--tr)}
+.platform-card:hover{background:var(--surface2)}
+.platform-num{font-size:42px;font-weight:800;color:var(--border2);line-height:1;margin-bottom:18px;letter-spacing:-0.04em;transition:color var(--tr)}
+.platform-card:hover .platform-num{color:var(--accent)}
+.platform-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:10px}
+.platform-body{font-size:13px;line-height:1.75;color:var(--text2)}
+
+/* ═══ MULTILOC ═══ */
+.multiloc{background:var(--bg);padding:96px 0}
+.multiloc-inner{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center}
+.multiloc-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:36px}
+.multiloc-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px 20px;text-align:center;box-shadow:var(--shadow)}
+.ms-num{font-size:24px;font-weight:800;color:var(--accent);line-height:1;margin-bottom:6px;text-transform:uppercase;letter-spacing:-0.01em}
+.ms-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em}
+
+/* ═══ NOT A POS ═══ */
+.not-pos{background:var(--text);padding:76px 0}
+[data-theme="dark"] .not-pos{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.np-inner{text-align:center;max-width:740px;margin:0 auto}
+.np-h2{font-size:clamp(26px,3.8vw,44px);font-weight:700;line-height:1.1;letter-spacing:-0.03em;color:white;margin:14px 0 18px}
+[data-theme="dark"] .np-h2{color:var(--text)}
+.np-p{font-size:15px;color:rgba(255,255,255,0.55);line-height:1.75;margin-bottom:32px}
+[data-theme="dark"] .np-p{color:var(--text2)}
+.pos-tags{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.pos-tag{font-size:12px;font-weight:600;padding:8px 16px;border-radius:var(--radius-sm);border:1.5px solid rgba(239,68,68,0.35);color:#F87171;background:rgba(239,68,68,0.08)}
+[data-theme="dark"] .pos-tag{border-color:rgba(239,68,68,0.3);color:#F87171;background:rgba(239,68,68,0.08)}
+.pos-tag.is{border-color:rgba(34,197,94,0.4);color:#22C55E;background:rgba(34,197,94,0.08)}
+
+/* ═══ MODULES ═══ */
+.modules{background:var(--bg);padding:96px 0}
+.modules-header{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:end;margin-bottom:52px}
+.modules-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:1px}
+.module-card{background:var(--surface);padding:34px 28px;display:flex;flex-direction:column;gap:12px;transition:background var(--tr)}
+.module-card:hover{background:var(--surface2)}
+.module-num{font-size:38px;font-weight:800;line-height:1;color:var(--border2);letter-spacing:-0.03em;transition:color var(--tr)}
+.module-card:hover .module-num{color:var(--accent)}
+.module-name{font-size:15px;font-weight:700;color:var(--text)}
+.module-desc{font-size:13px;color:var(--text2);line-height:1.7}
+.mod-expand-bar{display:flex;align-items:center;justify-content:space-between;gap:32px;padding:18px 28px;background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);cursor:pointer;transition:background var(--tr)}
+.mod-expand-bar:hover{background:var(--surface2)}
+.mel{font-size:13px;color:var(--text2);line-height:1.6}.mel strong{color:var(--text);font-weight:700}
+.meb{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--accent);white-space:nowrap;flex-shrink:0;background:none;border:none;cursor:pointer;padding:0}
+.meb-arrow{transition:transform 0.25s}
+.meb.open .meb-arrow{transform:rotate(180deg)}
+.extra-modules-panel{display:none;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-top:none}
+.extra-modules-panel.open{display:grid}
+.extra-mod{background:var(--surface2);padding:26px 22px;display:flex;flex-direction:column;gap:7px}
+.em-plan{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;padding:2px 8px;border-radius:100px;display:inline-block;width:fit-content}
+.em-plan.growth{background:var(--violet-soft);color:var(--violet)}
+.em-plan.pro{background:var(--accent-glow);color:var(--accent)}
+.em-name{font-size:14px;font-weight:700;color:var(--text)}
+.em-desc{font-size:12px;color:var(--text2);line-height:1.65}
+.em-divider{grid-column:1/-1;display:flex;align-items:center;gap:16px;padding:11px 22px;background:var(--bg2)}
+.em-divider span{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;white-space:nowrap}
+.em-divider span.growth{color:var(--violet)}.em-divider span.pro{color:var(--accent)}
+.em-divider-line{flex:1;height:1px;background:var(--border2)}
+
+/* ═══ AI SECTION ═══ */
+.ai-section{background:var(--surface);border-top:1px solid var(--border);padding:96px 0}
+.ai-inner{display:grid;grid-template-columns:360px 1fr;gap:72px;align-items:start}
+.ai-left{position:sticky;top:84px}
+.ai-left p{font-size:15px;line-height:1.8;color:var(--text2);margin-bottom:28px}
+.ai-powered{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:var(--radius);background:linear-gradient(135deg,var(--violet-soft),rgba(139,111,255,0.05));border:1px solid rgba(108,71,255,0.2);font-size:12px;font-weight:700;color:var(--text);white-space:nowrap}
+.ai-powered span{color:var(--violet)}
+.ai-right{display:flex;flex-direction:column;gap:0}
+.ai-nav-cards{display:flex;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius) var(--radius) 0 0;overflow:hidden}
+.ai-nav-card{flex:1;padding:18px 22px;background:var(--surface2);border:none;cursor:pointer;text-align:left;transition:background var(--tr);border-bottom:2px solid transparent}
+.ai-nav-card.active{background:var(--surface);border-bottom-color:var(--violet)}
+.ai-nav-card:hover:not(.active){background:var(--bg2)}
+.ai-nav-verb{font-size:17px;font-weight:800;color:var(--text);letter-spacing:-0.02em;margin-bottom:3px}
+.ai-nav-card.active .ai-nav-verb{color:var(--violet)}
+.ai-nav-desc{font-size:12px;color:var(--text2);line-height:1.4}
+.ai-panels{background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);overflow:hidden}
+.ai-panel{display:none;padding:26px}
+.ai-panel.active{display:block}
+.ai-panel-headline{font-size:14px;font-weight:600;color:var(--text2);margin-top:6px}
+.ai-mock{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.ai-mock-bar{display:flex;align-items:center;gap:5px;padding:9px 13px;background:var(--surface2);border-bottom:1px solid var(--border)}
+.ai-mock-dot{width:7px;height:7px;border-radius:50%;background:var(--border2)}
+.ai-mock-label{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-left:4px}
+.ai-mock-body{padding:14px;display:flex;flex-direction:column;gap:11px}
+.ai-chat-row{display:flex;align-items:flex-start;gap:7px}
+.ai-chat-row.right{flex-direction:row-reverse}
+.ai-av{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800}
+.ai-av.user{background:var(--accent-glow);color:var(--accent);border:1px solid rgba(212,83,26,0.2)}
+.ai-av.ai{background:var(--violet-soft);color:var(--violet);border:1px solid rgba(108,71,255,0.2)}
+.ai-bubble{padding:9px 13px;border-radius:9px;font-size:12px;line-height:1.55;max-width:88%}
+.ai-bubble.user{background:var(--accent-glow);color:var(--text);border:1px solid rgba(212,83,26,0.12);border-radius:9px 9px 9px 2px}
+.ai-bubble.ai-b{background:var(--surface);color:var(--text2);border:1px solid var(--border);border-radius:9px 9px 2px 9px}
+.ai-bubble strong{display:block;color:var(--text);font-weight:700;margin-bottom:3px}
+.ai-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+.ai-tag{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:2px 7px;border-radius:100px;background:var(--violet-soft);color:var(--violet);border:1px solid rgba(108,71,255,0.2)}
+.ai-alert-row{display:flex;align-items:flex-start;gap:11px;padding:11px;border-bottom:1px solid var(--border)}
+.ai-alert-row:last-child{border-bottom:none}
+.ai-alert-ico{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.ai-alert-ico.u{background:var(--accent-glow);border:1px solid rgba(212,83,26,0.2)}
+.ai-alert-ico.w{background:rgba(250,176,0,0.1);border:1px solid rgba(250,176,0,0.2)}
+.ai-alert-ico.g{background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2)}
+.ai-alert-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px}
+.ai-alert-sub{font-size:11px;color:var(--muted)}
+.ai-alert-badge{margin-left:auto;flex-shrink:0;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:3px 8px;border-radius:100px}
+.ai-alert-badge.u{background:var(--accent-glow);color:var(--accent)}
+.ai-alert-badge.w{background:rgba(250,176,0,0.1);color:#D4A017}
+.ai-alert-badge.g{background:rgba(34,197,94,0.1);color:#22C55E}
+.ai-query-input{display:flex;align-items:center;gap:8px;padding:11px 13px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:14px}
+.ai-qcursor{font-weight:800;color:var(--violet);font-size:15px}
+.ai-qtext{font-size:12px;color:var(--text2);font-style:italic}
+.ai-result-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:10px}
+.ai-result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ai-result-cell{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:11px}
+.ai-result-val{font-size:15px;font-weight:800;color:var(--text);margin-bottom:3px}
+.ai-result-val.down{color:var(--accent)}.ai-result-val.up{color:#22C55E}
+.ai-result-sub{font-size:10px;color:var(--muted)}
+
+/* ═══ TAGLINE BREAK ═══ */
+.tagline-break{background:linear-gradient(135deg,var(--violet) 0%,#9B82FF 50%,var(--accent) 100%);padding:76px 0;text-align:center}
+.tagline-break blockquote{font-size:clamp(26px,4vw,50px);font-weight:700;line-height:1.1;color:white;letter-spacing:-0.03em}
+.tagline-break blockquote em{font-style:normal;opacity:0.8}
+
+/* ═══ TESTIMONIAL ═══ */
+.testimonial{background:var(--bg);padding:96px 0}
+.testi-inner{display:grid;grid-template-columns:auto 1fr;gap:60px;align-items:center;max-width:940px;margin:0 auto}
+.testi-badge{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:30px 26px;text-align:center;box-shadow:var(--shadow);min-width:150px}
+.testi-num{font-size:60px;font-weight:800;line-height:1;color:var(--accent);margin-bottom:5px}
+.testi-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;line-height:1.5}
+.testi-stars{font-size:12px;color:var(--accent);margin-top:12px}
+.testi-qmark{font-size:68px;font-weight:800;color:var(--accent);line-height:0.8;margin-bottom:14px;display:block}
+.testi-text{font-size:19px;line-height:1.65;color:var(--text);font-weight:500;letter-spacing:-0.01em;margin-bottom:26px}
+.testi-author{display:flex;align-items:center;gap:16px}
+.testi-line{flex:1;height:1px;background:var(--border2)}
+.testi-name{font-size:14px;font-weight:700;color:var(--text)}
+.testi-role{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* ═══ FIRST TABLE ═══ */
+.first-table{background:var(--text);padding:96px 0;position:relative;overflow:hidden}
+[data-theme="dark"] .first-table{background:var(--bg);border-top:1px solid var(--border)}
+.ft-bg{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 60% 80% at 70% 50%,rgba(108,71,255,0.12) 0%,transparent 60%)}
+.ft-inner{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:start;position:relative;z-index:1}
+.ft-tag{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.5);margin-bottom:14px}
+[data-theme="dark"] .ft-tag{color:var(--muted)}
+.ft-h2{font-size:clamp(34px,4.5vw,56px);font-weight:700;line-height:1.0;letter-spacing:-0.03em;color:white;margin-bottom:18px}
+[data-theme="dark"] .ft-h2{color:var(--text)}
+.ft-h2 em{font-style:normal;color:var(--accent)}
+.ft-p{font-size:15px;color:rgba(255,255,255,0.55);line-height:1.8;margin-bottom:36px}
+[data-theme="dark"] .ft-p{color:var(--text2)}
+.ft-perks{display:flex;flex-direction:column;gap:18px}
+.ft-perk{display:flex;align-items:flex-start;gap:13px}
+.ft-perk-icon{width:34px;height:34px;border-radius:9px;flex-shrink:0;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-size:15px}
+[data-theme="dark"] .ft-perk-icon{background:var(--surface2)}
+.ft-perk-title{font-size:14px;font-weight:700;color:white;margin-bottom:2px}
+[data-theme="dark"] .ft-perk-title{color:var(--text)}
+.ft-perk-desc{font-size:12px;color:rgba(255,255,255,0.45);line-height:1.6}
+[data-theme="dark"] .ft-perk-desc{color:var(--text2)}
+.ft-box{background:var(--surface);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-lg)}
+.ft-counter{padding:28px;border-bottom:1px solid var(--border)}
+.ft-counter-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:10px}
+.ft-counter-stat{font-size:30px;font-weight:800;color:var(--text);margin-bottom:11px}
+.ft-counter-stat span{color:var(--accent)}
+.ft-bar-bg{height:6px;background:var(--border);border-radius:100px;margin-bottom:9px;overflow:hidden}
+.ft-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--violet));border-radius:100px;transition:width 0.6s ease}
+.ft-counter-note{font-size:12px;color:var(--muted)}
+.ft-form{padding:28px}
+.ft-form input{width:100%;padding:13px 15px;border:1.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;outline:none;margin-bottom:11px;transition:border-color 0.2s}
+.ft-form input:focus{border-color:var(--violet)}
+.ft-form input::placeholder{color:var(--muted)}
+.ft-form-btn{width:100%;padding:13px;background:var(--accent);color:white;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;border:none;border-radius:var(--radius-sm);cursor:pointer;transition:background var(--tr),transform 0.15s}
+.ft-form-btn:hover{background:var(--accent-h);transform:translateY(-1px)}
+.ft-form-note{font-size:11px;color:var(--muted);text-align:center;margin-top:11px}
+
+/* ═══ PRICING ═══ */
+.pricing{background:var(--bg);padding:96px 0}
+.pricing-header{text-align:center;margin-bottom:44px}
+.pricing-h2{font-size:clamp(34px,4vw,52px);font-weight:700;line-height:1.05;letter-spacing:-0.03em;color:var(--text);margin:14px 0 11px}
+.pricing-sub{font-size:16px;color:var(--text2)}
+.billing-toggle{display:flex;align-items:center;justify-content:center;gap:11px;margin-bottom:44px}
+.billing-label{font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
+.billing-label.active{color:var(--text)}
+.toggle-track{width:44px;height:24px;background:var(--border2);border-radius:100px;position:relative;cursor:pointer;transition:background 0.25s}
+.toggle-track.annual{background:var(--violet)}
+.toggle-pill2{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white;transition:transform 0.25s;box-shadow:0 1px 4px rgba(0,0,0,0.2)}
+.toggle-track.annual .toggle-pill2{transform:translateX(20px)}
+.billing-save{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:rgba(34,197,94,0.12);color:#22C55E;padding:3px 10px;border-radius:100px;opacity:0;transition:opacity 0.25s;border:1px solid rgba(34,197,94,0.25)}
+.billing-save.visible{opacity:1}
+.pricing-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:start}
+.price-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px 20px;position:relative;transition:border-color var(--tr),box-shadow var(--tr)}
+.price-card:hover{border-color:var(--border2);box-shadow:var(--shadow-lg)}
+.price-card.featured{border-color:var(--violet);box-shadow:0 0 0 1px var(--violet),var(--shadow-lg)}
+.price-popular{position:absolute;top:-11px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;background:var(--violet);color:white;padding:3px 12px;border-radius:100px;white-space:nowrap}
+.price-name{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:14px}
+.price-amount{font-size:46px;font-weight:800;line-height:1;color:var(--text);letter-spacing:-0.04em;display:none}
+.price-amount sup{font-size:20px;font-weight:700;vertical-align:top;margin-top:8px;display:inline-block}
+.price-amount.price-monthly{display:block}
+.price-period{font-size:11px;color:var(--muted);margin-top:4px;margin-bottom:2px}
+.price-save{font-size:11px;color:#22C55E;font-weight:600;height:17px}
+.price-period.price-annual,.price-amount.price-annual,.price-save.price-annual{display:none}
+.pricing-annual-mode .price-monthly{display:none !important}
+.pricing-annual-mode .price-annual{display:block !important}
+
+/* Try for free btn on card */
+.price-try-btn{
+  width:100%;padding:10px;margin-bottom:10px;
+  background:var(--bg2);color:var(--text2);
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;
+  border:1.5px solid var(--border2);border-radius:var(--radius-sm);cursor:pointer;
+  transition:all var(--tr);
+}
+.price-try-btn:hover{background:var(--surface2);color:var(--text);border-color:var(--text)}
+.price-card.featured .price-try-btn{background:var(--violet-soft);color:var(--violet);border-color:rgba(108,71,255,0.3)}
+.price-card.featured .price-try-btn:hover{background:var(--violet);color:white;border-color:var(--violet)}
+
+.price-divider{height:1px;background:var(--border);margin:14px 0}
+.price-seat-btn{
+  width:100%;padding:10px;margin-bottom:16px;
+  background:var(--surface2);color:var(--text2);
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;
+  border:1.5px solid var(--border2);border-radius:var(--radius-sm);cursor:pointer;
+  transition:all var(--tr);
+}
+.price-seat-btn:hover{background:var(--accent);color:white;border-color:var(--accent)}
+.price-seat-btn.featured{background:var(--violet);color:white;border-color:var(--violet)}
+.price-seat-btn.featured:hover{background:var(--violet-h);border-color:var(--violet-h)}
+.price-setup{
+  font-size:11px;color:var(--muted);
+  margin-top:14px;padding:8px 10px;
+  background:var(--bg2);border-radius:var(--radius-sm);
+  border:1px solid var(--border);
+  display:flex;align-items:center;gap:6px;
+}
+.price-setup::before{content:'⚙';font-size:11px}
+.price-features{list-style:none;display:flex;flex-direction:column;gap:9px;margin-bottom:20px}
+.price-features li{font-size:12px;color:var(--text2);display:flex;align-items:flex-start;gap:7px;line-height:1.4}
+.price-features li::before{content:'✓';color:#22C55E;font-weight:700;flex-shrink:0;margin-top:1px}
+.price-features li.no::before{content:'×';color:var(--muted)}
+.price-features li.ai::before{content:'✦';color:var(--violet)}
+.price-features li.ai{color:var(--violet)}
+.price-cta{display:block;text-align:center;font-size:12px;font-weight:700;color:var(--text);text-decoration:none;padding:11px;border:1.5px solid var(--border2);border-radius:var(--radius-sm);transition:all var(--tr)}
+.price-cta:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
+.price-card.featured .price-cta{background:var(--violet);color:white;border-color:var(--violet)}
+.price-card.featured .price-cta:hover{background:var(--violet-h);border-color:var(--violet-h)}
+.price-card.enterprise .price-cta{background:var(--text);color:var(--bg);border-color:var(--text)}
+[data-theme="dark"] .price-card.enterprise .price-cta{background:var(--text);color:var(--bg2)}
+.annual-note{text-align:center;font-size:13px;color:var(--muted);margin-top:24px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+.annual-note strong{color:var(--text)}
+
+/* ═══ VALUES ═══ */
+.values{background:var(--surface);border-top:1px solid var(--border);padding:96px 0}
+.values-header{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-bottom:60px;align-items:end}
+.values-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.value-card{background:var(--surface);padding:34px 26px;transition:background var(--tr)}
+.value-card:hover{background:var(--surface2)}
+.value-word{font-size:21px;font-weight:800;color:var(--text);letter-spacing:-0.02em;margin-bottom:13px;transition:color var(--tr)}
+.value-card:hover .value-word{color:var(--accent)}
+.value-body{font-size:13px;line-height:1.75;color:var(--text2)}
+
+/* ═══ FAQ ═══ */
+.faq-section{background:var(--bg);padding:96px 0;border-top:1px solid var(--border)}
+.faq-header{text-align:center;margin-bottom:60px}
+.faq-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 60px;max-width:1000px;margin:0 auto}
+.faq-item{
+  border-bottom:1px solid var(--border);
+  padding:0;
+}
+.faq-q{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:22px 0;cursor:pointer;
+  font-size:15px;font-weight:700;color:var(--text);line-height:1.4;
+  background:none;border:none;width:100%;text-align:left;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  transition:color 0.18s;
+}
+.faq-q:hover{color:var(--accent)}
+.faq-q.open{color:var(--accent)}
+.faq-icon{
+  flex-shrink:0;align-self:center;
+  font-size:20px;font-weight:300;color:var(--muted);
+  line-height:1;width:20px;text-align:center;
+  transition:all 0.2s;
+}
+.faq-q.open .faq-icon{color:var(--accent);transform:rotate(45deg)}
+.faq-a{
+  font-size:14px;color:var(--text2);line-height:1.8;
+  max-height:0;overflow:hidden;
+  transition:max-height 0.35s cubic-bezier(0.16,1,0.3,1), padding 0.3s;
+  padding-bottom:0;
+}
+.faq-a.open{max-height:300px;padding-bottom:22px}
+.faq-a a{color:var(--accent);text-decoration:none;font-weight:600}
+.faq-a a:hover{text-decoration:underline}
+
+/* ═══ MICRO-ANIMATIONS ═══ */
+/* Module cards stagger */
+.module-card{opacity:0;transform:translateY(16px);transition:opacity 0.5s ease,transform 0.5s ease,background var(--tr)}
+.module-card.revealed{opacity:1;transform:translateY(0)}
+/* Pricing card hover glow */
+.price-card{transition:border-color var(--tr),box-shadow var(--tr),transform 0.2s}
+.price-card:hover{transform:translateY(-3px)}
+.price-card.featured:hover{box-shadow:0 0 0 1px var(--violet),0 12px 40px rgba(108,71,255,0.2)}
+/* AI panel fade */
+.ai-panel{display:none;opacity:0;transition:opacity 0.25s ease}
+.ai-panel.active{display:block;opacity:1}
+/* Seat counter animation */
+@keyframes countUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.ft-counter-stat.animated span{animation:countUp 0.5s cubic-bezier(0.16,1,0.3,1) both}
+/* Hero mock checkmarks pop */
+@keyframes checkPop{0%{transform:scale(0);opacity:0}70%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
+.mock-cb.chk{animation:checkPop 0.4s cubic-bezier(0.16,1,0.3,1) both}
+.mock-cb.chk:nth-child(1){animation-delay:0.8s}
+.mock-cb.chk:nth-child(2){animation-delay:1.1s}
+
+/* ═══ FOOTER ═══ */
+footer{background:var(--text);padding:36px 0}
+[data-theme="dark"] footer{background:var(--bg2);border-top:1px solid var(--border)}
+.footer-inner{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:32px}
+.footer-logo{display:flex;align-items:center;text-decoration:none;height:22px}
+.footer-logo svg{height:22px;width:auto}
+/* Footer always uses white logo — force SVG fills regardless of theme */
+.footer-logo .l7f0,.footer-logo .l6s0{fill:#fff !important}
+.footer-logo .l7f1,.footer-logo .l6s1{fill:#d4531a !important}
+.footer-tagline{font-size:13px;color:rgba(255,255,255,0.35);text-align:center;font-style:italic}
+[data-theme="dark"] .footer-tagline{color:var(--muted)}
+.footer-right{text-align:right;font-size:11px;color:rgba(255,255,255,0.3)}
+[data-theme="dark"] .footer-right{color:var(--muted)}
+.footer-right a{color:var(--accent);text-decoration:none}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:1100px){
+  .pricing-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:1024px){
+  .hero-inner{grid-template-columns:1fr}
+  .hero-visual{display:none}
+  .reality-inner,.multiloc-inner,.modules-header,.ft-inner,.values-header{grid-template-columns:1fr;gap:40px}
+  .ai-inner{grid-template-columns:1fr}
+  .ai-left{position:static}
+  .platform-grid,.modules-grid{grid-template-columns:repeat(2,1fr)}
+  .values-grid{grid-template-columns:repeat(2,1fr)}
+  .testi-inner{grid-template-columns:1fr}
+}
+@media(max-width:768px){
+  .container{padding:0 20px}
+  .section{padding:68px 0}
+  .nav-links{display:none}
+  .nav-clock{display:none}
+  .platform-grid,.modules-grid{grid-template-columns:1fr}
+  .pricing-grid{grid-template-columns:1fr}
+  .values-grid{grid-template-columns:1fr}
+  .multiloc-stats{grid-template-columns:repeat(3,1fr)}
+  .extra-modules-panel{grid-template-columns:repeat(2,1fr)}
+  .footer-inner{grid-template-columns:1fr;gap:14px;text-align:center}
+  .footer-right{text-align:center}
+  .ai-nav-cards{flex-direction:column}
+  .hero-actions{flex-direction:column;align-items:flex-start}
+  /* FAQ single column on mobile */
+  .faq-grid{grid-template-columns:1fr;gap:0}
+  /* Mega menu full width on mobile */
+  .mega-inner{grid-template-columns:1fr;padding:20px}
+  .mega-divider{display:none}
+  .mega-col{padding:0 0 20px}
+  .mega-col:last-child{padding-bottom:0}
+  .mega-footer-bar{flex-direction:column;align-items:flex-start;gap:12px;padding:16px 20px}
+  /* Nav right compact */
+  .nav-right{gap:8px}
+  #shift-label{display:none}
+  /* Marquee built-for label hidden */
+  .mq-built-for{display:none}
+  /* Testimonial */
+  .testi-inner{gap:32px}
+  /* Hero countdown compact */
+  .hero-countdown{flex-wrap:wrap}
+  /* Not pos tags wrap better */
+  .pos-tags{gap:8px}
+}
+/* Logo light/dark switching */
+.logo-light{display:flex}
+.logo-dark{display:none}
+[data-theme="dark"] .logo-light{display:none!important}
+[data-theme="dark"] .logo-dark{display:flex!important}
+</style>
+</head>
+<body>
+
+<!-- ═══ SEAT REQUEST MODAL ═══ -->
+<style>
+.loc-btn{
+  font-size:12px;font-weight:700;padding:8px 16px;border-radius:var(--radius-sm);
+  border:1.5px solid var(--border2);background:var(--surface2);color:var(--text2);
+  cursor:pointer;transition:all 0.18s;font-family:'Plus Jakarta Sans',sans-serif;
+}
+.loc-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
+.loc-btn.selected{border-color:var(--accent);background:var(--accent);color:white}
+</style>
+<div class="modal-overlay" id="seat-modal" onclick="closeSeatModal(event)">
+  <div class="modal-card" style="max-width:560px;text-align:left;padding:44px 40px">
+    <button class="modal-close" onclick="closeSeatModalBtn()">×</button>
+    <div style="margin-bottom:24px">
+      <div class="tag-pill" style="margin-bottom:14px">First Table Program</div>
+      <div class="modal-title" style="text-align:left;font-size:22px">Request Your Seat</div>
+      <div class="modal-sub" style="text-align:left;margin-top:6px;margin-bottom:0">By invitation only. A real person will reach out within 24 hours.</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div>
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);display:block;margin-bottom:6px">Full Name *</label>
+        <input class="modal-input" type="text" id="sr-name" placeholder="Maria Andrade" style="margin-bottom:0">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);display:block;margin-bottom:6px">Email *</label>
+        <input class="modal-input" type="email" id="sr-email" placeholder="maria@restaurant.com" style="margin-bottom:0">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div>
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);display:block;margin-bottom:6px">Phone</label>
+        <input class="modal-input" type="tel" id="sr-phone" placeholder="+1 (555) 000-0000" style="margin-bottom:0">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);display:block;margin-bottom:6px">State *</label>
+        <select class="modal-input" id="sr-state" style="margin-bottom:0;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%228%22><path d=%22M1 1l5 5 5-5%22 stroke=%22%239CA3AF%22 stroke-width=%221.5%22 fill=%22none%22 stroke-linecap=%22round%22/></svg>');background-repeat:no-repeat;background-position:right 14px center">
+          <option value="" disabled selected>Select state</option>
+          <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option><option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option><option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option><option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option><option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option><option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option><option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option><option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option><option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option><option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option><option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option><option>Vermont</option><option>Virginia</option><option>Washington</option><option>West Virginia</option><option>Wisconsin</option><option>Wyoming</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);display:block;margin-bottom:6px">Restaurant Name *</label>
+      <input class="modal-input" type="text" id="sr-restaurant" placeholder="e.g. Red Salsa Kitchen" style="margin-bottom:0">
+    </div>
+    <div style="margin-bottom:28px">
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);display:block;margin-bottom:10px">Number of Locations *</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="loc-btn" data-val="1" onclick="selectLoc(this)">1</button>
+        <button type="button" class="loc-btn" data-val="2" onclick="selectLoc(this)">2</button>
+        <button type="button" class="loc-btn" data-val="3-5" onclick="selectLoc(this)">3–5</button>
+        <button type="button" class="loc-btn" data-val="6-10" onclick="selectLoc(this)">6–10</button>
+        <button type="button" class="loc-btn" data-val="10+" onclick="selectLoc(this)">10+</button>
+      </div>
+    </div>
+    <button class="modal-btn" onclick="handleSeatSubmit()">Request My Seat →</button>
+    <div class="modal-note" style="margin-top:12px">No credit card. No commitment. Just a conversation.</div>
+  </div>
+</div>
+
+
+<!-- ═══ NAV ═══ -->
+<nav id="nav" onmouseleave="closeMega()">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo" style="display:flex;align-items:center;text-decoration:none">
+      <span class="logo-light"><svg style="height:34px;width:auto" viewBox="0 0 1011.79 242.53" xmlns="http://www.w3.org/2000/svg"><path d="M967.17,29.54h32.92v183.45h-32.92v-3.66h15.59V33.19h-15.59v-3.66Z" style="fill:#d4531a;"/><path d="M37.01,212.99H4.09V29.54h32.92v3.66h-15.59v176.14h15.59v3.66Z" style="fill:#162a3a;"/><path d="M107.16,159.98c-10.31,0-19.43-2.24-27.37-6.72-7.95-4.48-14.18-10.64-18.71-18.49-4.53-7.85-6.79-16.88-6.79-27.09s2.26-19.23,6.79-27.08c4.53-7.85,10.76-14.01,18.71-18.49,7.94-4.48,17.07-6.72,27.37-6.72,6.16,0,11.85.92,17.05,2.75,5.2,1.83,9.8,4.36,13.8,7.58,4,3.23,7.34,6.91,10.04,11.05l-16.18,10.11c-1.64-2.6-3.78-4.91-6.43-6.93-2.65-2.02-5.56-3.61-8.74-4.77-3.18-1.16-6.36-1.73-9.53-1.73-6.36,0-11.99,1.47-16.9,4.41-4.91,2.94-8.76,6.96-11.56,12.06-2.79,5.11-4.19,11.03-4.19,17.77s1.37,12.57,4.12,17.77c2.74,5.2,6.62,9.27,11.63,12.21,5.01,2.94,10.78,4.41,17.33,4.41,5.1,0,9.65-1.01,13.65-3.03,3.99-2.02,7.15-4.86,9.46-8.52,2.31-3.66,3.47-7.9,3.47-12.71l18.78-2.89c0,9.53-1.95,17.67-5.85,24.41-3.9,6.74-9.29,11.87-16.18,15.38-6.89,3.52-14.81,5.27-23.76,5.27ZM110.48,119.53v-15.46h42.47v12.28l-10.69,3.18h-31.78Z" style="fill:#162a3a;"/><path d="M197.44,159.98c-7.13,0-13.43-1.61-18.92-4.84-5.49-3.22-9.8-7.68-12.93-13.36-3.13-5.68-4.69-12.23-4.69-19.65s1.61-13.96,4.84-19.65c3.23-5.68,7.66-10.13,13.29-13.36,5.63-3.22,12.11-4.84,19.43-4.84,6.36,0,12.21,1.66,17.55,4.98s9.63,8.19,12.86,14.59c3.23,6.41,4.84,14.18,4.84,23.33h-54.75l1.73-1.73c0,3.56.89,6.67,2.67,9.32,1.78,2.65,4.09,4.67,6.93,6.07,2.84,1.4,5.9,2.09,9.17,2.09,3.95,0,7.17-.84,9.68-2.53,2.5-1.68,4.43-3.88,5.78-6.57l17.05,6.64c-2.02,4.04-4.65,7.54-7.87,10.47-3.23,2.94-7.06,5.18-11.48,6.72-4.43,1.54-9.49,2.31-15.17,2.31ZM181.7,114.76l-1.73-1.73h34.81l-1.59,1.73c0-3.47-.82-6.23-2.46-8.31-1.64-2.07-3.64-3.59-5.99-4.55-2.36-.96-4.65-1.44-6.86-1.44s-4.58.48-7.08,1.44c-2.51.96-4.65,2.48-6.43,4.55-1.78,2.07-2.67,4.84-2.67,8.31Z" style="fill:#162a3a;"/><path d="M238.61,102.2v-16.18h48.83v16.18h-48.83ZM274.58,159.98c-7.99,0-14.04-1.97-18.13-5.92-4.09-3.95-6.14-9.58-6.14-16.9V63.48h19.07v69.48c0,3.08.67,5.42,2.02,7.01,1.35,1.59,3.32,2.38,5.92,2.38.96,0,2.02-.22,3.18-.65s2.36-1.08,3.61-1.95l6.65,14.3c-2.31,1.73-4.89,3.16-7.73,4.26-2.84,1.11-5.66,1.66-8.45,1.66Z" style="fill:#162a3a;"/><path d="M305.63,158.24V57.13h34.24c6.93,0,13,1.06,18.2,3.18,5.2,2.12,9.25,5.32,12.13,9.61,2.89,4.29,4.33,9.61,4.33,15.96,0,3.95-.99,7.58-2.96,10.91-1.98,3.32-4.74,6.19-8.31,8.6,4.72,2.41,8.35,5.61,10.91,9.61,2.55,4,3.83,8.79,3.83,14.37,0,6.16-1.4,11.41-4.19,15.75-2.79,4.33-6.69,7.61-11.7,9.82-5.01,2.22-10.88,3.32-17.62,3.32h-38.86ZM324.99,98.29h15.31c4.33,0,7.75-1.11,10.26-3.32,2.5-2.21,3.76-5.34,3.76-9.39s-1.4-7.17-4.19-9.39c-2.79-2.21-6.6-3.32-11.41-3.32h-13.72v25.42ZM324.99,140.76h17.62c4.72,0,8.43-1.18,11.12-3.54,2.69-2.36,4.04-5.51,4.04-9.46s-1.49-7.39-4.48-9.75c-2.99-2.36-7.08-3.54-12.28-3.54h-16.03v26.29Z" style="fill:#d4531a;"/><path d="M414.7,159.98c-8.67,0-15.38-1.93-20.15-5.78-4.77-3.85-7.15-9.29-7.15-16.32,0-7.7,2.58-13.51,7.73-17.41,5.15-3.9,12.4-5.85,21.74-5.85h18.35v14.16h-11.7c-6.26,0-10.59.75-13,2.24-2.41,1.49-3.61,3.59-3.61,6.28,0,2.12.96,3.78,2.89,4.98,1.93,1.21,4.62,1.81,8.09,1.81,3.18,0,6-.74,8.45-2.24,2.46-1.49,4.41-3.42,5.85-5.78,1.44-2.36,2.17-4.79,2.17-7.29h4.62c0,9.82-1.86,17.48-5.56,22.97-3.71,5.49-9.94,8.23-18.71,8.23ZM434.92,158.24l-.58-14.59v-21.96c0-4.33-.46-8.04-1.37-11.12-.92-3.08-2.36-5.46-4.33-7.15-1.97-1.68-4.65-2.53-8.02-2.53-3.08,0-5.88.67-8.38,2.02-2.51,1.35-4.62,3.42-6.36,6.21l-16.76-5.78c1.35-3.08,3.32-6.09,5.92-9.03s5.99-5.35,10.18-7.22c4.19-1.88,9.32-2.82,15.38-2.82,7.32,0,13.41,1.4,18.27,4.19,4.86,2.79,8.47,6.72,10.83,11.77,2.36,5.06,3.49,11.05,3.4,17.98l-.43,40.01h-17.77Z" style="fill:#d4531a;"/><path d="M503.1,159.98c-7.51,0-14.21-1.61-20.08-4.84-5.88-3.22-10.45-7.7-13.72-13.43-3.27-5.73-4.91-12.25-4.91-19.57s1.64-13.96,4.91-19.65c3.27-5.68,7.8-10.13,13.58-13.36,5.78-3.22,12.42-4.84,19.93-4.84s13.82,1.78,19.79,5.34c5.97,3.56,10.3,8.72,13,15.46l-17.91,6.36c-1.35-2.79-3.44-5.03-6.28-6.72-2.84-1.68-5.99-2.53-9.46-2.53s-6.69.84-9.39,2.53c-2.7,1.69-4.82,4.02-6.36,7.01-1.54,2.99-2.31,6.45-2.31,10.4s.77,7.39,2.31,10.33c1.54,2.94,3.71,5.27,6.5,7.01,2.79,1.73,5.97,2.6,9.53,2.6s6.62-.91,9.46-2.75c2.84-1.83,4.93-4.24,6.28-7.22l18.06,6.36c-2.79,6.84-7.15,12.13-13.07,15.89-5.92,3.76-12.54,5.63-19.86,5.63Z" style="fill:#d4531a;"/><path d="M547.16,158.24V57.13h19.07v101.12h-19.07ZM565.36,139.9l-11.41-13.14,36.98-40.74h22.68l-48.25,53.88ZM593.39,158.24l-23.98-34.96,12.42-13.15,33.95,48.1h-22.39Z" style="fill:#d4531a;"/><path d="M625.6,187.13v-101.12h17.91l1.16,13.29v87.83h-19.07ZM666.48,159.98c-6.07,0-11.2-1.54-15.38-4.62-4.19-3.08-7.39-7.46-9.61-13.15-2.22-5.68-3.32-12.37-3.32-20.08s1.11-14.52,3.32-20.15c2.21-5.63,5.42-9.99,9.61-13.07,4.19-3.08,9.32-4.62,15.38-4.62,6.64,0,12.4,1.54,17.26,4.62,4.86,3.08,8.64,7.44,11.34,13.07,2.7,5.63,4.04,12.35,4.04,20.15s-1.35,14.4-4.04,20.08c-2.7,5.68-6.48,10.06-11.34,13.15-4.86,3.08-10.62,4.62-17.26,4.62ZM661.57,142.5c3.47,0,6.52-.87,9.17-2.6,2.65-1.73,4.74-4.14,6.28-7.22,1.54-3.08,2.31-6.59,2.31-10.54s-.75-7.46-2.24-10.54c-1.49-3.08-3.56-5.46-6.21-7.15-2.65-1.68-5.71-2.53-9.17-2.53-3.27,0-6.21.87-8.81,2.6-2.6,1.73-4.62,4.12-6.07,7.15-1.45,3.03-2.17,6.53-2.17,10.47s.72,7.46,2.17,10.54c1.44,3.08,3.44,5.49,5.99,7.22,2.55,1.73,5.46,2.6,8.74,2.6Z" style="fill:#d4531a;"/><path d="M711.69,158.24V57.13h19.07v101.12h-19.07Z" style="fill:#d4531a;"/><path d="M770.63,159.98c-8.67,0-15.38-1.93-20.15-5.78-4.77-3.85-7.15-9.29-7.15-16.32,0-7.7,2.58-13.51,7.73-17.41,5.15-3.9,12.4-5.85,21.74-5.85h18.35v14.16h-11.7c-6.26,0-10.59.75-13,2.24-2.41,1.49-3.61,3.59-3.61,6.28,0,2.12.96,3.78,2.89,4.98,1.93,1.21,4.62,1.81,8.09,1.81,3.18,0,6-.74,8.45-2.24,2.46-1.49,4.41-3.42,5.85-5.78,1.44-2.36,2.17-4.79,2.17-7.29h4.62c0,9.82-1.86,17.48-5.56,22.97-3.71,5.49-9.95,8.23-18.71,8.23ZM790.85,158.24l-.58-14.59v-21.96c0-4.33-.46-8.04-1.37-11.12-.92-3.08-2.36-5.46-4.33-7.15-1.97-1.68-4.65-2.53-8.02-2.53-3.08,0-5.88.67-8.38,2.02-2.5,1.35-4.62,3.42-6.36,6.21l-16.76-5.78c1.35-3.08,3.32-6.09,5.92-9.03,2.6-2.94,6-5.35,10.18-7.22,4.19-1.88,9.32-2.82,15.38-2.82,7.32,0,13.41,1.4,18.27,4.19,4.86,2.79,8.47,6.72,10.83,11.77,2.36,5.06,3.49,11.05,3.39,17.98l-.43,40.01h-17.77Z" style="fill:#d4531a;"/><path d="M818.01,102.2v-16.18h48.83v16.18h-48.83ZM853.98,159.98c-7.99,0-14.04-1.97-18.13-5.92-4.09-3.95-6.14-9.58-6.14-16.9V63.48h19.07v69.48c0,3.08.67,5.42,2.02,7.01,1.35,1.59,3.32,2.38,5.92,2.38.96,0,2.02-.22,3.18-.65s2.36-1.08,3.61-1.95l6.64,14.3c-2.31,1.73-4.89,3.16-7.73,4.26-2.84,1.11-5.66,1.66-8.45,1.66Z" style="fill:#d4531a;"/><path d="M913.64,159.98c-7.13,0-13.43-1.61-18.92-4.84-5.49-3.22-9.8-7.68-12.93-13.36-3.13-5.68-4.69-12.23-4.69-19.65s1.61-13.96,4.84-19.65c3.23-5.68,7.66-10.13,13.29-13.36,5.63-3.22,12.11-4.84,19.43-4.84,6.36,0,12.21,1.66,17.55,4.98s9.63,8.19,12.86,14.59c3.22,6.41,4.84,14.18,4.84,23.33h-54.75l1.73-1.73c0,3.56.89,6.67,2.67,9.32,1.78,2.65,4.09,4.67,6.93,6.07,2.84,1.4,5.9,2.09,9.17,2.09,3.95,0,7.17-.84,9.68-2.53,2.5-1.68,4.43-3.88,5.78-6.57l17.05,6.64c-2.02,4.04-4.65,7.54-7.87,10.47-3.23,2.94-7.06,5.18-11.48,6.72-4.43,1.54-9.49,2.31-15.17,2.31ZM897.89,114.76l-1.73-1.73h34.81l-1.59,1.73c0-3.47-.82-6.23-2.46-8.31-1.64-2.07-3.64-3.59-5.99-4.55-2.36-.96-4.65-1.44-6.86-1.44s-4.57.48-7.08,1.44c-2.5.96-4.65,2.48-6.43,4.55-1.78,2.07-2.67,4.84-2.67,8.31Z" style="fill:#d4531a;"/></svg></span>
+      <span class="logo-dark"><svg style="height:34px;width:auto" viewBox="0 0 1011.8 242.5" xmlns="http://www.w3.org/2000/svg"><g>
+    <path style="fill:#d4531a" d="M967.2,29.5h32.9v183.5h-32.9v-3.7h15.6V33.2h-15.6v-3.7Z"/>
+    <path style="fill:#fff" d="M37,213H4.1V29.5h32.9v3.7h-15.6v176.1h15.6v3.7Z"/>
+  </g>
+  <g>
+    <path style="fill:#fff" d="M107.2,160c-10.3,0-19.4-2.2-27.4-6.7-7.9-4.5-14.2-10.6-18.7-18.5-4.5-7.8-6.8-16.9-6.8-27.1s2.3-19.2,6.8-27.1c4.5-7.8,10.8-14,18.7-18.5,7.9-4.5,17.1-6.7,27.4-6.7s11.8.9,17,2.7c5.2,1.8,9.8,4.4,13.8,7.6,4,3.2,7.3,6.9,10,11.1l-16.2,10.1c-1.6-2.6-3.8-4.9-6.4-6.9-2.6-2-5.6-3.6-8.7-4.8-3.2-1.2-6.4-1.7-9.5-1.7-6.4,0-12,1.5-16.9,4.4-4.9,2.9-8.8,7-11.6,12.1-2.8,5.1-4.2,11-4.2,17.8s1.4,12.6,4.1,17.8c2.7,5.2,6.6,9.3,11.6,12.2,5,2.9,10.8,4.4,17.3,4.4s9.7-1,13.7-3c4-2,7.2-4.9,9.5-8.5,2.3-3.7,3.5-7.9,3.5-12.7l18.8-2.9c0,9.5-2,17.7-5.9,24.4-3.9,6.7-9.3,11.9-16.2,15.4-6.9,3.5-14.8,5.3-23.8,5.3ZM110.5,119.5v-15.5h42.5v12.3l-10.7,3.2h-31.8Z"/>
+    <path style="fill:#fff" d="M197.4,160c-7.1,0-13.4-1.6-18.9-4.8-5.5-3.2-9.8-7.7-12.9-13.4-3.1-5.7-4.7-12.2-4.7-19.6s1.6-14,4.8-19.6c3.2-5.7,7.7-10.1,13.3-13.4,5.6-3.2,12.1-4.8,19.4-4.8s12.2,1.7,17.6,5,9.6,8.2,12.9,14.6c3.2,6.4,4.8,14.2,4.8,23.3h-54.7l1.7-1.7c0,3.6.9,6.7,2.7,9.3,1.8,2.6,4.1,4.7,6.9,6.1,2.8,1.4,5.9,2.1,9.2,2.1s7.2-.8,9.7-2.5c2.5-1.7,4.4-3.9,5.8-6.6l17,6.6c-2,4-4.6,7.5-7.9,10.5-3.2,2.9-7.1,5.2-11.5,6.7-4.4,1.5-9.5,2.3-15.2,2.3ZM181.7,114.8l-1.7-1.7h34.8l-1.6,1.7c0-3.5-.8-6.2-2.5-8.3-1.6-2.1-3.6-3.6-6-4.5-2.4-1-4.6-1.4-6.9-1.4s-4.6.5-7.1,1.4c-2.5,1-4.6,2.5-6.4,4.5-1.8,2.1-2.7,4.8-2.7,8.3Z"/>
+    <path style="fill:#fff" d="M238.6,102.2v-16.2h48.8v16.2h-48.8ZM274.6,160c-8,0-14-2-18.1-5.9-4.1-3.9-6.1-9.6-6.1-16.9V63.5h19.1v69.5c0,3.1.7,5.4,2,7,1.3,1.6,3.3,2.4,5.9,2.4s2-.2,3.2-.6,2.4-1.1,3.6-2l6.6,14.3c-2.3,1.7-4.9,3.2-7.7,4.3-2.8,1.1-5.7,1.7-8.5,1.7Z"/>
+    <path style="fill:#fff" d="M305.6,158.2V57.1h34.2c6.9,0,13,1.1,18.2,3.2,5.2,2.1,9.2,5.3,12.1,9.6,2.9,4.3,4.3,9.6,4.3,16s-1,7.6-3,10.9c-2,3.3-4.7,6.2-8.3,8.6,4.7,2.4,8.4,5.6,10.9,9.6,2.6,4,3.8,8.8,3.8,14.4s-1.4,11.4-4.2,15.7c-2.8,4.3-6.7,7.6-11.7,9.8-5,2.2-10.9,3.3-17.6,3.3h-38.9ZM325,98.3h15.3c4.3,0,7.8-1.1,10.3-3.3,2.5-2.2,3.8-5.3,3.8-9.4s-1.4-7.2-4.2-9.4c-2.8-2.2-6.6-3.3-11.4-3.3h-13.7v25.4ZM325,140.8h17.6c4.7,0,8.4-1.2,11.1-3.5,2.7-2.4,4-5.5,4-9.5s-1.5-7.4-4.5-9.8c-3-2.4-7.1-3.5-12.3-3.5h-16v26.3Z"/>
+    <path style="fill:#fff" d="M414.7,160c-8.7,0-15.4-1.9-20.2-5.8-4.8-3.8-7.2-9.3-7.2-16.3s2.6-13.5,7.7-17.4c5.2-3.9,12.4-5.9,21.7-5.9h18.3v14.2h-11.7c-6.3,0-10.6.7-13,2.2-2.4,1.5-3.6,3.6-3.6,6.3s1,3.8,2.9,5c1.9,1.2,4.6,1.8,8.1,1.8s6-.7,8.5-2.2c2.5-1.5,4.4-3.4,5.9-5.8,1.4-2.4,2.2-4.8,2.2-7.3h4.6c0,9.8-1.9,17.5-5.6,23-3.7,5.5-9.9,8.2-18.7,8.2ZM434.9,158.2l-.6-14.6v-22c0-4.3-.5-8-1.4-11.1-.9-3.1-2.4-5.5-4.3-7.2-2-1.7-4.6-2.5-8-2.5s-5.9.7-8.4,2c-2.5,1.4-4.6,3.4-6.4,6.2l-16.8-5.8c1.3-3.1,3.3-6.1,5.9-9s6-5.3,10.2-7.2c4.2-1.9,9.3-2.8,15.4-2.8s13.4,1.4,18.3,4.2c4.9,2.8,8.5,6.7,10.8,11.8,2.4,5.1,3.5,11.1,3.4,18l-.4,40h-17.8Z"/>
+    <path style="fill:#fff" d="M503.1,160c-7.5,0-14.2-1.6-20.1-4.8-5.9-3.2-10.5-7.7-13.7-13.4-3.3-5.7-4.9-12.3-4.9-19.6s1.6-14,4.9-19.6c3.3-5.7,7.8-10.1,13.6-13.4,5.8-3.2,12.4-4.8,19.9-4.8s13.8,1.8,19.8,5.3c6,3.6,10.3,8.7,13,15.5l-17.9,6.4c-1.3-2.8-3.4-5-6.3-6.7-2.8-1.7-6-2.5-9.5-2.5s-6.7.8-9.4,2.5c-2.7,1.7-4.8,4-6.4,7-1.5,3-2.3,6.5-2.3,10.4s.8,7.4,2.3,10.3c1.5,2.9,3.7,5.3,6.5,7,2.8,1.7,6,2.6,9.5,2.6s6.6-.9,9.5-2.7c2.8-1.8,4.9-4.2,6.3-7.2l18.1,6.4c-2.8,6.8-7.2,12.1-13.1,15.9-5.9,3.8-12.5,5.6-19.9,5.6Z"/>
+    <path style="fill:#fff" d="M547.2,158.2V57.1h19.1v101.1h-19.1ZM565.4,139.9l-11.4-13.1,37-40.7h22.7l-48.2,53.9ZM593.4,158.2l-24-35,12.4-13.1,33.9,48.1h-22.4Z"/>
+    <path style="fill:#fff" d="M625.6,187.1v-101.1h17.9l1.2,13.3v87.8h-19.1ZM666.5,160c-6.1,0-11.2-1.5-15.4-4.6-4.2-3.1-7.4-7.5-9.6-13.1-2.2-5.7-3.3-12.4-3.3-20.1s1.1-14.5,3.3-20.2c2.2-5.6,5.4-10,9.6-13.1,4.2-3.1,9.3-4.6,15.4-4.6s12.4,1.5,17.3,4.6c4.9,3.1,8.6,7.4,11.3,13.1,2.7,5.6,4,12.4,4,20.2s-1.3,14.4-4,20.1c-2.7,5.7-6.5,10.1-11.3,13.1-4.9,3.1-10.6,4.6-17.3,4.6ZM661.6,142.5c3.5,0,6.5-.9,9.2-2.6,2.6-1.7,4.7-4.1,6.3-7.2,1.5-3.1,2.3-6.6,2.3-10.5s-.7-7.5-2.2-10.5c-1.5-3.1-3.6-5.5-6.2-7.2-2.6-1.7-5.7-2.5-9.2-2.5s-6.2.9-8.8,2.6c-2.6,1.7-4.6,4.1-6.1,7.2-1.4,3-2.2,6.5-2.2,10.5s.7,7.5,2.2,10.5c1.4,3.1,3.4,5.5,6,7.2,2.6,1.7,5.5,2.6,8.7,2.6Z"/>
+    <path style="fill:#fff" d="M711.7,158.2V57.1h19.1v101.1h-19.1Z"/>
+    <path style="fill:#fff" d="M770.6,160c-8.7,0-15.4-1.9-20.2-5.8-4.8-3.8-7.2-9.3-7.2-16.3s2.6-13.5,7.7-17.4c5.2-3.9,12.4-5.9,21.7-5.9h18.3v14.2h-11.7c-6.3,0-10.6.7-13,2.2-2.4,1.5-3.6,3.6-3.6,6.3s1,3.8,2.9,5c1.9,1.2,4.6,1.8,8.1,1.8s6-.7,8.5-2.2c2.5-1.5,4.4-3.4,5.9-5.8,1.4-2.4,2.2-4.8,2.2-7.3h4.6c0,9.8-1.9,17.5-5.6,23-3.7,5.5-9.9,8.2-18.7,8.2ZM790.9,158.2l-.6-14.6v-22c0-4.3-.5-8-1.4-11.1-.9-3.1-2.4-5.5-4.3-7.2-2-1.7-4.6-2.5-8-2.5s-5.9.7-8.4,2c-2.5,1.4-4.6,3.4-6.4,6.2l-16.8-5.8c1.3-3.1,3.3-6.1,5.9-9,2.6-2.9,6-5.3,10.2-7.2,4.2-1.9,9.3-2.8,15.4-2.8s13.4,1.4,18.3,4.2c4.9,2.8,8.5,6.7,10.8,11.8,2.4,5.1,3.5,11.1,3.4,18l-.4,40h-17.8Z"/>
+    <path style="fill:#fff" d="M818,102.2v-16.2h48.8v16.2h-48.8ZM854,160c-8,0-14-2-18.1-5.9-4.1-3.9-6.1-9.6-6.1-16.9V63.5h19.1v69.5c0,3.1.7,5.4,2,7,1.3,1.6,3.3,2.4,5.9,2.4s2-.2,3.2-.6,2.4-1.1,3.6-2l6.6,14.3c-2.3,1.7-4.9,3.2-7.7,4.3-2.8,1.1-5.7,1.7-8.5,1.7Z"/>
+    <path style="fill:#fff" d="M913.6,160c-7.1,0-13.4-1.6-18.9-4.8-5.5-3.2-9.8-7.7-12.9-13.4-3.1-5.7-4.7-12.2-4.7-19.6s1.6-14,4.8-19.6c3.2-5.7,7.7-10.1,13.3-13.4,5.6-3.2,12.1-4.8,19.4-4.8s12.2,1.7,17.6,5,9.6,8.2,12.9,14.6c3.2,6.4,4.8,14.2,4.8,23.3h-54.7l1.7-1.7c0,3.6.9,6.7,2.7,9.3,1.8,2.6,4.1,4.7,6.9,6.1,2.8,1.4,5.9,2.1,9.2,2.1s7.2-.8,9.7-2.5c2.5-1.7,4.4-3.9,5.8-6.6l17,6.6c-2,4-4.6,7.5-7.9,10.5-3.2,2.9-7.1,5.2-11.5,6.7-4.4,1.5-9.5,2.3-15.2,2.3ZM897.9,114.8l-1.7-1.7h34.8l-1.6,1.7c0-3.5-.8-6.2-2.5-8.3-1.6-2.1-3.6-3.6-6-4.5-2.4-1-4.6-1.4-6.9-1.4s-4.6.5-7.1,1.4c-2.5,1-4.6,2.5-6.4,4.5-1.8,2.1-2.7,4.8-2.7,8.3Z"/>
+  </g></svg></span>
+    </a>
+    <div class="nav-links">
+      <a href="#platform" class="nav-link">Platform</a>
+      <button class="nav-link has-mega" id="modules-btn" 
+        onmouseenter="openMega()" 
+        onclick="toggleMega()">Modules</button>
+      <a href="#ai" class="nav-link">AI</a>
+      <a href="#pricing" class="nav-link">Pricing</a>
+      <a href="#faq" class="nav-link">FAQ</a>
+    </div>
+    <div class="nav-right">
+      <div class="nav-clock-toggle">
+        <span id="shift-label" style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);width:72px;text-align:right;display:inline-block">Day Shift</span>
+        <button class="theme-toggle" id="theme-toggle" title="Toggle day/night shift" aria-label="Toggle theme">
+          <div class="toggle-pill" id="toggle-pill">☀️</div>
+        </button>
+      </div>
+      <button class="nav-cta" onclick="openSeatModal()">Request Your Seat</button>
+    </div>
+  </div>
+
+  <!-- ══ MEGA MENU ══ -->
+  <div class="mega-menu" id="mega-menu">
+    <div class="mega-inner">
+
+      <!-- STARTER -->
+      <div class="mega-col starter">
+        <div class="mega-col-header">
+          <div class="mega-plan-badge starter">Starter</div>
+          <div class="mega-plan-price">from $49/mo</div>
+        </div>
+        <div class="mega-module-list">
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">Roles & Permissions</div></a>
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">File Management</div></a>
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">Platform Notifications</div></a>
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">Checklists by Dept & Shift</div></a>
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">Shift Communication Log</div></a>
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">Employee Onboarding</div></a>
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">Digital Contract Signatures</div></a>
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">Supplier & Vendor Directory</div></a>
+        </div>
+      </div>
+
+      <div class="mega-divider"></div>
+
+      <!-- GROWTH -->
+      <div class="mega-col growth">
+        <div class="mega-col-header">
+          <div class="mega-plan-badge growth">Growth</div>
+          <div class="mega-plan-price">from $129/mo</div>
+        </div>
+        <div class="mega-module-list">
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">SMS & WhatsApp Notifications</div></a>
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">Task Assignment</div></a>
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">Incident & Accident Log</div></a>
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">Vacation & Time-Off Requests</div></a>
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">Disciplinary Log</div></a>
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">Equipment Maintenance Tracker</div></a>
+          <a class="mega-mod ai-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">✦ AI Quick Reports</div></a>
+        </div>
+      </div>
+
+      <div class="mega-divider"></div>
+
+      <!-- PRO -->
+      <div class="mega-col pro">
+        <div class="mega-col-header">
+          <div class="mega-plan-badge pro">Pro</div>
+          <div class="mega-plan-price">from $249/mo</div>
+        </div>
+        <div class="mega-module-list">
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">Recipe Archive + Portion Scaler</div></a>
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">Temperature & Food Safety Log</div></a>
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">Menu Costing</div></a>
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">Schedule Builder</div></a>
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">Performance Reviews</div></a>
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">Google My Business Management</div></a>
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">Review Champions</div></a>
+          <a class="mega-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">Mystery Shopper</div></a>
+          <a class="mega-mod ai-mod" href="#modules"><div class="mega-mod-dot"></div><div class="mega-mod-name">✦ Full AI Assistant</div></a>
+        </div>
+      </div>
+
+    </div>
+    <div class="mega-footer-bar">
+      <div class="mega-footer-text"><strong>23 modules</strong> · Start with what you need, add more as you grow · All plans include unlimited locations via Enterprise</div>
+      <a href="#modules" class="mega-footer-cta" onclick="closeMega()">See all modules →</a>
+    </div>
+  </div>
+
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero" id="hero">
+  <div class="hero-bg"></div>
+  <div class="container">
+    <div class="hero-inner">
+      <div>
+        <div class="hero-badge"><div class="badge-dot"></div>Soft Launch · Summer 2026 · First Table Program</div>
+        <h1>
+          You're invited<br>
+          to the <span class="grad-orange">First</span><br>
+          Table.
+        </h1>
+        <p class="hero-sub">The operations platform restaurant owners, managers, and teams have been waiting for. Not a POS. The system that runs everything your POS ignores.</p>
+        <div class="hero-actions">
+          <button class="btn-primary" onclick="openSeatModal()">Request Your Seat →</button>
+          <a href="#modules" class="btn-ghost">See the modules</a>
+        </div>
+        <div class="hero-trust">
+          <div class="hero-trust-avatars">
+            <div class="avatar">MA</div>
+            <div class="avatar">RG</div>
+            <div class="avatar v">JP</div>
+          </div>
+          <div class="hero-trust-text">38 restaurants already reserved · 62 seats left</div>
+        </div>
+        <div class="hero-countdown">
+          <div class="hc-unit"><span class="hc-num" id="hc-days">—</span><span class="hc-label">days</span></div>
+          <div class="hc-sep">:</div>
+          <div class="hc-unit"><span class="hc-num" id="hc-hours">—</span><span class="hc-label">hrs</span></div>
+          <div class="hc-sep">:</div>
+          <div class="hc-unit"><span class="hc-num" id="hc-mins">—</span><span class="hc-label">min</span></div>
+          <div class="hc-caption">Until soft launch<br>August 1, 2026</div>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-float f1"><div class="hf-dot g"></div>All checklists complete · Biloxi ✓</div>
+        <div class="mock-window">
+          <div class="mock-titlebar">
+            <div class="mock-dot r"></div><div class="mock-dot y"></div><div class="mock-dot g"></div>
+            <div class="mock-titlebar-label">GetBackplate · Operations Dashboard</div>
+          </div>
+          <div class="mock-body">
+            <div class="mock-stats">
+              <div class="mock-stat"><div class="mock-stat-label">Locations</div><div class="mock-stat-val v">3</div><div class="mock-stat-sub">All active</div></div>
+              <div class="mock-stat"><div class="mock-stat-label">Checklists</div><div class="mock-stat-val g">94%</div><div class="mock-stat-sub">Today</div></div>
+              <div class="mock-stat"><div class="mock-stat-label">Open Issues</div><div class="mock-stat-val o">2</div><div class="mock-stat-sub">Action needed</div></div>
+            </div>
+            <div class="mock-slabel">Opening Checklist · Long Beach · Today</div>
+            <div class="mock-checklist">
+              <div class="mock-check done"><div class="mock-cb chk">✓</div>Temperature log completed<div class="mock-badge g">Done</div></div>
+              <div class="mock-check done"><div class="mock-cb chk">✓</div>Staff sign-in verified<div class="mock-badge g">Done</div></div>
+              <div class="mock-check"><div class="mock-cb"></div>Equipment review — walk-through<div class="mock-badge o">Open</div></div>
+            </div>
+            <div class="mock-ai-strip">
+              <span>✦</span>
+              <div class="mock-ai-text"><strong>AI Alert:</strong> 3 contracts expiring in 5 days</div>
+              <div class="mock-ai-b">View →</div>
+            </div>
+          </div>
+        </div>
+        <div class="hero-float f2"><div class="hf-dot o"></div>Powered by AI Intelligence ✦</div>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-hint"><div class="sh-line"></div><div class="sh-text">Scroll</div></div>
+</section>
+
+<!-- CONCEPTS MARQUEE -->
+<div class="concepts-marquee">
+  <div class="mq-built-for">Built for</div>
+  <div class="marquee-track">
+    <div class="marquee-inner">
+      <span class="mq-item hi">Restaurant Chains</span>
+      <span class="mq-sep">—</span>
+      <span class="mq-item">Full Service Restaurants</span>
+      <span class="mq-sep">—</span>
+      <span class="mq-item hi">Quick Service</span>
+      <span class="mq-sep">—</span>
+      <span class="mq-item">Bars & Breweries</span>
+      <span class="mq-sep">—</span>
+      <span class="mq-item hi">Ghost Kitchens</span>
+      <span class="mq-sep">—</span>
+      <span class="mq-item">Coffee Shops</span>
+      <span class="mq-sep">—</span>
+      <span class="mq-item hi">Food Trucks</span>
+      <span class="mq-sep">—</span>
+      <span class="mq-item">Catering</span>
+      <span class="mq-sep">—</span>
+      <span class="mq-item hi">Restaurant Chains</span>
+      <span class="mq-sep">—</span>
+      <span class="mq-item">Full Service Restaurants</span>
+      <span class="mq-sep">—</span>
+      <span class="mq-item hi">Quick Service</span>
+      <span class="mq-sep">—</span>
+      <span class="mq-item">Bars & Breweries</span>
+      <span class="mq-sep">—</span>
+      <span class="mq-item hi">Ghost Kitchens</span>
+      <span class="mq-sep">—</span>
+      <span class="mq-item">Coffee Shops</span>
+      <span class="mq-sep">—</span>
+      <span class="mq-item hi">Food Trucks</span>
+      <span class="mq-sep">—</span>
+      <span class="mq-item">Catering</span>
+      <span class="mq-sep">—</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══ REALITY CHECK ═══ -->
+<section class="reality section reveal">
+  <div class="container"><div class="reality-inner">
+    <div>
+      <span class="tag-pill">The Reality</span>
+      <h2 class="section-h2">Your POS runs your sales.<br><span class="grad-orange">We run your restaurant.</span></h2>
+    </div>
+    <div>
+      <p class="section-sub">Between the clipboards, the email threads, the WhatsApp groups, and the printed checklists — your restaurant runs on tools that were never built for how restaurants actually work. Toast runs your transactions. Square processes your payments. But who runs the rest?</p>
+      <p style="font-size:15px;font-weight:700;color:var(--text);margin-top:28px;margin-bottom:4px">We do. With GetBackplate you finally have:</p>
+      <ul class="reality-list">
+        <li><div class="rl-dot"></div><span><strong>Digital checklists</strong> by shift, department, and location — signed off and tracked</span></li>
+        <li><div class="rl-dot"></div><span><strong>Employee onboarding</strong> centralized — documents, contracts, and training in one place</span></li>
+        <li><div class="rl-dot"></div><span><strong>Scheduling</strong> built for restaurants — role filters, availability, and shift visibility</span></li>
+        <li><div class="rl-dot"></div><span><strong>SOPs and files</strong> organized by location, department, or role — always accessible</span></li>
+        <li><div class="rl-dot"></div><span><strong>Team communication</strong> inside the platform — no WhatsApp groups, no third-party apps</span></li>
+        <li><div class="rl-dot"></div><span><strong>Food safety logs</strong> ready for any health inspection, logged every shift</span></li>
+      </ul>
+    </div>
+  </div></div>
+</section>
+
+<!-- ═══ PLATFORM ═══ -->
+<section class="platform section reveal" id="platform">
+  <div class="container">
+    <div class="platform-header">
+      <span class="tag-pill">The Platform</span>
+      <h2 class="section-h2">One platform. Every system your restaurant<br>has been running <span class="grad-orange">without.</span></h2>
+      <p class="platform-sub">GetBackplate manages everything your POS leaves behind — operations, people, kitchen, communication, and more.</p>
+    </div>
+    <div class="platform-grid">
+      <div class="platform-card"><div class="platform-num">01</div><div class="platform-title">Operations & Compliance</div><div class="platform-body">Digital checklists, opening and closing procedures, incident logs, food safety records, and equipment maintenance — all with sign-off and accountability tracking built in.</div></div>
+      <div class="platform-card"><div class="platform-num">02</div><div class="platform-title">People & HR</div><div class="platform-body">Onboarding, scheduling, time-off requests, training records, performance reviews, disciplinary logs, and digital contract signatures — your entire people layer, organized.</div></div>
+      <div class="platform-card"><div class="platform-num">03</div><div class="platform-title">Kitchen & Menu</div><div class="platform-body">Recipe archive with automatic portion scaling, menu costing tied directly to recipes, and a full supplier and vendor directory with order history and contacts.</div></div>
+      <div class="platform-card"><div class="platform-num">04</div><div class="platform-title">Communication</div><div class="platform-body">Platform notifications, SMS alerts, and WhatsApp messaging keep your team connected in real time — without the chaos of a third-party app nobody actually uses.</div></div>
+      <div class="platform-card"><div class="platform-num">05</div><div class="platform-title">Marketing & Quality</div><div class="platform-body">Manage your Google My Business listing, run in-platform review contests, and track mystery shopper evaluations with weighted scoring and trend reports.</div></div>
+      <div class="platform-card"><div class="platform-num">06</div><div class="platform-title">Roles & Permissions</div><div class="platform-body">Every module is controlled by a unified roles and permissions layer. Owners see everything. Managers see what they need. Staff see what's relevant to their shift.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ MULTI-LOCATION ═══ -->
+<section class="multiloc section reveal">
+  <div class="container"><div class="multiloc-inner">
+    <div>
+      <span class="tag-pill">Multi-Location</span>
+      <h2 class="section-h2">All your locations. One screen.<br><span class="grad-orange">No tab switching.</span></h2>
+    </div>
+    <div>
+      <p class="section-sub">Most operators running multiple locations are logging into each one separately — different dashboards, different logins, different windows. GetBackplate gives you a unified view across every location. Checklists, staff, kitchen status, open incidents — all of it, side by side, in real time.</p>
+      <div class="multiloc-stats">
+        <div class="multiloc-stat"><div class="ms-num">ONE</div><div class="ms-label">Login for all locations</div></div>
+        <div class="multiloc-stat"><div class="ms-num">ZERO</div><div class="ms-label">Tab switching required</div></div>
+        <div class="multiloc-stat"><div class="ms-num">∞</div><div class="ms-label">Locations supported</div></div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ═══ NOT A POS ═══ -->
+<div class="not-pos reveal">
+  <div class="container"><div class="np-inner">
+    <span class="tag-pill violet">What GetBackplate Is</span>
+    <h2 class="np-h2">A restaurant operations platform.<br>Not a POS. Not payroll.<br>The layer that runs everything in between.</h2>
+    <p class="np-p">Toast, Waycloud, Square, and Clover run your transactions. GetBackplate runs everything else — your people, your processes, your standards, your communication. We don't replace your POS. We complete&nbsp;it.</p>
+    <p style="font-size:12px;color:rgba(255,255,255,0.28);margin-bottom:28px">Compatible with Toast, Square, Clover, Aloha, and any existing POS system.</p>
+    <div class="pos-tags">
+      <span class="pos-tag is">✓ Restaurant Operations Platform</span>
+      <span class="pos-tag is">✓ People & HR Management</span>
+      <span class="pos-tag is">✓ Kitchen & Menu Systems</span>
+      <span class="pos-tag is">✓ Communication Tools</span>
+      <span class="pos-tag">× Not a POS</span>
+      <span class="pos-tag">× Not Payroll or Accounting</span>
+      <span class="pos-tag">× Not Ordering or Delivery</span>
+      <span class="pos-tag">× Not a Reservation System</span>
+    </div>
+  </div></div>
+</div>
+
+<!-- ═══ MODULES ═══ -->
+<section class="modules section reveal" id="modules">
+  <div class="container">
+    <div class="modules-header">
+      <div>
+        <span class="tag-pill">Platform Modules</span>
+        <h2 class="section-h2">Every system your restaurant<br>has been running <span class="grad-orange">without.</span></h2>
+      </div>
+      <p class="section-sub">GetBackplate is modular by design. Start with what you need, add modules as you grow. Every module shares a single unified permissions layer — no silos, no duplicate data, no confusion.</p>
+    </div>
+    <div class="modules-grid">
+      <div class="module-card"><div class="module-num">01</div><div class="module-name">Roles & Permissions</div><div class="module-desc">User access control across every module. Define what owners, managers, and staff can see and do — the backbone everything else depends on.</div></div>
+      <div class="module-card"><div class="module-num">02</div><div class="module-name">File Management</div><div class="module-desc">Centralized document storage for menus, SOPs, certifications, and more. Organized by location, department, or role.</div></div>
+      <div class="module-card"><div class="module-num">03</div><div class="module-name">Checklists by Dept & Shift</div><div class="module-desc">Digital checklists per department and shift — with sign-off, accountability tracking, and manager visibility built in.</div></div>
+      <div class="module-card"><div class="module-num">04</div><div class="module-name">Platform Notifications</div><div class="module-desc">In-platform alerts keep your team informed in real time. No third-party apps, no missed updates.</div></div>
+      <div class="module-card"><div class="module-num">05</div><div class="module-name">Employee Onboarding</div><div class="module-desc">Every new hire — documents, training, and setup — in one place. No more email chains, shared drives, or printed packets.</div></div>
+      <div class="module-card"><div class="module-num">06</div><div class="module-name">Digital Contract Signatures</div><div class="module-desc">Send, sign, and archive employment contracts digitally. No per-document fees, no printing, no chasing signatures.</div></div>
+    </div>
+    <div class="mod-expand-bar" onclick="toggleModules()">
+      <div class="mel">Plus <strong>17 more modules</strong> — SMS & WhatsApp, Task Assignment, Shift Communication Log, Supplier Directory, Incident Log, Time-Off Requests, Disciplinary Log, Equipment Tracker, Recipe Archive, Food Safety Log, Menu Costing, Schedule Builder, Performance Reviews, Google My Business, Review Champions, Mystery Shopper, AI Intelligence.</div>
+      <button class="meb" id="mod-expand-btn">See all modules <span class="meb-arrow">↓</span></button>
+    </div>
+    <div class="extra-modules-panel" id="extra-modules-panel">
+      <div class="em-divider"><span class="growth">Growth Plan Modules</span><div class="em-divider-line"></div></div>
+      <div class="extra-mod"><div class="em-plan growth">Growth</div><div class="em-name">SMS & WhatsApp Notifications</div><div class="em-desc">Real-time team messaging that reaches staff beyond the platform.</div></div>
+      <div class="extra-mod"><div class="em-plan growth">Growth</div><div class="em-name">Task Assignment</div><div class="em-desc">Assign tasks, set due dates, and require photo proof of completion. Integrated with checklists and shift communication.</div></div>
+      <div class="extra-mod"><div class="em-plan growth">Growth</div><div class="em-name">Incident & Accident Log</div><div class="em-desc">Track kitchen injuries, customer complaints, and equipment failures with full documentation.</div></div>
+      <div class="extra-mod"><div class="em-plan growth">Growth</div><div class="em-name">Vacation & Time-Off Requests</div><div class="em-desc">Digital requests with manager approval flow. No more paper slips.</div></div>
+      <div class="extra-mod"><div class="em-plan growth">Growth</div><div class="em-name">Disciplinary Log</div><div class="em-desc">Private manager-only record of warnings, incidents, and write-ups.</div></div>
+      <div class="extra-mod"><div class="em-plan growth">Growth</div><div class="em-name">Equipment Maintenance Tracker</div><div class="em-desc">Service schedules, repair history, and vendor contacts per unit.</div></div>
+      <div class="extra-mod"><div class="em-plan growth">Growth</div><div class="em-name">✦ AI Quick Reports</div><div class="em-desc">Automated reports surfaced from your operations data. No query needed.</div></div>
+      <div class="em-divider"><span class="pro">Pro Plan Modules</span><div class="em-divider-line"></div></div>
+      <div class="extra-mod"><div class="em-plan pro">Pro</div><div class="em-name">Recipe Archive + Portion Scaler</div><div class="em-desc">Store recipes with automatic portion scaling. Consistent output every time, across every location.</div></div>
+      <div class="extra-mod"><div class="em-plan pro">Pro</div><div class="em-name">Temperature & Food Safety Log</div><div class="em-desc">HACCP-compliant fridge and freezer readings logged by shift. Ready for health inspections before they arrive.</div></div>
+      <div class="extra-mod"><div class="em-plan pro">Pro</div><div class="em-name">Menu Costing</div><div class="em-desc">Food cost percentage calculated per dish — live, tied directly to your recipes.</div></div>
+      <div class="extra-mod"><div class="em-plan pro">Pro</div><div class="em-name">Schedule Builder</div><div class="em-desc">Weekly scheduling with role filters and availability management.</div></div>
+      <div class="extra-mod"><div class="em-plan pro">Pro</div><div class="em-name">Performance Reviews</div><div class="em-desc">Structured evaluations tied to roles, departments, and KPIs.</div></div>
+      <div class="extra-mod"><div class="em-plan pro">Pro</div><div class="em-name">Google My Business Management</div><div class="em-desc">Manage your GMB listing and track guest feedback.</div></div>
+      <div class="extra-mod"><div class="em-plan pro">Pro</div><div class="em-name">Review Champions</div><div class="em-desc">Staff compete to get mentioned by name in Google Reviews.</div></div>
+      <div class="extra-mod"><div class="em-plan pro">Pro</div><div class="em-name">Mystery Shopper</div><div class="em-desc">Weighted scoring, visit logs, and trend reports over time.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ AI INTELLIGENCE ═══ -->
+<section class="ai-section section reveal" id="ai">
+  <div class="container"><div class="ai-inner">
+    <div class="ai-left">
+      <span class="tag-pill violet">AI Intelligence</span>
+      <h2 class="section-h2" style="margin-top:14px">The shift manager that <span class="grad-violet">never clocks out.</span></h2>
+      <p>GetBackplate AI works across every module — drafting content, surfacing alerts, and answering questions about your own operations. No prompts to learn. No separate tool to open.</p>
+      <div class="ai-powered">✦ <span>Powered by AI</span> — available on Starter, Growth & Pro plans</div>
+    </div>
+    <div class="ai-right">
+      <div class="ai-nav-cards">
+        <button class="ai-nav-card active" onclick="aiSwitch(this,'draft')"><div class="ai-nav-verb">Draft it.</div><div class="ai-nav-desc">Write one sentence. Get a publish-ready draft.</div></button>
+        <button class="ai-nav-card" onclick="aiSwitch(this,'know')"><div class="ai-nav-verb">Know it.</div><div class="ai-nav-desc">Surface problems before your manager does.</div></button>
+        <button class="ai-nav-card" onclick="aiSwitch(this,'ask')"><div class="ai-nav-verb">Ask it.</div><div class="ai-nav-desc">Your data, in plain English.</div></button>
+      </div>
+      <div class="ai-panels">
+        <div class="ai-panel active" id="ai-panel-draft">
+          <div class="ai-panel-meta"><div class="tag-pill violet" style="font-size:9px;padding:3px 10px">Starter Plan</div><div class="ai-panel-headline">Write one sentence. Get a publish-ready draft.</div></div>
+          <div class="ai-mock">
+            <div class="ai-mock-bar"><div class="ai-mock-dot"></div><div class="ai-mock-dot"></div><div class="ai-mock-dot"></div><span class="ai-mock-label">New Announcement · AI Assistant</span></div>
+            <div class="ai-mock-body">
+              <div class="ai-chat-row"><div class="ai-av user">MA</div><div class="ai-bubble user">"Create an urgent notice for all kitchen staff about the new food safety protocol starting Monday."</div></div>
+              <div class="ai-chat-row right"><div class="ai-bubble ai-b"><strong>🔴 Urgent — Food Safety Protocol Update</strong>Effective this Monday, all kitchen staff must follow the updated temperature logging procedure every shift. Review the new SOP in Archivos before your next shift.<div class="ai-tags"><span class="ai-tag">All Locations</span><span class="ai-tag">BOH Staff</span><span class="ai-tag">Urgent</span></div></div><div class="ai-av ai">AI</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="ai-panel" id="ai-panel-know">
+          <div class="ai-panel-meta"><div class="tag-pill violet" style="font-size:9px;padding:3px 10px">Growth Plan</div><div class="ai-panel-headline">Surface problems before your manager does.</div></div>
+          <div class="ai-mock">
+            <div class="ai-mock-bar"><div class="ai-mock-dot"></div><div class="ai-mock-dot"></div><div class="ai-mock-dot"></div><span class="ai-mock-label">Proactive Alerts · This Week</span></div>
+            <div class="ai-mock-body" style="padding:0">
+              <div class="ai-alert-row"><div class="ai-alert-ico u">⚠</div><div><div class="ai-alert-title">3 contracts expiring in 5 days</div><div class="ai-alert-sub">Carlos M. · Long Beach &nbsp;·&nbsp; Laura R. · Biloxi &nbsp;·&nbsp; Miguel T. · Saucier</div></div><div class="ai-alert-badge u">Action Needed</div></div>
+              <div class="ai-alert-row"><div class="ai-alert-ico w">↻</div><div><div class="ai-alert-title">Opening checklist failing 3× this week</div><div class="ai-alert-sub">Long Beach · Equipment Review missed every day since Tuesday</div></div><div class="ai-alert-badge w">Pattern</div></div>
+              <div class="ai-alert-row"><div class="ai-alert-ico g">✓</div><div><div class="ai-alert-title">Biloxi — all checklists 100% this week</div><div class="ai-alert-sub">7-day streak · Best compliance across all locations</div></div><div class="ai-alert-badge g">On Track</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="ai-panel" id="ai-panel-ask">
+          <div class="ai-panel-meta"><div class="tag-pill violet" style="font-size:9px;padding:3px 10px">Pro Plan</div><div class="ai-panel-headline">Your data, in plain English.</div></div>
+          <div class="ai-mock">
+            <div class="ai-mock-bar"><div class="ai-mock-dot"></div><div class="ai-mock-dot"></div><div class="ai-mock-dot"></div><span class="ai-mock-label">Operations Query · AI Assistant</span></div>
+            <div class="ai-mock-body">
+              <div class="ai-query-input"><span class="ai-qcursor">›</span><span class="ai-qtext">"Which location had the most open incidents last month?"</span></div>
+              <div class="ai-result-label">Results — Last 30 Days</div>
+              <div class="ai-result-grid">
+                <div class="ai-result-cell"><div class="ai-result-val down">Long Beach</div><div class="ai-result-sub">Most incidents · 7 open</div></div>
+                <div class="ai-result-cell"><div class="ai-result-val">Biloxi</div><div class="ai-result-sub">2nd · 3 open</div></div>
+                <div class="ai-result-cell"><div class="ai-result-val up">Saucier</div><div class="ai-result-sub">0 open · Clean month</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ═══ TAGLINE BREAK ═══ -->
+<div class="tagline-break reveal">
+  <div class="container">
+    <blockquote><em>"GetBackplate runs everything</em><br>your POS ignores."</blockquote>
+  </div>
+</div>
+
+<!-- ═══ TESTIMONIAL ═══ -->
+<section class="testimonial section reveal">
+  <div class="container"><div class="testi-inner">
+    <div class="testi-badge"><div class="testi-num">7</div><div class="testi-label">Restaurant<br>Locations<br>2 States</div><div class="testi-stars">⭐⭐⭐⭐⭐</div></div>
+    <div>
+      <span class="testi-qmark">"</span>
+      <p class="testi-text">We brought GetBackplate to our entire leadership team — owners, administrators, and managers across all our locations. By the end of the demo, everyone in that room understood exactly how much time, money, and chaos we've been leaving on the table. This is what we've been missing.</p>
+      <div class="testi-author"><div class="testi-line"></div><div><div class="testi-name">Restaurant Owner</div><div class="testi-role">Multi-Location Group · 7 Locations · 2 States</div></div></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ═══ FIRST TABLE ═══ -->
+<section class="first-table section reveal" id="first-table">
+  <div class="ft-bg"></div>
+  <div class="container"><div class="ft-inner">
+    <div>
+      <div class="ft-tag">First Table Program</div>
+      <h2 class="ft-h2">The First Table<br>is reserved for<br>the right <em>few.</em></h2>
+      <p class="ft-p">We're not opening GetBackplate to everyone at launch. We're opening it to a select group of restaurants that are serious about their operations. First Table Members get more than early access — they get a seat at the table where the platform gets built.</p>
+      <div class="ft-perks">
+        <div class="ft-perk"><div class="ft-perk-icon">🔒</div><div><div class="ft-perk-title">Locked-In Pricing — Forever</div><div class="ft-perk-desc">The rate you join at is the rate you keep. No price increases. Ever.</div></div></div>
+        <div class="ft-perk"><div class="ft-perk-icon">⚡</div><div><div class="ft-perk-title">Priority Access Before Public Launch</div><div class="ft-perk-desc">First Table Members go live before anyone else. No waiting in line.</div></div></div>
+        <div class="ft-perk"><div class="ft-perk-icon">🤝</div><div><div class="ft-perk-title">Direct Line to the Team</div><div class="ft-perk-desc">A real person. Not a ticket. Your feedback shapes what gets built next.</div></div></div>
+        <div class="ft-perk"><div class="ft-perk-icon">🏆</div><div><div class="ft-perk-title">First Table Member Badge</div><div class="ft-perk-desc">Permanently on your account. You were here first — and it shows.</div></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="ft-box">
+        <div class="ft-counter">
+          <div class="ft-counter-label">Seats Remaining</div>
+          <div class="ft-counter-stat"><span id="seats-taken">62</span> of 100 left</div>
+          <div class="ft-bar-bg"><div class="ft-bar" id="ft-bar" style="width:38%"></div></div>
+          <div class="ft-counter-note" id="ft-counter-note">38 seats already reserved · Soft launch closes when full</div>
+        </div>
+        <div class="ft-form">
+          <button type="button" class="ft-form-btn" id="waitlist-btn" onclick="openSeatModal()">Request My Seat →</button>
+          <div class="ft-form-note">By invitation only · A real person will reach out within 24h.</div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ═══ PRICING ═══ -->
+<section class="pricing section reveal" id="pricing">
+  <div class="container">
+    <div class="pricing-header">
+      <span class="tag-pill violet">Pricing</span>
+      <h2 class="pricing-h2">Simple, honest pricing.</h2>
+      <p class="pricing-sub">Start with what you need. Add modules as you grow. No hidden fees, no surprise charges.</p>
+    </div>
+    <div class="billing-toggle">
+      <span class="billing-label active" id="label-monthly" onclick="setBilling('monthly')">Monthly</span>
+      <div class="toggle-track" id="toggle-track" onclick="toggleBilling()"><div class="toggle-pill2"></div></div>
+      <span class="billing-label" id="label-annual" onclick="setBilling('annual')">Annual</span>
+      <span class="billing-save" id="billing-save">2 months free</span>
+    </div>
+    <div class="pricing-grid" id="pricing-grid">
+
+      <!-- STARTER -->
+      <div class="price-card">
+        <div class="price-name">Starter</div>
+        <div class="price-amount price-monthly"><sup>$</sup>49</div>
+        <div class="price-amount price-annual"><sup>$</sup>41</div>
+        <div class="price-period price-monthly">per month</div>
+        <div class="price-period price-annual">per month, billed $490/yr</div>
+        <div class="price-save price-monthly">&nbsp;</div>
+        <div class="price-save price-annual">Save $98 per year</div>
+        <div class="price-divider"></div>
+        <button class="price-seat-btn" onclick="openSeatModal()">Request Your Seat →</button>
+        <ul class="price-features">
+          <li>1 location</li>
+          <li>Up to 45 users</li>
+          <li>5 GB storage</li>
+          <li>Roles & Permissions</li>
+          <li>File Management</li>
+          <li>Platform Notifications</li>
+          <li>Checklists by Dept & Shift</li>
+          <li>Shift Communication Log</li>
+          <li>Employee Onboarding</li>
+          <li>Digital Contract Signatures</li>
+          <li>Supplier & Vendor Directory</li>
+        </ul>
+        <div class="price-setup">Optional setup from $299 one-time</div>
+      </div>
+
+      <!-- GROWTH -->
+      <div class="price-card featured">
+        <div class="price-popular">Most Popular</div>
+        <div class="price-name">Growth</div>
+        <div class="price-amount price-monthly"><sup>$</sup>129</div>
+        <div class="price-amount price-annual"><sup>$</sup>107</div>
+        <div class="price-period price-monthly">per month</div>
+        <div class="price-period price-annual">per month, billed $1,284/yr</div>
+        <div class="price-save price-monthly">&nbsp;</div>
+        <div class="price-save price-annual">Save $264 per year</div>
+        <div class="price-divider"></div>
+        <button class="price-seat-btn featured" onclick="openSeatModal()">Request Your Seat →</button>
+        <ul class="price-features">
+          <li>Up to 3 locations</li>
+          <li>Up to 150 users</li>
+          <li>20 GB storage</li>
+          <li>Everything in Starter</li>
+          <li>SMS & WhatsApp Notifications</li>
+          <li>Task Assignment</li>
+          <li>Incident & Accident Log</li>
+          <li>Vacation & Time-Off Requests</li>
+          <li>Disciplinary Log</li>
+          <li>Equipment Maintenance Tracker</li>
+          <li class="ai">AI Quick Reports</li>
+        </ul>
+        <div class="price-setup">Optional setup from $499 one-time</div>
+      </div>
+
+      <!-- PRO -->
+      <div class="price-card">
+        <div class="price-name">Pro</div>
+        <div class="price-amount price-monthly"><sup>$</sup>249</div>
+        <div class="price-amount price-annual"><sup>$</sup>207</div>
+        <div class="price-period price-monthly">per month</div>
+        <div class="price-period price-annual">per month, billed $2,484/yr</div>
+        <div class="price-save price-monthly">&nbsp;</div>
+        <div class="price-save price-annual">Save $504 per year</div>
+        <div class="price-divider"></div>
+        <button class="price-seat-btn" onclick="openSeatModal()">Request Your Seat →</button>
+        <ul class="price-features">
+          <li>Up to 10 locations</li>
+          <li>Unlimited users</li>
+          <li>50 GB storage</li>
+          <li>Everything in Growth</li>
+          <li>Recipe Archive + Portion Scaler</li>
+          <li>Temperature & Food Safety Log</li>
+          <li>Menu Costing</li>
+          <li>Schedule Builder</li>
+          <li>Performance Reviews</li>
+          <li>Google My Business Management</li>
+          <li>Review Champions</li>
+          <li>Mystery Shopper</li>
+          <li class="ai">Full AI Assistant</li>
+        </ul>
+        <div class="price-setup">Optional setup from $699 one-time</div>
+      </div>
+
+      <!-- ENTERPRISE -->
+      <div class="price-card enterprise">
+        <div class="price-name">Enterprise</div>
+        <div class="price-amount price-monthly">Custom</div>
+        <div class="price-period price-monthly">tailored to your group</div>
+        <div class="price-save price-monthly">&nbsp;</div>
+        <div class="price-divider"></div>
+        <button class="price-seat-btn" onclick="openSeatModal()">Request Your Seat →</button>
+        <ul class="price-features">
+          <li>Unlimited locations</li>
+          <li>Unlimited users</li>
+          <li>Custom storage</li>
+          <li>Everything in Pro</li>
+          <li>White-label option</li>
+          <li>API access for integrations</li>
+          <li>Custom module development</li>
+          <li>Dedicated support contact</li>
+          <li>Data Processing Agreement</li>
+          <li class="ai">AI — multi-location intelligence</li>
+        </ul>
+      </div>
+
+    </div>
+    <div class="annual-note"><strong>Pay annually, get 2 months free</strong> — save up to $504/year · All plans · Annual billing = 10 months charged</div>
+  </div>
+</section>
+
+<!-- ═══ FAQ ═══ -->
+<section class="faq-section reveal" id="faq">
+  <div class="container">
+    <div class="faq-header">
+      <span class="tag-pill">FAQ</span>
+      <h2 class="section-h2" style="margin-top:14px">Everything you need to know.</h2>
+    </div>
+    <div class="faq-grid">
+
+      <!-- LEFT COLUMN -->
+      <div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">Is GetBackplate a POS system?<span class="faq-icon">+</span></button>
+          <div class="faq-a">No. GetBackplate is a restaurant operations platform — not a POS. It manages everything your POS ignores: your people, your processes, your kitchen standards, your compliance, and your communication. It works alongside Toast, Square, Clover, and any POS you already use.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">Do I need to replace my current POS?<span class="faq-icon">+</span></button>
+          <div class="faq-a">Not at all. GetBackplate is not a replacement — it's a complement. Your POS handles transactions. GetBackplate handles everything else. Both run independently, no integration required.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">Can I customize checklists and modules for my concept?<span class="faq-icon">+</span></button>
+          <div class="faq-a">Yes. Checklists are fully customizable by department, shift, and location. Every concept operates differently, and GetBackplate is built to reflect your specific standards — not a generic template.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">How long does setup take?<span class="faq-icon">+</span></button>
+          <div class="faq-a">GetBackplate is designed to be set up by you — no technical knowledge needed. The platform is intuitive and most operators are fully configured within a few days. If you run a complex operation with many departments, positions, or locations and prefer hands-on help, we offer an optional one-time setup service starting at $299. We'll configure your modules, build your checklists, and onboard your team for you.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">Do my employees need their own devices?<span class="faq-icon">+</span></button>
+          <div class="faq-a">No. GetBackplate is web-based and works on any device — phone, tablet, or desktop. No app download required. Every user gets their own credentials and can access their information from any device with an internet connection. Staff can complete checklists and tasks from a shared tablet or their personal phones without sharing logins.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">Is GetBackplate available in Spanish?<span class="faq-icon">+</span></button>
+          <div class="faq-a">Spanish language support is on the roadmap and a top priority given the makeup of most restaurant teams in the US. First Table Members will have direct input on the rollout timeline and translation priorities.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">What happens if an employee doesn't complete a checklist?<span class="faq-icon">+</span></button>
+          <div class="faq-a">Managers receive real-time visibility into completion status by shift and department. Incomplete items remain flagged until resolved. GetBackplate AI (Growth & Pro) can also surface recurring non-compliance patterns proactively.</div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">What is the First Table Program?<span class="faq-icon">+</span></button>
+          <div class="faq-a">The First Table is our soft launch program — limited to 100 restaurants. Members get locked-in pricing forever, priority access before public launch, and a direct line to the team. It's invitation-only and closes when all seats are filled.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">Is the pricing really locked in forever?<span class="faq-icon">+</span></button>
+          <div class="faq-a">Yes. The plan you join at during the First Table Program is your plan permanently — no increases, ever. When GetBackplate launches publicly, prices will reflect the full product. First Table Members keep their founding plan regardless.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">Are there any long-term contracts?<span class="faq-icon">+</span></button>
+          <div class="faq-a">No long-term contracts. GetBackplate is month-to-month on monthly billing, or annual if you want the discount. You can cancel anytime. We believe the product should earn your business every month.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">Can I upgrade or downgrade my plan?<span class="faq-icon">+</span></button>
+          <div class="faq-a">Yes. You can change plans at any time. Upgrades take effect immediately. Downgrades apply at the next billing cycle. First Table pricing is preserved regardless of which plan tier you're on.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">Where is my data stored? Is it secure?<span class="faq-icon">+</span></button>
+          <div class="faq-a">All data is encrypted in transit and at rest, stored on secure cloud infrastructure. Employment contracts, HR records, and operational data are protected with role-based access controls — only authorized users can see sensitive information.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">Can I export my data if I leave?<span class="faq-icon">+</span></button>
+          <div class="faq-a">Yes. Your data is yours. You can export all records — checklists, employee files, contracts, logs — at any time. We don't hold your data hostage.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">Do I need technical knowledge to use AI features?<span class="faq-icon">+</span></button>
+          <div class="faq-a">None at all. AI in GetBackplate works in plain language — you write a sentence, it generates a draft. You ask a question, it answers from your own operations data. No prompts, no settings, no learning curve.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══ VALUES ═══ -->
+<section class="values section reveal">
+  <div class="container">
+    <div class="values-header">
+      <div>
+        <span class="tag-pill">Why We Exist</span>
+        <h2 class="section-h2">Because restaurants deserve one place where <span class="grad-orange">everything works together.</span></h2>
+      </div>
+      <p class="section-sub">The restaurant industry runs on passion, hustle, and people — but it has always lacked the tools to match that energy. GetBackplate exists because no platform has ever truly understood what it feels like to work every role in a restaurant and still not have a system that brings it all together.</p>
+    </div>
+    <div class="values-grid">
+      <div class="value-card"><div class="value-word">Fluidity</div><div class="value-body">Every interaction should feel natural. If it takes more than one click, we ask why. We do the hard work on our end so our clients don't have to on theirs.</div></div>
+      <div class="value-card"><div class="value-word">Empathy</div><div class="value-body">We've worked every shift. We build for the person still on the floor at midnight — who doesn't have time to learn new software or read a tutorial.</div></div>
+      <div class="value-card"><div class="value-word">Clarity</div><div class="value-body">Everything a user needs is visible on one screen. No buried menus, no confusion. A platform that explains itself the moment you open it.</div></div>
+      <div class="value-card"><div class="value-word">Accountability</div><div class="value-body">We help teams build a culture of ownership — by shift, by department, by person. Every action signed off. Every standard tracked.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="container"><div class="footer-inner">
+    <a href="#" class="footer-logo" style="display:flex;align-items:center;text-decoration:none">
+      <svg style="height:22px;width:auto" viewBox="0 0 1011.8 242.5" xmlns="http://www.w3.org/2000/svg"><g>
+    <path style="fill:#d4531a" d="M967.2,29.5h32.9v183.5h-32.9v-3.7h15.6V33.2h-15.6v-3.7Z"/>
+    <path style="fill:#fff" d="M37,213H4.1V29.5h32.9v3.7h-15.6v176.1h15.6v3.7Z"/>
+  </g>
+  <g>
+    <path style="fill:#fff" d="M107.2,160c-10.3,0-19.4-2.2-27.4-6.7-7.9-4.5-14.2-10.6-18.7-18.5-4.5-7.8-6.8-16.9-6.8-27.1s2.3-19.2,6.8-27.1c4.5-7.8,10.8-14,18.7-18.5,7.9-4.5,17.1-6.7,27.4-6.7s11.8.9,17,2.7c5.2,1.8,9.8,4.4,13.8,7.6,4,3.2,7.3,6.9,10,11.1l-16.2,10.1c-1.6-2.6-3.8-4.9-6.4-6.9-2.6-2-5.6-3.6-8.7-4.8-3.2-1.2-6.4-1.7-9.5-1.7-6.4,0-12,1.5-16.9,4.4-4.9,2.9-8.8,7-11.6,12.1-2.8,5.1-4.2,11-4.2,17.8s1.4,12.6,4.1,17.8c2.7,5.2,6.6,9.3,11.6,12.2,5,2.9,10.8,4.4,17.3,4.4s9.7-1,13.7-3c4-2,7.2-4.9,9.5-8.5,2.3-3.7,3.5-7.9,3.5-12.7l18.8-2.9c0,9.5-2,17.7-5.9,24.4-3.9,6.7-9.3,11.9-16.2,15.4-6.9,3.5-14.8,5.3-23.8,5.3ZM110.5,119.5v-15.5h42.5v12.3l-10.7,3.2h-31.8Z"/>
+    <path style="fill:#fff" d="M197.4,160c-7.1,0-13.4-1.6-18.9-4.8-5.5-3.2-9.8-7.7-12.9-13.4-3.1-5.7-4.7-12.2-4.7-19.6s1.6-14,4.8-19.6c3.2-5.7,7.7-10.1,13.3-13.4,5.6-3.2,12.1-4.8,19.4-4.8s12.2,1.7,17.6,5,9.6,8.2,12.9,14.6c3.2,6.4,4.8,14.2,4.8,23.3h-54.7l1.7-1.7c0,3.6.9,6.7,2.7,9.3,1.8,2.6,4.1,4.7,6.9,6.1,2.8,1.4,5.9,2.1,9.2,2.1s7.2-.8,9.7-2.5c2.5-1.7,4.4-3.9,5.8-6.6l17,6.6c-2,4-4.6,7.5-7.9,10.5-3.2,2.9-7.1,5.2-11.5,6.7-4.4,1.5-9.5,2.3-15.2,2.3ZM181.7,114.8l-1.7-1.7h34.8l-1.6,1.7c0-3.5-.8-6.2-2.5-8.3-1.6-2.1-3.6-3.6-6-4.5-2.4-1-4.6-1.4-6.9-1.4s-4.6.5-7.1,1.4c-2.5,1-4.6,2.5-6.4,4.5-1.8,2.1-2.7,4.8-2.7,8.3Z"/>
+    <path style="fill:#fff" d="M238.6,102.2v-16.2h48.8v16.2h-48.8ZM274.6,160c-8,0-14-2-18.1-5.9-4.1-3.9-6.1-9.6-6.1-16.9V63.5h19.1v69.5c0,3.1.7,5.4,2,7,1.3,1.6,3.3,2.4,5.9,2.4s2-.2,3.2-.6,2.4-1.1,3.6-2l6.6,14.3c-2.3,1.7-4.9,3.2-7.7,4.3-2.8,1.1-5.7,1.7-8.5,1.7Z"/>
+    <path style="fill:#fff" d="M305.6,158.2V57.1h34.2c6.9,0,13,1.1,18.2,3.2,5.2,2.1,9.2,5.3,12.1,9.6,2.9,4.3,4.3,9.6,4.3,16s-1,7.6-3,10.9c-2,3.3-4.7,6.2-8.3,8.6,4.7,2.4,8.4,5.6,10.9,9.6,2.6,4,3.8,8.8,3.8,14.4s-1.4,11.4-4.2,15.7c-2.8,4.3-6.7,7.6-11.7,9.8-5,2.2-10.9,3.3-17.6,3.3h-38.9ZM325,98.3h15.3c4.3,0,7.8-1.1,10.3-3.3,2.5-2.2,3.8-5.3,3.8-9.4s-1.4-7.2-4.2-9.4c-2.8-2.2-6.6-3.3-11.4-3.3h-13.7v25.4ZM325,140.8h17.6c4.7,0,8.4-1.2,11.1-3.5,2.7-2.4,4-5.5,4-9.5s-1.5-7.4-4.5-9.8c-3-2.4-7.1-3.5-12.3-3.5h-16v26.3Z"/>
+    <path style="fill:#fff" d="M414.7,160c-8.7,0-15.4-1.9-20.2-5.8-4.8-3.8-7.2-9.3-7.2-16.3s2.6-13.5,7.7-17.4c5.2-3.9,12.4-5.9,21.7-5.9h18.3v14.2h-11.7c-6.3,0-10.6.7-13,2.2-2.4,1.5-3.6,3.6-3.6,6.3s1,3.8,2.9,5c1.9,1.2,4.6,1.8,8.1,1.8s6-.7,8.5-2.2c2.5-1.5,4.4-3.4,5.9-5.8,1.4-2.4,2.2-4.8,2.2-7.3h4.6c0,9.8-1.9,17.5-5.6,23-3.7,5.5-9.9,8.2-18.7,8.2ZM434.9,158.2l-.6-14.6v-22c0-4.3-.5-8-1.4-11.1-.9-3.1-2.4-5.5-4.3-7.2-2-1.7-4.6-2.5-8-2.5s-5.9.7-8.4,2c-2.5,1.4-4.6,3.4-6.4,6.2l-16.8-5.8c1.3-3.1,3.3-6.1,5.9-9s6-5.3,10.2-7.2c4.2-1.9,9.3-2.8,15.4-2.8s13.4,1.4,18.3,4.2c4.9,2.8,8.5,6.7,10.8,11.8,2.4,5.1,3.5,11.1,3.4,18l-.4,40h-17.8Z"/>
+    <path style="fill:#fff" d="M503.1,160c-7.5,0-14.2-1.6-20.1-4.8-5.9-3.2-10.5-7.7-13.7-13.4-3.3-5.7-4.9-12.3-4.9-19.6s1.6-14,4.9-19.6c3.3-5.7,7.8-10.1,13.6-13.4,5.8-3.2,12.4-4.8,19.9-4.8s13.8,1.8,19.8,5.3c6,3.6,10.3,8.7,13,15.5l-17.9,6.4c-1.3-2.8-3.4-5-6.3-6.7-2.8-1.7-6-2.5-9.5-2.5s-6.7.8-9.4,2.5c-2.7,1.7-4.8,4-6.4,7-1.5,3-2.3,6.5-2.3,10.4s.8,7.4,2.3,10.3c1.5,2.9,3.7,5.3,6.5,7,2.8,1.7,6,2.6,9.5,2.6s6.6-.9,9.5-2.7c2.8-1.8,4.9-4.2,6.3-7.2l18.1,6.4c-2.8,6.8-7.2,12.1-13.1,15.9-5.9,3.8-12.5,5.6-19.9,5.6Z"/>
+    <path style="fill:#fff" d="M547.2,158.2V57.1h19.1v101.1h-19.1ZM565.4,139.9l-11.4-13.1,37-40.7h22.7l-48.2,53.9ZM593.4,158.2l-24-35,12.4-13.1,33.9,48.1h-22.4Z"/>
+    <path style="fill:#fff" d="M625.6,187.1v-101.1h17.9l1.2,13.3v87.8h-19.1ZM666.5,160c-6.1,0-11.2-1.5-15.4-4.6-4.2-3.1-7.4-7.5-9.6-13.1-2.2-5.7-3.3-12.4-3.3-20.1s1.1-14.5,3.3-20.2c2.2-5.6,5.4-10,9.6-13.1,4.2-3.1,9.3-4.6,15.4-4.6s12.4,1.5,17.3,4.6c4.9,3.1,8.6,7.4,11.3,13.1,2.7,5.6,4,12.4,4,20.2s-1.3,14.4-4,20.1c-2.7,5.7-6.5,10.1-11.3,13.1-4.9,3.1-10.6,4.6-17.3,4.6ZM661.6,142.5c3.5,0,6.5-.9,9.2-2.6,2.6-1.7,4.7-4.1,6.3-7.2,1.5-3.1,2.3-6.6,2.3-10.5s-.7-7.5-2.2-10.5c-1.5-3.1-3.6-5.5-6.2-7.2-2.6-1.7-5.7-2.5-9.2-2.5s-6.2.9-8.8,2.6c-2.6,1.7-4.6,4.1-6.1,7.2-1.4,3-2.2,6.5-2.2,10.5s.7,7.5,2.2,10.5c1.4,3.1,3.4,5.5,6,7.2,2.6,1.7,5.5,2.6,8.7,2.6Z"/>
+    <path style="fill:#fff" d="M711.7,158.2V57.1h19.1v101.1h-19.1Z"/>
+    <path style="fill:#fff" d="M770.6,160c-8.7,0-15.4-1.9-20.2-5.8-4.8-3.8-7.2-9.3-7.2-16.3s2.6-13.5,7.7-17.4c5.2-3.9,12.4-5.9,21.7-5.9h18.3v14.2h-11.7c-6.3,0-10.6.7-13,2.2-2.4,1.5-3.6,3.6-3.6,6.3s1,3.8,2.9,5c1.9,1.2,4.6,1.8,8.1,1.8s6-.7,8.5-2.2c2.5-1.5,4.4-3.4,5.9-5.8,1.4-2.4,2.2-4.8,2.2-7.3h4.6c0,9.8-1.9,17.5-5.6,23-3.7,5.5-9.9,8.2-18.7,8.2ZM790.9,158.2l-.6-14.6v-22c0-4.3-.5-8-1.4-11.1-.9-3.1-2.4-5.5-4.3-7.2-2-1.7-4.6-2.5-8-2.5s-5.9.7-8.4,2c-2.5,1.4-4.6,3.4-6.4,6.2l-16.8-5.8c1.3-3.1,3.3-6.1,5.9-9,2.6-2.9,6-5.3,10.2-7.2,4.2-1.9,9.3-2.8,15.4-2.8s13.4,1.4,18.3,4.2c4.9,2.8,8.5,6.7,10.8,11.8,2.4,5.1,3.5,11.1,3.4,18l-.4,40h-17.8Z"/>
+    <path style="fill:#fff" d="M818,102.2v-16.2h48.8v16.2h-48.8ZM854,160c-8,0-14-2-18.1-5.9-4.1-3.9-6.1-9.6-6.1-16.9V63.5h19.1v69.5c0,3.1.7,5.4,2,7,1.3,1.6,3.3,2.4,5.9,2.4s2-.2,3.2-.6,2.4-1.1,3.6-2l6.6,14.3c-2.3,1.7-4.9,3.2-7.7,4.3-2.8,1.1-5.7,1.7-8.5,1.7Z"/>
+    <path style="fill:#fff" d="M913.6,160c-7.1,0-13.4-1.6-18.9-4.8-5.5-3.2-9.8-7.7-12.9-13.4-3.1-5.7-4.7-12.2-4.7-19.6s1.6-14,4.8-19.6c3.2-5.7,7.7-10.1,13.3-13.4,5.6-3.2,12.1-4.8,19.4-4.8s12.2,1.7,17.6,5,9.6,8.2,12.9,14.6c3.2,6.4,4.8,14.2,4.8,23.3h-54.7l1.7-1.7c0,3.6.9,6.7,2.7,9.3,1.8,2.6,4.1,4.7,6.9,6.1,2.8,1.4,5.9,2.1,9.2,2.1s7.2-.8,9.7-2.5c2.5-1.7,4.4-3.9,5.8-6.6l17,6.6c-2,4-4.6,7.5-7.9,10.5-3.2,2.9-7.1,5.2-11.5,6.7-4.4,1.5-9.5,2.3-15.2,2.3ZM897.9,114.8l-1.7-1.7h34.8l-1.6,1.7c0-3.5-.8-6.2-2.5-8.3-1.6-2.1-3.6-3.6-6-4.5-2.4-1-4.6-1.4-6.9-1.4s-4.6.5-7.1,1.4c-2.5,1-4.6,2.5-6.4,4.5-1.8,2.1-2.7,4.8-2.7,8.3Z"/>
+  </g></svg>
+    </a>
+    <div class="footer-tagline">"Run your restaurant. Not just your register."</div>
+    <div class="footer-right">© 2026 GetBackplate. All rights reserved.<br>Site by <a href="https://marketingsolutions.formstack.com/forms/webform" target="_blank" rel="noopener">Marketing Solutions</a></div>
+  </div></div>
+</footer>
+
+<script>
+// ── THEME ──
+const DARK_START=18,DARK_END=6;
+function isDarkHour(){const h=new Date().getHours();return h>=DARK_START||h<DARK_END}
+function applyTheme(dark,manual=false){
+  document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+  const t=document.getElementById('theme-toggle');
+  const p=document.getElementById('toggle-pill');
+  const lbl=document.getElementById('shift-label');
+  if(dark){
+    t.classList.add('dark-on');
+    p.textContent='🌙';
+    if(lbl)lbl.textContent='Night Shift';
+  } else {
+    t.classList.remove('dark-on');
+    p.textContent='☀️';
+    if(lbl)lbl.textContent='Day Shift';
+  }
+  if(manual)localStorage.setItem('gbp-theme',dark?'dark':'light');
+}
+(function(){const o=localStorage.getItem('gbp-theme');o?applyTheme(o==='dark'):applyTheme(isDarkHour())})();
+document.getElementById('theme-toggle').addEventListener('click',function(){
+  applyTheme(document.documentElement.getAttribute('data-theme')!=='dark',true);
+});
+setInterval(()=>{if(!localStorage.getItem('gbp-theme'))applyTheme(isDarkHour())},60000);
+
+// ── NAV ──
+window.addEventListener('scroll',()=>document.getElementById('nav').classList.toggle('scrolled',scrollY>40),{passive:true});
+
+// ── REVEAL ──
+const obs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('up');obs.unobserve(e.target)}}),{threshold:0.07,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+
+// ── COUNTDOWN ──
+(function(){
+  const target=new Date('2026-08-01T00:00:00');
+  function pad(n){return String(n).padStart(2,'0')}
+  function tick(){
+    const diff=target-Date.now();
+    if(diff<=0){return}
+    document.getElementById('hc-days').textContent=Math.floor(diff/86400000);
+    document.getElementById('hc-hours').textContent=pad(Math.floor((diff%86400000)/3600000));
+    document.getElementById('hc-mins').textContent=pad(Math.floor((diff%3600000)/60000));
+  }
+  tick();setInterval(tick,30000);
+})();
+
+// ── BILLING ──
+let billingMode='monthly';
+function setBilling(mode){
+  billingMode=mode;
+  const grid=document.getElementById('pricing-grid'),track=document.getElementById('toggle-track');
+  const lM=document.getElementById('label-monthly'),lA=document.getElementById('label-annual');
+  const badge=document.getElementById('billing-save');
+  if(mode==='annual'){grid.classList.add('pricing-annual-mode');track.classList.add('annual');lA.classList.add('active');lM.classList.remove('active');badge.classList.add('visible')}
+  else{grid.classList.remove('pricing-annual-mode');track.classList.remove('annual');lM.classList.add('active');lA.classList.remove('active');badge.classList.remove('visible')}
+}
+function toggleBilling(){setBilling(billingMode==='monthly'?'annual':'monthly')}
+
+// ── AI PANELS ──
+function aiSwitch(btn,panel){
+  document.querySelectorAll('.ai-nav-card').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.ai-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');document.getElementById('ai-panel-'+panel).classList.add('active');
+}
+
+// ── MODULES ──
+function toggleModules(){
+  const panel=document.getElementById('extra-modules-panel'),btn=document.getElementById('mod-expand-btn');
+  const isOpen=panel.classList.contains('open');
+  panel.classList.toggle('open');btn.classList.toggle('open');
+  const arrow=btn.querySelector('.meb-arrow');
+  arrow.textContent=isOpen?'↓':'↑';
+  btn.childNodes[0].textContent=isOpen?'See all modules ':'Hide modules ';
+}
+
+// ── WAITLIST ──
+document.getElementById('waitlist-btn').addEventListener('click',function(){
+  const input=document.getElementById('waitlist-email'),email=input.value.trim();
+  if(!email||!email.includes('@')||!email.includes('.')){
+    input.style.borderColor='var(--accent)';input.style.background='var(--accent-glow)';
+    setTimeout(()=>{input.style.borderColor='';input.style.background=''},1800);return;
+  }
+  this.textContent='Seat Reserved ✓';this.style.background='#22C55E';
+  input.value='';input.placeholder="We'll be in touch soon.";input.disabled=true;this.disabled=true;
+});
+
+// ── FAQ ACCORDION ──
+function toggleFaq(btn) {
+  const answer = btn.nextElementSibling;
+  const isOpen = btn.classList.contains('open');
+  // Close all in same column
+  btn.closest('.faq-grid').querySelectorAll('.faq-q').forEach(b => {
+    b.classList.remove('open');
+    b.nextElementSibling.classList.remove('open');
+  });
+  if (!isOpen) {
+    btn.classList.add('open');
+    answer.classList.add('open');
+  }
+}
+
+// ── MODULE CARD STAGGER ──
+(function() {
+  const cards = document.querySelectorAll('.module-card');
+  const staggerObs = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const card = entry.target;
+        const idx = Array.from(cards).indexOf(card);
+        setTimeout(() => card.classList.add('revealed'), idx * 80);
+        staggerObs.unobserve(card);
+      }
+    });
+  }, { threshold: 0.05, rootMargin: '0px 0px -30px 0px' });
+  cards.forEach(c => staggerObs.observe(c));
+})();
+
+// ── DYNAMIC SEAT COUNTER ──
+(function() {
+  const START_DATE    = new Date(2026, 2, 25); // March 25, 2026
+  const END_DATE      = new Date(2026, 6, 17); // July 17, 2026
+  const END_TARGET    = 100;
+  const START_RESERVED = 38;
+  const TOTAL_SEATS   = 100;
+
+  // Seeded PRNG — same seed = same sequence every time
+  function seededRand(seed) {
+    let s = seed;
+    return function() {
+      s = (s * 1664525 + 1013904223) & 0xFFFFFFFF;
+      return (s >>> 0) / 0xFFFFFFFF;
+    };
+  }
+
+  // Build the full schedule from start to end
+  function buildSchedule() {
+    const msPerDay = 86400000;
+    const totalDays = Math.round((END_DATE - START_DATE) / msPerDay); // 114 days
+    const toDistribute = END_TARGET - START_RESERVED; // 62 reservations
+
+    // Generate raw random weights for each day (seed = fixed number for reproducibility)
+    const rand = seededRand(20260325);
+    const weights = [];
+    for (let i = 0; i < totalDays; i++) {
+      // Days near the end get slightly higher weight to ensure we reach 100
+      const dayFactor = i >= totalDays - 10 ? 1.8 : 1.0;
+      // Some days are 0 (use threshold)
+      const w = rand() < 0.38 ? 0 : rand() * dayFactor;
+      weights.push(w);
+    }
+
+    // Normalize weights to sum to toDistribute, then round carefully
+    const totalWeight = weights.reduce((a, b) => a + b, 0);
+    let increments = weights.map(w => totalWeight > 0 ? (w / totalWeight) * toDistribute : 0);
+
+    // Floor all, track remainder
+    let floored = increments.map(Math.floor);
+    let assigned = floored.reduce((a, b) => a + b, 0);
+    let remainder = toDistribute - assigned;
+
+    // Distribute remainder to days with highest fractional parts
+    const fractions = increments.map((v, i) => ({ i, frac: v - Math.floor(v) }));
+    fractions.sort((a, b) => b.frac - a.frac);
+    for (let k = 0; k < remainder; k++) floored[fractions[k].i]++;
+
+    // Build cumulative reserved per day
+    // Ensure days 112-114 (Jul 15-17) reach 100 — force remaining into those days
+    let cumulative = [];
+    let running = START_RESERVED;
+    for (let i = 0; i < totalDays; i++) {
+      running += floored[i];
+      if (running > END_TARGET) running = END_TARGET;
+      cumulative.push(running);
+    }
+    // Ensure we reach 100 by end
+    const lastVal = cumulative[cumulative.length - 1];
+    if (lastVal < END_TARGET) {
+      const gap = END_TARGET - lastVal;
+      // Spread gap across last 3 days
+      for (let j = totalDays - 3; j < totalDays; j++) {
+        cumulative[j] = Math.min(END_TARGET, cumulative[j] + Math.ceil(gap / 3));
+      }
+      // Fix monotonicity after adjustment
+      for (let j = 1; j < totalDays; j++) {
+        if (cumulative[j] < cumulative[j-1]) cumulative[j] = cumulative[j-1];
+      }
+    }
+    return cumulative;
+  }
+
+  function getReservedToday() {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const msPerDay = 86400000;
+    const dayIndex = Math.floor((today - START_DATE) / msPerDay);
+
+    if (dayIndex < 0) return START_RESERVED;       // before launch
+    const schedule = buildSchedule();
+    if (dayIndex >= schedule.length) return END_TARGET; // after end date
+    return schedule[dayIndex];
+  }
+
+  // Apply to DOM
+  function applyCounter() {
+    const reserved = getReservedToday();
+    const remaining = TOTAL_SEATS - reserved;
+    const pct = (reserved / TOTAL_SEATS) * 100;
+
+    // Update hero trust text
+    const heroText = document.querySelector('.hero-trust-text');
+    if (heroText) {
+      heroText.textContent = reserved + ' restaurants already reserved · ' + remaining + ' seats left';
+    }
+
+    // Update First Table counter
+    const span = document.getElementById('seats-taken');
+    if (span) span.textContent = remaining;
+
+    const bar = document.getElementById('ft-bar');
+    if (bar) bar.style.width = pct + '%';
+
+    const note = document.getElementById('ft-counter-note');
+    if (note) note.textContent = reserved + ' seats already reserved · Soft launch closes when full';
+  }
+
+  applyCounter();
+
+  // Animate counter on scroll into view
+  const statEl = document.querySelector('.ft-counter-stat');
+  if (!statEl) return;
+  const reserved = getReservedToday();
+  const remaining = TOTAL_SEATS - reserved;
+
+  const counterObs = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        statEl.classList.add('animated');
+        const span = statEl.querySelector('span');
+        if (!span) return;
+        let current = 0;
+        const step = Math.ceil(remaining / 30);
+        const timer = setInterval(() => {
+          current = Math.min(current + step, remaining);
+          span.textContent = current;
+          if (current >= remaining) clearInterval(timer);
+        }, 35);
+        counterObs.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.3 });
+  counterObs.observe(statEl);
+})();
+
+// ── AI PANEL FADE ──
+function aiSwitch(btn, panel) {
+  document.querySelectorAll('.ai-nav-card').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.ai-panel').forEach(p => {
+    p.classList.remove('active');
+    p.style.display = 'none';
+  });
+  btn.classList.add('active');
+  const target = document.getElementById('ai-panel-' + panel);
+  target.style.display = 'block';
+  requestAnimationFrame(() => target.classList.add('active'));
+}
+// Init first panel display
+document.querySelector('.ai-panel.active')?.style.setProperty('display','block');
+
+
+let megaOpen = false;
+function toggleMega(){megaOpen ? closeMega() : openMega()}
+function openMega(){
+  megaOpen=true;
+  document.getElementById('modules-btn').classList.add('open','active');
+  document.getElementById('mega-menu').classList.add('open');
+}
+function closeMega(){
+  megaOpen=false;
+  document.getElementById('modules-btn').classList.remove('open','active');
+  document.getElementById('mega-menu').classList.remove('open');
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#nav')&&!e.target.closest('#mega-menu'))closeMega();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeMega();}});
+
+
+let selectedLocs = '';
+function selectLoc(btn){
+  document.querySelectorAll('.loc-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedLocs = btn.dataset.val;
+}
+function openSeatModal(){
+  document.getElementById('seat-modal').classList.add('open');
+  document.body.style.overflow='hidden';
+  setTimeout(()=>document.getElementById('sr-name').focus(),300);
+}
+function closeSeatModal(e){if(e.target===document.getElementById('seat-modal'))closeSeatModalBtn()}
+function closeSeatModalBtn(){
+  document.getElementById('seat-modal').classList.remove('open');
+  document.body.style.overflow='';
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSeatModalBtn()});
+function handleSeatSubmit(){
+  const name=document.getElementById('sr-name').value.trim();
+  const email=document.getElementById('sr-email').value.trim();
+  const restaurant=document.getElementById('sr-restaurant').value.trim();
+  const state=document.getElementById('sr-state').value;
+  const invalid=[];
+  if(!name) invalid.push('sr-name');
+  if(!email||!email.includes('@')) invalid.push('sr-email');
+  if(!restaurant) invalid.push('sr-restaurant');
+  if(!state) invalid.push('sr-state');
+  if(invalid.length){
+    invalid.forEach(id=>{
+      const el=document.getElementById(id);
+      el.style.borderColor='var(--accent)';
+      el.style.background='var(--accent-glow)';
+      setTimeout(()=>{el.style.borderColor='';el.style.background=''},1800);
+    });
+    return;
+  }
+  const btn=document.querySelector('#seat-modal .modal-btn');
+  btn.textContent='Seat Requested ✓';btn.style.background='#22C55E';
+  btn.disabled=true;
+  ['sr-name','sr-email','sr-phone','sr-restaurant','sr-state'].forEach(id=>document.getElementById(id).disabled=true);
+  document.querySelectorAll('.loc-btn').forEach(b=>b.disabled=true);
+  setTimeout(closeSeatModalBtn,2500);
+}
+</script>
+</body>
+</html>
