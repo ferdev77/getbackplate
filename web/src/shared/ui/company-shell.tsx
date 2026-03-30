@@ -163,33 +163,33 @@ const THEME_NAMES: Record<string, string> = {
 };
 
 const THEME_PALETTES: Record<string, { accent: string; sidebarGradient: string; pageGradient: string; pageBg: string; headerBg: string }> = {
-  "dark-pro": { accent: "var(--gbp-violet)", sidebarGradient: "linear-gradient(170deg,var(--gbp-bg2)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,color-mix(in_oklab,var(--gbp-bg)_82%,black)_55%,color-mix(in_oklab,var(--gbp-bg)_72%,black)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  default: { accent: "var(--gbp-accent)", sidebarGradient: "linear-gradient(170deg,var(--gbp-bg)_0%,var(--gbp-bg2)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-bg2)_55%,color-mix(in_oklab,var(--gbp-bg2)_86%,white)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  sky: { accent: "var(--gbp-violet)", sidebarGradient: "linear-gradient(170deg,var(--gbp-violet-soft)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-violet-soft)_55%,var(--gbp-bg)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  turquoise: { accent: "var(--gbp-success)", sidebarGradient: "linear-gradient(170deg,var(--gbp-success-soft)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-success-soft)_55%,var(--gbp-bg)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  teal: { accent: "var(--gbp-success)", sidebarGradient: "linear-gradient(170deg,var(--gbp-success-soft)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-success-soft)_55%,var(--gbp-bg)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  matcha: { accent: "var(--gbp-success)", sidebarGradient: "linear-gradient(170deg,var(--gbp-success-soft)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-success-soft)_55%,var(--gbp-bg)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  sunshine: { accent: "var(--gbp-accent)", sidebarGradient: "linear-gradient(170deg,var(--gbp-accent-glow)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-accent-glow)_55%,var(--gbp-bg)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  peach: { accent: "var(--gbp-accent)", sidebarGradient: "linear-gradient(170deg,var(--gbp-accent-glow)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-accent-glow)_55%,var(--gbp-bg)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  lilac: { accent: "var(--gbp-violet)", sidebarGradient: "linear-gradient(170deg,var(--gbp-violet-soft)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-violet-soft)_55%,var(--gbp-bg)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  ebony: { accent: "var(--gbp-text)", sidebarGradient: "linear-gradient(170deg,var(--gbp-bg2)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-bg2)_55%,var(--gbp-bg)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  navy: { accent: "var(--gbp-violet)", sidebarGradient: "linear-gradient(170deg,var(--gbp-violet-soft)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-violet-soft)_55%,var(--gbp-bg)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  gray: { accent: "var(--gbp-text2)", sidebarGradient: "linear-gradient(170deg,var(--gbp-bg2)_0%,var(--gbp-bg)_100%)", pageGradient: "linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-bg2)_55%,var(--gbp-bg)_100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  "dark-pro": { accent: "var(--gbp-violet)", sidebarGradient: "linear-gradient(170deg, var(--gbp-bg2) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, color-mix(in oklab, var(--gbp-bg) 82%, black) 55%, color-mix(in oklab, var(--gbp-bg) 72%, black) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  default: { accent: "var(--gbp-accent)", sidebarGradient: "linear-gradient(170deg, var(--gbp-bg) 0%, var(--gbp-bg2) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-bg2) 55%, color-mix(in oklab, var(--gbp-bg2) 86%, white) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  sky: { accent: "var(--gbp-violet)", sidebarGradient: "linear-gradient(170deg, var(--gbp-violet-soft) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-violet-soft) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  turquoise: { accent: "var(--gbp-success)", sidebarGradient: "linear-gradient(170deg, var(--gbp-success-soft) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-success-soft) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  teal: { accent: "var(--gbp-success)", sidebarGradient: "linear-gradient(170deg, var(--gbp-success-soft) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-success-soft) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  matcha: { accent: "var(--gbp-success)", sidebarGradient: "linear-gradient(170deg, var(--gbp-success-soft) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-success-soft) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  sunshine: { accent: "var(--gbp-accent)", sidebarGradient: "linear-gradient(170deg, var(--gbp-accent-glow) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-accent-glow) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  peach: { accent: "var(--gbp-accent)", sidebarGradient: "linear-gradient(170deg, var(--gbp-accent-glow) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-accent-glow) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  lilac: { accent: "var(--gbp-violet)", sidebarGradient: "linear-gradient(170deg, var(--gbp-violet-soft) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-violet-soft) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  ebony: { accent: "var(--gbp-text)", sidebarGradient: "linear-gradient(170deg, var(--gbp-bg2) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-bg2) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  navy: { accent: "var(--gbp-violet)", sidebarGradient: "linear-gradient(170deg, var(--gbp-violet-soft) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-violet-soft) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
+  gray: { accent: "var(--gbp-text2)", sidebarGradient: "linear-gradient(170deg, var(--gbp-bg2) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-bg2) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
 };
 
 const THEME_SWATCH_STYLE: Record<string, string> = {
-  "dark-pro": "linear-gradient(145deg,var(--gbp-bg2),var(--gbp-bg))",
-  default: "linear-gradient(145deg,var(--gbp-surface),var(--gbp-bg2))",
-  sky: "linear-gradient(145deg,var(--gbp-violet),var(--gbp-violet-hover))",
-  turquoise: "linear-gradient(145deg,var(--gbp-success),color-mix(in_oklab,var(--gbp-success)_65%,black))",
-  teal: "linear-gradient(145deg,var(--gbp-success),color-mix(in_oklab,var(--gbp-success)_58%,black))",
-  matcha: "linear-gradient(145deg,var(--gbp-success),color-mix(in_oklab,var(--gbp-success)_52%,black))",
-  sunshine: "linear-gradient(145deg,var(--gbp-accent),var(--gbp-accent-hover))",
-  peach: "linear-gradient(145deg,var(--gbp-accent),color-mix(in_oklab,var(--gbp-accent)_72%,black))",
-  lilac: "linear-gradient(145deg,var(--gbp-violet-hover),var(--gbp-violet))",
-  ebony: "linear-gradient(145deg,var(--gbp-text2),var(--gbp-text))",
-  navy: "linear-gradient(145deg,var(--gbp-violet),color-mix(in_oklab,var(--gbp-violet)_70%,black))",
-  gray: "linear-gradient(145deg,var(--gbp-text2),color-mix(in_oklab,var(--gbp-text2)_55%,black))",
+  "dark-pro": "linear-gradient(145deg, #1f2533, #0d0f14)",
+  default: "linear-gradient(145deg, #f2f3f9, #e5e7f0)",
+  sky: "linear-gradient(145deg, #6c47ff, #9b82ff)",
+  turquoise: "linear-gradient(145deg, #22c55e, #0f9a47)",
+  teal: "linear-gradient(145deg, #1fbf6b, #0e8748)",
+  matcha: "linear-gradient(145deg, #2bb85f, #157b3f)",
+  sunshine: "linear-gradient(145deg, #e06030, #d4531a)",
+  peach: "linear-gradient(145deg, #d86131, #a84316)",
+  lilac: "linear-gradient(145deg, #7b5cff, #5a3ce6)",
+  ebony: "linear-gradient(145deg, #4b5563, #111827)",
+  navy: "linear-gradient(145deg, #5d4ce6, #313f54)",
+  gray: "linear-gradient(145deg, #475569, #1f2937)",
 };
 
 const MODULE_LABELS: Record<string, string> = {
@@ -223,6 +223,13 @@ function isActive(pathname: string, searchParams: URLSearchParams, href: string)
   }
 
   return true;
+}
+
+function normalizeTheme(value: string) {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "dark" || normalized === "dark-pro") return "dark-pro";
+  if (THEMES.includes(normalized as (typeof THEMES)[number])) return normalized;
+  return "default";
 }
 
 export function CompanyShell({
@@ -299,7 +306,7 @@ export function CompanyShell({
       .filter((section) => section.items.length > 0);
   }, [enabledModuleSet, branchOptions]);
 
-  const [theme, setTheme] = useState(settingsSnapshot.theme);
+  const [theme, setTheme] = useState(() => normalizeTheme(settingsSnapshot.theme));
   const [profileName] = useState(sessionUserName);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState(sessionAvatarUrl);
   const [profileAvatarPreview, setProfileAvatarPreview] = useState("");
@@ -501,11 +508,12 @@ export function CompanyShell({
     return `${path}?${params.toString()}`;
   }
 
-  const isDarkTheme = theme === "dark-pro" || theme === "dark";
+  const normalizedTheme = normalizeTheme(theme);
+  const isDarkTheme = normalizedTheme === "dark-pro";
   const effectiveCompanyLogoUrl = customBrandingEnabled
     ? (isDarkTheme ? (companyLogoDarkUrl || companyLogoUrl) : companyLogoUrl)
     : "";
-  const palette = THEME_PALETTES[theme] ?? (theme === "dark" ? THEME_PALETTES["dark-pro"] : THEME_PALETTES.default);
+  const palette = THEME_PALETTES[normalizedTheme] ?? THEME_PALETTES.default;
 
   const initials =
     profileName
@@ -699,7 +707,7 @@ export function CompanyShell({
 
   return (
     <div
-      data-theme={isDarkTheme ? "dark-pro" : theme}
+      data-theme={isDarkTheme ? "dark-pro" : normalizedTheme}
       className={`min-h-screen ${isDarkTheme ? "theme-dark-pro text-[var(--gbp-text)]" : "text-[var(--gbp-text)]"}`}
       style={{ ["--gb-accent" as string]: palette.accent, background: palette.pageGradient } as CSSProperties}
     >
@@ -868,13 +876,13 @@ export function CompanyShell({
 
       {settingsOpen ? (
         <div className="fixed inset-0 z-[1200]" onClick={() => setSettingsOpen(false)}>
-          <div className="absolute bottom-[185px] left-4 h-[420px] w-[300px] overflow-hidden rounded-[14px] border border-white/10 bg-[var(--gbp-surface)] text-[var(--gbp-text)] shadow-[0_12px_40px_rgba(0,0,0,.7)]" onClick={(event) => event.stopPropagation()}>
+          <div className={`absolute bottom-[185px] left-4 h-[420px] w-[300px] overflow-hidden rounded-[14px] border bg-[var(--gbp-surface)] text-[var(--gbp-text)] shadow-[0_12px_40px_rgba(0,0,0,.45)] ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`} onClick={(event) => event.stopPropagation()}>
             {settingsView === "main" ? (
               <>
-                <div className="flex items-center justify-between border-b border-white/10 px-3.5 py-2.5"><span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--gbp-muted)]">Settings</span><button type="button" onClick={() => setSettingsOpen(false)} className="grid h-5.5 w-5.5 place-items-center rounded-full bg-white/10 text-sm text-white/60 hover:bg-white/20 hover:text-white"><X className="h-3.5 w-3.5" /></button></div>
+                <div className={`flex items-center justify-between border-b px-3.5 py-2.5 ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`}><span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--gbp-muted)]">Settings</span><button type="button" onClick={() => setSettingsOpen(false)} className={`grid h-5.5 w-5.5 place-items-center rounded-full text-sm ${isDarkTheme ? "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"}`}><X className="h-3.5 w-3.5" /></button></div>
                 <div className="px-0 py-1">
-                  <button type="button" onClick={() => setSettingsView("profile")} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[13px] text-white/70 hover:bg-white/10 hover:text-white"><User className="h-4 w-4 opacity-70" /><span className="flex-1">Profile</span><span className="opacity-40">›</span></button>
-                  <div className="my-1 h-px bg-white/10" />
+                  <button type="button" onClick={() => setSettingsView("profile")} className={`flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[13px] ${isDarkTheme ? "text-white/70 hover:bg-white/10 hover:text-white" : "text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"}`}><User className="h-4 w-4 opacity-70" /><span className="flex-1">Profile</span><span className="opacity-40">›</span></button>
+                  <div className={`my-1 h-px ${isDarkTheme ? "bg-white/10" : "bg-[var(--gbp-border)]"}`} />
                   <p className="px-3.5 pb-1 pt-2 text-[9px] font-bold uppercase tracking-[0.09em] text-[var(--gbp-text2)]">Tema</p>
                   <div className="grid grid-cols-4 gap-1.5 px-3.5">
                     {THEMES.map((item) => (
@@ -887,17 +895,14 @@ export function CompanyShell({
                         }}
                         className="group flex flex-col items-center gap-1"
                       >
-                        <span
-                           className={`relative h-10 w-10 rounded-[10px] border transition group-hover:scale-105 ${item === "dark-pro" ? "border-[var(--gbp-border2)]" : "border-black/10"}`}
-                           style={{ background: THEME_SWATCH_STYLE[item] }}
-                        >
+                        <span className={`relative h-10 w-10 rounded-[10px] border transition group-hover:scale-105 ${theme === item ? "border-[var(--gbp-accent)]" : "border-[var(--gbp-border2)]"}`} style={{ background: THEME_SWATCH_STYLE[item] }}>
                           <span className={`absolute inset-0 grid place-items-center rounded-[10px] ${theme === item ? "bg-black/20 opacity-100" : "opacity-0"}`}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
                               <polyline points="20 6 9 17 4 12" />
                             </svg>
                           </span>
                         </span>
-                        <span className={`text-[9px] ${theme === item ? "font-semibold text-white/90" : "text-white/55"}`}>{THEME_NAMES[item]}</span>
+                        <span className={`text-[9px] ${theme === item ? "font-semibold text-[var(--gbp-text)]" : "text-[var(--gbp-text2)]"}`}>{THEME_NAMES[item]}</span>
                       </button>
                     ))}
                   </div>
@@ -907,10 +912,10 @@ export function CompanyShell({
 
             {settingsView === "profile" ? (
               <div className="h-full overflow-y-auto">
-                <div className="flex items-center justify-between border-b border-white/10 px-3.5 py-2.5"><button type="button" onClick={() => setSettingsView("main")} className="text-xs text-white/70 hover:text-white">← Back</button><span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--gbp-muted)]">Profile</span><button type="button" onClick={() => setSettingsOpen(false)} className="grid h-5.5 w-5.5 place-items-center rounded-full bg-white/10 text-sm text-white/60 hover:bg-white/20 hover:text-white"><X className="h-3.5 w-3.5" /></button></div>
+                <div className={`flex items-center justify-between border-b px-3.5 py-2.5 ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`}><button type="button" onClick={() => setSettingsView("main")} className={`text-xs ${isDarkTheme ? "text-white/70 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}>← Back</button><span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--gbp-muted)]">Profile</span><button type="button" onClick={() => setSettingsOpen(false)} className={`grid h-5.5 w-5.5 place-items-center rounded-full text-sm ${isDarkTheme ? "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"}`}><X className="h-3.5 w-3.5" /></button></div>
                 <div className="space-y-3 p-3.5 text-xs">
-                  <div className="flex flex-col items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3">
-                    <label className="relative inline-flex h-16 w-16 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-white/10 bg-[var(--gbp-accent)] text-xl font-bold text-white">
+                  <div className={`flex flex-col items-center gap-2 rounded-lg border px-3 py-3 ${isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
+                    <label className={`relative inline-flex h-16 w-16 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 bg-[var(--gbp-accent)] text-xl font-bold text-white ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`}>
                       {profileAvatarPreview || currentAvatarUrl ? (
                         <Image
                           src={profileAvatarPreview || currentAvatarUrl}
@@ -960,14 +965,14 @@ export function CompanyShell({
                         }}
                       />
                     </label>
-                    <p className="text-sm font-semibold text-white">{profileName}</p>
-                    <p className="-mt-1 text-[11px] text-white/45">{sessionRoleLabel}</p>
+                    <p className={`text-sm font-semibold ${isDarkTheme ? "text-white" : "text-[var(--gbp-text)]"}`}>{profileName}</p>
+                    <p className={`-mt-1 text-[11px] ${isDarkTheme ? "text-white/45" : "text-[var(--gbp-text2)]"}`}>{sessionRoleLabel}</p>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-                    <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Account</p>
-                    <div className="flex items-center justify-between border-b border-white/5 py-1.5"><span className="text-white/55">Email</span><span className="max-w-[160px] truncate text-[11px] tracking-[0.04em] text-white/45">{sessionUserEmail || "-"}</span></div>
-                    <div className="flex items-center justify-between border-b border-white/5 py-1.5">
-                      <span className="text-white/55">Password</span>
+                  <div className={`rounded-lg border p-3 ${isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
+                    <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.08em] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>Account</p>
+                    <div className={`flex items-center justify-between border-b py-1.5 ${isDarkTheme ? "border-white/5" : "border-[var(--gbp-border)]"}`}><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Email</span><span className={`max-w-[160px] truncate text-[11px] tracking-[0.04em] ${isDarkTheme ? "text-white/45" : "text-[var(--gbp-text2)]"}`}>{sessionUserEmail || "-"}</span></div>
+                    <div className={`flex items-center justify-between border-b py-1.5 ${isDarkTheme ? "border-white/5" : "border-[var(--gbp-border)]"}`}>
+                      <span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Password</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -980,11 +985,11 @@ export function CompanyShell({
                       </button>
                     </div>
                     <div className="mt-2">
-                      <span className="text-white/55">Nombre</span>
+                      <span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Nombre</span>
                       <input
                         value={profileName}
                         readOnly
-                        className="mt-1 w-full cursor-not-allowed rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-white/80"
+                        className={`mt-1 w-full cursor-not-allowed rounded-md border px-2 py-1.5 ${isDarkTheme ? "border-white/10 bg-white/5 text-white/80" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text)]"}`}
                       />
                     </div>
                   </div>
@@ -1058,7 +1063,7 @@ export function CompanyShell({
       ) : null}
 
       {enabledModuleSet.has("ai_assistant") ? (
-        <FloatingAiAssistant currentPlanCode={currentPlanCode} />
+        <FloatingAiAssistant currentPlanCode={currentPlanCode} userName={sessionUserName} />
       ) : null}
 
       {feedbackOpen ? (
@@ -1089,34 +1094,34 @@ export function CompanyShell({
 
       {planOpen ? (
         <div className="fixed inset-0 z-[1200]" onClick={() => setPlanOpen(false)}>
-          <div className="absolute bottom-[72px] left-3 w-[280px] overflow-hidden rounded-[14px] border border-white/10 bg-[var(--gbp-surface)] text-white shadow-[0_12px_40px_rgba(0,0,0,.7)]" onClick={(event) => event.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-white/10 px-3.5 py-2.5">
+          <div className={`absolute bottom-[72px] left-3 w-[280px] overflow-hidden rounded-[14px] border bg-[var(--gbp-surface)] shadow-[0_12px_40px_rgba(0,0,0,.38)] ${isDarkTheme ? "border-white/10 text-white" : "border-[var(--gbp-border)] text-[var(--gbp-text)]"}`} onClick={(event) => event.stopPropagation()}>
+            <div className={`flex items-center justify-between border-b px-3.5 py-2.5 ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`}>
               <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--gbp-muted)]">Planes Disponibles</span>
-              <button type="button" onClick={() => setPlanOpen(false)} className="grid h-[22px] w-[22px] place-items-center rounded-full bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"><X className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={() => setPlanOpen(false)} className={`grid h-[22px] w-[22px] place-items-center rounded-full ${isDarkTheme ? "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"}`}><X className="h-3.5 w-3.5" /></button>
             </div>
 
             <div className="px-3.5 pb-2 pt-2">
               <p className="mb-1 text-[9px] font-extrabold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">Actual <span className="ml-2 rounded-full bg-[var(--gbp-accent-glow)] px-2 py-[2px] text-[9px] text-[var(--gbp-accent)]">{currentPlanName}</span></p>
-              <p className="text-xs text-white/75">{billedTo || "-"} · {billingEmail || "-"}</p>
-              <div className="mt-2 inline-flex rounded-lg border border-white/15 bg-white/[0.03] p-1 text-[10px] font-semibold">
+              <p className={`text-xs ${isDarkTheme ? "text-white/75" : "text-[var(--gbp-text2)]"}`}>{billedTo || "-"} · {billingEmail || "-"}</p>
+              <div className={`mt-2 inline-flex rounded-lg border p-1 text-[10px] font-semibold ${isDarkTheme ? "border-white/15 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                 <button
                   type="button"
                   onClick={() => setPlanBillingCycle("monthly")}
-                  className={`rounded-md px-2.5 py-1 transition ${planBillingCycle === "monthly" ? "bg-white text-[var(--gbp-text)]" : "text-white/75 hover:text-white"}`}
+                  className={`rounded-md px-2.5 py-1 transition ${planBillingCycle === "monthly" ? (isDarkTheme ? "bg-white text-[var(--gbp-text)]" : "bg-[var(--gbp-surface)] text-[var(--gbp-text)]") : (isDarkTheme ? "text-white/75 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
                 >
                   Mensual
                 </button>
                 <button
                   type="button"
                   onClick={() => setPlanBillingCycle("yearly")}
-                  className={`rounded-md px-2.5 py-1 transition ${planBillingCycle === "yearly" ? "bg-[var(--gbp-success)] text-white" : "text-white/75 hover:text-white"}`}
+                  className={`rounded-md px-2.5 py-1 transition ${planBillingCycle === "yearly" ? "bg-[var(--gbp-success)] text-white" : (isDarkTheme ? "text-white/75 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
                 >
                   Anual (2 meses gratis)
                 </button>
               </div>
             </div>
 
-            <div className="mx-3.5 h-px bg-white/10" />
+            <div className={`mx-3.5 h-px ${isDarkTheme ? "bg-white/10" : "bg-[var(--gbp-border)]"}`} />
 
             <div className="max-h-[280px] overflow-y-auto px-3.5 py-2">
               <div className="space-y-2">
@@ -1126,14 +1131,14 @@ export function CompanyShell({
                     <div
                       key={plan.id}
                       ref={isCurrentPlanCode ? currentPlanCardRef : null}
-                      className={`rounded-lg border px-3 py-2 transition-all duration-300 ${isCurrentPlanCode ? "border-[var(--gbp-accent)]/40 bg-[var(--gbp-accent-glow)] shadow-[0_0_0_1px_rgba(0,0,0,.25),0_12px_28px_rgba(0,0,0,.28)] animate-[pulse_1.15s_ease-in-out_1]" : "border-white/10 bg-white/[0.03]"}`}
+                      className={`rounded-lg border px-3 py-2 transition-all duration-300 ${isCurrentPlanCode ? "border-[var(--gbp-accent)]/40 bg-[var(--gbp-accent-glow)] shadow-[0_0_0_1px_rgba(0,0,0,.18),0_12px_28px_rgba(0,0,0,.24)] animate-[pulse_1.15s_ease-in-out_1]" : (isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]")}`}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-white/80">{plan.name}</p>
-                        <span className="rounded-full bg-white/10 px-2 py-[2px] text-[10px] font-semibold text-white/80">{formatPlanPrice(plan, planBillingCycle)}</span>
+                        <p className={`text-[11px] font-bold uppercase tracking-[0.08em] ${isDarkTheme ? "text-white/80" : "text-[var(--gbp-text)]"}`}>{plan.name}</p>
+                        <span className={`rounded-full px-2 py-[2px] text-[10px] font-semibold ${isDarkTheme ? "bg-white/10 text-white/80" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]"}`}>{formatPlanPrice(plan, planBillingCycle)}</span>
                       </div>
-                      <p className="mt-1 text-[11px] text-white/60">{plan.code.toUpperCase()} · {planBillingCycle === "yearly" ? "Anual" : "Mensual"}{isCurrentPlanCode ? ` · Periodo actual: ${normalizePlanPeriod(billingPeriod) === "yearly" ? "Anual" : "Mensual"}` : ""}</p>
-                      <div className="mb-2 mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-white/60">
+                      <p className={`mt-1 text-[11px] ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-text2)]"}`}>{plan.code.toUpperCase()} · {planBillingCycle === "yearly" ? "Anual" : "Mensual"}{isCurrentPlanCode ? ` · Periodo actual: ${normalizePlanPeriod(billingPeriod) === "yearly" ? "Anual" : "Mensual"}` : ""}</p>
+                      <div className={`mb-2 mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-text2)]"}`}>
                         <span>Sucursales: {plan.maxBranches ?? "-"}</span>
                         <span>Usuarios: {plan.maxUsers ?? "-"}</span>
                         <span>Empleados: {plan.maxEmployees ?? "-"}</span>
@@ -1143,7 +1148,7 @@ export function CompanyShell({
                         type="button"
                         disabled={busy || !plan.stripePriceId}
                         onClick={() => openPlanChangeDialog(plan.id)}
-                        className="mt-2 w-full rounded-md border border-white/20 bg-white/5 py-1.5 text-[10px] font-semibold text-white transition-colors hover:bg-white/10 disabled:opacity-50"
+                        className={`mt-2 w-full rounded-md border py-1.5 text-[10px] font-semibold transition-colors disabled:opacity-50 ${isDarkTheme ? "border-white/20 bg-white/5 text-white hover:bg-white/10" : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text)] hover:bg-[var(--gbp-surface2)]"}`}
                       >
                         {busy ? "Procesando..." : isCurrentPlanCode ? "Cambiar periodicidad o mantener" : "Elegir Plan"}
                       </button>
@@ -1161,12 +1166,12 @@ export function CompanyShell({
       {planChangeTarget ? (
         <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-black/65 px-4 backdrop-blur-[2px]" onClick={() => setPlanChangeTargetId(null)}>
           <div
-            className="w-full max-w-3xl overflow-hidden rounded-2xl border border-white/15 bg-[var(--gbp-surface)] text-white shadow-[0_30px_90px_rgba(0,0,0,.58)]"
+            className={`w-full max-w-3xl overflow-hidden rounded-2xl border bg-[var(--gbp-surface)] shadow-[0_30px_90px_rgba(0,0,0,.58)] ${isDarkTheme ? "border-white/15 text-white" : "border-[var(--gbp-border)] text-[var(--gbp-text)]"}`}
             onClick={(event) => event.stopPropagation()}
           >
             <div className={`h-1.5 w-full ${planChangeDirection === "downgrade" ? "bg-[linear-gradient(90deg,var(--gbp-accent),color-mix(in_oklab,var(--gbp-accent)_75%,black))]" : "bg-[linear-gradient(90deg,var(--gbp-success),color-mix(in_oklab,var(--gbp-success)_72%,black))]"}`} />
 
-            <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
+            <div className={`flex items-center justify-between border-b px-6 py-4 ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`}>
               <div className="flex items-center gap-3">
                 <span className={`grid h-10 w-10 place-items-center rounded-xl ring-1 ring-inset ${planChangeDirection === "downgrade" ? "bg-amber-500/20 text-amber-300 ring-amber-300/35" : "bg-emerald-500/20 text-emerald-300 ring-emerald-300/35"}`}>
                   {planChangeDirection === "downgrade" ? <AlertTriangle className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
@@ -1175,13 +1180,13 @@ export function CompanyShell({
                   <p className="text-base font-semibold leading-tight">
                     {planChangeDirection === "downgrade" ? "Confirmar cambio a un plan menor" : "¡Excelente! Estas por subir de plan"}
                   </p>
-                  <p className="mt-0.5 text-xs text-white/65">Revisa el impacto antes de confirmar el cambio.</p>
+                  <p className={`mt-0.5 text-xs ${isDarkTheme ? "text-white/65" : "text-[var(--gbp-text2)]"}`}>Revisa el impacto antes de confirmar el cambio.</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setPlanChangeTargetId(null)}
-                className="grid h-8 w-8 place-items-center rounded-md border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                className={`grid h-8 w-8 place-items-center rounded-md border ${isDarkTheme ? "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"}`}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1189,22 +1194,22 @@ export function CompanyShell({
 
             <div className="space-y-5 px-6 py-5">
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.11em] text-white/45">Plan actual</p>
-                  <p className="mt-1 text-lg font-bold text-white">{currentPlan?.name ?? currentPlanName}</p>
-                  <p className="mt-1 text-xs text-white/60">{currentPlan ? formatPlanPrice(currentPlan) : "Precio no definido"}</p>
+                <div className={`rounded-xl border p-4 ${isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
+                  <p className={`text-[10px] font-bold uppercase tracking-[0.11em] ${isDarkTheme ? "text-white/45" : "text-[var(--gbp-muted)]"}`}>Plan actual</p>
+                  <p className={`mt-1 text-lg font-bold ${isDarkTheme ? "text-white" : "text-[var(--gbp-text)]"}`}>{currentPlan?.name ?? currentPlanName}</p>
+                  <p className={`mt-1 text-xs ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-text2)]"}`}>{currentPlan ? formatPlanPrice(currentPlan) : "Precio no definido"}</p>
                 </div>
                 <div className={`rounded-xl border p-4 ${planChangeDirection === "downgrade" ? "border-amber-300/35 bg-amber-500/10" : "border-emerald-300/35 bg-emerald-500/10"}`}>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.11em] text-white/55">Plan destino</p>
-                  <p className="mt-1 text-lg font-bold text-white">{planChangeTarget.name}</p>
-                  <p className="mt-1 text-xs text-white/70">{formatPlanPrice(planChangeTarget, planBillingCycle)} · {planBillingCycle === "yearly" ? "Facturacion anual" : "Facturacion mensual"}</p>
+                  <p className={`text-[10px] font-bold uppercase tracking-[0.11em] ${isDarkTheme ? "text-white/55" : "text-[var(--gbp-muted)]"}`}>Plan destino</p>
+                  <p className={`mt-1 text-lg font-bold ${isDarkTheme ? "text-white" : "text-[var(--gbp-text)]"}`}>{planChangeTarget.name}</p>
+                  <p className={`mt-1 text-xs ${isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}`}>{formatPlanPrice(planChangeTarget, planBillingCycle)} · {planBillingCycle === "yearly" ? "Facturacion anual" : "Facturacion mensual"}</p>
                 </div>
               </div>
 
               {planChangeDirection === "downgrade" ? (
                 <div className="rounded-xl border border-amber-300/25 bg-amber-500/[0.08] p-4">
                   <p className="mb-2 text-xs font-bold uppercase tracking-[0.1em] text-amber-300">Impacto del downgrade</p>
-                  <p className="mb-3 text-sm text-white/80">Si confirmas, estos modulos pueden quedar desactivados en tu empresa:</p>
+                  <p className={`mb-3 text-sm ${isDarkTheme ? "text-white/80" : "text-[var(--gbp-text2)]"}`}>Si confirmas, estos modulos pueden quedar desactivados en tu empresa:</p>
                   {planModuleDiff.toDisable.length ? (
                     <div className="flex flex-wrap gap-2">
                       {planModuleDiff.toDisable.map((name) => (
@@ -1214,13 +1219,13 @@ export function CompanyShell({
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-white/75">No se detectaron desactivaciones de modulos para este cambio.</p>
-                  )}
-                </div>
+                      <p className={`text-xs ${isDarkTheme ? "text-white/75" : "text-[var(--gbp-text2)]"}`}>No se detectaron desactivaciones de modulos para este cambio.</p>
+                    )}
+                  </div>
               ) : (
                 <div className="rounded-xl border border-emerald-300/25 bg-emerald-500/[0.08] p-4">
                   <p className="mb-2 text-xs font-bold uppercase tracking-[0.1em] text-emerald-300">Impacto del upgrade</p>
-                  <p className="mb-3 text-sm text-white/80">¡Felicidades! Al confirmar, tu equipo ganara estas capacidades:</p>
+                  <p className={`mb-3 text-sm ${isDarkTheme ? "text-white/80" : "text-[var(--gbp-text2)]"}`}>¡Felicidades! Al confirmar, tu equipo ganara estas capacidades:</p>
                   {planModuleDiff.toEnable.length ? (
                     <div className="flex flex-wrap gap-2">
                       {planModuleDiff.toEnable.map((name) => (
@@ -1230,16 +1235,16 @@ export function CompanyShell({
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-white/75">Este cambio mejora limites del plan aunque no agregue nuevos modulos visibles.</p>
+                      <p className={`text-xs ${isDarkTheme ? "text-white/75" : "text-[var(--gbp-text2)]"}`}>Este cambio mejora limites del plan aunque no agregue nuevos modulos visibles.</p>
                   )}
                 </div>
               )}
 
-              <div className="flex flex-col-reverse gap-2 border-t border-white/10 pt-4 sm:flex-row sm:justify-end">
+              <div className={`flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`}>
                 <button
                   type="button"
                   onClick={() => setPlanChangeTargetId(null)}
-                  className="rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10 hover:text-white"
+                  className={`rounded-lg border px-4 py-2 text-sm font-semibold ${isDarkTheme ? "border-white/20 bg-white/5 text-white/85 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border2)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"}`}
                 >
                   Mantener plan
                 </button>
@@ -1284,7 +1289,7 @@ export function CompanyShell({
                 </div>
               ) : (
                 <div className="mb-1 flex items-center gap-2">
-                  <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-md border border-black/10 bg-white">
+                  <span className={`grid h-9 w-9 place-items-center overflow-hidden rounded-md border ${isDarkTheme ? "border-white/15 bg-white/5" : "border-black/10 bg-white"}`}>
                     {effectiveCompanyLogoUrl ? (
                       <Image src={effectiveCompanyLogoUrl} alt={`Logo de ${brandingName}`} width={36} height={36} className="h-full w-full object-contain" />
                     ) : (

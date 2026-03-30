@@ -59,7 +59,7 @@ Entregables:
 
 Checklist:
 
-- [ ] inventario de colores hardcodeados en `web/src/**`.
+- [x] inventario de colores hardcodeados en `web/src/**`.
 - [x] lista de componentes de alto impacto visual a migrar primero.
 - [ ] baseline responsive (mobile 390, tablet 768, desktop 1440).
 
@@ -267,6 +267,49 @@ Avance registrado (2026-03-29, barrido final DS full UI):
   - `npm run lint -- <archivos UI tocados>` OK.
   - `npm run build` OK.
   - warning preexistente de Next.js: `middleware` -> `proxy`.
+
+Avance registrado (2026-03-29, validacion post-cierre DS):
+
+- Se corrio verificacion de smoke de modulos en entorno local (`.env.local`) para asegurar cobertura funcional post-migracion visual:
+  - `npm run verify:smoke-modules` OK.
+- Se corrio verificacion de permisos por rol para reforzar QA de rutas company/employee:
+  - `npm run verify:role-permissions` OK.
+- Resultado: todos los modulos principales en estado OK (`superadmin`, `employees`, `documents`, `announcements`, `checklists`, `reports`, `settings`, `audit`, `module-enablement`, `module-guardrails`).
+- Resultado por rol: `company_admin`, `manager` y `employee` en estado OK segun expectativas de acceso.
+- Chequeo rapido de legibilidad de colores base (texto vs fondo) en tokens DS:
+  - OK fuerte: `--gbp-text` y `--gbp-text2` en light/dark.
+  - A revisar: `--gbp-muted` (light/dark) y `--gbp-accent` sobre fondo claro para texto pequeno.
+- Ajuste aplicado para mejorar lectura en texto secundario/chico sin tocar logica:
+  - `--gbp-muted` light: `#9CA3AF` -> `#6B7280`.
+  - `--gbp-muted` dark: `#737B96` -> `#7E89A3`.
+  - `--gbp-accent` light: `#D4531A` -> `#C04A17`.
+  - Sin cambios en acentos dark (`--gbp-accent` dark se mantiene).
+- Verificacion posterior de legibilidad (texto vs fondo):
+  - `muted` light: 4.83 (OK).
+  - `muted` dark: 4.80 (OK).
+  - `accent` light: 4.96 (OK).
+- Ajuste rapido responsive en filtros para mobile (sin tocar logica):
+  - `web/src/app/(company)/app/checklists/page.tsx` (controles de busqueda y filtros ahora ocupan `w-full` en mobile).
+  - `web/src/modules/reports/ui/checklist-reports-dashboard.tsx` (buscador ahora fluye `w-full` en mobile).
+- QA tecnico post-ajuste responsive:
+  - `npm run lint -- "src/app/(company)/app/checklists/page.tsx" "src/modules/reports/ui/checklist-reports-dashboard.tsx" "src/shared/design/tokens.ts"` OK.
+  - `npm run build` OK.
+- Correcciones de usabilidad detectadas en validacion manual:
+  - Sidebar en modo oscuro robustecido para evitar caidas a apariencia clara por valor de tema legacy/no normalizado.
+  - Modal de planes y dialogo de cambio de plan ajustados para legibilidad en light/dark (texto, bordes y fondos).
+- QA tecnico post-fix de dark mode y modal de planes:
+  - `npm run lint -- "src/shared/ui/company-shell.tsx"` OK.
+  - `npm run build` OK.
+- Ajuste adicional por feedback visual real:
+  - Se corrigieron gradientes inline del shell (sidebar/page/header/swatches) que venian con sintaxis invalida para estilos inline.
+  - Se normalizo apariencia del launcher/panel del asistente IA para evitar botones con fondo casi blanco en dark mode.
+- Ajuste adicional en modal Settings:
+  - Se mejoro contraste visual en entrada "Profile" y etiquetas de nombres de tema.
+  - Se corrigieron los swatches de temas para que muestren colores reales de cada tema (incluyendo dark mode).
+- QA tecnico post-ajuste adicional:
+  - `npm run lint -- "src/shared/ui/company-shell.tsx" "src/shared/ui/floating-ai-assistant.tsx"` OK.
+  - `npm run build` OK.
+- Nota de QA: quedan pendientes validaciones manuales de contraste AA y baseline responsive por viewport/rol.
 
 ## 5) Riesgos y mitigacion
 
