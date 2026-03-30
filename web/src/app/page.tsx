@@ -5,14 +5,8 @@ import {
   getCurrentUserMemberships,
   isCurrentUserSuperadmin,
 } from "@/modules/memberships/queries";
-import { getActivePlans } from "@/modules/plans/queries";
-import { 
-  LandingNavbar, 
-  LandingHero, 
-  LandingFeatures, 
-  LandingPricing, 
-  LandingFooter 
-} from "@/shared/ui/landing-components";
+import { getActivePlansForLanding } from "@/modules/plans/queries";
+import { LandingExperience } from "@/modules/landing/ui/landing-experience";
 
 export const dynamic = "force-dynamic";
 
@@ -42,19 +36,9 @@ export default async function Home() {
     );
   }
 
-  const plans = await getActivePlans();
+  const plans = await getActivePlansForLanding();
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-brand/10 selection:text-brand">
-      <LandingNavbar />
-      
-      <main>
-        <LandingHero />
-        <LandingFeatures />
-        <LandingPricing plans={plans} />
-      </main>
-
-      <LandingFooter />
-    </div>
+    <LandingExperience plans={plans} />
   );
 }
