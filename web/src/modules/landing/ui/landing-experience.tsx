@@ -400,7 +400,7 @@ export function LandingExperience({ plans }: Props) {
       </header>
 
       <main className="pt-[76px]">
-        <section className="relative overflow-hidden px-6 pb-24 pt-24 md:pb-28 md:pt-28">
+        <section className="relative overflow-hidden px-6 pb-16 pt-12 md:min-h-[calc(100vh-76px)] md:pb-14 md:pt-12">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_55%_at_75%_30%,rgba(212,83,26,0.09)_0%,transparent_65%)]" />
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -422,7 +422,7 @@ export function LandingExperience({ plans }: Props) {
             >
               <div className="mb-6 inline-flex items-center rounded-full border border-[var(--gbp-violet)]/30 bg-[var(--gbp-violet-soft)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-violet)]">{copy.hero.badge}</div>
               <h1 className="hero-title font-bold leading-[1.03] tracking-[-0.03em]">{copy.hero.titleA}<br />{copy.hero.titleB}<br /><span className="bg-[linear-gradient(90deg,#D4531A_0%,#FF8A50_55%,#D4531A_100%)] bg-clip-text text-transparent">{copy.hero.titleC}</span></h1>
-              <p className="mt-6 max-w-xl text-[17px] leading-8 text-[var(--gbp-text2)]">{copy.hero.sub}</p>
+              <p className="mt-5 max-w-xl text-[16px] leading-7 text-[var(--gbp-text2)]">{copy.hero.sub}</p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <button type="button" onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })} className="rounded-md bg-[var(--gbp-accent)] px-6 py-3 text-sm font-bold text-white hover:bg-[var(--gbp-accent-hover)]">{copy.hero.primary}</button>
                 <a href="#modules" className="rounded-md border border-[var(--gbp-border2)] px-6 py-3 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">{copy.hero.secondary}</a>
@@ -437,7 +437,7 @@ export function LandingExperience({ plans }: Props) {
                   {lang === "es" ? "Restaurantes operando en early access" : "Restaurants already running in early access"}
                 </p>
               </div>
-              <p className="mt-8 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--gbp-muted)]">{copy.hero.trust}</p>
+              <p className="mt-6 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--gbp-muted)]">{copy.hero.trust}</p>
             </motion.div>
             <motion.div
               initial={{ opacity: 0, y: 26 }}
@@ -876,7 +876,7 @@ export function LandingExperience({ plans }: Props) {
 
       <style jsx>{`
         .hero-title {
-          font-size: clamp(56px, 8.2vw, 92px);
+          font-size: clamp(44px, 6.6vw, 78px);
         }
 
         .tagline-break {

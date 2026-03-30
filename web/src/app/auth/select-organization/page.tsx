@@ -5,7 +5,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { selectOrganizationAction } from "@/modules/auth/actions";
 import { getCurrentUserMemberships } from "@/modules/memberships/queries";
 import { SubmitButton } from "@/shared/ui/submit-button";
-import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
+import { ThemeAwareGetBackplateLogo } from "@/shared/ui/theme-aware-getbackplate-logo";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 
 
@@ -56,7 +56,7 @@ export default async function SelectOrganizationPage({ searchParams }: SelectOrg
     <main className="flex min-h-screen items-center justify-center bg-background px-6 py-10">
       <section className="w-full max-w-2xl rounded-2xl border border-line bg-panel p-8 shadow-[0_8px_30px_rgba(0,0,0,0.05)]">
         <div className="mb-4 flex justify-center">
-          <GetBackplateLogo variant="light" width={230} height={42} className={`${BRAND_SCALE.authHeight} w-auto`} priority />
+          <ThemeAwareGetBackplateLogo width={230} height={42} className={`${BRAND_SCALE.authHeight} w-auto`} priority />
         </div>
         <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-brand uppercase">Acceso multiempresa</p>
         <h1 className="mb-1 text-2xl font-bold tracking-tight">Selecciona una empresa</h1>
