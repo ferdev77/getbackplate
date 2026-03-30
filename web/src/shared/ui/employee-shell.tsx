@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { LayoutDashboard, ClipboardList, Folder, Bell, FileText, PanelsLeftRight, LogOut, Menu } from "lucide-react";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
+import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 
 type EmployeeShellProps = {
   organizationId: string;
@@ -193,7 +194,7 @@ export function EmployeeShell({
                 </div>
               ) : (
                 <div className={`${collapsed ? "mx-auto" : ""}`}>
-                  <GetBackplateLogo variant="light" width={220} height={40} className={`${collapsed ? "h-[18px]" : "h-[24px]"} w-auto`} />
+                  <GetBackplateLogo variant="light" width={220} height={40} className={`${collapsed ? BRAND_SCALE.sidebarCollapsedHeight : BRAND_SCALE.sidebarDesktopHeight} w-auto`} />
                 </div>
               )}
               <button
@@ -319,7 +320,7 @@ export function EmployeeShell({
           
           <footer className="mt-auto flex justify-between border-t border-[var(--gbp-border)] px-6 py-4 text-[11px] text-[var(--gbp-muted)] sm:px-9" style={{ background: palette.sidebarGradient }}>
             <p className="inline-flex items-center font-semibold tracking-[0.02em] text-[var(--gbp-text2)]">
-              {customBrandingEnabled ? organizationName : <GetBackplateLogo variant="light" width={190} height={34} className="h-[22px] w-auto" />}
+              {customBrandingEnabled ? organizationName : <GetBackplateLogo variant="light" width={190} height={34} className={`${BRAND_SCALE.footerHeight} w-auto`} />}
             </p>
             <p>© 2026 {customBrandingEnabled ? organizationName : "GetBackplate"}</p>
           </footer>

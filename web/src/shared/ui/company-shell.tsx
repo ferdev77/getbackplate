@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { FloatingAiAssistant } from "@/shared/ui/floating-ai-assistant";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
+import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 import { toast } from "sonner";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 
@@ -774,7 +775,7 @@ export function CompanyShell({
                 </div>
               ) : (
                 <div className={`${collapsed ? "mx-auto" : ""}`}>
-                  <GetBackplateLogo variant={isDarkTheme ? "dark" : "light"} width={220} height={40} className={`${collapsed ? "h-[20px]" : "h-[28px]"} w-auto`} />
+                  <GetBackplateLogo variant={isDarkTheme ? "dark" : "light"} width={220} height={40} className={`${collapsed ? BRAND_SCALE.sidebarCollapsedHeight : BRAND_SCALE.sidebarDesktopHeight} w-auto`} />
                 </div>
               )}
               <button
@@ -928,7 +929,7 @@ export function CompanyShell({
                 {customBrandingEnabled ? (
                   <span className={`font-semibold tracking-[0.02em] ${isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}`}>{brandingName}</span>
                 ) : (
-                  <GetBackplateLogo variant={isDarkTheme ? "footer" : "light"} width={150} height={22} className="h-[20px] w-auto" />
+                  <GetBackplateLogo variant={isDarkTheme ? "footer" : "light"} width={170} height={26} className={`${BRAND_SCALE.footerHeight} w-auto`} />
                 )}
               </p>
               <p>© 2026 {brandingName}</p>
@@ -1356,7 +1357,7 @@ export function CompanyShell({
                 </div>
               ) : (
                 <div className="mb-1 flex items-center gap-2">
-                  <GetBackplateLogo variant={isDarkTheme ? "dark" : "light"} width={220} height={40} className="h-[26px] w-auto" />
+                  <GetBackplateLogo variant={isDarkTheme ? "dark" : "light"} width={220} height={40} className={`${BRAND_SCALE.sidebarMobileHeight} w-auto`} />
                 </div>
               )}
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--gbp-muted)]">Administrador</p>
