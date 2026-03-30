@@ -8,6 +8,7 @@ import { sendEmail } from "@/shared/lib/brevo";
 import { getTenantEmailBranding } from "@/shared/lib/email-branding";
 import { resendReminderTemplate } from "@/shared/lib/email-templates/invitation";
 import { buildTenantAuthUrls } from "@/shared/lib/tenant-auth-branding";
+import { isUserMemberOfOrganization } from "@/shared/lib/tenant-membership";
 
 export async function POST(request: Request) {
   const tenant = await requireCompanyAccess();
@@ -49,6 +50,35 @@ export async function POST(request: Request) {
         error: "No existe una cuenta para este correo. Crea el usuario desde el alta y luego reintenta.",
       },
       { status: 404 },
+    );
+  }
+
+  const isMember = await isUserMemberOfOrganization({
+    supabase: admin,
+    organizationId: tenant.organizationId,
+    userId: existingUser.id,
+  });
+
+  if (!isMember) {
+    await logAuditEvent({
+      action: "organization.invitation.resend",
+      entityType: "organization_invitation",
+      organizationId: tenant.organizationId,
+      eventDomain: "settings",
+      outcome: "denied",
+      severity: "high",
+      metadata: {
+        email,
+        reason: "cross_tenant_credentials_update_blocked",
+      },
+    });
+
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Este correo existe en otra empresa. Para seguridad, usa el alta normal para invitarlo a esta empresa sin tocar su acceso global.",
+      },
+      { status: 403 },
     );
   }
 

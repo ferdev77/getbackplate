@@ -1,5 +1,4 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { sendEmail } from "@/shared/lib/brevo";

@@ -4,7 +4,9 @@ import { EMPLOYEES_MESSAGES } from "@/shared/lib/employees-messages";
 import { getTenantEmailBranding } from "@/shared/lib/email-branding";
 import { sendEmail } from "@/shared/lib/brevo";
 import { initialInviteTemplate } from "@/shared/lib/email-templates/invitation";
+import { resendReminderTemplate } from "@/shared/lib/email-templates/invitation";
 import { buildTenantAuthUrls } from "@/shared/lib/tenant-auth-branding";
+import { isUserMemberOfOrganization } from "@/shared/lib/tenant-membership";
 
 export async function provisionOrganizationUserAccount(input: {
   admin: SupabaseClient;
@@ -26,9 +28,10 @@ export async function provisionOrganizationUserAccount(input: {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
-    const { loginUrl } = await buildTenantAuthUrls({
+    const { loginUrl, recoveryUrl } = await buildTenantAuthUrls({
       appUrl,
       organizationId,
+      includeRecovery: true,
     });
     const fullName = `${firstName} ${lastName}`.trim();
     const branding = await getTenantEmailBranding(organizationId);
@@ -37,6 +40,27 @@ export async function provisionOrganizationUserAccount(input: {
     
     if (existingAuthUser?.id) {
       const linkedUserId = existingAuthUser.id;
+
+      const isMember = await isUserMemberOfOrganization({
+        supabase: admin,
+        organizationId,
+        userId: linkedUserId,
+      });
+
+      if (!isMember) {
+        await sendEmail({
+          to: [{ email: loginEmail, name: fullName }],
+          subject: "Acceso habilitado para una nueva empresa en GetBackplate",
+          htmlContent: resendReminderTemplate({
+            fullName,
+            loginUrl,
+            recoveryUrl: recoveryUrl ?? `${appUrl.replace(/\/$/, "")}/auth/forgot-password`,
+            branding,
+          }),
+        });
+
+        return { ok: true, userId: linkedUserId, isNewUser: false };
+      }
       
       const { error: updateError } = await admin.auth.admin.updateUserById(linkedUserId, {
         password: accountPassword,

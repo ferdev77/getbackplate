@@ -72,7 +72,7 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
   let customDays: number[] = [];
   try {
     customDays = JSON.parse(customDaysStr);
-  } catch (e) {}
+  } catch {}
 
   const supabase = await createSupabaseServerClient();
   const { data: authData } = await supabase.auth.getUser();

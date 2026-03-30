@@ -1,6 +1,6 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
-import { calculateNextRunAt } from "@/shared/lib/cron-utils";
+import { calculateNextRunAt, RecurrenceType } from "@/shared/lib/cron-utils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -76,7 +76,8 @@ export async function upsertChecklistTemplate(
     notifyVia,
   } = input;
 
-  let { branchId, departmentId, department } = input;
+  const { branchId, departmentId } = input;
+  let { department } = input;
   const locationScopes = normalizeScopeSelection(input.locationScopes);
   const departmentScopes = normalizeScopeSelection(input.departmentScopes);
   const positionScopes = normalizeScopeSelection(input.positionScopes);
@@ -311,7 +312,7 @@ export async function upsertChecklistTemplate(
 
   // Handle recurrence / scheduled_jobs
   if (template.id) {
-    const nextRun = calculateNextRunAt(recurrenceType as any, null, customDays);
+    const nextRun = calculateNextRunAt(recurrenceType as RecurrenceType, null, customDays);
     
     // Attempt to update or create
     const { data: existingJob } = await supabase

@@ -2,17 +2,19 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 
 const BUCKET_NAME = "tenant-documents";
-const RETENTION_DAYS_COMPANY = 15;
 const RETENTION_DAYS_SUPERADMIN = 30;
 
 // This endpoint is meant to be called by Vercel Cron or a similar scheduler
 export async function GET(request: Request) {
   // Validate authorization header for cron job security
   const authHeader = request.headers.get("authorization");
-  if (
-    process.env.CRON_SECRET &&
-    authHeader !== `Bearer ${process.env.CRON_SECRET}`
-  ) {
+  const cronSecret = process.env.CRON_SECRET?.trim();
+
+  if (!cronSecret) {
+    return NextResponse.json({ error: "Cron secret not configured" }, { status: 500 });
+  }
+
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -80,8 +82,11 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ ok: true, purged: idsToPurge.length });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Cron Purge Action Failed:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

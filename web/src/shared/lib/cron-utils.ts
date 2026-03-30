@@ -10,8 +10,13 @@ export function calculateNextRunAt(
 ): Date {
   if (cronExpression) {
     try {
-      // @ts-ignore
-      const interval = parser.parseExpression(cronExpression, { currentDate: now });
+      const parserWithParse = parser as unknown as {
+        parseExpression: (
+          expression: string,
+          options: { currentDate: Date },
+        ) => { next: () => { toDate: () => Date } };
+      };
+      const interval = parserWithParse.parseExpression(cronExpression, { currentDate: now });
       return interval.next().toDate();
     } catch (e) {
       console.error('Error parsing cron expression', e);

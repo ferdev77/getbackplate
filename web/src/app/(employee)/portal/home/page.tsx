@@ -4,6 +4,7 @@ import { markEmployeeOnboardingSeenAction } from "@/modules/onboarding/actions";
 import { EmployeeWelcomeModal } from "@/modules/onboarding/ui/employee-welcome-modal";
 import { requireEmployeeAccess } from "@/shared/lib/access";
 import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
+import { canReadAnnouncementInTenant } from "@/shared/lib/announcement-access";
 import { canReadDocumentInTenant } from "@/shared/lib/document-access";
 import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
 import { FileText, ClipboardCheck, ArrowRight, AlertCircle, CalendarClock, PartyPopper, Megaphone } from "lucide-react";
@@ -15,7 +16,7 @@ type AnnouncementRow = {
   kind: "urgent" | "reminder" | "celebration" | "general" | string | null;
   publish_at: string | null;
   expires_at: string | null;
-  target_scope: string | null;
+  target_scope: unknown;
   created_by: string | null;
 };
 
@@ -136,7 +137,16 @@ export default async function EmployeeHomePage() {
       const expiresAt = item.expires_at ? new Date(item.expires_at) : null;
       const published = !publishAt || publishAt <= now;
       const notExpired = !expiresAt || expiresAt >= now;
-      return published && notExpired;
+      if (!published || !notExpired) return false;
+
+      return canReadAnnouncementInTenant({
+        roleCode: tenant.roleCode,
+        userId,
+        branchId: employeeBranchId,
+        departmentId: employeeRow?.department_id ?? null,
+        positionIds: employeePositionIds,
+        targetScope: item.target_scope,
+      });
     });
   }
 
