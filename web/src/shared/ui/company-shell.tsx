@@ -147,6 +147,9 @@ const THEMES = [
   "gray",
 ] as const;
 
+const THEME_DEFAULT = "default";
+const THEME_DARK_PRO = "dark-pro";
+
 const THEME_NAMES: Record<string, string> = {
   "dark-pro": "Dark Pro",
   default: "Default",
@@ -227,9 +230,26 @@ function isActive(pathname: string, searchParams: URLSearchParams, href: string)
 
 function normalizeTheme(value: string) {
   const normalized = value.trim().toLowerCase();
-  if (normalized === "dark" || normalized === "dark-pro") return "dark-pro";
+  if (normalized === "dark" || normalized === THEME_DARK_PRO) return THEME_DARK_PRO;
   if (THEMES.includes(normalized as (typeof THEMES)[number])) return normalized;
-  return "default";
+  return THEME_DEFAULT;
+}
+
+function buildThemePickerOrder(currentTheme: string) {
+  const current = normalizeTheme(currentTheme);
+  const others = THEMES.filter(
+    (item) => item !== current && item !== THEME_DEFAULT && item !== THEME_DARK_PRO,
+  );
+
+  if (current === THEME_DEFAULT) {
+    return [THEME_DEFAULT, THEME_DARK_PRO, ...others];
+  }
+
+  if (current === THEME_DARK_PRO) {
+    return [THEME_DARK_PRO, THEME_DEFAULT, ...others];
+  }
+
+  return [current, THEME_DEFAULT, THEME_DARK_PRO, ...others];
 }
 
 export function CompanyShell({
@@ -306,7 +326,7 @@ export function CompanyShell({
       .filter((section) => section.items.length > 0);
   }, [enabledModuleSet, branchOptions]);
 
-  const [theme, setTheme] = useState(() => normalizeTheme(settingsSnapshot.theme));
+  const [theme, setTheme] = useState(() => normalizeTheme(settingsSnapshot.theme || THEME_DEFAULT));
   const [profileName] = useState(sessionUserName);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState(sessionAvatarUrl);
   const [profileAvatarPreview, setProfileAvatarPreview] = useState("");
@@ -439,6 +459,10 @@ export function CompanyShell({
   }, [currentPlanName, settingsSnapshot.billingPlan]);
 
   useEffect(() => {
+    setTheme(normalizeTheme(settingsSnapshot.theme || THEME_DEFAULT));
+  }, [settingsSnapshot.theme]);
+
+  useEffect(() => {
     if (!planOpen) return;
     const timer = setTimeout(() => {
       currentPlanCardRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -509,7 +533,8 @@ export function CompanyShell({
   }
 
   const normalizedTheme = normalizeTheme(theme);
-  const isDarkTheme = normalizedTheme === "dark-pro";
+  const themePickerOrder = useMemo(() => buildThemePickerOrder(theme), [theme]);
+  const isDarkTheme = normalizedTheme === THEME_DARK_PRO;
   const effectiveCompanyLogoUrl = customBrandingEnabled
     ? (isDarkTheme ? (companyLogoDarkUrl || companyLogoUrl) : companyLogoUrl)
     : "";
@@ -534,8 +559,10 @@ export function CompanyShell({
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No se pudo guardar");
       toast.success("Configuración guardada");
+      return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Error al guardar");
+      return false;
     } finally {
       setBusy(false);
     }
@@ -885,13 +912,17 @@ export function CompanyShell({
                   <div className={`my-1 h-px ${isDarkTheme ? "bg-white/10" : "bg-[var(--gbp-border)]"}`} />
                   <p className="px-3.5 pb-1 pt-2 text-[9px] font-bold uppercase tracking-[0.09em] text-[var(--gbp-text2)]">Tema</p>
                   <div className="grid grid-cols-4 gap-1.5 px-3.5">
-                    {THEMES.map((item) => (
+                    {themePickerOrder.map((item) => (
                       <button
                         key={item}
                         type="button"
                         onClick={async () => {
+                          const previousTheme = theme;
                           setTheme(item);
-                          await saveSettings("theme", { theme: item });
+                          const ok = await saveSettings("theme", { theme: item });
+                          if (!ok) {
+                            setTheme(previousTheme);
+                          }
                         }}
                         className="group flex flex-col items-center gap-1"
                       >
