@@ -1,8 +1,9 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { BriefcaseBusiness, CheckCircle2, HeartHandshake, ShieldCheck, Users } from "lucide-react";
+import { BriefcaseBusiness, CheckCircle2, HeartHandshake, Loader2, ShieldCheck, Users } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useFormStatus } from "react-dom";
 
 type Section = {
   id: string;
@@ -21,6 +22,28 @@ type EmployeeWelcomeModalProps = {
   contractSigned: boolean;
   finishAction: (formData: FormData) => void;
 };
+
+function FinishPortalButton({ disabled }: { disabled: boolean }) {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      className="inline-flex items-center gap-2 rounded-lg bg-[var(--gbp-text)] px-5 py-2 text-sm font-bold text-white transition-all hover:-translate-y-[1px] hover:bg-[var(--gbp-accent)] disabled:opacity-50"
+      disabled={disabled || pending}
+      aria-busy={pending}
+    >
+      {pending ? (
+        <>
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Ingresando...
+        </>
+      ) : (
+        "Entrar al portal"
+      )}
+    </button>
+  );
+}
 
 const BASE_SECTIONS: Section[] = [
   {
@@ -230,13 +253,7 @@ export function EmployeeWelcomeModal({
             </button>
           ) : (
             <form action={finishAction}>
-              <button
-                type="submit"
-                className="rounded-lg bg-[var(--gbp-text)] px-5 py-2 text-sm font-bold text-white transition-all hover:-translate-y-[1px] hover:bg-[var(--gbp-accent)] disabled:opacity-50"
-                disabled={!allChecked}
-              >
-                Entrar al portal
-              </button>
+              <FinishPortalButton disabled={!allChecked} />
             </form>
           )}
         </div>

@@ -355,10 +355,10 @@ export function LandingExperience({ plans }: Props) {
               onClick={() => setLang((v) => (v === "en" ? "es" : "en"))}
               className="relative inline-flex h-8 w-[64px] select-none items-center rounded-full border border-[var(--gbp-border2)] bg-[var(--gbp-surface2)] px-1"
             >
-              <span className="pointer-events-none absolute left-2 text-[10px] font-black uppercase tracking-[0.08em] text-[var(--gbp-muted)]">EN</span>
-              <span className="pointer-events-none absolute right-2 text-[10px] font-black uppercase tracking-[0.08em] text-[var(--gbp-muted)]">ES</span>
+              <span className={`pointer-events-none absolute left-2 text-[10px] font-black uppercase tracking-[0.08em] ${darkMode ? "text-white/70" : "text-[var(--gbp-muted)]"}`}>EN</span>
+              <span className={`pointer-events-none absolute right-2 text-[10px] font-black uppercase tracking-[0.08em] ${darkMode ? "text-white/70" : "text-[var(--gbp-muted)]"}`}>ES</span>
               <span
-                className={`pointer-events-none absolute left-1 top-1 h-6 w-7 rounded-full bg-white text-[10px] font-black leading-6 text-[var(--gbp-text)] shadow-sm transition-transform duration-200 ${lang === "es" ? "translate-x-[28px]" : "translate-x-0"}`}
+                className={`pointer-events-none absolute left-1 top-1 h-6 w-7 rounded-full bg-white text-[10px] font-black leading-6 text-[#111827] shadow-sm transition-transform duration-200 ${lang === "es" ? "translate-x-[28px]" : "translate-x-0"}`}
               >
                 {lang === "es" ? "ES" : "EN"}
               </span>
@@ -674,6 +674,24 @@ export function LandingExperience({ plans }: Props) {
           </div>
         </section>
 
+        <section className="tagline-break relative left-1/2 right-1/2 w-screen -translate-x-1/2">
+          <div className="mx-auto w-full max-w-[1240px] px-6 text-center">
+            {lang === "es" ? (
+              <blockquote>
+                <em>&quot;GetBackplate opera todo</em>
+                <br />
+                lo que tu POS ignora.&quot;
+              </blockquote>
+            ) : (
+              <blockquote>
+                <em>&quot;GetBackplate runs everything</em>
+                <br />
+                your POS ignores.&quot;
+              </blockquote>
+            )}
+          </div>
+        </section>
+
         <section className="border-y border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-6 py-24 md:py-28">
           <div className="mx-auto grid max-w-[980px] gap-8 md:grid-cols-[150px_1fr] md:items-center">
             <div className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-6 text-center">
@@ -849,13 +867,13 @@ export function LandingExperience({ plans }: Props) {
 
       <footer className={`px-6 py-10 text-white ${darkMode ? "bg-[var(--gbp-bg2)]" : "bg-[var(--gbp-text)]"}`}>
         <div className="mx-auto grid max-w-[1200px] gap-3 md:grid-cols-3 md:items-center">
-          <p className="inline-flex items-center gap-1 rounded-md bg-white px-2 py-1 text-sm font-bold">
+          <p className="inline-flex items-center gap-1 text-sm font-bold">
             <span aria-hidden="true" className="relative inline-block h-6 w-2">
-              <span className="absolute left-0 top-0 h-[1px] w-1.5 bg-[#111111]" />
-              <span className="absolute left-0 bottom-0 h-[1px] w-1.5 bg-[#111111]" />
-              <span className="absolute left-0 top-0 h-full w-[1.5px] bg-[#111111]" />
+              <span className="absolute left-0 top-0 h-[1px] w-1.5 bg-white" />
+              <span className="absolute left-0 bottom-0 h-[1px] w-1.5 bg-white" />
+              <span className="absolute left-0 top-0 h-full w-[1.5px] bg-white" />
             </span>
-            <span className="text-[#111111]">Get</span>
+            <span className="text-white">Get</span>
             <span className="text-[var(--gbp-accent)]">Backplate</span>
             <span aria-hidden="true" className="relative inline-block h-6 w-2">
               <span className="absolute right-0 top-0 h-[1px] w-1.5 bg-[var(--gbp-accent)]" />
@@ -871,6 +889,27 @@ export function LandingExperience({ plans }: Props) {
       </footer>
 
       <style jsx>{`
+        .tagline-break {
+          background: linear-gradient(135deg, var(--gbp-violet) 0%, #9b82ff 50%, var(--gbp-accent) 100%);
+          padding: 76px 0;
+          text-align: center;
+          background-size: 220% 220%;
+          animation: iridescentShift 12s ease-in-out infinite;
+        }
+
+        .tagline-break blockquote {
+          font-size: clamp(26px, 4vw, 50px);
+          font-weight: 700;
+          line-height: 1.1;
+          color: #ffffff;
+          letter-spacing: -0.03em;
+        }
+
+        .tagline-break blockquote em {
+          font-style: normal;
+          opacity: 0.8;
+        }
+
         .float-badge {
           will-change: transform;
         }
@@ -896,6 +935,12 @@ export function LandingExperience({ plans }: Props) {
           55% { transform: translate3d(-1px, 1px, 0) rotate(0.1deg); }
           72% { transform: translate3d(1px, -2px, 0) rotate(-0.15deg); }
           100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+        }
+
+        @keyframes iridescentShift {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
         }
       `}</style>
     </div>
