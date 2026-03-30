@@ -516,7 +516,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                   type="button"
                   disabled={busyStatus || selectedStatus === selected.status}
                   onClick={updateEmployeeStatus}
-                  className="rounded-lg bg-[var(--gbp-text)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--gbp-accent)] disabled:opacity-60"
+                  className="rounded-lg bg-[var(--gbp-accent)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--gbp-accent-hover)] disabled:cursor-not-allowed disabled:bg-[color:color-mix(in_oklab,var(--gbp-accent)_58%,var(--gbp-surface))] disabled:text-white/85 disabled:hover:bg-[color:color-mix(in_oklab,var(--gbp-accent)_58%,var(--gbp-surface))]"
                 >
                   {busyStatus ? "Guardando..." : "Guardar estado laboral"}
                 </button>
@@ -526,7 +526,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
               <button type="button" className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]" onClick={() => downloadProfile(selected)}>Descargar</button>
               <button type="button" className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]" onClick={() => setSelectedEmployeeId(null)}>Cerrar</button>
                 {selected.recordType === "employee" ? (
-                 <Link href={`/app/employees?action=edit&employeeId=${selected.id}`} className="rounded-lg bg-[var(--gbp-text)] px-5 py-2 text-sm font-bold text-white hover:bg-[var(--gbp-accent)]">Editar</Link>
+                 <Link href={`/app/employees?action=edit&employeeId=${selected.id}`} className="rounded-lg bg-[var(--gbp-accent)] px-5 py-2 text-sm font-bold text-white hover:bg-[var(--gbp-accent-hover)]">Editar</Link>
                ) : null}
              </div>
           </div>
