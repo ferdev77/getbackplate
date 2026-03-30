@@ -8,19 +8,44 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const tokenHash = requestUrl.searchParams.get("token_hash");
+  const token = requestUrl.searchParams.get("token");
+  const email = requestUrl.searchParams.get("email");
   const type = requestUrl.searchParams.get("type");
   const org = requestUrl.searchParams.get("org");
-  const next = requestUrl.searchParams.get("next") ?? "/";
+  const next = requestUrl.searchParams.get("next") ?? (type === "recovery" ? "/auth/change-password?reason=recovery" : "/");
 
   const supabase = await createSupabaseServerClient();
+  let authErrorMessage: string | null = null;
 
   if (code) {
-    await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    authErrorMessage = error?.message ?? null;
   } else if (tokenHash && type) {
-    await supabase.auth.verifyOtp({
+    const { error } = await supabase.auth.verifyOtp({
       token_hash: tokenHash,
       type: type as "magiclink" | "recovery" | "invite" | "email",
     });
+    authErrorMessage = error?.message ?? null;
+  } else if (token && (type === "recovery" || type === "email")) {
+    const { error } = await supabase.auth.verifyOtp({
+      token,
+      email: email ?? "",
+      type,
+    });
+    authErrorMessage = error?.message ?? null;
+  }
+
+  if (authErrorMessage) {
+    const redirectOnError = new URL("/auth/forgot-password", requestUrl.origin);
+    redirectOnError.searchParams.set(
+      "error",
+      "El enlace de recuperacion expiro o no es valido. Solicita uno nuevo.",
+    );
+    if (org) {
+      redirectOnError.searchParams.set("org", org);
+    }
+
+    return NextResponse.redirect(redirectOnError);
   }
 
   if (org) {
