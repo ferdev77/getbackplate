@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -320,19 +321,15 @@ export function LandingExperience({ plans }: Props) {
     <div className="min-h-screen bg-[var(--gbp-bg)] text-[var(--gbp-text)]">
       <header id="marketing-nav" className="fixed left-0 right-0 top-0 z-50 border-b border-[var(--gbp-border)]/70 bg-[var(--gbp-bg)]/90 backdrop-blur-xl">
         <div className="mx-auto flex h-[68px] w-full max-w-[1400px] items-center justify-between px-6">
-          <Link href="/" className="inline-flex items-center gap-1 text-lg font-extrabold tracking-tight" aria-label="GetBackplate home">
-            <span aria-hidden="true" className="relative inline-block h-7 w-2">
-              <span className="absolute left-0 top-0 h-[1px] w-1.5 bg-[var(--gbp-text)]" />
-              <span className="absolute left-0 bottom-0 h-[1px] w-1.5 bg-[var(--gbp-text)]" />
-              <span className="absolute left-0 top-0 h-full w-[1.5px] bg-[var(--gbp-text)]" />
-            </span>
-            <span className="text-[var(--gbp-text)]">Get</span>
-            <span className="text-[var(--gbp-accent)]">Backplate</span>
-            <span aria-hidden="true" className="relative inline-block h-7 w-2">
-              <span className="absolute right-0 top-0 h-[1px] w-1.5 bg-[var(--gbp-accent)]" />
-              <span className="absolute right-0 bottom-0 h-[1px] w-1.5 bg-[var(--gbp-accent)]" />
-              <span className="absolute right-0 top-0 h-full w-[1.5px] bg-[var(--gbp-accent)]" />
-            </span>
+          <Link href="/" className="inline-flex items-center" aria-label="GetBackplate home">
+            <Image
+              src={darkMode ? "/getbackplate-logo-dark.svg" : "/getbackplate-logo-light.svg"}
+              alt="GetBackplate"
+              width={190}
+              height={34}
+              className="h-[34px] w-auto max-w-[190px]"
+              priority
+            />
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
             <a href="#platform" className="rounded-md px-3 py-1.5 text-sm text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">{copy.nav.platform}</a>
@@ -424,7 +421,7 @@ export function LandingExperience({ plans }: Props) {
               viewport={{ once: true, amount: 0.35 }}
             >
               <div className="mb-6 inline-flex items-center rounded-full border border-[var(--gbp-violet)]/30 bg-[var(--gbp-violet-soft)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-violet)]">{copy.hero.badge}</div>
-              <h1 className="text-5xl font-bold leading-[1.03] tracking-[-0.03em] md:text-7xl">{copy.hero.titleA}<br />{copy.hero.titleB}<br /><span className="bg-[linear-gradient(90deg,#D4531A_0%,#FF8A50_55%,#D4531A_100%)] bg-clip-text text-transparent">{copy.hero.titleC}</span></h1>
+              <h1 className="hero-title font-bold leading-[1.03] tracking-[-0.03em]">{copy.hero.titleA}<br />{copy.hero.titleB}<br /><span className="bg-[linear-gradient(90deg,#D4531A_0%,#FF8A50_55%,#D4531A_100%)] bg-clip-text text-transparent">{copy.hero.titleC}</span></h1>
               <p className="mt-6 max-w-xl text-[17px] leading-8 text-[var(--gbp-text2)]">{copy.hero.sub}</p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <button type="button" onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })} className="rounded-md bg-[var(--gbp-accent)] px-6 py-3 text-sm font-bold text-white hover:bg-[var(--gbp-accent-hover)]">{copy.hero.primary}</button>
@@ -477,7 +474,7 @@ export function LandingExperience({ plans }: Props) {
               <div className="mt-3 flex items-center justify-between rounded-lg border border-[var(--gbp-violet)]/30 bg-[var(--gbp-violet-soft)] p-3 text-sm text-[var(--gbp-text2)]"><strong className="text-[var(--gbp-text)]">{lang === "es" ? "Alerta IA:" : "AI Alert:"}</strong><span>{lang === "es" ? "3 contratos vencen en 5 días" : "3 contracts expiring in 5 days"}</span><span className="rounded-full bg-[var(--gbp-violet)] px-2 py-0.5 text-[11px] font-bold text-white">{lang === "es" ? "Ver" : "View"}</span></div>
 
               <div
-                className="float-badge float-badge-1 absolute -right-2 -top-[18px] rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text)] shadow-lg"
+                className="float-badge float-badge-1 absolute -right-2 -top-[18px] rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text)] shadow-[0_14px_30px_rgba(0,0,0,0.14)]"
                 style={{ animationPlayState: floatPaused ? "paused" : "running" }}
               >
                 <span className="mr-1 inline-block h-2 w-2 rounded-full bg-emerald-500" />
@@ -485,7 +482,7 @@ export function LandingExperience({ plans }: Props) {
               </div>
 
               <div
-                className="float-badge float-badge-2 absolute -bottom-2 -left-6 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text)] shadow-lg"
+                className="float-badge float-badge-2 absolute -bottom-2 -left-6 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text)] shadow-[0_14px_30px_rgba(0,0,0,0.14)]"
                 style={{ animationPlayState: floatPaused ? "paused" : "running" }}
               >
                 <span className="mr-1 inline-block h-2 w-2 rounded-full bg-[var(--gbp-accent)]" />
@@ -867,19 +864,8 @@ export function LandingExperience({ plans }: Props) {
 
       <footer className={`px-6 py-10 text-white ${darkMode ? "bg-[var(--gbp-bg2)]" : "bg-[var(--gbp-text)]"}`}>
         <div className="mx-auto grid max-w-[1200px] gap-3 md:grid-cols-3 md:items-center">
-          <p className="inline-flex items-center gap-1 text-sm font-bold">
-            <span aria-hidden="true" className="relative inline-block h-6 w-2">
-              <span className="absolute left-0 top-0 h-[1px] w-1.5 bg-white" />
-              <span className="absolute left-0 bottom-0 h-[1px] w-1.5 bg-white" />
-              <span className="absolute left-0 top-0 h-full w-[1.5px] bg-white" />
-            </span>
-            <span className="text-white">Get</span>
-            <span className="text-[var(--gbp-accent)]">Backplate</span>
-            <span aria-hidden="true" className="relative inline-block h-6 w-2">
-              <span className="absolute right-0 top-0 h-[1px] w-1.5 bg-[var(--gbp-accent)]" />
-              <span className="absolute right-0 bottom-0 h-[1px] w-1.5 bg-[var(--gbp-accent)]" />
-              <span className="absolute right-0 top-0 h-full w-[1.5px] bg-[var(--gbp-accent)]" />
-            </span>
+          <p className="inline-flex items-center">
+            <Image src="/getbackplate-logo-footer.svg" alt="GetBackplate" width={160} height={22} className="h-[22px] w-auto" />
           </p>
           <p className="text-center text-xs italic text-white/60">
             {lang === "es" ? "Opera tu restaurante. No solo tu caja." : "Run your restaurant. Not just your register."}
@@ -889,6 +875,10 @@ export function LandingExperience({ plans }: Props) {
       </footer>
 
       <style jsx>{`
+        .hero-title {
+          font-size: clamp(56px, 8.2vw, 92px);
+        }
+
         .tagline-break {
           background: linear-gradient(135deg, var(--gbp-violet) 0%, #9b82ff 50%, var(--gbp-accent) 100%);
           padding: 76px 0;
@@ -914,33 +904,34 @@ export function LandingExperience({ plans }: Props) {
           will-change: transform;
         }
         .float-badge-1 {
-          animation: heroFloatOne 7.2s ease-in-out infinite;
+          animation: heroFloatOne 3.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
         }
         .float-badge-2 {
-          animation: heroFloatTwo 8.1s ease-in-out 0.9s infinite;
+          animation: heroFloatTwo 3.9s cubic-bezier(0.22, 1, 0.36, 1) 1.3s infinite;
         }
         @keyframes heroFloatOne {
-          0% { transform: translate3d(0, 0, 0) rotate(0deg); }
-          16% { transform: translate3d(1px, -5px, 0) rotate(-0.25deg); }
-          32% { transform: translate3d(2px, -8px, 0) rotate(-0.45deg); }
-          48% { transform: translate3d(1px, -4px, 0) rotate(-0.2deg); }
-          64% { transform: translate3d(0, 0, 0) rotate(0deg); }
-          82% { transform: translate3d(-1px, 2px, 0) rotate(0.15deg); }
-          100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+          0%, 100% { transform: translateY(0px); }
+          45% { transform: translateY(-4px); }
+          70% { transform: translateY(-6px); }
         }
         @keyframes heroFloatTwo {
-          0% { transform: translate3d(0, 0, 0) rotate(0deg); }
-          20% { transform: translate3d(-2px, 2px, 0) rotate(0.2deg); }
-          38% { transform: translate3d(-2px, 5px, 0) rotate(0.35deg); }
-          55% { transform: translate3d(-1px, 1px, 0) rotate(0.1deg); }
-          72% { transform: translate3d(1px, -2px, 0) rotate(-0.15deg); }
-          100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+          0%, 100% { transform: translateY(0px); }
+          40% { transform: translateY(-3px); }
+          68% { transform: translateY(-5px); }
         }
 
         @keyframes iridescentShift {
           0% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
           100% { background-position: 0% 50%; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .float-badge-1,
+          .float-badge-2,
+          .tagline-break {
+            animation: none !important;
+          }
         }
       `}</style>
     </div>
