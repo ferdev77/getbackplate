@@ -287,7 +287,12 @@ Sí. Stripe cobra **2.9% + 30¢ por transacción exitosa** en EEUU. No hay cuota
 En EEUU, los pagos se depositan en tu cuenta bancaria en un plazo de **2 días hábiles**.
 
 ### ¿Puedo ofrecer pruebas gratuitas (free trial)?
-Sí. Cuando creás el precio en Stripe, podés agregar un **free trial** de X días. Avisame si querés activar esto y por cuántos días.
+Sí. En GetBackplate el trial se controla desde la plataforma:
+
+- Duracion fija: **30 dias**.
+- Aplica para tenant elegible en cualquier plan.
+- El cliente carga tarjeta al suscribirse.
+- El primer cobro se realiza al terminar el trial.
 
 ### ¿Puedo cambiar los precios después?
 Sí. Podés crear nuevos precios en cualquier momento. Los clientes existentes mantienen su precio original salvo que migres sus suscripciones manualmente.

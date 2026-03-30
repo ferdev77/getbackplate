@@ -1,7 +1,7 @@
 # Plan de Implementacion - Trial de 30 Dias (Cualquier Plan)
 
 Fecha: 2026-03-30  
-Estado: Propuesto para ejecucion  
+Estado: Ejecutado  
 Alcance: Plataforma Company (tenant billing + accesos por modulos)
 
 ---
@@ -234,3 +234,24 @@ Queda definido para esta implementacion:
 - **Trial de 30 dias para cualquier plan**.
 - **Sin extender trial por cambio de plan**.
 - **Un solo trial por tenant**.
+
+---
+
+## 16) Implementacion aplicada (estado real)
+
+Quedo implementado y funcional con este comportamiento:
+
+- El trial de 30 dias se aplica en el flujo de checkout para tenant elegible.
+- Elegibilidad: tenant sin suscripcion activa y sin historial previo en `subscriptions`.
+- Si el tenant ya tuvo suscripcion, no recibe trial nuevamente.
+- Si el tenant ya tiene suscripcion activa/trialing y cambia plan, no se reinicia trial.
+- Se registra auditoria de creacion de checkout con metadata de trial aplicado.
+- En panel empresa se muestra badge lateral de trial activo con dias restantes.
+
+Archivos clave implementados:
+
+- `web/src/modules/billing/services/trial-policy.service.ts`
+- `web/src/app/api/stripe/checkout/route.ts`
+- `web/src/modules/organizations/queries.ts`
+- `web/src/app/(company)/app/layout.tsx`
+- `web/src/shared/ui/company-shell.tsx`
