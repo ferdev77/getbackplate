@@ -14,6 +14,9 @@ import {
 } from "@/shared/lib/tenant-selection";
 import { normalizeOrganizationId } from "@/shared/lib/tenant-selection-shared";
 import { resolveOrganizationIdFromAuthHint } from "@/shared/lib/tenant-auth-branding";
+import { getDefaultEmailBranding, getTenantEmailBranding } from "@/shared/lib/email-branding";
+import { sendEmail } from "@/shared/lib/brevo";
+import { passwordRecoveryTemplate } from "@/shared/lib/email-templates/recovery";
 
 function getEmailDomain(email: string) {
   const parts = email.split("@");
@@ -329,26 +332,58 @@ export async function requestPasswordRecoveryAction(formData: FormData) {
   const organizationIdHint = normalizeOrganizationId(
     String(formData.get("organization_id_hint") ?? ""),
   );
+  const resolvedOrganizationId = await resolveOrganizationIdFromAuthHint(organizationIdHint);
 
   if (!email) {
     redirect(buildForgotPasswordPath({ error: "Ingresa un email valido", organizationIdHint }));
   }
 
-  const supabase = await createSupabaseServerClient();
+  const admin = createSupabaseAdminClient();
   const appUrl = getAppUrl();
   const nextPath = "/auth/change-password?reason=recovery";
-  const redirectTo = appUrl
-    ? `${appUrl}/auth/callback?next=${encodeURIComponent(nextPath)}`
-    : undefined;
+  const callbackPath = `/auth/callback?next=${encodeURIComponent(nextPath)}${resolvedOrganizationId ? `&org=${encodeURIComponent(resolvedOrganizationId)}` : ""}`;
+  const redirectTo = appUrl ? `${appUrl}${callbackPath}` : undefined;
 
-  const { error } = await supabase.auth.resetPasswordForEmail(
+  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+    type: "recovery",
     email,
-    redirectTo ? { redirectTo } : undefined,
-  );
+    options: redirectTo ? { redirectTo } : undefined,
+  });
 
-  if (error) {
+  const actionLink = linkData?.properties?.action_link;
+
+  if (linkError || !actionLink) {
+    const message = (linkError?.message || "").toLowerCase();
+    if (message.includes("user") && (message.includes("not found") || message.includes("no user"))) {
+      redirect(buildForgotPasswordPath({
+        status: "success",
+        message: "Te enviamos un enlace para restablecer tu contrasena",
+        organizationIdHint,
+      }));
+    }
+
     redirect(buildForgotPasswordPath({
-      error: `No se pudo enviar el correo de recuperacion: ${error.message}`,
+      error: `No se pudo preparar el enlace de recuperacion: ${linkError?.message || "intenta nuevamente"}`,
+      organizationIdHint,
+    }));
+  }
+
+  const branding = resolvedOrganizationId
+    ? await getTenantEmailBranding(resolvedOrganizationId)
+    : getDefaultEmailBranding();
+
+  const mailResult = await sendEmail({
+    to: [{ email }],
+    subject: `Restablece tu contrasena en ${branding.companyName || "GetBackplate"}`,
+    htmlContent: passwordRecoveryTemplate({
+      recoveryUrl: actionLink,
+      branding,
+    }),
+  });
+
+  if (!mailResult.ok) {
+    redirect(buildForgotPasswordPath({
+      error: `No se pudo enviar el correo de recuperacion: ${mailResult.error}`,
       organizationIdHint,
     }));
   }
