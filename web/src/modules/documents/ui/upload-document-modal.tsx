@@ -122,7 +122,7 @@ export function UploadDocumentModal({
                   <p className="text-3xl">📂</p>
                   <p className="mt-2 text-[15px] font-bold text-[var(--gbp-text)]">Arrastra tu archivo aquí</p>
                   <p className="mt-1 text-xs text-[var(--gbp-text2)]">o haz clic para seleccionar desde tu computadora</p>
-                  <span className="mt-4 inline-flex rounded-lg bg-[var(--gbp-text)] px-3 py-2 text-xs font-bold text-white">Seleccionar archivo</span>
+                  <span className="mt-4 inline-flex rounded-lg bg-[var(--gbp-accent)] px-3 py-2 text-xs font-bold text-white">Seleccionar archivo</span>
                   <p className="mt-3 text-[11px] text-[var(--gbp-muted)]">PDF, DOCX, XLSX · Máx. 10 MB</p>
                   {selectedFileName ? <p className="mt-2 truncate text-xs font-semibold text-[var(--gbp-text)]">Archivo: {selectedFileName}</p> : null}
                   <input name="file" type="file" required className="sr-only" onChange={(event) => setSelectedFileName(event.target.files?.[0]?.name ?? "")} />

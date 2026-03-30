@@ -47,7 +47,7 @@ export default async function CompanyUsersPage({ searchParams }: CompanyUsersPag
             <p className="text-sm text-[var(--gbp-text2)]">Gestión de accesos administrativos, credenciales y permisos del sistema.</p>
           </div>
           <div className="flex gap-2">
-            <Link href="/app/users?action=create-user" className="inline-flex items-center gap-1 rounded-lg bg-[var(--gbp-text)] px-3 py-2 text-sm font-semibold text-white hover:bg-[var(--gbp-accent)]"><UserPlus className="h-4 w-4" /> Nuevo Administrador</Link>
+            <Link href="/app/users?action=create-user" className="inline-flex items-center gap-1 rounded-lg bg-[var(--gbp-accent)] px-3 py-2 text-sm font-semibold text-white hover:bg-[var(--gbp-accent-hover)]"><UserPlus className="h-4 w-4" /> Nuevo Administrador</Link>
           </div>
         </div>
       </section>
