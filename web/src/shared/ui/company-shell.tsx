@@ -76,6 +76,11 @@ type CompanyShellProps = {
   enabledModules: string[];
   branchOptions: Array<{ id: string; name: string }>;
   impersonationMode?: boolean;
+  trialStatus?: {
+    isActive: boolean;
+    daysRemaining: number | null;
+    endsAt: string | null;
+  };
   children: React.ReactNode;
 };
 
@@ -270,6 +275,7 @@ export function CompanyShell({
   enabledModules,
   branchOptions,
   impersonationMode = false,
+  trialStatus,
   children,
 }: CompanyShellProps) {
   const brandingName = customBrandingEnabled ? (organizationLabel || "Empresa") : "GetBackplate";
@@ -539,6 +545,15 @@ export function CompanyShell({
     ? (isDarkTheme ? (companyLogoDarkUrl || companyLogoUrl) : companyLogoUrl)
     : "";
   const palette = THEME_PALETTES[normalizedTheme] ?? THEME_PALETTES.default;
+  const trialEndsLabel = useMemo(() => {
+    if (!trialStatus?.endsAt) return null;
+    const date = new Date(trialStatus.endsAt);
+    if (Number.isNaN(date.getTime())) return null;
+    return new Intl.DateTimeFormat("es-ES", {
+      day: "2-digit",
+      month: "short",
+    }).format(date);
+  }, [trialStatus?.endsAt]);
 
   const initials =
     profileName
@@ -780,7 +795,8 @@ export function CompanyShell({
             {!collapsed ? <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--gbp-muted)]">Administrador</p> : null}
           </div>
 
-          <nav className="min-h-0 flex-1 overflow-y-auto py-2">
+          <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto py-2">
+            <div>
             {visibleSections.map((section, idx) => (
               <div key={section.label}>
                 {!collapsed ? (
@@ -817,6 +833,26 @@ export function CompanyShell({
                 {idx < visibleSections.length - 1 ? <div className={`mx-4 mt-2 h-px ${isDarkTheme ? "bg-white/10" : "bg-black/10"} ${collapsed ? "mx-2" : ""}`} /> : null}
               </div>
             ))}
+            </div>
+
+            {!collapsed && trialStatus?.isActive ? (
+              <div className="mt-auto px-4 pb-2 pt-3">
+                <div className={`relative overflow-hidden rounded-xl border px-3 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.16)] ${isDarkTheme ? "border-[var(--gbp-accent)]/45 bg-[linear-gradient(145deg,color-mix(in_oklab,var(--gbp-accent)_18%,transparent),color-mix(in_oklab,var(--gbp-surface)_88%,black))]" : "border-[var(--gbp-accent)]/35 bg-[linear-gradient(145deg,var(--gbp-accent-glow),color-mix(in_oklab,var(--gbp-surface)_95%,white))]"}`}>
+                  <div className="absolute -right-6 -top-6 h-16 w-16 rounded-full bg-[var(--gbp-accent)]/20 blur-2xl" aria-hidden="true" />
+                  <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-accent)]"><Sparkles className="h-3 w-3" />Periodo de prueba</p>
+                  <p className="mt-1 text-xs font-semibold text-[var(--gbp-text)]">
+                    {typeof trialStatus.daysRemaining === "number"
+                      ? trialStatus.daysRemaining <= 0
+                        ? "Finaliza hoy"
+                        : `${trialStatus.daysRemaining} dias restantes`
+                      : "Activo"}
+                  </p>
+                  {trialEndsLabel ? (
+                    <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">Vence el {trialEndsLabel}</p>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
 
           </nav>
 

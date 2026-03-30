@@ -3,6 +3,7 @@ import type Stripe from 'stripe';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/client/server';
 import { stripe } from '@/infrastructure/stripe/client';
 import { sendPlanChangeDecisionEmail } from '@/modules/billing/services/plan-change-notifications.service';
+import { resolveTrialPolicyForOrganization } from '@/modules/billing/services/trial-policy.service';
 import { syncOrganizationPlan } from '@/modules/organizations/services/organization.service';
 import { assertCompanyManagerModuleApi } from '@/shared/lib/access';
 import { isSuperadminImpersonating } from '@/shared/lib/impersonation';
@@ -239,6 +240,12 @@ export async function POST(request: Request) {
     // NEW SUBSCRIPTION PATH: No active subscription yet
     // Create a fresh Stripe Checkout Session
     // ─────────────────────────────────────────────────────────
+    const trialPolicy = await resolveTrialPolicyForOrganization({
+      supabase,
+      organizationId,
+      hasActiveSubscription: Boolean(existingStripeSubscriptionId),
+    });
+
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',
       payment_method_types: ['card'],
@@ -252,6 +259,8 @@ export async function POST(request: Request) {
         userId: user?.id || '',
         planId: planId || '',
         billingPeriod: requestedPeriod,
+        trialApplied: trialPolicy.eligible ? 'true' : 'false',
+        trialDays: trialPolicy.eligible ? String(trialPolicy.trialDays) : '0',
       },
       subscription_data: {
         metadata: {
@@ -259,7 +268,10 @@ export async function POST(request: Request) {
           userId: user?.id || '',
           planId: planId || '',
           billingPeriod: requestedPeriod,
+          trialApplied: trialPolicy.eligible ? 'true' : 'false',
+          trialDays: trialPolicy.eligible ? String(trialPolicy.trialDays) : '0',
         },
+        ...(trialPolicy.eligible ? { trial_period_days: trialPolicy.trialDays } : {}),
       },
     };
 
@@ -271,6 +283,24 @@ export async function POST(request: Request) {
     }
 
     const session = await stripe.checkout.sessions.create(sessionConfig);
+
+    await logAuditEvent({
+      action: 'organization.billing.checkout.created',
+      entityType: 'stripe_checkout',
+      organizationId,
+      eventDomain: 'settings',
+      outcome: 'success',
+      severity: 'low',
+      metadata: {
+        actor_user_id: user.id,
+        target_plan_id: planId,
+        target_price_id: targetPriceId,
+        billing_period: requestedPeriod,
+        trial_applied: trialPolicy.eligible,
+        trial_days: trialPolicy.trialDays,
+      },
+    });
+
     return NextResponse.json({ sessionId: session.id, url: session.url });
 
   } catch (error: unknown) {

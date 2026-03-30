@@ -93,3 +93,16 @@ export const getActiveBranches = cache(async function getActiveBranches(organiza
     .order("name");
   return data ?? [];
 });
+
+export const getLatestSubscriptionForOrganization = cache(async function getLatestSubscriptionForOrganization(organizationId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("subscriptions")
+    .select("status, current_period_end")
+    .eq("organization_id", organizationId)
+    .order("current_period_end", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+
+  return data;
+});
