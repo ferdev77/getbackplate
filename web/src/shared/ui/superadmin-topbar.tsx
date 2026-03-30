@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Menu, X, LogOut, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { logoutAction } from "@/modules/auth/actions";
+import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
 
 const ITEMS = [
   { href: "/superadmin/dashboard", label: "Dashboard" },
@@ -29,10 +30,8 @@ export function SuperadminTopbar() {
     <>
       <div className="flex items-center gap-8">
         <Link href="/superadmin/dashboard" className="flex items-center gap-2 group mr-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--gbp-accent)] text-white shadow-[var(--gbp-shadow-accent)] transition-transform group-hover:scale-105">
-            <span className="text-lg font-bold italic">S</span>
-          </div>
-          <span className="hidden text-lg font-bold tracking-tight text-foreground sm:block">Superadmin</span>
+          <GetBackplateLogo variant="light" width={170} height={30} className="h-[24px] w-auto" priority />
+          <span className="hidden rounded-full border border-[var(--gbp-violet)]/35 bg-[var(--gbp-violet-soft)] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-[var(--gbp-violet)] sm:block">Superadmin</span>
         </Link>
 
         {/* Desktop Navigation */}

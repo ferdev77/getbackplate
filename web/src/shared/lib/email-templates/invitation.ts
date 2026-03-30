@@ -27,14 +27,13 @@ type InitialInviteProps = {
 };
 
 function renderEmailBrandingHeader(branding: TenantEmailBranding | undefined) {
-  if (!branding?.isCustom) return "";
-
-  const safeCompany = escapeHtml(branding.companyName || "Empresa");
-  const safeLogo = branding.logoUrl ? escapeHtml(branding.logoUrl) : "";
+  const safeCompany = escapeHtml(branding?.companyName || "GetBackplate");
+  const defaultLogo = `${(process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://getbackplate.com").replace(/\/$/, "")}/getbackplate-logo-light.svg`;
+  const safeLogo = branding?.logoUrl ? escapeHtml(branding.logoUrl) : defaultLogo;
 
   return `
     <div style="margin:0 0 18px 0;padding:12px 14px;border:1px solid #e8e8e8;border-radius:10px;background:#fafafa;">
-      ${safeLogo ? `<img src="${safeLogo}" alt="Logo ${safeCompany}" style="max-height:44px;width:auto;display:block;" />` : `<p style="margin:0;font-weight:700;color:#171311;">${safeCompany}</p>`}
+      <img src="${safeLogo}" alt="Logo ${safeCompany}" style="max-height:44px;width:auto;display:block;" />
     </div>
   `;
 }

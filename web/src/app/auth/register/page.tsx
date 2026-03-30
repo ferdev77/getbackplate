@@ -3,6 +3,7 @@ import Link from "next/link";
 import { registerPublicAction } from "@/modules/auth/public-actions";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import { SlideUp } from "@/shared/ui/animations";
+import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
 
 export const metadata: Metadata = {
   title: "Crear Cuenta | GetBackplate",
@@ -26,6 +27,9 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
     <main className="flex min-h-screen items-center justify-center bg-background px-6 py-10">
       <SlideUp className="w-full max-w-md">
         <section className="rounded-2xl border border-line bg-panel p-8 shadow-[0_8px_30px_rgba(0,0,0,0.05)]">
+          <div className="mb-4 flex justify-center">
+            <GetBackplateLogo variant="light" width={230} height={42} className="h-[36px] w-auto" priority />
+          </div>
           <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-brand uppercase">
             Únete a GetBackplate
           </p>

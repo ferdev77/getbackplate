@@ -32,8 +32,14 @@ type PlanChangeDecisionProps = {
 };
 
 function renderBrandingHeader(branding?: TenantEmailBranding) {
+  const defaultLogo = `${(process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://getbackplate.com").replace(/\/$/, "")}/getbackplate-logo-light.svg`;
+
   if (!branding?.isCustom) {
-    return `<p style="margin:0 0 6px 0;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;font-weight:700;">GetBackplate Billing</p>`;
+    return `
+      <div style="margin:0 0 10px 0;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;background:#f9fafb;display:inline-block;">
+        <img src="${defaultLogo}" alt="GetBackplate" style="max-height:42px;width:auto;display:block;" />
+      </div>
+    `;
   }
 
   const logo = branding.logoUrl
