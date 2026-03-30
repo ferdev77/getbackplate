@@ -5,6 +5,7 @@ import { SubmitButton } from "@/shared/ui/submit-button";
 import { SlideUp } from "@/shared/ui/animations";
 import { TagPill } from "@/shared/ui/tag-pill";
 import { ThemeToggle } from "@/shared/ui/theme-toggle";
+import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
 
 export const metadata: Metadata = {
   title: "Cambiar contrasena | GetBackplate",
@@ -26,6 +27,9 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
           <div className="mb-4 flex items-center justify-between gap-2">
             <TagPill variant="violet">Seguridad</TagPill>
             <ThemeToggle showLabel={false} />
+          </div>
+          <div className="mb-5 flex justify-center">
+            <GetBackplateLogo variant="light" width={230} height={42} className="h-[36px] w-auto" priority />
           </div>
           <h1 className="mb-1 text-2xl font-bold tracking-tight">Cambiar contrasena</h1>
           <p className="mb-6 text-sm text-[var(--gbp-text2)]">

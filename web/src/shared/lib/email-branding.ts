@@ -6,11 +6,16 @@ export type TenantEmailBranding = {
   logoUrl: string | null;
 };
 
+function resolveDefaultBrandLogoUrl() {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://getbackplate.com";
+  return `${appUrl.replace(/\/$/, "")}/getbackplate-logo-light.svg`;
+}
+
 export function getDefaultEmailBranding(): TenantEmailBranding {
   return {
     isCustom: false,
     companyName: "GetBackplate",
-    logoUrl: null,
+    logoUrl: resolveDefaultBrandLogoUrl(),
   };
 }
 
@@ -34,7 +39,7 @@ export async function getTenantEmailBranding(organizationId: string): Promise<Te
   const logoUrl =
     isCustom && typeof settingsData?.company_logo_url === "string" && settingsData.company_logo_url.trim()
       ? settingsData.company_logo_url.trim()
-      : null;
+      : resolveDefaultBrandLogoUrl();
 
   return {
     isCustom,

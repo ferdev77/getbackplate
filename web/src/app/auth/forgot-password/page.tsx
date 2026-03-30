@@ -6,6 +6,7 @@ import { SubmitButton } from "@/shared/ui/submit-button";
 import { SlideUp } from "@/shared/ui/animations";
 import { TagPill } from "@/shared/ui/tag-pill";
 import { ThemeToggle } from "@/shared/ui/theme-toggle";
+import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
 
 export const metadata: Metadata = {
   title: "Recuperar contrasena | GetBackplate",
@@ -27,6 +28,10 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
           <div className="mb-4 flex items-center justify-between gap-2">
             <TagPill>Recuperacion</TagPill>
             <ThemeToggle showLabel={false} />
+          </div>
+
+          <div className="mb-5 flex justify-center">
+            <GetBackplateLogo variant="light" width={230} height={42} className="h-[36px] w-auto" priority />
           </div>
 
           {tenantBranding ? (

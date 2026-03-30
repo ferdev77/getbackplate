@@ -27,6 +27,7 @@ import {
   Trash2
 } from "lucide-react";
 import { FloatingAiAssistant } from "@/shared/ui/floating-ai-assistant";
+import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
 import { toast } from "sonner";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 
@@ -772,17 +773,10 @@ export function CompanyShell({
                   )}
                 </div>
               ) : (
-                <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
-                  {effectiveCompanyLogoUrl ? (
-                    <Image src={effectiveCompanyLogoUrl} alt={`Logo de ${brandingName}`} width={36} height={36} className="h-full w-full object-contain" />
-                  ) : (
-                    <span className="grid h-full w-full place-items-center bg-[var(--gbp-accent)] text-[10px] font-bold text-white">{(brandingName || "GB").slice(0, 2).toUpperCase()}</span>
-                  )}
+                <div className={`${collapsed ? "mx-auto" : ""}`}>
+                  <GetBackplateLogo variant={isDarkTheme ? "dark" : "light"} width={220} height={40} className={`${collapsed ? "h-[20px]" : "h-[28px]"} w-auto`} />
                 </div>
               )}
-              {!collapsed && !customBrandingEnabled ? (
-                <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{brandingName}</p>
-              ) : null}
               <button
                 type="button"
                 onClick={() => setCollapsed((v) => !v)}
@@ -930,7 +924,13 @@ export function CompanyShell({
           <div className="flex min-h-[calc(100vh-60px)] flex-col">
             <div className="flex-1">{children}</div>
             <footer className={`mt-auto flex items-center justify-between border-t px-6 py-4 text-[11px] sm:px-9 ${isDarkTheme ? "border-white/10 text-white/60" : "border-black/10 text-[var(--gbp-muted)]"}`} style={{ background: palette.sidebarGradient }}>
-              <p className={`font-semibold tracking-[0.02em] ${isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}`}>{brandingName}</p>
+              <p className="inline-flex items-center">
+                {customBrandingEnabled ? (
+                  <span className={`font-semibold tracking-[0.02em] ${isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}`}>{brandingName}</span>
+                ) : (
+                  <GetBackplateLogo variant={isDarkTheme ? "footer" : "light"} width={150} height={22} className="h-[20px] w-auto" />
+                )}
+              </p>
               <p>© 2026 {brandingName}</p>
             </footer>
           </div>
@@ -1356,14 +1356,7 @@ export function CompanyShell({
                 </div>
               ) : (
                 <div className="mb-1 flex items-center gap-2">
-                  <span className={`grid h-9 w-9 place-items-center overflow-hidden rounded-md border ${isDarkTheme ? "border-white/15 bg-white/5" : "border-black/10 bg-white"}`}>
-                    {effectiveCompanyLogoUrl ? (
-                      <Image src={effectiveCompanyLogoUrl} alt={`Logo de ${brandingName}`} width={36} height={36} className="h-full w-full object-contain" />
-                    ) : (
-                      <span className="grid h-full w-full place-items-center bg-[var(--gbp-text)] text-[10px] font-bold text-white">{(brandingName || "GB").slice(0, 2).toUpperCase()}</span>
-                    )}
-                  </span>
-                  <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{brandingName}</p>
+                  <GetBackplateLogo variant={isDarkTheme ? "dark" : "light"} width={220} height={40} className="h-[26px] w-auto" />
                 </div>
               )}
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--gbp-muted)]">Administrador</p>
