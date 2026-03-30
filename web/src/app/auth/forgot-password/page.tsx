@@ -25,7 +25,7 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
   return (
     <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_var(--gbp-surface)_0%,_var(--gbp-bg)_48%,_var(--gbp-bg2)_100%)] px-6 py-10">
       <SlideUp className="w-full max-w-md">
-        <section className="rounded-[var(--gbp-radius-3xl)] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-8 shadow-[var(--gbp-shadow-lg)]">
+        <section className="rounded-[var(--gbp-radius-3xl)] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-8 text-[var(--gbp-text)] shadow-[var(--gbp-shadow-lg)]">
           <div className="mb-4 flex items-center justify-between gap-2">
             <TagPill>Recuperacion</TagPill>
             <ThemeToggle showLabel={false} />
@@ -85,7 +85,7 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
           <form action={requestPasswordRecoveryAction} className="space-y-4">
             <input type="hidden" name="organization_id_hint" value={organizationIdHint} />
             <div>
-              <label htmlFor="email" className="mb-1 block text-sm font-medium">
+              <label htmlFor="email" className="mb-1 block text-sm font-medium text-[var(--gbp-text)]">
                 Email
               </label>
               <input
@@ -93,7 +93,7 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
                 name="email"
                 type="email"
                 required
-                className="w-full rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm outline-none ring-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] transition focus:ring-2"
+                className="auth-input w-full rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none ring-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] placeholder:text-[var(--gbp-muted)] transition focus:ring-2"
                 placeholder="admin@empresa.com"
               />
             </div>
