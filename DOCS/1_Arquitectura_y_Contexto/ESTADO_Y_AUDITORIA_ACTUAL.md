@@ -54,4 +54,27 @@ Actualmente NO HACE FALTA hacer nada apremiante antes de lanzar. Lo que sigue es
 3. **Validación de Plan-Limits API:** Considerar extender las comprobaciones contra el módulo "AI" (`api/company/ai`) para interceptar intentos si el Tenant en cuestión quemó su límite del mes del SaaS.
 
 ---
+
+## 5. 💳 Estado Billing/Trial (Actualizado)
+
+Se encuentra implementado y operativo el flujo de prueba para suscripciones Stripe con estas reglas:
+
+* **Trial de 30 días para cualquier plan** en tenant elegible.
+* **Un solo trial por tenant** (si ya tuvo historial de suscripción, no reaplica trial).
+* **Cambio de plan durante trial no extiende ni reinicia** el período de prueba.
+* **Tarjeta obligatoria al suscribirse** vía Checkout.
+* **Cobro diferido al finalizar los 30 días** cuando el trial fue aplicado.
+
+### Visibilidad en UI (Panel Empresa)
+* Se muestra un **badge de "Periodo de prueba"** en el sidebar izquierdo (al fondo del bloque de navegación), con días restantes o "Finaliza hoy".
+
+### Implementación en código (referencia)
+* `web/src/modules/billing/services/trial-policy.service.ts`
+* `web/src/app/api/stripe/checkout/route.ts`
+* `web/src/modules/organizations/queries.ts`
+* `web/src/app/(company)/app/layout.tsx`
+* `web/src/shared/ui/company-shell.tsx`
+
+---
+
 *Fin del reporte.*
