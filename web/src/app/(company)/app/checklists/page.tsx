@@ -25,13 +25,12 @@ type CompanyChecklistsPageProps = {
   }>;
 };
 
-const DARK_TEXT = "[.theme-dark-pro_&]:text-[var(--gbp-text)]";
-const DARK_MUTED = "[.theme-dark-pro_&]:text-[var(--gbp-text2)]";
-const DARK_CARD = "[.theme-dark-pro_&]:border-[var(--gbp-border)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)]";
-const DARK_CARD_SOFT = "[.theme-dark-pro_&]:border-[var(--gbp-border)] [.theme-dark-pro_&]:bg-[var(--gbp-bg)]";
-const DARK_GHOST = "[.theme-dark-pro_&]:border-[var(--gbp-border2)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)] [.theme-dark-pro_&]:text-[var(--gbp-text2)] [.theme-dark-pro_&]:hover:bg-[var(--gbp-surface2)]";
-const DARK_PRIMARY = "[.theme-dark-pro_&]:bg-[var(--gbp-accent)] [.theme-dark-pro_&]:text-white [.theme-dark-pro_&]:hover:bg-[var(--gbp-accent-hover)]";
-const ACTION_BTN_NEUTRAL = `inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] ${DARK_GHOST}`;
+const TEXT_STRONG = "text-[var(--gbp-text)]";
+const TEXT_MUTED = "text-[var(--gbp-text2)]";
+const CARD = "border-[var(--gbp-border)] bg-[var(--gbp-surface)]";
+const CARD_SOFT = "border-[var(--gbp-border)] bg-[var(--gbp-bg)]";
+const BTN_GHOST = "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
+const ACTION_BTN_NEUTRAL = `inline-flex h-7 w-7 items-center justify-center rounded-md border ${BTN_GHOST}`;
 const ACTION_BTN_PREVIEW = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)] hover:bg-[color:color-mix(in_oklab,var(--gbp-success)_18%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-success)_45%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-success-soft)] [.theme-dark-pro_&]:text-[var(--gbp-success)]";
 const ACTION_BTN_DANGER = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] text-[var(--gbp-error)] hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_16%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-error)_45%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-error-soft)] [.theme-dark-pro_&]:text-[var(--gbp-error)]";
 
@@ -255,45 +254,45 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
       <SlideUp>
-        <section className={`mb-5 rounded-2xl border border-[#e7e0dc] bg-[#fffdfa] p-6 ${DARK_CARD}`}>
+        <section className={`mb-5 rounded-2xl border p-6 ${CARD_SOFT}`}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className={`text-[11px] font-semibold tracking-[0.14em] text-[#9d948f] uppercase ${DARK_MUTED}`}>Operacion diaria</p>
-              <h1 className={`mt-1 text-2xl font-bold tracking-tight ${DARK_TEXT}`}>Mis Checklists</h1>
-              <p className={`mt-1 text-sm text-[#67605b] ${DARK_MUTED}`}>Replica funcional del tablero final: plantillas, ejecuciones e incidencias.</p>
+              <p className={`text-[11px] font-semibold tracking-[0.14em] uppercase ${TEXT_MUTED}`}>Operacion diaria</p>
+              <h1 className={`mt-1 text-2xl font-bold tracking-tight ${TEXT_STRONG}`}>Mis Checklists</h1>
+              <p className={`mt-1 text-sm ${TEXT_MUTED}`}>Replica funcional del tablero final: plantillas, ejecuciones e incidencias.</p>
             </div>
-            <Link href="/app/checklists?action=create" className={`inline-flex items-center gap-1 rounded-lg bg-[#111] px-3 py-2 text-sm font-semibold text-white hover:bg-[#c0392b] ${DARK_PRIMARY}`}><ClipboardPlus className="h-4 w-4" /> Nuevo Checklist</Link>
+            <Link href="/app/checklists?action=create" className="inline-flex items-center gap-1 rounded-lg bg-[var(--gbp-text)] px-3 py-2 text-sm font-semibold text-white hover:bg-[var(--gbp-accent)]"><ClipboardPlus className="h-4 w-4" /> Nuevo Checklist</Link>
           </div>
         </section>
       </SlideUp>
 
       <div className="mb-5 grid gap-3 sm:grid-cols-4">
         <div className="h-full">
-          <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Total Checklists</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{totalTemplates}</p></article>
+          <article className={`h-full rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Total Checklists</p><p className={`mt-1 text-2xl font-bold ${TEXT_STRONG}`}>{totalTemplates}</p></article>
         </div>
         <div className="h-full">
-          <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Activos hoy</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{activeTemplates}</p></article>
+          <article className={`h-full rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Activos hoy</p><p className={`mt-1 text-2xl font-bold ${TEXT_STRONG}`}>{activeTemplates}</p></article>
         </div>
         <div className="h-full">
-          <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Completados</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{completed}</p></article>
+          <article className={`h-full rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Completados</p><p className={`mt-1 text-2xl font-bold ${TEXT_STRONG}`}>{completed}</p></article>
         </div>
         <div className="h-full">
-          <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Pendientes</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{pending}</p></article>
+          <article className={`h-full rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Pendientes</p><p className={`mt-1 text-2xl font-bold ${TEXT_STRONG}`}>{pending}</p></article>
         </div>
       </div>
 
       <SlideUp delay={0.1}>
-        <form className={`mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#e7e0dc] bg-white p-3 ${DARK_CARD}`} method="get">
-          <input name="q" defaultValue={q} className={`h-[34px] w-[240px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs ${DARK_GHOST}`} placeholder="Buscar checklist..." />
-          <select name="type" defaultValue={typeFilter} className={`h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs ${DARK_GHOST}`}><option value="">Todos los tipos</option><option value="opening">Apertura</option><option value="closing">Cierre</option><option value="prep">Prep</option><option value="custom">Custom</option></select>
-          <select name="loc" defaultValue={locFilter} className={`h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs ${DARK_GHOST}`}><option value="">Todas las locaciones</option>{(branches ?? []).map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select>
-          <button type="submit" className={`h-[34px] rounded-lg bg-[#111] px-4 text-xs font-semibold text-white hover:bg-[#c0392b] ${DARK_PRIMARY}`}>Filtrar</button>
+        <form className={`mb-4 flex flex-wrap items-center gap-2 rounded-xl border p-3 ${CARD}`} method="get">
+          <input name="q" defaultValue={q} className={`h-[34px] w-[240px] rounded-lg border-[1.5px] px-3 text-xs ${BTN_GHOST}`} placeholder="Buscar checklist..." />
+          <select name="type" defaultValue={typeFilter} className={`h-[34px] rounded-lg border-[1.5px] px-3 text-xs ${BTN_GHOST}`}><option value="">Todos los tipos</option><option value="opening">Apertura</option><option value="closing">Cierre</option><option value="prep">Prep</option><option value="custom">Custom</option></select>
+          <select name="loc" defaultValue={locFilter} className={`h-[34px] rounded-lg border-[1.5px] px-3 text-xs ${BTN_GHOST}`}><option value="">Todas las locaciones</option>{(branches ?? []).map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select>
+          <button type="submit" className="h-[34px] rounded-lg bg-[var(--gbp-text)] px-4 text-xs font-semibold text-white hover:bg-[var(--gbp-accent)]">Filtrar</button>
         </form>
       </SlideUp>
 
       <SlideUp delay={0.2}>
-        <section className={`overflow-hidden rounded-xl border border-[#e7e0dc] bg-white ${DARK_CARD}`}>
-          <div className={`grid grid-cols-[1fr_120px] md:grid-cols-[2fr_100px_90px_120px] lg:grid-cols-[minmax(180px,2fr)_100px_110px_130px_130px_90px_120px] gap-x-3 border-b-[1.5px] border-[#e8e8e8] bg-[#fafafa] px-4 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase ${DARK_CARD_SOFT} ${DARK_MUTED}`}>
+        <section className={`overflow-hidden rounded-xl border ${CARD}`}>
+          <div className={`grid grid-cols-[1fr_120px] md:grid-cols-[2fr_100px_90px_120px] lg:grid-cols-[minmax(180px,2fr)_100px_110px_130px_130px_90px_120px] gap-x-3 border-b-[1.5px] px-4 py-2.5 text-[11px] font-bold tracking-[0.07em] uppercase ${CARD_SOFT} ${TEXT_MUTED}`}>
             <p>Checklist</p><p className="hidden md:block">Tipo</p><p className="hidden lg:block">Shift</p><p className="hidden lg:block">Locacion</p><p className="hidden lg:block">Departamento</p><p className="hidden md:block">Estado</p><p>Acciones</p>
           </div>
           <div>
@@ -301,17 +300,17 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
               <div>
                 {filteredTemplates.map((template) => (
                   <div key={template.id}>
-                    <div className="grid grid-cols-[1fr_120px] md:grid-cols-[2fr_100px_90px_120px] lg:grid-cols-[minmax(180px,2fr)_100px_110px_130px_130px_90px_120px] items-center gap-x-3 border-b border-[#f0f0f0] px-4 py-3 [.theme-dark-pro_&]:border-[#2b3646]">
+                    <div className="grid grid-cols-[1fr_120px] md:grid-cols-[2fr_100px_90px_120px] lg:grid-cols-[minmax(180px,2fr)_100px_110px_130px_130px_90px_120px] items-center gap-x-3 border-b border-[var(--gbp-border)] px-4 py-3">
                       <div>
-                        <p className={`text-[13px] font-semibold text-[#111] ${DARK_TEXT}`}>{template.name}</p>
+                        <p className={`text-[13px] font-semibold ${TEXT_STRONG}`}>{template.name}</p>
                         {template.itemsCount !== null && (
-                          <p className={`text-[11px] text-[#aaa] ${DARK_MUTED}`}>{template.itemsCount} items</p>
+                          <p className={`text-[11px] ${TEXT_MUTED}`}>{template.itemsCount} items</p>
                         )}
                       </div>
-                      <p className={`hidden md:block text-xs text-[#666] ${DARK_MUTED}`}>{typeLabel(template.checklist_type)}</p>
-                      <p className={`hidden lg:block text-xs text-[#666] ${DARK_MUTED}`}>{template.shift || "-"}</p>
-                      <p className={`hidden lg:flex items-center gap-1 text-xs text-[#666] ${DARK_MUTED}`}><MapPin className="h-3.5 w-3.5" />{template.branchName}</p>
-                      <p className={`hidden lg:block text-xs text-[#666] ${DARK_MUTED}`}>{template.departmentName}</p>
+                      <p className={`hidden text-xs md:block ${TEXT_MUTED}`}>{typeLabel(template.checklist_type)}</p>
+                      <p className={`hidden text-xs lg:block ${TEXT_MUTED}`}>{template.shift || "-"}</p>
+                      <p className={`hidden items-center gap-1 text-xs lg:flex ${TEXT_MUTED}`}><MapPin className="h-3.5 w-3.5" />{template.branchName}</p>
+                      <p className={`hidden text-xs lg:block ${TEXT_MUTED}`}>{template.departmentName}</p>
                       <span className={`hidden md:inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] ${template.is_active ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-neutral-200 bg-neutral-100 text-neutral-600"}`}>{template.is_active ? "Activa" : "Inactiva"}</span>
                       <div className="flex gap-1">
                         <Link href={`/app/checklists?preview=${template.id}`} className={ACTION_BTN_PREVIEW} title="Vista previa"><Eye className="h-3.5 w-3.5" /></Link>
@@ -331,23 +330,23 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
 
       {previewTemplate ? (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
-          <SlideUp className="flex max-h-[88vh] w-[720px] max-w-[95vw] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-            <div className="flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5">
-              <p className="font-serif text-[15px] font-bold text-[#111]">Vista previa · {previewTemplate.name}</p>
-              <Link href="/app/checklists" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111]">✕</Link>
+          <SlideUp className="flex max-h-[88vh] w-[720px] max-w-[95vw] flex-col overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
+            <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
+              <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Vista previa · {previewTemplate.name}</p>
+              <Link href="/app/checklists" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</Link>
             </div>
             <div className="max-h-[68vh] space-y-3 overflow-y-auto px-6 py-5">
-              <div className="rounded-lg border border-[#ece4df] bg-[#fffdfa] p-3">
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#9a908a]">Metadata</p>
-                <div className="grid gap-2 sm:grid-cols-2 text-xs text-[#5f5853]">
-                  <p><span className="font-semibold text-[#2a2420]">Tipo:</span> {typeLabel(previewTemplate.checklist_type)}</p>
-                  <p><span className="font-semibold text-[#2a2420]">Shift:</span> {previewTemplate.shift || "-"}</p>
-                  <p><span className="font-semibold text-[#2a2420]">Frecuencia:</span> {previewTemplate.repeat_every || "-"}</p>
-                  <p><span className="font-semibold text-[#2a2420]">Estado:</span> {previewTemplate.is_active ? "Activo" : "Inactivo"}</p>
+              <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
+                <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Metadata</p>
+                <div className="grid gap-2 text-xs text-[var(--gbp-text2)] sm:grid-cols-2">
+                  <p><span className="font-semibold text-[var(--gbp-text)]">Tipo:</span> {typeLabel(previewTemplate.checklist_type)}</p>
+                  <p><span className="font-semibold text-[var(--gbp-text)]">Shift:</span> {previewTemplate.shift || "-"}</p>
+                  <p><span className="font-semibold text-[var(--gbp-text)]">Frecuencia:</span> {previewTemplate.repeat_every || "-"}</p>
+                  <p><span className="font-semibold text-[var(--gbp-text)]">Estado:</span> {previewTemplate.is_active ? "Activo" : "Inactivo"}</p>
                 </div>
 
-                <div className="mt-3 border-t border-[#f0e8e3] pt-3">
-                  <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#9a908a]">Alcance</p>
+                <div className="mt-3 border-t border-[var(--gbp-border)] pt-3">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Alcance</p>
                   {(() => {
                     const scope =
                       typeof previewTemplate.target_scope === "object" && previewTemplate.target_scope !== null
@@ -373,11 +372,11 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
                       users.length > 0;
 
                     return (
-                      <div className="space-y-2 text-xs text-[#5f5853]">
-                        <p><span className="font-semibold text-[#2a2420]">Locaciones:</span> {locations.length ? locations.join(", ") : hasScopedRules ? "No restringe por locacion" : "Todas"}</p>
-                        <p><span className="font-semibold text-[#2a2420]">Departamentos:</span> {departments.length ? departments.join(", ") : hasScopedRules ? "No restringe por departamento" : "Todos"}</p>
-                        <p><span className="font-semibold text-[#2a2420]">Puestos:</span> {positions.length ? positions.join(", ") : hasScopedRules ? "No restringe por puesto" : "Todos"}</p>
-                        <p><span className="font-semibold text-[#2a2420]">Usuarios:</span> {users.length ? users.join(", ") : hasScopedRules ? "Sin usuarios especificos" : "Todos"}</p>
+                      <div className="space-y-2 text-xs text-[var(--gbp-text2)]">
+                        <p><span className="font-semibold text-[var(--gbp-text)]">Locaciones:</span> {locations.length ? locations.join(", ") : hasScopedRules ? "No restringe por locacion" : "Todas"}</p>
+                        <p><span className="font-semibold text-[var(--gbp-text)]">Departamentos:</span> {departments.length ? departments.join(", ") : hasScopedRules ? "No restringe por departamento" : "Todos"}</p>
+                        <p><span className="font-semibold text-[var(--gbp-text)]">Puestos:</span> {positions.length ? positions.join(", ") : hasScopedRules ? "No restringe por puesto" : "Todos"}</p>
+                        <p><span className="font-semibold text-[var(--gbp-text)]">Usuarios:</span> {users.length ? users.join(", ") : hasScopedRules ? "Sin usuarios especificos" : "Todos"}</p>
                       </div>
                     );
                   })()}
@@ -385,19 +384,19 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
               </div>
 
               {(previewTemplate.templateSections ?? []).map((section) => (
-                <div key={section.id} className="rounded-lg border border-[#ece4df] bg-[#fffdfa] p-3">
-                  <p className="text-sm font-semibold text-[#2a2420]">{section.name}</p>
+                <div key={section.id} className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
+                  <p className="text-sm font-semibold text-[var(--gbp-text)]">{section.name}</p>
                   <ul className="mt-2 space-y-1.5">
                     {section.items.map((item) => (
-                      <li key={`${section.id}-${item}`} className="rounded-lg border border-[#f0e8e3] bg-white px-3 py-2 text-xs text-[#4f4843]">{item}</li>
+                      <li key={`${section.id}-${item}`} className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-xs text-[var(--gbp-text2)]">{item}</li>
                     ))}
                   </ul>
                 </div>
               ))}
-              {!previewTemplate.templateSections?.length ? <p className="text-sm text-[#8b817c]">Sin secciones cargadas.</p> : null}
+              {!previewTemplate.templateSections?.length ? <p className="text-sm text-[var(--gbp-text2)]">Sin secciones cargadas.</p> : null}
             </div>
-            <div className="flex justify-end border-t-[1.5px] border-[#f0f0f0] px-6 py-4">
-              <Link href="/app/checklists" className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]">Cerrar</Link>
+            <div className="flex justify-end border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
+              <Link href="/app/checklists" className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">Cerrar</Link>
             </div>
           </SlideUp>
         </div>

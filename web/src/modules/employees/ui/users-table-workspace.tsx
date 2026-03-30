@@ -225,22 +225,22 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
   return (
     <>
       <section className="grid gap-4 sm:grid-cols-2">
-         <article className="rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white p-6"><p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Total Administradores</p><p className="font-serif text-4xl leading-none font-bold text-[#111]">{rows.length}</p></article>
-        <article className="rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white p-6"><p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Activos</p><p className="font-serif text-4xl leading-none font-bold text-[#111]">{activeCount}</p></article>
+         <article className="rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6"><p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Total Administradores</p><p className="font-serif text-4xl leading-none font-bold text-[var(--gbp-text)]">{rows.length}</p></article>
+        <article className="rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6"><p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Activos</p><p className="font-serif text-4xl leading-none font-bold text-[var(--gbp-text)]">{activeCount}</p></article>
       </section>
 
       <section className="mt-2 flex flex-wrap items-center gap-2">
-        <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-[34px] w-[210px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs" placeholder="Buscar administrador..." />
-        <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"><option value="">Todas las locaciones</option>{[...new Set(rows.map((item) => item.branchName))].map((item) => <option key={item} value={item}>{item}</option>)}</select>
-        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-xs"><option value="">Todos los accesos</option><option value="active">Activo</option><option value="inactive">Inactivo</option></select>
+        <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-[34px] w-[210px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs text-[var(--gbp-text)]" placeholder="Buscar administrador..." />
+        <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs text-[var(--gbp-text)]"><option value="">Todas las locaciones</option>{[...new Set(rows.map((item) => item.branchName))].map((item) => <option key={item} value={item}>{item}</option>)}</select>
+        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs text-[var(--gbp-text)]"><option value="">Todos los accesos</option><option value="active">Activo</option><option value="inactive">Inactivo</option></select>
       </section>
 
-      <p className="text-[11px] text-[#8b817c]">
+      <p className="text-[11px] text-[var(--gbp-text2)]">
         Este estado controla el ingreso a la plataforma (no el estado laboral).
       </p>
 
-      <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[#e8e8e8] bg-white">
-        <div className="grid grid-cols-[1fr_100px] md:grid-cols-[2fr_1fr_120px] lg:grid-cols-[minmax(190px,2fr)_minmax(170px,1.4fr)_minmax(120px,1fr)_minmax(100px,.8fr)_136px] gap-x-3 border-b-[1.5px] border-[#e8e8e8] bg-[#fafafa] px-5 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[#aaa] uppercase">
+      <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
+        <div className="grid grid-cols-[1fr_100px] gap-x-3 border-b-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-5 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[var(--gbp-muted)] uppercase md:grid-cols-[2fr_1fr_120px] lg:grid-cols-[minmax(190px,2fr)_minmax(170px,1.4fr)_minmax(120px,1fr)_minmax(100px,.8fr)_136px]">
           <p>Nombre</p>
           <p className="hidden lg:block">Email</p>
           <p className="hidden md:block">Locacion</p>
@@ -249,17 +249,17 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
         </div>
         <div>
           {filtered.map((row) => (
-            <div key={row.membershipId} onClick={() => setSelectedMembershipId(row.membershipId)} className="grid grid-cols-[1fr_100px] md:grid-cols-[2fr_1fr_120px] lg:grid-cols-[minmax(190px,2fr)_minmax(170px,1.4fr)_minmax(120px,1fr)_minmax(100px,.8fr)_136px] items-center gap-x-3 border-b border-[#f0f0f0] px-5 py-3 hover:bg-[#fafafa]">
+            <div key={row.membershipId} onClick={() => setSelectedMembershipId(row.membershipId)} className="grid grid-cols-[1fr_100px] items-center gap-x-3 border-b border-[var(--gbp-border)] px-5 py-3 hover:bg-[var(--gbp-bg)] md:grid-cols-[2fr_1fr_120px] lg:grid-cols-[minmax(190px,2fr)_minmax(170px,1.4fr)_minmax(120px,1fr)_minmax(100px,.8fr)_136px]">
               <div className="flex items-center gap-2.5 overflow-hidden">
-                <span className="flex-shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#c0392b] text-[11px] font-bold text-white">{initials(row.fullName)}</span>
+                <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[var(--gbp-accent)] text-[11px] font-bold text-white">{initials(row.fullName)}</span>
                 <div className="min-w-0">
-                  <p className="truncate text-[13px] font-semibold text-[#111]">{row.fullName}</p>
-                  <p className="truncate text-[11px] text-[#aaa]">{roleLabel(row.roleCode)}</p>
+                  <p className="truncate text-[13px] font-semibold text-[var(--gbp-text)]">{row.fullName}</p>
+                  <p className="truncate text-[11px] text-[var(--gbp-muted)]">{roleLabel(row.roleCode)}</p>
                 </div>
               </div>
-              <p className="hidden truncate text-xs text-[#666] lg:block">{row.email || "Sin email"}</p>
-              <p className="hidden truncate text-xs text-[#666] md:block">{row.branchName}</p>
-              <p className="hidden lg:block"><span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${row.status === "active" ? "bg-[#edfbf3] text-[#27ae60]" : "bg-[#f5f5f5] text-[#888]"}`}>{statusLabel(row.status)}</span></p>
+              <p className="hidden truncate text-xs text-[var(--gbp-text2)] lg:block">{row.email || "Sin email"}</p>
+              <p className="hidden truncate text-xs text-[var(--gbp-text2)] md:block">{row.branchName}</p>
+              <p className="hidden lg:block"><span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${row.status === "active" ? "bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]"}`}>{statusLabel(row.status)}</span></p>
               <div className="flex items-center justify-end gap-1">
                 <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedMembershipId(row.membershipId); }} className={ACTION_BTN_NEUTRAL} title="Ver perfil"><Eye className="h-3.5 w-3.5" /></button>
                 <button type="button" onClick={(event) => { event.stopPropagation(); setEditMembershipId(row.membershipId); }} className={ACTION_BTN_NEUTRAL} title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
@@ -275,18 +275,18 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
 
       {selected ? (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
-          <div className="flex max-h-[90vh] w-[640px] max-w-[95vw] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-            <div className="flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5"><p className="font-serif text-[15px] font-bold text-[#111]">Perfil de Administrador</p><button type="button" className="grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111]" onClick={() => setSelectedMembershipId(null)}>✕</button></div>
+          <div className="flex max-h-[90vh] w-[640px] max-w-[95vw] flex-col overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
+            <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5"><p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Perfil de Administrador</p><button type="button" className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]" onClick={() => setSelectedMembershipId(null)}>✕</button></div>
             <div className="grid gap-3 px-6 py-5 sm:grid-cols-2">
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Nombre</p><p className="text-sm text-[#333]">{selected.fullName}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Email</p><p className="text-sm text-[#333]">{selected.email}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Rol</p><p className="text-sm text-[#333]">{roleLabel(selected.roleCode)}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Acceso a plataforma</p><p className="text-sm text-[#333]">{statusLabel(selected.status)}</p></div>
-              <div className="sm:col-span-2"><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Locacion</p><p className="text-sm text-[#333]">{selected.branchName}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Nombre</p><p className="text-sm text-[var(--gbp-text)]">{selected.fullName}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Email</p><p className="text-sm text-[var(--gbp-text)]">{selected.email}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Rol</p><p className="text-sm text-[var(--gbp-text)]">{roleLabel(selected.roleCode)}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Acceso a plataforma</p><p className="text-sm text-[var(--gbp-text)]">{statusLabel(selected.status)}</p></div>
+              <div className="sm:col-span-2"><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Locacion</p><p className="text-sm text-[var(--gbp-text)]">{selected.branchName}</p></div>
             </div>
-            <div className="flex items-center justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4">
-              <button type="button" onClick={() => setEditMembershipId(selected.membershipId)} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]">Editar</button>
-              <Link href="/app/users?action=create-user" className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]">Nuevo administrador</Link>
+            <div className="flex items-center justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
+              <button type="button" onClick={() => setEditMembershipId(selected.membershipId)} className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">Editar</button>
+              <Link href="/app/users?action=create-user" className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">Nuevo administrador</Link>
             </div>
           </div>
         </div>
@@ -294,20 +294,20 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
 
       {editing ? (
         <div className="fixed inset-0 z-[1020] flex items-center justify-center bg-black/45 p-5">
-          <div className="flex max-h-[90vh] w-[560px] max-w-[95vw] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-            <div className="flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5"><p className="font-serif text-[15px] font-bold text-[#111]">Editar Administrador</p><button type="button" className="grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111]" onClick={() => setEditMembershipId(null)}>✕</button></div>
+          <div className="flex max-h-[90vh] w-[560px] max-w-[95vw] flex-col overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
+            <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5"><p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Editar Administrador</p><button type="button" className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]" onClick={() => setEditMembershipId(null)}>✕</button></div>
             <div className="grid gap-3 px-6 py-5 sm:grid-cols-2">
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Nombre</p><p className="text-sm text-[#333]">{editing.fullName}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Email</p><p className="text-sm text-[#333]">{editing.email}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Rol</p><select value={editRole} onChange={(event) => setEditRole(event.target.value)} className="mt-1 h-9 w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-sm">{roleOptions.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}</select></div>
-               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Acceso a plataforma</p><select value={editStatus} onChange={(event) => setEditStatus(event.target.value)} className="mt-1 h-9 w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-sm"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></div>
-              <div className="sm:col-span-2"><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Locacion</p><select value={editBranchId} onChange={(event) => setEditBranchId(event.target.value)} className="mt-1 h-9 w-full rounded-lg border-[1.5px] border-[#e8e8e8] bg-white px-3 text-sm"><option value="">Todas</option>{branchOptions.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Nombre</p><p className="text-sm text-[var(--gbp-text)]">{editing.fullName}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Email</p><p className="text-sm text-[var(--gbp-text)]">{editing.email}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Rol</p><select value={editRole} onChange={(event) => setEditRole(event.target.value)} className="mt-1 h-9 w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-sm text-[var(--gbp-text)]">{roleOptions.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}</select></div>
+               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Acceso a plataforma</p><select value={editStatus} onChange={(event) => setEditStatus(event.target.value)} className="mt-1 h-9 w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-sm text-[var(--gbp-text)]"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></div>
+              <div className="sm:col-span-2"><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Locacion</p><select value={editBranchId} onChange={(event) => setEditBranchId(event.target.value)} className="mt-1 h-9 w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-sm text-[var(--gbp-text)]"><option value="">Todas</option>{branchOptions.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></div>
             </div>
-            <div className="flex items-center justify-between gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4">
-              <button type="button" disabled={busyResend} onClick={() => void resendInvitation(editing)} className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#fafafa] px-3 py-2 text-sm font-semibold text-[#555] transition-all hover:border-[#c0392b] hover:bg-[#fff5f3] hover:text-[#c0392b] disabled:opacity-50">{busyResend ? "Enviando..." : "Reenviar Invitación"}</button>
+            <div className="flex items-center justify-between gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
+              <button type="button" disabled={busyResend} onClick={() => void resendInvitation(editing)} className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm font-semibold text-[var(--gbp-text2)] transition-all hover:border-[var(--gbp-accent)] hover:bg-[var(--gbp-accent-glow)] hover:text-[var(--gbp-accent)] disabled:opacity-50">{busyResend ? "Enviando..." : "Reenviar Invitación"}</button>
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => setEditMembershipId(null)} className="rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333]">Cancelar</button>
-                <button type="button" disabled={busySave} onClick={saveUser} className="rounded-lg bg-[#111] px-5 py-2 text-sm font-bold text-white hover:bg-[#c0392b] disabled:opacity-60">{busySave ? "Guardando..." : "Guardar cambios"}</button>
+                <button type="button" onClick={() => setEditMembershipId(null)} className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">Cancelar</button>
+                <button type="button" disabled={busySave} onClick={saveUser} className="rounded-lg bg-[var(--gbp-text)] px-5 py-2 text-sm font-bold text-white hover:bg-[var(--gbp-accent)] disabled:opacity-60">{busySave ? "Guardando..." : "Guardar cambios"}</button>
               </div>
             </div>
           </div>

@@ -117,19 +117,19 @@ export function ChecklistItemsBuilder({ initialSections }: ChecklistItemsBuilder
   return (
     <div className="space-y-3">
       {sections.map((section) => (
-        <div key={section.id} className="rounded-xl border border-[#ece4df] bg-[#fffdfa] p-3">
+        <div key={section.id} className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
           <div className="mb-2 flex items-center gap-2">
-            <ListChecks className="h-4 w-4 text-[#b4aaa4]" />
+            <ListChecks className="h-4 w-4 text-[var(--gbp-muted)]" />
             <input
               value={section.name}
               onChange={(event) => updateSectionName(section.id, event.target.value)}
-              className="h-8 flex-1 rounded-lg border border-[#ddd3ce] bg-white px-3 text-sm"
+              className="h-8 flex-1 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)]"
               placeholder="Nombre de seccion"
             />
             <button
               type="button"
               onClick={() => removeSection(section.id)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#eaded8] bg-white text-[#8f847d] hover:bg-[#f8f3f1]"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
               title="Eliminar seccion"
             >
               <X className="h-4 w-4" />
@@ -138,19 +138,19 @@ export function ChecklistItemsBuilder({ initialSections }: ChecklistItemsBuilder
 
           <div className="space-y-1.5">
             {section.items.map((item) => (
-              <div key={item.id} className="flex items-center gap-2 rounded-lg border border-[#f0e8e3] bg-white px-2.5 py-2">
-                <span className="text-xs text-[#c3b9b3]">⠿</span>
-                <input type="checkbox" disabled className="h-3.5 w-3.5 accent-[#c0392b]" />
+              <div key={item.id} className="flex items-center gap-2 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2.5 py-2">
+                <span className="text-xs text-[var(--gbp-muted)]">⠿</span>
+                <input type="checkbox" disabled className="h-3.5 w-3.5 accent-[var(--gbp-accent)]" />
                 <input
                   value={item.text}
                   onChange={(event) => updateItem(section.id, item.id, event.target.value)}
-                  className="h-8 flex-1 rounded-lg border border-[#ddd3ce] bg-white px-3 text-sm"
+                  className="h-8 flex-1 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)]"
                   placeholder="Descripcion del item..."
                 />
                 <button
                   type="button"
                   onClick={() => removeItem(section.id, item.id)}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#eaded8] bg-white text-[#8f847d] hover:bg-[#f8f3f1]"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
                   title="Eliminar item"
                 >
                   <X className="h-4 w-4" />
@@ -162,7 +162,7 @@ export function ChecklistItemsBuilder({ initialSections }: ChecklistItemsBuilder
           <button
             type="button"
             onClick={() => addItem(section.id)}
-            className="mt-2 inline-flex items-center gap-1 rounded-lg border border-[#e8ddd8] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#5b524d] hover:bg-[#f8f3f1]"
+            className="mt-2 inline-flex items-center gap-1 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-2.5 py-1.5 text-xs font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
           >
             <Plus className="h-3.5 w-3.5" /> Agregar item
           </button>
@@ -172,12 +172,12 @@ export function ChecklistItemsBuilder({ initialSections }: ChecklistItemsBuilder
       <button
         type="button"
         onClick={addSection}
-        className="inline-flex items-center gap-1 rounded-lg border border-[#e8ddd8] bg-white px-3 py-2 text-xs font-semibold text-[#5b524d] hover:bg-[#f8f3f1]"
+        className="inline-flex items-center gap-1 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
       >
         <Plus className="h-3.5 w-3.5" /> Agregar seccion
       </button>
 
-      <div className="rounded-lg border border-[#eee7e2] bg-[#faf7f5] px-3 py-2 text-xs text-[#7d736d]">
+      <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs text-[var(--gbp-text2)]">
         Vista previa: {flattenedItems.length} item(s) listos para guardar.
       </div>
 

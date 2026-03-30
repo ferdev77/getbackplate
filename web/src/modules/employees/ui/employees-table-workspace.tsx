@@ -483,21 +483,21 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
               </div>
             </div>
             <div className="grid gap-3 px-6 py-5 sm:grid-cols-3">
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Email</p><p className="text-sm text-[#333]">{selected.email || "-"}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Telefono</p><p className="text-sm text-[#333]">{selected.phone || "-"}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Fecha ingreso</p><p className="text-sm text-[#333]">{formatDate(selected.hiredAt)}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Nacimiento</p><p className="text-sm text-[#333]">{formatDate(selected.birthDate)}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Sexo</p><p className="text-sm text-[#333]">{selected.sex || "-"}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Nacionalidad</p><p className="text-sm text-[#333]">{selected.nationality || "-"}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Direccion</p><p className="text-sm text-[#333]">{selected.addressLine1 || "-"}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Ciudad / Estado</p><p className="text-sm text-[#333]">{[selected.addressCity, selected.addressState].filter(Boolean).join(", ") || "-"}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Pais</p><p className="text-sm text-[#333]">{selected.addressCountry || "-"}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Contacto emergencia</p><p className="text-sm text-[#333]">{selected.emergencyName || "-"}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Telefono emergencia</p><p className="text-sm text-[#333]">{selected.emergencyPhone || "-"}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Email emergencia</p><p className="text-sm text-[#333]">{selected.emergencyEmail || "-"}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Contrato</p><p className="text-sm text-[#333]">{selected.contractStatus || "-"}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Firma contrato</p><p className="text-sm text-[#333]">{formatDate(selected.contractSignedAt)}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[#aaa] uppercase">Docs</p><p className="text-sm text-[#333]">{selected.recordType === "employee" ? `${6 - selected.pendingDocuments}/6 · ${selected.docsCompletionStatus === "complete" ? "Completa" : `Incompleta (${selected.pendingDocuments} faltantes)`}` : `${selected.docsUploadedCount ?? 0} cargados`}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Email</p><p className="text-sm text-[var(--gbp-text)]">{selected.email || "-"}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Telefono</p><p className="text-sm text-[var(--gbp-text)]">{selected.phone || "-"}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Fecha ingreso</p><p className="text-sm text-[var(--gbp-text)]">{formatDate(selected.hiredAt)}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Nacimiento</p><p className="text-sm text-[var(--gbp-text)]">{formatDate(selected.birthDate)}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Sexo</p><p className="text-sm text-[var(--gbp-text)]">{selected.sex || "-"}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Nacionalidad</p><p className="text-sm text-[var(--gbp-text)]">{selected.nationality || "-"}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Direccion</p><p className="text-sm text-[var(--gbp-text)]">{selected.addressLine1 || "-"}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Ciudad / Estado</p><p className="text-sm text-[var(--gbp-text)]">{[selected.addressCity, selected.addressState].filter(Boolean).join(", ") || "-"}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Pais</p><p className="text-sm text-[var(--gbp-text)]">{selected.addressCountry || "-"}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Contacto emergencia</p><p className="text-sm text-[var(--gbp-text)]">{selected.emergencyName || "-"}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Telefono emergencia</p><p className="text-sm text-[var(--gbp-text)]">{selected.emergencyPhone || "-"}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Email emergencia</p><p className="text-sm text-[var(--gbp-text)]">{selected.emergencyEmail || "-"}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Contrato</p><p className="text-sm text-[var(--gbp-text)]">{selected.contractStatus || "-"}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Firma contrato</p><p className="text-sm text-[var(--gbp-text)]">{formatDate(selected.contractSignedAt)}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Docs</p><p className="text-sm text-[var(--gbp-text)]">{selected.recordType === "employee" ? `${6 - selected.pendingDocuments}/6 · ${selected.docsCompletionStatus === "complete" ? "Completa" : `Incompleta (${selected.pendingDocuments} faltantes)`}` : `${selected.docsUploadedCount ?? 0} cargados`}</p></div>
             </div>
             <div className="mx-6 mb-5 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
               <p className="mb-1 text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Cambiar estado laboral</p>

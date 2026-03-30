@@ -171,7 +171,7 @@ export default function SuperadminGuidePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="rounded-[2.5rem] bg-[linear-gradient(145deg,var(--gbp-text)_0%,#151922_100%)] p-10 text-center text-white shadow-2xl relative overflow-hidden">
+      <section className="relative overflow-hidden rounded-[2.5rem] bg-[linear-gradient(145deg,var(--gbp-text)_0%,color-mix(in_oklab,var(--gbp-text)_88%,black)_100%)] p-10 text-center text-white shadow-2xl">
         <div className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full bg-brand/20 blur-3xl" />
         <h2 className="mb-6 text-2xl font-serif font-light md:text-3xl">¿Listo para empezar la auditoría?</h2>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="inline-block">

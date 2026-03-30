@@ -101,7 +101,14 @@ function relativeFromNow(value: string | null) {
 }
 
 function colorForUser(userId: string) {
-  const palette = ["#c0392b", "#2980b9", "#27ae60", "#8e44ad", "#d97706", "#0f766e"];
+  const palette = [
+    "var(--gbp-accent)",
+    "var(--gbp-violet)",
+    "var(--gbp-success)",
+    "color-mix(in_oklab,var(--gbp-violet)_75%,black)",
+    "color-mix(in_oklab,var(--gbp-accent)_72%,black)",
+    "color-mix(in_oklab,var(--gbp-success)_72%,black)",
+  ];
   let hash = 0;
   for (const char of userId) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
   return palette[hash % palette.length] ?? palette[0];
@@ -409,7 +416,7 @@ export default async function CompanyReportsPage() {
         badge: "⚠ Sin reporte",
         managerName: "Sin envío",
         managerInitials: "--",
-        managerColor: "#9ca3af",
+        managerColor: "var(--gbp-muted)",
         sentAtLabel: "No ha enviado reporte",
         metrics: { total: 0, done: 0, attention: 0, photos: 0 },
         reportId: null,

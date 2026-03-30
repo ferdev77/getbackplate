@@ -5,6 +5,17 @@ import { AlertCircle, CalendarClock, PartyPopper, Megaphone } from "lucide-react
 
 export const dynamic = "force-dynamic";
 
+type AnnouncementRow = {
+  id: string;
+  title: string;
+  body: string;
+  kind: "urgent" | "reminder" | "celebration" | "general" | string | null;
+  publish_at: string | null;
+  expires_at: string | null;
+  target_scope: string | null;
+  created_by: string | null;
+};
+
 export default async function EmployeeAnnouncementsPage() {
   const tenant = await requireEmployeeAccess();
   const supabase = await createSupabaseServerClient();
@@ -16,7 +27,7 @@ export default async function EmployeeAnnouncementsPage() {
   
   const hasAnnouncementsModule = Boolean(moduleData);
 
-  let announcements: Array<any> = [];
+  let announcements: AnnouncementRow[] = [];
 
   if (hasAnnouncementsModule) {
     const now = new Date();
@@ -37,7 +48,13 @@ export default async function EmployeeAnnouncementsPage() {
   }
 
   // Fetch authors for announcements
-  const authorIds = Array.from(new Set(announcements.map((a) => a.created_by).filter(Boolean)));
+  const authorIds = Array.from(
+    new Set(
+      announcements
+        .map((a) => a.created_by)
+        .filter((value): value is string => typeof value === "string" && value.length > 0),
+    ),
+  );
   const authorNameMap = await resolveAnnouncementAuthorNames({
     organizationId: tenant.organizationId,
     authorIds,
@@ -46,19 +63,19 @@ export default async function EmployeeAnnouncementsPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-bold text-[#111]">Avisos</h1>
-        <p className="text-sm text-[#666] mt-1">Directivas y comunicaciones de la empresa.</p>
+        <h1 className="text-2xl font-bold text-[var(--gbp-text)]">Avisos</h1>
+        <p className="mt-1 text-sm text-[var(--gbp-text2)]">Directivas y comunicaciones de la empresa.</p>
       </header>
 
       <section className="space-y-4">
         <div className="space-y-3">
           {announcements.map((item) => (
-            <article key={item.id} className="group relative flex gap-4 overflow-hidden rounded-2xl border border-[#e8e8e8] bg-white p-6 transition-all hover:border-orange-200 hover:shadow-lg hover:shadow-orange-500/5">
+            <article key={item.id} className="group relative flex gap-4 overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 transition-all hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] hover:shadow-lg hover:shadow-black/5">
               <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl transition-colors ${
                 item.kind === "urgent" ? "bg-rose-50 text-rose-500 group-hover:bg-rose-100" :
                 item.kind === "reminder" ? "bg-amber-50 text-amber-500 group-hover:bg-amber-100" :
                 item.kind === "celebration" ? "bg-blue-50 text-blue-500 group-hover:bg-blue-100" :
-                "bg-[#fff8f0] text-orange-400 group-hover:bg-orange-100"
+                "bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)] group-hover:bg-[color:color-mix(in_oklab,var(--gbp-accent)_18%,transparent)]"
               }`}>
                 {item.kind === "urgent" && <AlertCircle className="h-6 w-6" />}
                 {item.kind === "reminder" && <CalendarClock className="h-6 w-6" />}
@@ -67,7 +84,7 @@ export default async function EmployeeAnnouncementsPage() {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-base font-bold text-[#111] pr-2">{item.title}</h3>
+                  <h3 className="pr-2 text-base font-bold text-[var(--gbp-text)]">{item.title}</h3>
                   {item.kind && item.kind !== "general" && (
                     <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest ${
                       item.kind === "urgent" ? "border-rose-200 bg-rose-50 text-rose-600" :
@@ -81,24 +98,24 @@ export default async function EmployeeAnnouncementsPage() {
                     </span>
                   )}
                 </div>
-                <p className="mt-2 text-[14px] leading-relaxed text-[#555] whitespace-pre-wrap">{item.body}</p>
+                <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-[var(--gbp-text2)]">{item.body}</p>
                 
-                <div className="mt-4 flex items-center gap-3 border-t border-[#f5f5f5] pt-3">
-                  <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[#888]">
-                    <div className="grid h-5 w-5 place-items-center rounded-full bg-[#f0f0f0] text-[9px] font-bold text-[#555]">
+                <div className="mt-4 flex items-center gap-3 border-t border-[var(--gbp-border)] pt-3">
+                  <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[var(--gbp-text2)]">
+                    <div className="grid h-5 w-5 place-items-center rounded-full bg-[var(--gbp-surface2)] text-[9px] font-bold text-[var(--gbp-text)]">
                       {(authorNameMap.get(item.created_by ?? "") || "DG").substring(0, 1).toUpperCase()}
                     </div>
                     {authorNameMap.get(item.created_by ?? "") || "Dirección General"}
                   </span>
-                  <span className="text-[10px] text-[#ccc]">•</span>
-                  <span className="text-[12px] font-medium text-[#bbb]">{item.publish_at ? new Date(item.publish_at).toLocaleDateString("es-AR") : "-"}</span>
+                  <span className="text-[10px] text-[var(--gbp-muted)]">•</span>
+                  <span className="text-[12px] font-medium text-[var(--gbp-muted)]">{item.publish_at ? new Date(item.publish_at).toLocaleDateString("es-AR") : "-"}</span>
                 </div>
               </div>
             </article>
           ))}
 
           {!announcements.length ? (
-            <div className="rounded-2xl border border-dashed border-[#dccfca] bg-white/50 px-4 py-12 text-center text-[#8b817c]">
+            <div className="rounded-2xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-surface)]/70 px-4 py-12 text-center text-[var(--gbp-text2)]">
               {hasAnnouncementsModule
                 ? "No hay avisos vigentes para tu perfil."
                 : "El módulo de avisos no está habilitado."}

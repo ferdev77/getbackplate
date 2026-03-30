@@ -224,7 +224,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
                     <p className={`text-xs ${TEXT_MUTED}`}>{department.description || "Sin descripcion"}</p>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {(positionsByDepartment.get(department.id) ?? []).map((position) => (
-                        <span key={position.id} className={`rounded-full border px-2 py-0.5 text-[10px] ${position.is_active ? "border-[#d9eadf] bg-[#f3fbf6] text-[#2d8f4f]" : "border-neutral-200 bg-neutral-100 text-neutral-600"}`}>{position.name}</span>
+                        <span key={position.id} className={`rounded-full border px-2 py-0.5 text-[10px] ${position.is_active ? "border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]" : "border-[var(--gbp-border2)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]"}`}>{position.name}</span>
                       ))}
                       {!(positionsByDepartment.get(department.id) ?? []).length ? <span className={`rounded-full border px-2 py-0.5 text-[10px] ${BTN_GHOST}`}>Sin puestos</span> : null}
                     </div>
