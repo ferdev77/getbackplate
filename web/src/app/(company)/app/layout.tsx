@@ -7,6 +7,7 @@ import {
   getUserPreferences, 
   getEnabledModules,
   getActiveBranches,
+  getLatestSubscriptionForOrganization,
 } from "@/modules/organizations/queries";
 import { requireCompanyAccess } from "@/shared/lib/access";
 import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impersonation";
@@ -29,14 +30,29 @@ export default async function CompanyLayout({
     ? await resolveActiveSuperadminImpersonationSession(user.id)
     : null;
 
-  const [orgSettings, preferences, activePlans, planModulesByPlanId, enabledModuleCodes, activeBranches] = await Promise.all([
+  const [orgSettings, preferences, activePlans, planModulesByPlanId, enabledModuleCodes, activeBranches, latestSubscription] = await Promise.all([
     getOrganizationSettings(tenant.organizationId),
     user ? getUserPreferences(user.id, tenant.organizationId) : Promise.resolve(null),
     getActivePlans(),
     getPlanModulesMap(),
     getEnabledModules(tenant.organizationId),
     getActiveBranches(tenant.organizationId),
+    getLatestSubscriptionForOrganization(tenant.organizationId),
   ]);
+
+  const subscriptionEndsAt =
+    typeof latestSubscription?.current_period_end === "string"
+      ? latestSubscription.current_period_end
+      : null;
+  const subscriptionEndDate = subscriptionEndsAt ? new Date(subscriptionEndsAt) : null;
+  const now = new Date();
+  const isTrialActive =
+    latestSubscription?.status === "trialing" &&
+    Boolean(subscriptionEndDate && !Number.isNaN(subscriptionEndDate.getTime()) && subscriptionEndDate >= now);
+
+  const trialDaysRemaining = isTrialActive && subscriptionEndDate
+    ? Math.max(0, Math.ceil((subscriptionEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+    : null;
 
   const currentPlanById = organization?.plan_id
     ? activePlans.find((p) => p.id === organization.plan_id) ?? null
@@ -126,6 +142,11 @@ export default async function CompanyLayout({
       enabledModules={enabledModules}
       branchOptions={activeBranches}
       impersonationMode={Boolean(impersonationSession)}
+      trialStatus={{
+        isActive: isTrialActive,
+        daysRemaining: trialDaysRemaining,
+        endsAt: subscriptionEndsAt,
+      }}
     >
       <FadeIn>
         {children}
