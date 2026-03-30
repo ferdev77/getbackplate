@@ -17,11 +17,6 @@ type CompanyEmployeesPageProps = {
   searchParams: Promise<{ status?: string; message?: string; action?: string; employeeId?: string; profileId?: string; limit?: string; page?: string }>;
 };
 
-const DARK_CARD = "[.theme-dark-pro_&]:border-[var(--gbp-border)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)]";
-const DARK_TEXT = "[.theme-dark-pro_&]:text-[var(--gbp-text)]";
-const DARK_MUTED = "[.theme-dark-pro_&]:text-[var(--gbp-text2)]";
-const DARK_PRIMARY = "[.theme-dark-pro_&]:bg-[var(--gbp-accent)] [.theme-dark-pro_&]:text-white [.theme-dark-pro_&]:hover:bg-[var(--gbp-accent-hover)]";
-
 type DirectoryMembershipUser = {
   membershipId: string;
   userId: string;
@@ -381,15 +376,15 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8">
-      <section className={`rounded-2xl border border-[#e5ddd8] bg-[#fffdfa] p-6 ${DARK_CARD}`}>
+      <section className="rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className={`mb-2 text-xs font-semibold tracking-[0.12em] text-[#9c938d] uppercase ${DARK_MUTED}`}>Recursos Humanos</p>
-            <h1 className={`mb-1 text-2xl font-bold tracking-tight text-[#241f1c] ${DARK_TEXT}`}>Usuarios / Empleados</h1>
-            <p className={`text-sm text-[#6b635e] ${DARK_MUTED}`}>Crea usuarios con o sin perfil de empleado y gestiona su estado laboral. El acceso a la plataforma se controla por separado.</p>
+            <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-[var(--gbp-muted)] uppercase">Recursos Humanos</p>
+            <h1 className="mb-1 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Usuarios / Empleados</h1>
+            <p className="text-sm text-[var(--gbp-text2)]">Crea usuarios con o sin perfil de empleado y gestiona su estado laboral. El acceso a la plataforma se controla por separado.</p>
           </div>
           <div className="flex gap-2">
-            <Link href="/app/employees?action=create" className={`inline-flex items-center gap-1 rounded-lg bg-[#111111] px-3 py-2 text-sm font-semibold text-white hover:bg-[#c0392b] ${DARK_PRIMARY}`}><Plus className="h-4 w-4" /> Nuevo Usuario / Empleado</Link>
+            <Link href="/app/employees?action=create" className="inline-flex items-center gap-1 rounded-lg bg-[var(--gbp-text)] px-3 py-2 text-sm font-semibold text-white hover:bg-[var(--gbp-accent)]"><Plus className="h-4 w-4" /> Nuevo Usuario / Empleado</Link>
           </div>
         </div>
       </section>

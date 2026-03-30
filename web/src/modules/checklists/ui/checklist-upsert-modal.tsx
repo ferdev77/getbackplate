@@ -47,11 +47,6 @@ type ChecklistUpsertModalProps = {
   editingTemplate?: EditingTemplate | null;
 };
 
-const DARK_PANEL = "[.theme-dark-pro_&]:border [.theme-dark-pro_&]:border-[#2b3646] [.theme-dark-pro_&]:bg-[#151b25]";
-const DARK_TEXT = "[.theme-dark-pro_&]:text-[#e7edf7]";
-const DARK_MUTED = "[.theme-dark-pro_&]:text-[#9aabc3]";
-const DARK_GHOST = "[.theme-dark-pro_&]:border-[#334155] [.theme-dark-pro_&]:bg-[#0f1723] [.theme-dark-pro_&]:text-[#d8e3f2] [.theme-dark-pro_&]:hover:bg-[#172131]";
-
 export function ChecklistUpsertModal({
   branches,
   departments,
@@ -82,23 +77,23 @@ export function ChecklistUpsertModal({
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
-      <div className={`flex max-h-[90vh] w-[680px] max-w-[95vw] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)] ${DARK_PANEL}`}>
-        <div className="flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 pb-4 pt-5 [.theme-dark-pro_&]:border-[#2b3646]">
-          <p className={`font-serif text-[15px] font-bold text-[#111] ${DARK_TEXT}`}>{action === "edit" ? "Editar Checklist" : "Nuevo Checklist"}</p>
-          <Link href="/app/checklists" className={`inline-flex h-8 w-8 items-center justify-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111] ${DARK_GHOST}`}>✕</Link>
+      <div className="flex max-h-[90vh] w-[680px] max-w-[95vw] flex-col overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-xl)]">
+        <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 pb-4 pt-5">
+          <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">{action === "edit" ? "Editar Checklist" : "Nuevo Checklist"}</p>
+          <Link href="/app/checklists" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</Link>
         </div>
         <form action={formAction}>
           {editingTemplate ? <input type="hidden" name="template_id" value={editingTemplate.id} /> : null}
           <div className="max-h-[68vh] overflow-y-auto px-6 py-5">
-            <h3 className={`mb-3 border-b-[1.5px] border-[#f0f0f0] pb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase [.theme-dark-pro_&]:border-[#2b3646] ${DARK_MUTED}`}>Informacion general</h3>
+            <h3 className="mb-3 border-b-[1.5px] border-[var(--gbp-border)] pb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Informacion general</h3>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="grid gap-1.5 sm:col-span-2">
-                <span className={`text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase ${DARK_MUTED}`}>Nombre del checklist</span>
-                <input name="name" required defaultValue={editingTemplate?.name ?? ""} placeholder="Ej: Apertura Cocina - Turno Manana" className={`rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm ${DARK_GHOST}`} />
+                <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Nombre del checklist</span>
+                <input name="name" required defaultValue={editingTemplate?.name ?? ""} placeholder="Ej: Apertura Cocina - Turno Manana" className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)]" />
               </label>
               <label className="grid gap-1.5">
-                <span className={`text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase ${DARK_MUTED}`}>Tipo de checklist</span>
-                <select name="checklist_type" defaultValue={editingTemplate?.checklist_type ?? "opening"} className={`rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm ${DARK_GHOST}`}>
+                <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Tipo de checklist</span>
+                <select name="checklist_type" defaultValue={editingTemplate?.checklist_type ?? "opening"} className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]">
                   <option value="opening">Apertura</option>
                   <option value="closing">Cierre</option>
                   <option value="prep">Prep</option>
@@ -106,32 +101,28 @@ export function ChecklistUpsertModal({
                 </select>
               </label>
               <label className="grid gap-1.5">
-                <span className={`text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase ${DARK_MUTED}`}>Shift</span>
-                <select name="shift" defaultValue={editingTemplate?.shift ?? "1er Shift"} className={`rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm ${DARK_GHOST}`}>
+                <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Shift</span>
+                <select name="shift" defaultValue={editingTemplate?.shift ?? "1er Shift"} className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]">
                   <option>1er Shift</option>
                   <option>2do Shift</option>
                   <option>3er Shift</option>
                 </select>
               </label>
-              <div className="grid gap-1.5 sm:col-span-2 mt-4 border-t border-[#f0f0f0] pt-4 [.theme-dark-pro_&]:border-[#2b3646]">
+              <div className="mt-4 grid gap-1.5 border-t border-[var(--gbp-border)] pt-4 sm:col-span-2">
                 <RecurrenceSelector 
-                  initialType={
-                    (editingTemplate?.scheduledJob?.recurrence_type as any) || 
-                    (editingTemplate?.repeat_every as any) || 
-                    "daily"
-                  } 
+                  initialType={editingTemplate?.scheduledJob?.recurrence_type || editingTemplate?.repeat_every || "daily"} 
                   initialDays={editingTemplate?.scheduledJob?.custom_days || []} 
                 />
               </div>
               <label className="grid gap-1.5">
-                <span className={`text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase ${DARK_MUTED}`}>Estado</span>
-                <select name="template_status" defaultValue={editingTemplate?.is_active ? "active" : "draft"} className={`rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f8f8f8] px-3 py-2 text-sm ${DARK_GHOST}`}>
+                <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Estado</span>
+                <select name="template_status" defaultValue={editingTemplate?.is_active ? "active" : "draft"} className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]">
                   <option value="active">Activo</option>
                   <option value="draft">Borrador</option>
                 </select>
               </label>
             </div>
-            <h3 className={`mb-3 mt-6 border-b-[1.5px] border-[#f0f0f0] pb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase [.theme-dark-pro_&]:border-[#2b3646] ${DARK_MUTED}`}>Visible para</h3>
+            <h3 className="mb-3 mt-6 border-b-[1.5px] border-[var(--gbp-border)] pb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Visible para</h3>
             <ScopeSelector
               namespace="checklist"
               branches={branches}
@@ -147,7 +138,7 @@ export function ChecklistUpsertModal({
               initialPositions={Array.isArray((editingTemplate?.target_scope as Record<string, string[]> | undefined)?.position_ids) ? ((editingTemplate?.target_scope as Record<string, string[]>).position_ids ?? []) : []}
               initialUsers={Array.isArray((editingTemplate?.target_scope as Record<string, string[]> | undefined)?.users) ? ((editingTemplate?.target_scope as Record<string, string[]>).users ?? []) : []}
             />
-            <h3 className={`mb-3 mt-6 border-b-[1.5px] border-[#f0f0f0] pb-2 text-[11px] font-bold tracking-[0.1em] text-[#aaa] uppercase [.theme-dark-pro_&]:border-[#2b3646] ${DARK_MUTED}`}>Items del checklist</h3>
+            <h3 className="mb-3 mt-6 border-b-[1.5px] border-[var(--gbp-border)] pb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Items del checklist</h3>
             <ChecklistItemsBuilder
               initialSections={
                 editingTemplate?.templateSections?.length
@@ -158,16 +149,16 @@ export function ChecklistUpsertModal({
 
             {!editingTemplate ? (
               <>
-                <div className="my-4 h-px bg-[#f0f0f0] [.theme-dark-pro_&]:bg-[#2b3646]" />
-                <label className={`mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#888] ${DARK_MUTED}`}>Notificar tambien via</label>
+                <div className="my-4 h-px bg-[var(--gbp-border)]" />
+                <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Notificar tambien via</label>
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => setNotifyWhatsapp((prev) => !prev)}
                     className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
                       notifyWhatsapp
-                        ? "border-[#c0392b] bg-[#fff5f3] text-[#c0392b]"
-                        : `border-[#e8e8e8] bg-white text-[#666] ${DARK_GHOST}`
+                        ? "border-[var(--gbp-accent)] bg-[color-mix(in_oklab,var(--gbp-accent)_14%,transparent)] text-[var(--gbp-accent)]"
+                        : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
                     }`}
                   >
                     <MessageSquare className="h-3.5 w-3.5" /> WhatsApp
@@ -177,8 +168,8 @@ export function ChecklistUpsertModal({
                     onClick={() => setNotifySms((prev) => !prev)}
                     className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
                       notifySms
-                        ? "border-[#c0392b] bg-[#fff5f3] text-[#c0392b]"
-                        : `border-[#e8e8e8] bg-white text-[#666] ${DARK_GHOST}`
+                        ? "border-[var(--gbp-accent)] bg-[color-mix(in_oklab,var(--gbp-accent)_14%,transparent)] text-[var(--gbp-accent)]"
+                        : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
                     }`}
                   >
                     <Smartphone className="h-3.5 w-3.5" /> SMS
@@ -188,8 +179,8 @@ export function ChecklistUpsertModal({
                     onClick={() => setNotifyEmail((prev) => !prev)}
                     className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
                       notifyEmail
-                        ? "border-[#c0392b] bg-[#fff5f3] text-[#c0392b]"
-                        : `border-[#e8e8e8] bg-white text-[#666] ${DARK_GHOST}`
+                        ? "border-[var(--gbp-accent)] bg-[color-mix(in_oklab,var(--gbp-accent)_14%,transparent)] text-[var(--gbp-accent)]"
+                        : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
                     }`}
                   >
                     <Mail className="h-3.5 w-3.5" /> Email
@@ -201,8 +192,8 @@ export function ChecklistUpsertModal({
               </>
             ) : null}
           </div>
-          <div className="flex justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4 [.theme-dark-pro_&]:border-[#2b3646]">
-            <Link href="/app/checklists" className={`rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333] ${DARK_GHOST}`}>Cancelar</Link>
+          <div className="flex justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
+            <Link href="/app/checklists" className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">Cancelar</Link>
             <SubmitButton 
               label={editingTemplate ? "Actualizar Checklist" : "Guardar Checklist"} 
               pendingLabel={editingTemplate ? "Actualizando..." : "Guardando..."} 

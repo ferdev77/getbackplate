@@ -13,10 +13,6 @@ type CompanyDocumentsPageProps = {
   searchParams: Promise<{ status?: string; message?: string; action?: string }>;
 };
 
-const DARK_TEXT = "[.theme-dark-pro_&]:text-[var(--gbp-text)]";
-const DARK_GHOST = "[.theme-dark-pro_&]:border-[var(--gbp-border2)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)] [.theme-dark-pro_&]:text-[var(--gbp-text2)] [.theme-dark-pro_&]:hover:bg-[var(--gbp-surface2)]";
-const DARK_PRIMARY = "[.theme-dark-pro_&]:bg-[var(--gbp-accent)] [.theme-dark-pro_&]:text-white [.theme-dark-pro_&]:hover:bg-[var(--gbp-accent-hover)]";
-
 export default async function CompanyDocumentsPage({
   searchParams,
 }: CompanyDocumentsPageProps) {
@@ -71,14 +67,14 @@ export default async function CompanyDocumentsPage({
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
       <SlideUp>
         <section className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div className={`inline-flex items-center gap-2 text-[#1f1a17] ${DARK_TEXT}`}>
+          <div className="inline-flex items-center gap-2 text-[var(--gbp-text)]">
             <LayoutGrid className="h-4 w-4" />
             <h1 className="text-[18px] font-bold">Documentos</h1>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href="/api/company/documents/export" className={`inline-flex h-[33px] items-center rounded-lg border border-[#ddd5d0] bg-white px-3 text-xs font-semibold text-[#514b47] hover:bg-[#f7f3f1] ${DARK_GHOST}`}>Exportar</Link>
-            <Link href="/app/documents?action=create-folder" className={`inline-flex h-[33px] items-center gap-1 rounded-lg border border-[#ddd5d0] bg-white px-3 text-xs font-semibold text-[#514b47] hover:bg-[#f7f3f1] ${DARK_GHOST}`}><FolderPlus className="h-3.5 w-3.5" /> Nueva Carpeta</Link>
-            <Link href="/app/documents?action=upload" className={`inline-flex h-[33px] items-center gap-1 rounded-lg bg-[#111] px-3 text-xs font-bold text-white hover:bg-[#c0392b] ${DARK_PRIMARY}`}><UploadCloud className="h-3.5 w-3.5" /> Subir Archivo</Link>
+            <Link href="/api/company/documents/export" className="inline-flex h-[33px] items-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]">Exportar</Link>
+            <Link href="/app/documents?action=create-folder" className="inline-flex h-[33px] items-center gap-1 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"><FolderPlus className="h-3.5 w-3.5" /> Nueva Carpeta</Link>
+            <Link href="/app/documents?action=upload" className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white hover:bg-[var(--gbp-accent)]"><UploadCloud className="h-3.5 w-3.5" /> Subir Archivo</Link>
           </div>
         </section>
       </SlideUp>

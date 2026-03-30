@@ -4,8 +4,6 @@ import { requireTenantModule } from "@/shared/lib/access";
 import { DocumentTrashList } from "@/modules/trash/ui/document-trash-list";
 import { SlideUp } from "@/shared/ui/animations";
 
-const DARK_TEXT = "[.theme-dark-pro_&]:text-[var(--gbp-text)]";
-
 export default async function CompanyTrashPage() {
   const tenant = await requireTenantModule("documents");
   const supabase = await createSupabaseServerClient();
@@ -26,7 +24,7 @@ export default async function CompanyTrashPage() {
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
       <SlideUp>
         <section className="mb-5 flex flex-col gap-1">
-          <div className={`inline-flex items-center gap-2 text-[#1f1a17] ${DARK_TEXT}`}>
+          <div className="inline-flex items-center gap-2 text-[var(--gbp-text)]">
             <Trash2 className="h-4 w-4" />
             <h1 className="text-[18px] font-bold">Papelera</h1>
           </div>

@@ -25,12 +25,10 @@ type CompanyAnnouncementsPageProps = {
   }>;
 };
 
-const DARK_TEXT = "[.theme-dark-pro_&]:text-[var(--gbp-text)]";
-const DARK_MUTED = "[.theme-dark-pro_&]:text-[var(--gbp-text2)]";
-const DARK_CARD = "[.theme-dark-pro_&]:border-[var(--gbp-border)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)]";
-const DARK_PRIMARY = "[.theme-dark-pro_&]:bg-[var(--gbp-accent)] [.theme-dark-pro_&]:text-white [.theme-dark-pro_&]:hover:bg-[var(--gbp-accent-hover)]";
-const DARK_GHOST = "[.theme-dark-pro_&]:border-[var(--gbp-border2)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)] [.theme-dark-pro_&]:text-[var(--gbp-text2)] [.theme-dark-pro_&]:hover:bg-[var(--gbp-surface2)]";
-const ACTION_BTN_NEUTRAL = `inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] ${DARK_GHOST}`;
+const TEXT_STRONG = "text-[var(--gbp-text)]";
+const TEXT_MUTED = "text-[var(--gbp-text2)]";
+const CARD = "border-[var(--gbp-border)] bg-[var(--gbp-surface)]";
+const ACTION_BTN_NEUTRAL = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
 const ACTION_BTN_DANGER = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] text-[var(--gbp-error)] hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_16%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-error)_45%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-error-soft)] [.theme-dark-pro_&]:text-[var(--gbp-error)]";
 
 function kindLabel(kind: string) {
@@ -181,31 +179,31 @@ const employeesQuery = supabase
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
       <SlideUp>
         <section className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div className={`inline-flex items-center gap-2 text-[#1f1a17] ${DARK_TEXT}`}>
+          <div className={`inline-flex items-center gap-2 ${TEXT_STRONG}`}>
             <Bell className="h-4 w-4" />
             <h1 className="text-[18px] font-bold">Avisos</h1>
           </div>
-          <Link href="/app/announcements?action=create" className={`inline-flex h-[33px] items-center gap-1 rounded-lg bg-[#111] px-3 text-xs font-bold text-white hover:bg-[#c0392b] ${DARK_PRIMARY}`}><BellPlus className="h-3.5 w-3.5" /> Nuevo Aviso</Link>
+          <Link href="/app/announcements?action=create" className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white hover:bg-[var(--gbp-accent)]"><BellPlus className="h-3.5 w-3.5" /> Nuevo Aviso</Link>
         </section>
       </SlideUp>
 
       <div className="mb-5 grid gap-3 sm:grid-cols-4">
         <div className="h-full">
-          <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Avisos activos</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{announcements?.length ?? 0}</p><p className={`text-[11px] text-[#a7a09a] ${DARK_MUTED}`}>En todas las locaciones</p></article>
+          <article className={`h-full rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Avisos activos</p><p className={`mt-1 text-2xl font-bold ${TEXT_STRONG}`}>{announcements?.length ?? 0}</p><p className={`text-[11px] ${TEXT_MUTED}`}>En todas las locaciones</p></article>
         </div>
         <div className="h-full">
-          <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Fijados</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{(announcements ?? []).filter((row) => row.is_featured).length}</p><p className={`text-[11px] text-[#a7a09a] ${DARK_MUTED}`}>Visible al top</p></article>
+          <article className={`h-full rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Fijados</p><p className={`mt-1 text-2xl font-bold ${TEXT_STRONG}`}>{(announcements ?? []).filter((row) => row.is_featured).length}</p><p className={`text-[11px] ${TEXT_MUTED}`}>Visible al top</p></article>
         </div>
         <div className="h-full">
-          <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Por vencer</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{porVencer}</p><p className={`text-[11px] text-[#a7a09a] ${DARK_MUTED}`}>Esta semana</p></article>
+          <article className={`h-full rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Por vencer</p><p className={`mt-1 text-2xl font-bold ${TEXT_STRONG}`}>{porVencer}</p><p className={`text-[11px] ${TEXT_MUTED}`}>Esta semana</p></article>
         </div>
         <div className="h-full">
-          <article className={`rounded-xl border border-[#e7e0dc] bg-white p-4 h-full ${DARK_CARD}`}><p className={`text-xs text-[#8a817b] ${DARK_MUTED}`}>Ultima publicacion</p><p className={`mt-1 text-2xl font-bold ${DARK_TEXT}`}>{latestDate ? new Date(latestDate).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }) : "-"}</p><p className={`text-[11px] text-[#a7a09a] ${DARK_MUTED}`}>{latestAnnouncement ? authorNameMap.get(latestAnnouncement.created_by ?? "") || "Direccion General" : "Sin avisos"}</p></article>
+          <article className={`h-full rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Ultima publicacion</p><p className={`mt-1 text-2xl font-bold ${TEXT_STRONG}`}>{latestDate ? new Date(latestDate).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }) : "-"}</p><p className={`text-[11px] ${TEXT_MUTED}`}>{latestAnnouncement ? authorNameMap.get(latestAnnouncement.created_by ?? "") || "Direccion General" : "Sin avisos"}</p></article>
         </div>
       </div>
 
       <SlideUp delay={0.1}>
-        <p className={`mb-2 text-[11px] font-bold tracking-[0.11em] text-[#9c938d] uppercase ${DARK_MUTED}`}>Avisos publicados</p>
+        <p className={`mb-2 text-[11px] font-bold tracking-[0.11em] uppercase ${TEXT_MUTED}`}>Avisos publicados</p>
       </SlideUp>
 
       <section className="space-y-3">
@@ -222,40 +220,40 @@ const employeesQuery = supabase
 
               return (
                 <div key={ann.id}>
-                  <article className={`rounded-xl border-[1.5px] bg-white px-5 py-4 ${DARK_CARD} ${ann.is_featured ? "border-[#e8e8e8] border-l-[3.5px] border-l-[#c0392b]" : "border-[#e8e8e8]"}`}>
+                  <article className={`rounded-xl border-[1.5px] px-5 py-4 ${CARD} ${ann.is_featured ? "border-[var(--gbp-border)] border-l-[3.5px] border-l-[var(--gbp-accent)]" : "border-[var(--gbp-border)]"}`}>
                     <div className="mb-2 flex items-start justify-between gap-3">
                       <div>
-                        <p className={`text-[14px] font-bold text-[#111] ${DARK_TEXT}`}>{ann.title}</p>
-                        <div className={`mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-[#aaa] ${DARK_MUTED}`}>
+                        <p className={`text-[14px] font-bold ${TEXT_STRONG}`}>{ann.title}</p>
+                        <div className={`mt-0.5 flex flex-wrap items-center gap-2 text-[11px] ${TEXT_MUTED}`}>
                           <span>📅 {ann.publish_at ? new Date(ann.publish_at).toLocaleDateString("es-AR") : "-"} · {authorNameMap.get(ann.created_by ?? "") || "Direccion General"}</span>
                           {ann.expires_at ? (
                             (() => {
                               const datePart = ann.expires_at.slice(0, 10);
                               const badgeClass =
                                 datePart < today
-                                  ? "border-[#ffd7d1] bg-[#fff1ef] text-[#bf3e31]"
+                                  ? "border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] text-[var(--gbp-error)]"
                                   : datePart === today
-                                    ? "border-[#f1dfb3] bg-[#fff9ec] text-[#9f7010]"
-                                    : "border-[#d8e7ff] bg-[#eef4ff] text-[#2a4f87]";
+                                    ? "border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
+                                    : "border-[color:color-mix(in_oklab,var(--gbp-violet)_35%,transparent)] bg-[var(--gbp-violet-soft)] text-[var(--gbp-violet)]";
                               const prefix = datePart < today ? "Vencio" : datePart === today ? "Vence hoy" : "Por vencer";
                               return <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${badgeClass}`}><CalendarClock className="h-3 w-3" /> {prefix}: {new Date(ann.expires_at).toLocaleDateString("es-AR")}</span>;
                             })()
                           ) : null}
                         </div>
                       </div>
-                      {ann.is_featured ? <span className="inline-flex items-center gap-1 rounded-full border border-[#f3cbc4] bg-[#fff2f0] px-2 py-0.5 text-[10px] font-semibold text-[#b63a2f]"><Pin className="h-3 w-3" /> FIJADO</span> : null}
+                      {ann.is_featured ? <span className="inline-flex items-center gap-1 rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-semibold text-[var(--gbp-accent)]"><Pin className="h-3 w-3" /> FIJADO</span> : null}
                     </div>
 
-                    <p className={`text-[13px] leading-6 text-[#777] ${DARK_MUTED}`}>{ann.body}</p>
+                    <p className={`text-[13px] leading-6 ${TEXT_MUTED}`}>{ann.body}</p>
 
                     <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                      <span className={`text-[11px] font-semibold text-[#888] ${DARK_MUTED}`}>Para:</span>
-                      {!hasAudience ? <span className="rounded-full border border-[#e8dfda] bg-[#faf7f5] px-2 py-0.5 text-[11px] text-[#6f6864]">Todos los empleados</span> : null}
-                      {scopedLocations.map((id) => <span key={`${ann.id}-loc-${id}`} className="rounded-full border border-[#d6e2f4] bg-[#eef4ff] px-2 py-0.5 text-[11px] text-[#2a4f87]">{branchNameMap.get(id) ?? "Sucursal"}</span>)}
-                      {scopedDepartments.map((id) => <span key={`${ann.id}-dep-${id}`} className="rounded-full border border-[#f0e3d0] bg-[#fff7eb] px-2 py-0.5 text-[11px] text-[#9b6a1e]">{departmentNameMap.get(id) ?? "Departamento"}</span>)}
-                      {scopedPositions.map((id) => <span key={`${ann.id}-pos-${id}`} className="rounded-full border border-[#e6d9f9] bg-[#f6f1ff] px-2 py-0.5 text-[11px] text-[#6f46b7]">{positionNameMap.get(id) ?? "Puesto"}</span>)}
-                      {scopedUsers.slice(0, 3).map((id) => <span key={`${ann.id}-user-${id}`} className="rounded-full border border-[#f0d5d0] bg-[#fff5f3] px-2 py-0.5 text-[11px] text-[#b63a2f]">{employeeNameByUserId.get(id) ?? "Usuario"}</span>)}
-                      {scopedUsers.length > 3 ? <span className="rounded-full border border-[#ececec] bg-[#f8f8f8] px-2 py-0.5 text-[11px] text-[#777]">+{scopedUsers.length - 3}</span> : null}
+                      <span className={`text-[11px] font-semibold ${TEXT_MUTED}`}>Para:</span>
+                      {!hasAudience ? <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2 py-0.5 text-[11px] text-[var(--gbp-text2)]">Todos los empleados</span> : null}
+                      {scopedLocations.map((id) => <span key={`${ann.id}-loc-${id}`} className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-violet)_35%,transparent)] bg-[var(--gbp-violet-soft)] px-2 py-0.5 text-[11px] text-[var(--gbp-violet)]">{branchNameMap.get(id) ?? "Sucursal"}</span>)}
+                      {scopedDepartments.map((id) => <span key={`${ann.id}-dep-${id}`} className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] text-[var(--gbp-accent)]">{departmentNameMap.get(id) ?? "Departamento"}</span>)}
+                      {scopedPositions.map((id) => <span key={`${ann.id}-pos-${id}`} className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-violet)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-violet)_12%,transparent)] px-2 py-0.5 text-[11px] text-[var(--gbp-violet)]">{positionNameMap.get(id) ?? "Puesto"}</span>)}
+                      {scopedUsers.slice(0, 3).map((id) => <span key={`${ann.id}-user-${id}`} className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] text-[var(--gbp-accent)]">{employeeNameByUserId.get(id) ?? "Usuario"}</span>)}
+                      {scopedUsers.length > 3 ? <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-2 py-0.5 text-[11px] text-[var(--gbp-text2)]">+{scopedUsers.length - 3}</span> : null}
                     </div>
 
                     <div className="mt-3 flex items-center justify-between">

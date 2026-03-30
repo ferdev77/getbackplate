@@ -12,11 +12,6 @@ type NewUserModalProps = {
   roleOptions: { value: string; label: string }[];
 };
 
-const DARK_PANEL = "[.theme-dark-pro_&]:border [.theme-dark-pro_&]:border-[var(--gbp-border)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)]";
-const DARK_TEXT = "[.theme-dark-pro_&]:text-[var(--gbp-text)]";
-const DARK_MUTED = "[.theme-dark-pro_&]:text-[var(--gbp-text2)]";
-const DARK_GHOST = "[.theme-dark-pro_&]:border-[var(--gbp-border2)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)] [.theme-dark-pro_&]:text-[var(--gbp-text2)] [.theme-dark-pro_&]:hover:bg-[var(--gbp-surface2)]";
-
 export function NewUserModal({ open, branches, roleOptions }: NewUserModalProps) {
   const [isPending, setIsPending] = useState(false);
   const router = useRouter();
@@ -53,13 +48,13 @@ export function NewUserModal({ open, branches, roleOptions }: NewUserModalProps)
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
-      <div className={`max-h-[90vh] w-[480px] max-w-[95vw] overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)] ${DARK_PANEL}`}>
-        <div className="flex items-center justify-between border-b-[1.5px] border-[#f0f0f0] px-6 py-5 [.theme-dark-pro_&]:border-[#2b3646]">
-          <p className={`font-serif text-[15px] font-bold text-[#111] ${DARK_TEXT}`}>Nuevo Administrador</p>
+      <div className="max-h-[90vh] w-[480px] max-w-[95vw] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
+        <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
+          <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Nuevo Administrador</p>
           <Link
             id="close-user-modal-link"
             href="/app/users"
-            className={`grid h-8 w-8 place-items-center rounded-md text-[#bbb] hover:bg-[#f5f5f5] hover:text-[#111] ${DARK_GHOST}`}
+            className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"
           >
             ✕
           </Link>
@@ -68,30 +63,30 @@ export function NewUserModal({ open, branches, roleOptions }: NewUserModalProps)
           <div className="max-h-[68vh] overflow-y-auto px-6 py-5">
 
             {/* Nombre */}
-            <label className={`mb-1 mt-0 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa] ${DARK_MUTED}`}>
+            <label className="mb-1 mt-0 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">
               Nombre completo
             </label>
             <input
               name="full_name"
               required
-              className={`w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm ${DARK_GHOST}`}
+              className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)]"
               placeholder="ej. Juan Garcia"
             />
 
             {/* Email */}
-            <label className={`mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa] ${DARK_MUTED}`}>
+            <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">
               Correo corporativo
             </label>
             <input
               name="email"
               type="email"
               required
-              className={`w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm ${DARK_GHOST}`}
+              className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)]"
               placeholder="nombre@empresa.com"
             />
 
             {/* Password */}
-            <label className={`mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa] ${DARK_MUTED}`}>
+            <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">
               Contraseña inicial
             </label>
             <input
@@ -99,15 +94,15 @@ export function NewUserModal({ open, branches, roleOptions }: NewUserModalProps)
               type="password"
               required
               minLength={8}
-              className={`w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm ${DARK_GHOST}`}
+              className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)]"
               placeholder="Mínimo 8 caracteres"
             />
 
             {/* Tipo de administrador */}
-            <label className={`mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa] ${DARK_MUTED}`}>
+            <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">
               Tipo de administrador
             </label>
-            <select name="role_code" defaultValue={roleOptions[0]?.value ?? ""} className={`w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm ${DARK_GHOST}`}>
+            <select name="role_code" defaultValue={roleOptions[0]?.value ?? ""} className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]">
               {roleOptions.map((role) => (
                 <option key={role.value} value={role.value}>
                   {role.label}
@@ -116,10 +111,10 @@ export function NewUserModal({ open, branches, roleOptions }: NewUserModalProps)
             </select>
 
             {/* Locacion */}
-            <label className={`mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa] ${DARK_MUTED}`}>
+            <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">
               Locación
             </label>
-            <select name="branch_id" defaultValue="" className={`w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm ${DARK_GHOST}`}>
+            <select name="branch_id" defaultValue="" className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]">
               <option value="">Sin locación asignada</option>
               {branches.map((branch) => (
                 <option key={branch.id} value={branch.id}>
@@ -129,20 +124,20 @@ export function NewUserModal({ open, branches, roleOptions }: NewUserModalProps)
             </select>
 
             {/* Acceso */}
-            <label className={`mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa] ${DARK_MUTED}`}>
+            <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">
               Acceso a plataforma
             </label>
-            <select name="access_status" defaultValue="active" className={`w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm ${DARK_GHOST}`}>
+            <select name="access_status" defaultValue="active" className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]">
               <option value="active">Activo</option>
               <option value="inactive">Inactivo</option>
             </select>
-            <p className={`mt-1 text-[11px] text-[#8b817c] ${DARK_MUTED}`}>Este campo define si puede iniciar sesión en la plataforma.</p>
+            <p className="mt-1 text-[11px] text-[var(--gbp-text2)]">Este campo define si puede iniciar sesión en la plataforma.</p>
 
           </div>
-          <div className="flex justify-end gap-2 border-t-[1.5px] border-[#f0f0f0] px-6 py-4 [.theme-dark-pro_&]:border-[#2b3646]">
+          <div className="flex justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
             <Link
               href="/app/users"
-              className={`rounded-lg border-[1.5px] border-[#e8e8e8] bg-[#f5f5f5] px-4 py-2 text-sm font-semibold text-[#777] hover:bg-[#ececec] hover:text-[#333] ${DARK_GHOST}`}
+              className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"
             >
               Cancelar
             </Link>

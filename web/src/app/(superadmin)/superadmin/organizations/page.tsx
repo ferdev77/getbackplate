@@ -179,7 +179,7 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
-      <section className="relative overflow-hidden rounded-[2.5rem] border border-[var(--gbp-border)] bg-[linear-gradient(145deg,var(--gbp-text)_0%,#151922_100%)] p-8 text-white shadow-xl">
+      <section className="relative overflow-hidden rounded-[2.5rem] border border-[var(--gbp-border)] bg-[linear-gradient(145deg,var(--gbp-text)_0%,color-mix(in_oklab,var(--gbp-text)_88%,black)_100%)] p-8 text-white shadow-xl">
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand/20 blur-3xl" />
         <div className="relative z-10">
           <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-light/60">Superadmin Control</p>
@@ -442,7 +442,7 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
                       <h4 className="mb-6 flex items-center gap-2 text-sm font-bold text-foreground"><Settings2 className="h-5 w-5 text-brand" /> Configuración General</h4>
                       <input type="hidden" name="organization_id" value={selectedOrg.id} />
                       <div className="space-y-5">
-                        <SuperadminInputField label="Nombre" name="name" defaultValue={selectedOrg.name} labelBgClassName="bg-[#fcfaf8]" />
+                        <SuperadminInputField label="Nombre" name="name" defaultValue={selectedOrg.name} labelBgClassName="bg-[var(--gbp-bg)]" />
                         <div className="grid gap-4 sm:grid-cols-2">
                           <SuperadminSelectField label="Estado" name="status" defaultValue={selectedOrg.status}>
                             <option value="active">Activo</option>

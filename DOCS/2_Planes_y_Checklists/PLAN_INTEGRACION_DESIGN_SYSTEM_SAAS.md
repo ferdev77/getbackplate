@@ -210,6 +210,54 @@ Checklist:
 - [ ] limpieza de tokens no usados.
 - [ ] actualizacion final de docs de arquitectura y guia basica.
 
+Avance registrado (2026-03-29, hardening residual DS):
+
+- Limpieza de estilos legacy (hex/hardcoded) en modales, tablas y formularios inline:
+  - `web/src/modules/employees/ui/users-table-workspace.tsx`
+  - `web/src/modules/employees/ui/new-user-modal.tsx`
+  - `web/src/modules/employees/ui/employees-table-workspace.tsx`
+  - `web/src/modules/settings/ui/inline-branch-form.tsx`
+  - `web/src/modules/settings/ui/inline-department-form.tsx`
+  - `web/src/modules/settings/ui/inline-position-form.tsx`
+  - `web/src/modules/checklists/ui/employee-checklist-preview-modal.tsx`
+  - `web/src/modules/onboarding/ui/employee-welcome-modal.tsx`
+  - `web/src/app/(employee)/portal/home/page.tsx`
+- Validacion tecnica post-hardening:
+  - `npm run lint -- <archivos tocados>` OK.
+  - `npm run build` OK.
+  - warning conocido y preexistente de Next.js sobre `middleware` -> `proxy`.
+
+Avance registrado (2026-03-29, barrido integral adicional):
+
+- Ajuste visual DS en superficies core restantes por rol:
+  - Company: `announcements`, `checklists`, `documents`, `employees`, `users`, `trash`, `dashboard/location`, `settings`.
+  - Employee: `portal/announcements`, `portal/documents`, `portal/onboarding`.
+  - Superadmin: gradientes hero y ajustes de consistencia en `dashboard`, `organizations`, `plans`, `modules`, `guide`, `feedback`.
+- Se mantuvieron flujos funcionales y server actions sin cambios de negocio.
+- Validacion final de esta barrida:
+  - `npm run lint -- <archivos tocados>` OK.
+  - `npm run build` OK.
+
+Avance registrado (2026-03-29, hardening complementario de modulos):
+
+- Limpieza DS de hex hardcodeados y variantes legacy en modales/builders auxiliares:
+  - `web/src/modules/checklists/ui/checklist-upsert-modal.tsx`
+  - `web/src/modules/checklists/ui/checklist-delete-modal.tsx`
+  - `web/src/modules/checklists/ui/checklist-items-builder.tsx`
+  - `web/src/modules/employees/ui/user-department-position-fields.tsx`
+  - `web/src/modules/trash/ui/document-trash-list.tsx`
+- Ajustes de consistencia en estados de accion (restore/delete) y tipado de errores (`unknown`) sin tocar logica de negocio.
+- Validacion tecnica de esta tanda:
+  - `npm run lint -- <archivos tocados>` OK.
+
+Avance registrado (2026-03-29, cierre visual en reportes):
+
+- Migracion DS en dashboard de reportes para eliminar hex hardcodeados y unificar bordes/superficies/estados con tokens:
+  - `web/src/modules/reports/ui/checklist-reports-dashboard.tsx`
+- Se conservaron flujos de realtime, filtros y revision de reportes sin cambios funcionales.
+- Validacion tecnica puntual:
+  - `npm run lint -- src/modules/reports/ui/checklist-reports-dashboard.tsx` OK.
+
 ## 5) Riesgos y mitigacion
 
 Riesgos:

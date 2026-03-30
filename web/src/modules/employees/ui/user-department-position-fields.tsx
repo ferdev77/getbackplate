@@ -30,7 +30,7 @@ export function UserDepartmentPositionFields({ departments, positions }: UserDep
 
   return (
     <>
-      <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">Departamento</label>
+      <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Departamento</label>
       <select
         name="department_id"
         value={selectedDepartmentId}
@@ -41,7 +41,7 @@ export function UserDepartmentPositionFields({ departments, positions }: UserDep
             setSelectedPositionId("");
           }
         }}
-        className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm"
+        className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]"
       >
         <option value="">Sin departamento</option>
         {departments.map((department) => (
@@ -49,12 +49,12 @@ export function UserDepartmentPositionFields({ departments, positions }: UserDep
         ))}
       </select>
 
-      <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#aaa]">Puesto del departamento</label>
+      <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Puesto del departamento</label>
       <select
         name="position_id"
         value={selectedPositionId}
         onChange={(event) => setSelectedPositionId(event.target.value)}
-        className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm"
+        className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]"
       >
         <option value="">Sin puesto</option>
         {filteredPositions.map((position) => (

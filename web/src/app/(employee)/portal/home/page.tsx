@@ -264,7 +264,7 @@ export default async function EmployeeHomePage() {
           <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-[var(--gbp-text2)]">Documentos</p>
         </div>
       </section>
-      <section className="relative overflow-hidden rounded-3xl bg-[linear-gradient(145deg,var(--gbp-text)_0%,#151922_100%)] p-8 text-white shadow-xl">
+      <section className="relative overflow-hidden rounded-3xl bg-[linear-gradient(145deg,var(--gbp-text)_0%,color-mix(in_oklab,var(--gbp-text)_88%,black)_100%)] p-8 text-white shadow-xl">
         <div className="absolute top-0 right-0 p-12 opacity-10 blur-2xl">
            <div className="w-64 h-64 bg-brand rounded-full"></div>
         </div>
@@ -290,11 +290,11 @@ export default async function EmployeeHomePage() {
           <h2 className="font-serif text-3xl font-bold leading-tight max-w-3xl">{heroAnnouncement?.title ?? "Bienvenido al Portal Interno"}</h2>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-white/70">{heroAnnouncement?.body ?? "Aquí encontrarás avisos, checklists pendientes y documentos recientes de tu puesto."}</p>
           <div className="mt-6 flex items-center gap-3">
-            <div className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-[10px] font-bold text-[#e8e8e8]">
+            <div className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-[10px] font-bold text-white/90">
               {(authorNameMap.get(heroAnnouncement?.created_by ?? "") || "DG").substring(0, 2).toUpperCase()}
             </div>
             <div className="text-[11px] leading-tight">
-              <p className="font-medium text-[#e8e8e8]">{authorNameMap.get(heroAnnouncement?.created_by ?? "") || "Dirección General"}</p>
+              <p className="font-medium text-white/90">{authorNameMap.get(heroAnnouncement?.created_by ?? "") || "Dirección General"}</p>
               <p className="text-white/45">{heroAnnouncement?.publish_at ? new Date(heroAnnouncement.publish_at).toLocaleDateString("es-AR") : "-"}</p>
             </div>
           </div>
@@ -305,7 +305,7 @@ export default async function EmployeeHomePage() {
         <div className="space-y-8">
           <section className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-[12px] font-bold uppercase tracking-[0.15em] text-[#8b817c] flex items-center gap-2">
+              <h3 className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.15em] text-[var(--gbp-text2)]">
                 <ClipboardCheck className="w-4 h-4 text-brand" /> Checklists Pendientes
               </h3>
               {hasChecklistsModule && (
@@ -338,7 +338,7 @@ export default async function EmployeeHomePage() {
 
           <section className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-[12px] font-bold uppercase tracking-[0.15em] text-[#8b817c] flex items-center gap-2">
+              <h3 className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.15em] text-[var(--gbp-text2)]">
                 <FileText className="w-4 h-4 text-blue-500" /> Documentos Recientes
               </h3>
               {hasDocumentsModule && (
@@ -375,7 +375,7 @@ export default async function EmployeeHomePage() {
 
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-[12px] font-bold uppercase tracking-[0.15em] text-[#8b817c]">
+            <h3 className="text-[12px] font-bold uppercase tracking-[0.15em] text-[var(--gbp-text2)]">
               {hasAnnouncementsModule ? "Avisos Recientes" : "Comunicación Externa"}
             </h3>
             {hasAnnouncementsModule && (
@@ -392,7 +392,7 @@ export default async function EmployeeHomePage() {
                   item.kind === "urgent" ? "bg-rose-50 text-rose-500 group-hover:bg-rose-100" :
                   item.kind === "reminder" ? "bg-amber-50 text-amber-500 group-hover:bg-amber-100" :
                   item.kind === "celebration" ? "bg-blue-50 text-blue-500 group-hover:bg-blue-100" :
-                  "bg-[#fff8f0] text-orange-400 group-hover:bg-orange-100"
+                  "bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)] group-hover:bg-[color:color-mix(in_oklab,var(--gbp-accent)_18%,transparent)]"
                 }`}>
                   {item.kind === "urgent" && <AlertCircle className="h-5 w-5" />}
                   {item.kind === "reminder" && <CalendarClock className="h-5 w-5" />}

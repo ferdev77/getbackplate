@@ -73,7 +73,7 @@ const BASE_SECTIONS: Section[] = [
     tab: "RRHH",
     icon: ShieldCheck,
     iconBg: "bg-[var(--gbp-success-soft)]",
-    iconColor: "text-[#228b5a]",
+    iconColor: "text-[var(--gbp-success)]",
     title: "Politicas de RRHH",
     description:
       "Antes de entrar al portal debes confirmar que leiste estas politicas y reglas de uso.",
@@ -129,7 +129,7 @@ export function EmployeeWelcomeModal({
   return (
     <div className="fixed inset-0 z-[1050] flex items-center justify-center bg-black/55 p-4">
       <div className="max-h-[90vh] w-[940px] max-w-[97vw] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.3)]">
-        <div className="relative overflow-hidden border-b border-black/30 bg-[linear-gradient(145deg,var(--gbp-text)_0%,#151922_100%)] px-8 py-5 text-white">
+        <div className="relative overflow-hidden border-b border-black/30 bg-[linear-gradient(145deg,var(--gbp-text)_0%,color-mix(in_oklab,var(--gbp-text)_88%,black)_100%)] px-8 py-5 text-white">
           <div className="absolute -right-8 -top-10 h-40 w-40 rounded-full bg-[radial-gradient(circle,rgba(192,57,43,.35),transparent_70%)]" />
           <div className="absolute -left-8 -bottom-10 h-36 w-36 rounded-full bg-[radial-gradient(circle,rgba(192,57,43,.2),transparent_70%)]" />
           <div className="relative flex items-center justify-between gap-3">
@@ -138,7 +138,7 @@ export function EmployeeWelcomeModal({
               <h2 className="mt-1 font-serif text-[30px] font-bold leading-tight">Bienvenido</h2>
                <p className="mt-1 text-sm text-white/70">Completa esta induccion para habilitar el acceso final al portal.</p>
             </div>
-            <div className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-[#f2ebe7]">
+            <div className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85">
               Paso {step + 1}/{sections.length}
             </div>
           </div>
@@ -158,8 +158,8 @@ export function EmployeeWelcomeModal({
                   index === step
                     ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)] shadow-[0_4px_14px_rgba(192,57,43,.15)]"
                     : readChecks[index]
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                      : "border-[#e7ddd8] bg-white text-[#6f6661] hover:border-[#d8ccc6] hover:bg-[#fffaf8]"
+                      ? "border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]"
+                      : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:border-[var(--gbp-border2)] hover:bg-[var(--gbp-bg)]"
                 }`}
               >
                 {readChecks[index] ? <CheckCircle2 className="h-3.5 w-3.5" /> : null}
