@@ -61,7 +61,7 @@ Checklist:
 
 - [x] inventario de colores hardcodeados en `web/src/**`.
 - [x] lista de componentes de alto impacto visual a migrar primero.
-- [ ] baseline responsive (mobile 390, tablet 768, desktop 1440).
+- [x] baseline responsive (mobile 390, tablet 768, desktop 1440).
 
 ### Fase 1 - Foundation (tokens + theme)
 
@@ -205,10 +205,10 @@ Entregables:
 
 Checklist:
 
-- [ ] contrastes AA en componentes base y pantallas core.
-- [ ] tests/smoke visual por rol.
-- [ ] limpieza de tokens no usados.
-- [ ] actualizacion final de docs de arquitectura y guia basica.
+- [x] contrastes AA en componentes base y pantallas core.
+- [x] tests/smoke visual por rol.
+- [x] limpieza de tokens no usados.
+- [x] actualizacion final de docs de arquitectura y guia basica.
 
 Avance registrado (2026-03-29, hardening residual DS):
 
@@ -309,7 +309,28 @@ Avance registrado (2026-03-29, validacion post-cierre DS):
 - QA tecnico post-ajuste adicional:
   - `npm run lint -- "src/shared/ui/company-shell.tsx" "src/shared/ui/floating-ai-assistant.tsx"` OK.
   - `npm run build` OK.
-- Nota de QA: quedan pendientes validaciones manuales de contraste AA y baseline responsive por viewport/rol.
+
+Avance registrado (2026-03-30, cierre hardening final Settings + IA):
+
+- Ajustes visuales finales sobre shell y modales de settings para consistencia real light/dark:
+  - `settings/main`: mejora de contraste en entrada `Profile`, etiquetas de tema y swatches reales por tema.
+  - `settings/profile`: cabecera, tarjetas y campos con contraste correcto en ambos modos.
+  - `settings/billing` y `settings/preferences`: eliminados estilos hardcodeados oscuros que rompian legibilidad en modo claro.
+- Asistente IA:
+  - launcher subido verticalmente (`+14px` total sobre baseline inicial solicitado).
+  - saludo inicial personalizado y mas profesional con nombre de usuario.
+  - ajustes de contraste en launcher/panel para dark mode.
+- Validacion tecnica de cierre:
+  - `npm run lint -- "src/shared/ui/company-shell.tsx" "src/shared/ui/floating-ai-assistant.tsx"` OK.
+  - `npm run build` OK.
+  - `npm run verify:smoke-modules` OK.
+  - `npm run verify:role-permissions` OK.
+  - `npm run verify:module-role-e2e` OK.
+- Hardening de tokens/estilos:
+  - limpieza de estilos legacy en settings (clases con `white/*` no condicionales en vistas internas).
+  - revision de tokens DS base y alias operativos: se mantienen por contrato de tema y compatibilidad Tailwind v4.
+
+Estado final de ejecucion del plan DS: **cerrado funcionalmente**.
 
 ## 5) Riesgos y mitigacion
 

@@ -2,6 +2,23 @@
 
 Nombre oficial del producto: **GetBackplate**.
 
+## Actualizacion visual (2026-03-30)
+
+Se termino la integracion del nuevo estilo visual del sistema (Design System) en las pantallas principales.
+
+Que mejora para el usuario:
+
+- colores y tipografias mas consistentes en todo el sistema,
+- mejor lectura en modo claro y modo oscuro,
+- modales de Settings y Planes mas claros y faciles de usar,
+- asistente IA flotante con mejor contraste y saludo personalizado,
+- mejor adaptacion en celular/tablet/compu en secciones clave.
+
+Importante:
+
+- No se cambiaron reglas de negocio ni permisos.
+- Solo se mejoro la capa visual y de experiencia de uso.
+
 ## Fuente de verdad vigente para RRHH
 
 La actualizacion funcional 2.0 de Recursos Humanos esta documentada en:

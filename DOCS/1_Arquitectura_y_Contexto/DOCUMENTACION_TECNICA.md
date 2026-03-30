@@ -6,6 +6,26 @@ Documento base inicial del proyecto SaaS multiempresa. Este archivo ira creciend
 
 Nombre de producto vigente: `GetBackplate`.
 
+## Actualizacion tecnica 2026-03-30 (cierre integracion Design System)
+
+- Se completo la integracion visual del Design System en frontend SaaS, sin cambios de logica de negocio.
+- Cobertura aplicada en capas principales:
+  - tokens globales (`--gbp-*`) en `web/src/app/globals.css` y `web/src/shared/design/tokens.ts`.
+  - shells y modales operativos de empresa en `web/src/shared/ui/company-shell.tsx`.
+  - asistente IA flotante en `web/src/shared/ui/floating-ai-assistant.tsx`.
+  - vistas core company/employee/superadmin y componentes shared/ui de alto impacto visual.
+- Cierre de hardening visual:
+  - consistencia dark/light en sidebar, modal de planes y modal de settings (main/profile/billing/preferences).
+  - contraste mejorado en textos secundarios y acento para lectura de texto pequeno.
+  - ajustes responsive puntuales en filtros y controles para mobile.
+- Validaciones tecnicas de cierre:
+  - `npm run lint -- "src/shared/ui/company-shell.tsx" "src/shared/ui/floating-ai-assistant.tsx"` OK.
+  - `npm run build` OK.
+  - `npm run verify:smoke-modules` OK.
+  - `npm run verify:role-permissions` OK.
+  - `npm run verify:module-role-e2e` OK.
+- Advertencia preexistente mantenida (sin impacto funcional): deprecacion Next.js `middleware` -> `proxy`.
+
 ## Fuente de verdad funcional vigente (RRHH)
 
 La especificacion funcional y tecnica de Recursos Humanos refactorizado (2.0) se consolida en:
