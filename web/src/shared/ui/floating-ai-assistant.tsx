@@ -11,23 +11,25 @@ type Message = {
 
 type FloatingAiAssistantProps = {
   currentPlanCode: string | null;
+  userName: string;
 };
 
-export function FloatingAiAssistant({ currentPlanCode }: FloatingAiAssistantProps) {
+export function FloatingAiAssistant({ currentPlanCode, userName }: FloatingAiAssistantProps) {
   const pathname = usePathname();
   const isEmployeesPage = pathname.startsWith("/app/employees");
-  const launcherBottomClass = isEmployeesPage ? "bottom-[52px]" : "bottom-5";
+  const launcherBottomClass = isEmployeesPage ? "bottom-[66px]" : "bottom-[34px]";
   const panelBottomClass = isEmployeesPage ? "bottom-[132px]" : "bottom-24";
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const displayName = userName.trim().split(/\s+/)[0] || "";
+  const planIntro = currentPlanCode === "pro"
+    ? "Puedo ayudarte con analisis y consultas avanzadas de tu operacion."
+    : "Puedo ayudarte con consultas operativas de tu cuenta.";
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content:
-        currentPlanCode === "pro"
-          ? "Hola, soy tu asistente IA. Preguntame por empleados, checklists, documentos o modulos."
-          : "Hola, soy tu asistente. En este plan respondo consultas operativas basicas con datos reales.",
+      content: `Hola${displayName ? ` ${displayName}` : ""}, soy tu asistente IA. ${planIntro} ¿En que puedo ayudarte hoy?`,
     },
   ]);
 
@@ -83,7 +85,7 @@ export function FloatingAiAssistant({ currentPlanCode }: FloatingAiAssistantProp
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className={`fixed right-5 z-50 inline-flex items-center gap-2 rounded-full bg-[var(--gbp-text)] px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-[var(--gbp-accent)] ${launcherBottomClass}`}
+        className={`fixed right-5 z-50 inline-flex items-center gap-2 rounded-full bg-[var(--gbp-accent)] px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-[var(--gbp-accent-hover)] ${launcherBottomClass}`}
       >
         <Bot className="h-4 w-4" />
         Asistente IA
@@ -107,7 +109,7 @@ export function FloatingAiAssistant({ currentPlanCode }: FloatingAiAssistantProp
                 key={`${message.role}-${index}`}
                 className={`max-w-[90%] rounded-xl px-3 py-2 text-sm whitespace-pre-wrap ${
                   message.role === "user"
-                    ? "ml-auto bg-[var(--gbp-text)] text-white"
+                    ? "ml-auto bg-[var(--gbp-accent)] text-white"
                     : "bg-[var(--gbp-bg)] text-[var(--gbp-text)]"
                 }`}
               >
@@ -135,7 +137,7 @@ export function FloatingAiAssistant({ currentPlanCode }: FloatingAiAssistantProp
                 type="button"
                 onClick={() => void sendQuestion()}
                 disabled={loading}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--gbp-text)] text-white hover:bg-[var(--gbp-accent)] disabled:opacity-50"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--gbp-accent)] text-white hover:bg-[var(--gbp-accent-hover)] disabled:opacity-50"
               >
                 <Send className="h-4 w-4" />
               </button>

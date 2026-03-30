@@ -283,10 +283,10 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
 
       <SlideUp delay={0.1}>
         <form className={`mb-4 flex flex-wrap items-center gap-2 rounded-xl border p-3 ${CARD}`} method="get">
-          <input name="q" defaultValue={q} className={`h-[34px] w-[240px] rounded-lg border-[1.5px] px-3 text-xs ${BTN_GHOST}`} placeholder="Buscar checklist..." />
-          <select name="type" defaultValue={typeFilter} className={`h-[34px] rounded-lg border-[1.5px] px-3 text-xs ${BTN_GHOST}`}><option value="">Todos los tipos</option><option value="opening">Apertura</option><option value="closing">Cierre</option><option value="prep">Prep</option><option value="custom">Custom</option></select>
-          <select name="loc" defaultValue={locFilter} className={`h-[34px] rounded-lg border-[1.5px] px-3 text-xs ${BTN_GHOST}`}><option value="">Todas las locaciones</option>{(branches ?? []).map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select>
-          <button type="submit" className="h-[34px] rounded-lg bg-[var(--gbp-text)] px-4 text-xs font-semibold text-white hover:bg-[var(--gbp-accent)]">Filtrar</button>
+          <input name="q" defaultValue={q} className={`h-[34px] w-full sm:w-[240px] rounded-lg border-[1.5px] px-3 text-xs ${BTN_GHOST}`} placeholder="Buscar checklist..." />
+          <select name="type" defaultValue={typeFilter} className={`h-[34px] w-full sm:w-auto rounded-lg border-[1.5px] px-3 text-xs ${BTN_GHOST}`}><option value="">Todos los tipos</option><option value="opening">Apertura</option><option value="closing">Cierre</option><option value="prep">Prep</option><option value="custom">Custom</option></select>
+          <select name="loc" defaultValue={locFilter} className={`h-[34px] w-full sm:w-auto rounded-lg border-[1.5px] px-3 text-xs ${BTN_GHOST}`}><option value="">Todas las locaciones</option>{(branches ?? []).map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select>
+          <button type="submit" className="h-[34px] w-full sm:w-auto rounded-lg bg-[var(--gbp-text)] px-4 text-xs font-semibold text-white hover:bg-[var(--gbp-accent)]">Filtrar</button>
         </form>
       </SlideUp>
 
