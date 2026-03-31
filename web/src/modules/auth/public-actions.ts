@@ -64,7 +64,10 @@ export async function registerPublicAction(formData: FormData) {
     // 2. Create the Organization (Tenant)
     const slug = slugify(companyName) || `org-${Math.random().toString(36).slice(2, 8)}`;
     
-    const { data: org, error: orgError } = await supabaseAdmin
+    let org: { id: string } | null = null;
+    let orgError: { message?: string } | null = null;
+
+    const createOrgWithBillingDefaults = await supabaseAdmin
       .from("organizations")
       .insert({
         name: companyName,
@@ -75,6 +78,28 @@ export async function registerPublicAction(formData: FormData) {
       })
       .select("id")
       .single();
+
+    org = createOrgWithBillingDefaults.data;
+    orgError = createOrgWithBillingDefaults.error;
+
+    const missingBillingColumns =
+      Boolean(orgError?.message?.includes("billing_onboarding_required")) ||
+      Boolean(orgError?.message?.includes("billing_activation_status"));
+
+    if (!org && missingBillingColumns) {
+      const legacyCreateOrg = await supabaseAdmin
+        .from("organizations")
+        .insert({
+          name: companyName,
+          slug,
+          created_by: userId,
+        })
+        .select("id")
+        .single();
+
+      org = legacyCreateOrg.data;
+      orgError = legacyCreateOrg.error;
+    }
 
     if (orgError || !org) {
       console.error("Public Registration - Org Error:", orgError);
