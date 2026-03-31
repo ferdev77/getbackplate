@@ -87,12 +87,16 @@ export default async function RecoveryLinkPage({ searchParams }: RecoveryLinkPag
           </div>
         ) : null}
 
-        <Link
-          href={`/auth/recovery-link/continue?k=${encodeURIComponent(key)}${organizationHint ? `&org=${encodeURIComponent(organizationHint)}` : ""}`}
-          className="inline-flex w-full items-center justify-center rounded-lg bg-[var(--gbp-accent)] px-4 py-2 text-sm font-semibold text-white shadow-[var(--gbp-shadow-accent)] transition hover:bg-[var(--gbp-accent-hover)]"
-        >
-          Continuar de forma segura
-        </Link>
+        <form action="/auth/recovery-link/continue" method="post">
+          <input type="hidden" name="k" value={key} />
+          <input type="hidden" name="org" value={organizationHint} />
+          <button
+            type="submit"
+            className="inline-flex w-full items-center justify-center rounded-lg bg-[var(--gbp-accent)] px-4 py-2 text-sm font-semibold text-white shadow-[var(--gbp-shadow-accent)] transition hover:bg-[var(--gbp-accent-hover)]"
+          >
+            Continuar de forma segura
+          </button>
+        </form>
 
         <p className="mt-4 text-xs text-[var(--gbp-text2)]">
           Si este enlace no funciona, solicita uno nuevo desde la pantalla de recuperacion.
