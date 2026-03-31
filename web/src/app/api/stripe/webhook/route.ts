@@ -5,7 +5,8 @@ import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { 
   sendRenewalReminderEmail, 
-  sendPaymentFailedEmail 
+  sendPaymentFailedEmail,
+  sendSubscriptionActivatedEmail,
 } from '@/modules/billing/services/billing-notifications.service';
 import { sendPlanChangeAppliedEmail } from '@/modules/billing/services/plan-change-notifications.service';
 
@@ -111,6 +112,15 @@ export async function POST(req: Request) {
 
         const stripeCustomerId = session.customer as string;
         const stripeSubscriptionId = session.subscription as string;
+        const trialDaysFromMetadata = Number.parseInt(session.metadata?.trialDays || '0', 10);
+
+        const { data: existingActiveBefore } = await supabase
+          .from('subscriptions')
+          .select('id')
+          .eq('organization_id', organizationId)
+          .in('status', ['active', 'trialing'])
+          .limit(1);
+        const hadActiveSubscriptionBefore = Array.isArray(existingActiveBefore) && existingActiveBefore.length > 0;
 
         // 1. Map the stripe customer to our organization
         const { error: custErr } = await supabase
@@ -150,7 +160,7 @@ export async function POST(req: Request) {
         if (!planId) {
             const { data: planData } = await supabase
                 .from('plans')
-                .select('id, max_branches, max_users, max_storage_mb, max_employees')
+                .select('id, name, max_branches, max_users, max_storage_mb, max_employees')
                 .eq('stripe_price_id', priceId)
                 .maybeSingle();
             if (planData) planId = planData.id;
@@ -162,12 +172,19 @@ export async function POST(req: Request) {
             // 4. Fetch full plan data for limits
             const { data: planData } = await supabase
                 .from('plans')
-                .select('id, max_branches, max_users, max_storage_mb, max_employees')
+                .select('id, name, max_branches, max_users, max_storage_mb, max_employees')
                 .eq('id', planId)
                 .maybeSingle();
 
             // 5. Update organization plan
-            const { error: orgErr } = await supabase.from('organizations').update({ plan_id: planId }).eq('id', organizationId);
+            const { error: orgErr } = await supabase
+              .from('organizations')
+              .update({
+                plan_id: planId,
+                billing_activation_status: 'active',
+                billing_activated_at: new Date().toISOString(),
+              })
+              .eq('id', organizationId);
             if (orgErr) console.error('[Webhook] Error updating org plan:', orgErr);
             else console.log('[Webhook] Organization plan updated OK');
 
@@ -213,6 +230,26 @@ export async function POST(req: Request) {
                 if (modErr) console.error('[Webhook] Error syncing modules:', modErr);
                 else console.log('[Webhook] organization_modules upserted OK');
             }
+
+            if (!hadActiveSubscriptionBefore) {
+              const planName = typeof planData?.name === 'string' && planData.name.trim()
+                ? planData.name.trim()
+                : 'Plan contratado';
+              const trialDays = Number.isFinite(trialDaysFromMetadata) && trialDaysFromMetadata > 0
+                ? trialDaysFromMetadata
+                : (status === 'trialing' ? 30 : 0);
+
+              await sendSubscriptionActivatedEmail({
+                organizationId,
+                planName,
+                trialDays,
+              });
+            }
+        } else {
+            await supabase
+              .from('organizations')
+              .update({ billing_activation_status: 'blocked' })
+              .eq('id', organizationId);
         }
 
         // 8. Upsert subscription record
@@ -280,7 +317,13 @@ export async function POST(req: Request) {
         const targetPlanIdFromMeta = typeof subscription.metadata?.planId === 'string' ? subscription.metadata.planId : null;
 
         if (isCanceled) {
-            await supabase.from('organizations').update({ plan_id: null }).eq('id', organizationId);
+            await supabase
+              .from('organizations')
+              .update({
+                plan_id: null,
+                billing_activation_status: 'blocked',
+              })
+              .eq('id', organizationId);
             const { data: modules } = await supabase.from('module_catalog').select('id, is_core');
             if (modules?.length) {
                 await supabase.from('organization_modules').upsert(
@@ -322,7 +365,14 @@ export async function POST(req: Request) {
 
             if (planData) {
                 // Update org plan
-                await supabase.from('organizations').update({ plan_id: planData.id }).eq('id', organizationId);
+                await supabase
+                  .from('organizations')
+                  .update({
+                    plan_id: planData.id,
+                    billing_activation_status: 'active',
+                    billing_activated_at: new Date().toISOString(),
+                  })
+                  .eq('id', organizationId);
 
                 // Sync limits
                 await supabase.from('organization_limits').upsert({

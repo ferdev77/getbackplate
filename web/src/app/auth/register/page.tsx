@@ -15,14 +15,15 @@ type RegisterPageProps = {
     error?: string; 
     priceId?: string;
     planId?: string;
+    billingPeriod?: string;
   }>;
 };
 
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
   const params = await searchParams;
   const error = params.error;
-  const priceId = params.priceId;
   const planId = params.planId;
+  const billingPeriod = params.billingPeriod;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-6 py-10">
@@ -48,8 +49,8 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
           <form action={registerPublicAction} className="space-y-4">
             
             {/* Hidden fields to remember what plan they were trying to buy */}
-            {priceId && <input type="hidden" name="priceId" value={priceId} />}
             {planId && <input type="hidden" name="planId" value={planId} />}
+            {billingPeriod && <input type="hidden" name="billingPeriod" value={billingPeriod} />}
 
             <div>
               <label htmlFor="companyName" className="mb-1 block text-sm font-medium">
@@ -112,7 +113,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
             </div>
 
             <SubmitButton
-              label={priceId ? "Crear cuenta y pagar" : "Crear cuenta"}
+              label={planId ? "Crear cuenta y activar trial" : "Crear cuenta"}
               pendingLabel="Registrando..."
               className="w-full mt-2"
             />

@@ -301,7 +301,7 @@ export function LandingExperience({ plans }: Props) {
 
       if (!response.ok) {
         if (response.status === 401) {
-          router.push(`/auth/register?planId=${planId}`);
+          router.push(`/auth/register?planId=${planId}&billingPeriod=${billingMode === "annual" ? "yearly" : "monthly"}`);
           return;
         }
         throw new Error(data.error || "Checkout error");

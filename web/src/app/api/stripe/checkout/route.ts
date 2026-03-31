@@ -58,7 +58,9 @@ export async function POST(request: Request) {
     const protocol = headersList.get('x-forwarded-proto') || 'http';
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
 
-    const moduleAccess = await assertCompanyManagerModuleApi('dashboard');
+    const moduleAccess = await assertCompanyManagerModuleApi('dashboard', {
+      allowBillingBypass: true,
+    });
     if (!moduleAccess.ok) {
       return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
     }
@@ -250,8 +252,8 @@ export async function POST(request: Request) {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: targetPriceId, quantity: 1 }],
-      success_url: `${baseUrl}/app/dashboard?session_id={CHECKOUT_SESSION_ID}&success=true`,
-      cancel_url: `${baseUrl}/app/dashboard?canceled=true`,
+      success_url: `${baseUrl}/app/dashboard?session_id={CHECKOUT_SESSION_ID}&success=true&selectPlanId=${encodeURIComponent(planId)}&billingPeriod=${requestedPeriod}`,
+      cancel_url: `${baseUrl}/app/dashboard?canceled=true&selectPlanId=${encodeURIComponent(planId)}&billingPeriod=${requestedPeriod}`,
       tax_id_collection: { enabled: true },
       client_reference_id: organizationId,
       metadata: {

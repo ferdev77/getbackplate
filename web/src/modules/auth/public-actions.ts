@@ -26,7 +26,9 @@ export async function registerPublicAction(formData: FormData) {
     const email = String(formData.get("email") ?? "").trim().toLowerCase();
     const password = String(formData.get("password") ?? "");
     const planIdParam = String(formData.get("planId") ?? "").trim();
-    const priceIdParam = String(formData.get("priceId") ?? "").trim();
+    const billingPeriodParam = String(formData.get("billingPeriod") ?? "").trim();
+    const normalizedBillingPeriod =
+      billingPeriodParam === "yearly" || billingPeriodParam === "annual" ? "yearly" : "monthly";
     
     // Validations
     if (!companyName || !fullName || !email || !password) {
@@ -68,6 +70,8 @@ export async function registerPublicAction(formData: FormData) {
         name: companyName,
         slug,
         created_by: userId,
+        billing_onboarding_required: true,
+        billing_activation_status: "pending",
       })
       .select("id")
       .single();
@@ -137,9 +141,8 @@ export async function registerPublicAction(formData: FormData) {
     await setActiveOrganizationIdCookie(org.id);
 
     // 6. Direct them to the dashboard, highlighting the plan if selected
-    if (planIdParam && priceIdParam) {
-        // Redirige al dashboard e indica qué plan querían para que lo puedan comprar
-        redirect(`/app/dashboard?welcome=true&selectPlanId=${planIdParam}`);
+    if (planIdParam) {
+        redirect(`/app/dashboard?welcome=true&selectPlanId=${planIdParam}&billingPeriod=${normalizedBillingPeriod}`);
     }
 
     redirect("/app/dashboard?welcome=true");

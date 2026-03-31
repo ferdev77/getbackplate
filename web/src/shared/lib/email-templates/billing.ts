@@ -307,3 +307,28 @@ export function paymentFailedTemplate({ orgName, retryLink }: PaymentFailedProps
     </div>
   `;
 }
+
+type SubscriptionActivatedProps = {
+  orgName: string;
+  planName: string;
+  trialDays: number;
+};
+
+export function subscriptionActivatedTemplate({ orgName, planName, trialDays }: SubscriptionActivatedProps) {
+  const trialCopy =
+    trialDays > 0
+      ? `Tu prueba gratis de <strong>${trialDays} dias</strong> ya esta corriendo. El primer cobro se realizara al finalizar el periodo de prueba.`
+      : "Tu plan se activo correctamente y ya tienes acceso completo a la plataforma.";
+
+  return `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #171311;">
+      <h2>Hola ${orgName},</h2>
+      <p>¡Felicitaciones! Tu suscripcion fue activada correctamente.</p>
+      <p>Plan activo: <strong>${planName}</strong>.</p>
+      <p>${trialCopy}</p>
+      <br />
+      <p>Desde este momento tu panel de empresa queda habilitado.</p>
+      <p style="color: #666; font-size: 12px;">El equipo de GetBackplate</p>
+    </div>
+  `;
+}

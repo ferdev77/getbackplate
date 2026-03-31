@@ -8,6 +8,7 @@ import {
   getEnabledModules,
   getActiveBranches,
   getLatestSubscriptionForOrganization,
+  getOrganizationBillingGate,
 } from "@/modules/organizations/queries";
 import { requireCompanyAccess } from "@/shared/lib/access";
 import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impersonation";
@@ -30,7 +31,16 @@ export default async function CompanyLayout({
     ? await resolveActiveSuperadminImpersonationSession(user.id)
     : null;
 
-  const [orgSettings, preferences, activePlans, planModulesByPlanId, enabledModuleCodes, activeBranches, latestSubscription] = await Promise.all([
+  const [
+    orgSettings,
+    preferences,
+    activePlans,
+    planModulesByPlanId,
+    enabledModuleCodes,
+    activeBranches,
+    latestSubscription,
+    billingGate,
+  ] = await Promise.all([
     getOrganizationSettings(tenant.organizationId),
     user ? getUserPreferences(user.id, tenant.organizationId) : Promise.resolve(null),
     getActivePlans(),
@@ -38,6 +48,7 @@ export default async function CompanyLayout({
     getEnabledModules(tenant.organizationId),
     getActiveBranches(tenant.organizationId),
     getLatestSubscriptionForOrganization(tenant.organizationId),
+    getOrganizationBillingGate(tenant.organizationId),
   ]);
 
   const subscriptionEndsAt =
@@ -58,11 +69,7 @@ export default async function CompanyLayout({
     ? activePlans.find((p) => p.id === organization.plan_id) ?? null
     : null;
 
-  const inferredCurrentPlan =
-    currentPlanById ??
-    activePlans.find((plan) => plan.code === "basico") ??
-    activePlans[0] ??
-    null;
+  const inferredCurrentPlan = currentPlanById ?? null;
 
   const enabledModules = [
     "company_portal",
@@ -142,6 +149,7 @@ export default async function CompanyLayout({
       enabledModules={enabledModules}
       branchOptions={activeBranches}
       impersonationMode={Boolean(impersonationSession)}
+      billingGate={billingGate}
       trialStatus={{
         isActive: isTrialActive,
         daysRemaining: trialDaysRemaining,
