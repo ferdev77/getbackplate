@@ -25,24 +25,38 @@ if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
 export async function middleware(request: NextRequest) {
   // Rate limit API and auth routes
   const path = request.nextUrl.pathname;
+  const method = request.method.toUpperCase();
 
+  const authType = request.nextUrl.searchParams.get("type");
+  const isSupportedAuthType =
+    authType === "recovery" ||
+    authType === "email" ||
+    authType === "invite" ||
+    authType === "magiclink";
   const hasAuthCode = request.nextUrl.searchParams.has("code");
-  const hasTokenHashFlow =
-    request.nextUrl.searchParams.has("token_hash") &&
-    request.nextUrl.searchParams.has("type");
-  if ((hasAuthCode || hasTokenHashFlow) && !path.startsWith("/auth/callback")) {
+  const hasTokenHashFlow = request.nextUrl.searchParams.has("token_hash") && isSupportedAuthType;
+  const hasTokenFlow = request.nextUrl.searchParams.has("token") && isSupportedAuthType;
+
+  if ((hasAuthCode || hasTokenHashFlow || hasTokenFlow) && !path.startsWith("/auth/callback")) {
     const callbackUrl = request.nextUrl.clone();
     callbackUrl.pathname = "/auth/callback";
 
     if (!callbackUrl.searchParams.has("next")) {
-      callbackUrl.searchParams.set("next", "/app/dashboard");
+      callbackUrl.searchParams.set(
+        "next",
+        authType === "recovery" ? "/auth/change-password?reason=recovery" : "/app/dashboard",
+      );
     }
 
     return NextResponse.redirect(callbackUrl);
   }
 
-  if (ratelimit && (path.startsWith("/api/") || path.startsWith("/auth/"))) {
-    const ip = request.headers.get("x-forwarded-for") ?? "127.0.0.1";
+  const shouldRateLimit = path.startsWith("/api/") || (path.startsWith("/auth/") && method !== "GET");
+
+  if (ratelimit && shouldRateLimit) {
+    const forwardedFor = request.headers.get("x-forwarded-for");
+    const realIp = request.headers.get("x-real-ip");
+    const ip = (forwardedFor ? forwardedFor.split(",")[0]?.trim() : null) ?? realIp ?? "127.0.0.1";
     const { success, limit, reset, remaining } = await ratelimit.limit(ip);
 
     if (!success) {
