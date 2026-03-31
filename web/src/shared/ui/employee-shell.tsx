@@ -186,6 +186,7 @@ export function EmployeeShell({
                       alt={`Logo de ${brandingName}`}
                       width={300}
                       height={90}
+                      unoptimized
                       className="h-[76px] w-[98%] object-contain object-center"
                     />
                   ) : (
