@@ -148,7 +148,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                       <h3 className="text-2xl font-bold text-foreground">Configurar Nueva Propuesta</h3>
                       <DetailsCloseButton />
                    </div>
-                   <form action={createPlanAction} className="grid gap-6 md:grid-cols-6 max-h-[70vh] overflow-y-auto pr-4 scrollbar-hide">
+                   <form action={createPlanAction} className="grid gap-6 md:grid-cols-6 max-h-[70vh] overflow-y-auto pt-2 pr-4 scrollbar-hide">
                       <SuperadminInputField label="Identificador (Slug)" name="code" required placeholder="p.ej: premium-anual" className="md:col-span-2" />
                       <SuperadminInputField label="Nombre Público" name="name" required placeholder="p.ej: Premium" className="md:col-span-2" />
                       <div className="md:col-span-2 grid grid-cols-2 gap-4">
@@ -314,7 +314,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                                <h3 className="text-2xl font-bold text-foreground">Ajustar Propuesta Comercial</h3>
                                <DetailsCloseButton />
                             </div>
-                            <form action={updatePlanAction} className="grid gap-6 md:grid-cols-6 max-h-[70vh] overflow-y-auto pr-4 scrollbar-hide">
+                            <form action={updatePlanAction} className="grid gap-6 md:grid-cols-6 max-h-[70vh] overflow-y-auto pt-2 pr-4 scrollbar-hide">
                                <input type="hidden" name="plan_id" value={plan.id} />
                                <SuperadminInputField label="Nombre Público" name="name" defaultValue={plan.name} className="md:col-span-3" />
                                <div className="md:col-span-3 grid grid-cols-2 gap-4">
