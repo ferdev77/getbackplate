@@ -95,14 +95,12 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
       .eq("organization_id", tenant.organizationId)
       .eq("is_active", true)
       .order("name"),
-    (openCreateModal || previewTemplateId)
-      ? supabase
-          .from("department_positions")
-          .select("id, department_id, name")
-          .eq("organization_id", tenant.organizationId)
-          .eq("is_active", true)
-          .order("name")
-      : Promise.resolve({ data: [] }),
+    supabase
+      .from("department_positions")
+      .select("id, department_id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("name"),
     supabase
       .from("checklist_submissions")
       .select("id", { count: "exact", head: true })
@@ -215,17 +213,45 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
       itemsCount = templateItems.length;
     }
 
+    const scope = typeof template.target_scope === "object" && template.target_scope !== null ? (template.target_scope as Record<string, string[]>) : {};
+    const scopeLocationNames = Array.isArray(scope.locations) && scope.locations.length > 0
+      ? scope.locations.map((id) => branchNameMap.get(id) ?? "Sucursal")
+      : (template.branch_id ? [branchNameMap.get(template.branch_id) ?? "Sucursal"] : []);
+    const explicitDepts = Array.isArray(scope.department_ids) ? [...scope.department_ids] : [];
+    const explicitPositions = Array.isArray(scope.position_ids) ? [...scope.position_ids] : [];
+
+    const scopeRoles: string[] = [];
+    for (const dId of explicitDepts) {
+      scopeRoles.push(departmentNameMap.get(dId) ?? "Depto");
+    }
+
+    for (const pId of explicitPositions) {
+      const p = positions?.find((pos) => pos.id === pId);
+      if (p && p.department_id) {
+        const dName = departmentNameMap.get(p.department_id) ?? "Depto";
+        scopeRoles.push(`${dName}: ${p.name}`);
+      } else if (p) {
+        scopeRoles.push(p.name);
+      }
+    }
+
+    if (scopeRoles.length === 0) {
+      if (template.department_id) {
+        scopeRoles.push(departmentNameMap.get(template.department_id) ?? "Departamento");
+      } else if (template.department) {
+        scopeRoles.push(template.department);
+      }
+    }
+
     return {
       ...template,
       itemsCount,
       templateItems,
       templateSections: sectionViews,
       scheduledJob: scheduledJobsByTemplateId.get(template.id) ?? null,
+      scopeLocationNames,
+      scopeRoles,
       branchName: template.branch_id ? branchNameMap.get(template.branch_id) ?? "Sucursal" : "Global",
-      departmentName:
-        (template.department_id ? departmentNameMap.get(template.department_id) : null) ??
-        template.department ??
-        "-",
     };
   });
 
@@ -292,15 +318,15 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
 
       <SlideUp delay={0.2}>
         <section className={`overflow-hidden rounded-xl border ${CARD}`}>
-          <div className={`grid grid-cols-[1fr_120px] md:grid-cols-[2fr_100px_90px_120px] lg:grid-cols-[minmax(180px,2fr)_100px_110px_130px_130px_90px_120px] gap-x-3 border-b-[1.5px] px-4 py-2.5 text-[11px] font-bold tracking-[0.07em] uppercase ${CARD_SOFT} ${TEXT_MUTED}`}>
-            <p>Checklist</p><p className="hidden md:block">Tipo</p><p className="hidden lg:block">Shift</p><p className="hidden lg:block">Locacion</p><p className="hidden lg:block">Departamento</p><p className="hidden md:block">Estado</p><p>Acciones</p>
+          <div className={`grid grid-cols-[1fr_120px] md:grid-cols-[2fr_100px_90px_120px] lg:grid-cols-[minmax(160px,2fr)_80px_80px_100px_120px_230px_80px_110px] gap-x-3 border-b-[1.5px] px-4 py-2.5 text-[11px] font-bold tracking-[0.07em] uppercase ${CARD_SOFT} ${TEXT_MUTED}`}>
+            <p>Checklist</p><p className="hidden md:block">Tipo</p><p className="hidden lg:block">Shift</p><p className="hidden lg:block">Frecuencia</p><p className="hidden lg:block">Locacion</p><p className="hidden lg:block">Deptos / Puestos</p><p className="hidden md:block">Estado</p><p>Acciones</p>
           </div>
           <div>
             {filteredTemplates && filteredTemplates.length > 0 ? (
               <div>
                 {filteredTemplates.map((template) => (
                   <div key={template.id}>
-                    <div className="grid grid-cols-[1fr_120px] md:grid-cols-[2fr_100px_90px_120px] lg:grid-cols-[minmax(180px,2fr)_100px_110px_130px_130px_90px_120px] items-center gap-x-3 border-b border-[var(--gbp-border)] px-4 py-3">
+                    <div className="grid grid-cols-[1fr_120px] md:grid-cols-[2fr_100px_90px_120px] lg:grid-cols-[minmax(160px,2fr)_80px_80px_100px_120px_230px_80px_110px] items-center gap-x-3 border-b border-[var(--gbp-border)] px-4 py-3">
                       <div>
                         <p className={`text-[13px] font-semibold ${TEXT_STRONG}`}>{template.name}</p>
                         {template.itemsCount !== null && (
@@ -309,8 +335,35 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
                       </div>
                       <p className={`hidden text-xs md:block ${TEXT_MUTED}`}>{typeLabel(template.checklist_type)}</p>
                       <p className={`hidden text-xs lg:block ${TEXT_MUTED}`}>{template.shift || "-"}</p>
-                      <p className={`hidden items-center gap-1 text-xs lg:flex ${TEXT_MUTED}`}><MapPin className="h-3.5 w-3.5" />{template.branchName}</p>
-                      <p className={`hidden text-xs lg:block ${TEXT_MUTED}`}>{template.departmentName}</p>
+                      <p className={`hidden text-[11px] lg:block ${TEXT_MUTED}`}>{template.repeat_every || "-"}</p>
+                      <div className="hidden lg:flex flex-wrap items-center gap-1">
+                        {template.scopeLocationNames.length > 0 ? (
+                          template.scopeLocationNames.map((locName, idx) => (
+                            <span key={idx} className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-text)]">
+                              <MapPin className="mr-1 h-3 w-3 text-[var(--gbp-muted)]" />
+                              {locName}
+                            </span>
+                          ))
+                        ) : (
+                          <span className={`inline-flex items-center gap-1 text-xs ${TEXT_MUTED}`}>
+                            <MapPin className="h-3.5 w-3.5" />
+                            Todas
+                          </span>
+                        )}
+                      </div>
+                      <div className="hidden lg:flex flex-wrap items-center gap-1">
+                        {template.scopeRoles.length > 0 ? (
+                          template.scopeRoles.map((roleName, idx) => (
+                            <span key={idx} className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-text)]">
+                              {roleName}
+                            </span>
+                          ))
+                        ) : (
+                          <span className={`inline-flex items-center gap-1 text-xs ${TEXT_MUTED}`}>
+                            -
+                          </span>
+                        )}
+                      </div>
                       <span className={`hidden md:inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] ${template.is_active ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-neutral-200 bg-neutral-100 text-neutral-600"}`}>{template.is_active ? "Activa" : "Inactiva"}</span>
                       <div className="flex gap-1">
                         <Link href={`/app/checklists?preview=${template.id}`} className={ACTION_BTN_PREVIEW} title="Vista previa"><Eye className="h-3.5 w-3.5" /></Link>
