@@ -14,6 +14,7 @@ import {
 } from "@/shared/lib/tenant-selection";
 import { normalizeOrganizationId } from "@/shared/lib/tenant-selection-shared";
 import { resolveOrganizationIdFromAuthHint } from "@/shared/lib/tenant-auth-branding";
+import { getCanonicalAppUrl } from "@/shared/lib/app-url";
 import { getDefaultEmailBranding, getTenantEmailBranding } from "@/shared/lib/email-branding";
 import { sendEmail } from "@/shared/lib/brevo";
 import { passwordRecoveryTemplate } from "@/shared/lib/email-templates/recovery";
@@ -21,16 +22,6 @@ import { passwordRecoveryTemplate } from "@/shared/lib/email-templates/recovery"
 function getEmailDomain(email: string) {
   const parts = email.split("@");
   return parts.length === 2 ? parts[1]?.toLowerCase() ?? null : null;
-}
-
-function getAppUrl() {
-  const publicUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (publicUrl) return publicUrl.replace(/\/$/, "");
-
-  const baseUrl = process.env.APP_BASE_URL?.trim();
-  if (baseUrl) return baseUrl.replace(/\/$/, "");
-
-  return null;
 }
 
 function buildLoginPath(options?: { error?: string; organizationIdHint?: string | null }) {
@@ -340,15 +331,15 @@ export async function requestPasswordRecoveryAction(formData: FormData) {
   }
 
   const admin = createSupabaseAdminClient();
-  const appUrl = getAppUrl();
+  const appUrl = getCanonicalAppUrl();
   const nextPath = "/auth/change-password?reason=recovery";
   const callbackPath = `/auth/callback?next=${encodeURIComponent(nextPath)}${resolvedOrganizationId ? `&org=${encodeURIComponent(resolvedOrganizationId)}` : ""}`;
-  const redirectTo = appUrl ? `${appUrl}${callbackPath}` : undefined;
+  const redirectTo = `${appUrl}${callbackPath}`;
 
   const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
     type: "recovery",
     email,
-    options: redirectTo ? { redirectTo } : undefined,
+    options: { redirectTo },
   });
 
   const actionLink = linkData?.properties?.action_link;

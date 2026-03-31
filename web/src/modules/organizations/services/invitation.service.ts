@@ -94,9 +94,7 @@ export async function sendOrganizationAdminInvitation(params: {
     return { ok: false as const, message: "No se encontro rol company_admin" };
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
   const { loginUrl } = await buildTenantAuthUrls({
-    appUrl,
     organizationId: params.organizationId,
   });
   const branding = await getTenantEmailBranding(params.organizationId);

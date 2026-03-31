@@ -7,6 +7,7 @@ import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { USERS_API_MESSAGES } from "@/shared/lib/employees-messages";
 import { getTenantEmailBranding } from "@/shared/lib/email-branding";
+import { getCanonicalAppUrl } from "@/shared/lib/app-url";
 import { assertPlanLimitForUsers, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
 import { buildTenantAuthUrls } from "@/shared/lib/tenant-auth-branding";
 import { sendEmail } from "@/shared/lib/brevo";
@@ -26,7 +27,7 @@ async function resolveOrCreateAuthUser(params: {
   const existingUser = await findAuthUserByEmail(params.email);
   let userId = existingUser?.id ?? null;
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
+  const appUrl = getCanonicalAppUrl();
   const { loginUrl, recoveryUrl } = await buildTenantAuthUrls({
     appUrl,
     organizationId: params.organizationId,
@@ -55,7 +56,7 @@ async function resolveOrCreateAuthUser(params: {
           htmlContent: resendReminderTemplate({
             fullName: params.fullName,
             loginUrl,
-            recoveryUrl: recoveryUrl ?? `${appUrl.replace(/\/$/, "")}/auth/forgot-password`,
+            recoveryUrl: recoveryUrl ?? `${appUrl}/auth/forgot-password`,
             branding,
           }),
         });
