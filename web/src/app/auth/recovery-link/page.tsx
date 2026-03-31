@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { normalizeRecoveryTokenHash } from "@/shared/lib/recovery-link";
 import { resolveTenantAuthBrandingByHint } from "@/shared/lib/tenant-auth-branding";
 import { ThemeAwareGetBackplateLogo } from "@/shared/ui/theme-aware-getbackplate-logo";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
@@ -10,12 +11,12 @@ export const metadata: Metadata = {
 };
 
 type RecoveryLinkPageProps = {
-  searchParams: Promise<{ k?: string; org?: string; error?: string }>;
+  searchParams: Promise<{ t?: string; org?: string; error?: string }>;
 };
 
 export default async function RecoveryLinkPage({ searchParams }: RecoveryLinkPageProps) {
   const params = await searchParams;
-  const key = String(params.k ?? "").trim();
+  const tokenHash = normalizeRecoveryTokenHash(params.t);
   const organizationHint = String(params.org ?? "").trim();
   const error = String(params.error ?? "").trim();
   const tenantBranding = await resolveTenantAuthBrandingByHint(organizationHint);
@@ -23,7 +24,7 @@ export default async function RecoveryLinkPage({ searchParams }: RecoveryLinkPag
     ? `/auth/forgot-password?org=${encodeURIComponent(organizationHint)}`
     : "/auth/forgot-password";
 
-  if (!key) {
+  if (!tokenHash) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_var(--gbp-surface)_0%,_var(--gbp-bg)_48%,_var(--gbp-bg2)_100%)] px-6 py-10">
         <section className="w-full max-w-md rounded-[var(--gbp-radius-3xl)] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-8 text-[var(--gbp-text)] shadow-[var(--gbp-shadow-lg)]">
@@ -88,7 +89,7 @@ export default async function RecoveryLinkPage({ searchParams }: RecoveryLinkPag
         ) : null}
 
         <form action="/auth/recovery-link/continue" method="post">
-          <input type="hidden" name="k" value={key} />
+          <input type="hidden" name="t" value={tokenHash} />
           <input type="hidden" name="org" value={organizationHint} />
           <button
             type="submit"

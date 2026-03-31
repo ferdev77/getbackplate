@@ -60,7 +60,7 @@ Para futuras implementaciones o debugging, así funciona el ruteamiento y dispar
 2. **Reenvios**: solo recordatorio con 2 botones (`/auth/login?org=...` y `/auth/forgot-password?org=...`), sin password en email.
 3. **Primer login**: siempre forzado a cambio de contraseña cuando `force_password_change=true`.
 4. **No mezcla de flujos**: reenvio no reemplaza ni ejecuta alta.
-5. **Recovery anti-prefetch**: el correo de recuperacion ya no apunta directo al verify OTP de Supabase. Primero abre `GET /auth/recovery-link` (puente seguro) y solo al confirmar manualmente (`POST /auth/recovery-link/continue`) se redirige al verify link real.
+5. **Recovery anti-prefetch**: el correo de recuperacion ya no apunta directo al verify OTP de Supabase (`/auth/v1/verify`). Envia `token_hash` hacia `GET /auth/recovery-link` y, al confirmar manualmente (`POST /auth/recovery-link/continue`), redirige a `/auth/callback?token_hash=...&type=recovery` para verificar OTP del lado servidor sin fragment/hash en URL final.
 
 ---
 
