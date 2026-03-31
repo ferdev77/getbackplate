@@ -513,6 +513,11 @@ export function CompanyShell({
     nextParams.delete('success');
     nextParams.delete('canceled');
 
+    if (success === 'true') {
+      nextParams.delete('selectPlanId');
+      nextParams.delete('billingPeriod');
+    }
+
     const nextQuery = nextParams.toString();
     router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
   }, [pathname, router, searchParams]);
