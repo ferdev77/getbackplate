@@ -315,6 +315,7 @@ type SubscriptionActivatedProps = {
 };
 
 export function subscriptionActivatedTemplate({ orgName, planName, trialDays }: SubscriptionActivatedProps) {
+  const defaultLogo = `${(process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://getbackplate.com").replace(/\/$/, "")}/getbackplate-logo-light.svg`;
   const appUrl = `${(process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://getbackplate.com").replace(/\/$/, "")}/app/dashboard`;
   const trialCopy =
     trialDays > 0
@@ -327,6 +328,7 @@ export function subscriptionActivatedTemplate({ orgName, planName, trialDays }: 
         <div style="height:6px;background:#c74b1e;"></div>
 
         <div style="padding:24px 24px 8px 24px;">
+          <img src="${defaultLogo}" alt="GetBackplate" style="max-height:42px;width:auto;display:block;margin:0 0 10px 0;" />
           <p style="margin:0;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#9ca3af;">Confirmacion de suscripcion</p>
           <h2 style="margin:10px 0 0 0;font-size:24px;line-height:1.2;color:#111827;">Tu empresa ya quedo activada en GetBackplate</h2>
           <p style="margin:10px 0 0 0;color:#4b5563;font-size:14px;line-height:1.6;">Hola <strong>${orgName}</strong>, validamos correctamente tu pago en Stripe y habilitamos tu entorno de trabajo.</p>
