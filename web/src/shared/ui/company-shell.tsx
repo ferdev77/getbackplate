@@ -116,7 +116,7 @@ const SECTIONS: SidebarSection[] = [
       { href: "/app/documents", label: "Documentos", icon: LayoutGrid, moduleCode: "documents" },
       { href: "/app/documents?action=create-folder", label: "Crear Carpeta", icon: FolderPlus, sub: true, moduleCode: "documents" },
       { href: "/app/documents?action=upload", label: "Subir Archivo", icon: Upload, sub: true, moduleCode: "documents" },
-      { href: "/app/trash", label: "Papelera", icon: Trash2, moduleCode: "documents" },
+      { href: "/app/trash", label: "Papelera", icon: Trash2, sub: true, moduleCode: "documents" },
     ],
   },
   {
@@ -242,22 +242,11 @@ function normalizeTheme(value: string) {
   return THEME_DEFAULT;
 }
 
-function buildThemePickerOrder(currentTheme: string) {
-  const current = normalizeTheme(currentTheme);
-  const others = THEMES.filter(
-    (item) => item !== current && item !== THEME_DEFAULT && item !== THEME_DARK_PRO,
-  );
-
-  if (current === THEME_DEFAULT) {
-    return [THEME_DEFAULT, THEME_DARK_PRO, ...others];
-  }
-
-  if (current === THEME_DARK_PRO) {
-    return [THEME_DARK_PRO, THEME_DEFAULT, ...others];
-  }
-
-  return [current, THEME_DEFAULT, THEME_DARK_PRO, ...others];
-}
+const THEME_PICKER_ORDER = [
+  THEME_DEFAULT,
+  THEME_DARK_PRO,
+  ...THEMES.filter((item) => item !== THEME_DEFAULT && item !== THEME_DARK_PRO),
+] as const;
 
 export function CompanyShell({
   organizationLabel,
@@ -541,7 +530,6 @@ export function CompanyShell({
   }
 
   const normalizedTheme = normalizeTheme(theme);
-  const themePickerOrder = useMemo(() => buildThemePickerOrder(theme), [theme]);
   const isDarkTheme = normalizedTheme === THEME_DARK_PRO;
   const effectiveCompanyLogoUrl = customBrandingEnabled
     ? (isDarkTheme ? (companyLogoDarkUrl || companyLogoUrl) : companyLogoUrl)
@@ -757,21 +745,32 @@ export function CompanyShell({
     >
       <div className="flex min-h-screen">
           <aside className={`hidden shrink-0 border-r transition-all duration-200 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"} ${sidebarWidth}`} style={{ background: palette.sidebarGradient }}>
-          <div className={`border-b py-3 ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"} ${sidebarPaddingX}`}>
-            <div className={`flex items-center gap-2 ${collapsed ? "justify-center" : ""}`}>
-              {customBrandingEnabled && !collapsed ? (
-                <div className="flex h-[112px] flex-1 items-center justify-center overflow-hidden rounded-md bg-transparent px-2">
+          <div className={`relative border-b py-3 ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"} ${sidebarPaddingX}`}>
+            <button
+              type="button"
+              onClick={() => setCollapsed((v) => !v)}
+              className={`absolute right-2 top-2 z-10 grid h-8 w-8 place-items-center rounded-md ${isDarkTheme ? "bg-white/5 text-white/65 hover:bg-white/10 hover:text-white" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"}`}
+              aria-label="Alternar sidebar"
+            >
+              <PanelsLeftRight className="h-4 w-4" />
+            </button>
+
+            <div className={`flex items-center justify-center ${collapsed ? "pt-3" : ""}`}>
+              {customBrandingEnabled ? (
+                <div className={`${collapsed ? "grid h-11 w-11 place-items-center overflow-hidden rounded-md" : "flex h-[112px] w-full items-center justify-center overflow-hidden rounded-md bg-transparent px-2"}`}>
                   {effectiveCompanyLogoUrl ? (
                     <Image
                       src={effectiveCompanyLogoUrl}
                       alt={`Logo de ${brandingName}`}
-                      width={330}
-                      height={106}
+                      width={collapsed ? 44 : 330}
+                      height={collapsed ? 44 : 106}
                       unoptimized
-                      className="h-[104px] w-[98%] object-contain object-center"
+                      className={collapsed ? "h-10 w-10 object-contain object-center" : "h-[104px] w-[98%] object-contain object-center"}
                     />
                   ) : (
-                    <span className="text-xs font-bold uppercase tracking-[0.08em] text-white">{brandingName}</span>
+                    <span className={`font-bold uppercase tracking-[0.08em] ${collapsed ? "text-[10px]" : "text-xs"} ${isDarkTheme ? "text-white" : "text-[var(--gbp-text)]"}`}>
+                      {collapsed ? brandingName.slice(0, 2) : brandingName}
+                    </span>
                   )}
                 </div>
               ) : (
@@ -779,14 +778,6 @@ export function CompanyShell({
                   <GetBackplateLogo variant={isDarkTheme ? "dark" : "light"} width={220} height={40} className={`${collapsed ? BRAND_SCALE.sidebarCollapsedHeight : BRAND_SCALE.sidebarDesktopHeight} w-auto`} />
                 </div>
               )}
-              <button
-                type="button"
-                onClick={() => setCollapsed((v) => !v)}
-                className={`ml-auto grid h-8 w-8 place-items-center rounded-md ${isDarkTheme ? "bg-white/5 text-white/65 hover:bg-white/10 hover:text-white" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "ml-0" : ""}`}
-                aria-label="Alternar sidebar"
-              >
-                <PanelsLeftRight className="h-4 w-4" />
-              </button>
             </div>
             {!collapsed ? <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--gbp-muted)]">Administrador</p> : null}
           </div>
@@ -951,7 +942,7 @@ export function CompanyShell({
                   <div className={`my-1 h-px ${isDarkTheme ? "bg-white/10" : "bg-[var(--gbp-border)]"}`} />
                   <p className="px-3.5 pb-1 pt-2 text-[9px] font-bold uppercase tracking-[0.09em] text-[var(--gbp-text2)]">Tema</p>
                   <div className="grid grid-cols-4 gap-1.5 px-3.5">
-                    {themePickerOrder.map((item) => (
+                    {THEME_PICKER_ORDER.map((item) => (
                       <button
                         key={item}
                         type="button"
