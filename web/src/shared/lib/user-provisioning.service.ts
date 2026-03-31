@@ -2,6 +2,7 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { EMPLOYEES_MESSAGES } from "@/shared/lib/employees-messages";
 import { getTenantEmailBranding } from "@/shared/lib/email-branding";
+import { getCanonicalAppUrl } from "@/shared/lib/app-url";
 import { sendEmail } from "@/shared/lib/brevo";
 import { initialInviteTemplate } from "@/shared/lib/email-templates/invitation";
 import { resendReminderTemplate } from "@/shared/lib/email-templates/invitation";
@@ -27,7 +28,7 @@ export async function provisionOrganizationUserAccount(input: {
       return { ok: false, error: EMPLOYEES_MESSAGES.ACCESS_PASSWORD_MIN };
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
+    const appUrl = getCanonicalAppUrl();
     const { loginUrl, recoveryUrl } = await buildTenantAuthUrls({
       appUrl,
       organizationId,
@@ -54,7 +55,7 @@ export async function provisionOrganizationUserAccount(input: {
           htmlContent: resendReminderTemplate({
             fullName,
             loginUrl,
-            recoveryUrl: recoveryUrl ?? `${appUrl.replace(/\/$/, "")}/auth/forgot-password`,
+            recoveryUrl: recoveryUrl ?? `${appUrl}/auth/forgot-password`,
             branding,
           }),
         });

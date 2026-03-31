@@ -1,4 +1,5 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { resolveCanonicalAppUrl } from "@/shared/lib/app-url";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -117,11 +118,11 @@ export async function resolvePublicOrganizationHintById(organizationId: string) 
 }
 
 export async function buildTenantAuthUrls(params: {
-  appUrl: string;
+  appUrl?: string;
   organizationId: string;
   includeRecovery?: boolean;
 }) {
-  const appBase = params.appUrl.replace(/\/$/, "");
+  const appBase = resolveCanonicalAppUrl(params.appUrl);
   const hint = await resolvePublicOrganizationHintById(params.organizationId);
   const encodedHint = encodeURIComponent(hint);
 

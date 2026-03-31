@@ -5,6 +5,7 @@ import { requireCompanyAccess } from "@/shared/lib/access";
 import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { sendEmail } from "@/shared/lib/brevo";
+import { getCanonicalAppUrl } from "@/shared/lib/app-url";
 import { getTenantEmailBranding } from "@/shared/lib/email-branding";
 import { resendReminderTemplate } from "@/shared/lib/email-templates/invitation";
 import { buildTenantAuthUrls } from "@/shared/lib/tenant-auth-branding";
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
   }
 
   const admin = createSupabaseAdminClient();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://getbackplate.com";
+  const appUrl = getCanonicalAppUrl();
   const branding = await getTenantEmailBranding(tenant.organizationId);
 
   const existingUser = await findAuthUserByEmail(email);
@@ -113,7 +114,12 @@ export async function POST(request: Request) {
   const emailResult = await sendEmail({
     to: [{ email, name: fullName }],
     subject: "Recordatorio de acceso a la plataforma",
-    htmlContent: resendReminderTemplate({ fullName, loginUrl, recoveryUrl: recoveryUrl ?? `${appUrl.replace(/\/$/, "")}/auth/forgot-password`, branding })
+    htmlContent: resendReminderTemplate({
+      fullName,
+      loginUrl,
+      recoveryUrl: recoveryUrl ?? `${appUrl}/auth/forgot-password`,
+      branding,
+    }),
   });
 
   if (!emailResult.ok) {

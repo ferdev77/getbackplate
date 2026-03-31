@@ -148,8 +148,18 @@ Reglas de implementacion:
 
 ## 5. Preguntas Frecuentes / Troubleshooting
 
-*   **¿Qué pasa si los enlaces de los correos tiran un error 404?**
-    Revisa que la variable `NEXT_PUBLIC_APP_URL` esté cargada correctamente y no termine con un *slash* (/) adicional, ya que el servicio la limpia antes de pegar el path. Ejemplo: `https://www.mi-dominio.com` y NO `https://www.mi-dominio.com/`.
+*   **¿Qué pasa si los enlaces de los correos tiran un error 404 o abren dominio incorrecto?**
+    Desde 2026-03-31 los links de auth en emails se construyen solo con URL absoluta canonica via `web/src/shared/lib/app-url.ts`.
+    Orden de resolucion:
+    1. `NEXT_PUBLIC_APP_URL` (preferida)
+    2. `APP_BASE_URL` (fallback)
+
+    Reglas obligatorias:
+    - Debe ser URL absoluta `https://...` (o `http://...` en local).
+    - No se permiten URLs relativas para botones de email.
+    - No se usa fallback hardcodeado a `getbackplate.com` para links tenant-aware.
+
+    Ejemplo correcto: `https://www.mi-dominio.com` (el sistema limpia slash final automaticamente).
 
 *   **¿El correo llega en Spam?**
     Revisar la configuración DNSDKIM/SPF de tu cuenta en Brevo. Todas las llamadas al backend están usando el endpoint oficial `/v3/smtp/email`. Variables env requeridas: `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `BREVO_SENDER_NAME`.

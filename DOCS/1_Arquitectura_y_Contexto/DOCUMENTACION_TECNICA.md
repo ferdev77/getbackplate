@@ -1138,6 +1138,7 @@ Implementacion tecnica:
 - Recovery co-branded: `web/src/app/auth/forgot-password/page.tsx`.
 - Login action con resolucion segura de hint -> `organization_id`: `web/src/modules/auth/actions.ts`.
 - URLs tenant-aware de invitacion/reenvio (slug preferente, fallback UUID):
+  - base URL canonica para links de email: `web/src/shared/lib/app-url.ts` (usa `NEXT_PUBLIC_APP_URL` y fallback `APP_BASE_URL`; rechaza URLs invalidas/relativas)
   - `web/src/modules/organizations/services/invitation.service.ts`
   - `web/src/shared/lib/user-provisioning.service.ts`
   - `web/src/app/api/company/users/route.ts`
