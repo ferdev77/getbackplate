@@ -171,3 +171,39 @@ Reglas de implementacion:
 
 *   **¿El correo llega en Spam?**
     Revisar la configuración DNSDKIM/SPF de tu cuenta en Brevo. Todas las llamadas al backend están usando el endpoint oficial `/v3/smtp/email`. Variables env requeridas: `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `BREVO_SENDER_NAME`.
+
+---
+
+## 6. Smoke Test Operativo (Recovery por Email)
+
+Objetivo: validar en produccion que el flujo de recuperacion funciona end-to-end sin `otp_expired` en primer uso.
+
+Precondiciones:
+
+- `NEXT_PUBLIC_APP_URL` configurada en Vercel para Production (ejemplo: `https://getbackplate.vercel.app`).
+- Usuario de prueba existente en Auth (ejemplo: `dev@mkthelp.com`).
+- Deploy actualizado con la implementacion `token_hash -> /auth/callback`.
+
+Pasos:
+
+1. Ir a `/auth/forgot-password` y solicitar recuperacion para el usuario de prueba.
+2. Abrir el correo mas reciente y hacer click en el boton **Restablecer contrasena**.
+3. Confirmar que la URL inicial sea `GET /auth/recovery-link?t=...` (bridge).
+4. Click en **Continuar de forma segura**.
+5. Confirmar llegada a `/auth/change-password?reason=recovery` sin `error_code=otp_expired`.
+6. Cargar nueva contrasena y guardar.
+7. Confirmar login exitoso con la nueva contrasena.
+
+Resultado esperado:
+
+- Primer uso del enlace recovery: exitoso.
+- Segundo uso del mismo enlace: rechazo esperado (`otp_expired` o mensaje de enlace invalido/expirado).
+- No hay redirecciones a dominio incorrecto ni rutas relativas en botones de email.
+
+Checklist rapido (marcar SI/NO):
+
+- [ ] Llega correo de recovery.
+- [ ] Abre `recovery-link?t=...`.
+- [ ] Boton continuar redirige correctamente.
+- [ ] Cambio de contrasena exitoso.
+- [ ] Login final exitoso.
