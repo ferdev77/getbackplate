@@ -176,21 +176,31 @@ export function EmployeeShell({
       <div className="flex min-h-screen">
         {/* Sidebar */}
         <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-[var(--gbp-border)] transition-all duration-200 lg:sticky lg:top-0 lg:h-screen ${menuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} ${sidebarWidth}`} style={{ background: palette.sidebarGradient }}>
-          <div className={`flex h-[60px] items-center border-b border-[var(--gbp-border)] py-3 ${sidebarPaddingX}`}>
-            <div className={`flex items-center gap-2 ${collapsed ? "justify-center w-full" : "w-full"}`}>
-              {customBrandingEnabled && !collapsed ? (
-                <div className="flex h-[84px] flex-1 items-center justify-center overflow-hidden rounded-md bg-transparent px-2">
+          <div className={`relative border-b border-[var(--gbp-border)] py-3 ${sidebarPaddingX}`}>
+            <button
+              type="button"
+              onClick={() => setCollapsed((v) => !v)}
+              className="absolute right-2 top-2 hidden h-8 w-8 place-items-center rounded-md bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)] lg:grid"
+              aria-label="Alternar sidebar"
+            >
+              <PanelsLeftRight className="h-4 w-4" />
+            </button>
+            <div className={`flex items-center justify-center ${collapsed ? "pt-3" : ""}`}>
+              {customBrandingEnabled ? (
+                <div className={`${collapsed ? "grid h-11 w-11 place-items-center overflow-hidden rounded-md" : "flex h-[84px] w-full items-center justify-center overflow-hidden rounded-md bg-transparent px-2"}`}>
                   {effectiveCompanyLogoUrl ? (
                     <Image
                       src={effectiveCompanyLogoUrl}
                       alt={`Logo de ${brandingName}`}
-                      width={300}
-                      height={90}
+                      width={collapsed ? 44 : 300}
+                      height={collapsed ? 44 : 90}
                       unoptimized
-                      className="h-[76px] w-[98%] object-contain object-center"
+                      className={collapsed ? "h-10 w-10 object-contain object-center" : "h-[76px] w-[98%] object-contain object-center"}
                     />
                   ) : (
-                    <span className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--gbp-text)]">{brandingName}</span>
+                    <span className={`font-bold uppercase tracking-[0.08em] ${collapsed ? "text-[10px]" : "text-xs"} text-[var(--gbp-text)]`}>
+                      {collapsed ? brandingName.slice(0, 2) : brandingName}
+                    </span>
                   )}
                 </div>
               ) : (
@@ -198,18 +208,10 @@ export function EmployeeShell({
                   <GetBackplateLogo variant="light" width={220} height={40} className={`${collapsed ? BRAND_SCALE.sidebarCollapsedHeight : BRAND_SCALE.sidebarDesktopHeight} w-auto`} />
                 </div>
               )}
-              <button
-                type="button"
-                onClick={() => setCollapsed((v) => !v)}
-                className={`ml-auto hidden h-8 w-8 place-items-center rounded-md bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)] lg:grid ${collapsed ? "ml-0" : ""}`}
-                aria-label="Alternar sidebar"
-              >
-                <PanelsLeftRight className="h-4 w-4" />
-              </button>
               <button 
                 type="button" 
                 onClick={() => setMenuOpen(false)} 
-                className="ml-auto grid h-8 w-8 place-items-center rounded-md bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)] lg:hidden"
+                className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-md bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)] lg:hidden"
               >
                 <Menu className="h-4 w-4" />
               </button>
