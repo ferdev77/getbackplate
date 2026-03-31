@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { parseAndValidateRecoveryActionLink } from "@/shared/lib/recovery-link";
+import { buildRecoveryCallbackUrl, normalizeRecoveryTokenHash } from "@/shared/lib/recovery-link";
 
 function buildInvalidRedirect(request: Request, organizationHint: string) {
   const fallback = new URL("/auth/recovery-link", request.url);
@@ -15,18 +15,23 @@ function buildInvalidRedirect(request: Request, organizationHint: string) {
 }
 
 function continueRecovery(request: Request, encoded: string, organizationHint: string) {
-  const actionLink = parseAndValidateRecoveryActionLink(encoded);
+  const requestUrl = new URL(request.url);
+  const callbackUrl = buildRecoveryCallbackUrl({
+    appUrl: requestUrl.origin,
+    tokenHash: encoded,
+    organizationIdHint: organizationHint,
+  });
 
-  if (!actionLink) {
+  if (!callbackUrl) {
     return buildInvalidRedirect(request, organizationHint);
   }
 
-  return NextResponse.redirect(actionLink, { status: 303 });
+  return NextResponse.redirect(callbackUrl, { status: 303 });
 }
 
 export async function POST(request: Request) {
   const formData = await request.formData();
-  const encoded = String(formData.get("k") ?? "").trim();
+  const encoded = normalizeRecoveryTokenHash(formData.get("t")?.toString()) ?? "";
   const organizationHint = String(formData.get("org") ?? "").trim();
   return continueRecovery(request, encoded, organizationHint);
 }

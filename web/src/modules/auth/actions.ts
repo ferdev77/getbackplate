@@ -343,9 +343,9 @@ export async function requestPasswordRecoveryAction(formData: FormData) {
     options: { redirectTo },
   });
 
-  const actionLink = linkData?.properties?.action_link;
+  const tokenHash = linkData?.properties?.hashed_token;
 
-  if (linkError || !actionLink) {
+  if (linkError || !tokenHash) {
     const message = (linkError?.message || "").toLowerCase();
     if (message.includes("user") && (message.includes("not found") || message.includes("no user"))) {
       redirect(buildForgotPasswordPath({
@@ -367,7 +367,7 @@ export async function requestPasswordRecoveryAction(formData: FormData) {
 
   const recoveryBridgeUrl = buildRecoveryBridgeUrl({
     appUrl,
-    actionLink,
+    tokenHash,
     organizationIdHint: resolvedOrganizationId,
   });
 
