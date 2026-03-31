@@ -315,20 +315,40 @@ type SubscriptionActivatedProps = {
 };
 
 export function subscriptionActivatedTemplate({ orgName, planName, trialDays }: SubscriptionActivatedProps) {
+  const appUrl = `${(process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://getbackplate.com").replace(/\/$/, "")}/app/dashboard`;
   const trialCopy =
     trialDays > 0
-      ? `Tu prueba gratis de <strong>${trialDays} dias</strong> ya esta corriendo. El primer cobro se realizara al finalizar el periodo de prueba.`
-      : "Tu plan se activo correctamente y ya tienes acceso completo a la plataforma.";
+      ? `Tu prueba gratis de <strong>${trialDays} dias</strong> ya esta activa. Antes del primer cobro te enviaremos recordatorios para que gestiones tu plan con tranquilidad.`
+      : "Tu plan ya se encuentra activo y tu equipo puede operar con acceso completo a la plataforma.";
 
   return `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #171311;">
-      <h2>Hola ${orgName},</h2>
-      <p>¡Felicitaciones! Tu suscripcion fue activada correctamente.</p>
-      <p>Plan activo: <strong>${planName}</strong>.</p>
-      <p>${trialCopy}</p>
-      <br />
-      <p>Desde este momento tu panel de empresa queda habilitado.</p>
-      <p style="color: #666; font-size: 12px;">El equipo de GetBackplate</p>
+    <div style="font-family:Inter,Segoe UI,Arial,sans-serif;max-width:680px;margin:0 auto;background:#f5f6f8;padding:24px;">
+      <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.06);">
+        <div style="height:6px;background:#c74b1e;"></div>
+
+        <div style="padding:24px 24px 8px 24px;">
+          <p style="margin:0;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#9ca3af;">Confirmacion de suscripcion</p>
+          <h2 style="margin:10px 0 0 0;font-size:24px;line-height:1.2;color:#111827;">Tu empresa ya quedo activada en GetBackplate</h2>
+          <p style="margin:10px 0 0 0;color:#4b5563;font-size:14px;line-height:1.6;">Hola <strong>${orgName}</strong>, validamos correctamente tu pago en Stripe y habilitamos tu entorno de trabajo.</p>
+        </div>
+
+        <div style="padding:16px 24px 0 24px;">
+          <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;background:#fafafa;">
+            <p style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Resumen</p>
+            <p style="margin:0;color:#111827;font-size:14px;">Plan activo: <strong>${planName}</strong></p>
+            <p style="margin:8px 0 0 0;color:#374151;font-size:13px;line-height:1.6;">${trialCopy}</p>
+          </div>
+        </div>
+
+        <div style="padding:18px 24px 0 24px;">
+          <a href="${appUrl}" style="display:inline-block;background:#171311;color:#ffffff;text-decoration:none;padding:11px 18px;border-radius:10px;font-size:13px;font-weight:700;">Ir al panel de empresa</a>
+        </div>
+
+        <div style="padding:18px 24px 24px 24px;">
+          <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">Si no reconoces este movimiento, responde este correo para que el equipo de soporte te asista de inmediato.</p>
+          <p style="margin:10px 0 0 0;color:#9ca3af;font-size:11px;">GetBackplate Billing</p>
+        </div>
+      </div>
     </div>
   `;
 }
