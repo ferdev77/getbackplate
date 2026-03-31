@@ -19,6 +19,7 @@ export const AUDIT_REASON_CODES = {
   MISSING_COMPANY_ROLE: "missing_company_role",
   MISSING_EMPLOYEE_ROLE: "missing_employee_role",
   MODULE_DISABLED_FOR_TENANT: "module_disabled_for_tenant",
+  BILLING_REQUIRED_FOR_TENANT: "billing_required_for_tenant",
   MISSING_CREDENTIALS: "missing_credentials",
   INVALID_CREDENTIALS: "invalid_credentials",
   SESSION_VALIDATION_FAILED: "session_validation_failed",

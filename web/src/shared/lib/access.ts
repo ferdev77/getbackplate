@@ -16,6 +16,7 @@ import {
 } from "@/shared/lib/tenant-selection";
 import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impersonation";
 import { markInvitedAdminFirstLoginIfNeeded } from "@/shared/lib/invited-admin-first-login";
+import { getBillingGateForOrganization } from "@/modules/billing/services/billing-gate.service";
 
 export const MODULE_DISABLED_COPY = "Este modulo no esta incluido en tu plan actual.";
 
@@ -32,7 +33,7 @@ type TenantModuleApiAccessResult =
     }
   | {
       ok: false;
-      status: 401 | 403 | 409;
+      status: 401 | 402 | 403 | 409;
       error: string;
       reasonCode: string;
     };
@@ -234,7 +235,10 @@ export async function requireEmployeeModule(moduleCode: string) {
   return tenant;
 }
 
-export async function assertTenantModuleApi(moduleCode: string): Promise<TenantModuleApiAccessResult> {
+export async function assertTenantModuleApi(
+  moduleCode: string,
+  options?: { allowBillingBypass?: boolean },
+): Promise<TenantModuleApiAccessResult> {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -294,6 +298,32 @@ export async function assertTenantModuleApi(moduleCode: string): Promise<TenantM
     };
   }
 
+  if (!options?.allowBillingBypass) {
+    const supabase = await createSupabaseServerClient();
+    const billingGate = await getBillingGateForOrganization({
+      supabase,
+      organizationId: tenant.organizationId,
+    });
+
+    if (billingGate.isBlocked) {
+      await logAccessDeniedEvent({
+        area: "company",
+        reasonCode: AUDIT_REASON_CODES.BILLING_REQUIRED_FOR_TENANT,
+        organizationId: tenant.organizationId,
+        branchId: tenant.branchId,
+        requiredRole: "company_admin|manager",
+        pathHint: "/api/company/*",
+      });
+
+      return {
+        ok: false,
+        status: 402,
+        error: "billing_required_for_tenant",
+        reasonCode: AUDIT_REASON_CODES.BILLING_REQUIRED_FOR_TENANT,
+      };
+    }
+  }
+
   const moduleAccess = await isTenantModuleEnabled(tenant.organizationId, moduleCode);
 
   if (moduleAccess.hasError || !moduleAccess.enabled) {
@@ -320,8 +350,13 @@ export async function assertTenantModuleApi(moduleCode: string): Promise<TenantM
   };
 }
 
-export async function assertCompanyManagerModuleApi(moduleCode: string) {
-  const moduleAccess = await assertTenantModuleApi(moduleCode);
+export async function assertCompanyManagerModuleApi(
+  moduleCode: string,
+  options?: { allowBillingBypass?: boolean },
+) {
+  const moduleAccess = await assertTenantModuleApi(moduleCode, {
+    allowBillingBypass: options?.allowBillingBypass,
+  });
 
   if (!moduleAccess.ok) {
     return moduleAccess;

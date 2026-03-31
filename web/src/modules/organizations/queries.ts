@@ -1,14 +1,23 @@
 import { cache } from "react";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
+import { getBillingGateForOrganization } from "@/modules/billing/services/billing-gate.service";
 
 export const getOrganizationById = cache(async function getOrganizationById(organizationId: string) {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("organizations")
-    .select("id, name, slug, status, plan_id")
+    .select("id, name, slug, status, plan_id, billing_activation_status, billing_activated_at, billing_onboarding_required")
     .eq("id", organizationId)
     .maybeSingle();
   return data;
+});
+
+export const getOrganizationBillingGate = cache(async function getOrganizationBillingGate(organizationId: string) {
+  const supabase = await createSupabaseServerClient();
+  return getBillingGateForOrganization({
+    supabase,
+    organizationId,
+  });
 });
 
 export const getOrganizationSettings = cache(async function getOrganizationSettings(organizationId: string) {

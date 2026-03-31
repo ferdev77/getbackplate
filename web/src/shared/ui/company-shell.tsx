@@ -78,6 +78,14 @@ type CompanyShellProps = {
   enabledModules: string[];
   branchOptions: Array<{ id: string; name: string }>;
   impersonationMode?: boolean;
+  billingGate?: {
+    isBlocked: boolean;
+    reason: "not_required" | "subscription_active" | "trial_expired" | "subscription_missing" | "subscription_inactive";
+    required: boolean;
+    hasActiveSubscription: boolean;
+    status: string | null;
+    currentPeriodEnd: string | null;
+  };
   trialStatus?: {
     isActive: boolean;
     daysRemaining: number | null;
@@ -266,6 +274,7 @@ export function CompanyShell({
   enabledModules,
   branchOptions,
   impersonationMode = false,
+  billingGate,
   trialStatus,
   children,
 }: CompanyShellProps) {
@@ -286,6 +295,9 @@ export function CompanyShell({
   );
   const [busy, setBusy] = useState(false);
   const selectedBranch = searchParams.get("branch") ?? "";
+  const selectedPlanIdFromUrl = searchParams.get("selectPlanId");
+  const selectedBillingPeriodFromUrl = searchParams.get("billingPeriod");
+  const shouldLockDashboard = Boolean(billingGate?.required && billingGate?.isBlocked && !impersonationMode);
 
   const enabledModuleSet = useMemo(() => new Set(enabledModules), [enabledModules]);
   const visibleSections = useMemo(() => {
@@ -460,6 +472,17 @@ export function CompanyShell({
   }, [settingsSnapshot.theme]);
 
   useEffect(() => {
+    if (!shouldLockDashboard) return;
+    if (selectedBillingPeriodFromUrl === "yearly" || selectedBillingPeriodFromUrl === "annual") {
+      setPlanBillingCycle("yearly");
+      return;
+    }
+    if (selectedBillingPeriodFromUrl === "monthly") {
+      setPlanBillingCycle("monthly");
+    }
+  }, [selectedBillingPeriodFromUrl, shouldLockDashboard]);
+
+  useEffect(() => {
     if (!planOpen) return;
     const timer = setTimeout(() => {
       currentPlanCardRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -473,15 +496,22 @@ export function CompanyShell({
 
     const upgraded = searchParams.get('upgraded');
     const success = searchParams.get('success');
+    const canceled = searchParams.get('canceled');
 
-    if (upgraded !== 'true' && success !== 'true') return;
+    if (upgraded !== 'true' && success !== 'true' && canceled !== 'true') return;
 
-    const toastCode = upgraded === 'true' ? 'plan-updated' : 'subscription-activated';
+    const toastCode =
+      canceled === 'true'
+        ? 'subscription-canceled'
+        : upgraded === 'true'
+          ? 'plan-updated'
+          : 'subscription-activated';
     window.sessionStorage.setItem('gb:billing-success-toast', toastCode);
 
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.delete('upgraded');
     nextParams.delete('success');
+    nextParams.delete('canceled');
 
     const nextQuery = nextParams.toString();
     router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
@@ -500,6 +530,8 @@ export function CompanyShell({
     const timer = setTimeout(() => {
       if (toastCode === 'plan-updated') {
         toast.success('¡Plan actualizado exitosamente! 🎉');
+      } else if (toastCode === 'subscription-canceled') {
+        toast.error('No se completo la activacion de la suscripcion.');
       } else {
         toast.success('¡Suscripción activada exitosamente! 🎉');
       }
@@ -691,6 +723,16 @@ export function CompanyShell({
     return plansForDisplay.find((plan) => plan.id === planChangeTargetId) ?? null;
   }, [planChangeTargetId, plansForDisplay]);
 
+  const lockedSelectedPlan = useMemo(() => {
+    if (selectedPlanIdFromUrl) {
+      const byId = plansForDisplay.find((plan) => plan.id === selectedPlanIdFromUrl);
+      if (byId) return byId;
+    }
+
+    if (currentPlan) return currentPlan;
+    return plansForDisplay[0] ?? null;
+  }, [currentPlan, plansForDisplay, selectedPlanIdFromUrl]);
+
   const planChangeDirection = useMemo(() => {
     if (!currentPlan || !planChangeTarget) return "upgrade" as const;
     const currentPrice = typeof currentPlan.priceAmount === "number" ? currentPlan.priceAmount : 0;
@@ -743,7 +785,7 @@ export function CompanyShell({
       className={`min-h-screen ${isDarkTheme ? "theme-dark-pro text-[var(--gbp-text)]" : "text-[var(--gbp-text)]"}`}
       style={{ ["--gb-accent" as string]: palette.accent, background: palette.pageGradient } as CSSProperties}
     >
-      <div className="flex min-h-screen">
+      <div className={`flex min-h-screen ${shouldLockDashboard ? "pointer-events-none" : ""}`}>
           <aside className={`hidden shrink-0 border-r transition-all duration-200 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"} ${sidebarWidth}`} style={{ background: palette.sidebarGradient }}>
           <div className={`relative border-b py-3 ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"} ${sidebarPaddingX}`}>
             <button
@@ -930,6 +972,75 @@ export function CompanyShell({
           </div>
         </div>
       </div>
+
+      {shouldLockDashboard ? (
+        <div className="fixed inset-0 z-[1400] grid place-items-center bg-black/65 p-4 backdrop-blur-[2px]">
+          <div className={`w-full max-w-4xl overflow-hidden rounded-2xl border shadow-[0_35px_90px_rgba(0,0,0,.55)] ${isDarkTheme ? "border-white/15 bg-[var(--gbp-bg2)] text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text)]"}`}>
+            <div className="h-1.5 w-full bg-[linear-gradient(90deg,var(--gbp-accent),var(--gbp-violet))]" />
+            <div className="px-6 py-5 sm:px-8">
+              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--gbp-accent)]">Activacion requerida</p>
+              <h2 className="mt-1 text-2xl font-bold">Finaliza tu suscripcion para desbloquear el panel</h2>
+              <p className={`mt-2 text-sm ${isDarkTheme ? "text-white/75" : "text-[var(--gbp-text2)]"}`}>
+                Selecciona tu plan y continua en Stripe para activar la prueba gratis de 30 dias.
+                {billingGate?.reason === "trial_expired" ? " Tu periodo de prueba vencio y debes reactivar la suscripcion." : ""}
+              </p>
+
+              <div className={`mt-4 inline-flex rounded-lg border p-1 text-xs font-semibold ${isDarkTheme ? "border-white/15 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
+                <button
+                  type="button"
+                  onClick={() => setPlanBillingCycle("monthly")}
+                  className={`rounded-md px-3 py-1.5 transition ${planBillingCycle === "monthly" ? (isDarkTheme ? "bg-white text-[var(--gbp-text)]" : "bg-[var(--gbp-surface)] text-[var(--gbp-text)]") : (isDarkTheme ? "text-white/75 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
+                >
+                  Mensual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPlanBillingCycle("yearly")}
+                  className={`rounded-md px-3 py-1.5 transition ${planBillingCycle === "yearly" ? "bg-[var(--gbp-success)] text-white" : (isDarkTheme ? "text-white/75 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
+                >
+                  Anual (2 meses gratis)
+                </button>
+              </div>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-3">
+                {plansForDisplay.map((plan) => {
+                  const isSuggested = lockedSelectedPlan?.id === plan.id;
+                  return (
+                    <article
+                      key={plan.id}
+                      className={`rounded-xl border p-4 ${isSuggested ? "border-[var(--gbp-accent)]/45 bg-[var(--gbp-accent-glow)]" : (isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]")}`}
+                    >
+                      <p className="text-[11px] font-bold uppercase tracking-[0.09em]">{plan.name}</p>
+                      <p className="mt-1 text-xl font-extrabold">{formatPlanPrice(plan, planBillingCycle)}</p>
+                      <p className={`mt-1 text-[11px] ${isDarkTheme ? "text-white/65" : "text-[var(--gbp-text2)]"}`}>
+                        {plan.maxUsers ?? "∞"} usuarios · {plan.maxEmployees ?? "∞"} empleados
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => startCheckout(plan.id, planBillingCycle)}
+                        disabled={busy || !plan.stripePriceId || impersonationMode}
+                        className={`mt-3 w-full rounded-md px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-60 ${isSuggested ? "bg-[var(--gbp-accent)] hover:opacity-95" : "bg-[var(--gbp-violet)] hover:opacity-95"}`}
+                      >
+                        {busy ? "Redirigiendo..." : "Comenzar trial 30 dias"}
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
+
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--gbp-border)] pt-4">
+                <p className={`text-xs ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-text2)]"}`}>
+                  El acceso al panel permanece bloqueado hasta confirmar la suscripcion en Stripe.
+                </p>
+                <a href="/auth/logout" className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-semibold ${isDarkTheme ? "border-white/15 bg-white/5 text-white/80 hover:bg-white/10" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)]"}`}>
+                  <LogOut className="h-3.5 w-3.5" />
+                  Cerrar sesion
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {settingsOpen ? (
         <div className="fixed inset-0 z-[1200]" onClick={() => setSettingsOpen(false)}>
