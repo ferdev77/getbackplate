@@ -70,7 +70,7 @@ function buildForgotPasswordPath(options?: {
 
 export async function loginWithPasswordAction(formData: FormData) {
   try {
-    const email = String(formData.get("email") ?? "").trim();
+    const email = String(formData.get("email") ?? "").trim().toLowerCase();
     const password = String(formData.get("password") ?? "");
     const organizationHint = normalizeOrganizationId(
       String(formData.get("organization_id_hint") ?? ""),
@@ -127,10 +127,6 @@ export async function loginWithPasswordAction(formData: FormData) {
       redirect(buildLoginPath({ error: "No se pudo validar la sesion", organizationIdHint: organizationHint }));
     }
 
-    if (Boolean((authData.user.user_metadata as Record<string, unknown> | undefined)?.force_password_change)) {
-      redirect("/auth/change-password?reason=first_login");
-    }
-
     const admin = createSupabaseAdminClient();
 
     const { data: superadminRow } = await admin
@@ -138,6 +134,11 @@ export async function loginWithPasswordAction(formData: FormData) {
       .select("user_id")
       .eq("user_id", authData.user.id)
       .maybeSingle();
+
+    if (Boolean((authData.user.user_metadata as Record<string, unknown> | undefined)?.force_password_change)) {
+      const nextAfterPassword = superadminRow?.user_id ? "/superadmin/dashboard" : "/app/dashboard";
+      redirect(`/auth/change-password?reason=first_login&next=${encodeURIComponent(nextAfterPassword)}`);
+    }
 
     if (superadminRow?.user_id) {
       await logAuthEvent({
@@ -399,6 +400,7 @@ export async function updatePasswordAction(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirm_password") ?? "");
   const nextPath = String(formData.get("next") ?? "").trim();
+  const safeNextPath = nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : null;
 
   if (!password || password.length < 8) {
     await logAuditEvent({
@@ -492,12 +494,94 @@ export async function updatePasswordAction(formData: FormData) {
     outcome: "success",
     severity: "low",
     metadata: {
-      redirect_to: nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/app/dashboard",
+      redirect_to: safeNextPath ?? "role_based_default",
     },
   });
 
-  if (nextPath.startsWith("/") && !nextPath.startsWith("//")) {
-    redirect(nextPath);
+  if (safeNextPath) {
+    redirect(safeNextPath);
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data: superadminRow } = await admin
+    .from("superadmin_users")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (superadminRow?.user_id) {
+    redirect("/superadmin/dashboard");
+  }
+
+  const { data: memberships, error: membershipsError } = await admin
+    .from("memberships")
+    .select("role_id, organization_id")
+    .eq("user_id", user.id)
+    .eq("status", "active");
+
+  if (membershipsError) {
+    redirect(
+      "/auth/login?error=" +
+        encodeURIComponent(`No se pudo resolver tu acceso despues del cambio: ${membershipsError.message}`),
+    );
+  }
+
+  const roleIds = [...new Set((memberships ?? []).map((row) => row.role_id))];
+  if (!roleIds.length) {
+    redirect(
+      "/auth/login?error=" +
+        encodeURIComponent("Tu usuario no tiene acceso asignado. Contacta al administrador."),
+    );
+  }
+
+  const { data: roles, error: rolesError } = await admin
+    .from("roles")
+    .select("id, code")
+    .in("id", roleIds);
+
+  if (rolesError) {
+    redirect(
+      "/auth/login?error=" +
+        encodeURIComponent(`No se pudo resolver tu rol despues del cambio: ${rolesError.message}`),
+    );
+  }
+
+  const roleCodeById = new Map((roles ?? []).map((role) => [role.id, role.code]));
+  const membershipContexts = (memberships ?? []).map((row) => ({
+    organizationId: row.organization_id,
+    roleCode: roleCodeById.get(row.role_id) ?? "",
+  }));
+
+  const organizations = [...new Set(membershipContexts.map((row) => row.organizationId))];
+  const preferredOrganizationId = await getActiveOrganizationIdFromCookie();
+  const resolvedOrganizationId =
+    (preferredOrganizationId && organizations.includes(preferredOrganizationId)
+      ? preferredOrganizationId
+      : organizations[0]) ?? null;
+
+  if (organizations.length > 1 && !preferredOrganizationId) {
+    redirect("/auth/select-organization");
+  }
+
+  if (resolvedOrganizationId) {
+    await setActiveOrganizationIdCookie(resolvedOrganizationId);
+  }
+
+  const roleCodesInResolvedOrganization = new Set(
+    membershipContexts
+      .filter((row) => row.organizationId === resolvedOrganizationId)
+      .map((row) => row.roleCode),
+  );
+
+  if (
+    roleCodesInResolvedOrganization.has("company_admin") ||
+    roleCodesInResolvedOrganization.has("manager")
+  ) {
+    redirect("/app/dashboard");
+  }
+
+  if (roleCodesInResolvedOrganization.has("employee")) {
+    redirect("/portal/home");
   }
 
   redirect("/app/dashboard");

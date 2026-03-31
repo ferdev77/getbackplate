@@ -19,7 +19,7 @@ type ChangePasswordPageProps = {
 export default async function ChangePasswordPage({ searchParams }: ChangePasswordPageProps) {
   const params = await searchParams;
   const reason = params.reason;
-  const nextPath = params.next && params.next.startsWith("/") ? params.next : "/app/dashboard";
+  const nextPath = params.next && params.next.startsWith("/") ? params.next : "";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_var(--gbp-surface)_0%,_var(--gbp-bg)_48%,_var(--gbp-bg2)_100%)] px-6 py-10">
