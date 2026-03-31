@@ -767,6 +767,7 @@ export function CompanyShell({
                       alt={`Logo de ${brandingName}`}
                       width={330}
                       height={106}
+                      unoptimized
                       className="h-[104px] w-[98%] object-contain object-center"
                     />
                   ) : (
@@ -879,6 +880,7 @@ export function CompanyShell({
                       alt={`Avatar de ${profileName}`}
                       width={32}
                       height={32}
+                      unoptimized
                       className="h-full w-full object-cover"
                     />
                   ) : (
@@ -991,7 +993,7 @@ export function CompanyShell({
                           width={64}
                           height={64}
                           className="h-full w-full object-cover"
-                          unoptimized={Boolean(profileAvatarPreview)}
+                          unoptimized
                         />
                       ) : (
                         initials
