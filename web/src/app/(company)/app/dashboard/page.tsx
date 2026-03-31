@@ -5,7 +5,7 @@ import { CompanyDashboardWorkspace } from "@/shared/ui/company-dashboard-workspa
 import { PaymentSuccessBanner } from "@/shared/ui/payment-success-banner";
 
 type CompanyDashboardPageProps = {
-  searchParams: Promise<{ success?: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 };
 
 export default async function CompanyDashboardPage({ searchParams }: CompanyDashboardPageProps) {
