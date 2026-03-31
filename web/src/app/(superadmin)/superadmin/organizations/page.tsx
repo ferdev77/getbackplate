@@ -436,62 +436,73 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
               )}
 
               {action === "edit" && selectedOrg && (
-                <div className="grid gap-8 lg:grid-cols-2">
+                <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
                   <div className="space-y-6">
-                    <form action={updateOrganizationAction} className="rounded-3xl border border-line/40 bg-muted/10 p-6">
-                      <h4 className="mb-6 flex items-center gap-2 text-sm font-bold text-foreground"><Settings2 className="h-5 w-5 text-brand" /> Configuración General</h4>
+                    <form action={updateOrganizationAction} className="flex flex-col rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-sm">
+                      <h4 className="mb-6 flex items-center gap-2 text-sm font-bold text-foreground">
+                        <Settings2 className="h-5 w-5 text-[var(--gbp-accent)]" /> Configuración General
+                      </h4>
                       <input type="hidden" name="organization_id" value={selectedOrg.id} />
-                      <div className="space-y-5">
-                        <SuperadminInputField label="Nombre" name="name" defaultValue={selectedOrg.name} labelBgClassName="bg-[var(--gbp-bg)]" />
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <SuperadminSelectField label="Estado" name="status" defaultValue={selectedOrg.status}>
+                      <div className="flex flex-col gap-8 pt-2">
+                        <SuperadminInputField label="Nombre" name="name" defaultValue={selectedOrg.name} labelBgClassName="bg-[var(--gbp-surface)]" />
+                        <div className="grid gap-8 sm:grid-cols-2">
+                          <SuperadminSelectField label="Estado" name="status" defaultValue={selectedOrg.status} labelBgClassName="bg-[var(--gbp-surface)]">
                             <option value="active">Activo</option>
                             <option value="paused">Pausado</option>
                             <option value="suspended">Suspendido</option>
                           </SuperadminSelectField>
-                          <SuperadminSelectField label="Plan de Servicio" name="plan_id" defaultValue={selectedOrg.plan_id ?? ""}>
+                          <SuperadminSelectField label="Plan de Servicio" name="plan_id" defaultValue={selectedOrg.plan_id ?? ""} labelBgClassName="bg-[var(--gbp-surface)]">
                             <option value="">Sin plan</option>
                             {(plans ?? []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                           </SuperadminSelectField>
                         </div>
                       </div>
-                      <button type="submit" className="mt-6 w-full rounded-xl bg-foreground px-4 py-3 text-sm font-bold text-white transition-all hover:bg-black active:scale-[0.98]">
-                        Actualizar Organización
-                      </button>
+                      <SubmitButton
+                        label="Actualizar Organización"
+                        pendingLabel="Actualizando..."
+                        variant="primary"
+                        className="mt-6 w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-lg shadow-brand/20 transition-transform active:scale-[0.98]"
+                      />
                     </form>
                     
-                     <div className="rounded-3xl border border-line/40 bg-white p-6">
-                        <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-foreground"><User className="h-5 w-5 text-brand" /> Responsable</h4>
-                        <div className="p-3 bg-muted/30 rounded-xl border border-line/20">
-                           <p className="text-sm font-bold text-foreground">{selectedAdmins[0]?.email ?? "- No asignado -"}</p>
+                     <div className="rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-6 shadow-sm">
+                        <h4 className="mb-4 flex items-center gap-2 text-sm font-bold text-foreground">
+                          <User className="h-5 w-5 text-[var(--gbp-accent)]" /> Responsable
+                        </h4>
+                        <div className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4">
+                           <p className="text-sm font-bold text-foreground truncate">{selectedAdmins[0]?.email ?? "- No asignado -"}</p>
                            {selectedAdmins[0]?.status ? (
-                             <p className="mt-1 text-[11px] font-semibold text-amber-700">
+                             <p className="mt-1 text-[11px] font-semibold text-amber-600">
                                Estado: {selectedAdmins[0].status === "invited" ? "Invitado" : "Activo"}
                              </p>
                            ) : null}
-                           <p className="text-[11px] text-muted-foreground mt-1">El administrador principal solo puede ser cambiado mediante consola de seguridad.</p>
+                           <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">El administrador principal solo puede ser cambiado mediante consola de seguridad.</p>
                         </div>
-                        {selectedAdmins[0] ? (
-                          <div className="mt-3 rounded-xl border border-line/20 bg-white p-3">
+                        {selectedAdmins[0] && selectedAdmins[0].status === "invited" && (
+                          <div className="mt-4">
                             <ResendInvitationButton
                               organizationId={selectedOrg.id}
                               email={selectedAdmins[0].email}
                               fullName={selectedAdmins[0].email.split("@")[0]}
                             />
                           </div>
-                        ) : null}
+                        )}
                      </div>
                    </div>
 
-                  <div className="rounded-3xl border border-line/40 bg-white p-6 shadow-sm">
-                    <h4 className="mb-6 flex items-center gap-2 text-sm font-bold text-foreground"><LayoutGrid className="h-5 w-5 text-brand" /> Catálogo de Módulos</h4>
-                    <p className="mb-6 text-xs leading-relaxed text-muted-foreground">Habilite o deshabilite funcionalidades específicas para esta organización. Los módulos CORE son obligatorios.</p>
-                    <div className="grid gap-3">
+                  <div className="rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-sm flex flex-col">
+                    <h4 className="mb-2 flex items-center gap-2 text-sm font-bold text-foreground">
+                      <LayoutGrid className="h-5 w-5 text-[var(--gbp-accent)]" /> Catálogo de Módulos
+                    </h4>
+                    <p className="mb-6 border-b border-[var(--gbp-border)] pb-4 text-xs leading-relaxed text-muted-foreground">
+                      Habilite o deshabilite funcionalidades específicas para esta organización. Los módulos CORE son obligatorios.
+                    </p>
+                    <div className="flex-1 grid gap-4 content-start">
                       {(modules ?? []).map((module) => {
                         const isEnabled = moduleMap.get(`${selectedOrg.id}:${module.id}`) ?? false;
                         const isCoreLocked = module.is_core;
                         return (
-                          <form key={module.id} action={toggleOrganizationModuleAction} className="flex items-center justify-between group">
+                          <form key={module.id} action={toggleOrganizationModuleAction} className="flex items-center justify-between group rounded-lg transition-colors p-1.5 hover:bg-[var(--gbp-bg2)]">
                             <input type="hidden" name="organization_id" value={selectedOrg.id} />
                             <input type="hidden" name="module_id" value={module.id} />
                             <input type="hidden" name="next_enabled" value={String(isCoreLocked ? true : !isEnabled)} />
@@ -499,16 +510,16 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
                             <div className="flex flex-col">
                               <span className={`text-[13px] font-bold transition-colors ${isEnabled ? 'text-foreground' : 'text-muted-foreground/60'}`}>
                                 {module.name}
-                                {module.is_core && <span className="ml-1.5 text-[10px] uppercase tracking-widest text-brand opacity-60">Core</span>}
+                                {module.is_core && <span className="ml-2 rounded border border-[var(--gbp-accent)]/20 bg-[var(--gbp-accent)]/10 px-1 py-0.5 text-[9px] uppercase tracking-widest text-[var(--gbp-accent)]">Core</span>}
                               </span>
                             </div>
 
                             <button
                               type="submit"
                               disabled={isCoreLocked}
-                              className={`relative h-6 w-11 rounded-full transition-all duration-300 ${isCoreLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${isEnabled ? 'bg-brand shadow-lg shadow-brand/20' : 'bg-muted'}`}
+                              className={`relative h-6 w-11 shrink-0 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[var(--gbp-accent)] focus:ring-offset-2 focus:ring-offset-[var(--gbp-surface)] ${isCoreLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${isEnabled ? 'bg-[var(--gbp-accent)] shadow-md shadow-brand/20' : 'bg-slate-300 dark:bg-slate-700'}`}
                             >
-                               <span className={`absolute top-1 left-1.5 h-4 w-4 rounded-full bg-white transition-all duration-300 ${isEnabled ? 'translate-x-[18px]' : ''}`} />
+                               <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-300 ${isEnabled ? 'left-[24px]' : 'left-1'}`} />
                             </button>
                           </form>
                         );
