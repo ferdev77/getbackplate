@@ -10,13 +10,14 @@ export const metadata: Metadata = {
 };
 
 type RecoveryLinkPageProps = {
-  searchParams: Promise<{ k?: string; org?: string }>;
+  searchParams: Promise<{ k?: string; org?: string; error?: string }>;
 };
 
 export default async function RecoveryLinkPage({ searchParams }: RecoveryLinkPageProps) {
   const params = await searchParams;
   const key = String(params.k ?? "").trim();
   const organizationHint = String(params.org ?? "").trim();
+  const error = String(params.error ?? "").trim();
   const tenantBranding = await resolveTenantAuthBrandingByHint(organizationHint);
   const forgotPasswordHref = organizationHint
     ? `/auth/forgot-password?org=${encodeURIComponent(organizationHint)}`
@@ -80,16 +81,18 @@ export default async function RecoveryLinkPage({ searchParams }: RecoveryLinkPag
           Para proteger tu acceso, confirma manualmente y te llevamos al cambio de contrasena.
         </p>
 
-        <form action="/auth/recovery-link/continue" method="post" className="space-y-3">
-          <input type="hidden" name="k" value={key} />
-          <input type="hidden" name="org" value={organizationHint} />
-          <button
-            type="submit"
-            className="inline-flex w-full items-center justify-center rounded-lg bg-[var(--gbp-accent)] px-4 py-2 text-sm font-semibold text-white shadow-[var(--gbp-shadow-accent)] transition hover:bg-[var(--gbp-accent-hover)]"
-          >
-            Continuar de forma segura
-          </button>
-        </form>
+        {error ? (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error}
+          </div>
+        ) : null}
+
+        <Link
+          href={`/auth/recovery-link/continue?k=${encodeURIComponent(key)}${organizationHint ? `&org=${encodeURIComponent(organizationHint)}` : ""}`}
+          className="inline-flex w-full items-center justify-center rounded-lg bg-[var(--gbp-accent)] px-4 py-2 text-sm font-semibold text-white shadow-[var(--gbp-shadow-accent)] transition hover:bg-[var(--gbp-accent-hover)]"
+        >
+          Continuar de forma segura
+        </Link>
 
         <p className="mt-4 text-xs text-[var(--gbp-text2)]">
           Si este enlace no funciona, solicita uno nuevo desde la pantalla de recuperacion.
