@@ -1492,14 +1492,19 @@ export async function DELETE(request: Request) {
       }
     }
 
-    const { error: deleteProfileError } = await supabase
+    const { data: deletedProfiles, error: deleteProfileError } = await supabase
       .from("organization_user_profiles")
       .delete()
       .eq("organization_id", tenant.organizationId)
-      .eq("id", organizationUserProfileId);
+      .eq("id", organizationUserProfileId)
+      .select("id");
 
     if (deleteProfileError) {
       return NextResponse.json({ error: `No se pudo eliminar usuario: ${deleteProfileError.message}` }, { status: 400 });
+    }
+
+    if (!deletedProfiles || deletedProfiles.length === 0) {
+      return NextResponse.json({ error: "No se encontró el registro o faltan permisos para eliminarlo." }, { status: 400 });
     }
 
     await logAuditEvent({
@@ -1530,11 +1535,12 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Empleado no encontrado" }, { status: 404 });
   }
 
-  const { error: deleteError } = await supabase
+  const { data: deletedEmployees, error: deleteError } = await supabase
     .from("employees")
     .delete()
     .eq("organization_id", tenant.organizationId)
-    .eq("id", employeeId);
+    .eq("id", employeeId)
+    .select("id");
 
   if (deleteError) {
     await logAuditEvent({
@@ -1551,6 +1557,10 @@ export async function DELETE(request: Request) {
       },
     });
     return NextResponse.json({ error: `No se pudo eliminar empleado: ${deleteError.message}` }, { status: 400 });
+  }
+
+  if (!deletedEmployees || deletedEmployees.length === 0) {
+    return NextResponse.json({ error: "No se encontró el registro del empleado o faltan permisos para eliminarlo." }, { status: 400 });
   }
 
   // Clean up orphaned data left by the employee's dashboard account (if they had one).
