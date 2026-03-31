@@ -18,6 +18,7 @@ import { getCanonicalAppUrl } from "@/shared/lib/app-url";
 import { getDefaultEmailBranding, getTenantEmailBranding } from "@/shared/lib/email-branding";
 import { sendEmail } from "@/shared/lib/brevo";
 import { passwordRecoveryTemplate } from "@/shared/lib/email-templates/recovery";
+import { buildRecoveryBridgeUrl } from "@/shared/lib/recovery-link";
 
 function getEmailDomain(email: string) {
   const parts = email.split("@");
@@ -364,11 +365,17 @@ export async function requestPasswordRecoveryAction(formData: FormData) {
     ? await getTenantEmailBranding(resolvedOrganizationId)
     : getDefaultEmailBranding();
 
+  const recoveryBridgeUrl = buildRecoveryBridgeUrl({
+    appUrl,
+    actionLink,
+    organizationIdHint: resolvedOrganizationId,
+  });
+
   const mailResult = await sendEmail({
     to: [{ email }],
     subject: `Restablece tu contrasena en ${branding.companyName || "GetBackplate"}`,
     htmlContent: passwordRecoveryTemplate({
-      recoveryUrl: actionLink,
+      recoveryUrl: recoveryBridgeUrl,
       branding,
     }),
   });

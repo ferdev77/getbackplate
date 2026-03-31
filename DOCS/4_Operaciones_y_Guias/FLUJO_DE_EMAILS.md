@@ -60,6 +60,7 @@ Para futuras implementaciones o debugging, así funciona el ruteamiento y dispar
 2. **Reenvios**: solo recordatorio con 2 botones (`/auth/login?org=...` y `/auth/forgot-password?org=...`), sin password en email.
 3. **Primer login**: siempre forzado a cambio de contraseña cuando `force_password_change=true`.
 4. **No mezcla de flujos**: reenvio no reemplaza ni ejecuta alta.
+5. **Recovery anti-prefetch**: el correo de recuperacion ya no apunta directo al verify OTP de Supabase. Primero abre `GET /auth/recovery-link` (puente seguro) y solo al confirmar manualmente (`POST /auth/recovery-link/continue`) se redirige al verify link real.
 
 ---
 
@@ -160,6 +161,13 @@ Reglas de implementacion:
     - No se usa fallback hardcodeado a `getbackplate.com` para links tenant-aware.
 
     Ejemplo correcto: `https://www.mi-dominio.com` (el sistema limpia slash final automaticamente).
+
+*   **¿Qué pasa si el recovery muestra `otp_expired` aunque el email acaba de llegar?**
+    Puede ocurrir por escaneo de links del proveedor de correo o seguridad corporativa. El flujo actual usa puente anti-prefetch:
+    1. Email -> `GET /auth/recovery-link`
+    2. Usuario confirma con boton
+    3. `POST /auth/recovery-link/continue` redirige al verify OTP
+    Esto reduce consumo anticipado del token one-time.
 
 *   **¿El correo llega en Spam?**
     Revisar la configuración DNSDKIM/SPF de tu cuenta en Brevo. Todas las llamadas al backend están usando el endpoint oficial `/v3/smtp/email`. Variables env requeridas: `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `BREVO_SENDER_NAME`.

@@ -1136,6 +1136,7 @@ Implementacion tecnica:
 - Resolucion branding/public hint: `web/src/shared/lib/tenant-auth-branding.ts`.
 - Login co-branded: `web/src/app/auth/login/page.tsx`.
 - Recovery co-branded: `web/src/app/auth/forgot-password/page.tsx`.
+- Recovery bridge anti-prefetch: `web/src/app/auth/recovery-link/page.tsx` + `web/src/app/auth/recovery-link/continue/route.ts` + `web/src/shared/lib/recovery-link.ts`.
 - Login action con resolucion segura de hint -> `organization_id`: `web/src/modules/auth/actions.ts`.
 - URLs tenant-aware de invitacion/reenvio (slug preferente, fallback UUID):
   - base URL canonica para links de email: `web/src/shared/lib/app-url.ts` (usa `NEXT_PUBLIC_APP_URL` y fallback `APP_BASE_URL`; rechaza URLs invalidas/relativas)
