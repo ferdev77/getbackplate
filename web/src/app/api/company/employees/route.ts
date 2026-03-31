@@ -589,10 +589,81 @@ export async function POST(request: Request) {
     }
 
     const employmentStatus = employmentStatusInput || existingEmployee.status || "active";
+    let linkedUserId = existingEmployee.user_id ?? null;
+
+    if (createMode === "with_account") {
+      const loginEmail = accountEmailInput || email || "";
+      const admin = createSupabaseAdminClient();
+
+      if (!linkedUserId) {
+        const provisionResult = await provisionOrganizationUserAccount({
+          admin,
+          organizationId: tenant.organizationId,
+          loginEmail,
+          accountPassword,
+          firstName,
+          lastName,
+        });
+
+        if (!provisionResult.ok) {
+          return NextResponse.json({ error: provisionResult.error }, { status: 400 });
+        }
+
+        linkedUserId = provisionResult.userId;
+      }
+
+      if (!linkedUserId) {
+        return NextResponse.json({ error: EMPLOYEES_MESSAGES.AUTH_USER_UNRESOLVED }, { status: 400 });
+      }
+
+      const { data: role, error: roleError } = await admin
+        .from("roles")
+        .select("id")
+        .eq("code", "employee")
+        .single();
+
+      if (roleError || !role) {
+        return NextResponse.json({ error: EMPLOYEES_MESSAGES.ROLE_EMPLOYEE_UNAVAILABLE }, { status: 400 });
+      }
+
+      const { data: existingMembership } = await admin
+        .from("memberships")
+        .select("id")
+        .eq("organization_id", tenant.organizationId)
+        .eq("user_id", linkedUserId)
+        .maybeSingle();
+
+      if (!existingMembership) {
+        try {
+          await assertPlanLimitForUsers(tenant.organizationId, 1);
+        } catch (error) {
+          return NextResponse.json(
+            { error: getPlanLimitErrorMessage(error, EMPLOYEES_MESSAGES.PLAN_LIMIT_USERS) },
+            { status: 400 },
+          );
+        }
+      }
+
+      const { error: membershipError } = await admin.from("memberships").upsert(
+        {
+          organization_id: tenant.organizationId,
+          user_id: linkedUserId,
+          role_id: role.id,
+          branch_id: branchId,
+          status: "active",
+        },
+        { onConflict: "organization_id,user_id" },
+      );
+
+      if (membershipError) {
+        return NextResponse.json({ error: `No se pudo asignar acceso al empleado: ${membershipError.message}` }, { status: 400 });
+      }
+    }
 
     const { error: updateEmployeeError } = await supabase
       .from("employees")
       .update({
+        user_id: createMode === "with_account" ? linkedUserId : existingEmployee.user_id,
         branch_id: branchId,
         first_name: firstName,
         last_name: lastName,
