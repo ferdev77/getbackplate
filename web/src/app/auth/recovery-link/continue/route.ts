@@ -24,13 +24,6 @@ function continueRecovery(request: Request, encoded: string, organizationHint: s
   return NextResponse.redirect(actionLink, { status: 303 });
 }
 
-export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const encoded = String(url.searchParams.get("k") ?? "").trim();
-  const organizationHint = String(url.searchParams.get("org") ?? "").trim();
-  return continueRecovery(request, encoded, organizationHint);
-}
-
 export async function POST(request: Request) {
   const formData = await request.formData();
   const encoded = String(formData.get("k") ?? "").trim();
