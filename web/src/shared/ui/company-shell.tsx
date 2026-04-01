@@ -76,7 +76,7 @@ type CompanyShellProps = {
   customBrandingEnabled: boolean;
   planModulesByPlanId: Record<string, Array<{ code: string; name: string }>>;
   enabledModules: string[];
-  branchOptions: Array<{ id: string; name: string }>;
+  branchOptions: Array<{ id: string; name: string; city?: string | null }>;
   impersonationMode?: boolean;
   billingGate?: {
     isBlocked: boolean;
@@ -322,7 +322,7 @@ export function CompanyShell({
         const after = filteredItems.slice(dashboardIndex + 1);
         const locationItems: SidebarItem[] = branchOptions.map((branch) => ({
           href: `/app/dashboard/location?branch=${branch.id}`,
-          label: branch.name,
+          label: customBrandingEnabled && branch.city ? branch.city : branch.name,
           icon: MapPin,
           sub: true,
         }));

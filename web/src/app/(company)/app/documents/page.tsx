@@ -6,6 +6,7 @@ import { DocumentsTreeWorkspace } from "@/modules/documents/ui/documents-tree-wo
 import { DocumentFolderModal } from "@/modules/documents/ui/document-folder-modal";
 import { UploadDocumentModal } from "@/modules/documents/ui/upload-document-modal";
 import { requireTenantModule } from "@/shared/lib/access";
+import { getEnabledModules } from "@/modules/organizations/queries";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { SlideUp } from "@/shared/ui/animations";
 
@@ -38,7 +39,7 @@ export default async function CompanyDocumentsPage({
         .limit(100),
       supabase
         .from("branches")
-        .select("id, name")
+        .select("id, name, city")
         .eq("organization_id", tenant.organizationId)
         .eq("is_active", true)
         .order("name"),
@@ -55,6 +56,14 @@ export default async function CompanyDocumentsPage({
         .eq("is_active", true)
         .order("name"),
     ]);
+
+  const enabledModules = await getEnabledModules(tenant.organizationId);
+  const customBrandingEnabled = enabledModules.has("custom_branding");
+
+  const mappedBranches = (branches ?? []).map((b) => ({
+    ...b,
+    name: customBrandingEnabled && b.city ? b.city : b.name,
+  }));
 
   const scopedUsers = await buildScopeUsersCatalog(tenant.organizationId);
 
@@ -83,13 +92,14 @@ export default async function CompanyDocumentsPage({
           departments={departments ?? []}
           positions={positions ?? []}
           users={scopedUsers}
+          customBrandingEnabled={customBrandingEnabled}
         />
       </SlideUp>
 
       {openFolderModal ? (
         <DocumentFolderModal 
           folders={folders ?? []}
-          branches={branches ?? []}
+          branches={mappedBranches}
           departments={departments ?? []}
           positions={positions ?? []}
           employees={scopedUsers}
@@ -99,7 +109,7 @@ export default async function CompanyDocumentsPage({
       {openUploadModal ? (
         <UploadDocumentModal
           folders={(folders ?? []).map((folder) => ({ id: folder.id, name: folder.name }))}
-          branches={branches ?? []}
+          branches={mappedBranches}
           departments={departments ?? []}
           positions={positions ?? []}
           employees={scopedUsers}

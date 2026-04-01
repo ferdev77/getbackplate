@@ -2,6 +2,7 @@ import Link from "next/link";
 import CompanyDashboardPage from "../page";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { requireTenantModule } from "@/shared/lib/access";
+import { getEnabledModules } from "@/modules/organizations/queries";
 
 type DashboardByLocationPageProps = {
   searchParams: Promise<{ branch?: string; q?: string; selectPlanId?: string }>;
@@ -14,13 +15,21 @@ export default async function DashboardByLocationPage({ searchParams }: Dashboar
 
   const { data: branches } = await supabase
     .from("branches")
-    .select("id, name")
+    .select("id, name, city")
     .eq("organization_id", tenant.organizationId)
     .eq("is_active", true)
     .order("name");
 
+  const enabledModules = await getEnabledModules(tenant.organizationId);
+  const customBrandingEnabled = enabledModules.has("custom_branding");
+
+  const mappedBranches = (branches ?? []).map((b) => ({
+    ...b,
+    name: customBrandingEnabled && b.city ? b.city : b.name,
+  }));
+
   const selectedBranch = params.branch ?? "";
-  const selectedBranchName = (branches ?? []).find((branch) => branch.id === selectedBranch)?.name;
+  const selectedBranchName = mappedBranches.find((branch) => branch.id === selectedBranch)?.name;
 
   return (
     <>
@@ -35,7 +44,7 @@ export default async function DashboardByLocationPage({ searchParams }: Dashboar
           ) : null}
           <div className="mt-3 flex flex-wrap gap-2">
             <Link href="/app/dashboard/location" className={`rounded-md border px-2.5 py-1 text-xs ${!selectedBranch ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent)] text-white hover:bg-[var(--gbp-accent-hover)]" : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"}`}>Todas</Link>
-            {(branches ?? []).map((branch) => (
+            {mappedBranches.map((branch) => (
               <Link key={branch.id} href={`/app/dashboard/location?branch=${branch.id}`} className={`rounded-md border px-2.5 py-1 text-xs ${selectedBranch === branch.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent)] text-white hover:bg-[var(--gbp-accent-hover)]" : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"}`}>
                 {branch.name}
               </Link>

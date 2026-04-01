@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { markEmployeeOnboardingSeenAction } from "@/modules/onboarding/actions";
 import { EmployeeWelcomeModal } from "@/modules/onboarding/ui/employee-welcome-modal";
 import { requireEmployeeAccess } from "@/shared/lib/access";
+import { getEnabledModules } from "@/modules/organizations/queries";
 import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
 import { canReadAnnouncementInTenant } from "@/shared/lib/announcement-access";
 import { canReadDocumentInTenant } from "@/shared/lib/document-access";
@@ -97,11 +98,17 @@ export default async function EmployeeHomePage() {
   const resolvedBranch = employeeBranchId
     ? await supabase
         .from("branches")
-        .select("name")
+        .select("name, city")
         .eq("organization_id", tenant.organizationId)
         .eq("id", employeeBranchId)
         .maybeSingle()
     : { data: null };
+
+  const enabledModuleCodes = await getEnabledModules(tenant.organizationId);
+  const customBrandingEnabled = enabledModuleCodes.has("custom_branding");
+  const resolvedBranchDisplayName = resolvedBranch.data
+    ? (customBrandingEnabled && resolvedBranch.data.city ? resolvedBranch.data.city : resolvedBranch.data.name)
+    : null;
 
   let docsCount = 0;
   if (documentsModuleEnabled && userId && tenant.organizationId) {
@@ -264,7 +271,7 @@ export default async function EmployeeHomePage() {
           <p className="text-xs text-[var(--gbp-muted)]">Bienvenido de vuelta</p>
           <h1 className="mt-1 font-serif text-3xl font-bold text-[var(--gbp-text)]">{employeeName}</h1>
           <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-medium">
-            {resolvedBranch.data?.name && <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-1 text-[var(--gbp-text2)]">{resolvedBranch.data.name}</span>}
+            {resolvedBranchDisplayName && <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-1 text-[var(--gbp-text2)]">{resolvedBranchDisplayName}</span>}
             {department?.name && <span className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-3 py-1 text-[var(--gbp-accent)]">{department.name}</span>}
             {employeeRow?.position && <span className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-3 py-1 text-[var(--gbp-accent)]">{employeeRow.position}</span>}
           </div>

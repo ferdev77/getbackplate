@@ -30,7 +30,7 @@ type DocumentRow = {
   created_at: string;
 };
 
-type Branch = { id: string; name: string };
+type Branch = { id: string; name: string; city?: string | null };
 type Department = { id: string; name: string };
 type Position = { id: string; department_id: string; name: string };
 type User = { id: string; user_id: string | null; first_name: string; last_name: string; role_label?: string };
@@ -43,6 +43,7 @@ type Props = {
   departments: Department[];
   positions: Position[];
   users: User[];
+  customBrandingEnabled?: boolean;
 };
 
 function formatDate(dateText: string) {
@@ -73,7 +74,7 @@ function parseScope(scope: unknown) {
   };
 }
 
-export function DocumentsTreeWorkspace({ organizationId, folders, documents, branches, departments, positions, users }: Props) {
+export function DocumentsTreeWorkspace({ organizationId, folders, documents, branches, departments, positions, users, customBrandingEnabled = false }: Props) {
   const router = useRouter();
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [folderRows, setFolderRows] = useState(folders);
@@ -94,7 +95,12 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
   const [dropFolderId, setDropFolderId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const branchMap = useMemo(() => new Map(branches.map((row) => [row.id, row.name])), [branches]);
+  const mappedBranches = useMemo(
+    () => branches.map((b) => ({ ...b, name: customBrandingEnabled && b.city ? b.city : b.name })),
+    [branches, customBrandingEnabled]
+  );
+
+  const branchMap = useMemo(() => new Map(mappedBranches.map((row) => [row.id, row.name])), [mappedBranches]);
   const deptMap = useMemo(() => new Map(departments.map((row) => [row.id, row.name])), [departments]);
   const positionMap = useMemo(() => new Map(positions.map((row) => [row.id, row])), [positions]);
 
@@ -780,7 +786,7 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
         <EditDocumentModal
           document={editDocument}
           folders={folderRows}
-          branches={branches}
+          branches={mappedBranches}
           departments={departments}
           positions={positions}
           users={users}
@@ -794,7 +800,7 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
         <EditFolderModal
           folder={editFolder}
           folders={folderRows}
-          branches={branches}
+          branches={mappedBranches}
           departments={departments}
           positions={positions}
           users={users}
@@ -829,7 +835,7 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
           title="Compartir documento"
           itemName={shareDocument.title}
           busy={busy}
-          branches={branches}
+          branches={mappedBranches}
           departments={departments}
           positions={positions}
           users={users}
@@ -844,7 +850,7 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
           title="Compartir carpeta"
           itemName={shareFolder.name}
           busy={busy}
-          branches={branches}
+          branches={mappedBranches}
           departments={departments}
           positions={positions}
           users={users}

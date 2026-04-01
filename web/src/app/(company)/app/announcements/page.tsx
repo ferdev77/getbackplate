@@ -12,6 +12,7 @@ import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-author
 import { requireTenantModule } from "@/shared/lib/access";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { AnnouncementCreateModal } from "@/shared/ui/announcement-create-modal";
+import { getEnabledModules } from "@/modules/organizations/queries";
 import { ConfirmSubmitButton } from "@/shared/ui/confirm-submit-button";
 import { SlideUp } from "@/shared/ui/animations";
 import { extractDisplayName } from "@/shared/lib/user";
@@ -86,7 +87,7 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
 
   const branchesQuery = supabase
     .from("branches")
-    .select("id, name")
+    .select("id, name, city")
     .eq("organization_id", tenant.organizationId)
     .eq("is_active", true);
 
@@ -136,7 +137,16 @@ const employeesQuery = supabase
     positionsQuery,
   ]);
 
-  const branchNameMap = new Map((branches ?? []).map((row) => [row.id, row.name]));
+  const enabledModules = await getEnabledModules(tenant.organizationId);
+  const customBrandingEnabled = enabledModules.has("custom_branding");
+
+  const mappedBranches = (branches ?? []).map((b) => ({
+    ...b,
+    originalName: b.name, // Keep it just in case, though might not be needed
+    name: customBrandingEnabled && b.city ? b.city : b.name,
+  }));
+
+  const branchNameMap = new Map(mappedBranches.map((row) => [row.id, row.name]));
   const departmentNameMap = new Map((departments ?? []).map((row) => [row.id, row.name]));
   const authorNameMap = await resolveAnnouncementAuthorNames({
     organizationId: tenant.organizationId,
@@ -291,7 +301,7 @@ const employeesQuery = supabase
 
       {openCreateModal ? (
         <AnnouncementCreateModal
-          branches={branches ?? []}
+          branches={mappedBranches}
           departments={departments ?? []}
           positions={positions ?? []}
           users={scopeUsers}
