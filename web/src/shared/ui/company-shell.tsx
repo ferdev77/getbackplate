@@ -967,7 +967,17 @@ export function CompanyShell({
             <footer className={`mt-auto flex items-center justify-between border-t px-6 py-4 text-[11px] sm:px-9 ${isDarkTheme ? "border-white/10 text-white/60" : "border-black/10 text-[var(--gbp-muted)]"}`} style={{ background: palette.sidebarGradient }}>
               <p className="inline-flex items-center">
                 {customBrandingEnabled ? (
-                  <span className={`font-semibold tracking-[0.02em] ${isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}`}>{brandingName}</span>
+                  effectiveCompanyLogoUrl ? (
+                    <Image
+                      src={effectiveCompanyLogoUrl}
+                      alt={`Logo de ${brandingName}`}
+                      width={160}
+                      height={36}
+                      className="h-[28px] w-auto object-contain object-left"
+                    />
+                  ) : (
+                    <span className={`font-semibold tracking-[0.02em] ${isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}`}>{brandingName}</span>
+                  )
                 ) : (
                   <GetBackplateLogo variant={isDarkTheme ? "footer" : "light"} width={170} height={26} className={`${BRAND_SCALE.footerHeight} w-auto`} />
                 )}
