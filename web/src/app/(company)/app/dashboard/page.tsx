@@ -78,7 +78,7 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
         .maybeSingle(),
       supabase
         .from("branches")
-        .select("id, name")
+        .select("id, name, city")
         .eq("organization_id", tenant.organizationId)
         .eq("is_active", true)
         .order("name"),
@@ -111,7 +111,14 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
         : Promise.resolve({ data: [] }),
     ]);
 
-  const branchNameMap = new Map((branches ?? []).map((item) => [item.id, item.name]));
+  const customBrandingEnabled = enabledModuleCodes.has("custom_branding");
+
+  const mappedBranches = (branches ?? []).map((b) => ({
+    ...b,
+    name: customBrandingEnabled && b.city ? b.city : b.name,
+  }));
+
+  const branchNameMap = new Map(mappedBranches.map((item) => [item.id, item.name]));
 
   const moduleStatus = [
     { code: "documents", label: "Documentos", enabled: isDocumentsEnabled },

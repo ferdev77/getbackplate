@@ -23,7 +23,7 @@ export default async function EmployeeLayout({
     (tenant.branchId ?? null)
       ? supabase
           .from("branches")
-          .select("name")
+          .select("name, city")
           .eq("organization_id", tenant.organizationId)
           .eq("id", tenant.branchId ?? null)
           .maybeSingle()
@@ -55,7 +55,7 @@ export default async function EmployeeLayout({
   const resolvedBranch = employeeBranchId
     ? await supabase
         .from("branches")
-        .select("name")
+        .select("name, city")
         .eq("organization_id", tenant.organizationId)
         .eq("id", employeeBranchId)
         .maybeSingle()
@@ -133,7 +133,11 @@ export default async function EmployeeLayout({
       organizationName={organization?.name ?? "Empresa"}
       employeeName={employeeName}
       employeePosition={employee?.position ?? null}
-      branchName={resolvedBranch.data?.name ?? branch?.name ?? null}
+      branchName={(() => {
+        const b = resolvedBranch.data ?? branch;
+        if (!b) return null;
+        return enabledModuleCodes.has("custom_branding") && b.city ? b.city : b.name;
+      })()}
       departmentName={department?.name ?? null}
       docsCount={docsCount}
       checklistTemplateNames={checklistTemplateNames}

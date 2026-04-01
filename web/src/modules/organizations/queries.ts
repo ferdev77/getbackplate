@@ -96,7 +96,7 @@ export const getActiveBranches = cache(async function getActiveBranches(organiza
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("branches")
-    .select("id, name")
+    .select("id, name, city")
     .eq("organization_id", organizationId)
     .eq("is_active", true)
     .order("name");

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { cache } from "react";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
+import { getEnabledModules } from "@/modules/organizations/queries";
 
 export const getEmployeeDirectoryView = cache(async (
   organizationId: string, 
@@ -34,7 +35,7 @@ export const getEmployeeDirectoryView = cache(async (
     (options.includeModalsData || options.includeUsersTab)
       ? supabase
           .from("branches")
-          .select("id, name")
+          .select("id, name, city")
           .eq("organization_id", organizationId)
           .eq("is_active", true)
           .order("name")
@@ -95,7 +96,16 @@ export const getEmployeeDirectoryView = cache(async (
   ]);
 
   const roleById = new Map((roles ?? []).map((row) => [row.id, row.code]));
-  const branchById = new Map((branches ?? []).map((row) => [row.id, row.name]));
+
+  const enabledModules = await getEnabledModules(organizationId);
+  const customBrandingEnabled = enabledModules.has("custom_branding");
+
+  const mappedBranchList = (branches ?? []).map((b) => ({
+    ...b,
+    name: customBrandingEnabled && b.city ? b.city : b.name,
+  }));
+
+  const branchById = new Map(mappedBranchList.map((row) => [row.id, row.name]));
   const departmentById = new Map((departments ?? []).map((row) => [row.id, row.name]));
 
   const documentById = new Map((documents ?? []).map((row) => [row.id, row]));
@@ -253,7 +263,7 @@ export const getEmployeeDirectoryView = cache(async (
     employees: mappedEmployees,
     users: mappedUsers,
     documents: documents ?? [],
-    branches: branches ?? [],
+    branches: mappedBranchList,
     departments: departments ?? [],
     positions: positions ?? []
   };

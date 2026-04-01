@@ -8,6 +8,7 @@ import { ChecklistUpsertModal } from "@/modules/checklists/ui/checklist-upsert-m
 import { ChecklistDeleteModal } from "@/modules/checklists/ui/checklist-delete-modal";
 import { requireTenantModule } from "@/shared/lib/access";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
+import { getEnabledModules } from "@/modules/organizations/queries";
 import { SlideUp } from "@/shared/ui/animations";
 
 type CompanyChecklistsPageProps = {
@@ -79,7 +80,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
   ] = await Promise.all([
     supabase
       .from("branches")
-      .select("id, name")
+      .select("id, name, city")
       .eq("organization_id", tenant.organizationId)
       .eq("is_active", true)
       .order("name"),
@@ -175,7 +176,15 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
     }
   }
 
-  const branchNameMap = new Map((branches ?? []).map((row) => [row.id, row.name]));
+  const enabledModules = await getEnabledModules(tenant.organizationId);
+  const customBrandingEnabled = enabledModules.has("custom_branding");
+
+  const mappedBranches = (branches ?? []).map((b) => ({
+    ...b,
+    name: customBrandingEnabled && b.city ? b.city : b.name,
+  }));
+
+  const branchNameMap = new Map(mappedBranches.map((row) => [row.id, row.name]));
   const departmentNameMap = new Map((departments ?? []).map((row) => [row.id, row.name]));
   const positionNameMap = new Map((positions ?? []).map((row) => [row.id, row.name]));
 
@@ -311,7 +320,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
         <form className={`mb-4 flex flex-wrap items-center gap-2 rounded-xl border p-3 ${CARD}`} method="get">
           <input name="q" defaultValue={q} className={`h-[34px] w-full sm:w-[240px] rounded-lg border-[1.5px] px-3 text-xs ${BTN_GHOST}`} placeholder="Buscar checklist..." />
           <select name="type" defaultValue={typeFilter} className={`h-[34px] w-full sm:w-auto rounded-lg border-[1.5px] px-3 text-xs ${BTN_GHOST}`}><option value="">Todos los tipos</option><option value="opening">Apertura</option><option value="closing">Cierre</option><option value="prep">Prep</option><option value="custom">Custom</option></select>
-          <select name="loc" defaultValue={locFilter} className={`h-[34px] w-full sm:w-auto rounded-lg border-[1.5px] px-3 text-xs ${BTN_GHOST}`}><option value="">Todas las locaciones</option>{(branches ?? []).map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select>
+          <select name="loc" defaultValue={locFilter} className={`h-[34px] w-full sm:w-auto rounded-lg border-[1.5px] px-3 text-xs ${BTN_GHOST}`}><option value="">Todas las locaciones</option>{mappedBranches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select>
           <button type="submit" className="h-[34px] w-full sm:w-auto rounded-lg bg-[var(--gbp-text)] px-4 text-xs font-semibold text-white hover:bg-[var(--gbp-accent)]">Filtrar</button>
         </form>
       </SlideUp>
@@ -461,7 +470,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
 
       {openCreateModal ? (
         <ChecklistUpsertModal 
-          branches={branches ?? []}
+          branches={mappedBranches}
           departments={departments ?? []}
           positions={positions ?? []}
           users={scopedUsers}

@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { ChecklistReportsDashboard, type ChecklistReportView } from "@/modules/reports/ui/checklist-reports-dashboard";
 import { requireTenantModule } from "@/shared/lib/access";
+import { getEnabledModules } from "@/modules/organizations/queries";
 
 
 
@@ -236,6 +237,14 @@ export default async function CompanyReportsPage() {
   const templateNameById = new Map((templates ?? []).map((row) => [row.id, row.name]));
   const branchById = new Map((branches ?? []).map((row) => [row.id, row]));
 
+  const enabledModules = await getEnabledModules(tenant.organizationId);
+  const customBrandingEnabled = enabledModules.has("custom_branding");
+
+  function branchDisplayName(branch: { name: string; city?: string | null } | null | undefined): string {
+    if (!branch) return "Global";
+    return customBrandingEnabled && branch.city ? branch.city : branch.name;
+  }
+
   const latestCommentBySubmissionItemId = new Map<string, string>();
   const commentCountBySubmissionItemId = new Map<string, number>();
   for (const row of itemComments ?? []) {
@@ -368,8 +377,8 @@ export default async function CompanyReportsPage() {
     return {
       id: submission.id,
       branchId: submission.branch_id,
-      locationName: branch?.name ?? "Global",
-      locationShort: (branch?.name ?? "Global").split(" ")[0] ?? "Global",
+      locationName: branchDisplayName(branch),
+      locationShort: branchDisplayName(branch).split(" ")[0] ?? "Global",
       cityLabel: [branch?.city, branch?.state].filter(Boolean).join(", "),
       managerName,
       managerShort: shortName(managerName),
@@ -410,7 +419,7 @@ export default async function CompanyReportsPage() {
     if (!report) {
       return {
         branchId: branch.id,
-        branchName: branch.name,
+        branchName: branchDisplayName(branch),
         cityLabel: [branch.city, branch.state].filter(Boolean).join(", "),
         status: "none",
         badge: "⚠ Sin reporte",
@@ -425,7 +434,7 @@ export default async function CompanyReportsPage() {
 
     return {
       branchId: branch.id,
-      branchName: branch.name,
+      branchName: branchDisplayName(branch),
       cityLabel: report.cityLabel,
       status: report.flaggedItems > 0 ? "warn" : "ok",
       badge: report.flaggedItems > 0 ? `⚑ ${report.flaggedItems} atención` : "✓ Completo",
