@@ -103,9 +103,9 @@ function relativeFromNow(value: string | null) {
 function colorForUser(userId: string) {
   const palette = [
     "var(--gbp-accent)",
-    "var(--gbp-violet)",
+    "color-mix(in_oklab,var(--gbp-accent)_65%,black)",
     "var(--gbp-success)",
-    "color-mix(in_oklab,var(--gbp-violet)_75%,black)",
+    "color-mix(in_oklab,var(--gbp-accent)_80%,var(--gbp-success))",
     "color-mix(in_oklab,var(--gbp-accent)_72%,black)",
     "color-mix(in_oklab,var(--gbp-success)_72%,black)",
   ];

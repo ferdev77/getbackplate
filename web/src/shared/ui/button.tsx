@@ -21,7 +21,7 @@ const variantClasses: Record<ButtonVariant, string> = {
   nav:
     "border-none bg-[var(--gbp-accent)] text-white hover:-translate-y-0.5 hover:bg-[var(--gbp-accent-hover)]",
   outline:
-    "border border-[color:color-mix(in_oklab,var(--gbp-violet)_28%,transparent)] bg-transparent text-[var(--gbp-violet)] hover:bg-[var(--gbp-violet-soft)]",
+    "border border-[color:color-mix(in_oklab,var(--gbp-accent)_28%,transparent)] bg-transparent text-[var(--gbp-accent)] hover:bg-[var(--gbp-accent-glow)]",
   danger:
     "bg-[var(--gbp-error)] text-white hover:brightness-95",
 };

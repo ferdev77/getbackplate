@@ -435,7 +435,7 @@ export function ChecklistReportsDashboard({
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-bold ${report.dbStatus === "reviewed" ? "bg-[var(--gbp-violet-soft)] text-[var(--gbp-violet)]" : "bg-[var(--gbp-error-soft)] text-[var(--gbp-error)]"}`}>
+                          <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-bold ${report.dbStatus === "reviewed" ? "bg-amber-50 text-amber-700 border border-amber-200" : "bg-[var(--gbp-error-soft)] text-[var(--gbp-error)]"}`}>
                             {report.dbStatus === "reviewed" ? "Revisado" : "Pendiente"}
                           </span>
                         </td>

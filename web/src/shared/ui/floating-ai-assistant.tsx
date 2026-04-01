@@ -85,7 +85,7 @@ export function FloatingAiAssistant({ currentPlanCode, userName }: FloatingAiAss
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className={`fixed right-5 z-50 inline-flex items-center gap-2 rounded-full bg-[var(--gbp-accent)] px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-[var(--gbp-accent-hover)] ${launcherBottomClass}`}
+        className={`fixed right-5 z-50 inline-flex items-center gap-2 rounded-full bg-[var(--gbp-violet)] px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-[var(--gbp-violet-hover)] ${launcherBottomClass}`}
       >
         <Bot className="h-4 w-4" />
         Asistente IA
@@ -95,7 +95,7 @@ export function FloatingAiAssistant({ currentPlanCode, userName }: FloatingAiAss
         <section className={`fixed right-5 z-50 flex h-[520px] w-[360px] flex-col overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-2xl ${panelBottomClass}`}>
           <header className="flex items-center justify-between border-b border-[var(--gbp-border)] px-4 py-3">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-[var(--gbp-accent)]" />
+              <Sparkles className="h-4 w-4 text-[var(--gbp-violet)]" />
               <p className="text-sm font-semibold text-[var(--gbp-text)]">Asistente IA</p>
             </div>
             <button type="button" onClick={() => setOpen(false)} className="rounded p-1 text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]">
@@ -109,7 +109,7 @@ export function FloatingAiAssistant({ currentPlanCode, userName }: FloatingAiAss
                 key={`${message.role}-${index}`}
                 className={`max-w-[90%] rounded-xl px-3 py-2 text-sm whitespace-pre-wrap ${
                   message.role === "user"
-                    ? "ml-auto bg-[var(--gbp-accent)] text-white"
+                    ? "ml-auto bg-[var(--gbp-violet)] text-white"
                     : "bg-[var(--gbp-bg)] text-[var(--gbp-text)]"
                 }`}
               >
@@ -131,13 +131,13 @@ export function FloatingAiAssistant({ currentPlanCode, userName }: FloatingAiAss
                   }
                 }}
                 placeholder="Preguntame algo sobre tu operacion"
-                className="h-10 flex-1 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-sm text-[var(--gbp-text)] outline-none focus:border-[var(--gbp-accent)]"
+                className="h-10 flex-1 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-sm text-[var(--gbp-text)] outline-none focus:border-[var(--gbp-violet)]"
               />
               <button
                 type="button"
                 onClick={() => void sendQuestion()}
                 disabled={loading}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--gbp-accent)] text-white hover:bg-[var(--gbp-accent-hover)] disabled:opacity-50"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--gbp-violet)] text-white hover:bg-[var(--gbp-violet-hover)] disabled:opacity-50"
               >
                 <Send className="h-4 w-4" />
               </button>

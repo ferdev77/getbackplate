@@ -29,7 +29,7 @@ export default async function DashboardByLocationPage({ searchParams }: Dashboar
           <p className="text-xs font-semibold tracking-[0.1em] text-[var(--gbp-text2)] uppercase">Vista por locacion</p>
           <p className="mt-1 text-sm text-[var(--gbp-text2)]">Esta vista comparte metricas del dashboard, filtradas por la locacion seleccionada.</p>
           {selectedBranchName ? (
-            <p className="mt-2 inline-flex rounded-full border border-[color:color-mix(in_oklab,var(--gbp-violet)_30%,transparent)] bg-[var(--gbp-violet-soft)] px-2 py-0.5 text-xs font-semibold text-[var(--gbp-violet)]">
+            <p className="mt-2 inline-flex rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-xs font-semibold text-[var(--gbp-accent)]">
               Locacion activa: {selectedBranchName}
             </p>
           ) : null}

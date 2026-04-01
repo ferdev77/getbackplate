@@ -958,7 +958,7 @@ export function CompanyShell({
             </div>
             <div className="flex items-center gap-2">
               {organizationLabel ? <span className={`hidden rounded-full border px-2.5 py-1 text-xs sm:inline ${isDarkTheme ? "border-white/15 bg-white/5 text-white/80" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"}`}>{organizationLabel}</span> : null}
-              <span className={`hidden rounded-full border px-2.5 py-1 text-xs sm:inline ${isDarkTheme ? "border-[var(--gbp-violet)]/40 bg-[var(--gbp-violet-soft)] text-[var(--gbp-violet)]" : "border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"}`}>{sessionRoleLabel}</span>
+              <span className={`hidden rounded-full border px-2.5 py-1 text-xs sm:inline ${isDarkTheme ? "border-[var(--gbp-accent)]/40 bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]" : "border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"}`}>{sessionRoleLabel}</span>
             </div>
             </div>
           </header>
@@ -1024,7 +1024,7 @@ export function CompanyShell({
                         type="button"
                         onClick={() => startCheckout(plan.id, planBillingCycle)}
                         disabled={busy || !plan.stripePriceId || impersonationMode}
-                        className={`mt-3 w-full rounded-md px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-60 ${isSuggested ? "bg-[var(--gbp-accent)] hover:opacity-95" : "bg-[var(--gbp-violet)] hover:opacity-95"}`}
+                        className={`mt-3 w-full rounded-md px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-60 ${isSuggested ? "bg-[var(--gbp-accent)] hover:opacity-95" : "bg-[color:color-mix(in_oklab,var(--gbp-accent)_75%,black)] hover:opacity-95"}`}
                       >
                         {busy ? "Redirigiendo..." : "Comenzar trial 30 dias"}
                       </button>
@@ -1105,7 +1105,7 @@ export function CompanyShell({
                       ) : (
                         initials
                       )}
-                      <span className="absolute bottom-0 right-0 grid h-[22px] w-[22px] place-items-center rounded-full border-2 border-[var(--gbp-surface)] bg-[var(--gbp-violet)] text-[10px] text-white">✎</span>
+                      <span className="absolute bottom-0 right-0 grid h-[22px] w-[22px] place-items-center rounded-full border-2 border-[var(--gbp-surface)] bg-[var(--gbp-accent)] text-[10px] text-white">✎</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -1156,7 +1156,7 @@ export function CompanyShell({
                           setSettingsOpen(false);
                           router.push("/auth/change-password?next=%2Fapp%2Fsettings");
                         }}
-                        className="rounded-md border border-[var(--gbp-violet)]/35 bg-[var(--gbp-violet-soft)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-violet)]"
+                        className="rounded-md border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-accent)]"
                       >
                         Cambiar contraseña
                       </button>
@@ -1187,8 +1187,8 @@ export function CompanyShell({
                   </div>
                   <div className={`rounded-lg border p-3 ${isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                     <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.08em] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>Add-ons</p>
-                    <div className={`flex items-center justify-between border-b py-1.5 ${isDarkTheme ? "border-white/5" : "border-[var(--gbp-border)]"}`}><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Extra Storage</span><button type="button" onClick={() => toast.info("Próximamente")} className="rounded-md border border-[var(--gbp-violet)]/35 bg-[var(--gbp-violet-soft)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-violet)]">Add Storage</button></div>
-                    <div className="flex items-center justify-between py-1.5"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Extra Users</span><button type="button" onClick={() => toast.info("Próximamente")} className="rounded-md border border-[var(--gbp-violet)]/35 bg-[var(--gbp-violet-soft)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-violet)]">Add Users</button></div>
+                    <div className={`flex items-center justify-between border-b py-1.5 ${isDarkTheme ? "border-white/5" : "border-[var(--gbp-border)]"}`}><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Extra Storage</span><button type="button" onClick={() => toast.info("Próximamente")} className="rounded-md border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-accent)]">Add Storage</button></div>
+                    <div className="flex items-center justify-between py-1.5"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Extra Users</span><button type="button" onClick={() => toast.info("Próximamente")} className="rounded-md border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-accent)]">Add Users</button></div>
                   </div>
                   <div className={`rounded-lg border p-3 ${isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                     <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.08em] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>Pago y Facturación</p>
@@ -1228,7 +1228,7 @@ export function CompanyShell({
                   </div>
                   <div className={`rounded-lg border p-3 ${isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                     <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.08em] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>Privacy</p>
-                    <div className="flex items-center justify-between"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Cookie Settings</span><button type="button" onClick={() => toast.info("Administrar cookies") } className="rounded-md border border-[var(--gbp-violet)]/35 bg-[var(--gbp-violet-soft)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-violet)]">Manage</button></div>
+                    <div className="flex items-center justify-between"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Cookie Settings</span><button type="button" onClick={() => toast.info("Administrar cookies") } className="rounded-md border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-accent)]">Manage</button></div>
                     <label className={`mt-2 inline-flex items-center gap-2 ${isDarkTheme ? "text-white/80" : "text-[var(--gbp-text)]"}`}><input type="checkbox" checked={analyticsEnabled} onChange={(event) => setAnalyticsEnabled(event.target.checked)} /><span>Analytics</span></label>
                   </div>
                   <button type="button" disabled={busy} onClick={() => saveSettings("preferences", { theme, language, dateFormat, timezoneMode, timezoneManual, analyticsEnabled })} className={`w-full rounded-md px-2 py-2 font-semibold disabled:opacity-60 ${isDarkTheme ? "bg-white text-[var(--gbp-text)]" : "bg-[var(--gbp-text)] text-white"}`}>Guardar preferences</button>

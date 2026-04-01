@@ -234,7 +234,7 @@ const employeesQuery = supabase
                                   ? "border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] text-[var(--gbp-error)]"
                                   : datePart === today
                                     ? "border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
-                                    : "border-[color:color-mix(in_oklab,var(--gbp-violet)_35%,transparent)] bg-[var(--gbp-violet-soft)] text-[var(--gbp-violet)]";
+                                    : "border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]";
                               const prefix = datePart < today ? "Vencio" : datePart === today ? "Vence hoy" : "Por vencer";
                               return <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${badgeClass}`}><CalendarClock className="h-3 w-3" /> {prefix}: {new Date(ann.expires_at).toLocaleDateString("es-AR")}</span>;
                             })()
@@ -249,9 +249,9 @@ const employeesQuery = supabase
                     <div className="mt-3 flex flex-wrap items-center gap-1.5">
                       <span className={`text-[11px] font-semibold ${TEXT_MUTED}`}>Para:</span>
                       {!hasAudience ? <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2 py-0.5 text-[11px] text-[var(--gbp-text2)]">Todos los empleados</span> : null}
-                      {scopedLocations.map((id) => <span key={`${ann.id}-loc-${id}`} className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-violet)_35%,transparent)] bg-[var(--gbp-violet-soft)] px-2 py-0.5 text-[11px] text-[var(--gbp-violet)]">{branchNameMap.get(id) ?? "Sucursal"}</span>)}
+                      {scopedLocations.map((id) => <span key={`${ann.id}-loc-${id}`} className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] text-[var(--gbp-accent)]">{branchNameMap.get(id) ?? "Sucursal"}</span>)}
                       {scopedDepartments.map((id) => <span key={`${ann.id}-dep-${id}`} className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] text-[var(--gbp-accent)]">{departmentNameMap.get(id) ?? "Departamento"}</span>)}
-                      {scopedPositions.map((id) => <span key={`${ann.id}-pos-${id}`} className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-violet)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-violet)_12%,transparent)] px-2 py-0.5 text-[11px] text-[var(--gbp-violet)]">{positionNameMap.get(id) ?? "Puesto"}</span>)}
+                      {scopedPositions.map((id) => <span key={`${ann.id}-pos-${id}`} className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] text-[var(--gbp-accent)]">{positionNameMap.get(id) ?? "Puesto"}</span>)}
                       {scopedUsers.slice(0, 3).map((id) => <span key={`${ann.id}-user-${id}`} className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] text-[var(--gbp-accent)]">{employeeNameByUserId.get(id) ?? "Usuario"}</span>)}
                       {scopedUsers.length > 3 ? <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-2 py-0.5 text-[11px] text-[var(--gbp-text2)]">+{scopedUsers.length - 3}</span> : null}
                     </div>

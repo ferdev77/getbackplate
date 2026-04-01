@@ -36,8 +36,8 @@ function reportStatusBadge(status: string | null | undefined) {
   if (status === "reviewed") {
     return {
       label: "Reporte revisado",
-      className: "border-[color:color-mix(in_oklab,var(--gbp-violet)_30%,transparent)] bg-[var(--gbp-violet-soft)] text-[var(--gbp-violet)]",
-      dotClassName: "bg-[var(--gbp-violet)]",
+      className: "border-amber-300/40 bg-amber-50 text-amber-700",
+      dotClassName: "bg-amber-500",
       dateClassName: "text-[var(--gbp-text2)]",
     };
   }

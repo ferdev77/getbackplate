@@ -255,9 +255,9 @@ export function ScopeSelector({
               />
               <span>{user.first_name} {user.last_name}</span>
               {user.role_label ? <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-1.5 py-0 text-[10px] text-[var(--gbp-text2)]">{user.role_label}</span> : null}
-              {user.role_label === "Empleado" && user.location_label ? <span className="rounded-full border border-[var(--gbp-violet)]/35 bg-[var(--gbp-violet-soft)] px-1.5 py-0 text-[10px] text-[var(--gbp-violet)]">{user.location_label}</span> : null}
+              {user.role_label === "Empleado" && user.location_label ? <span className="rounded-full border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-1.5 py-0 text-[10px] text-[var(--gbp-accent)]">{user.location_label}</span> : null}
               {user.role_label === "Empleado" && user.department_label ? <span className="rounded-full border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-1.5 py-0 text-[10px] text-[var(--gbp-accent)]">{user.department_label}</span> : null}
-              {user.role_label === "Empleado" && user.position_label ? <span className="rounded-full border border-[var(--gbp-violet)]/35 bg-[color:color-mix(in_oklab,var(--gbp-violet)_12%,transparent)] px-1.5 py-0 text-[10px] text-[var(--gbp-violet)]">{user.position_label}</span> : null}
+              {user.role_label === "Empleado" && user.position_label ? <span className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_10%,transparent)] px-1.5 py-0 text-[10px] text-[var(--gbp-accent)]">{user.position_label}</span> : null}
               {disabled ? <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0 text-[10px] text-[var(--gbp-muted)]">Sin acceso</span> : null}
             </label>
             );
