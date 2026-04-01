@@ -206,7 +206,7 @@ export function ScopeSelector({
                 </label>
 
                 {departmentPositions.length ? (
-                  <div className="mt-2 space-y-1.5 border-l border-[var(--gbp-border)] pl-5">
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 border-l border-[var(--gbp-border)] pl-5 py-1">
                     {departmentPositions.map((position) => (
                       <label key={`${namespace}-pos-${position.id}`} className="inline-flex items-center gap-2 text-[12px]">
                         <input

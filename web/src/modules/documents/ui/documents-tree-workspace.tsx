@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, Eye, Pencil, Search, Share2, Trash2, ChevronRight, Folder, Mail } from "lucide-react";
+import { Download, Eye, MapPin, Pencil, Search, Share2, Trash2, ChevronRight, Folder, Mail } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
@@ -96,6 +96,7 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
 
   const branchMap = useMemo(() => new Map(branches.map((row) => [row.id, row.name])), [branches]);
   const deptMap = useMemo(() => new Map(departments.map((row) => [row.id, row.name])), [departments]);
+  const positionMap = useMemo(() => new Map(positions.map((row) => [row.id, row])), [positions]);
 
   useEffect(() => {
     setFolderRows(folders);
@@ -143,6 +144,31 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
   function getEffectiveDocumentScope(doc: DocumentRow) {
     if (!doc.folder_id) return parseScope(doc.access_scope);
     return parseScope(folderById.get(doc.folder_id)?.access_scope ?? doc.access_scope);
+  }
+
+  // Locaciones del scope → nombres. Si no hay, array vacío = "Todas"
+  function getScopeLocNames(scope: ReturnType<typeof parseScope>, branchId: string | null): string[] {
+    const fromScope = scope.locations.map((id) => branchMap.get(id) ?? "Sucursal").filter(Boolean);
+    if (fromScope.length > 0) return fromScope;
+    if (branchId) return [branchMap.get(branchId) ?? "Sucursal"];
+    return [];
+  }
+
+  // Deptos + Puestos combinados: igual que checklists scopeRoles
+  // Departamento solo → "Cocina"
+  // Puesto con depto → "Cocina: Chef"
+  function getScopeRoles(scope: ReturnType<typeof parseScope>): string[] {
+    const roles: string[] = [];
+    for (const dId of scope.departments) {
+      roles.push(deptMap.get(dId) ?? "Depto");
+    }
+    for (const pId of scope.positions) {
+      const p = positionMap.get(pId);
+      if (!p) { roles.push("Puesto"); continue; }
+      const dName = p.department_id ? (deptMap.get(p.department_id) ?? "Depto") : null;
+      roles.push(dName ? `${dName}: ${p.name}` : p.name);
+    }
+    return roles;
   }
 
   const docsByFolder = useMemo(() => {
@@ -211,21 +237,41 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
     });
   }
 
-  async function saveDocument(payload: { documentId: string; title: string; folderId: string | null }) {
+  async function saveDocument(payload: {
+    documentId: string;
+    title: string;
+    folderId: string | null;
+    scope?: { locations: string[]; departments: string[]; positions: string[]; users: string[] };
+  }) {
     setBusy(true);
     try {
       const response = await fetch("/api/company/documents", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          documentId: payload.documentId,
+          title: payload.title,
+          folderId: payload.folderId,
+          locationScope: payload.scope?.locations,
+          departmentScope: payload.scope?.departments,
+          positionScope: payload.scope?.positions,
+          userScope: payload.scope?.users,
+        }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "No se pudo actualizar documento");
 
       setDocumentRows((prev) =>
-        prev.map((row) =>
-          row.id === payload.documentId ? { ...row, title: payload.title, folder_id: payload.folderId } : row,
-        ),
+        prev.map((row) => {
+          if (row.id === payload.documentId) {
+            const newScopeString = payload.scope
+              ? `locations:${payload.scope.locations.join(",")};departments:${payload.scope.departments.join(",")};positions:${payload.scope.positions.join(",")};users:${payload.scope.users.join(",")}`
+              : row.access_scope;
+
+            return { ...row, title: payload.title, folder_id: payload.folderId, access_scope: newScopeString };
+          }
+          return row;
+        })
       );
       setEditDocId(null);
       toast.success("Documento actualizado");
@@ -236,21 +282,41 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
     }
   }
 
-  async function saveFolder(payload: { folderId: string; name: string; parentId: string | null }) {
+  async function saveFolder(payload: {
+    folderId: string;
+    name: string;
+    parentId: string | null;
+    scope?: { locations: string[]; departments: string[]; positions: string[]; users: string[] };
+  }) {
     setBusy(true);
     try {
       const response = await fetch("/api/company/document-folders", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          folderId: payload.folderId,
+          name: payload.name,
+          parentId: payload.parentId,
+          locationScope: payload.scope?.locations,
+          departmentScope: payload.scope?.departments,
+          positionScope: payload.scope?.positions,
+          userScope: payload.scope?.users,
+        }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "No se pudo actualizar carpeta");
 
       setFolderRows((prev) =>
-        prev.map((row) =>
-          row.id === payload.folderId ? { ...row, name: payload.name, parent_id: payload.parentId } : row,
-        ),
+        prev.map((row) => {
+          if (row.id === payload.folderId) {
+            const newScopeString = payload.scope
+              ? `locations:${payload.scope.locations.join(",")};departments:${payload.scope.departments.join(",")};positions:${payload.scope.positions.join(",")};users:${payload.scope.users.join(",")}`
+              : row.access_scope;
+
+            return { ...row, name: payload.name, parent_id: payload.parentId, access_scope: newScopeString };
+          }
+          return row;
+        })
       );
       setEditFolderId(null);
       toast.success("Carpeta actualizada");
@@ -445,16 +511,20 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
       const docList = sortDocuments((docsByFolder.get(folder.id) ?? []).filter(includeDocument));
       const isOpen = openFolders.has(folder.id);
       const scope = parseScope(folder.access_scope);
-      const locLabel = scope.locations[0] ? branchMap.get(scope.locations[0]) ?? "Locacion" : "Global";
-      const deptLabel = scope.departments[0] ? deptMap.get(scope.departments[0]) ?? "Departamento" : "-";
-      const sharedLabel =
-        scope.locations.length || scope.departments.length || scope.positions.length || scope.users.length ? "Segmentado" : "Todos";
+      const locNames = getScopeLocNames(scope, null);
+      const roles = getScopeRoles(scope);
+
+      // badge renderer helpers
+      const ScopeBadge = ({ label }: { label: string }) => (
+        <span className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-text)]">{label}</span>
+      );
+      const EmptyCell = () => <span className="text-xs text-[var(--gbp-muted)]">—</span>;
 
       const row = (
         <AnimatedItem key={folder.id}>
           <div className="border-b border-[var(--gbp-border)]">
             <div
-              className={`grid grid-cols-[1fr_100px] md:grid-cols-[2fr_100px_110px_150px] lg:grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px] items-center px-4 py-2.5 transition-colors hover:bg-[var(--gbp-bg)] ${dropFolderId === folder.id ? "bg-[var(--gbp-accent-glow)]" : ""}`}
+              className={`grid grid-cols-[1fr_auto] md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px] items-center gap-2 px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)] ${dropFolderId === folder.id ? "bg-[var(--gbp-accent-glow)]" : ""}`}
               draggable
               onDragStart={(event) => {
                 event.dataTransfer.setData("application/x-folder-id", folder.id);
@@ -491,15 +561,38 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
                 className="flex min-w-0 items-center gap-1.5 text-left"
                 style={{ paddingLeft: `${depth * 18}px` }}
               >
-                <ChevronRight className={`h-4 w-4 text-[var(--gbp-text2)] transition ${isOpen ? "rotate-90" : ""}`} />
-                <Folder className="h-4 w-4 text-[var(--gbp-text2)]" />
+                <ChevronRight className={`h-4 w-4 shrink-0 text-[var(--gbp-text2)] transition ${isOpen ? "rotate-90" : ""}`} />
+                <Folder className="h-4 w-4 shrink-0 text-[var(--gbp-text2)]" />
                 <span className="truncate text-[13px] font-semibold text-[var(--gbp-text)]">{folder.name}</span>
-                <span className="text-[11px] text-[var(--gbp-muted)]">({docList.length})</span>
+                <span className="shrink-0 text-[11px] text-[var(--gbp-muted)]">({docList.length})</span>
               </button>
-              <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{locLabel}</p>
-              <p className="hidden text-xs text-[var(--gbp-text2)] lg:block">{deptLabel}</p>
-              <p className="hidden text-xs text-[var(--gbp-text2)] lg:block">{sharedLabel}</p>
+              {/* Fecha de carga */}
               <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{formatDate(folder.created_at)}</p>
+              {/* Locacion */}
+              <div className="hidden lg:flex flex-wrap items-center gap-1">
+                {locNames.length > 0 ? (
+                  locNames.map((n, i) => (
+                    <span key={i} className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-text)]">
+                      <MapPin className="mr-1 h-3 w-3 text-[var(--gbp-muted)]" />{n}
+                    </span>
+                  ))
+                ) : (
+                  <span className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-muted)]">
+                    <MapPin className="mr-1 h-3 w-3" />Sin locacion
+                  </span>
+                )}
+              </div>
+              {/* Deptos / Puestos */}
+              <div className="hidden lg:flex flex-wrap items-center gap-1">
+                {roles.length > 0 ? (
+                  roles.map((r, i) => (
+                    <span key={i} className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-text)]">{r}</span>
+                  ))
+                ) : (
+                  <span className="text-xs text-[var(--gbp-muted)]">-</span>
+                )}
+              </div>
+              {/* Acciones */}
               <div className="flex items-center justify-end gap-1">
                 <button type="button" onClick={() => setEditFolderId(folder.id)} className={ACTION_BTN_NEUTRAL} title="Editar carpeta"><Pencil className="h-3.5 w-3.5" /></button>
                 <button type="button" onClick={() => setShareFolderId(folder.id)} className={ACTION_BTN_NEUTRAL} title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
@@ -512,29 +605,51 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
                   <div className="border-l-[3px] border-[var(--gbp-border)]">
                     {docList.map((doc) => {
                       const docScope = getEffectiveDocumentScope(doc);
-                      const docLoc = doc.branch_id ? branchMap.get(doc.branch_id) ?? "Locacion" : docScope.locations[0] ? branchMap.get(docScope.locations[0]) ?? "Locacion" : "Global";
-                      const docDept = docScope.departments[0] ? deptMap.get(docScope.departments[0]) ?? "Departamento" : "-";
-                      const docShared = docScope.locations.length || docScope.departments.length || docScope.positions.length || docScope.users.length ? "Segmentado" : "Todos";
+                      const docLocNames = getScopeLocNames(docScope, doc.branch_id);
+                      const docRoles = getScopeRoles(docScope);
 
                       return (
-                        <div key={doc.id} className="grid grid-cols-[1fr_100px] items-center border-t border-[var(--gbp-border)] px-4 py-2.5 transition-colors hover:bg-[var(--gbp-bg)] md:grid-cols-[2fr_100px_110px_150px] lg:grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px]" draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; }}>
+                        <div key={doc.id} className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px] items-center gap-2 border-t border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]" draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; }}>
                           <div className="min-w-0 pl-8">
                             <p className="truncate text-[12px] font-medium text-[var(--gbp-text)]">{doc.title}</p>
                             <p className="truncate text-[11px] text-[var(--gbp-muted)]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p>
                           </div>
-                          <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{docLoc}</p>
-                          <p className="hidden text-xs text-[var(--gbp-text2)] lg:block">{docDept}</p>
-                          <p className="hidden text-xs text-[var(--gbp-text2)] lg:block">{docShared}</p>
+                          {/* Fecha de carga */}
                           <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{formatDate(doc.created_at)}</p>
-                          <div className="flex items-center justify-end gap-1">
-                            <a href={`/api/documents/${doc.id}/download`} className={ACTION_BTN_NEUTRAL} title="Ver/Descargar"><Eye className="h-3.5 w-3.5" /></a>
-                            <button type="button" onClick={() => setEditDocId(doc.id)} className={ACTION_BTN_NEUTRAL} title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
-                            {doc.folder_id ? null : (
-                              <button type="button" onClick={() => setShareDocId(doc.id)} className={ACTION_BTN_NEUTRAL} title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
+                          {/* Locacion */}
+                          <div className="hidden lg:flex flex-wrap items-center gap-1">
+                            {docLocNames.length > 0 ? (
+                              docLocNames.map((n, i) => (
+                                <span key={i} className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-text)]">
+                                  <MapPin className="mr-1 h-3 w-3 text-[var(--gbp-muted)]" />{n}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-muted)]">
+                                <MapPin className="mr-1 h-3 w-3" />Sin locacion
+                              </span>
                             )}
-                            <button type="button" onClick={() => setEmailShareDocId(doc.id)} className={ACTION_BTN_MAIL} title="Compartir por email"><Mail className="h-3.5 w-3.5" /></button>
-                            <a href={`/api/documents/${doc.id}/download`} className={ACTION_BTN_NEUTRAL} title="Descargar"><Download className="h-3.5 w-3.5" /></a>
-                            <button type="button" onClick={() => setDeleteDocId(doc.id)} className={ACTION_BTN_DANGER} title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
+                          </div>
+                          {/* Depto / Puestos */}
+                          <div className="hidden lg:flex flex-wrap items-center gap-1">
+                            {docRoles.length > 0 ? (
+                              docRoles.map((r, i) => (
+                                <span key={i} className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-text)]">{r}</span>
+                              ))
+                            ) : (
+                              <span className="text-xs text-[var(--gbp-muted)]">-</span>
+                            )}
+                          </div>
+                          
+                          <div className="flex flex-wrap items-center justify-end gap-1">
+                            <a href={`/api/documents/${doc.id}/download`} className={ACTION_BTN_NEUTRAL} title="Ver/Descargar"><Eye className="h-3.5 w-3.5 shrink-0" /></a>
+                            <button type="button" onClick={() => setEditDocId(doc.id)} className={ACTION_BTN_NEUTRAL} title="Editar"><Pencil className="h-3.5 w-3.5 shrink-0" /></button>
+                            {doc.folder_id ? null : (
+                              <button type="button" onClick={() => setShareDocId(doc.id)} className={ACTION_BTN_NEUTRAL} title="Compartir"><Share2 className="h-3.5 w-3.5 shrink-0" /></button>
+                            )}
+                            <button type="button" onClick={() => setEmailShareDocId(doc.id)} className={ACTION_BTN_MAIL} title="Compartir por email"><Mail className="h-3.5 w-3.5 shrink-0" /></button>
+                            <a href={`/api/documents/${doc.id}/download`} className={ACTION_BTN_NEUTRAL} title="Descargar"><Download className="h-3.5 w-3.5 shrink-0" /></a>
+                            <button type="button" onClick={() => setDeleteDocId(doc.id)} className={ACTION_BTN_DANGER} title="Eliminar"><Trash2 className="h-3.5 w-3.5 shrink-0" /></button>
                           </div>
                         </div>
                       );
@@ -584,12 +699,11 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
 
       <SlideUp delay={0.2}>
         <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
-          <div className="grid grid-cols-[1fr_100px] bg-[var(--gbp-bg)] px-4 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[var(--gbp-muted)] uppercase md:grid-cols-[2fr_100px_110px_150px] lg:grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px]">
+          <div className="grid grid-cols-[1fr_auto] gap-2 bg-[var(--gbp-bg)] px-4 py-3 text-[11px] font-bold tracking-[0.07em] text-[var(--gbp-muted)] uppercase md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px]">
             <p>Nombre</p>
-            <p className="hidden md:block">Locacion</p>
-            <p className="hidden lg:block">Departamento</p>
-            <p className="hidden lg:block">Compartido</p>
-            <p className="hidden md:block">Actualizacion</p>
+            <p className="hidden md:block">Fecha de carga</p>
+            <p className="hidden lg:block">Locacion</p>
+            <p className="hidden lg:block">Deptos / Puestos</p>
             <p className="text-right">Acciones</p>
           </div>
           <div
@@ -610,26 +724,48 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
             <AnimatePresence>
               {rootDocuments.map((doc) => {
                 const scope = getEffectiveDocumentScope(doc);
-                const loc = doc.branch_id ? branchMap.get(doc.branch_id) ?? "Locacion" : scope.locations[0] ? branchMap.get(scope.locations[0]) ?? "Locacion" : "Global";
-                const dept = scope.departments[0] ? deptMap.get(scope.departments[0]) ?? "Departamento" : "-";
-                const shared = scope.locations.length || scope.departments.length || scope.positions.length || scope.users.length ? "Segmentado" : "Todos";
+                const rLocNames = getScopeLocNames(scope, doc.branch_id);
+                const rRoles = getScopeRoles(scope);
                 return (
                   <AnimatedItem key={doc.id}>
-                    <div className="grid grid-cols-[1fr_100px] items-center border-t border-[var(--gbp-border)] px-4 py-2.5 transition-colors hover:bg-[var(--gbp-bg)] md:grid-cols-[2fr_100px_110px_150px] lg:grid-cols-[minmax(220px,1fr)_100px_120px_120px_110px_150px]" draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; }}>
+                    <div className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px] items-center gap-2 border-t border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]" draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; }}>
                       <div className="min-w-0"><p className="truncate text-[12px] font-medium text-[var(--gbp-text)]">{doc.title}</p><p className="truncate text-[11px] text-[var(--gbp-muted)]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p></div>
-                      <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{loc}</p>
-                      <p className="hidden text-xs text-[var(--gbp-text2)] lg:block">{dept}</p>
-                      <p className="hidden text-xs text-[var(--gbp-text2)] lg:block">{shared}</p>
+                      {/* Fecha de carga */}
                       <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{formatDate(doc.created_at)}</p>
-                      <div className="flex items-center justify-end gap-1">
-                        <a href={`/api/documents/${doc.id}/download`} className={ACTION_BTN_NEUTRAL} title="Ver"><Eye className="h-3.5 w-3.5" /></a>
-                        <button type="button" onClick={() => setEditDocId(doc.id)} className={ACTION_BTN_NEUTRAL} title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
+                      {/* Locacion */}
+                      <div className="hidden lg:flex flex-wrap items-center gap-1">
+                        {rLocNames.length > 0 ? (
+                          rLocNames.map((n, i) => (
+                            <span key={i} className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-text)]">
+                              <MapPin className="mr-1 h-3 w-3 text-[var(--gbp-muted)]" />{n}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-muted)]">
+                            <MapPin className="mr-1 h-3 w-3" />Sin locacion
+                          </span>
+                        )}
+                      </div>
+                      {/* Depto / Puestos */}
+                      <div className="hidden lg:flex flex-wrap items-center gap-1">
+                        {rRoles.length > 0 ? (
+                          rRoles.map((r, i) => (
+                            <span key={i} className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-text)]">{r}</span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-[var(--gbp-muted)]">-</span>
+                        )}
+                      </div>
+                      {/* Acciones */}
+                      <div className="flex flex-wrap items-center justify-end gap-1">
+                        <a href={`/api/documents/${doc.id}/download`} className={ACTION_BTN_NEUTRAL} title="Ver"><Eye className="h-3.5 w-3.5 shrink-0" /></a>
+                        <button type="button" onClick={() => setEditDocId(doc.id)} className={ACTION_BTN_NEUTRAL} title="Editar"><Pencil className="h-3.5 w-3.5 shrink-0" /></button>
                          {doc.folder_id ? null : (
-                           <button type="button" onClick={() => setShareDocId(doc.id)} className={ACTION_BTN_NEUTRAL} title="Compartir"><Share2 className="h-3.5 w-3.5" /></button>
+                           <button type="button" onClick={() => setShareDocId(doc.id)} className={ACTION_BTN_NEUTRAL} title="Compartir"><Share2 className="h-3.5 w-3.5 shrink-0" /></button>
                          )}
-                          <button type="button" onClick={() => setEmailShareDocId(doc.id)} className={ACTION_BTN_MAIL} title="Compartir por email"><Mail className="h-3.5 w-3.5" /></button>
-                         <a href={`/api/documents/${doc.id}/download`} className={ACTION_BTN_NEUTRAL} title="Descargar"><Download className="h-3.5 w-3.5" /></a>
-                        <button type="button" onClick={() => setDeleteDocId(doc.id)} className={ACTION_BTN_DANGER} title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
+                          <button type="button" onClick={() => setEmailShareDocId(doc.id)} className={ACTION_BTN_MAIL} title="Compartir por email"><Mail className="h-3.5 w-3.5 shrink-0" /></button>
+                         <a href={`/api/documents/${doc.id}/download`} className={ACTION_BTN_NEUTRAL} title="Descargar"><Download className="h-3.5 w-3.5 shrink-0" /></a>
+                        <button type="button" onClick={() => setDeleteDocId(doc.id)} className={ACTION_BTN_DANGER} title="Eliminar"><Trash2 className="h-3.5 w-3.5 shrink-0" /></button>
                       </div>
                     </div>
                   </AnimatedItem>
@@ -644,6 +780,10 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
         <EditDocumentModal
           document={editDocument}
           folders={folderRows}
+          branches={branches}
+          departments={departments}
+          positions={positions}
+          users={users}
           busy={busy}
           onCancel={() => setEditDocId(null)}
           onSave={saveDocument}
@@ -654,6 +794,10 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
         <EditFolderModal
           folder={editFolder}
           folders={folderRows}
+          branches={branches}
+          departments={departments}
+          positions={positions}
+          users={users}
           busy={busy}
           onCancel={() => setEditFolderId(null)}
           onSave={saveFolder}
@@ -771,28 +915,85 @@ function ShareByEmailModal({
 function EditDocumentModal({
   document,
   folders,
+  branches,
+  departments,
+  positions,
+  users,
   busy,
   onCancel,
   onSave,
 }: {
   document: DocumentRow;
   folders: FolderRow[];
+  branches: Branch[];
+  departments: Department[];
+  positions: Position[];
+  users: User[];
   busy: boolean;
   onCancel: () => void;
-  onSave: (payload: { documentId: string; title: string; folderId: string | null }) => void;
+  onSave: (payload: { documentId: string; title: string; folderId: string | null; scope?: { locations: string[]; departments: string[]; positions: string[]; users: string[] } }) => void;
 }) {
   const [title, setTitle] = useState(document.title);
   const [folderId, setFolderId] = useState(document.folder_id ?? "");
 
+
   return (
     <div className="fixed inset-0 z-[1020] flex items-center justify-center bg-black/45 p-5">
-      <div className={`w-[520px] max-w-[95vw] ${MODAL_PANEL}`}>
+      <div className={`w-[560px] max-w-[95vw] ${MODAL_PANEL}`}>
         <div className={MODAL_HEADER}><p className={MODAL_TITLE}>Editar Documento</p><button type="button" className={MODAL_CLOSE} onClick={onCancel}>✕</button></div>
-        <div className="space-y-3 px-6 py-5">
-          <label className="grid gap-1.5"><span className={MODAL_LABEL}>Titulo</span><input value={title} onChange={(event) => setTitle(event.target.value)} className={MODAL_INPUT} /></label>
-          <label className="grid gap-1.5"><span className={MODAL_LABEL}>Carpeta</span><select value={folderId} onChange={(event) => setFolderId(event.target.value)} className={MODAL_INPUT}><option value="">Sin carpeta</option>{folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select></label>
-        </div>
-        <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button><button type="button" disabled={busy || !title.trim()} onClick={() => onSave({ documentId: document.id, title: title.trim(), folderId: folderId || null })} className={MODAL_PRIMARY}>{busy ? "Guardando..." : "Guardar"}</button></div>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            const form = new FormData(event.currentTarget);
+            let scope = undefined;
+            if (!folderId) {
+              const toList = (key: string) => [...new Set(form.getAll(key).map((value) => String(value).trim()).filter(Boolean))];
+              scope = {
+                locations: toList("_scope_location"),
+                departments: toList("_scope_department"),
+                positions: toList("_scope_position"),
+                users: toList("_scope_user"),
+              };
+            }
+            onSave({ documentId: document.id, title: title.trim(), folderId: folderId || null, scope });
+          }}
+        >
+          <div className="max-h-[70vh] overflow-y-auto px-6 py-5 space-y-4">
+            <label className="grid gap-1.5"><span className={MODAL_LABEL}>Titulo</span><input value={title} onChange={(event) => setTitle(event.target.value)} className={MODAL_INPUT} required /></label>
+            <label className="grid gap-1.5"><span className={MODAL_LABEL}>Carpeta</span><select value={folderId} onChange={(event) => setFolderId(event.target.value)} className={MODAL_INPUT}><option value="">Sin carpeta</option>{folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select></label>
+            
+            {!folderId && (
+              <div className="space-y-2 pt-2 border-t-[1.5px] border-[var(--gbp-border2)]">
+                <p className="text-xs font-semibold text-[var(--gbp-text)]">Permisos de acceso</p>
+                <div className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)]">
+                  <ScopeSelector
+                    namespace="edit-document"
+                    branches={branches}
+                    departments={departments}
+                    positions={positions}
+                    users={users}
+                    locationInputName="_scope_location"
+                      departmentInputName="_scope_department"
+                      positionInputName="_scope_position"
+                      userInputName="_scope_user"
+                      initialLocations={parseScope(document.access_scope).locations}
+                      initialDepartments={parseScope(document.access_scope).departments}
+                      initialPositions={parseScope(document.access_scope).positions}
+                      initialUsers={parseScope(document.access_scope).users}
+                    />
+                  </div>
+
+              </div>
+            )}
+            
+            {folderId && (
+              <div className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface2)] p-3 text-xs text-[var(--gbp-muted)]">
+                El documento hereda permisos de su carpeta. Edita la carpeta para cambiar acceso.
+              </div>
+            )}
+          </div>
+          <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button><button type="submit" disabled={busy || !title.trim()} className={MODAL_PRIMARY}>{busy ? "Guardando..." : "Guardar"}</button></div>
+        </form>
       </div>
     </div>
   );
@@ -801,28 +1002,73 @@ function EditDocumentModal({
 function EditFolderModal({
   folder,
   folders,
+  branches,
+  departments,
+  positions,
+  users,
   busy,
   onCancel,
   onSave,
 }: {
   folder: FolderRow;
   folders: FolderRow[];
+  branches: Branch[];
+  departments: Department[];
+  positions: Position[];
+  users: User[];
   busy: boolean;
   onCancel: () => void;
-  onSave: (payload: { folderId: string; name: string; parentId: string | null }) => void;
+  onSave: (payload: { folderId: string; name: string; parentId: string | null; scope?: { locations: string[]; departments: string[]; positions: string[]; users: string[] } }) => void;
 }) {
   const [name, setName] = useState(folder.name);
   const [parentId, setParentId] = useState(folder.parent_id ?? "");
 
+
   return (
     <div className="fixed inset-0 z-[1020] flex items-center justify-center bg-black/45 p-5">
-      <div className={`w-[520px] max-w-[95vw] ${MODAL_PANEL}`}>
+      <div className={`w-[560px] max-w-[95vw] ${MODAL_PANEL}`}>
         <div className={MODAL_HEADER}><p className={MODAL_TITLE}>Editar Carpeta</p><button type="button" className={MODAL_CLOSE} onClick={onCancel}>✕</button></div>
-        <div className="space-y-3 px-6 py-5">
-          <label className="grid gap-1.5"><span className={MODAL_LABEL}>Nombre</span><input value={name} onChange={(event) => setName(event.target.value)} className={MODAL_INPUT} /></label>
-          <label className="grid gap-1.5"><span className={MODAL_LABEL}>Carpeta padre</span><select value={parentId} onChange={(event) => setParentId(event.target.value)} className={MODAL_INPUT}><option value="">Raiz</option>{folders.filter((f) => f.id !== folder.id).map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select></label>
-        </div>
-        <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button><button type="button" disabled={busy || !name.trim()} onClick={() => onSave({ folderId: folder.id, name: name.trim(), parentId: parentId || null })} className={MODAL_PRIMARY}>{busy ? "Guardando..." : "Guardar"}</button></div>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            const form = new FormData(event.currentTarget);
+            const toList = (key: string) => [...new Set(form.getAll(key).map((value) => String(value).trim()).filter(Boolean))];
+            const scope = {
+              locations: toList("_scope_location"),
+              departments: toList("_scope_department"),
+              positions: toList("_scope_position"),
+              users: toList("_scope_user"),
+            };
+            onSave({ folderId: folder.id, name: name.trim(), parentId: parentId || null, scope });
+          }}
+        >
+          <div className="max-h-[70vh] overflow-y-auto px-6 py-5 space-y-4">
+            <label className="grid gap-1.5"><span className={MODAL_LABEL}>Nombre</span><input value={name} onChange={(event) => setName(event.target.value)} className={MODAL_INPUT} required /></label>
+            <label className="grid gap-1.5"><span className={MODAL_LABEL}>Carpeta padre</span><select value={parentId} onChange={(event) => setParentId(event.target.value)} className={MODAL_INPUT}><option value="">Sin carpeta padre</option>{folders.filter((f) => f.id !== folder.id).map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select></label>
+            
+            <div className="space-y-2 pt-2 border-t-[1.5px] border-[var(--gbp-border2)]">
+              <p className="text-xs font-semibold text-[var(--gbp-text)]">Permisos de acceso</p>
+              <div className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)]">
+                <ScopeSelector
+                  namespace="edit-folder"
+                  branches={branches}
+                  departments={departments}
+                  positions={positions}
+                  users={users}
+                  locationInputName="_scope_location"
+                    departmentInputName="_scope_department"
+                    positionInputName="_scope_position"
+                    userInputName="_scope_user"
+                    initialLocations={parseScope(folder.access_scope).locations}
+                    initialDepartments={parseScope(folder.access_scope).departments}
+                    initialPositions={parseScope(folder.access_scope).positions}
+                    initialUsers={parseScope(folder.access_scope).users}
+                  />
+                </div>
+            </div>
+          </div>
+          <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button><button type="submit" disabled={busy || !name.trim()} className={MODAL_PRIMARY}>{busy ? "Guardando..." : "Guardar"}</button></div>
+        </form>
       </div>
     </div>
   );
