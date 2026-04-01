@@ -48,20 +48,15 @@ export default async function CompanyDocumentsPage({
         .eq("organization_id", tenant.organizationId)
         .eq("is_active", true)
         .order("name"),
-      (openFolderModal || openUploadModal)
-        ? supabase
-            .from("department_positions")
-            .select("id, department_id, name")
-            .eq("organization_id", tenant.organizationId)
-            .eq("is_active", true)
-            .order("name")
-        : Promise.resolve({ data: [] }),
+      supabase
+        .from("department_positions")
+        .select("id, department_id, name")
+        .eq("organization_id", tenant.organizationId)
+        .eq("is_active", true)
+        .order("name"),
     ]);
 
-  const scopedUsers =
-    openFolderModal || openUploadModal
-      ? await buildScopeUsersCatalog(tenant.organizationId)
-      : [];
+  const scopedUsers = await buildScopeUsersCatalog(tenant.organizationId);
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">

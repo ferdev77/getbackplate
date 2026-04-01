@@ -1,0 +1,5 @@
+﻿src/modules/documents/ui/documents-tree-workspace.tsx(994,23): error TS2322: Type '{ namespace: string; branches: Branch[]; departments: Department[]; positions: Position[]; users: User[]; locationInputName: string; departmentInputName: string; positionInputName: string; userInputName: string; initialScope: { ...; }; }' is not assignable to type 'IntrinsicAttributes & ScopeSelectorProps'.
+  Property 'initialScope' does not exist on type 'IntrinsicAttributes & ScopeSelectorProps'.
+src/modules/documents/ui/documents-tree-workspace.tsx(1097,21): error TS2322: Type '{ namespace: string; branches: Branch[]; departments: Department[]; positions: Position[]; users: User[]; locationInputName: string; departmentInputName: string; positionInputName: string; userInputName: string; initialScope: { ...; }; }' is not assignable to type 'IntrinsicAttributes & ScopeSelectorProps'.
+  Property 'initialScope' does not exist on type 'IntrinsicAttributes & ScopeSelectorProps'.
+
