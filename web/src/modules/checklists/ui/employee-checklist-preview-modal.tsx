@@ -60,7 +60,7 @@ function priorityLabel(priority: string) {
 
 function priorityClass(priority: string) {
   if (priority === "high") return "bg-[var(--gbp-error-soft)] text-[var(--gbp-error)]";
-  if (priority === "low") return "bg-[var(--gbp-violet-soft)] text-[var(--gbp-violet)]";
+  if (priority === "low") return "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]";
   return "bg-[color:color-mix(in_oklab,var(--gbp-accent)_16%,transparent)] text-[var(--gbp-accent)]";
 }
 
@@ -270,7 +270,7 @@ export function EmployeeChecklistPreviewModal({
                     <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-white/45">Instrucciones</p>
                     <button type="button" onClick={() => setInstructionsVisible((prev) => !prev)} className="text-[11px] text-white/35 hover:text-white/70">{instructionsVisible ? "Ocultar ▲" : "Ver instrucciones ▼"}</button>
                   </div>
-                  <p className="text-[12px] leading-7 text-white/70">Marca cada tarea al completarla. Si no puedes terminar alguna, usa <span className="mx-1 inline-flex items-center gap-1 rounded-md border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gbp-accent)]">⚑ Marcar para atencion</span> y deja comentario obligatorio. Usa <span className="mx-1 inline-flex items-center gap-1 rounded-md border border-[color:color-mix(in_oklab,var(--gbp-violet)_35%,transparent)] bg-[var(--gbp-violet-soft)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gbp-violet)]">💬 Comentario</span> y <span className="mx-1 inline-flex items-center gap-1 rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gbp-text2)]">📷 Foto</span> para evidencia.</p>
+                  <p className="text-[12px] leading-7 text-white/70">Marca cada tarea al completarla. Si no puedes terminar alguna, usa <span className="mx-1 inline-flex items-center gap-1 rounded-md border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gbp-accent)]">⚑ Marcar para atencion</span> y deja comentario obligatorio. Usa <span className="mx-1 inline-flex items-center gap-1 rounded-md border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gbp-accent)]">💬 Comentario</span> y <span className="mx-1 inline-flex items-center gap-1 rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gbp-text2)]">📷 Foto</span> para evidencia.</p>
                 </div>
               </div>
             ) : null}
@@ -305,19 +305,19 @@ export function EmployeeChecklistPreviewModal({
                               <div className="mt-1 flex flex-wrap items-center gap-1.5">
                                 <span className={`rounded-full px-2 py-[1px] text-[10px] font-extrabold uppercase tracking-[0.08em] ${priorityClass(item.priority)}`}>{priorityLabel(item.priority)}</span>
                                 {s.flagged ? <span className="h-2 w-2 rounded-full bg-[var(--gbp-accent)]" /> : null}
-                                {s.comment.trim() ? <span className="h-2 w-2 rounded-full bg-[var(--gbp-violet)]" /> : null}
+                                {s.comment.trim() ? <span className="h-2 w-2 rounded-full bg-[var(--gbp-accent)]" /> : null}
                                 {s.photos.length ? <span className="h-2 w-2 rounded-full bg-[var(--gbp-text2)]" /> : null}
                               </div>
                             </button>
                             <div className="flex items-center gap-1">
                               <button type="button" disabled={readOnly} onClick={() => toggleFlag(item.id)} className={`grid h-9 w-9 place-items-center rounded-lg border-[1.5px] text-base ${s.flagged ? "border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] text-[var(--gbp-accent)]" : "border-[color:color-mix(in_oklab,var(--gbp-accent)_28%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_10%,transparent)] text-[var(--gbp-accent)]"}`}>⚑</button>
-                              <button type="button" disabled={readOnly} onClick={() => togglePanel(item.id, "comment")} className={`grid h-9 w-9 place-items-center rounded-lg border-[1.5px] text-base ${s.comment.trim() ? "border-[color:color-mix(in_oklab,var(--gbp-violet)_35%,transparent)] bg-[var(--gbp-violet-soft)] text-[var(--gbp-violet)]" : "border-[color:color-mix(in_oklab,var(--gbp-violet)_30%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-violet)_12%,transparent)] text-[var(--gbp-violet)]"}`}>💬</button>
+                              <button type="button" disabled={readOnly} onClick={() => togglePanel(item.id, "comment")} className={`grid h-9 w-9 place-items-center rounded-lg border-[1.5px] text-base ${s.comment.trim() ? "border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] text-[var(--gbp-accent)]" : "border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_12%,transparent)] text-[var(--gbp-accent)]"}`}>💬</button>
                               <button type="button" disabled={readOnly} onClick={() => togglePanel(item.id, "photo")} className={`grid h-9 w-9 place-items-center rounded-lg border-[1.5px] text-base ${s.photos.length ? "border-[var(--gbp-border2)] bg-[var(--gbp-surface2)] text-[var(--gbp-text)]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"}`}>📷</button>
                             </div>
                           </div>
 
                           {panelType === "comment" ? (
-                            <div className="border-t border-[color:color-mix(in_oklab,var(--gbp-violet)_28%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-violet)_8%,var(--gbp-surface))] px-4 pb-3 pt-2">
+                            <div className="border-t border-[color:color-mix(in_oklab,var(--gbp-accent)_28%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_8%,var(--gbp-surface))] px-4 pb-3 pt-2">
                               <textarea rows={2} value={s.comment} onChange={(event) => updateComment(item.id, event.target.value)} readOnly={readOnly} placeholder={s.flagged ? "⚑ Obligatorio: explica por que no pudiste completar esta tarea..." : "Agrega un comentario o nota (opcional)..."} className={`mt-1 w-full resize-none rounded-lg border-[1.5px] px-3 py-2 text-[13px] ${s.flagged && !s.comment.trim() ? "border-[color:color-mix(in_oklab,var(--gbp-accent)_40%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_8%,var(--gbp-surface))]" : "border-[var(--gbp-border2)] bg-[var(--gbp-bg)]"}`} />
                               {s.flagged && !s.comment.trim() ? <p className="mt-1 text-[11px] font-semibold text-[var(--gbp-accent)]">⚠ El comentario es obligatorio cuando se marca para atencion</p> : null}
                             </div>

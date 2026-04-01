@@ -65,8 +65,8 @@ const BASE_SECTIONS: Section[] = [
     id: "service",
     tab: "Servicio",
     icon: Users,
-    iconBg: "bg-[var(--gbp-violet-soft)]",
-    iconColor: "text-[var(--gbp-violet)]",
+    iconBg: "bg-[var(--gbp-accent-glow)]",
+    iconColor: "text-[var(--gbp-accent)]",
     title: "Estandar de servicio",
     description:
       "Revisa los protocolos de atencion para mantener calidad consistente en cada sucursal.",
@@ -80,8 +80,8 @@ const BASE_SECTIONS: Section[] = [
     id: "operations",
     tab: "Operaciones",
     icon: BriefcaseBusiness,
-    iconBg: "bg-[var(--gbp-violet-soft)]",
-    iconColor: "text-[var(--gbp-violet)]",
+    iconBg: "bg-[var(--gbp-accent-glow)]",
+    iconColor: "text-[var(--gbp-accent)]",
     title: "Operacion diaria",
     description:
       "Tus documentos y procesos estan organizados por puesto, departamento y locacion.",

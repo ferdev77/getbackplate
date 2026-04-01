@@ -70,7 +70,7 @@ function statusLabel(status: string) {
 
 function statusClass(status: string) {
   if (status === "active") return "bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]";
-  if (status === "vacation") return "bg-[var(--gbp-violet-soft)] text-[var(--gbp-violet)]";
+  if (status === "vacation") return "bg-amber-50 text-amber-700 border border-amber-200";
   if (status === "leave") return "bg-[var(--gbp-error-soft)] text-[var(--gbp-error)]";
   return "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]";
 }
@@ -417,7 +417,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                       {`${6 - row.pendingDocuments}/6 · ${row.docsCompletionStatus === "complete" ? "Completa" : "Incompleta"}`}
                     </span>
                   ) : (
-                    <span className="inline-block rounded-full bg-[var(--gbp-violet-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--gbp-violet)]">
+                    <span className="inline-block rounded-full bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] font-semibold text-[var(--gbp-accent)]">
                       {`${row.docsUploadedCount ?? 0} cargados`}
                     </span>
                   )}
@@ -477,7 +477,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                   <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${selected.dashboardAccess ? "bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]"}`}>
                     {selected.dashboardAccess ? "Acceso plataforma: habilitado" : "Acceso plataforma: sin acceso"}
                   </span>
-                  <span className="rounded-full bg-[var(--gbp-violet-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--gbp-violet)]">{selected.branchName}</span>
+                  <span className="rounded-full bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] font-semibold text-[var(--gbp-accent)]">{selected.branchName}</span>
                   <span className="rounded-full bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] font-semibold text-[var(--gbp-accent)]">{selected.departmentName}</span>
                 </div>
               </div>

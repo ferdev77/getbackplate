@@ -32,7 +32,7 @@ export function SuperadminTopbar() {
       <div className="flex items-center gap-8">
         <Link href="/superadmin/dashboard" className="flex items-center gap-2 group mr-2">
           <GetBackplateLogo variant="light" width={170} height={30} className={`${BRAND_SCALE.superadminTopbarHeight} w-auto`} priority />
-          <span className="hidden rounded-full border border-[var(--gbp-violet)]/35 bg-[var(--gbp-violet-soft)] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-[var(--gbp-violet)] sm:block">Superadmin</span>
+          <span className="hidden rounded-full border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-[var(--gbp-accent)] sm:block">Superadmin</span>
         </Link>
 
         {/* Desktop Navigation */}

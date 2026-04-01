@@ -265,7 +265,7 @@ export default async function EmployeeHomePage() {
           <h1 className="mt-1 font-serif text-3xl font-bold text-[var(--gbp-text)]">{employeeName}</h1>
           <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-medium">
             {resolvedBranch.data?.name && <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-1 text-[var(--gbp-text2)]">{resolvedBranch.data.name}</span>}
-            {department?.name && <span className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-violet)_30%,transparent)] bg-[var(--gbp-violet-soft)] px-3 py-1 text-[var(--gbp-violet)]">{department.name}</span>}
+            {department?.name && <span className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-3 py-1 text-[var(--gbp-accent)]">{department.name}</span>}
             {employeeRow?.position && <span className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-3 py-1 text-[var(--gbp-accent)]">{employeeRow.position}</span>}
           </div>
         </div>
@@ -362,10 +362,10 @@ export default async function EmployeeHomePage() {
               <div className="space-y-3">
                 {visibleDocuments.map((doc) => (
                   <a href={`/api/documents/${doc.id}/download`} target="_blank" key={doc.id} className="block group">
-                    <article className="flex items-center gap-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 transition-all hover:border-[color:color-mix(in_oklab,var(--gbp-violet)_35%,transparent)] hover:shadow-lg hover:shadow-black/5">
+                    <article className="flex items-center gap-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 transition-all hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] hover:shadow-lg hover:shadow-black/5">
                       <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-100"><FileText className="h-5 w-5" /></div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="truncate text-[14px] font-bold text-[var(--gbp-text)] transition-colors group-hover:text-[var(--gbp-violet)]">{doc.title}</h4>
+                        <h4 className="truncate text-[14px] font-bold text-[var(--gbp-text)] transition-colors group-hover:text-[var(--gbp-accent)]">{doc.title}</h4>
                         <p className="mt-1 mt-0.5 flex gap-2 text-[11px] text-[var(--gbp-text2)]">
                            <span className="uppercase">{doc.mime_type}</span>
                            <span>{new Date(doc.created_at).toLocaleDateString("es-AR")}</span>
