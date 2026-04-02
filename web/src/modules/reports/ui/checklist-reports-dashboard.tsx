@@ -474,7 +474,7 @@ export function ChecklistReportsDashboard({
                   <p className="mt-1 text-[11px] text-[var(--gbp-muted)]">{item.managerShort} · {item.timeLabel}</p>
                 </div>
                 {showAttentionLocationBadge ? (
-                  <span className="rounded-full bg-[var(--gbp-surface2)] px-2 py-0.5 text-[11px] font-semibold text-[var(--gbp-text2)]">{item.locationShort}</span>
+                  <span className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] font-medium text-[var(--gbp-accent)]">{item.locationShort}</span>
                 ) : null}
               </button>
             ))}

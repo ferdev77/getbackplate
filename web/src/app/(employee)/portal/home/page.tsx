@@ -271,9 +271,9 @@ export default async function EmployeeHomePage() {
           <p className="text-xs text-[var(--gbp-muted)]">Bienvenido de vuelta</p>
           <h1 className="mt-1 font-serif text-3xl font-bold text-[var(--gbp-text)]">{employeeName}</h1>
           <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-medium">
-            {resolvedBranchDisplayName && <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-1 text-[var(--gbp-text2)]">{resolvedBranchDisplayName}</span>}
-            {department?.name && <span className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-3 py-1 text-[var(--gbp-accent)]">{department.name}</span>}
-            {employeeRow?.position && <span className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-3 py-1 text-[var(--gbp-accent)]">{employeeRow.position}</span>}
+            {resolvedBranchDisplayName && <span className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-3 py-1 text-[var(--gbp-accent)]">{resolvedBranchDisplayName}</span>}
+            {department?.name && <span className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-blue-600 dark:text-blue-400">{department.name}</span>}
+            {employeeRow?.position && <span className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] px-3 py-1 text-[var(--gbp-success)]">{employeeRow.position}</span>}
           </div>
         </div>
         <div className="min-w-[140px] rounded-xl bg-[var(--gbp-bg)] p-5 text-center">

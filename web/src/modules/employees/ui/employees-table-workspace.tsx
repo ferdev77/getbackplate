@@ -477,8 +477,8 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                   <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${selected.dashboardAccess ? "bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]"}`}>
                     {selected.dashboardAccess ? "Acceso plataforma: habilitado" : "Acceso plataforma: sin acceso"}
                   </span>
-                  <span className="rounded-full bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] font-semibold text-[var(--gbp-accent)]">{selected.branchName}</span>
-                  <span className="rounded-full bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] font-semibold text-[var(--gbp-accent)]">{selected.departmentName}</span>
+                  <span className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] font-medium text-[var(--gbp-accent)]">{selected.branchName}</span>
+                  <span className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-600 dark:text-blue-400">{selected.departmentName}</span>
                 </div>
               </div>
             </div>
