@@ -303,11 +303,11 @@ export function EmployeeShell({
               <p className="font-serif text-[19px] font-bold text-[var(--gbp-text)]">{currentLabel}</p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="hidden rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-2.5 py-1 text-xs text-[var(--gbp-text2)] sm:inline shadow-sm">
+              <span className="hidden rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2.5 py-1 text-xs font-medium text-[var(--gbp-accent)] sm:inline shadow-sm">
                 {branchName || "Sucursal"}
               </span>
               {departmentName ? (
-                <span className="hidden rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2.5 py-1 text-xs text-[var(--gbp-text2)] lg:inline shadow-sm">
+                <span className="hidden rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 lg:inline shadow-sm">
                   {departmentName}
                 </span>
               ) : null}

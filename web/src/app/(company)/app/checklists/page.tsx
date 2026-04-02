@@ -229,26 +229,26 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
     const explicitDepts = Array.isArray(scope.department_ids) ? [...scope.department_ids] : [];
     const explicitPositions = Array.isArray(scope.position_ids) ? [...scope.position_ids] : [];
 
-    const scopeRoles: string[] = [];
+    const scopeRoles: { name: string, type: "department" | "position" }[] = [];
     for (const dId of explicitDepts) {
-      scopeRoles.push(departmentNameMap.get(dId) ?? "Depto");
+      scopeRoles.push({ name: departmentNameMap.get(dId) ?? "Depto", type: "department" });
     }
 
     for (const pId of explicitPositions) {
       const p = positions?.find((pos) => pos.id === pId);
       if (p && p.department_id) {
         const dName = departmentNameMap.get(p.department_id) ?? "Depto";
-        scopeRoles.push(`${dName}: ${p.name}`);
+        scopeRoles.push({ name: `${dName}: ${p.name}`, type: "position" });
       } else if (p) {
-        scopeRoles.push(p.name);
+        scopeRoles.push({ name: p.name, type: "position" });
       }
     }
 
     if (scopeRoles.length === 0) {
       if (template.department_id) {
-        scopeRoles.push(departmentNameMap.get(template.department_id) ?? "Departamento");
+        scopeRoles.push({ name: departmentNameMap.get(template.department_id) ?? "Departamento", type: "department" });
       } else if (template.department) {
-        scopeRoles.push(template.department);
+        scopeRoles.push({ name: template.department, type: "department" });
       }
     }
 
@@ -348,8 +348,8 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
                       <div className="hidden lg:flex flex-wrap items-center gap-1">
                         {template.scopeLocationNames.length > 0 ? (
                           template.scopeLocationNames.map((locName, idx) => (
-                            <span key={idx} className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-text)]">
-                              <MapPin className="mr-1 h-3 w-3 text-[var(--gbp-muted)]" />
+                            <span key={idx} className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-medium text-[var(--gbp-accent)]">
+                              <MapPin className="mr-1 h-3 w-3" />
                               {locName}
                             </span>
                           ))
@@ -362,9 +362,9 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
                       </div>
                       <div className="hidden lg:flex flex-wrap items-center gap-1">
                         {template.scopeRoles.length > 0 ? (
-                          template.scopeRoles.map((roleName, idx) => (
-                            <span key={idx} className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-text)]">
-                              {roleName}
+                          template.scopeRoles.map((role, idx) => (
+                            <span key={idx} className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${role.type === "department" ? "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400" : "border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]"}`}>
+                              {role.name}
                             </span>
                           ))
                         ) : (

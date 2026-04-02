@@ -163,16 +163,16 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
   // Deptos + Puestos combinados: igual que checklists scopeRoles
   // Departamento solo → "Cocina"
   // Puesto con depto → "Cocina: Chef"
-  function getScopeRoles(scope: ReturnType<typeof parseScope>): string[] {
-    const roles: string[] = [];
+  function getScopeRoles(scope: ReturnType<typeof parseScope>): { name: string, type: "department" | "position" }[] {
+    const roles: { name: string, type: "department" | "position" }[] = [];
     for (const dId of scope.departments) {
-      roles.push(deptMap.get(dId) ?? "Depto");
+      roles.push({ name: deptMap.get(dId) ?? "Depto", type: "department" });
     }
     for (const pId of scope.positions) {
       const p = positionMap.get(pId);
-      if (!p) { roles.push("Puesto"); continue; }
+      if (!p) { roles.push({ name: "Puesto", type: "position" }); continue; }
       const dName = p.department_id ? (deptMap.get(p.department_id) ?? "Depto") : null;
-      roles.push(dName ? `${dName}: ${p.name}` : p.name);
+      roles.push({ name: dName ? `${dName}: ${p.name}` : p.name, type: "position" });
     }
     return roles;
   }
@@ -578,8 +578,8 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
               <div className="hidden lg:flex flex-wrap items-center gap-1">
                 {locNames.length > 0 ? (
                   locNames.map((n, i) => (
-                    <span key={i} className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-text)]">
-                      <MapPin className="mr-1 h-3 w-3 text-[var(--gbp-muted)]" />{n}
+                    <span key={i} className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-medium text-[var(--gbp-accent)]">
+                      <MapPin className="mr-1 h-3 w-3" />{n}
                     </span>
                   ))
                 ) : (
@@ -592,7 +592,7 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
               <div className="hidden lg:flex flex-wrap items-center gap-1">
                 {roles.length > 0 ? (
                   roles.map((r, i) => (
-                    <span key={i} className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-text)]">{r}</span>
+                    <span key={i} className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${r.type === "department" ? "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400" : "border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]"}`}>{r.name}</span>
                   ))
                 ) : (
                   <span className="text-xs text-[var(--gbp-muted)]">-</span>
@@ -626,8 +626,8 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
                           <div className="hidden lg:flex flex-wrap items-center gap-1">
                             {docLocNames.length > 0 ? (
                               docLocNames.map((n, i) => (
-                                <span key={i} className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-text)]">
-                                  <MapPin className="mr-1 h-3 w-3 text-[var(--gbp-muted)]" />{n}
+                                <span key={i} className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-medium text-[var(--gbp-accent)]">
+                                  <MapPin className="mr-1 h-3 w-3" />{n}
                                 </span>
                               ))
                             ) : (
@@ -640,7 +640,7 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
                           <div className="hidden lg:flex flex-wrap items-center gap-1">
                             {docRoles.length > 0 ? (
                               docRoles.map((r, i) => (
-                                <span key={i} className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-text)]">{r}</span>
+                                <span key={i} className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${r.type === "department" ? "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400" : "border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]"}`}>{r.name}</span>
                               ))
                             ) : (
                               <span className="text-xs text-[var(--gbp-muted)]">-</span>
