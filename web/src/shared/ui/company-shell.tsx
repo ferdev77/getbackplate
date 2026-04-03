@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { FloatingAiAssistant } from "@/shared/ui/floating-ai-assistant";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
+import { GetBackplateMark } from "@/shared/ui/getbackplate-mark";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 import { toast } from "sonner";
@@ -829,12 +830,16 @@ export function CompanyShell({
                 </div>
               ) : (
                 <div className={`${collapsed ? "grid h-11 w-11 place-items-center overflow-hidden rounded-md" : ""}`}>
-                  <GetBackplateLogo
-                    variant={isDarkTheme ? "dark" : "light"}
-                    width={220}
-                    height={40}
-                    className={`${collapsed ? BRAND_SCALE.sidebarCollapsedHeight : BRAND_SCALE.sidebarDesktopHeight} w-auto`}
-                  />
+                  {collapsed ? (
+                    <GetBackplateMark variant={isDarkTheme ? "dark" : "light"} className="h-6 w-auto" />
+                  ) : (
+                    <GetBackplateLogo
+                      variant={isDarkTheme ? "dark" : "light"}
+                      width={220}
+                      height={40}
+                      className={`${BRAND_SCALE.sidebarDesktopHeight} w-auto`}
+                    />
+                  )}
                 </div>
               )}
             </div>
