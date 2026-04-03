@@ -6,7 +6,6 @@ import {
   CircleOff,
   Eye,
   LayoutGrid,
-  LogIn,
   Pencil,
   Plus,
   Search,
@@ -27,6 +26,7 @@ import {
   toggleOrganizationModuleAction,
   updateOrganizationAction,
 } from "@/modules/organizations/actions";
+import { ImpersonationSubmitButton } from "@/modules/organizations/ui/impersonation-submit-button";
 import { ResendInvitationButton } from "@/modules/organizations/ui/resend-invitation-button";
 import { SuperadminInputField, SuperadminSelectField } from "@/shared/ui/superadmin-form-fields";
 import { SubmitButton } from "@/shared/ui/submit-button";
@@ -248,7 +248,7 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
             return (
               <motion.article 
                 key={org.id} 
-                className="group relative grid items-center gap-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-5 py-4 transition-all hover:bg-[var(--gbp-surface)] hover:shadow-xl hover:shadow-black/5 sm:grid-cols-[2fr_1.5fr_1fr_1fr_auto]"
+                className="relative grid items-center gap-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-5 py-4 transition-all hover:bg-[var(--gbp-surface)] hover:shadow-xl hover:shadow-black/5 sm:grid-cols-[2fr_1.5fr_1fr_1fr_auto]"
               >
                 <div className="min-w-0">
                   <p className="truncate text-base font-bold text-foreground">{org.name}</p>
@@ -269,22 +269,21 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
                   <p className="text-[11px] font-medium text-muted-foreground/60">{adminCount} administrador(es)</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <form action={startOrganizationImpersonationAction} className="relative group/btn inline-flex">
+                  <form action={startOrganizationImpersonationAction} className="relative group inline-flex">
                     <input type="hidden" name="organization_id" value={org.id} />
                     <input type="hidden" name="organization_name" value={org.name} />
                     <input type="hidden" name="reason" value="superadmin_table_quick_access" />
-                    <button type="submit" className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-700 transition-colors hover:bg-emerald-100 hover:scale-105"><LogIn className="h-4 w-4" /></button>
-                    <TooltipLabel label="Ingresar a la organización" />
+                    <ImpersonationSubmitButton />
                   </form>
-                  <Link href={`/superadmin/organizations?action=view&org=${org.id}`} className="group/btn relative inline-flex h-9 w-9 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600 transition-colors hover:bg-blue-100 hover:scale-105">
+                  <Link href={`/superadmin/organizations?action=view&org=${org.id}`} className="group relative inline-flex h-9 w-9 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600 transition-colors hover:bg-blue-100 hover:scale-105">
                      <Eye className="h-4 w-4" />
                      <TooltipLabel label="Ver" />
                   </Link>
-                  <Link href={`/superadmin/organizations?action=edit&org=${org.id}`} className="group/btn relative inline-flex h-9 w-9 items-center justify-center rounded-xl border border-amber-100 bg-amber-50 text-amber-600 transition-colors hover:bg-amber-100 hover:scale-105">
+                  <Link href={`/superadmin/organizations?action=edit&org=${org.id}`} className="group relative inline-flex h-9 w-9 items-center justify-center rounded-xl border border-amber-100 bg-amber-50 text-amber-600 transition-colors hover:bg-amber-100 hover:scale-105">
                      <Pencil className="h-4 w-4" />
                      <TooltipLabel label="Editar" />
                   </Link>
-                  <Link href={`/superadmin/organizations?action=delete&org=${org.id}`} className="group/btn relative inline-flex h-9 w-9 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-600 transition-colors hover:bg-red-100 hover:scale-105">
+                  <Link href={`/superadmin/organizations?action=delete&org=${org.id}`} className="group relative inline-flex h-9 w-9 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-600 transition-colors hover:bg-red-100 hover:scale-105">
                      <Trash2 className="h-4 w-4" />
                      <TooltipLabel label="Eliminar" />
                   </Link>
