@@ -75,7 +75,7 @@ export function DocumentTrashList({ documents, isAdminView = false }: DocumentTr
         </div>
         <h3 className="text-lg font-bold text-[var(--gbp-text)]">La papelera está vacía</h3>
         <p className="mt-1 text-sm text-[var(--gbp-text2)]">
-          Los documentos eliminados aparecerán aquí por {isAdminView ? "30" : "15"} días antes de borrarse permanentemente.
+          Los documentos eliminados aparecerán aquí por {isAdminView ? "30" : "15"} días antes de borrarse definitivamente.
         </p>
       </div>
     );
@@ -166,7 +166,7 @@ export function DocumentTrashList({ documents, isAdminView = false }: DocumentTr
                       className="group/tooltip relative flex h-8 w-8 items-center justify-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-error)] hover:bg-[var(--gbp-error-soft)]"
                     >
                       <Trash2 className="h-4 w-4" />
-                      <TooltipLabel label="Eliminar permanentemente" />
+                      <TooltipLabel label="Eliminar definitivamente" />
                     </button>
                   </>
                 )}
