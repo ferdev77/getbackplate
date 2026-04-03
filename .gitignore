@@ -40,3 +40,12 @@ yarn-error.log*
 supabase/.temp/
 
 .vercel
+
+# Debug / one-off scripts (never commit these)
+LIMPIEZA_*.sql
+test-member.*
+refactor-*.js
+debug-*.ts
+debug-*.js
+errors-*.txt
+errors-*.json

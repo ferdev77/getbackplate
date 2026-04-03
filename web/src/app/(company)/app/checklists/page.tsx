@@ -436,10 +436,30 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
 
                     return (
                       <div className="space-y-2 text-xs text-[var(--gbp-text2)]">
-                        <p><span className="font-semibold text-[var(--gbp-text)]">Locaciones:</span> {locations.length ? locations.join(", ") : hasScopedRules ? "No restringe por locacion" : "Todas"}</p>
-                        <p><span className="font-semibold text-[var(--gbp-text)]">Departamentos:</span> {departments.length ? departments.join(", ") : hasScopedRules ? "No restringe por departamento" : "Todos"}</p>
-                        <p><span className="font-semibold text-[var(--gbp-text)]">Puestos:</span> {positions.length ? positions.join(", ") : hasScopedRules ? "No restringe por puesto" : "Todos"}</p>
-                        <p><span className="font-semibold text-[var(--gbp-text)]">Usuarios:</span> {users.length ? users.join(", ") : hasScopedRules ? "Sin usuarios especificos" : "Todos"}</p>
+                        <div>
+                          <p className="mb-1 font-semibold text-[var(--gbp-text)]">Locaciones</p>
+                          <div className="flex flex-wrap gap-1">
+                            {locations.length ? locations.map((name) => <span key={`loc-${name}`} className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-medium text-[var(--gbp-accent)]">{name}</span>) : <span>{hasScopedRules ? "No restringe por locacion" : "Todas"}</span>}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="mb-1 font-semibold text-[var(--gbp-text)]">Departamentos</p>
+                          <div className="flex flex-wrap gap-1">
+                            {departments.length ? departments.map((name) => <span key={`dep-${name}`} className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">{name}</span>) : <span>{hasScopedRules ? "No restringe por departamento" : "Todos"}</span>}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="mb-1 font-semibold text-[var(--gbp-text)]">Puestos</p>
+                          <div className="flex flex-wrap gap-1">
+                            {positions.length ? positions.map((name) => <span key={`pos-${name}`} className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] px-2 py-0.5 text-[10px] font-medium text-[var(--gbp-success)]">{name}</span>) : <span>{hasScopedRules ? "No restringe por puesto" : "Todos"}</span>}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="mb-1 font-semibold text-[var(--gbp-text)]">Usuarios</p>
+                          <div className="flex flex-wrap gap-1">
+                            {users.length ? users.map((name) => <span key={`usr-${name}`} className="inline-flex items-center rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2 py-0.5 text-[10px] text-[var(--gbp-text2)]">{name}</span>) : <span>{hasScopedRules ? "Sin usuarios especificos" : "Todos"}</span>}
+                          </div>
+                        </div>
                       </div>
                     );
                   })()}

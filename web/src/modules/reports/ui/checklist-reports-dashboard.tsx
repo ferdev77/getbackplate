@@ -398,7 +398,11 @@ export function ChecklistReportsDashboard({
                             </div>
                             <div>
                               <p className="text-sm font-semibold text-[var(--gbp-text)]">{report.managerName}</p>
-                              <p className="text-xs text-[var(--gbp-text2)]">{report.locationName}</p>
+                              <div className="mt-1">
+                                <span className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-medium text-[var(--gbp-accent)]">
+                                  {report.locationName}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </td>

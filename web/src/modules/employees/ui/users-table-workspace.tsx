@@ -259,7 +259,11 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
                 </div>
               </div>
               <p className="hidden truncate text-xs text-[var(--gbp-text2)] lg:block">{row.email || "Sin email"}</p>
-              <p className="hidden truncate text-xs text-[var(--gbp-text2)] md:block">{row.branchName}</p>
+              <p className="hidden md:block">
+                <span className="inline-flex max-w-full items-center truncate rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] font-medium text-[var(--gbp-accent)]">
+                  {row.branchName}
+                </span>
+              </p>
               <p className="hidden lg:block"><span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${row.status === "active" ? "bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]"}`}>{statusLabel(row.status)}</span></p>
               <div className="flex items-center justify-end gap-1">
                 <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedMembershipId(row.membershipId); }} className={ACTION_BTN_NEUTRAL}><Eye className="h-3.5 w-3.5" /><TooltipLabel label="Ver perfil" /></button>
@@ -283,7 +287,14 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Email</p><p className="text-sm text-[var(--gbp-text)]">{selected.email}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Rol</p><p className="text-sm text-[var(--gbp-text)]">{roleLabel(selected.roleCode)}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Acceso a plataforma</p><p className="text-sm text-[var(--gbp-text)]">{statusLabel(selected.status)}</p></div>
-              <div className="sm:col-span-2"><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Locacion</p><p className="text-sm text-[var(--gbp-text)]">{selected.branchName}</p></div>
+              <div className="sm:col-span-2">
+                <p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Locacion</p>
+                <div className="mt-1">
+                  <span className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] font-medium text-[var(--gbp-accent)]">
+                    {selected.branchName}
+                  </span>
+                </div>
+              </div>
             </div>
             <div className="flex items-center justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
               <button type="button" onClick={() => setEditMembershipId(selected.membershipId)} className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">Editar</button>
