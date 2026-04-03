@@ -922,7 +922,7 @@ export function CompanyShell({
             ) : null}
 
             <div className={`flex gap-1.5 ${collapsed ? "flex-col items-center" : "items-center"}`}>
-               <Link href="/auth/logout" className={`group relative inline-flex items-center justify-center rounded-md border text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9" : "h-9 flex-1"}`}>
+               <Link prefetch={false} href="/auth/logout" className={`group relative inline-flex items-center justify-center rounded-md border text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9" : "h-9 flex-1"}`}>
                  <LogOut className="h-4 w-4" />
                  <TooltipLabel label="Cerrar sesión" />
                </Link>
@@ -943,7 +943,7 @@ export function CompanyShell({
             {impersonationMode ? (
               <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900 sm:px-8">
                 <p className="font-semibold">Modo superadmin activo: estas operando dentro de una organizacion en modo impersonacion.</p>
-                <Link href="/auth/impersonation/stop" className="rounded-md border border-amber-300 bg-white px-2.5 py-1 text-[11px] font-bold text-amber-800 hover:bg-amber-100">
+                <Link prefetch={false} href="/auth/impersonation/stop" className="rounded-md border border-amber-300 bg-white px-2.5 py-1 text-[11px] font-bold text-amber-800 hover:bg-amber-100">
                   Salir de impersonacion
                 </Link>
               </div>
@@ -1044,7 +1044,7 @@ export function CompanyShell({
                 <p className={`text-xs ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-text2)]"}`}>
                   El acceso al panel permanece bloqueado hasta confirmar la suscripcion en Stripe.
                 </p>
-                <Link href="/auth/logout" className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-semibold ${isDarkTheme ? "border-white/15 bg-white/5 text-white/80 hover:bg-white/10" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)]"}`}>
+                <Link prefetch={false} href="/auth/logout" className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-semibold ${isDarkTheme ? "border-white/15 bg-white/5 text-white/80 hover:bg-white/10" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)]"}`}>
                   <LogOut className="h-3.5 w-3.5" />
                   Cerrar sesion
                 </Link>
@@ -1557,6 +1557,7 @@ export function CompanyShell({
 
               <div className="flex items-center gap-1.5">
                 <Link
+                  prefetch={false}
                   href="/auth/logout"
                   className={`group relative inline-flex flex-1 items-center justify-center rounded-md border h-10 text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 hover:bg-black/10 hover:text-[var(--gbp-text)]"}`}
                 >
