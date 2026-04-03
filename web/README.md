@@ -72,3 +72,13 @@ Si responde `ok: true`, la app ya esta conectada.
 
 - La base SQL y RLS esta en `../supabase/migrations/`.
 - El seed inicial esta en `../supabase/seed.sql`.
+
+## Entornos Supabase
+
+- `Produccion`: `Getbackplate` (`mfhyemwypuzsqjqxtbjf`) - `https://mfhyemwypuzsqjqxtbjf.supabase.co`
+- `Desarrollo`: `Getbackplate Dev` (`uubdslmtfxwraszinpao`) - `https://uubdslmtfxwraszinpao.supabase.co`
+
+Regla operativa:
+
+- `.env.local` y pruebas locales deben apuntar a `Getbackplate Dev`.
+- Scripts de debug, seed y limpieza no deben ejecutarse contra `Produccion`.
