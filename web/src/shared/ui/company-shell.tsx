@@ -828,8 +828,13 @@ export function CompanyShell({
                   )}
                 </div>
               ) : (
-                <div className={`${collapsed ? "mx-auto" : ""}`}>
-                  <GetBackplateLogo variant={isDarkTheme ? "dark" : "light"} width={220} height={40} className={`${collapsed ? BRAND_SCALE.sidebarCollapsedHeight : BRAND_SCALE.sidebarDesktopHeight} w-auto`} />
+                <div className={`${collapsed ? "grid h-11 w-11 place-items-center overflow-hidden rounded-md" : ""}`}>
+                  <GetBackplateLogo
+                    variant={isDarkTheme ? "dark" : "light"}
+                    width={220}
+                    height={40}
+                    className={`${collapsed ? BRAND_SCALE.sidebarCollapsedHeight : BRAND_SCALE.sidebarDesktopHeight} w-auto`}
+                  />
                 </div>
               )}
             </div>

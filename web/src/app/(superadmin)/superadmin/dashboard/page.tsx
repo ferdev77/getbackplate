@@ -148,9 +148,9 @@ export default async function SuperadminDashboardPage() {
             </Link>
           </div>
 
-          <div className="divide-y divide-[var(--gbp-border)]">
+          <div className="flex flex-col gap-4 p-4 lg:p-6 pt-2">
             {topByRisk.map((row) => (
-              <div key={row.organizationId} className="group px-6 py-5 transition-colors hover:bg-muted/30">
+              <div key={row.organizationId} className="group relative z-0 overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-6 py-5 transition-all duration-200 hover:z-10 hover:-translate-y-[2px] hover:bg-[var(--gbp-surface)] hover:shadow-xl hover:shadow-black/5">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-lg bg-brand/5 flex items-center justify-center border border-brand/10 text-brand font-bold text-sm">
