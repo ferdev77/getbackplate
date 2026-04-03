@@ -62,15 +62,26 @@ export async function POST(req: Request) {
 
   console.info(`[Webhook] Received event: ${event.type} (id: ${event.id})`);
 
-  // Deduplication: check if this event was already processed in the DB
-  const { data: existingEvent } = await supabase
+  // Deduplication + lock (atomic): reserve event_id before any processing.
+  // If another instance already reserved/processed it, Postgres unique key blocks duplicates.
+  const { data: reservation, error: reservationError } = await supabase
     .from('stripe_processed_events')
+    .insert({ event_id: event.id })
     .select('event_id')
-    .eq('event_id', event.id)
     .maybeSingle();
 
-  if (existingEvent) {
-    console.info(`[Webhook] Duplicate event ignored: ${event.id}`);
+  if (reservationError) {
+    if (reservationError.code === '23505') {
+      console.info(`[Webhook] Duplicate event ignored: ${event.id}`);
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+
+    console.error(`[Webhook] Failed to reserve event ${event.id}:`, reservationError);
+    return NextResponse.json({ error: 'Failed to reserve webhook event' }, { status: 500 });
+  }
+
+  if (!reservation) {
+    console.info(`[Webhook] Duplicate event ignored (no reservation): ${event.id}`);
     return NextResponse.json({ received: true, duplicate: true });
   }
 
@@ -477,14 +488,19 @@ export async function POST(req: Request) {
     }
   } catch (err) {
     console.error(`[Webhook] Unhandled error processing event ${event.type}:`, err);
+
+    // Release reservation so Stripe retries can process the event again.
+    const { error: releaseError } = await supabase
+      .from('stripe_processed_events')
+      .delete()
+      .eq('event_id', event.id);
+
+    if (releaseError) {
+      console.error(`[Webhook] Failed to release reservation for event ${event.id}:`, releaseError);
+    }
+
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-
-  // Mark event as processed in DB — idempotent across all serverless instances
-  await supabase
-    .from('stripe_processed_events')
-    .insert({ event_id: event.id });
-  // Note: unique constraint violations (race conditions) are silently ignored by Supabase
 
   return NextResponse.json({ received: true });
 }

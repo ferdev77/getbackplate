@@ -271,7 +271,7 @@ export function EmployeeShell({
               </div>
             ) : null}
 
-            <a
+            <Link
               href="/auth/logout"
               className={`group relative inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] py-2 text-xs text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)] ${
                 collapsed ? "h-9 w-9 p-0" : "px-2"
@@ -280,7 +280,7 @@ export function EmployeeShell({
               <LogOut className="h-3.5 w-3.5" />
               {!collapsed ? <span>Cerrar Sesión</span> : null}
               {collapsed && <TooltipLabel label="Cerrar Sesión" />}
-            </a>
+            </Link>
           </div>
         </aside>
 
