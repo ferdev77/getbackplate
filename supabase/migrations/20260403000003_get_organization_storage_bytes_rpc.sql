@@ -7,6 +7,9 @@
 -- Ahora: Postgres retorna un solo BIGINT
 -- ============================================================
 
+ALTER TABLE public.documents
+ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+
 CREATE OR REPLACE FUNCTION get_organization_storage_bytes(p_org_id UUID)
 RETURNS BIGINT
 LANGUAGE sql
