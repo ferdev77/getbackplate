@@ -259,6 +259,7 @@ function normalizeTheme(value: string) {
 const THEME_PICKER_ORDER = [
   THEME_DEFAULT,
   THEME_DARK_PRO,
+  ...THEMES.filter((theme) => theme !== THEME_DEFAULT && theme !== THEME_DARK_PRO),
 ];
 
 export function CompanyShell({
