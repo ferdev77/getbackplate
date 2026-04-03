@@ -114,8 +114,22 @@ const SECTIONS: SidebarSection[] = [
     label: "Operaciones",
     items: [
       { href: "/app/dashboard", label: "Dashboard", icon: LayoutGrid },
-      { href: "/app/reports", label: "Reportes Checklists", icon: ClipboardList, moduleCode: "reports" },
       { href: "/app/settings", label: "Ajustes Empresa", icon: Settings, moduleCode: "settings" },
+    ],
+  },
+  {
+    label: "Checklist",
+    items: [
+      { href: "/app/reports", label: "Reportes Checklists", icon: ClipboardList, moduleCode: "reports" },
+      { href: "/app/checklists", label: "Mis Checklists", icon: ClipboardList, moduleCode: "checklists" },
+      { href: "/app/checklists/new", label: "Nuevo Checklist", icon: FilePlus2, sub: true, moduleCode: "checklists" },
+    ],
+  },
+  {
+    label: "Comunicacion",
+    items: [
+      { href: "/app/announcements", label: "Avisos", icon: Bell, moduleCode: "announcements" },
+      { href: "/app/announcements?action=create", label: "Nuevo Aviso", icon: MessageSquarePlus, sub: true, moduleCode: "announcements" },
     ],
   },
   {
@@ -125,15 +139,6 @@ const SECTIONS: SidebarSection[] = [
       { href: "/app/documents?action=create-folder", label: "Crear Carpeta", icon: FolderPlus, sub: true, moduleCode: "documents" },
       { href: "/app/documents?action=upload", label: "Subir Archivo", icon: Upload, sub: true, moduleCode: "documents" },
       { href: "/app/trash", label: "Papelera", icon: Trash2, sub: true, moduleCode: "documents" },
-    ],
-  },
-  {
-    label: "Comunicacion",
-    items: [
-      { href: "/app/announcements", label: "Avisos", icon: Bell, moduleCode: "announcements" },
-      { href: "/app/announcements?action=create", label: "Nuevo Aviso", icon: MessageSquarePlus, sub: true, moduleCode: "announcements" },
-      { href: "/app/checklists", label: "Mis Checklists", icon: ClipboardList, moduleCode: "checklists" },
-      { href: "/app/checklists/new", label: "Nuevo Checklist", icon: FilePlus2, sub: true, moduleCode: "checklists" },
     ],
   },
   {
@@ -255,6 +260,13 @@ const THEME_PICKER_ORDER = [
   THEME_DARK_PRO,
   ...THEMES.filter((item) => item !== THEME_DEFAULT && item !== THEME_DARK_PRO),
 ] as const;
+
+const IconButtonTooltip = ({ label, isDarkTheme }: { label: string; isDarkTheme: boolean }) => (
+  <span className={`pointer-events-none absolute -top-1 left-1/2 z-50 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[11px] font-bold tracking-wide opacity-0 shadow-[0_8px_20px_rgba(0,0,0,0.18)] transition-all duration-200 group-hover:-top-2 group-hover:opacity-100 ${isDarkTheme ? "bg-white text-[#111]" : "bg-[var(--gbp-text)] text-white"}`}>
+    {label}
+    <span className={`absolute left-1/2 top-full -translate-x-1/2 border-[5px] border-transparent ${isDarkTheme ? "border-t-white" : "border-t-[var(--gbp-text)]"}`}></span>
+  </span>
+);
 
 export function CompanyShell({
   organizationLabel,
@@ -891,23 +903,6 @@ export function CompanyShell({
           </nav>
 
           <div className={`mt-auto py-3 ${sidebarPaddingX}`} style={{ background: palette.sidebarGradient }}>
-            {!collapsed ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setPlanBillingCycle(normalizePlanPeriod(billingPeriod));
-                  setPlanOpen(true);
-                }}
-                disabled={impersonationMode}
-                className={`mb-2.5 w-full rounded-lg border-[1.5px] px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-60 ${isDarkTheme ? "bg-white/5" : "bg-white/75"}`}
-                style={{ borderColor: palette.accent }}
-              >
-                <div className="mb-1 flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full" style={{ background: palette.accent }} /><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-text)]">{currentPlanName}</p></div>
-                <p className="text-xs font-bold" style={{ color: palette.accent }}>
-                  {impersonationMode ? "Billing bloqueado" : "Upgrade Plan →"}
-                </p>
-              </button>
-            ) : null}
 
             {!collapsed ? (
               <div className="mb-2 flex items-center gap-2.5">
@@ -933,10 +928,19 @@ export function CompanyShell({
               </div>
             ) : null}
 
-            <div className="space-y-1.5">
-               <a href="/auth/logout" className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-white/75 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9 p-0" : "px-2"}`} title="Cerrar sesion"><LogOut className="h-3.5 w-3.5" />{!collapsed ? <span>Cerrar Sesion</span> : null}</a>
-               <button type="button" onClick={() => { setSettingsOpen(true); setSettingsView("main"); }} className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-white/75 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9 p-0" : "px-2"}`} title="Settings"><Settings className="h-3.5 w-3.5" />{!collapsed ? <span>Settings</span> : null}</button>
-               <button type="button" onClick={() => setFeedbackOpen(true)} className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-white/75 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9 p-0" : "px-2"}`} title="Feedback"><MessageSquarePlus className="h-3.5 w-3.5" />{!collapsed ? <span>Feedback</span> : null}</button>
+            <div className={`flex gap-1.5 ${collapsed ? "flex-col items-center" : "items-center"}`}>
+               <a href="/auth/logout" className={`group relative inline-flex items-center justify-center rounded-md border text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9" : "h-9 flex-1"}`}>
+                 <LogOut className="h-4 w-4" />
+                 <IconButtonTooltip label="Cerrar sesión" isDarkTheme={isDarkTheme} />
+               </a>
+               <button type="button" onClick={() => { setSettingsOpen(true); setSettingsView("main"); }} className={`group relative inline-flex items-center justify-center rounded-md border text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9" : "h-9 flex-1"}`}>
+                 <Settings className="h-4 w-4" />
+                 <IconButtonTooltip label="Configuración" isDarkTheme={isDarkTheme} />
+               </button>
+               <button type="button" onClick={() => setFeedbackOpen(true)} className={`group relative inline-flex items-center justify-center rounded-md border text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9" : "h-9 flex-1"}`}>
+                 <MessageSquarePlus className="h-4 w-4" />
+                 <IconButtonTooltip label="Feedback" isDarkTheme={isDarkTheme} />
+               </button>
              </div>
           </div>
         </aside>
@@ -1092,6 +1096,27 @@ export function CompanyShell({
                         <span className={`text-[9px] ${theme === item ? "font-semibold text-[var(--gbp-text)]" : "text-[var(--gbp-text2)]"}`}>{THEME_NAMES[item]}</span>
                       </button>
                     ))}
+                  </div>
+                  <div className="px-3.5 pb-2 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSettingsOpen(false);
+                        setPlanBillingCycle(normalizePlanPeriod(billingPeriod));
+                        setPlanOpen(true);
+                      }}
+                      disabled={impersonationMode}
+                      className={`w-full rounded-lg border-[1.5px] px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-60 ${isDarkTheme ? "bg-white/5" : "bg-white/75"}`}
+                      style={{ borderColor: palette.accent }}
+                    >
+                      <div className="mb-1 flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full" style={{ background: palette.accent }} />
+                        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-text)]">{currentPlanName}</p>
+                      </div>
+                      <p className="text-xs font-bold" style={{ color: palette.accent }}>
+                        {impersonationMode ? "Billing bloqueado" : "Upgrade Plan →"}
+                      </p>
+                    </button>
                   </div>
                 </div>
               </>
@@ -1537,34 +1562,13 @@ export function CompanyShell({
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  setPlanBillingCycle(normalizePlanPeriod(billingPeriod));
-                  setPlanOpen(true);
-                }}
-                disabled={impersonationMode}
-                className={`mb-2.5 w-full rounded-lg border-[1.5px] px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-60 ${isDarkTheme ? "bg-white/5" : "bg-white/75"}`}
-                style={{ borderColor: palette.accent }}
-              >
-                <div className="mb-1 flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full" style={{ background: palette.accent }} />
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-text)]">{currentPlanName}</p>
-                </div>
-                <p className="text-xs font-bold" style={{ color: palette.accent }}>
-                  {impersonationMode ? "Billing bloqueado" : "Upgrade Plan →"}
-                </p>
-              </button>
-
-              <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5">
                 <a
                   href="/auth/logout"
-                  className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-white/75 hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 text-[var(--gbp-text2)] hover:bg-black/10 hover:text-[var(--gbp-text)]"}`}
-                  title="Cerrar sesion"
+                  className={`group relative inline-flex flex-1 items-center justify-center rounded-md border h-10 text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 hover:bg-black/10 hover:text-[var(--gbp-text)]"}`}
                 >
-                  <LogOut className="h-3.5 w-3.5" />
-                  <span>Cerrar Sesion</span>
+                  <LogOut className="h-4 w-4" />
+                  <IconButtonTooltip label="Cerrar sesión" isDarkTheme={isDarkTheme} />
                 </a>
                 <button
                   type="button"
@@ -1573,11 +1577,10 @@ export function CompanyShell({
                     setSettingsOpen(true);
                     setSettingsView("main");
                   }}
-                  className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-white/75 hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 text-[var(--gbp-text2)] hover:bg-black/10 hover:text-[var(--gbp-text)]"}`}
-                  title="Settings"
+                  className={`group relative inline-flex flex-1 items-center justify-center rounded-md border h-10 text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 hover:bg-black/10 hover:text-[var(--gbp-text)]"}`}
                 >
-                  <Settings className="h-3.5 w-3.5" />
-                  <span>Settings</span>
+                  <Settings className="h-4 w-4" />
+                  <IconButtonTooltip label="Configuración" isDarkTheme={isDarkTheme} />
                 </button>
                 <button
                   type="button"
@@ -1585,11 +1588,10 @@ export function CompanyShell({
                     setMenuOpen(false);
                     setFeedbackOpen(true);
                   }}
-                  className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-2 text-xs ${isDarkTheme ? "border-white/15 bg-white/5 text-white/75 hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 text-[var(--gbp-text2)] hover:bg-black/10 hover:text-[var(--gbp-text)]"}`}
-                  title="Feedback"
+                  className={`group relative inline-flex flex-1 items-center justify-center rounded-md border h-10 text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 hover:bg-black/10 hover:text-[var(--gbp-text)]"}`}
                 >
-                  <MessageSquarePlus className="h-3.5 w-3.5" />
-                  <span>Feedback</span>
+                  <MessageSquarePlus className="h-4 w-4" />
+                  <IconButtonTooltip label="Feedback" isDarkTheme={isDarkTheme} />
                 </button>
               </div>
             </div>
