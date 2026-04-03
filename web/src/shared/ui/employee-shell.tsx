@@ -8,6 +8,7 @@ import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/br
 import { LayoutDashboard, ClipboardList, Folder, Bell, FileText, PanelsLeftRight, LogOut, Menu } from "lucide-react";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
+import { TooltipLabel } from "@/shared/ui/tooltip";
 
 type EmployeeShellProps = {
   organizationId: string;
@@ -272,13 +273,13 @@ export function EmployeeShell({
 
             <a
               href="/auth/logout"
-              className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] py-2 text-xs text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)] ${
+              className={`group relative inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] py-2 text-xs text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)] ${
                 collapsed ? "h-9 w-9 p-0" : "px-2"
               }`}
-              title="Cerrar Sesión"
             >
               <LogOut className="h-3.5 w-3.5" />
               {!collapsed ? <span>Cerrar Sesión</span> : null}
+              {collapsed && <TooltipLabel label="Cerrar Sesión" />}
             </a>
           </div>
         </aside>

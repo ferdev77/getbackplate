@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Download, Eye, Pencil, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
+import { TooltipLabel } from "@/shared/ui/tooltip";
 import { EmptyState } from "@/shared/ui/empty-state";
 
 type EmployeeRow = {
@@ -48,8 +49,8 @@ type EmployeesTableWorkspaceProps = {
   employees: EmployeeRow[];
 };
 
-const ACTION_BTN_NEUTRAL = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] [.theme-dark-pro_&]:border-[var(--gbp-border2)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)] [.theme-dark-pro_&]:text-[var(--gbp-text2)] [.theme-dark-pro_&]:hover:bg-[var(--gbp-surface2)]";
-const ACTION_BTN_DANGER = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] text-[var(--gbp-error)] hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_16%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-error)_45%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-error-soft)] [.theme-dark-pro_&]:text-[var(--gbp-error)]";
+const ACTION_BTN_NEUTRAL = "group relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] [.theme-dark-pro_&]:border-[var(--gbp-border2)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)] [.theme-dark-pro_&]:text-[var(--gbp-text2)] [.theme-dark-pro_&]:hover:bg-[var(--gbp-surface2)]";
+const ACTION_BTN_DANGER = "group relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] text-[var(--gbp-error)] hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_16%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-error)_45%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-error-soft)] [.theme-dark-pro_&]:text-[var(--gbp-error)]";
 
 function initials(name: string) {
   return name
@@ -433,7 +434,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                   </span>
                 </p>
                 <div className="flex items-center justify-end gap-1">
-                  <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedEmployeeId(row.id); }} className={ACTION_BTN_NEUTRAL} title="Ver perfil"><Eye className="h-3.5 w-3.5" /></button>
+                  <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedEmployeeId(row.id); }} className={ACTION_BTN_NEUTRAL}><Eye className="h-3.5 w-3.5" /><TooltipLabel label="Ver perfil" /></button>
                   <Link
                     onClick={(event) => event.stopPropagation()}
                     href={
@@ -442,12 +443,12 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                         : `/app/employees?action=edit-user&profileId=${row.organizationUserProfileId ?? ""}`
                     }
                     className={`hidden sm:inline-flex ${ACTION_BTN_NEUTRAL}`}
-                    title="Editar"
                   >
                     <Pencil className="h-3.5 w-3.5" />
+                    <TooltipLabel label="Editar" />
                   </Link>
-                  <button type="button" onClick={(event) => { event.stopPropagation(); downloadProfile(row); }} className={`hidden md:inline-flex ${ACTION_BTN_NEUTRAL}`} title="Descargar perfil"><Download className="h-3.5 w-3.5" /></button>
-                  <button type="button" onClick={(event) => { event.stopPropagation(); setDeleteTargetId(row.id); }} className={ACTION_BTN_DANGER} title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button type="button" onClick={(event) => { event.stopPropagation(); downloadProfile(row); }} className={`hidden md:inline-flex ${ACTION_BTN_NEUTRAL}`}><Download className="h-3.5 w-3.5" /><TooltipLabel label="Descargar perfil" /></button>
+                  <button type="button" onClick={(event) => { event.stopPropagation(); setDeleteTargetId(row.id); }} className={ACTION_BTN_DANGER}><Trash2 className="h-3.5 w-3.5" /><TooltipLabel label="Eliminar" /></button>
                 </div>
               </div>
             );

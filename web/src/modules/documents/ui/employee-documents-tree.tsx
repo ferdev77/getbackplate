@@ -5,6 +5,7 @@ import { Download, Eye, Search, ChevronRight, Folder } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { FadeIn, SlideUp, AnimatedItem } from "@/shared/ui/animations";
 import { EmptyState } from "@/shared/ui/empty-state";
+import { TooltipLabel } from "@/shared/ui/tooltip";
 
 type FolderRow = {
   id: string;
@@ -124,11 +125,13 @@ export function EmployeeDocumentsTree({ folders, documents }: Props) {
                            </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <a href={`/api/documents/${doc.id}/download`} target="_blank" className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] transition-colors hover:bg-[var(--gbp-surface2)]" title="Vista preliminar">
+                          <a href={`/api/documents/${doc.id}/download`} target="_blank" className="group relative inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] transition-colors hover:bg-[var(--gbp-surface2)]">
                             <Eye className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Ver</span>
+                            <TooltipLabel label="Vista preliminar" />
                           </a>
-                          <a href={`/api/documents/${doc.id}/download`} download className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white transition-colors hover:bg-[var(--gbp-accent)]" title="Descargar">
+                          <a href={`/api/documents/${doc.id}/download`} download className="group relative inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white transition-colors hover:bg-[var(--gbp-accent)]">
                             <Download className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Descargar</span>
+                            <TooltipLabel label="Descargar" />
                           </a>
                         </div>
                       </div>
@@ -189,11 +192,13 @@ export function EmployeeDocumentsTree({ folders, documents }: Props) {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <a href={`/api/documents/${doc.id}/download`} target="_blank" className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] transition-colors hover:bg-[var(--gbp-surface2)]" title="Vista preliminar">
+                        <a href={`/api/documents/${doc.id}/download`} target="_blank" className="group relative inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] transition-colors hover:bg-[var(--gbp-surface2)]">
                           <Eye className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Ver</span>
+                          <TooltipLabel label="Vista preliminar" />
                         </a>
-                        <a href={`/api/documents/${doc.id}/download`} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white transition-colors hover:bg-[var(--gbp-accent)]" title="Descargar">
+                        <a href={`/api/documents/${doc.id}/download`} className="group relative inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white transition-colors hover:bg-[var(--gbp-accent)]">
                           <Download className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Descargar</span>
+                          <TooltipLabel label="Descargar" />
                         </a>
                       </div>
                     </div>

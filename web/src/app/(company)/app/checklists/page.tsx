@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ClipboardPlus, Eye, MapPin, Pencil, Trash2 } from "lucide-react";
 import { EmptyState } from "@/shared/ui/empty-state";
+import { TooltipLabel } from "@/shared/ui/tooltip";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
@@ -31,9 +32,9 @@ const TEXT_MUTED = "text-[var(--gbp-text2)]";
 const CARD = "border-[var(--gbp-border)] bg-[var(--gbp-surface)]";
 const CARD_SOFT = "border-[var(--gbp-border)] bg-[var(--gbp-bg)]";
 const BTN_GHOST = "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
-const ACTION_BTN_NEUTRAL = `inline-flex h-7 w-7 items-center justify-center rounded-md border ${BTN_GHOST}`;
-const ACTION_BTN_PREVIEW = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)] hover:bg-[color:color-mix(in_oklab,var(--gbp-success)_18%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-success)_45%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-success-soft)] [.theme-dark-pro_&]:text-[var(--gbp-success)]";
-const ACTION_BTN_DANGER = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] text-[var(--gbp-error)] hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_16%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-error)_45%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-error-soft)] [.theme-dark-pro_&]:text-[var(--gbp-error)]";
+const ACTION_BTN_NEUTRAL = `group/btn relative inline-flex h-7 w-7 items-center justify-center rounded-md border ${BTN_GHOST}`;
+const ACTION_BTN_PREVIEW = "group/btn relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)] hover:bg-[color:color-mix(in_oklab,var(--gbp-success)_18%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-success)_45%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-success-soft)] [.theme-dark-pro_&]:text-[var(--gbp-success)]";
+const ACTION_BTN_DANGER = "group/btn relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] text-[var(--gbp-error)] hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_16%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-error)_45%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-error-soft)] [.theme-dark-pro_&]:text-[var(--gbp-error)]";
 
 function firstParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) return value[0] ?? "";
@@ -375,9 +376,9 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
                       </div>
                       <span className={`hidden md:inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] ${template.is_active ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-neutral-200 bg-neutral-100 text-neutral-600"}`}>{template.is_active ? "Activa" : "Inactiva"}</span>
                       <div className="flex gap-1">
-                        <Link href={`/app/checklists?preview=${template.id}`} className={ACTION_BTN_PREVIEW} title="Vista previa"><Eye className="h-3.5 w-3.5" /></Link>
-                        <Link href={`/app/checklists?action=edit&templateId=${template.id}`} className={ACTION_BTN_NEUTRAL} title="Editar"><Pencil className="h-3.5 w-3.5" /></Link>
-                        <Link href={`/app/checklists?delete=${template.id}`} className={ACTION_BTN_DANGER} title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></Link>
+                        <Link href={`/app/checklists?preview=${template.id}`} className={ACTION_BTN_PREVIEW}><Eye className="h-3.5 w-3.5" /><TooltipLabel label="Vista previa" /></Link>
+                        <Link href={`/app/checklists?action=edit&templateId=${template.id}`} className={ACTION_BTN_NEUTRAL}><Pencil className="h-3.5 w-3.5" /><TooltipLabel label="Editar" /></Link>
+                        <Link href={`/app/checklists?delete=${template.id}`} className={ACTION_BTN_DANGER}><Trash2 className="h-3.5 w-3.5" /><TooltipLabel label="Eliminar" /></Link>
                       </div>
                     </div>
                   </div>
