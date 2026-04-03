@@ -318,9 +318,9 @@ export default async function EmployeeHomePage() {
         </div>
       </section>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-2">
+      <div className="mt-8 grid gap-8 lg:grid-cols-2 lg:items-stretch">
         <div className="space-y-8">
-          <section className="space-y-4">
+          <section className="flex min-h-[280px] flex-col space-y-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 sm:p-5 lg:min-h-[320px]">
             <div className="flex items-center justify-between">
               <h3 className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.15em] text-[var(--gbp-text2)]">
                 <ClipboardCheck className="w-4 h-4 text-brand" /> Checklists Pendientes
@@ -333,10 +333,10 @@ export default async function EmployeeHomePage() {
             </div>
 
             {hasChecklistsModule && visibleTemplates.length > 0 ? (
-              <div className="space-y-3">
+              <div className="flex-1 space-y-3">
                 {visibleTemplates.map((template) => (
                   <Link href={`/portal/checklist?preview=${template.id}`} key={template.id} className="block group">
-                    <article className="flex items-center gap-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 transition-all hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_40%,transparent)] hover:shadow-lg hover:shadow-black/5">
+                    <article className="flex items-center gap-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4 transition-all hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_40%,transparent)] hover:shadow-lg hover:shadow-black/5">
                       <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-600 transition-colors group-hover:bg-amber-100"><ClipboardCheck className="h-5 w-5" /></div>
                       <div>
                         <h4 className="text-[14px] font-bold text-[var(--gbp-text)] transition-colors group-hover:text-[var(--gbp-accent)]">{template.name}</h4>
@@ -347,13 +347,13 @@ export default async function EmployeeHomePage() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-surface)]/70 px-4 py-8 text-center text-sm text-[var(--gbp-text2)]">
+              <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-8 text-center text-sm text-[var(--gbp-text2)]">
                 {!hasChecklistsModule ? "Módulo inactivo" : "No tienes checklists pendientes."}
               </div>
             )}
           </section>
 
-          <section className="space-y-4">
+          <section className="flex min-h-[280px] flex-col space-y-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 sm:p-5 lg:min-h-[320px]">
             <div className="flex items-center justify-between">
               <h3 className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.15em] text-[var(--gbp-text2)]">
                 <FileText className="w-4 h-4 text-blue-500" /> Documentos Recientes
@@ -366,10 +366,10 @@ export default async function EmployeeHomePage() {
             </div>
 
             {hasDocumentsModule && visibleDocuments.length > 0 ? (
-              <div className="space-y-3">
+              <div className="flex-1 space-y-3">
                 {visibleDocuments.map((doc) => (
                   <a href={`/api/documents/${doc.id}/download`} target="_blank" key={doc.id} className="block group">
-                    <article className="flex items-center gap-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 transition-all hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] hover:shadow-lg hover:shadow-black/5">
+                    <article className="flex items-center gap-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4 transition-all hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] hover:shadow-lg hover:shadow-black/5">
                       <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-100"><FileText className="h-5 w-5" /></div>
                       <div className="min-w-0 flex-1">
                         <h4 className="truncate text-[14px] font-bold text-[var(--gbp-text)] transition-colors group-hover:text-[var(--gbp-accent)]">{doc.title}</h4>
@@ -383,14 +383,14 @@ export default async function EmployeeHomePage() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-surface)]/70 px-4 py-8 text-center text-sm text-[var(--gbp-text2)]">
+              <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-8 text-center text-sm text-[var(--gbp-text2)]">
                 {!hasDocumentsModule ? "Módulo inactivo" : "No tienes documentos recientes."}
               </div>
             )}
           </section>
         </div>
 
-        <section className="space-y-4">
+        <section className="flex min-h-[280px] flex-col space-y-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 sm:p-5 lg:min-h-[320px]">
           <div className="flex items-center justify-between">
             <h3 className="text-[12px] font-bold uppercase tracking-[0.15em] text-[var(--gbp-text2)]">
               {hasAnnouncementsModule ? "Avisos Recientes" : "Comunicación Externa"}
@@ -402,9 +402,9 @@ export default async function EmployeeHomePage() {
             )}
           </div>
 
-          <div className="space-y-3">
+          <div className="flex-1 space-y-3">
             {recentAnnouncements.map((item) => (
-              <article key={item.id} className="group relative flex gap-4 overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-5 transition-all hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] hover:shadow-lg hover:shadow-black/5">
+              <article key={item.id} className="group relative flex gap-4 overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-5 transition-all hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] hover:shadow-lg hover:shadow-black/5">
                 <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl transition-colors ${
                   item.kind === "urgent" ? "bg-rose-50 text-rose-500 group-hover:bg-rose-100" :
                   item.kind === "reminder" ? "bg-amber-50 text-amber-500 group-hover:bg-amber-100" :
@@ -437,7 +437,7 @@ export default async function EmployeeHomePage() {
             ))}
 
             {!announcements.length ? (
-              <div className="rounded-2xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-surface)]/70 px-4 py-8 text-center text-sm text-[var(--gbp-text2)]">
+              <div className="flex min-h-[180px] items-center justify-center rounded-xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-8 text-center text-sm text-[var(--gbp-text2)]">
                 {hasAnnouncementsModule
                   ? "No hay avisos vigentes para tu perfil."
                   : "El módulo de avisos no está habilitado."}

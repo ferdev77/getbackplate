@@ -324,9 +324,23 @@ export function EmployeeShell({
           
           <footer className="mt-auto flex justify-between border-t border-[var(--gbp-border)] px-6 py-4 text-[11px] text-[var(--gbp-muted)] sm:px-9" style={{ background: palette.sidebarGradient }}>
             <p className="inline-flex items-center font-semibold tracking-[0.02em] text-[var(--gbp-text2)]">
-              {customBrandingEnabled ? organizationName : <GetBackplateLogo variant="light" width={190} height={34} className={`${BRAND_SCALE.footerHeight} w-auto`} />}
+              {customBrandingEnabled ? (
+                effectiveCompanyLogoUrl ? (
+                  <Image
+                    src={effectiveCompanyLogoUrl}
+                    alt={`Logo de ${brandingName}`}
+                    width={160}
+                    height={36}
+                    className="h-[28px] w-auto object-contain object-left"
+                  />
+                ) : (
+                  brandingName
+                )
+              ) : (
+                <GetBackplateLogo variant="light" width={190} height={34} className={`${BRAND_SCALE.footerHeight} w-auto`} />
+              )}
             </p>
-            <p>© 2026 {customBrandingEnabled ? organizationName : "GetBackplate"}</p>
+            <p>© 2026 {brandingName}</p>
           </footer>
         </div>
       </div>

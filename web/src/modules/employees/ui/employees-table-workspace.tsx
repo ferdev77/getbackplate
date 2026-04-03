@@ -387,7 +387,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
           <p>Nombre</p>
           <p className="hidden md:block">Locacion</p>
           <p className="hidden lg:block">Departamento</p>
-          <p className="hidden xl:block">Es empleado</p>
+          <p className="hidden xl:block">Empleado</p>
           <p className="hidden lg:block">Docs</p>
           <p className="hidden lg:block">Dashboard</p>
           <p className="hidden xl:block">Estado laboral</p>
@@ -409,8 +409,16 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                     <p className="truncate text-[11px] text-[var(--gbp-muted)]">{row.position || "Sin puesto"}</p>
                   </div>
                 </div>
-                <p className="hidden truncate text-xs text-[var(--gbp-text2)] md:block">{row.branchName}</p>
-                <p className="hidden truncate text-xs text-[var(--gbp-text2)] lg:block">{row.departmentName}</p>
+                <p className="hidden md:block">
+                  <span className="inline-flex max-w-full items-center truncate rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] font-medium text-[var(--gbp-accent)]">
+                    {row.branchName}
+                  </span>
+                </p>
+                <p className="hidden lg:block">
+                  <span className="inline-flex max-w-full items-center truncate rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-600 dark:text-blue-400">
+                    {row.departmentName}
+                  </span>
+                </p>
                 <p className="hidden text-xs text-[var(--gbp-text2)] xl:block">{row.recordType === "employee" ? "Si" : "No"}</p>
                 <p className="hidden lg:block">
                   {row.recordType === "employee" ? (

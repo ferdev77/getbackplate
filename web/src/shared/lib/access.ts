@@ -193,10 +193,100 @@ export async function requireTenantContext() {
 }
 
 export async function requireTenantModule(moduleCode: string) {
-  const tenant = await requireTenantContext();
+  // Fast path: get user and preferred org first (these are cached within the request).
+  const user = await requireAuthenticatedUser();
+
+  if (userMustChangePassword(user)) {
+    redirect("/auth/change-password?reason=first_login");
+  }
+
+  const preferredOrganizationId = await getActiveOrganizationIdFromCookie();
+
+  // If we don't yet have a preferred organization, fall back to the slower path
+  // which resolves it from memberships (handles org selection, impersonation, etc.)
+  if (!preferredOrganizationId) {
+    return requireTenantModuleFallback(user, moduleCode);
+  }
+
+  // Single RPC replaces: getCurrentUserMemberships() + isTenantModuleEnabled() +
+  // getBillingGateForOrganization() — 3+ round-trips become 1.
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("get_tenant_access_context", {
+    p_user_id: user.id,
+    p_organization_id: preferredOrganizationId,
+    p_module_code: moduleCode,
+  });
+
+  const ctx = Array.isArray(data) ? data[0] : data;
+
+  if (error || !ctx) {
+    // RPC failed — fall back to the safe individual-query path
+    console.warn("[access] get_tenant_access_context RPC error, falling back", error?.message);
+    return requireTenantModuleFallback(user, moduleCode);
+  }
+
+  if (!ctx.has_membership) {
+    const isSuperadmin = await isCurrentUserSuperadmin();
+    if (isSuperadmin) {
+      redirect("/superadmin/dashboard");
+    }
+    await logAccessDeniedEvent({
+      area: "company",
+      reasonCode: AUDIT_REASON_CODES.MISSING_ACTIVE_MEMBERSHIP,
+      requiredRole: "company_admin|manager|employee",
+      pathHint: "/app/*",
+    });
+    redirect("/auth/login?error=" + encodeURIComponent("Tu usuario no tiene acceso asignado a una empresa"));
+  }
+
+  if (!ctx.module_enabled) {
+    await logModuleAccessDeniedEvent({
+      organizationId: preferredOrganizationId,
+      branchId: ctx.branch_id ?? null,
+      moduleCode,
+      pathHint: "/app/*",
+      reasonCode: AUDIT_REASON_CODES.MODULE_DISABLED_FOR_TENANT,
+    });
+    redirect("/app/dashboard?status=error&message=" + encodeURIComponent(MODULE_DISABLED_COPY));
+  }
+
+  // Return a MembershipContext-compatible object
+  return {
+    membershipId: ctx.membership_id as string,
+    organizationId: preferredOrganizationId,
+    roleId: "",           // not needed downstream, RPC omits it to reduce payload
+    branchId: ctx.branch_id ?? null,
+    roleCode: ctx.role_code ?? "",
+    createdAt: new Date().toISOString(),
+  } satisfies import("@/modules/memberships/queries").MembershipContext;
+}
+
+/** Fallback for requireTenantModule when no preferred org is in the cookie (rare path). */
+async function requireTenantModuleFallback(
+  user: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>,
+  moduleCode: string,
+) {
+  const isSuperadmin = await isCurrentUserSuperadmin();
+  const tenantContext = await resolveTenantFromCookie({ userId: user.id, isSuperadmin });
+
+  if (tenantContext.requiresSelection) {
+    redirect("/auth/select-organization");
+  }
+
+  const tenant = tenantContext.selected;
+
+  if (!tenant) {
+    if (isSuperadmin) redirect("/superadmin/dashboard");
+    await logAccessDeniedEvent({
+      area: "company",
+      reasonCode: AUDIT_REASON_CODES.MISSING_ACTIVE_MEMBERSHIP,
+      requiredRole: "company_admin|manager|employee",
+      pathHint: "/app/*",
+    });
+    redirect("/auth/login?error=" + encodeURIComponent("Tu usuario no tiene acceso asignado a una empresa"));
+  }
 
   const moduleAccess = await isTenantModuleEnabled(tenant.organizationId, moduleCode);
-
   if (moduleAccess.hasError || !moduleAccess.enabled) {
     await logModuleAccessDeniedEvent({
       organizationId: tenant.organizationId,
@@ -205,10 +295,7 @@ export async function requireTenantModule(moduleCode: string) {
       pathHint: "/app/*",
       reasonCode: AUDIT_REASON_CODES.MODULE_DISABLED_FOR_TENANT,
     });
-    redirect(
-      "/app/dashboard?status=error&message=" +
-        encodeURIComponent(MODULE_DISABLED_COPY),
-    );
+    redirect("/app/dashboard?status=error&message=" + encodeURIComponent(MODULE_DISABLED_COPY));
   }
 
   return tenant;

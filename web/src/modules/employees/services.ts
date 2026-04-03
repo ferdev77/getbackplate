@@ -209,7 +209,7 @@ export const getEmployeeDirectoryView = cache(async (
       departmentId: emp.department_id,
       status: emp.status,
       branchId: emp.branch_id,
-      branchName: emp.branch?.name || (emp.branch_id ? branchById.get(emp.branch_id) : undefined),
+      branchName: (emp.branch_id ? branchById.get(emp.branch_id) : undefined) || emp.branch?.name,
       roleCode: emp.user_id ? roleByUser.get(emp.user_id) : undefined,
       hiredAt: emp.hired_at,
       birthDate: emp.birth_date,

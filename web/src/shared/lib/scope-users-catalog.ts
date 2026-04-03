@@ -15,6 +15,7 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
   const admin = createSupabaseAdminClient();
 
   const [
+    { data: customBrandingEnabled },
     { data: employees },
     { data: userProfiles },
     { data: memberships },
@@ -22,6 +23,7 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
     { data: branches },
     { data: departments },
   ] = await Promise.all([
+    admin.rpc("is_module_enabled", { org_id: organizationId, module_code: "custom_branding" }),
     admin
       .from("employees")
       .select("id, user_id, first_name, last_name, branch_id, department_id, position")
@@ -41,7 +43,7 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
     admin.from("roles").select("id, code"),
     admin
       .from("branches")
-      .select("id, name")
+      .select("id, name, city")
       .eq("organization_id", organizationId),
     admin
       .from("organization_departments")
@@ -57,7 +59,9 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
       .filter(Boolean),
   );
 
-  const branchNameById = new Map((branches ?? []).map((row) => [row.id, row.name]));
+  const branchNameById = new Map(
+    (branches ?? []).map((row) => [row.id, customBrandingEnabled && row.city ? row.city : row.name]),
+  );
   const departmentNameById = new Map((departments ?? []).map((row) => [row.id, row.name]));
 
   const catalog: ScopeCatalogUser[] = [];

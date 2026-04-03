@@ -42,6 +42,11 @@ export function ScopeSelector({
   initialPositions = [],
   initialUsers = [],
 }: ScopeSelectorProps) {
+  const roleBadgeClass = "rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-1.5 py-0 text-[10px] text-[var(--gbp-text2)]";
+  const locationBadgeClass = "rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-1.5 py-0 text-[10px] font-medium text-[var(--gbp-accent)]";
+  const departmentBadgeClass = "rounded-full border border-blue-500/30 bg-blue-500/10 px-1.5 py-0 text-[10px] font-medium text-blue-600 dark:text-blue-400";
+  const positionBadgeClass = "rounded-full border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] px-1.5 py-0 text-[10px] font-medium text-[var(--gbp-success)]";
+
   const [selectedLocations, setSelectedLocations] = useState<Set<string>>(() => new Set(initialLocations));
   const [selectedDepartments, setSelectedDepartments] = useState<Set<string>>(() => new Set(initialDepartments));
   const [selectedPositions, setSelectedPositions] = useState<Set<string>>(() => new Set(initialPositions));
@@ -242,7 +247,7 @@ export function ScopeSelector({
             const value = user.user_id;
             const disabled = !value;
             return (
-              <label key={`${namespace}-usr-${user.id}`} className={`flex items-center gap-2 ${disabled ? "opacity-60" : ""}`}>
+            <label key={`${namespace}-usr-${user.id}`} className={`flex flex-wrap items-center gap-2 ${disabled ? "opacity-60" : ""}`}>
                 <input
                   type="checkbox"
                   checked={value ? selectedUsers.has(value) : false}
@@ -251,15 +256,15 @@ export function ScopeSelector({
                     toggleUser(value, event.target.checked);
                   }}
                   disabled={disabled}
-                className="h-[13px] w-[13px] accent-[var(--gbp-accent)]"
-              />
-              <span>{user.first_name} {user.last_name}</span>
-              {user.role_label ? <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-1.5 py-0 text-[10px] text-[var(--gbp-text2)]">{user.role_label}</span> : null}
-              {user.role_label === "Empleado" && user.location_label ? <span className="rounded-full border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-1.5 py-0 text-[10px] text-[var(--gbp-accent)]">{user.location_label}</span> : null}
-              {user.role_label === "Empleado" && user.department_label ? <span className="rounded-full border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-1.5 py-0 text-[10px] text-[var(--gbp-accent)]">{user.department_label}</span> : null}
-              {user.role_label === "Empleado" && user.position_label ? <span className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_10%,transparent)] px-1.5 py-0 text-[10px] text-[var(--gbp-accent)]">{user.position_label}</span> : null}
-              {disabled ? <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0 text-[10px] text-[var(--gbp-muted)]">Sin acceso</span> : null}
-            </label>
+                  className="h-[13px] w-[13px] accent-[var(--gbp-accent)]"
+                />
+                <span className="max-w-full text-[12px] text-[var(--gbp-text)]">{user.first_name} {user.last_name}</span>
+                {user.role_label ? <span className={roleBadgeClass}>{user.role_label}</span> : null}
+                {user.role_label === "Empleado" && user.location_label ? <span className={locationBadgeClass}>{user.location_label}</span> : null}
+                {user.role_label === "Empleado" && user.department_label ? <span className={departmentBadgeClass}>{user.department_label}</span> : null}
+                {user.role_label === "Empleado" && user.position_label ? <span className={positionBadgeClass}>{user.position_label}</span> : null}
+                {disabled ? <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0 text-[10px] text-[var(--gbp-muted)]">Sin acceso</span> : null}
+              </label>
             );
           })}
         </div>

@@ -122,7 +122,12 @@ async function getUsage(orgId: string): Promise<OrganizationUsage> {
 
   const admin = createSupabaseAdminClient();
 
-  const [{ count: branches }, { count: users }, { count: employees }, { data: docs }] = await Promise.all([
+  const [
+    { count: branches },
+    { count: users },
+    { count: employees },
+    { data: storageBytesRaw },
+  ] = await Promise.all([
     admin.from("branches").select("id", { head: true, count: "exact" }).eq("organization_id", orgId),
     admin
       .from("memberships")
@@ -130,11 +135,11 @@ async function getUsage(orgId: string): Promise<OrganizationUsage> {
       .eq("organization_id", orgId)
       .in("status", ["active", "invited"]),
     admin.from("employees").select("id", { head: true, count: "exact" }).eq("organization_id", orgId),
-    admin.from("documents").select("file_size_bytes")
-.is('deleted_at', null).eq("organization_id", orgId),
+    // Storage: SUM() runs in Postgres — no rows transferred to Node.js
+    admin.rpc("get_organization_storage_bytes", { p_org_id: orgId }),
   ]);
 
-  const storageBytes = (docs ?? []).reduce((sum, row) => sum + toSafeInt(row.file_size_bytes), 0);
+  const storageBytes = toSafeInt(storageBytesRaw);
 
   const usage = {
     branches: toSafeInt(branches),

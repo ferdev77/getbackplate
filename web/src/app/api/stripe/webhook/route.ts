@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// Stripe Webhook Handler — typed, no as any
 import { NextResponse } from 'next/server';
 import { stripe } from '@/infrastructure/stripe/client';
 import { createClient } from '@supabase/supabase-js';
@@ -10,37 +10,14 @@ import {
 } from '@/modules/billing/services/billing-notifications.service';
 import { sendPlanChangeAppliedEmail } from '@/modules/billing/services/plan-change-notifications.service';
 
-const processedStripeEvents = new Map<string, number>();
-const PROCESS_EVENT_TTL_MS = 24 * 60 * 60 * 1000;
-
-function hasBeenProcessed(eventId: string) {
-  const processedAt = processedStripeEvents.get(eventId);
-  if (!processedAt) return false;
-  if (Date.now() - processedAt > PROCESS_EVENT_TTL_MS) {
-    processedStripeEvents.delete(eventId);
-    return false;
-  }
-  return true;
-}
-
-function markProcessed(eventId: string) {
-  processedStripeEvents.set(eventId, Date.now());
-
-  if (processedStripeEvents.size > 2000) {
-    const now = Date.now();
-    for (const [id, timestamp] of processedStripeEvents.entries()) {
-      if (now - timestamp > PROCESS_EVENT_TTL_MS) {
-        processedStripeEvents.delete(id);
-      }
-    }
-  }
-}
+// Deduplication is handled via the stripe_processed_events table in Supabase.
+// This works correctly across all Vercel serverless instances (unlike an in-memory Map).
 
 function mapStripeIntervalToBillingPeriod(interval: string | null | undefined): 'monthly' | 'yearly' {
   return interval === 'year' ? 'yearly' : 'monthly';
 }
 
-function extractPreviousPriceId(previousAttributes: any): string | null {
+function extractPreviousPriceId(previousAttributes: Partial<Stripe.Subscription> | undefined): string | null {
   try {
     const previousItems = previousAttributes?.items?.data;
     if (!Array.isArray(previousItems) || previousItems.length === 0) return null;
@@ -71,9 +48,10 @@ export async function POST(req: Request) {
 
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-  } catch (err: any) {
-    console.error(`Webhook signature verification failed. ${err.message}`);
-    return NextResponse.json({ error: err.message }, { status: 400 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`Webhook signature verification failed. ${message}`);
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 
   // We need a server-role client to bypass RLS since Webhooks are anonymous system calls
@@ -84,7 +62,14 @@ export async function POST(req: Request) {
 
   console.info(`[Webhook] Received event: ${event.type} (id: ${event.id})`);
 
-  if (hasBeenProcessed(event.id)) {
+  // Deduplication: check if this event was already processed in the DB
+  const { data: existingEvent } = await supabase
+    .from('stripe_processed_events')
+    .select('event_id')
+    .eq('event_id', event.id)
+    .maybeSingle();
+
+  if (existingEvent) {
     console.info(`[Webhook] Duplicate event ignored: ${event.id}`);
     return NextResponse.json({ received: true, duplicate: true });
   }
@@ -145,14 +130,12 @@ export async function POST(req: Request) {
         const quantity = subscription.items.data[0].quantity || 1;
         const cancelAtPeriodEnd = subscription.cancel_at_period_end;
 
-        // Handle dates — Stripe API v2026-02-25 uses start_date/billing_cycle_anchor
-        const subAny = subscription as any;
-        const periodStartRaw = subAny.current_period_start ?? subAny.start_date ?? subAny.billing_cycle_anchor;
-        const periodEndRaw = subAny.current_period_end ?? null;
+        // Handle dates — Stripe API v2026-02-25 uses billing_cycle_anchor / start_date
+        // current_period_start and current_period_end were removed from the API in v2026-02-25
+        const periodStartRaw: number = subscription.billing_cycle_anchor ?? subscription.start_date;
         let currentPeriodStart = new Date().toISOString();
-        let currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        const currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
         if (periodStartRaw) { try { currentPeriodStart = new Date(periodStartRaw * 1000).toISOString(); } catch {} }
-        if (periodEndRaw) { try { currentPeriodEnd = new Date(periodEndRaw * 1000).toISOString(); } catch {} }
 
         console.info(`[Webhook] Subscription status: ${status}, priceId: ${priceId}`);
 
@@ -212,11 +195,11 @@ export async function POST(req: Request) {
             // 7. Sync modules
             const { data: modules } = await supabase.from('module_catalog').select('id, is_core');
             const { data: planModules } = await supabase.from('plan_modules').select('module_id').eq('plan_id', planId).eq('is_enabled', true);
-            const planModuleIds = new Set((planModules || []).map((m: any) => m.module_id));
+            const planModuleIds = new Set((planModules || []).map((m) => m.module_id));
 
             if (modules?.length) {
                 const { error: modErr } = await supabase.from('organization_modules').upsert(
-                    modules.map((mod: any) => {
+                    modules.map((mod) => {
                         const shouldEnable = Boolean(mod.is_core) || planModuleIds.has(mod.id);
                         return {
                             organization_id: organizationId,
@@ -304,13 +287,11 @@ export async function POST(req: Request) {
         const quantity = subscription.items.data[0].quantity || 1;
         const cancelAtPeriodEnd = subscription.cancel_at_period_end;
 
-        const subAny = subscription as any;
-        const periodStartRaw = subAny.current_period_start ?? subAny.start_date ?? subAny.billing_cycle_anchor;
-        const periodEndRaw = subAny.current_period_end ?? null;
+        // API v2026-02-25: current_period_start/end removed, use billing_cycle_anchor / start_date
+        const periodStartRaw: number = subscription.billing_cycle_anchor ?? subscription.start_date;
         let currentPeriodStart = new Date().toISOString();
-        let currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        const currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
         if (periodStartRaw) { try { currentPeriodStart = new Date(periodStartRaw * 1000).toISOString(); } catch {} }
-        if (periodEndRaw) { try { currentPeriodEnd = new Date(periodEndRaw * 1000).toISOString(); } catch {} }
 
         const isActive = ['active', 'trialing'].includes(status);
         const isCanceled = ['canceled', 'unpaid', 'incomplete_expired'].includes(status);
@@ -327,7 +308,7 @@ export async function POST(req: Request) {
             const { data: modules } = await supabase.from('module_catalog').select('id, is_core');
             if (modules?.length) {
                 await supabase.from('organization_modules').upsert(
-                    modules.map((mod: any) => ({
+                    modules.map((mod) => ({
                         organization_id: organizationId,
                         module_id: mod.id,
                         is_enabled: Boolean(mod.is_core),
@@ -394,11 +375,11 @@ export async function POST(req: Request) {
                 // Sync modules for the new plan
                 const { data: allModules } = await supabase.from('module_catalog').select('id, is_core');
                 const { data: planModules } = await supabase.from('plan_modules').select('module_id').eq('plan_id', planData.id).eq('is_enabled', true);
-                const planModuleIds = new Set((planModules || []).map((m: any) => m.module_id));
+                const planModuleIds = new Set((planModules || []).map((m) => m.module_id));
 
                 if (allModules?.length) {
                     const { error: modErr } = await supabase.from('organization_modules').upsert(
-                        allModules.map((mod: any) => {
+                        allModules.map((mod) => {
                             const shouldEnable = Boolean(mod.is_core) || planModuleIds.has(mod.id);
                             return {
                                 organization_id: organizationId,
@@ -429,7 +410,7 @@ export async function POST(req: Request) {
         }, { onConflict: 'stripe_subscription_id' });
 
         if (event.type === 'customer.subscription.updated' && isActive) {
-            const prevAttributes = event.data.previous_attributes as any;
+            const prevAttributes = event.data.previous_attributes as Partial<Stripe.Subscription> | undefined;
             const previousPriceId = extractPreviousPriceId(prevAttributes);
             const actorUserId = typeof subscription.metadata?.userId === 'string' ? subscription.metadata.userId : null;
 
@@ -494,12 +475,16 @@ export async function POST(req: Request) {
       default:
         console.info(`[Webhook] Unhandled event type: ${event.type}`);
     }
-  } catch (err: any) {
+  } catch (err) {
     console.error(`[Webhook] Unhandled error processing event ${event.type}:`, err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 
-  markProcessed(event.id);
+  // Mark event as processed in DB — idempotent across all serverless instances
+  await supabase
+    .from('stripe_processed_events')
+    .insert({ event_id: event.id });
+  // Note: unique constraint violations (race conditions) are silently ignored by Supabase
 
   return NextResponse.json({ received: true });
 }
