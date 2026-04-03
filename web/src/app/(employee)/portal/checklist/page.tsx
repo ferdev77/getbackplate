@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ClipboardCheck, Eye } from "lucide-react";
+import { TooltipLabel } from "@/shared/ui/tooltip";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
@@ -337,8 +338,9 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
                     <span>Reporte pendiente</span>
                   </div>
                 )}
-                <Link href={`/portal/checklist?preview=${template.id}`} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--gbp-success)_18%,transparent)]" title="Ver checklist">
+                <Link href={`/portal/checklist?preview=${template.id}`} className="group/btn relative inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--gbp-success)_18%,transparent)]">
                   <Eye className="h-4 w-4" />
+                  <TooltipLabel label="Ver checklist" />
                 </Link>
               </div>
             </div>

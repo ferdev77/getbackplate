@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Bell, BellPlus, CalendarClock, Pencil, Pin } from "lucide-react";
 import { EmptyState } from "@/shared/ui/empty-state";
+import { TooltipLabel } from "@/shared/ui/tooltip";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { parseAnnouncementScope } from "@/modules/announcements/lib/scope";
@@ -29,8 +30,8 @@ type CompanyAnnouncementsPageProps = {
 const TEXT_STRONG = "text-[var(--gbp-text)]";
 const TEXT_MUTED = "text-[var(--gbp-text2)]";
 const CARD = "border-[var(--gbp-border)] bg-[var(--gbp-surface)]";
-const ACTION_BTN_NEUTRAL = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
-const ACTION_BTN_DANGER = "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] text-[var(--gbp-error)] hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_16%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-error)_45%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-error-soft)] [.theme-dark-pro_&]:text-[var(--gbp-error)]";
+const ACTION_BTN_NEUTRAL = "group/btn relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
+const ACTION_BTN_DANGER = "group/btn relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] text-[var(--gbp-error)] hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_16%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-error)_45%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-error-soft)] [.theme-dark-pro_&]:text-[var(--gbp-error)]";
 
 function kindLabel(kind: string) {
   if (kind === "urgent") return "Urgente";
@@ -272,9 +273,9 @@ const employeesQuery = supabase
                         <form action={toggleAnnouncementFeaturedAction}>
                           <input type="hidden" name="announcement_id" value={ann.id} />
                           <input type="hidden" name="next_featured" value={String(!ann.is_featured)} />
-                          <button className={ann.is_featured ? ACTION_BTN_DANGER : ACTION_BTN_NEUTRAL} type="submit" title={ann.is_featured ? "Quitar fijado" : "Fijar"}><Pin className="h-3.5 w-3.5" /></button>
+                          <button className={ann.is_featured ? ACTION_BTN_DANGER : ACTION_BTN_NEUTRAL} type="submit"><Pin className="h-3.5 w-3.5" /><TooltipLabel label={ann.is_featured ? "Quitar fijado" : "Fijar"} /></button>
                         </form>
-                        <Link href={`/app/announcements?action=edit&announcementId=${ann.id}`} className={ACTION_BTN_NEUTRAL} title="Editar"><Pencil className="h-3.5 w-3.5" /></Link>
+                        <Link href={`/app/announcements?action=edit&announcementId=${ann.id}`} className={ACTION_BTN_NEUTRAL}><Pencil className="h-3.5 w-3.5" /><TooltipLabel label="Editar" /></Link>
                         <form action={deleteAnnouncementAction}>
                           <input type="hidden" name="announcement_id" value={ann.id} />
                           <ConfirmSubmitButton

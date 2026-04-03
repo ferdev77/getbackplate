@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import * as motion from "framer-motion/client";
+import { TooltipLabel } from "@/shared/ui/tooltip";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import {
@@ -268,15 +269,25 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
                   <p className="text-[11px] font-medium text-muted-foreground/60">{adminCount} administrador(es)</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <form action={startOrganizationImpersonationAction}>
+                  <form action={startOrganizationImpersonationAction} className="relative group/btn inline-flex">
                     <input type="hidden" name="organization_id" value={org.id} />
                     <input type="hidden" name="organization_name" value={org.name} />
                     <input type="hidden" name="reason" value="superadmin_table_quick_access" />
-                    <button type="submit" title="Ingresar a la organización" className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-700 transition-colors hover:bg-emerald-100 hover:scale-105"><LogIn className="h-4 w-4" /></button>
+                    <button type="submit" className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-700 transition-colors hover:bg-emerald-100 hover:scale-105"><LogIn className="h-4 w-4" /></button>
+                    <TooltipLabel label="Ingresar a la organización" />
                   </form>
-                  <Link href={`/superadmin/organizations?action=view&org=${org.id}`} title="Ver" className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600 transition-colors hover:bg-blue-100 hover:scale-105"><Eye className="h-4 w-4" /></Link>
-                  <Link href={`/superadmin/organizations?action=edit&org=${org.id}`} title="Editar" className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-amber-100 bg-amber-50 text-amber-600 transition-colors hover:bg-amber-100 hover:scale-105"><Pencil className="h-4 w-4" /></Link>
-                  <Link href={`/superadmin/organizations?action=delete&org=${org.id}`} title="Eliminar" className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-600 transition-colors hover:bg-red-100 hover:scale-105"><Trash2 className="h-4 w-4" /></Link>
+                  <Link href={`/superadmin/organizations?action=view&org=${org.id}`} className="group/btn relative inline-flex h-9 w-9 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600 transition-colors hover:bg-blue-100 hover:scale-105">
+                     <Eye className="h-4 w-4" />
+                     <TooltipLabel label="Ver" />
+                  </Link>
+                  <Link href={`/superadmin/organizations?action=edit&org=${org.id}`} className="group/btn relative inline-flex h-9 w-9 items-center justify-center rounded-xl border border-amber-100 bg-amber-50 text-amber-600 transition-colors hover:bg-amber-100 hover:scale-105">
+                     <Pencil className="h-4 w-4" />
+                     <TooltipLabel label="Editar" />
+                  </Link>
+                  <Link href={`/superadmin/organizations?action=delete&org=${org.id}`} className="group/btn relative inline-flex h-9 w-9 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-600 transition-colors hover:bg-red-100 hover:scale-105">
+                     <Trash2 className="h-4 w-4" />
+                     <TooltipLabel label="Eliminar" />
+                  </Link>
                 </div>
               </motion.article>
             );

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { TooltipLabel } from "@/shared/ui/tooltip";
+
 type ThemeToggleProps = {
   className?: string;
   showLabel?: boolean;
@@ -46,14 +48,14 @@ export function ThemeToggle({ className, showLabel = true }: ThemeToggleProps) {
       <button
         type="button"
         onClick={handleToggle}
-        title="Cambiar tema"
         className={[
-          "relative h-6 w-11 rounded-[var(--gbp-radius-pill)] border transition duration-200",
+          "group relative h-6 w-11 rounded-[var(--gbp-radius-pill)] border transition duration-200",
           isDark
             ? "border-[color:color-mix(in_oklab,var(--gbp-accent)_40%,transparent)] bg-[var(--gbp-accent)]"
             : "border-[var(--gbp-border2)] bg-[var(--gbp-surface2)]",
         ].join(" ")}
       >
+        <TooltipLabel label="Cambiar tema" />
         <span
           className={[
             "absolute top-0.5 grid h-5 w-5 place-items-center rounded-full bg-white text-[10px] shadow-sm transition-transform duration-200",

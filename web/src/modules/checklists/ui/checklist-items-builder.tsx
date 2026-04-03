@@ -2,6 +2,7 @@
 
 import { ListChecks, Plus, X } from "lucide-react";
 import { useMemo, useState } from "react";
+import { TooltipLabel } from "@/shared/ui/tooltip";
 
 type SectionInput = {
   name: string;
@@ -129,10 +130,10 @@ export function ChecklistItemsBuilder({ initialSections }: ChecklistItemsBuilder
             <button
               type="button"
               onClick={() => removeSection(section.id)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
-              title="Eliminar seccion"
+              className="group relative inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
             >
               <X className="h-4 w-4" />
+              <TooltipLabel label="Eliminar seccion" />
             </button>
           </div>
 
@@ -150,10 +151,10 @@ export function ChecklistItemsBuilder({ initialSections }: ChecklistItemsBuilder
                 <button
                   type="button"
                   onClick={() => removeItem(section.id, item.id)}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
-                  title="Eliminar item"
+                  className="group relative inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
                 >
                   <X className="h-4 w-4" />
+                  <TooltipLabel label="Eliminar item" />
                 </button>
               </div>
             ))}

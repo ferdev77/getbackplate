@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { FloatingAiAssistant } from "@/shared/ui/floating-ai-assistant";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
+import { TooltipLabel } from "@/shared/ui/tooltip";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 import { toast } from "sonner";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
@@ -258,15 +259,7 @@ function normalizeTheme(value: string) {
 const THEME_PICKER_ORDER = [
   THEME_DEFAULT,
   THEME_DARK_PRO,
-  ...THEMES.filter((item) => item !== THEME_DEFAULT && item !== THEME_DARK_PRO),
-] as const;
-
-const IconButtonTooltip = ({ label, isDarkTheme }: { label: string; isDarkTheme: boolean }) => (
-  <span className={`pointer-events-none absolute -top-1 left-1/2 z-50 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[11px] font-bold tracking-wide opacity-0 shadow-[0_8px_20px_rgba(0,0,0,0.18)] transition-all duration-200 group-hover:-top-2 group-hover:opacity-100 ${isDarkTheme ? "bg-white text-[#111]" : "bg-[var(--gbp-text)] text-white"}`}>
-    {label}
-    <span className={`absolute left-1/2 top-full -translate-x-1/2 border-[5px] border-transparent ${isDarkTheme ? "border-t-white" : "border-t-[var(--gbp-text)]"}`}></span>
-  </span>
-);
+];
 
 export function CompanyShell({
   organizationLabel,
@@ -931,15 +924,15 @@ export function CompanyShell({
             <div className={`flex gap-1.5 ${collapsed ? "flex-col items-center" : "items-center"}`}>
                <a href="/auth/logout" className={`group relative inline-flex items-center justify-center rounded-md border text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9" : "h-9 flex-1"}`}>
                  <LogOut className="h-4 w-4" />
-                 <IconButtonTooltip label="Cerrar sesión" isDarkTheme={isDarkTheme} />
+                 <TooltipLabel label="Cerrar sesión" />
                </a>
                <button type="button" onClick={() => { setSettingsOpen(true); setSettingsView("main"); }} className={`group relative inline-flex items-center justify-center rounded-md border text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9" : "h-9 flex-1"}`}>
                  <Settings className="h-4 w-4" />
-                 <IconButtonTooltip label="Configuración" isDarkTheme={isDarkTheme} />
+                 <TooltipLabel label="Configuración" />
                </button>
                <button type="button" onClick={() => setFeedbackOpen(true)} className={`group relative inline-flex items-center justify-center rounded-md border text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9" : "h-9 flex-1"}`}>
                  <MessageSquarePlus className="h-4 w-4" />
-                 <IconButtonTooltip label="Feedback" isDarkTheme={isDarkTheme} />
+                 <TooltipLabel label="Feedback" />
                </button>
              </div>
           </div>
@@ -1568,7 +1561,7 @@ export function CompanyShell({
                   className={`group relative inline-flex flex-1 items-center justify-center rounded-md border h-10 text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 hover:bg-black/10 hover:text-[var(--gbp-text)]"}`}
                 >
                   <LogOut className="h-4 w-4" />
-                  <IconButtonTooltip label="Cerrar sesión" isDarkTheme={isDarkTheme} />
+                  <TooltipLabel label="Cerrar sesión" />
                 </a>
                 <button
                   type="button"
@@ -1580,7 +1573,7 @@ export function CompanyShell({
                   className={`group relative inline-flex flex-1 items-center justify-center rounded-md border h-10 text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 hover:bg-black/10 hover:text-[var(--gbp-text)]"}`}
                 >
                   <Settings className="h-4 w-4" />
-                  <IconButtonTooltip label="Configuración" isDarkTheme={isDarkTheme} />
+                  <TooltipLabel label="Configuración" />
                 </button>
                 <button
                   type="button"
@@ -1591,7 +1584,7 @@ export function CompanyShell({
                   className={`group relative inline-flex flex-1 items-center justify-center rounded-md border h-10 text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 hover:bg-black/10 hover:text-[var(--gbp-text)]"}`}
                 >
                   <MessageSquarePlus className="h-4 w-4" />
-                  <IconButtonTooltip label="Feedback" isDarkTheme={isDarkTheme} />
+                  <TooltipLabel label="Feedback" />
                 </button>
               </div>
             </div>

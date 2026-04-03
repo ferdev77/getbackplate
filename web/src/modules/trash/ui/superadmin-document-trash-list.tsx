@@ -6,6 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { Building2, Clock, FileText, RefreshCw, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
+import { TooltipLabel } from "@/shared/ui/tooltip";
 
 type TrashedDocumentAdmin = {
   id: string;
@@ -154,10 +155,10 @@ export function SuperadminDocumentTrashList({ documents }: SuperadminDocumentTra
                     <button
                       onClick={() => handlePermanentDelete(doc.id)}
                       disabled={isDeleting === doc.id}
-                      className="flex h-8 w-8 items-center justify-center rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-                      title="Eliminar definitivamente"
+                      className="group relative flex h-8 w-8 items-center justify-center rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
                     >
                       {isDeleting === doc.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      <TooltipLabel label="Eliminar definitivamente" />
                     </button>
                   </div>
                 ) : (
@@ -165,17 +166,17 @@ export function SuperadminDocumentTrashList({ documents }: SuperadminDocumentTra
                     <button
                       onClick={() => handleRestore(doc.id)}
                       disabled={isRestoring === doc.id}
-                      className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-green-600 hover:border-green-200 hover:bg-green-50 disabled:opacity-50"
-                      title="Restaurar"
+                      className="group relative flex h-8 w-8 items-center justify-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-green-600 hover:border-green-200 hover:bg-green-50 disabled:opacity-50"
                     >
                       <RefreshCw className={`h-4 w-4 ${isRestoring === doc.id ? "animate-spin" : ""}`} />
+                      <TooltipLabel label="Restaurar" />
                     </button>
                     <button
                       onClick={() => setShowConfirmDelete(doc.id)}
-                      className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-red-500 hover:border-red-200 hover:bg-red-50"
-                      title="Eliminar permanentemente"
+                      className="group relative flex h-8 w-8 items-center justify-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-red-500 hover:border-red-200 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4" />
+                      <TooltipLabel label="Eliminar permanentemente" />
                     </button>
                   </>
                 )}
