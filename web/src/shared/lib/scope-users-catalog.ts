@@ -52,6 +52,11 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
   ]);
 
   const roleCodeById = new Map((roles ?? []).map((role) => [role.id, role.code]));
+  const roleCodeByUserId = new Map(
+    (memberships ?? [])
+      .filter((membership) => Boolean(membership.user_id))
+      .map((membership) => [membership.user_id as string, roleCodeById.get(membership.role_id) ?? null]),
+  );
   const employeeRoleUserIds = new Set(
     (memberships ?? [])
       .filter((membership) => roleCodeById.get(membership.role_id) === "employee")
@@ -86,12 +91,13 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
 
   for (const profile of userProfiles ?? []) {
     if (profile.user_id && userIdsInCatalog.has(profile.user_id)) continue;
+    const roleLabel = profile.user_id && roleCodeByUserId.get(profile.user_id) === "employee" ? "Empleado" : "Usuario";
     catalog.push({
       id: `up-${profile.id}`,
       user_id: profile.user_id,
       first_name: profile.first_name ?? "Usuario",
       last_name: profile.last_name ?? "",
-      role_label: "Usuario",
+      role_label: roleLabel,
     });
     if (profile.user_id) {
       userIdsInCatalog.add(profile.user_id);
@@ -104,9 +110,9 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
     catalog.push({
       id: `m-${userId}`,
       user_id: userId,
-      first_name: "Usuario",
+      first_name: "Empleado",
       last_name: userId.slice(0, 8),
-      role_label: "Usuario",
+      role_label: "Empleado",
     });
     userIdsInCatalog.add(userId);
   }

@@ -155,7 +155,7 @@ export function SuperadminDocumentTrashList({ documents }: SuperadminDocumentTra
                     <button
                       onClick={() => handlePermanentDelete(doc.id)}
                       disabled={isDeleting === doc.id}
-                      className="group relative flex h-8 w-8 items-center justify-center rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                      className="group/tooltip relative flex h-8 w-8 items-center justify-center rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
                     >
                       {isDeleting === doc.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       <TooltipLabel label="Eliminar definitivamente" />
@@ -166,14 +166,14 @@ export function SuperadminDocumentTrashList({ documents }: SuperadminDocumentTra
                     <button
                       onClick={() => handleRestore(doc.id)}
                       disabled={isRestoring === doc.id}
-                      className="group relative flex h-8 w-8 items-center justify-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-green-600 hover:border-green-200 hover:bg-green-50 disabled:opacity-50"
+                      className="group/tooltip relative flex h-8 w-8 items-center justify-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-green-600 hover:border-green-200 hover:bg-green-50 disabled:opacity-50"
                     >
                       <RefreshCw className={`h-4 w-4 ${isRestoring === doc.id ? "animate-spin" : ""}`} />
                       <TooltipLabel label="Restaurar" />
                     </button>
                     <button
                       onClick={() => setShowConfirmDelete(doc.id)}
-                      className="group relative flex h-8 w-8 items-center justify-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-red-500 hover:border-red-200 hover:bg-red-50"
+                      className="group/tooltip relative flex h-8 w-8 items-center justify-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-red-500 hover:border-red-200 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4" />
                       <TooltipLabel label="Eliminar permanentemente" />
