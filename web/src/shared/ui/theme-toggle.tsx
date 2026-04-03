@@ -49,7 +49,7 @@ export function ThemeToggle({ className, showLabel = true }: ThemeToggleProps) {
         type="button"
         onClick={handleToggle}
         className={[
-          "group relative h-6 w-11 rounded-[var(--gbp-radius-pill)] border transition duration-200",
+          "group/tooltip relative h-6 w-11 rounded-[var(--gbp-radius-pill)] border transition duration-200",
           isDark
             ? "border-[color:color-mix(in_oklab,var(--gbp-accent)_40%,transparent)] bg-[var(--gbp-accent)]"
             : "border-[var(--gbp-border2)] bg-[var(--gbp-surface2)]",

@@ -130,7 +130,7 @@ export function ChecklistItemsBuilder({ initialSections }: ChecklistItemsBuilder
             <button
               type="button"
               onClick={() => removeSection(section.id)}
-              className="group relative inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
+              className="group/tooltip relative inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
             >
               <X className="h-4 w-4" />
               <TooltipLabel label="Eliminar seccion" />
@@ -151,7 +151,7 @@ export function ChecklistItemsBuilder({ initialSections }: ChecklistItemsBuilder
                 <button
                   type="button"
                   onClick={() => removeItem(section.id, item.id)}
-                  className="group relative inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
+                  className="group/tooltip relative inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
                 >
                   <X className="h-4 w-4" />
                   <TooltipLabel label="Eliminar item" />
