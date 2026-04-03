@@ -81,7 +81,7 @@ async function sendBillingEmail(params: {
     return result;
   }
 
-  console.log(`[Billing Notification] Sent (${params.type}) org=${params.organizationId} to=${email}`);
+  console.info(`[Billing Notification] Sent (${params.type}) org=${params.organizationId} to=${email}`);
   return result;
 }
 
