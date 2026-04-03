@@ -195,6 +195,7 @@ export async function requireTenantContext() {
 export async function requireTenantModule(moduleCode: string) {
   // Fast path: get user and preferred org first (these are cached within the request).
   const user = await requireAuthenticatedUser();
+  const isSuperadmin = await isCurrentUserSuperadmin();
 
   if (userMustChangePassword(user)) {
     redirect("/auth/change-password?reason=first_login");
@@ -226,8 +227,30 @@ export async function requireTenantModule(moduleCode: string) {
   }
 
   if (!ctx.has_membership) {
-    const isSuperadmin = await isCurrentUserSuperadmin();
     if (isSuperadmin) {
+      const impersonation = await resolveActiveSuperadminImpersonationSession(user.id);
+      if (impersonation?.organizationId === preferredOrganizationId) {
+        if (!ctx.module_enabled) {
+          await logModuleAccessDeniedEvent({
+            organizationId: preferredOrganizationId,
+            branchId: null,
+            moduleCode,
+            pathHint: "/app/*",
+            reasonCode: AUDIT_REASON_CODES.MODULE_DISABLED_FOR_TENANT,
+          });
+          redirect("/app/dashboard?status=error&message=" + encodeURIComponent(MODULE_DISABLED_COPY));
+        }
+
+        return {
+          membershipId: `impersonation:${impersonation.id}`,
+          organizationId: preferredOrganizationId,
+          roleId: "impersonation",
+          branchId: null,
+          roleCode: "company_admin",
+          createdAt: impersonation.createdAt,
+        } satisfies import("@/modules/memberships/queries").MembershipContext;
+      }
+
       redirect("/superadmin/dashboard");
     }
     await logAccessDeniedEvent({
