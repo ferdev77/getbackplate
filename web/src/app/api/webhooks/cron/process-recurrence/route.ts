@@ -57,7 +57,7 @@ async function processRecurrence(req: Request) {
     // 3. Process each job
     for (const job of jobs) {
       try {
-        console.log(`Processing job ${job.id} of type ${job.job_type}`);
+        console.info(`Processing job ${job.id} of type ${job.job_type}`);
         
         if (job.job_type === 'checklist_generator') {
            const { data: template } = await supabaseAdmin
@@ -173,7 +173,7 @@ async function processRecurrence(req: Request) {
     if (pushDeliveriesToProcess) {
        // Fire and forget or await the execution of processAnnouncementDeliveries
        const deliveryResult = await processAnnouncementDeliveries();
-       console.log("processAnnouncementDeliveries triggered from cron:", deliveryResult);
+       console.info("processAnnouncementDeliveries triggered from cron:", deliveryResult);
     }
 
     return NextResponse.json({ 

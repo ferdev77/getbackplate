@@ -82,10 +82,10 @@ export async function POST(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  console.log(`[Webhook] Received event: ${event.type} (id: ${event.id})`);
+  console.info(`[Webhook] Received event: ${event.type} (id: ${event.id})`);
 
   if (hasBeenProcessed(event.id)) {
-    console.log(`[Webhook] Duplicate event ignored: ${event.id}`);
+    console.info(`[Webhook] Duplicate event ignored: ${event.id}`);
     return NextResponse.json({ received: true, duplicate: true });
   }
 
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
 
-        console.log(`[Webhook] checkout.session.completed - customer: ${session.customer}, subscription: ${session.subscription}`);
+        console.info(`[Webhook] checkout.session.completed - customer: ${session.customer}, subscription: ${session.subscription}`);
 
         const organizationId = session.metadata?.organizationId || (session.client_reference_id as string | null);
         let planId = session.metadata?.planId || null;
@@ -130,11 +130,11 @@ export async function POST(req: Request) {
             { onConflict: 'organization_id' }
           );
         if (custErr) console.error('[Webhook] Error linking stripe customer:', custErr);
-        else console.log('[Webhook] stripe_customers upserted OK');
+        else console.info('[Webhook] stripe_customers upserted OK');
 
         // 2. Fetch the full subscription object from Stripe to get pricing and status
         if (!stripeSubscriptionId) {
-            console.log('[Webhook] No subscription in session (maybe one-time payment). Skipping subscription sync.');
+            console.info('[Webhook] No subscription in session (maybe one-time payment). Skipping subscription sync.');
             break;
         }
 
@@ -154,7 +154,7 @@ export async function POST(req: Request) {
         if (periodStartRaw) { try { currentPeriodStart = new Date(periodStartRaw * 1000).toISOString(); } catch {} }
         if (periodEndRaw) { try { currentPeriodEnd = new Date(periodEndRaw * 1000).toISOString(); } catch {} }
 
-        console.log(`[Webhook] Subscription status: ${status}, priceId: ${priceId}`);
+        console.info(`[Webhook] Subscription status: ${status}, priceId: ${priceId}`);
 
         // 3. Look up the internal plan via price_id (or use the one from metadata)
         if (!planId) {
@@ -186,7 +186,7 @@ export async function POST(req: Request) {
               })
               .eq('id', organizationId);
             if (orgErr) console.error('[Webhook] Error updating org plan:', orgErr);
-            else console.log('[Webhook] Organization plan updated OK');
+            else console.info('[Webhook] Organization plan updated OK');
 
             // 6. Sync plan limits
             if (planData) {
@@ -198,7 +198,7 @@ export async function POST(req: Request) {
                     max_employees: planData.max_employees ?? null,
                 }, { onConflict: 'organization_id' });
                 if (limErr) console.error('[Webhook] Error syncing limits:', limErr);
-                else console.log('[Webhook] organization_limits upserted OK');
+                else console.info('[Webhook] organization_limits upserted OK');
 
                 await supabase.from('organization_settings').upsert(
                     {
@@ -228,7 +228,7 @@ export async function POST(req: Request) {
                     { onConflict: 'organization_id,module_id' }
                 );
                 if (modErr) console.error('[Webhook] Error syncing modules:', modErr);
-                else console.log('[Webhook] organization_modules upserted OK');
+                else console.info('[Webhook] organization_modules upserted OK');
             }
 
             if (!hadActiveSubscriptionBefore) {
@@ -268,7 +268,7 @@ export async function POST(req: Request) {
             }, { onConflict: 'stripe_subscription_id' });
 
         if (subError) console.error('[Webhook] Error upserting subscription:', subError);
-        else console.log('[Webhook] subscriptions upserted OK');
+        else console.info('[Webhook] subscriptions upserted OK');
 
         break;
       }
@@ -410,7 +410,7 @@ export async function POST(req: Request) {
                         { onConflict: 'organization_id,module_id' }
                     );
                     if (modErr) console.error('[Webhook] Error syncing modules on upgrade:', modErr);
-                    else console.log('[Webhook] Modules synced on plan upgrade OK');
+                    else console.info('[Webhook] Modules synced on plan upgrade OK');
                 }
             }
         }
@@ -445,12 +445,12 @@ export async function POST(req: Request) {
                 if (!applyEmailResult.ok) {
                     console.error(`[Webhook] Failed to send applied plan-change email: ${applyEmailResult.error}`);
                 } else {
-                    console.log(`[Webhook] Applied plan-change email sent to actor for org ${organizationId}`);
+                    console.info(`[Webhook] Applied plan-change email sent to actor for org ${organizationId}`);
                 }
             }
         }
 
-        console.log(`[Webhook] subscription.${event.type.split('.')[2]} processed for org ${organizationId}`);
+        console.info(`[Webhook] subscription.${event.type.split('.')[2]} processed for org ${organizationId}`);
         break;
       }
 
@@ -481,18 +481,18 @@ export async function POST(req: Request) {
             const renewalDate = new Date(invoice.period_end * 1000).toLocaleDateString('es-AR');
             
             await sendRenewalReminderEmail(organizationId, renewalDate, amountStr);
-            console.log(`[Webhook] Sent renewal reminder for org ${organizationId}`);
+            console.info(`[Webhook] Sent renewal reminder for org ${organizationId}`);
         } else if (event.type === 'invoice.payment_failed') {
             const retryLink = invoice.hosted_invoice_url || `${process.env.APP_BASE_URL}/app/billing`;
             
             await sendPaymentFailedEmail(organizationId, retryLink);
-            console.log(`[Webhook] Sent payment failed email for org ${organizationId}`);
+            console.info(`[Webhook] Sent payment failed email for org ${organizationId}`);
         }
         break;
       }
 
       default:
-        console.log(`[Webhook] Unhandled event type: ${event.type}`);
+        console.info(`[Webhook] Unhandled event type: ${event.type}`);
     }
   } catch (err: any) {
     console.error(`[Webhook] Unhandled error processing event ${event.type}:`, err);

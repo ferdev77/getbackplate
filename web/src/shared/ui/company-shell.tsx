@@ -333,7 +333,7 @@ export function CompanyShell({
         };
       })
       .filter((section) => section.items.length > 0);
-  }, [enabledModuleSet, branchOptions]);
+  }, [enabledModuleSet, branchOptions, customBrandingEnabled]);
 
   const [theme, setTheme] = useState(() => normalizeTheme(settingsSnapshot.theme || THEME_DEFAULT));
   const [profileName] = useState(sessionUserName);
