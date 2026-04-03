@@ -45,7 +45,7 @@ export function ScopeSelector({
   const roleBadgeClass = "rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-1.5 py-0 text-[10px] text-[var(--gbp-text2)]";
   const locationBadgeClass = "rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-1.5 py-0 text-[10px] font-medium text-[var(--gbp-accent)]";
   const departmentBadgeClass = "rounded-full border border-blue-500/30 bg-blue-500/10 px-1.5 py-0 text-[10px] font-medium text-blue-600 dark:text-blue-400";
-  const positionBadgeClass = "rounded-full border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] px-1.5 py-0 text-[10px] font-medium text-[var(--gbp-success)]";
+  const positionBadgeClass = "rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0 text-[10px] font-medium text-emerald-700 dark:text-emerald-400";
 
   const [selectedLocations, setSelectedLocations] = useState<Set<string>>(() => new Set(initialLocations));
   const [selectedDepartments, setSelectedDepartments] = useState<Set<string>>(() => new Set(initialDepartments));
@@ -259,10 +259,10 @@ export function ScopeSelector({
                   className="h-[13px] w-[13px] accent-[var(--gbp-accent)]"
                 />
                 <span className="max-w-full text-[12px] text-[var(--gbp-text)]">{user.first_name} {user.last_name}</span>
-                {user.role_label ? <span className={roleBadgeClass}>{user.role_label}</span> : null}
-                {user.role_label === "Empleado" && user.location_label ? <span className={locationBadgeClass}>{user.location_label}</span> : null}
-                {user.role_label === "Empleado" && user.department_label ? <span className={departmentBadgeClass}>{user.department_label}</span> : null}
-                {user.role_label === "Empleado" && user.position_label ? <span className={positionBadgeClass}>{user.position_label}</span> : null}
+                {user.role_label ? <span className={roleBadgeClass}>Rol: {user.role_label}</span> : null}
+                {user.role_label === "Empleado" && user.location_label ? <span className={locationBadgeClass}>Locacion: {user.location_label}</span> : null}
+                {user.role_label === "Empleado" && user.department_label ? <span className={departmentBadgeClass}>Departamento: {user.department_label}</span> : null}
+                {user.role_label === "Empleado" && user.position_label ? <span className={positionBadgeClass}>Puesto: {user.position_label}</span> : null}
                 {disabled ? <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0 text-[10px] text-[var(--gbp-muted)]">Sin acceso</span> : null}
               </label>
             );

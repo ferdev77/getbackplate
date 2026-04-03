@@ -72,34 +72,45 @@ export function DocumentFolderModal({
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
-      <div className="max-h-[90vh] w-[480px] max-w-[95vw] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
+      <div className="max-h-[92vh] w-[1040px] max-w-[97vw] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
         <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
-          <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Nueva Carpeta</p>
+          <div>
+            <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Nueva Carpeta</p>
+            <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">Organiza documentos y define el alcance de acceso.</p>
+          </div>
           <Link href="/app/documents" className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</Link>
         </div>
         <form onSubmit={onSubmit}>
-          <div className="max-h-[68vh] overflow-y-auto px-6 py-5">
-            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Nombre de la carpeta</label>
-            <input name="name" required className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]" placeholder="ej. Manuales, Operaciones" />
-            
-            <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Crear en</label>
-            <select name="parent_id" defaultValue="" className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]">
-              <option value="">Raiz</option>
-              {folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
-            </select>
-            
-            <div className="mt-4">
-              <ScopeSelector
-                namespace="folder"
-                branches={branches}
-                departments={departments}
-                positions={positions}
-                users={employees}
-                locationInputName="location_scope"
-                departmentInputName="department_scope"
-                positionInputName="position_scope"
-                userInputName="user_scope"
-              />
+          <div className="max-h-[74vh] overflow-y-auto px-6 py-5">
+            <div className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label>
+                  <span className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Nombre de la carpeta</span>
+                  <input name="name" required className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]" placeholder="ej. Manuales, Operaciones" />
+                </label>
+
+                <label>
+                  <span className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Crear en</span>
+                  <select name="parent_id" defaultValue="" className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]">
+                    <option value="">Raiz</option>
+                    {folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
+                  </select>
+                </label>
+              </div>
+
+              <div className="mt-4 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4">
+                <ScopeSelector
+                  namespace="folder"
+                  branches={branches}
+                  departments={departments}
+                  positions={positions}
+                  users={employees}
+                  locationInputName="location_scope"
+                  departmentInputName="department_scope"
+                  positionInputName="position_scope"
+                  userInputName="user_scope"
+                />
+              </div>
             </div>
           </div>
           <div className="flex justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
