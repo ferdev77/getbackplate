@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ClipboardPlus, Eye, MapPin, Pencil, Trash2 } from "lucide-react";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { TooltipLabel } from "@/shared/ui/tooltip";
+import { ScopePillsOverflow } from "@/shared/ui/scope-pills-overflow";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
@@ -349,32 +350,23 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
                       <p className={`hidden text-xs lg:block ${TEXT_MUTED}`}>{template.shift || "-"}</p>
                       <p className={`hidden text-[11px] lg:block ${TEXT_MUTED}`}>{template.repeat_every || "-"}</p>
                       <div className="hidden lg:flex flex-wrap items-center gap-1">
-                        {template.scopeLocationNames.length > 0 ? (
-                          template.scopeLocationNames.map((locName, idx) => (
-                            <span key={idx} className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-medium text-[var(--gbp-accent)]">
-                              <MapPin className="mr-1 h-3 w-3" />
-                              {locName}
+                        <ScopePillsOverflow
+                          pills={template.scopeLocationNames.map((n) => ({ name: n, type: "location" as const }))}
+                          max={4}
+                          emptyLabel={
+                            <span className={`inline-flex items-center gap-1 text-xs ${TEXT_MUTED}`}>
+                              <MapPin className="h-3.5 w-3.5" />
+                              Todas
                             </span>
-                          ))
-                        ) : (
-                          <span className={`inline-flex items-center gap-1 text-xs ${TEXT_MUTED}`}>
-                            <MapPin className="h-3.5 w-3.5" />
-                            Todas
-                          </span>
-                        )}
+                          }
+                        />
                       </div>
                       <div className="hidden lg:flex flex-wrap items-center gap-1">
-                        {template.scopeRoles.length > 0 ? (
-                          template.scopeRoles.map((role, idx) => (
-                            <span key={idx} className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${role.type === "department" ? "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400" : "border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]"}`}>
-                              {role.name}
-                            </span>
-                          ))
-                        ) : (
-                          <span className={`inline-flex items-center gap-1 text-xs ${TEXT_MUTED}`}>
-                            -
-                          </span>
-                        )}
+                        <ScopePillsOverflow
+                          pills={template.scopeRoles.map((r) => ({ name: r.name, type: r.type }))}
+                          max={4}
+                          emptyLabel={<span className={`text-xs ${TEXT_MUTED}`}>-</span>}
+                        />
                       </div>
                       <span className={`hidden md:inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] ${template.is_active ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-neutral-200 bg-neutral-100 text-neutral-600"}`}>{template.is_active ? "Activa" : "Inactiva"}</span>
                       <div className="flex gap-1">

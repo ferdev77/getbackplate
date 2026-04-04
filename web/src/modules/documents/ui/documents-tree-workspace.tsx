@@ -7,6 +7,7 @@ import { AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
 import { TooltipLabel } from "@/shared/ui/tooltip";
+import { ScopePillsOverflow } from "@/shared/ui/scope-pills-overflow";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import { FadeIn, SlideUp, AnimatedList, AnimatedItem } from "@/shared/ui/animations";
@@ -577,27 +578,23 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
               <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{formatDate(folder.created_at)}</p>
               {/* Locacion */}
               <div className="hidden lg:flex flex-wrap items-center gap-1">
-                {locNames.length > 0 ? (
-                  locNames.map((n, i) => (
-                    <span key={i} className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-medium text-[var(--gbp-accent)]">
-                      <MapPin className="mr-1 h-3 w-3" />{n}
+                <ScopePillsOverflow
+                  pills={locNames.map((n) => ({ name: n, type: "location" as const }))}
+                  max={4}
+                  emptyLabel={
+                    <span className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-muted)]">
+                      <MapPin className="mr-1 h-3 w-3" />Sin locacion
                     </span>
-                  ))
-                ) : (
-                  <span className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-muted)]">
-                    <MapPin className="mr-1 h-3 w-3" />Sin locacion
-                  </span>
-                )}
+                  }
+                />
               </div>
               {/* Deptos / Puestos */}
               <div className="hidden lg:flex flex-wrap items-center gap-1">
-                {roles.length > 0 ? (
-                  roles.map((r, i) => (
-                    <span key={i} className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${r.type === "department" ? "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400" : "border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]"}`}>{r.name}</span>
-                  ))
-                ) : (
-                  <span className="text-xs text-[var(--gbp-muted)]">-</span>
-                )}
+                <ScopePillsOverflow
+                  pills={roles.map((r) => ({ name: r.name, type: r.type }))}
+                  max={4}
+                  emptyLabel={<span className="text-xs text-[var(--gbp-muted)]">-</span>}
+                />
               </div>
               {/* Acciones */}
               <div className="flex items-center justify-end gap-1">
@@ -625,27 +622,23 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
                           <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{formatDate(doc.created_at)}</p>
                           {/* Locacion */}
                           <div className="hidden lg:flex flex-wrap items-center gap-1">
-                            {docLocNames.length > 0 ? (
-                              docLocNames.map((n, i) => (
-                                <span key={i} className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-medium text-[var(--gbp-accent)]">
-                                  <MapPin className="mr-1 h-3 w-3" />{n}
+                            <ScopePillsOverflow
+                              pills={docLocNames.map((n) => ({ name: n, type: "location" as const }))}
+                              max={4}
+                              emptyLabel={
+                                <span className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-muted)]">
+                                  <MapPin className="mr-1 h-3 w-3" />Sin locacion
                                 </span>
-                              ))
-                            ) : (
-                              <span className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-muted)]">
-                                <MapPin className="mr-1 h-3 w-3" />Sin locacion
-                              </span>
-                            )}
+                              }
+                            />
                           </div>
                           {/* Depto / Puestos */}
                           <div className="hidden lg:flex flex-wrap items-center gap-1">
-                            {docRoles.length > 0 ? (
-                              docRoles.map((r, i) => (
-                                <span key={i} className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${r.type === "department" ? "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400" : "border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]"}`}>{r.name}</span>
-                              ))
-                            ) : (
-                              <span className="text-xs text-[var(--gbp-muted)]">-</span>
-                            )}
+                            <ScopePillsOverflow
+                              pills={docRoles.map((r) => ({ name: r.name, type: r.type }))}
+                              max={4}
+                              emptyLabel={<span className="text-xs text-[var(--gbp-muted)]">-</span>}
+                            />
                           </div>
                           
                           <div className="flex flex-wrap items-center justify-end gap-1">
@@ -741,27 +734,23 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
                       <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{formatDate(doc.created_at)}</p>
                       {/* Locacion */}
                       <div className="hidden lg:flex flex-wrap items-center gap-1">
-                        {rLocNames.length > 0 ? (
-                          rLocNames.map((n, i) => (
-                            <span key={i} className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-medium text-[var(--gbp-accent)]">
-                              <MapPin className="mr-1 h-3 w-3" />{n}
+                        <ScopePillsOverflow
+                          pills={rLocNames.map((n) => ({ name: n, type: "location" as const }))}
+                          max={4}
+                          emptyLabel={
+                            <span className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-muted)]">
+                              <MapPin className="mr-1 h-3 w-3" />Sin locacion
                             </span>
-                          ))
-                        ) : (
-                          <span className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-muted)]">
-                            <MapPin className="mr-1 h-3 w-3" />Sin locacion
-                          </span>
-                        )}
+                          }
+                        />
                       </div>
                       {/* Depto / Puestos */}
                       <div className="hidden lg:flex flex-wrap items-center gap-1">
-                        {rRoles.length > 0 ? (
-                          rRoles.map((r, i) => (
-                            <span key={i} className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${r.type === "department" ? "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400" : "border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]"}`}>{r.name}</span>
-                          ))
-                        ) : (
-                          <span className="text-xs text-[var(--gbp-muted)]">-</span>
-                        )}
+                        <ScopePillsOverflow
+                          pills={rRoles.map((r) => ({ name: r.name, type: r.type }))}
+                          max={4}
+                          emptyLabel={<span className="text-xs text-[var(--gbp-muted)]">-</span>}
+                        />
                       </div>
                       {/* Acciones */}
                       <div className="flex flex-wrap items-center justify-end gap-1">

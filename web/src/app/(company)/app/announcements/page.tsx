@@ -1,6 +1,7 @@
 import { Bell, BellPlus, CalendarClock, Pencil, Pin } from "lucide-react";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { TooltipLabel } from "@/shared/ui/tooltip";
+import { ScopePillsOverflow } from "@/shared/ui/scope-pills-overflow";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { parseAnnouncementScope } from "@/modules/announcements/lib/scope";
@@ -270,11 +271,9 @@ const employeesQuery = supabase
                     <div className="mt-3 flex flex-wrap items-center gap-1.5">
                       <span className={`text-[11px] font-semibold ${TEXT_MUTED}`}>Para:</span>
                       {!hasAudience ? <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2 py-0.5 text-[11px] text-[var(--gbp-text2)]">Todos los empleados</span> : null}
-                      {scopedLocations.map((id) => <span key={`${ann.id}-loc-${id}`} className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] font-medium text-[var(--gbp-accent)]">{branchNameMap.get(id) ?? "Sucursal"}</span>)}
-                      {scopedDepartments.map((id) => <span key={`${ann.id}-dep-${id}`} className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-600 dark:text-blue-400">{departmentNameMap.get(id) ?? "Departamento"}</span>)}
-                      {scopedPositions.map((id) => <span key={`${ann.id}-pos-${id}`} className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--gbp-success)]">{positionNameMap.get(id) ?? "Puesto"}</span>)}
-                      {scopedUsers.slice(0, 3).map((id) => <span key={`${ann.id}-user-${id}`} className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2 py-0.5 text-[11px] text-[var(--gbp-text2)]">{employeeNameByUserId.get(id) ?? "Usuario"}</span>)}
-                      {scopedUsers.length > 3 ? <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-2 py-0.5 text-[11px] text-[var(--gbp-text2)]">+{scopedUsers.length - 3}</span> : null}
+                      {scopedLocations.length > 0 && <ScopePillsOverflow pills={scopedLocations.map(id => ({ name: branchNameMap.get(id) ?? "Sucursal", type: "location" as const }))} max={4} />}
+                      {scopedDepartments.length > 0 && <ScopePillsOverflow pills={scopedDepartments.map(id => ({ name: departmentNameMap.get(id) ?? "Departamento", type: "department" as const }))} max={4} />}
+                      {scopedPositions.length > 0 && <ScopePillsOverflow pills={scopedPositions.map(id => ({ name: positionNameMap.get(id) ?? "Puesto", type: "position" as const }))} max={4} />}
                     </div>
 
                     <div className="mt-3 flex items-center justify-between">
