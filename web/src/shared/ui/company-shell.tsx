@@ -26,15 +26,36 @@ import {
   X,
   Trash2
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { FloatingAiAssistant } from "@/shared/ui/floating-ai-assistant";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
 import { GetBackplateMark } from "@/shared/ui/getbackplate-mark";
-import { AnnouncementCreateModal } from "@/shared/ui/announcement-create-modal";
-import { ChecklistUpsertModal } from "@/modules/checklists/ui/checklist-upsert-modal";
-import { DocumentFolderModal } from "@/modules/documents/ui/document-folder-modal";
-import { UploadDocumentModal } from "@/modules/documents/ui/upload-document-modal";
-import { NewEmployeeModal } from "@/modules/employees/ui/new-employee-modal";
-import { NewUserModal } from "@/modules/employees/ui/new-user-modal";
+
+// ── Lazy-loaded modals (code-split — only downloaded when opened) ────
+const AnnouncementCreateModal = dynamic(
+  () => import("@/shared/ui/announcement-create-modal").then((m) => ({ default: m.AnnouncementCreateModal })),
+  { ssr: false },
+);
+const ChecklistUpsertModal = dynamic(
+  () => import("@/modules/checklists/ui/checklist-upsert-modal").then((m) => ({ default: m.ChecklistUpsertModal })),
+  { ssr: false },
+);
+const DocumentFolderModal = dynamic(
+  () => import("@/modules/documents/ui/document-folder-modal").then((m) => ({ default: m.DocumentFolderModal })),
+  { ssr: false },
+);
+const UploadDocumentModal = dynamic(
+  () => import("@/modules/documents/ui/upload-document-modal").then((m) => ({ default: m.UploadDocumentModal })),
+  { ssr: false },
+);
+const NewEmployeeModal = dynamic(
+  () => import("@/modules/employees/ui/new-employee-modal").then((m) => ({ default: m.NewEmployeeModal })),
+  { ssr: false },
+);
+const NewUserModal = dynamic(
+  () => import("@/modules/employees/ui/new-user-modal").then((m) => ({ default: m.NewUserModal })),
+  { ssr: false },
+);
 import { TooltipLabel } from "@/shared/ui/tooltip";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 import { toast } from "sonner";
@@ -584,7 +605,7 @@ export function CompanyShell({
       }
       refreshTimerRef.current = setTimeout(() => {
         router.refresh();
-      }, 350);
+      }, 2000);
     }
 
     const uniqueSubscriptions = new Map<string, { table: string; filter: string }>();

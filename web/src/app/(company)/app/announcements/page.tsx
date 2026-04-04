@@ -14,7 +14,7 @@ import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-author
 import { requireTenantModule } from "@/shared/lib/access";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { AnnouncementCreateModal } from "@/shared/ui/announcement-create-modal";
-import { getEnabledModules } from "@/modules/organizations/queries";
+import { getEnabledModulesCached } from "@/modules/organizations/cached-queries";
 import { ConfirmSubmitButton } from "@/shared/ui/confirm-submit-button";
 import { SlideUp } from "@/shared/ui/animations";
 import { extractDisplayName } from "@/shared/lib/user";
@@ -156,7 +156,8 @@ const employeesQuery = supabase
     positionsQuery,
   ]);
 
-  const enabledModules = await getEnabledModules(tenant.organizationId);
+  const enabledModulesArr = await getEnabledModulesCached(tenant.organizationId);
+  const enabledModules = new Set(enabledModulesArr);
   const customBrandingEnabled = enabledModules.has("custom_branding");
 
   const mappedBranches = (branches ?? []).map((b) => ({
