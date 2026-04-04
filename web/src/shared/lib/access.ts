@@ -51,7 +51,11 @@ async function resolveTenantFromCookie(options?: {
   const preferredOrganizationId = await getActiveOrganizationIdFromCookie();
   const resolved = resolvePreferredMembership(filteredMemberships, preferredOrganizationId);
 
-  if (!resolved.selected && !resolved.requiresSelection && options?.isSuperadmin && options.userId) {
+  // Check impersonation whenever no direct membership was selected AND the user is a superadmin.
+  // This must run even when requiresSelection === true, because a superadmin with memberships
+  // in multiple orgs would otherwise be bounced to /auth/select-organization before the
+  // impersonation cookie is ever consulted.
+  if (!resolved.selected && options?.isSuperadmin && options.userId) {
     const impersonation = await resolveActiveSuperadminImpersonationSession(options.userId);
     if (impersonation) {
       const syntheticTenant = {
