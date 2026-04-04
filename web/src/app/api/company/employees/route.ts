@@ -119,6 +119,260 @@ async function rollbackEmployeeCreateFlow(input: {
   }
 }
 
+type UpsertEmployeeContractDocumentInput = {
+  organizationId: string;
+  companyName: string;
+  actorId: string;
+  employeeId: string;
+  linkedUserId: string | null;
+  firstName: string;
+  lastName: string;
+  branchId: string | null;
+  branchName: string | null;
+  departmentId: string | null;
+  departmentName: string | null;
+  positionName: string | null;
+  hiredAt: string | null;
+  contractType: string | null;
+  paymentFrequency: string | null;
+  salaryAmount: number | null;
+  salaryCurrency: string | null;
+};
+
+async function buildContractPdfBytes(input: {
+  companyName: string;
+  fullName: string;
+  branchName: string;
+  departmentName: string;
+  positionName: string;
+  hiredAtLabel: string;
+  contractTypeLabel: string;
+  salaryLabel: string;
+  paymentFrequencyLabel: string;
+}) {
+  const { jsPDF } = await import("jspdf");
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 46;
+  let y = 58;
+
+  doc.setDrawColor(212, 83, 26);
+  doc.setLineWidth(2);
+  doc.line(margin, 36, pageWidth - margin, 36);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.setTextColor(18, 34, 52);
+  doc.text("Contrato Laboral", margin, y);
+
+  y += 18;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(96, 109, 128);
+  const generatedAt = new Intl.DateTimeFormat("es-ES", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date());
+  doc.text(`Empresa: ${input.companyName}  |  Generado: ${generatedAt}`, margin, y);
+
+  y += 28;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.setTextColor(44, 55, 72);
+  const body = `El presente contrato se celebra entre ${input.fullName} y la empresa ${input.companyName}, para desempeñar funciones como ${input.positionName} en ${input.branchName}, área ${input.departmentName}, con cumplimiento de las políticas internas.`;
+  const bodyLines = doc.splitTextToSize(body, pageWidth - margin * 2);
+  doc.text(bodyLines, margin, y);
+
+  y += bodyLines.length * 14 + 24;
+
+  const boxX = margin;
+  const boxW = pageWidth - margin * 2;
+  const boxH = 132;
+  doc.setFillColor(250, 250, 252);
+  doc.setDrawColor(223, 228, 236);
+  doc.roundedRect(boxX, y, boxW, boxH, 10, 10, "FD");
+
+  const leftX = boxX + 16;
+  const rightX = boxX + boxW / 2 + 8;
+  let rowY = y + 24;
+
+  const drawMetaRow = (x: number, label: string, value: string) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(96, 109, 128);
+    doc.text(label.toUpperCase(), x, rowY);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(24, 35, 54);
+    doc.text(value, x, rowY + 16);
+  };
+
+  drawMetaRow(leftX, "Fecha de ingreso", input.hiredAtLabel);
+  drawMetaRow(rightX, "Tipo de contrato", input.contractTypeLabel);
+  rowY += 50;
+  drawMetaRow(leftX, "Salario base", input.salaryLabel);
+  drawMetaRow(rightX, "Frecuencia de pago", input.paymentFrequencyLabel);
+
+  y += boxH + 28;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(118, 126, 141);
+  doc.text("Documento generado automáticamente desde el panel de Recursos Humanos.", margin, y);
+
+  const arrayBuffer = doc.output("arraybuffer");
+  return Buffer.from(arrayBuffer);
+}
+
+async function upsertEmployeeContractDocument(input: UpsertEmployeeContractDocumentInput) {
+  if (!input.linkedUserId) return;
+  if (!input.hiredAt || !input.contractType || !input.paymentFrequency) return;
+  if (!input.branchId || !input.departmentId || !input.positionName) return;
+  if (!Number.isFinite(input.salaryAmount ?? NaN) || (input.salaryAmount ?? 0) <= 0) return;
+
+  const contractTypeLabels: Record<string, string> = {
+    indefinite: "Indeterminado",
+    fixed_term: "Plazo fijo",
+    seasonal: "Temporada",
+    internship: "Pasantía",
+  };
+
+  const paymentFrequencyLabels: Record<string, string> = {
+    hora: "Por hora",
+    semana: "Semanal",
+    quincena: "Quincenal",
+    mes: "Mensual",
+  };
+
+  const fullName = `${input.firstName} ${input.lastName}`.trim();
+  const contractTypeLabel = contractTypeLabels[input.contractType] ?? input.contractType;
+  const paymentFrequencyLabel = paymentFrequencyLabels[input.paymentFrequency] ?? input.paymentFrequency;
+  const salaryCurrency = input.salaryCurrency ?? "USD";
+  const salaryLabel = new Intl.NumberFormat("es-ES", {
+    style: "currency",
+    currency: salaryCurrency,
+  }).format(input.salaryAmount ?? 0);
+  const hiredAtLabel = new Intl.DateTimeFormat("es-ES", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(`${input.hiredAt}T00:00:00`));
+
+  const pdfBytes = await buildContractPdfBytes({
+    companyName: input.companyName,
+    fullName,
+    branchName: input.branchName ?? "Sin locación",
+    departmentName: input.departmentName ?? "Sin departamento",
+    positionName: input.positionName,
+    hiredAtLabel,
+    contractTypeLabel,
+    salaryLabel,
+    paymentFrequencyLabel,
+  });
+
+  await assertPlanLimitForStorage(input.organizationId, pdfBytes.byteLength);
+
+  const admin = createSupabaseAdminClient();
+  await ensureBucketExists();
+
+  const safeName = fullName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-") || "empleado";
+  const path = `${input.organizationId}/employees/${input.employeeId}/contract-current.pdf`;
+
+  if (!isSafeTenantStoragePath(path, input.organizationId)) {
+    throw new Error("Ruta invalida para documento de contrato");
+  }
+
+  const { error: uploadError } = await admin.storage
+    .from(BUCKET_NAME)
+    .upload(path, pdfBytes, { contentType: "application/pdf", upsert: true });
+
+  if (uploadError) {
+    throw new Error(`No se pudo guardar contrato en documentos: ${uploadError.message}`);
+  }
+
+  const folderName = "Documentacion laboral";
+  const folderScope = {
+    locations: input.branchId ? [input.branchId] : [],
+    department_ids: input.departmentId ? [input.departmentId] : [],
+    users: [input.linkedUserId],
+  };
+
+  const { data: existingFolder } = await admin
+    .from("document_folders")
+    .select("id")
+    .eq("organization_id", input.organizationId)
+    .eq("name", folderName)
+    .contains("access_scope", { users: [input.linkedUserId] })
+    .maybeSingle();
+
+  const folderId = existingFolder?.id
+    ? existingFolder.id
+    : (
+        await admin
+          .from("document_folders")
+          .insert({
+            organization_id: input.organizationId,
+            name: folderName,
+            created_by: input.actorId,
+            access_scope: folderScope,
+          })
+          .select("id")
+          .single()
+      ).data?.id;
+
+  if (!folderId) {
+    throw new Error("No se pudo crear carpeta de documentación laboral");
+  }
+
+  const { data: existingDoc } = await admin
+    .from("documents")
+    .select("id")
+    .eq("organization_id", input.organizationId)
+    .eq("file_path", path)
+    .maybeSingle();
+
+  const documentPayload = {
+    organization_id: input.organizationId,
+    branch_id: input.branchId,
+    folder_id: folderId,
+    owner_user_id: input.actorId,
+    title: `Contrato Laboral - ${fullName}`,
+    file_path: path,
+    mime_type: "application/pdf",
+    original_file_name: `contrato-laboral-${safeName}.pdf`,
+    file_size_bytes: pdfBytes.byteLength,
+    access_scope: folderScope,
+  };
+
+  const documentId = existingDoc?.id
+    ? (
+        await admin
+          .from("documents")
+          .update(documentPayload)
+          .eq("organization_id", input.organizationId)
+          .eq("id", existingDoc.id)
+          .select("id")
+          .single()
+      ).data?.id
+    : (
+        await admin.from("documents").insert(documentPayload).select("id").single()
+      ).data?.id;
+
+  if (!documentId) {
+    throw new Error("No se pudo registrar documento de contrato");
+  }
+
+  await admin.from("employee_documents").upsert(
+    {
+      organization_id: input.organizationId,
+      employee_id: input.employeeId,
+      document_id: documentId,
+      status: "approved",
+    },
+    { onConflict: "employee_id,document_id" },
+  );
+}
+
 export async function POST(request: Request) {
   const moduleAccess = await assertCompanyManagerModuleApi("employees");
   if (!moduleAccess.ok) {
@@ -137,6 +391,7 @@ export async function POST(request: Request) {
   let departmentId = String(formData.get("department_id") ?? "").trim() || null;
   let department = String(formData.get("department") ?? "").trim() || null;
   const branchId = String(formData.get("branch_id") ?? "").trim() || null;
+  let branchName: string | null = null;
   const email = String(formData.get("email") ?? "").trim().toLowerCase() || null;
   const phone = String(formData.get("phone") ?? "").trim() || null;
   const employmentStatusInput = String(
@@ -176,6 +431,13 @@ export async function POST(request: Request) {
   const contractNotes = String(formData.get("contract_notes") ?? "").trim() || null;
   const contractSignerName = String(formData.get("contract_signer_name") ?? "").trim() || null;
   const contractSignedAt = String(formData.get("contract_signed_at") ?? "").trim() || null;
+
+  const { data: organizationRow } = await supabase
+    .from("organizations")
+    .select("name")
+    .eq("id", tenant.organizationId)
+    .maybeSingle();
+  const companyName = organizationRow?.name ?? "la empresa";
 
   const selectedDocIds = formData
     .getAll("employee_document_id")
@@ -257,7 +519,7 @@ export async function POST(request: Request) {
   if (branchId) {
     const { data: branch, error: branchError } = await supabase
       .from("branches")
-      .select("id")
+      .select("id, name")
       .eq("organization_id", tenant.organizationId)
       .eq("id", branchId)
       .maybeSingle();
@@ -265,6 +527,8 @@ export async function POST(request: Request) {
     if (branchError || !branch) {
       return NextResponse.json({ error: "Locacion no valida para esta empresa" }, { status: 400 });
     }
+
+    branchName = branch.name;
   }
 
   if (departmentId) {
@@ -878,6 +1142,33 @@ export async function POST(request: Request) {
       if (contractError) {
         return NextResponse.json({ error: `No se pudo actualizar contrato: ${contractError.message}` }, { status: 400 });
       }
+
+      try {
+        await upsertEmployeeContractDocument({
+          organizationId: tenant.organizationId,
+          companyName,
+          actorId,
+          employeeId,
+          linkedUserId: linkedUserId ?? existingEmployee.user_id,
+          firstName,
+          lastName,
+          branchId,
+          branchName,
+          departmentId,
+          departmentName: department,
+          positionName: position,
+          hiredAt,
+          contractType,
+          paymentFrequency,
+          salaryAmount: Number.isNaN(salaryAmount ?? 0) ? null : salaryAmount,
+          salaryCurrency,
+        });
+      } catch (error) {
+        return NextResponse.json(
+          { error: error instanceof Error ? error.message : "No se pudo generar documento de contrato" },
+          { status: 400 },
+        );
+      }
     }
 
     await logAuditEvent({
@@ -1233,6 +1524,42 @@ export async function POST(request: Request) {
         createdAuthUserId,
       });
       return NextResponse.json({ error: `No se pudo completar alta de empleado: ${contractError.message}` }, { status: 400 });
+    }
+
+    try {
+      await upsertEmployeeContractDocument({
+        organizationId: tenant.organizationId,
+        companyName,
+        actorId,
+        employeeId: employee.id,
+        linkedUserId,
+        firstName,
+        lastName,
+        branchId,
+        branchName,
+        departmentId,
+        departmentName: department,
+        positionName: position,
+        hiredAt,
+        contractType,
+        paymentFrequency,
+        salaryAmount: Number.isNaN(salaryAmount ?? 0) ? null : salaryAmount,
+        salaryCurrency,
+      });
+    } catch (error) {
+      await rollbackEmployeeCreateFlow({
+        organizationId: tenant.organizationId,
+        employeeId: employee.id,
+        uploadedPaths,
+        uploadedDocumentIds,
+        linkedUserId,
+        createdMembershipForLinkedUser,
+        createdAuthUserId,
+      });
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "No se pudo generar documento de contrato" },
+        { status: 400 },
+      );
     }
   }
 
