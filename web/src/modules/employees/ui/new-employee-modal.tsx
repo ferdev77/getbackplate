@@ -207,6 +207,117 @@ export function NewEmployeeModal({
     ? new Intl.NumberFormat("es-ES", { style: "currency", currency: salaryCurrency }).format(salaryNumeric)
     : "[Salario]";
 
+  const contractReady =
+    Boolean(firstName.trim()) &&
+    Boolean(lastName.trim()) &&
+    Boolean(selectedBranch) &&
+    Boolean(selectedDept) &&
+    Boolean(selectedPosition) &&
+    Boolean(hireDate) &&
+    Boolean(contractType) &&
+    Number.isFinite(salaryNumeric) &&
+    salaryNumeric > 0 &&
+    Boolean(paymentFrequency);
+
+  async function buildContractPdf() {
+    const { jsPDF } = await import("jspdf");
+
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 46;
+    let y = 58;
+
+    doc.setDrawColor(212, 83, 26);
+    doc.setLineWidth(2);
+    doc.line(margin, 36, pageWidth - margin, 36);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(18, 34, 52);
+    doc.text("Contrato Laboral", margin, y);
+
+    y += 18;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(96, 109, 128);
+    const generatedAt = new Intl.DateTimeFormat("es-ES", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).format(new Date());
+    doc.text(`Empresa: ${companyName}  |  Generado: ${generatedAt}`, margin, y);
+
+    y += 28;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(44, 55, 72);
+    const contractBody = `El presente contrato se celebra entre ${employeeFullName} y la empresa ${companyName}, para desempeñar funciones como ${previewPosition} en ${previewBranch}, área ${previewDepartment}, con cumplimiento de las políticas internas.`;
+    const bodyLines = doc.splitTextToSize(contractBody, pageWidth - margin * 2);
+    doc.text(bodyLines, margin, y);
+
+    y += bodyLines.length * 14 + 24;
+
+    const boxX = margin;
+    const boxW = pageWidth - margin * 2;
+    const boxH = 132;
+    doc.setFillColor(250, 250, 252);
+    doc.setDrawColor(223, 228, 236);
+    doc.roundedRect(boxX, y, boxW, boxH, 10, 10, "FD");
+
+    const leftX = boxX + 16;
+    const rightX = boxX + boxW / 2 + 8;
+    let rowY = y + 24;
+
+    const drawMetaRow = (x: number, label: string, value: string) => {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(96, 109, 128);
+      doc.text(label.toUpperCase(), x, rowY);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(24, 35, 54);
+      doc.text(value, x, rowY + 16);
+    };
+
+    drawMetaRow(leftX, "Fecha de ingreso", previewHireDate);
+    drawMetaRow(rightX, "Tipo de contrato", previewContractType);
+    rowY += 50;
+    drawMetaRow(leftX, "Salario base", previewSalary);
+    drawMetaRow(rightX, "Frecuencia de pago", previewPaymentFrequency);
+
+    y += boxH + 28;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(118, 126, 141);
+    doc.text("Documento de vista previa generado desde el panel de Recursos Humanos.", margin, y);
+
+    return doc;
+  }
+
+  async function openContractPreview() {
+    if (!contractReady) return;
+    try {
+      const pdf = await buildContractPdf();
+      const blob = pdf.output("blob");
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    } catch {
+      toast.error("No se pudo generar la vista previa del contrato");
+    }
+  }
+
+  async function downloadContractPreview() {
+    if (!contractReady) return;
+    try {
+      const pdf = await buildContractPdf();
+      const fileBase = employeeFullName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-") || "empleado";
+      pdf.save(`contrato-${fileBase}.pdf`);
+    } catch {
+      toast.error("No se pudo descargar el contrato en PDF");
+    }
+  }
+
   const tabs = useMemo(
     () => [
       { key: "personal", label: "Info Personal" },
@@ -641,6 +752,25 @@ export function NewEmployeeModal({
                   <span className="font-semibold text-[var(--gbp-text)]">Frecuencia:</span> {previewPaymentFrequency}
                 </p>
               </article>
+
+              {contractReady ? (
+                <div className="mb-6 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={openContractPreview}
+                    className="rounded-md border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-surface)] px-2.5 py-1 text-[10px] font-semibold text-[var(--gbp-success)] hover:bg-[var(--gbp-success-soft)]"
+                  >
+                    Ver
+                  </button>
+                  <button
+                    type="button"
+                    onClick={downloadContractPreview}
+                    className="rounded-md border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-surface)] px-2.5 py-1 text-[10px] font-semibold text-[var(--gbp-success)] hover:bg-[var(--gbp-success-soft)]"
+                  >
+                    Descargar
+                  </button>
+                </div>
+              ) : null}
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="space-y-2">
