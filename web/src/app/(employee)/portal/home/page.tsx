@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { markEmployeeOnboardingSeenAction } from "@/modules/onboarding/actions";
-import { EmployeeWelcomeModal } from "@/modules/onboarding/ui/employee-welcome-modal";
+import { EmployeeHomeWelcomeWorkspace } from "@/modules/onboarding/ui/employee-home-welcome-workspace";
 import { requireEmployeeAccess } from "@/shared/lib/access";
 import { getEnabledModules } from "@/modules/organizations/queries";
 import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
@@ -458,7 +458,8 @@ export default async function EmployeeHomePage() {
       </div>
 
       {showOnboardingWelcome ? (
-        <EmployeeWelcomeModal
+        <EmployeeHomeWelcomeWorkspace
+          open={showOnboardingWelcome}
           pendingDocs={pendingDocs}
           approvedDocs={approvedDocs}
           contractSigned={contractSigned}

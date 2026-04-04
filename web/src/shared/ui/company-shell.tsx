@@ -1303,6 +1303,20 @@ export function CompanyShell({
     setMenuOpen(false);
   }
 
+  function renderModalLoading(title: string) {
+    return (
+      <div className="fixed inset-0 z-[1200] grid place-items-center bg-black/45 p-4">
+        <div className="w-full max-w-[420px] rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-[0_24px_70px_rgba(0,0,0,.18)]">
+          <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">{title}</p>
+          <div className="mt-3 flex items-center gap-2 text-sm text-[var(--gbp-text2)]">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Cargando formulario...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       data-theme={isDarkTheme ? "dark-pro" : normalizedTheme}
@@ -1858,17 +1872,7 @@ export function CompanyShell({
             users={announcementModalCatalog.users}
             publisherName={announcementModalCatalog.publisherName}
           />
-        ) : (
-          <div className="fixed inset-0 z-[1200] grid place-items-center bg-black/45 p-4">
-            <div className="w-full max-w-[420px] rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-              <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Nuevo Aviso</p>
-              <div className="mt-3 flex items-center gap-2 text-sm text-[var(--gbp-text2)]">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Cargando formulario...</span>
-              </div>
-            </div>
-          </div>
-        )
+        ) : renderModalLoading("Nuevo Aviso")
       ) : null}
 
       {checklistModalOpen ? (
@@ -1881,17 +1885,7 @@ export function CompanyShell({
             users={checklistModalCatalog.users}
             action="create"
           />
-        ) : (
-          <div className="fixed inset-0 z-[1200] grid place-items-center bg-black/45 p-4">
-            <div className="w-full max-w-[420px] rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-              <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Nuevo Checklist</p>
-              <div className="mt-3 flex items-center gap-2 text-sm text-[var(--gbp-text2)]">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Cargando formulario...</span>
-              </div>
-            </div>
-          </div>
-        )
+        ) : renderModalLoading("Nuevo Checklist")
       ) : null}
 
       {documentFolderModalOpen ? (
@@ -1904,17 +1898,7 @@ export function CompanyShell({
             positions={documentsModalCatalog.positions}
             employees={documentsModalCatalog.users}
           />
-        ) : (
-          <div className="fixed inset-0 z-[1200] grid place-items-center bg-black/45 p-4">
-            <div className="w-full max-w-[420px] rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-              <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Nueva Carpeta</p>
-              <div className="mt-3 flex items-center gap-2 text-sm text-[var(--gbp-text2)]">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Cargando formulario...</span>
-              </div>
-            </div>
-          </div>
-        )
+        ) : renderModalLoading("Nueva Carpeta")
       ) : null}
 
       {documentUploadModalOpen ? (
@@ -1928,17 +1912,7 @@ export function CompanyShell({
             employees={documentsModalCatalog.users}
             recentDocuments={documentsModalCatalog.recentDocuments}
           />
-        ) : (
-          <div className="fixed inset-0 z-[1200] grid place-items-center bg-black/45 p-4">
-            <div className="w-full max-w-[420px] rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-              <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Subir Archivo</p>
-              <div className="mt-3 flex items-center gap-2 text-sm text-[var(--gbp-text2)]">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Cargando formulario...</span>
-              </div>
-            </div>
-          </div>
-        )
+        ) : renderModalLoading("Subir Archivo")
       ) : null}
 
       {employeeModalOpen ? (
@@ -1953,17 +1927,7 @@ export function CompanyShell({
             publisherName={employeesModalCatalog.publisherName}
             companyName={employeesModalCatalog.companyName}
           />
-        ) : (
-          <div className="fixed inset-0 z-[1200] grid place-items-center bg-black/45 p-4">
-            <div className="w-full max-w-[420px] rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-              <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Nuevo Usuario / Empleado</p>
-              <div className="mt-3 flex items-center gap-2 text-sm text-[var(--gbp-text2)]">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Cargando formulario...</span>
-              </div>
-            </div>
-          </div>
-        )
+        ) : renderModalLoading("Nuevo Usuario / Empleado")
       ) : null}
 
       {userModalOpen ? (
@@ -1974,17 +1938,7 @@ export function CompanyShell({
             branches={usersModalCatalog.branches}
             roleOptions={usersModalCatalog.roleOptions}
           />
-        ) : (
-          <div className="fixed inset-0 z-[1200] grid place-items-center bg-black/45 p-4">
-            <div className="w-full max-w-[420px] rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-              <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Nuevo Administrador</p>
-              <div className="mt-3 flex items-center gap-2 text-sm text-[var(--gbp-text2)]">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Cargando formulario...</span>
-              </div>
-            </div>
-          </div>
-        )
+        ) : renderModalLoading("Nuevo Administrador")
       ) : null}
 
       {planOpen ? (
