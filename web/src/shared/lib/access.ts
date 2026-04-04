@@ -548,10 +548,52 @@ export async function requireEmployeeAccess() {
     redirect("/auth/change-password?reason=first_login");
   }
 
+  const preferredOrganizationId = await getActiveOrganizationIdFromCookie();
+
+  if (preferredOrganizationId) {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.rpc("get_employee_access_context", {
+      p_user_id: user.id,
+      p_organization_id: preferredOrganizationId,
+    });
+
+    const ctx = Array.isArray(data) ? data[0] : data;
+
+    if (!error && ctx) {
+      if (ctx.has_membership && ctx.role_code === "employee") {
+        return {
+          membershipId: String(ctx.membership_id ?? ""),
+          organizationId: preferredOrganizationId,
+          roleId: "",
+          branchId: ctx.branch_id ?? null,
+          roleCode: "employee",
+          createdAt: new Date().toISOString(),
+        } satisfies MembershipContext;
+      }
+
+      await logAccessDeniedEvent({
+        area: "employee",
+        reasonCode: AUDIT_REASON_CODES.MISSING_EMPLOYEE_ROLE,
+        organizationId: preferredOrganizationId,
+        branchId: ctx.branch_id ?? null,
+        requiredRole: "employee",
+        pathHint: "/portal/*",
+      });
+      redirect(
+        "/app/dashboard?status=error&message=" +
+          encodeURIComponent("Tu usuario no tiene acceso al portal de empleado"),
+      );
+    }
+  }
+
+  return requireEmployeeAccessFallback(user.id);
+}
+
+async function requireEmployeeAccessFallback(userId: string) {
   const isSuperadmin = await isCurrentUserSuperadmin();
   const context = await resolveTenantFromCookie({
     roleCodes: ["employee"],
-    userId: user.id,
+    userId,
     isSuperadmin,
   });
 
