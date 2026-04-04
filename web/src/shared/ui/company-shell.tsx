@@ -499,6 +499,7 @@ export function CompanyShell({
   const [stoppingImpersonation, setStoppingImpersonation] = useState(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const billingToastHandledRef = useRef(false);
+  const prefetchedRoutesRef = useRef<Set<string>>(new Set());
   const checklistCatalogPrefetchStartedRef = useRef(false);
   const documentsCatalogPrefetchStartedRef = useRef(false);
   const employeesCatalogPrefetchStartedRef = useRef(false);
@@ -714,13 +715,13 @@ export function CompanyShell({
     return "Panel";
   }, [pathname, searchParams, visibleSections]);
 
-  function hrefWithBranch(href: string) {
+  const hrefWithBranch = useCallback((href: string) => {
     if (!selectedBranch || !href.startsWith("/app")) return href;
     const [path, query] = href.split("?");
     const params = new URLSearchParams(query ?? "");
     if (!params.has("branch")) params.set("branch", selectedBranch);
     return `${path}?${params.toString()}`;
-  }
+  }, [selectedBranch]);
 
   const normalizedTheme = normalizeTheme(theme);
   const isDarkTheme = normalizedTheme === THEME_DARK_PRO;
@@ -1108,7 +1109,7 @@ export function CompanyShell({
       void ensureAnnouncementModalCatalog().catch(() => {
         announcementCatalogPrefetchStartedRef.current = false;
       });
-    }, 180);
+    }, 60);
 
     return () => clearTimeout(timer);
   }, [announcementModalCatalog, enabledModuleSet, ensureAnnouncementModalCatalog]);
@@ -1123,7 +1124,7 @@ export function CompanyShell({
       void ensureChecklistModalCatalog().catch(() => {
         checklistCatalogPrefetchStartedRef.current = false;
       });
-    }, 220);
+    }, 90);
 
     return () => clearTimeout(timer);
   }, [checklistModalCatalog, enabledModuleSet, ensureChecklistModalCatalog]);
@@ -1138,7 +1139,7 @@ export function CompanyShell({
       void ensureDocumentsModalCatalog().catch(() => {
         documentsCatalogPrefetchStartedRef.current = false;
       });
-    }, 240);
+    }, 120);
 
     return () => clearTimeout(timer);
   }, [documentsModalCatalog, enabledModuleSet, ensureDocumentsModalCatalog]);
@@ -1153,7 +1154,7 @@ export function CompanyShell({
       void ensureEmployeesModalCatalog().catch(() => {
         employeesCatalogPrefetchStartedRef.current = false;
       });
-    }, 260);
+    }, 150);
 
     return () => clearTimeout(timer);
   }, [employeesModalCatalog, enabledModuleSet, ensureEmployeesModalCatalog]);
@@ -1168,10 +1169,28 @@ export function CompanyShell({
       void ensureUsersModalCatalog().catch(() => {
         usersCatalogPrefetchStartedRef.current = false;
       });
-    }, 280);
+    }, 180);
 
     return () => clearTimeout(timer);
   }, [enabledModuleSet, ensureUsersModalCatalog, usersModalCatalog]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const candidates = visibleSections
+        .flatMap((section) => section.items)
+        .filter((item) => !item.actionKey)
+        .map((item) => hrefWithBranch(item.href))
+        .filter((href) => href && !pathname.startsWith(href.split("?")[0] || ""));
+
+      for (const href of candidates.slice(0, 8)) {
+        if (prefetchedRoutesRef.current.has(href)) continue;
+        prefetchedRoutesRef.current.add(href);
+        router.prefetch(href);
+      }
+    }, 260);
+
+    return () => clearTimeout(timer);
+  }, [hrefWithBranch, pathname, router, visibleSections]);
 
   const sidebarWidth = collapsed ? "w-[56px]" : "w-[240px]";
   const sidebarPaddingX = collapsed ? "px-2" : "px-4";
@@ -1303,6 +1322,28 @@ export function CompanyShell({
     setMenuOpen(false);
   }
 
+  function prefetchQuickActionCatalog(item: SidebarItem) {
+    if (item.actionKey === "openAnnouncementModal") {
+      void ensureAnnouncementModalCatalog().catch(() => {});
+      return;
+    }
+    if (item.actionKey === "openChecklistModal") {
+      void ensureChecklistModalCatalog().catch(() => {});
+      return;
+    }
+    if (item.actionKey === "openDocumentFolderModal" || item.actionKey === "openDocumentUploadModal") {
+      void ensureDocumentsModalCatalog().catch(() => {});
+      return;
+    }
+    if (item.actionKey === "openEmployeeModal") {
+      void ensureEmployeesModalCatalog().catch(() => {});
+      return;
+    }
+    if (item.actionKey === "openUserModal") {
+      void ensureUsersModalCatalog().catch(() => {});
+    }
+  }
+
   function renderModalLoading(title: string) {
     return (
       <div className="fixed inset-0 z-[1200] grid place-items-center bg-black/45 p-4">
@@ -1401,6 +1442,7 @@ export function CompanyShell({
                             type="button"
                             className={itemClassName}
                             onClick={() => handleSidebarItemClick(item)}
+                            onMouseEnter={() => prefetchQuickActionCatalog(item)}
                           >
                             <item.icon className="h-4 w-4" />
                             {!collapsed ? <span>{item.label}</span> : null}
@@ -1415,6 +1457,7 @@ export function CompanyShell({
                           className={itemClassName}
                           style={active ? { borderLeftColor: palette.accent } : undefined}
                           onClick={() => handleSidebarItemClick(item)}
+                          onMouseEnter={() => router.prefetch(hrefWithBranch(item.href))}
                         >
                           <item.icon className="h-4 w-4" />
                           {!collapsed ? <span>{item.label}</span> : null}
@@ -2168,6 +2211,7 @@ export function CompanyShell({
                               type="button"
                               className={itemClassName}
                               onClick={() => handleSidebarItemClick(item)}
+                              onMouseEnter={() => prefetchQuickActionCatalog(item)}
                             >
                               <item.icon className="h-4 w-4" />
                               <span>{item.label}</span>
@@ -2182,6 +2226,7 @@ export function CompanyShell({
                             className={itemClassName}
                             style={active ? { borderLeftColor: palette.accent } : undefined}
                             onClick={() => handleSidebarItemClick(item)}
+                            onMouseEnter={() => router.prefetch(hrefWithBranch(item.href))}
                           >
                             <item.icon className="h-4 w-4" />
                             <span>{item.label}</span>

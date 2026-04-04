@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { LayoutDashboard, ClipboardList, Folder, Bell, FileText, PanelsLeftRight, LogOut, Menu } from "lucide-react";
@@ -58,6 +58,7 @@ export function EmployeeShell({
   const pathname = usePathname();
   const router = useRouter();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prefetchedRoutesRef = useRef<Set<string>>(new Set());
 
   const [collapsed, setCollapsed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -142,21 +143,24 @@ export function EmployeeShell({
     };
   }, [employeeId, organizationId, pathname, router, userId]);
 
-  const items = [
-    { href: "/portal/home", label: "Dashboard", icon: LayoutDashboard },
-  ];
-  if (enabledModules.announcements) {
-    items.push({ href: "/portal/announcements", label: "Avisos", icon: Bell });
-  }
-  if (enabledModules.checklists) {
-    items.push({ href: "/portal/checklist", label: "Checklists", icon: ClipboardList });
-  }
-  if (enabledModules.documents) {
-    items.push({ href: "/portal/documents", label: "Documentos", icon: Folder });
-  }
-  if (enabledModules.onboarding) {
-    items.push({ href: "/portal/onboarding", label: "Instrucciones", icon: FileText });
-  }
+  const items = useMemo(() => {
+    const result = [
+      { href: "/portal/home", label: "Dashboard", icon: LayoutDashboard },
+    ];
+    if (enabledModules.announcements) {
+      result.push({ href: "/portal/announcements", label: "Avisos", icon: Bell });
+    }
+    if (enabledModules.checklists) {
+      result.push({ href: "/portal/checklist", label: "Checklists", icon: ClipboardList });
+    }
+    if (enabledModules.documents) {
+      result.push({ href: "/portal/documents", label: "Documentos", icon: Folder });
+    }
+    if (enabledModules.onboarding) {
+      result.push({ href: "/portal/onboarding", label: "Instrucciones", icon: FileText });
+    }
+    return result;
+  }, [enabledModules.announcements, enabledModules.checklists, enabledModules.documents, enabledModules.onboarding]);
 
   const sidebarWidth = collapsed ? "w-[56px]" : "w-[240px]";
   const sidebarPaddingX = collapsed ? "px-2" : "px-4";
@@ -172,6 +176,19 @@ export function EmployeeShell({
   const currentLabel = items.find(item => pathname.startsWith(item.href))?.label || "Portal";
   const brandingName = customBrandingEnabled ? (organizationName || "Empresa") : "GetBackplate";
   const effectiveCompanyLogoUrl = customBrandingEnabled ? companyLogoUrl : "";
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      for (const item of items) {
+        if (pathname.startsWith(item.href)) continue;
+        if (prefetchedRoutesRef.current.has(item.href)) continue;
+        prefetchedRoutesRef.current.add(item.href);
+        router.prefetch(item.href);
+      }
+    }, 220);
+
+    return () => clearTimeout(timer);
+  }, [items, pathname, router]);
 
   return (
     <div className="min-h-screen text-[var(--gbp-text)]" style={{ background: palette.pageGradient }}>
@@ -244,6 +261,7 @@ export function EmployeeShell({
                     }`}
                     style={active ? { borderLeftColor: palette.accent } : undefined}
                     onClick={() => setMenuOpen(false)}
+                    onMouseEnter={() => router.prefetch(item.href)}
                   >
                     <item.icon className="h-4 w-4 shrink-0" />
                     {!collapsed ? <span>{item.label}</span> : null}
