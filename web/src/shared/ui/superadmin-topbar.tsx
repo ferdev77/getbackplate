@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { Menu, X, LogOut, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { logoutAction } from "@/modules/auth/actions";
@@ -25,7 +25,22 @@ function isActive(pathname: string, href: string) {
 
 export function SuperadminTopbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const prefetchedRoutesRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      for (const item of ITEMS) {
+        if (pathname.startsWith(item.href)) continue;
+        if (prefetchedRoutesRef.current.has(item.href)) continue;
+        prefetchedRoutesRef.current.add(item.href);
+        router.prefetch(item.href);
+      }
+    }, 220);
+
+    return () => clearTimeout(timer);
+  }, [pathname, router]);
 
   return (
     <>
@@ -43,6 +58,7 @@ export function SuperadminTopbar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onMouseEnter={() => router.prefetch(item.href)}
                 className={`relative px-4 py-2 text-sm font-medium transition-all rounded-xl ${
                   active
                      ? "text-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] font-bold"
@@ -94,6 +110,7 @@ export function SuperadminTopbar() {
                     key={item.href}
                     href={item.href}
                     onClick={() => setIsOpen(false)}
+                    onMouseEnter={() => router.prefetch(item.href)}
                     className={`flex items-center justify-between rounded-xl px-4 py-3.5 transition-all ${
                       active 
                         ? "bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)] font-bold" 

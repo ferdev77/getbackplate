@@ -125,16 +125,17 @@ export function EmployeeChecklistWorkspace({
   }, [initialPreviewTemplateId, openPreview, templates]);
 
   useEffect(() => {
-    const topTemplates = templates.slice(0, 2);
-    if (!topTemplates.length) return;
+    if (!templates.length) return;
     const timer = setTimeout(() => {
-      for (const template of topTemplates) {
-        if (cacheRef.current.has(template.id)) continue;
-        void fetchPreview(template.id, { silent: true }).catch(() => {
-          // ignore silent prefetch failure
-        });
-      }
-    }, 220);
+      templates.forEach((template, index) => {
+        setTimeout(() => {
+          if (cacheRef.current.has(template.id)) return;
+          void fetchPreview(template.id, { silent: true }).catch(() => {
+            // ignore silent prefetch failure
+          });
+        }, index * 120);
+      });
+    }, 120);
 
     return () => clearTimeout(timer);
   }, [fetchPreview, templates]);
