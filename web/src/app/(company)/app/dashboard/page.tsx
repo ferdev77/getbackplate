@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { getEnabledModules } from "@/modules/organizations/queries";
+import { getEnabledModulesCached } from "@/modules/organizations/cached-queries";
 import { requireTenantModule } from "@/shared/lib/access";
 import { CompanyDashboardWorkspace } from "@/shared/ui/company-dashboard-workspace";
 import { PaymentSuccessBanner } from "@/shared/ui/payment-success-banner";
@@ -14,7 +14,8 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
   const params = await searchParams;
   const selectedBranch = typeof params?.branch === "string" ? params.branch.trim() : "";
 
-  const enabledModuleCodes = await getEnabledModules(tenant.organizationId);
+  const enabledModulesArr = await getEnabledModulesCached(tenant.organizationId);
+  const enabledModuleCodes = new Set(enabledModulesArr);
   const isReportsEnabled = enabledModuleCodes.has("reports");
   const isEmployeesEnabled = enabledModuleCodes.has("employees");
   const [{ data: organization }, { data: branches }] = await Promise.all([

@@ -12,7 +12,7 @@ import { ChecklistUpsertModal } from "@/modules/checklists/ui/checklist-upsert-m
 import { ChecklistDeleteModal } from "@/modules/checklists/ui/checklist-delete-modal";
 import { requireTenantModule } from "@/shared/lib/access";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
-import { getEnabledModules } from "@/modules/organizations/queries";
+import { getEnabledModulesCached } from "@/modules/organizations/cached-queries";
 import { SlideUp } from "@/shared/ui/animations";
 
 type CompanyChecklistsPageProps = {
@@ -178,7 +178,8 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
     }
   }
 
-  const enabledModules = await getEnabledModules(tenant.organizationId);
+  const enabledModulesArr = await getEnabledModulesCached(tenant.organizationId);
+  const enabledModules = new Set(enabledModulesArr);
   const customBrandingEnabled = enabledModules.has("custom_branding");
 
   const mappedBranches = (branches ?? []).map((b) => ({

@@ -1,36 +1,41 @@
 import { getCurrentUser } from "@/modules/memberships/queries";
-import { 
-  getOrganizationById, 
-  getOrganizationSettings, 
-  getActivePlans, 
-  getPlanModulesMap,
-  getUserPreferences, 
-  getEnabledModules,
-  getActiveBranches,
-  getLatestSubscriptionForOrganization,
-  getOrganizationBillingGate,
-} from "@/modules/organizations/queries";
+import {
+  getActivePlansCached,
+  getPlanModulesMapCached,
+  getOrganizationSettingsCached,
+  getEnabledModulesCached,
+  getActiveBranchesCached,
+  getLatestSubscriptionCached,
+  getOrganizationBillingGateCached,
+  getUserPreferencesCached,
+  getOrganizationByIdCached,
+} from "@/modules/organizations/cached-queries";
 import { requireCompanyAccess } from "@/shared/lib/access";
 import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impersonation";
 import { CompanyShell } from "@/shared/ui/company-shell";
 import { FadeIn } from "@/shared/ui/animations";
 
-export const dynamic = "force-dynamic";
-
 export default async function CompanyLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // ── Auth gate (requires cookies — always dynamic) ─────────────────
   const tenant = await requireCompanyAccess();
 
+  // ── Parallel: user + org (org uses cross-request cache) ───────────
   const [user, organization] = await Promise.all([
     getCurrentUser(),
-    getOrganizationById(tenant.organizationId),
+    getOrganizationByIdCached(tenant.organizationId),
   ]);
 
+  // ── Impersonation (depends on user) ───────────────────────────────
   const impersonationSession = user
     ? await resolveActiveSuperadminImpersonationSession(user.id)
     : null;
 
+  // ── All secondary data — cross-request cached ─────────────────────
+  // These queries use unstable_cache with TTL (30s-300s) + admin client.
+  // They do NOT create a new Supabase server client per call,
+  // reducing cookie parsing + auth overhead to zero.
   const [
     orgSettings,
     preferences,
@@ -41,15 +46,18 @@ export default async function CompanyLayout({
     latestSubscription,
     billingGate,
   ] = await Promise.all([
-    getOrganizationSettings(tenant.organizationId),
-    user ? getUserPreferences(user.id, tenant.organizationId) : Promise.resolve(null),
-    getActivePlans(),
-    getPlanModulesMap(),
-    getEnabledModules(tenant.organizationId),
-    getActiveBranches(tenant.organizationId),
-    getLatestSubscriptionForOrganization(tenant.organizationId),
-    getOrganizationBillingGate(tenant.organizationId),
+    getOrganizationSettingsCached(tenant.organizationId),
+    user ? getUserPreferencesCached(user.id, tenant.organizationId) : Promise.resolve(null),
+    getActivePlansCached(),
+    getPlanModulesMapCached(),
+    getEnabledModulesCached(tenant.organizationId),
+    getActiveBranchesCached(tenant.organizationId),
+    getLatestSubscriptionCached(tenant.organizationId),
+    getOrganizationBillingGateCached(tenant.organizationId),
   ]);
+
+  // ── enabledModuleCodes comes as string[] from cache (Set not serializable) ──
+  const enabledModuleCodesSet = new Set(enabledModuleCodes);
 
   const subscriptionEndsAt =
     typeof latestSubscription?.current_period_end === "string"
@@ -75,12 +83,12 @@ export default async function CompanyLayout({
     "company_portal",
     "dashboard",
     "settings",
-    ...(enabledModuleCodes.has("employees") ? ["employees"] : []),
-    ...(enabledModuleCodes.has("documents") ? ["documents"] : []),
-    ...(enabledModuleCodes.has("announcements") ? ["announcements"] : []),
-    ...(enabledModuleCodes.has("checklists") ? ["checklists"] : []),
-    ...(enabledModuleCodes.has("reports") ? ["reports"] : []),
-    ...(enabledModuleCodes.has("ai_assistant") ? ["ai_assistant"] : []),
+    ...(enabledModuleCodesSet.has("employees") ? ["employees"] : []),
+    ...(enabledModuleCodesSet.has("documents") ? ["documents"] : []),
+    ...(enabledModuleCodesSet.has("announcements") ? ["announcements"] : []),
+    ...(enabledModuleCodesSet.has("checklists") ? ["checklists"] : []),
+    ...(enabledModuleCodesSet.has("reports") ? ["reports"] : []),
+    ...(enabledModuleCodesSet.has("ai_assistant") ? ["ai_assistant"] : []),
   ];
 
   const roleLabelByCode: Record<string, string> = {
@@ -144,7 +152,7 @@ export default async function CompanyLayout({
       currentPlanName={inferredCurrentPlan?.name ?? "Sin plan"}
       companyLogoUrl={orgSettings?.company_logo_url ?? ""}
       companyLogoDarkUrl={orgSettings?.company_logo_dark_url ?? ""}
-      customBrandingEnabled={enabledModuleCodes.has("custom_branding")}
+      customBrandingEnabled={enabledModuleCodesSet.has("custom_branding")}
       planModulesByPlanId={planModulesByPlanId}
       enabledModules={enabledModules}
       branchOptions={activeBranches}
