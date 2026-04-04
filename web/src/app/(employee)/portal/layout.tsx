@@ -1,7 +1,6 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { getEnabledModules } from "@/modules/organizations/queries";
 import { requireAuthenticatedUser, requireEmployeeAccess } from "@/shared/lib/access";
-import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
 import { EmployeeShell } from "@/shared/ui/employee-shell";
 
 export const dynamic = "force-dynamic";
@@ -61,19 +60,6 @@ export default async function EmployeeLayout({
         .maybeSingle()
     : { data: null };
 
-  let employeePositionIds: string[] = [];
-  if (employee?.position) {
-    const { data: positionRows } = await supabase
-      .from("department_positions")
-      .select("id")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .eq("name", employee.position)
-      .limit(20);
-
-    employeePositionIds = (positionRows ?? []).map((row) => row.id);
-  }
-
   const enabledModuleCodes = await getEnabledModules(tenant.organizationId);
 
   const isDocumentsEnabled = enabledModuleCodes.has("documents");
@@ -81,49 +67,13 @@ export default async function EmployeeLayout({
   const isAnnouncementsEnabled = enabledModuleCodes.has("announcements");
   const isOnboardingEnabled = enabledModuleCodes.has("onboarding");
 
-  let docsCount = 0;
-
-  if (isDocumentsEnabled && user.id && tenant.organizationId) {
-    const { data: countData } = await supabase.rpc("count_accessible_documents", {
-      p_organization_id: tenant.organizationId,
-      p_user_id: user.id,
-      p_role_code: tenant.roleCode,
-      p_branch_id: employeeBranchId,
-      p_department_id: employee?.department_id ?? null,
-      p_position_ids: employeePositionIds,
-    });
-    docsCount = countData ?? 0;
-  }
+  const docsCount = 0;
 
   const employeeName = employee
     ? `${employee.first_name} ${employee.last_name}`.trim()
     : (typeof user.user_metadata?.full_name === "string" && user.user_metadata.full_name.trim()) || user.email || "Empleado";
 
-  let checklistTemplateNames: string[] = [];
-  if (isChecklistEnabled) {
-    const { data: templates } = await supabase
-      .from("checklist_templates")
-      .select("id, name, branch_id, department_id, target_scope, updated_at")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("updated_at", { ascending: false })
-      .limit(100);
-
-    checklistTemplateNames = (templates ?? [])
-      .filter((template) =>
-        canUseChecklistTemplateInTenant({
-          roleCode: tenant.roleCode,
-          userId: user.id,
-          branchId: employeeBranchId,
-          departmentId: employee?.department_id ?? null,
-          positionIds: employeePositionIds,
-          templateBranchId: template.branch_id,
-          templateDepartmentId: template.department_id,
-          targetScope: template.target_scope,
-        }),
-      )
-      .map((template) => template.name);
-  }
+  const checklistTemplateNames: string[] = [];
 
   return (
     <EmployeeShell
