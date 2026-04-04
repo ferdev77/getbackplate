@@ -164,19 +164,21 @@ export function CompanyDashboardWorkspace({
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
-      <SlideUp>
-        <section className="mb-5 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-6">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gbp-muted)]">
-            Dashboard Empresa
-          </p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">
-            {organizationName}
-          </h1>
-          <p className="mt-1 text-sm text-[var(--gbp-text2)]">
-            Centro operativo con estado diario, seguimiento de tareas y actividad reciente.
-          </p>
-        </section>
-      </SlideUp>
+      {!selectedLocationName ? (
+        <SlideUp>
+          <section className="mb-5 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-6">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gbp-muted)]">
+              Dashboard Empresa
+            </p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">
+              {organizationName}
+            </h1>
+            <p className="mt-1 text-sm text-[var(--gbp-text2)]">
+              Centro operativo con estado diario, seguimiento de tareas y actividad reciente.
+            </p>
+          </section>
+        </SlideUp>
+      ) : null}
 
       <AnimatedList className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <AnimatedItem>
