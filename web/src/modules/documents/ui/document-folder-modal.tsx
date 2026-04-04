@@ -1,7 +1,6 @@
 "use client";
 
 import { type FormEvent, useState, startTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
@@ -14,6 +13,7 @@ type Position = { id: string; department_id: string; name: string };
 type Employee = { id: string; user_id: string | null; first_name: string; last_name: string; role_label?: string };
 
 type DocumentFolderModalProps = {
+  onClose?: () => void;
   folders: Folder[];
   branches: Branch[];
   departments: Department[];
@@ -22,6 +22,7 @@ type DocumentFolderModalProps = {
 };
 
 export function DocumentFolderModal({
+  onClose,
   folders,
   branches,
   departments,
@@ -30,6 +31,14 @@ export function DocumentFolderModal({
 }: DocumentFolderModalProps) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
+
+  const closeModal = () => {
+    if (onClose) {
+      onClose();
+      return;
+    }
+    router.push("/app/documents");
+  };
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -78,7 +87,7 @@ export function DocumentFolderModal({
             <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Nueva Carpeta</p>
             <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">Organiza documentos y define el alcance de acceso.</p>
           </div>
-          <Link href="/app/documents" className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</Link>
+          <button type="button" onClick={closeModal} className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</button>
         </div>
         <form onSubmit={onSubmit}>
           <div className="max-h-[74vh] overflow-y-auto px-6 py-5">
@@ -114,7 +123,7 @@ export function DocumentFolderModal({
             </div>
           </div>
           <div className="flex justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
-            <Link href="/app/documents" className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">Cancelar</Link>
+            <button type="button" onClick={closeModal} className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">Cancelar</button>
             <SubmitButton 
               label="Crear Carpeta" 
               pendingLabel="Creando..." 

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState, startTransition } from "react";
 import { CheckCircle2 } from "lucide-react";
@@ -17,6 +16,7 @@ type Employee = { id: string; user_id: string | null; first_name: string; last_n
 type RecentDocument = { id: string; title: string; branch_id: string | null; created_at: string };
 
 type Props = {
+  onClose?: () => void;
   folders: Folder[];
   branches: Branch[];
   departments: Department[];
@@ -26,6 +26,7 @@ type Props = {
 };
 
 export function UploadDocumentModal({
+  onClose,
   folders,
   branches,
   departments,
@@ -40,6 +41,14 @@ export function UploadDocumentModal({
   const [selectedFolderId, setSelectedFolderId] = useState("");
   const [isClosing, setIsClosing] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
+
+  const closeModal = () => {
+    if (onClose) {
+      onClose();
+      return;
+    }
+    router.push("/app/documents");
+  };
 
   const branchMap = useMemo(() => new Map(branches.map((branch) => [branch.id, branch.name])), [branches]);
 
@@ -113,7 +122,7 @@ export function UploadDocumentModal({
   return (
     <div className={`fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5 transition-opacity duration-300 ${isClosing ? "opacity-0" : "opacity-100"}`}>
       <div className={`relative max-h-[90vh] w-[980px] max-w-[96vw] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)] transition duration-300 ${isClosing ? "scale-[0.985] opacity-0" : "scale-100 opacity-100"}`}>
-        <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5"><p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Subir Archivo</p><Link href="/app/documents" className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</Link></div>
+        <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5"><p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Subir Archivo</p><button type="button" onClick={closeModal} className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</button></div>
         <form onSubmit={handleSubmit}>
           <div className="max-h-[68vh] overflow-y-auto px-6 py-5">
             <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
@@ -188,9 +197,9 @@ export function UploadDocumentModal({
             </div>
           </div>
           <div className="flex justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
-            <Link href="/app/documents" className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">
+            <button type="button" onClick={closeModal} className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">
               Cancelar
-            </Link>
+            </button>
             <SubmitButton 
               label="Subir Archivo" 
               pendingLabel="Subiendo..." 
