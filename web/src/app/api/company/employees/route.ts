@@ -7,6 +7,7 @@ import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { EMPLOYEES_MESSAGES, employeesStorageLimitForSlot } from "@/shared/lib/employees-messages";
 import { analyzeUploadedFile } from "@/shared/lib/file-security";
+import { getEmployeeDirectoryView } from "@/modules/employees/services";
 import { extractDisplayName } from "@/shared/lib/user";
 import {
   assertPlanLimitForEmployees,
@@ -23,6 +24,35 @@ const ALLOWED_EMPLOYMENT_STATUSES = new Set(["active", "inactive", "vacation", "
 const BUCKET_NAME = "tenant-documents";
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const ASYNC_POST_PROCESS_THRESHOLD_BYTES = 5 * 1024 * 1024;
+
+type DirectoryMembershipUser = {
+  membershipId: string;
+  userId: string;
+  fullName: string;
+  email: string;
+  roleCode: string;
+  status: string;
+  branchId: string | null;
+  branchName: string;
+  createdAt: string;
+};
+
+const EMPLOYEE_DOCUMENT_SLOT_RULES: Array<{ slot: string; prefix: string }> = [
+  { slot: "photo", prefix: "Foto del Empleado - " },
+  { slot: "id", prefix: "ID / Identificacion - " },
+  { slot: "ssn", prefix: "Numero de Seguro Social - " },
+  { slot: "rec1", prefix: "Food Handler Certificate - " },
+  { slot: "rec2", prefix: "Alcohol Server Certificate - " },
+  { slot: "other", prefix: "Food Protection Manager - " },
+  { slot: "rec1", prefix: "Carta de Recomendacion 1 - " },
+  { slot: "rec2", prefix: "Carta de Recomendacion 2 - " },
+  { slot: "other", prefix: "Otro Documento - " },
+];
+
+function resolveDocumentSlotFromTitle(title: string | null | undefined) {
+  if (!title) return null;
+  return EMPLOYEE_DOCUMENT_SLOT_RULES.find((rule) => title.startsWith(rule.prefix))?.slot ?? null;
+}
 
 const emailSchema = z.string().email();
 const dateOnlySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -128,7 +158,7 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const catalog = url.searchParams.get("catalog");
-  if (catalog !== "create_modal") {
+  if (catalog !== "create_modal" && catalog !== "directory_page") {
     return NextResponse.json({ error: "Consulta no soportada" }, { status: 400 });
   }
 
@@ -163,6 +193,173 @@ export async function GET(request: Request) {
     id: branch.id,
     name: customBrandingEnabled && branch.city ? branch.city : branch.name,
   }));
+
+  if (catalog === "directory_page") {
+    const limitRaw = Number.parseInt(url.searchParams.get("limit") ?? "100", 10);
+    const pageRaw = Number.parseInt(url.searchParams.get("page") ?? "1", 10);
+    const pageLimit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 20), 200) : 100;
+    const pageNumber = Number.isFinite(pageRaw) ? Math.max(pageRaw, 1) : 1;
+    const offset = Math.max(0, (pageNumber - 1) * pageLimit);
+
+    const viewData = await getEmployeeDirectoryView(organizationId, pageLimit, offset, {
+      includeModalsData: false,
+      includeUsersTab: true,
+    });
+
+    const { data: organizationUserProfiles } = await supabase
+      .from("organization_user_profiles")
+      .select("id, user_id, first_name, last_name, email, phone, branch_id, department_id, is_employee, status, created_at")
+      .eq("organization_id", organizationId)
+      .eq("is_employee", false)
+      .order("created_at", { ascending: false })
+      .limit(pageLimit * 2);
+
+    const { data: organizationMemberships } = await supabase
+      .from("memberships")
+      .select("user_id, status")
+      .eq("organization_id", organizationId);
+
+    const activeMembershipUserIds = new Set(
+      (organizationMemberships ?? [])
+        .filter((membership) => membership.status === "active")
+        .map((membership) => membership.user_id),
+    );
+
+    const profileUserIds = Array.from(
+      new Set((organizationUserProfiles ?? []).map((profile) => profile.user_id).filter(Boolean)),
+    ) as string[];
+
+    const userDocumentsCountByUserId = new Map<string, number>();
+    if (profileUserIds.length > 0) {
+      const { data: profileScopedDocuments } = await supabase
+        .from("documents")
+        .select("id, title, access_scope")
+        .eq("organization_id", organizationId)
+        .is("deleted_at", null)
+        .or([
+          "title.ilike.Foto del Empleado - %",
+          "title.ilike.ID / Identificacion - %",
+          "title.ilike.Numero de Seguro Social - %",
+          "title.ilike.Food Handler Certificate - %",
+          "title.ilike.Alcohol Server Certificate - %",
+          "title.ilike.Food Protection Manager - %",
+          "title.ilike.Carta de Recomendacion 1 - %",
+          "title.ilike.Carta de Recomendacion 2 - %",
+          "title.ilike.Otro Documento - %",
+        ].join(","));
+
+      const docIdsByUser = new Map<string, Set<string>>();
+      for (const row of profileScopedDocuments ?? []) {
+        const slot = resolveDocumentSlotFromTitle(typeof row.title === "string" ? row.title : null);
+        if (!slot) continue;
+        const accessScope = row.access_scope as { users?: unknown } | null;
+        const users = Array.isArray(accessScope?.users)
+          ? (accessScope?.users.filter((value): value is string => typeof value === "string") ?? [])
+          : [];
+        for (const userId of users) {
+          if (!profileUserIds.includes(userId)) continue;
+          if (!docIdsByUser.has(userId)) docIdsByUser.set(userId, new Set<string>());
+          docIdsByUser.get(userId)!.add(row.id);
+        }
+      }
+      for (const userId of profileUserIds) {
+        userDocumentsCountByUserId.set(userId, docIdsByUser.get(userId)?.size ?? 0);
+      }
+    }
+
+    const branchNameById = new Map((viewData.branches ?? []).map((b) => [b.id, b.name]));
+    const departmentNameById = new Map((viewData.departments ?? []).map((d) => [d.id, d.name]));
+    const membershipByUser = new Map<string, DirectoryMembershipUser>(
+      ((viewData.users ?? []) as DirectoryMembershipUser[]).map((u) => [u.userId, u]),
+    );
+
+    const employeeRows = viewData.employees.map((emp) => {
+      const defaultContract = emp.contracts?.[0];
+      return {
+        recordType: "employee" as const,
+        id: emp.id,
+        firstName: emp.firstName,
+        lastName: emp.lastName,
+        email: emp.email,
+        phone: emp.phone,
+        position: emp.position,
+        status: emp.status,
+        dashboardAccess: Boolean(emp.userId && activeMembershipUserIds.has(emp.userId)),
+        hiredAt: emp.hiredAt,
+        branchName: emp.branchName ?? "Sin locacion",
+        departmentName: emp.department ?? "Sin departamento",
+        salaryAmount: defaultContract?.salary_amount ?? null,
+        salaryCurrency: defaultContract?.salary_currency ?? null,
+        paymentFrequency: defaultContract?.payment_frequency ?? null,
+        contractStatus: defaultContract?.contract_status ?? null,
+        contractSignedAt: defaultContract?.signed_at ?? null,
+        birthDate: emp.birthDate,
+        sex: emp.sex,
+        nationality: emp.nationality,
+        addressLine1: emp.addressLine1,
+        addressCity: emp.addressCity,
+        addressState: emp.addressState,
+        addressCountry: emp.addressCountry,
+        emergencyName: emp.emergencyContactName,
+        emergencyPhone: emp.emergencyContactPhone,
+        emergencyEmail: emp.emergencyContactEmail,
+        pendingDocuments: typeof emp.pendingDocuments === "number" ? emp.pendingDocuments : 0,
+        docsCompletionStatus: (emp.documentsCompletionStatus === "complete" ? "complete" : "incomplete") as "complete" | "incomplete",
+        organizationUserProfileId: null,
+      };
+    });
+
+    const userRows = (organizationUserProfiles ?? []).map((profile) => {
+      const fullName = `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim();
+      const membership = profile.user_id ? membershipByUser.get(profile.user_id) : null;
+
+      return {
+        recordType: "user" as const,
+        id: `user-profile-${profile.id}`,
+        membershipId: membership?.membershipId ?? null,
+        roleCode: membership?.roleCode ?? "employee",
+        branchId: profile.branch_id ?? null,
+        firstName: profile.first_name ?? (fullName || "Usuario"),
+        lastName: profile.last_name ?? "",
+        email: profile.email,
+        phone: profile.phone,
+        position: null,
+        status: profile.status ?? "inactive",
+        dashboardAccess: Boolean(profile.user_id && activeMembershipUserIds.has(profile.user_id)),
+        hiredAt: null,
+        branchName: profile.branch_id ? (branchNameById.get(profile.branch_id) ?? "Sin locacion") : "Sin locacion",
+        departmentName: profile.department_id ? (departmentNameById.get(profile.department_id) ?? "Sin departamento") : "Sin departamento",
+        salaryAmount: null,
+        salaryCurrency: null,
+        paymentFrequency: null,
+        contractStatus: null,
+        contractSignedAt: null,
+        birthDate: null,
+        sex: null,
+        nationality: null,
+        addressLine1: null,
+        addressCity: null,
+        addressState: null,
+        addressCountry: null,
+        emergencyName: null,
+        emergencyPhone: null,
+        emergencyEmail: null,
+        pendingDocuments: 0,
+        docsCompletionStatus: "incomplete" as const,
+        docsUploadedCount: profile.user_id ? (userDocumentsCountByUserId.get(profile.user_id) ?? 0) : 0,
+        organizationUserProfileId: profile.id,
+      };
+    });
+
+    return NextResponse.json({
+      employees: [...employeeRows, ...userRows],
+      branches: mappedBranches,
+      departments: departments ?? [],
+      positions: positions ?? [],
+      publisherName: extractDisplayName(authData.user),
+      companyName: organizationRow?.name ?? "la empresa",
+    });
+  }
 
   return NextResponse.json({
     branches: mappedBranches,

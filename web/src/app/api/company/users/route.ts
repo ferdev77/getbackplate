@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { getEmployeeDirectoryView } from "@/modules/employees/services";
 import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { USERS_API_MESSAGES } from "@/shared/lib/employees-messages";
@@ -159,7 +160,7 @@ export async function GET(request: Request) {
   const { supabase, tenant } = context;
   const url = new URL(request.url);
   const catalog = url.searchParams.get("catalog");
-  if (catalog !== "create_modal") {
+  if (catalog !== "create_modal" && catalog !== "list") {
     return NextResponse.json({ error: "Consulta no soportada" }, { status: 400 });
   }
 
@@ -178,9 +179,21 @@ export async function GET(request: Request) {
     name: customBrandingEnabled && branch.city ? branch.city : branch.name,
   }));
 
+  if (catalog === "create_modal") {
+    return NextResponse.json({
+      branches: mappedBranches,
+      roleOptions: [{ value: "company_admin", label: "Administrador" }],
+    });
+  }
+
+  const viewData = await getEmployeeDirectoryView(tenant.organizationId, 120, 0, {
+    includeEmployeesData: false,
+    includeUsersTab: true,
+  });
+
   return NextResponse.json({
+    users: viewData.users ?? [],
     branches: mappedBranches,
-    roleOptions: [{ value: "company_admin", label: "Administrador" }],
   });
 }
 
