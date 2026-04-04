@@ -3,7 +3,6 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { markEmployeeOnboardingSeenAction } from "@/modules/onboarding/actions";
 import { EmployeeWelcomeModal } from "@/modules/onboarding/ui/employee-welcome-modal";
 import { requireEmployeeAccess } from "@/shared/lib/access";
-import { getEnabledModules } from "@/modules/organizations/queries";
 import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
 import { canReadAnnouncementInTenant } from "@/shared/lib/announcement-access";
 import { canReadDocumentInTenant } from "@/shared/lib/document-access";
@@ -73,73 +72,134 @@ export default async function EmployeeHomePage() {
     { data: announcementsModuleEnabled },
     { data: checklistsModuleEnabled },
     { data: documentsModuleEnabled },
-    { data: preferencesRow }
+    { data: customBrandingModuleEnabled },
+    { data: preferencesRow },
+    { data: department },
+    resolvedBranch,
   ] = await Promise.all([
     supabase.rpc("is_module_enabled", { org_id: tenant.organizationId, module_code: "announcements" }),
     supabase.rpc("is_module_enabled", { org_id: tenant.organizationId, module_code: "checklists" }),
     supabase.rpc("is_module_enabled", { org_id: tenant.organizationId, module_code: "documents" }),
+    supabase.rpc("is_module_enabled", { org_id: tenant.organizationId, module_code: "custom_branding" }),
     supabase
       .from("user_preferences")
       .select("onboarding_seen_at")
       .eq("organization_id", tenant.organizationId)
       .eq("user_id", userId)
       .maybeSingle(),
+    employeeRow?.department_id
+      ? supabase
+          .from("organization_departments")
+          .select("name")
+          .eq("organization_id", tenant.organizationId)
+          .eq("id", employeeRow.department_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    employeeBranchId
+      ? supabase
+          .from("branches")
+          .select("name, city")
+          .eq("organization_id", tenant.organizationId)
+          .eq("id", employeeBranchId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
-  const { data: department } = employeeRow?.department_id
-    ? await supabase
-        .from("organization_departments")
-        .select("name")
-        .eq("organization_id", tenant.organizationId)
-        .eq("id", employeeRow.department_id)
-        .maybeSingle()
-    : { data: null };
-
-  const resolvedBranch = employeeBranchId
-    ? await supabase
-        .from("branches")
-        .select("name, city")
-        .eq("organization_id", tenant.organizationId)
-        .eq("id", employeeBranchId)
-        .maybeSingle()
-    : { data: null };
-
-  const enabledModuleCodes = await getEnabledModules(tenant.organizationId);
-  const customBrandingEnabled = enabledModuleCodes.has("custom_branding");
+  const customBrandingEnabled = Boolean(customBrandingModuleEnabled);
   const resolvedBranchDisplayName = resolvedBranch.data
     ? (customBrandingEnabled && resolvedBranch.data.city ? resolvedBranch.data.city : resolvedBranch.data.name)
     : null;
 
-  let docsCount = 0;
-  if (documentsModuleEnabled && userId && tenant.organizationId) {
-    const { data: countData } = await supabase.rpc("count_accessible_documents", {
-      p_organization_id: tenant.organizationId,
-      p_user_id: userId,
-      p_role_code: tenant.roleCode,
-      p_branch_id: employeeBranchId,
-      p_department_id: employeeRow?.department_id ?? null,
-      p_position_ids: employeePositionIds,
-    });
-    docsCount = countData ?? 0;
-  }
+  const hasAnnouncementsModule = Boolean(announcementsModuleEnabled);
+  const hasDocumentsModule = Boolean(documentsModuleEnabled);
+  const hasChecklistsModule = Boolean(checklistsModuleEnabled);
+
+  const announcementsPromise = hasAnnouncementsModule
+    ? supabase
+        .from("announcements")
+        .select("id, title, body, kind, publish_at, expires_at, target_scope, created_by")
+        .eq("organization_id", tenant.organizationId)
+        .order("publish_at", { ascending: false })
+        .limit(30)
+    : Promise.resolve({ data: [] as AnnouncementRow[] });
+
+  const documentsPromise = hasDocumentsModule
+    ? supabase
+        .from("documents")
+        .select("id, title, mime_type, file_size_bytes, created_at, access_scope")
+        .is("deleted_at", null)
+        .eq("organization_id", tenant.organizationId)
+        .order("created_at", { ascending: false })
+        .limit(20)
+    : Promise.resolve({ data: [] as VisibleDocument[] });
+
+  const checklistTemplatesPromise = hasChecklistsModule
+    ? supabase
+        .from("checklist_templates")
+        .select("id, name, branch_id, department_id, target_scope, updated_at")
+        .eq("organization_id", tenant.organizationId)
+        .eq("is_active", true)
+        .order("updated_at", { ascending: false })
+        .limit(20)
+    : Promise.resolve({ data: [] as VisibleTemplate[] });
+
+  const employeeDocumentsLinksPromise = employeeRow?.id
+    ? supabase
+        .from("employee_documents")
+        .select("document_id, status")
+        .eq("organization_id", tenant.organizationId)
+        .eq("employee_id", employeeRow.id)
+    : Promise.resolve({ data: [] as Array<{ document_id: string; status: string }> });
+
+  const latestContractPromise = employeeRow?.id
+    ? supabase
+        .from("employee_contracts")
+        .select("contract_status, signed_at")
+        .eq("organization_id", tenant.organizationId)
+        .eq("employee_id", employeeRow.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    : Promise.resolve({ data: null as { contract_status: string | null; signed_at: string | null } | null });
+
+  const docsCountPromise = hasDocumentsModule
+    ? supabase
+        .rpc("count_accessible_documents", {
+          p_organization_id: tenant.organizationId,
+          p_user_id: userId,
+          p_role_code: tenant.roleCode,
+          p_branch_id: employeeBranchId,
+          p_department_id: employeeRow?.department_id ?? null,
+          p_position_ids: employeePositionIds,
+        })
+        .then(({ data }) => data ?? 0)
+    : Promise.resolve(0);
+
+  const [
+    docsCount,
+    { data: announcementsRaw },
+    { data: documentsRaw },
+    { data: templatesRaw },
+    { data: employeeDocumentLinks },
+    { data: latestContract },
+  ] = await Promise.all([
+    docsCountPromise,
+    announcementsPromise,
+    documentsPromise,
+    checklistTemplatesPromise,
+    employeeDocumentsLinksPromise,
+    latestContractPromise,
+  ]);
 
   const employeeName = employeeRow
     ? `${employeeRow.first_name} ${employeeRow.last_name}`.trim()
     : (typeof authData.user?.user_metadata?.full_name === "string" && authData.user.user_metadata.full_name.trim()) || authData.user?.email || "Empleado";
 
   let announcements: AnnouncementRow[] = [];
-  const hasAnnouncementsModule = Boolean(announcementsModuleEnabled);
 
   if (hasAnnouncementsModule) {
     const now = new Date();
-    const { data } = await supabase
-      .from("announcements")
-      .select("id, title, body, kind, publish_at, expires_at, target_scope, created_by")
-      .eq("organization_id", tenant.organizationId)
-      .order("publish_at", { ascending: false })
-      .limit(60);
-
-    announcements = (data ?? []).filter((item) => {
+    announcements = (announcementsRaw ?? []).filter((item) => {
       const publishAt = item.publish_at ? new Date(item.publish_at) : null;
       const expiresAt = item.expires_at ? new Date(item.expires_at) : null;
       const published = !publishAt || publishAt <= now;
@@ -172,30 +232,10 @@ export default async function EmployeeHomePage() {
 
   // Fetch Documents
   let visibleDocuments: VisibleDocument[] = [];
-  const hasDocumentsModule = Boolean(documentsModuleEnabled);
   if (hasDocumentsModule) {
-    const { data: documents } = await supabase
-      .from("documents")
-      .select("id, title, mime_type, file_size_bytes, created_at, access_scope")
-.is('deleted_at', null)
-      .eq("organization_id", tenant.organizationId)
-      .order("created_at", { ascending: false })
-      .limit(20);
+    const assignedDocumentIds = new Set((employeeDocumentLinks ?? []).map((link) => link.document_id));
 
-    const assignedDocumentIds = new Set<string>();
-    if (employeeRow?.id) {
-      const { data: links } = await supabase
-        .from("employee_documents")
-        .select("document_id")
-        .eq("organization_id", tenant.organizationId)
-        .eq("employee_id", employeeRow.id);
-
-      for (const link of links ?? []) {
-        assignedDocumentIds.add(link.document_id);
-      }
-    }
-
-    visibleDocuments = (documents ?? []).filter((doc) =>
+    visibleDocuments = (documentsRaw ?? []).filter((doc) =>
       canReadDocumentInTenant({
         roleCode: tenant.roleCode,
         userId,
@@ -210,17 +250,8 @@ export default async function EmployeeHomePage() {
 
   // Fetch Checklists
   let visibleTemplates: VisibleTemplate[] = [];
-  const hasChecklistsModule = Boolean(checklistsModuleEnabled);
   if (hasChecklistsModule) {
-    const { data: templates } = await supabase
-      .from("checklist_templates")
-      .select("id, name, branch_id, department_id, target_scope, updated_at")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("updated_at", { ascending: false })
-      .limit(20);
-
-    visibleTemplates = (templates ?? []).filter((template) =>
+    visibleTemplates = (templatesRaw ?? []).filter((template) =>
       canUseChecklistTemplateInTenant({
         roleCode: tenant.roleCode,
         userId,
@@ -239,24 +270,8 @@ export default async function EmployeeHomePage() {
   let contractSigned = false;
 
   if (employeeRow?.id) {
-    const [{ data: linkedDocs }, { data: latestContract }] = await Promise.all([
-      supabase
-        .from("employee_documents")
-        .select("status")
-        .eq("organization_id", tenant.organizationId)
-        .eq("employee_id", employeeRow.id),
-      supabase
-        .from("employee_contracts")
-        .select("contract_status, signed_at")
-        .eq("organization_id", tenant.organizationId)
-        .eq("employee_id", employeeRow.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ]);
-
-    pendingDocs = (linkedDocs ?? []).filter((row) => row.status === "pending").length;
-    approvedDocs = (linkedDocs ?? []).filter((row) => row.status === "approved").length;
+    pendingDocs = (employeeDocumentLinks ?? []).filter((row) => row.status === "pending").length;
+    approvedDocs = (employeeDocumentLinks ?? []).filter((row) => row.status === "approved").length;
     contractSigned = Boolean(latestContract?.signed_at) || latestContract?.contract_status === "active";
   }
 
