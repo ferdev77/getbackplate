@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { markEmployeeOnboardingSeenAction } from "@/modules/onboarding/actions";
 import { EmployeeWelcomeModal } from "@/modules/onboarding/ui/employee-welcome-modal";
 import { requireEmployeeAccess } from "@/shared/lib/access";
+import { getEnabledModules } from "@/modules/organizations/queries";
 import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
 import { canReadAnnouncementInTenant } from "@/shared/lib/announcement-access";
 import { canReadDocumentInTenant } from "@/shared/lib/document-access";
@@ -69,18 +70,12 @@ export default async function EmployeeHomePage() {
   }
 
   const [
-    { data: announcementsModuleEnabled },
-    { data: checklistsModuleEnabled },
-    { data: documentsModuleEnabled },
-    { data: customBrandingModuleEnabled },
+    enabledModules,
     { data: preferencesRow },
     { data: department },
     resolvedBranch,
   ] = await Promise.all([
-    supabase.rpc("is_module_enabled", { org_id: tenant.organizationId, module_code: "announcements" }),
-    supabase.rpc("is_module_enabled", { org_id: tenant.organizationId, module_code: "checklists" }),
-    supabase.rpc("is_module_enabled", { org_id: tenant.organizationId, module_code: "documents" }),
-    supabase.rpc("is_module_enabled", { org_id: tenant.organizationId, module_code: "custom_branding" }),
+    getEnabledModules(tenant.organizationId),
     supabase
       .from("user_preferences")
       .select("onboarding_seen_at")
@@ -105,14 +100,14 @@ export default async function EmployeeHomePage() {
       : Promise.resolve({ data: null }),
   ]);
 
-  const customBrandingEnabled = Boolean(customBrandingModuleEnabled);
+  const customBrandingEnabled = enabledModules.has("custom_branding");
   const resolvedBranchDisplayName = resolvedBranch.data
     ? (customBrandingEnabled && resolvedBranch.data.city ? resolvedBranch.data.city : resolvedBranch.data.name)
     : null;
 
-  const hasAnnouncementsModule = Boolean(announcementsModuleEnabled);
-  const hasDocumentsModule = Boolean(documentsModuleEnabled);
-  const hasChecklistsModule = Boolean(checklistsModuleEnabled);
+  const hasAnnouncementsModule = enabledModules.has("announcements");
+  const hasDocumentsModule = enabledModules.has("documents");
+  const hasChecklistsModule = enabledModules.has("checklists");
 
   const announcementsPromise = hasAnnouncementsModule
     ? supabase
