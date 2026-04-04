@@ -286,7 +286,21 @@ export async function GET() {
       const itemMeta = itemMetaById.get(submissionItem.templateItemId);
       const sectionName = itemMeta?.sectionName ?? "General";
       const sectionOrder = itemMeta?.sectionOrder ?? 999;
-      const section = sectionMap.get(sectionName) ?? { id: sectionName.toLowerCase().replace(/\s+/g, "-"), name: sectionName, order: sectionOrder, items: [] };
+      const section = sectionMap.get(sectionName) ?? {
+        id: sectionName.toLowerCase().replace(/\s+/g, "-"),
+        name: sectionName,
+        order: sectionOrder,
+        items: [] as Array<{
+          id: string;
+          text: string;
+          ok: boolean;
+          flag: boolean;
+          note?: string;
+          photosCount: number;
+          photos?: string[];
+          itemOrder: number;
+        }>,
+      };
       const flag = latestFlagBySubmissionItemId.get(submissionItem.id);
       const comment = latestCommentBySubmissionItemId.get(submissionItem.id) ?? "";
       section.items.push({
