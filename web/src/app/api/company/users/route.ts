@@ -150,6 +150,40 @@ async function requireUserContext() {
   return { supabase, tenant, userId };
 }
 
+export async function GET(request: Request) {
+  const context = await requireUserContext();
+  if ("error" in context) {
+    return context.error;
+  }
+
+  const { supabase, tenant } = context;
+  const url = new URL(request.url);
+  const catalog = url.searchParams.get("catalog");
+  if (catalog !== "create_modal") {
+    return NextResponse.json({ error: "Consulta no soportada" }, { status: 400 });
+  }
+
+  const [{ data: customBrandingEnabled }, { data: branches }] = await Promise.all([
+    supabase.rpc("is_module_enabled", { org_id: tenant.organizationId, module_code: "custom_branding" }),
+    supabase
+      .from("branches")
+      .select("id, name, city")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("name"),
+  ]);
+
+  const mappedBranches = (branches ?? []).map((branch) => ({
+    id: branch.id,
+    name: customBrandingEnabled && branch.city ? branch.city : branch.name,
+  }));
+
+  return NextResponse.json({
+    branches: mappedBranches,
+    roleOptions: [{ value: "company_admin", label: "Administrador" }],
+  });
+}
+
 export async function PATCH(request: Request) {
   const context = await requireUserContext();
   if ("error" in context) {

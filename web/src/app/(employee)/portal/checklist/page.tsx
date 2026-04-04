@@ -1,11 +1,7 @@
-import Link from "next/link";
-import { ClipboardCheck, Eye } from "lucide-react";
-import { TooltipLabel } from "@/shared/ui/tooltip";
-
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { EmployeeChecklistRealtimeRefresh } from "@/modules/checklists/ui/employee-checklist-realtime-refresh";
-import { EmployeeChecklistPreviewModal } from "@/modules/checklists/ui/employee-checklist-preview-modal";
+import { EmployeeChecklistWorkspace } from "@/modules/checklists/ui/employee-checklist-workspace";
 import { RestoreChecklistScroll } from "@/modules/checklists/ui/restore-checklist-scroll";
 import { requireEmployeeModule } from "@/shared/lib/access";
 import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
@@ -19,36 +15,6 @@ type EmployeeChecklistPageProps = {
 function firstParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) return value[0] ?? "";
   return value ?? "";
-}
-
-function formatSubmittedAt(value: string | null) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString("es-AR", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function reportStatusBadge(status: string | null | undefined) {
-  if (status === "reviewed") {
-    return {
-      label: "Reporte revisado",
-      className: "border-amber-300/40 bg-amber-50 text-amber-700",
-      dotClassName: "bg-amber-500",
-      dateClassName: "text-[var(--gbp-text2)]",
-    };
-  }
-
-  return {
-    label: "Reporte enviado",
-    className: "border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]",
-    dotClassName: "bg-[var(--gbp-success)]",
-    dateClassName: "text-[var(--gbp-text2)]",
-  };
 }
 
 export default async function EmployeeChecklistPage({ searchParams }: EmployeeChecklistPageProps) {
@@ -161,141 +127,16 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
     return aSent ? 1 : -1;
   });
 
-  const previewTemplate = previewTemplateId
-    ? visibleTemplates.find((template) => template.id === previewTemplateId) ?? null
-    : null;
-
-  const { data: previewSections } = previewTemplate
-    ? await supabase
-        .from("checklist_template_sections")
-        .select("id, name, sort_order")
-        .eq("organization_id", tenant.organizationId)
-        .eq("template_id", previewTemplate.id)
-        .order("sort_order", { ascending: true })
-    : { data: null };
-
-  const previewSectionIds = (previewSections ?? []).map((section) => section.id);
-
-  const { data: previewItems } = previewTemplate && previewSectionIds.length > 0
-    ? await supabase
-        .from("checklist_template_items")
-        .select("id, section_id, label, priority, sort_order")
-        .eq("organization_id", tenant.organizationId)
-        .in("section_id", previewSectionIds)
-        .order("sort_order", { ascending: true })
-    : { data: null };
-
-  const { data: latestSubmission } = previewTemplate
-    ? await admin
-        .from("checklist_submissions")
-        .select("id, status, submitted_at")
-        .eq("organization_id", tenant.organizationId)
-        .eq("template_id", previewTemplate.id)
-        .eq("submitted_by", userId)
-        .order("submitted_at", { ascending: false })
-        .limit(1)
-        .maybeSingle()
-    : { data: null };
-
-  const { data: submissionItems } = latestSubmission
-    ? await admin
-        .from("checklist_submission_items")
-        .select("id, template_item_id, is_checked, is_flagged")
-        .eq("organization_id", tenant.organizationId)
-        .eq("submission_id", latestSubmission.id)
-    : { data: null };
-
-  const submissionItemIds = (submissionItems ?? []).map((row) => row.id);
-
-  const [{ data: submissionComments }, { data: submissionFlags }, { data: submissionAttachments }] =
-    latestSubmission && submissionItemIds.length > 0
-      ? await Promise.all([
-          admin
-            .from("checklist_item_comments")
-            .select("submission_item_id, comment, created_at")
-            .eq("organization_id", tenant.organizationId)
-            .in("submission_item_id", submissionItemIds)
-            .order("created_at", { ascending: false }),
-          admin
-            .from("checklist_flags")
-            .select("submission_item_id, reason")
-            .eq("organization_id", tenant.organizationId)
-            .in("submission_item_id", submissionItemIds),
-          admin
-            .from("checklist_item_attachments")
-            .select("submission_item_id, file_path")
-            .eq("organization_id", tenant.organizationId)
-            .in("submission_item_id", submissionItemIds),
-        ])
-      : [{ data: null }, { data: null }, { data: null }];
-
-  const itemsBySection = new Map<string, Array<{ id: string; label: string; priority: string }>>();
-  for (const item of previewItems ?? []) {
-    const list = itemsBySection.get(item.section_id) ?? [];
-    list.push({ id: item.id, label: item.label, priority: item.priority });
-    itemsBySection.set(item.section_id, list);
-  }
-
-  const previewSectionViews = (previewSections ?? []).map((section) => ({
-    id: section.id,
-    name: section.name,
-    items: itemsBySection.get(section.id) ?? [],
-  }));
-
-  const commentBySubmissionItemId = new Map<string, string>();
-  for (const row of submissionComments ?? []) {
-    if (!commentBySubmissionItemId.has(row.submission_item_id)) {
-      commentBySubmissionItemId.set(row.submission_item_id, row.comment);
-    }
-  }
-
-  const reasonBySubmissionItemId = new Map((submissionFlags ?? []).map((row) => [row.submission_item_id, row.reason]));
-
-  const attachmentUrlsBySubmissionItemId = new Map<string, string[]>();
-  if ((submissionAttachments ?? []).length) {
-    const bySubmissionItemId = new Map<string, string[]>();
-    const allPaths: string[] = [];
-
-    for (const attachment of submissionAttachments ?? []) {
-      const currentPaths = bySubmissionItemId.get(attachment.submission_item_id) ?? [];
-      currentPaths.push(attachment.file_path);
-      bySubmissionItemId.set(attachment.submission_item_id, currentPaths);
-      allPaths.push(attachment.file_path);
-    }
-
-    const signedByPath = new Map<string, string>();
-    const chunkSize = 50;
-
-    for (let index = 0; index < allPaths.length; index += chunkSize) {
-      const chunk = allPaths.slice(index, index + chunkSize);
-      const { data } = await admin.storage.from("checklist-evidence").createSignedUrls(chunk, 60 * 60 * 24);
-
-      for (const row of data ?? []) {
-        if (row.path && row.signedUrl) {
-          signedByPath.set(row.path, row.signedUrl);
-        }
-      }
-    }
-
-    for (const [submissionItemId, paths] of bySubmissionItemId.entries()) {
-      attachmentUrlsBySubmissionItemId.set(
-        submissionItemId,
-        paths.map((path) => signedByPath.get(path)).filter((value): value is string => Boolean(value)),
-      );
-    }
-  }
-
-  const reportItemByTemplateItemId = new Map<string, { checked: boolean; flagged: boolean; comment: string; photos: string[] }>();
-  for (const row of submissionItems ?? []) {
-    const comment = commentBySubmissionItemId.get(row.id) ?? reasonBySubmissionItemId.get(row.id) ?? "";
-    const photos = attachmentUrlsBySubmissionItemId.get(row.id) ?? [];
-    reportItemByTemplateItemId.set(row.template_item_id, {
-      checked: row.is_checked,
-      flagged: row.is_flagged,
-      comment,
-      photos,
-    });
-  }
+  const templatesWorkspaceData = templatesForDisplay.map((template) => {
+    const latest = latestSubmissionByTemplateId.get(template.id);
+    return {
+      id: template.id,
+      name: template.name,
+      sent: isTemplateSentForCurrentPeriod(template.id),
+      submissionStatus: latest?.status ?? null,
+      submittedAt: latest?.submittedAt ?? null,
+    };
+  });
 
   return (
     <main>
@@ -311,65 +152,10 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
         </div>
       </section>
 
-      <section className="space-y-3">
-        {templatesForDisplay.map((template) => (
-          <article key={template.id} className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 transition-all duration-200 hover:-translate-y-[1px] hover:border-[var(--gbp-border2)] hover:shadow-[0_8px_24px_rgba(0,0,0,.05)]">
-            <div className="flex items-center gap-3">
-              <div className="flex min-w-0 flex-1 items-center gap-2 text-[var(--gbp-text)]">
-                <ClipboardCheck className="h-4 w-4 shrink-0 text-[var(--gbp-accent)]" />
-                <p className="truncate text-base font-semibold">{template.name}</p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                {isTemplateSentForCurrentPeriod(template.id) ? (
-                  (() => {
-                    const latest = latestSubmissionByTemplateId.get(template.id);
-                    const statusBadge = reportStatusBadge(latest?.status);
-                    return (
-                      <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold ${statusBadge.className}`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${statusBadge.dotClassName}`} />
-                        <span>{statusBadge.label}</span>
-                        <span className={`hidden sm:inline ${statusBadge.dateClassName}`}>· {formatSubmittedAt(latest?.submittedAt ?? null)}</span>
-                      </div>
-                    );
-                  })()
-                ) : (
-                  <div className="inline-flex items-center gap-2 rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-3 py-1.5 text-[11px] font-semibold text-[var(--gbp-accent)]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--gbp-accent)]" />
-                    <span>Reporte pendiente</span>
-                  </div>
-                )}
-                <Link href={`/portal/checklist?preview=${template.id}`} className="group/tooltip relative inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--gbp-success)_18%,transparent)]">
-                  <Eye className="h-4 w-4" />
-                  <TooltipLabel label="Ver checklist" />
-                </Link>
-              </div>
-            </div>
-          </article>
-        ))}
-
-        {!visibleTemplates.length ? (
-          <div className="rounded-xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-8 text-center text-sm text-[var(--gbp-text2)]">
-            No tienes checklists asignados para tu perfil.
-          </div>
-        ) : null}
-      </section>
-
-      {previewTemplate ? (
-        <EmployeeChecklistPreviewModal
-          templateId={previewTemplate.id}
-          templateName={previewTemplate.name}
-          sections={previewSectionViews}
-          initialReport={
-            latestSubmission
-              ? {
-                  submittedAt: latestSubmission.submitted_at,
-                  status: latestSubmission.status,
-                  items: Object.fromEntries(reportItemByTemplateItemId.entries()),
-                }
-              : null
-          }
-        />
-      ) : null}
+      <EmployeeChecklistWorkspace
+        templates={templatesWorkspaceData}
+        initialPreviewTemplateId={previewTemplateId}
+      />
     </main>
   );
 }
