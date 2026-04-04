@@ -8,10 +8,46 @@ type CompanyDashboardPageProps = {
   searchParams: Promise<Record<string, string | undefined>>;
 };
 
+async function getOpenFlagsCountByBranch(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  organizationId: string,
+  branchId: string,
+) {
+  const { data: submissions } = await supabase
+    .from("checklist_submissions")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("branch_id", branchId)
+    .limit(2000);
+
+  const submissionIds = (submissions ?? []).map((row) => row.id);
+  if (!submissionIds.length) return 0;
+
+  const { data: submissionItems } = await supabase
+    .from("checklist_submission_items")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .in("submission_id", submissionIds)
+    .limit(5000);
+
+  const submissionItemIds = (submissionItems ?? []).map((row) => row.id);
+  if (!submissionItemIds.length) return 0;
+
+  const { count } = await supabase
+    .from("checklist_flags")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", organizationId)
+    .in("status", ["open", "in_progress"])
+    .in("submission_item_id", submissionItemIds);
+
+  return count ?? 0;
+}
+
 export default async function CompanyDashboardPage({ searchParams }: CompanyDashboardPageProps) {
   const tenant = await requireTenantModule("dashboard");
   const supabase = await createSupabaseServerClient();
   const params = await searchParams;
+  const selectedBranch = typeof params?.branch === "string" ? params.branch.trim() : "";
   const now = new Date();
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
@@ -25,28 +61,68 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
   const isReportsEnabled = enabledModuleCodes.has("reports");
   const isEmployeesEnabled = enabledModuleCodes.has("employees");
 
-  const employeesCountQuery = supabase
+  const employeesCountQueryBase = supabase
     .from("employees")
     .select("id", { count: "exact", head: true })
     .eq("organization_id", tenant.organizationId);
+  const employeesCountQuery = selectedBranch
+    ? employeesCountQueryBase.eq("branch_id", selectedBranch)
+    : employeesCountQueryBase;
 
-  const todayChecklistQuery = supabase
+  const todayChecklistQueryBase = supabase
     .from("checklist_submissions")
     .select("id", { count: "exact", head: true })
     .eq("organization_id", tenant.organizationId)
     .gte("created_at", todayStart.toISOString());
+  const todayChecklistQuery = selectedBranch
+    ? todayChecklistQueryBase.eq("branch_id", selectedBranch)
+    : todayChecklistQueryBase;
 
-  const weekChecklistQuery = supabase
+  const weekChecklistQueryBase = supabase
     .from("checklist_submissions")
     .select("id", { count: "exact", head: true })
     .eq("organization_id", tenant.organizationId)
     .gte("created_at", weekStart.toISOString());
+  const weekChecklistQuery = selectedBranch
+    ? weekChecklistQueryBase.eq("branch_id", selectedBranch)
+    : weekChecklistQueryBase;
 
-  const pendingReviewQuery = supabase
+  const pendingReviewQueryBase = supabase
     .from("checklist_submissions")
     .select("id", { count: "exact", head: true })
     .eq("organization_id", tenant.organizationId)
     .eq("status", "submitted");
+  const pendingReviewQuery = selectedBranch
+    ? pendingReviewQueryBase.eq("branch_id", selectedBranch)
+    : pendingReviewQueryBase;
+
+  const usersCountQueryBase = supabase
+    .from("organization_user_profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", tenant.organizationId)
+    .eq("is_employee", false);
+  const usersCountQuery = selectedBranch
+    ? usersCountQueryBase.eq("branch_id", selectedBranch)
+    : usersCountQueryBase;
+
+  const branchesCountQueryBase = supabase
+    .from("branches")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", tenant.organizationId);
+  const branchesCountQuery = selectedBranch
+    ? branchesCountQueryBase.eq("id", selectedBranch)
+    : branchesCountQueryBase;
+
+  const openFlagsCountPromise = isChecklistsEnabled
+    ? selectedBranch
+      ? getOpenFlagsCountByBranch(supabase, tenant.organizationId, selectedBranch)
+      : supabase
+          .from("checklist_flags")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", tenant.organizationId)
+          .in("status", ["open", "in_progress"])
+          .then(({ count }) => count ?? 0)
+    : Promise.resolve(0);
 
   const [
     { count: employeesCount },
@@ -58,19 +134,12 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
     { count: todayChecklistCount },
     { count: weekChecklistCount },
     { count: pendingReviewCount },
-    { count: openFlagsCount },
+    openFlagsCount,
     { data: recentDocuments },
   ] = await Promise.all([
       employeesCountQuery,
-      supabase
-        .from("organization_user_profiles")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", tenant.organizationId)
-        .eq("is_employee", false),
-      supabase
-        .from("branches")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", tenant.organizationId),
+      usersCountQuery,
+      branchesCountQuery,
       supabase
         .from("organizations")
         .select("id, name, slug, status")
@@ -83,31 +152,31 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
         .eq("is_active", true)
         .order("name"),
       isAnnouncementsEnabled
-        ? supabase
-            .from("announcements")
-            .select("id, title, kind, is_featured, publish_at, expires_at, branch_id")
-            .eq("organization_id", tenant.organizationId)
-            .order("publish_at", { ascending: false })
-            .limit(6)
+        ? (() => {
+            const query = supabase
+              .from("announcements")
+              .select("id, title, kind, is_featured, publish_at, expires_at, branch_id")
+              .eq("organization_id", tenant.organizationId)
+              .order("publish_at", { ascending: false })
+              .limit(6);
+            return selectedBranch ? query.eq("branch_id", selectedBranch) : query;
+          })()
         : Promise.resolve({ data: [] }),
       isChecklistsEnabled ? todayChecklistQuery : Promise.resolve({ count: 0 }),
       isChecklistsEnabled ? weekChecklistQuery : Promise.resolve({ count: 0 }),
       isChecklistsEnabled ? pendingReviewQuery : Promise.resolve({ count: 0 }),
-      isChecklistsEnabled
-        ? supabase
-            .from("checklist_flags")
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", tenant.organizationId)
-            .in("status", ["open", "in_progress"])
-        : Promise.resolve({ count: 0 }),
+      openFlagsCountPromise,
       isDocumentsEnabled
-        ? supabase
-            .from("documents")
-            .select("id, title, created_at, branch_id, file_size_bytes")
-.is('deleted_at', null)
-            .eq("organization_id", tenant.organizationId)
-            .order("created_at", { ascending: false })
-            .limit(6)
+        ? (() => {
+            const query = supabase
+              .from("documents")
+              .select("id, title, created_at, branch_id, file_size_bytes")
+              .is("deleted_at", null)
+              .eq("organization_id", tenant.organizationId)
+              .order("created_at", { ascending: false })
+              .limit(6);
+            return selectedBranch ? query.eq("branch_id", selectedBranch) : query;
+          })()
         : Promise.resolve({ data: [] }),
     ]);
 
@@ -117,6 +186,7 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
     ...b,
     name: customBrandingEnabled && b.city ? b.city : b.name,
   }));
+  const selectedBranchName = mappedBranches.find((branch) => branch.id === selectedBranch)?.name ?? null;
 
   const branchNameMap = new Map(mappedBranches.map((item) => [item.id, item.name]));
 
@@ -150,6 +220,7 @@ export default async function CompanyDashboardPage({ searchParams }: CompanyDash
         recentDocuments={recentDocuments ?? []}
         branchNameMap={branchNameMap}
         moduleStatus={moduleStatus}
+        selectedLocationName={selectedBranchName}
       />
     </>
   );
