@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { canReadDocumentInTenant } from "@/shared/lib/document-access";
+import { isEmployeePrivateDocument } from "@/shared/lib/employee-private-documents";
 import { requireEmployeeModule } from "@/shared/lib/access";
 import { EmployeeDocumentsTree } from "@/modules/documents/ui/employee-documents-tree";
 
@@ -64,6 +65,10 @@ export default async function EmployeeDocumentsPage() {
   const folderById = new Map((folders ?? []).map((f) => [f.id, f]));
 
   const visibleDocuments = (documents ?? []).filter((doc) => {
+    if (isEmployeePrivateDocument(doc.access_scope, doc.title)) {
+      return false;
+    }
+
     const effectiveScope = doc.folder_id
       ? folderById.get(doc.folder_id)?.access_scope ?? doc.access_scope
       : doc.access_scope;

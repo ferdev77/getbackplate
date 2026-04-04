@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { isModuleEnabledForOrganization } from "@/shared/lib/access";
 import { canReadDocumentInTenant } from "@/shared/lib/document-access";
+import { isEmployeePrivateDocument } from "@/shared/lib/employee-private-documents";
 import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impersonation";
 import {
   isAllowedDocumentMime,
@@ -56,7 +57,7 @@ export async function GET(_request: Request, { params }: Context) {
   const admin = createSupabaseAdminClient();
   const { data: document, error: docError } = await admin
     .from("documents")
-    .select("id, file_path, organization_id, branch_id, folder_id, access_scope, mime_type, file_size_bytes")
+    .select("id, title, file_path, organization_id, branch_id, folder_id, access_scope, mime_type, file_size_bytes")
 .is('deleted_at', null)
     .eq("id", documentId)
     .in("organization_id", orgIds)
@@ -131,6 +132,8 @@ export async function GET(_request: Request, { params }: Context) {
     }
   }
 
+  const isPrivateEmployeeDoc = isEmployeePrivateDocument(effectiveAccessScope, document.title);
+
   const orgMemberships = (memberships ?? []).filter((row) => row.organization_id === document.organization_id);
   const fallbackMemberships =
     !orgMemberships.length && impersonation?.organizationId === document.organization_id
@@ -143,6 +146,11 @@ export async function GET(_request: Request, { params }: Context) {
       membership.role_id === "__impersonation__"
         ? "company_admin"
         : (roleCodeById.get(membership.role_id) ?? "");
+
+    if (roleCode === "employee" && isPrivateEmployeeDoc) {
+      continue;
+    }
+
     const isAllowed = canReadDocumentInTenant({
       roleCode,
       userId,
