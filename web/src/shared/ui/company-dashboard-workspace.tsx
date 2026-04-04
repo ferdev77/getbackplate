@@ -55,6 +55,7 @@ type CompanyDashboardWorkspaceProps = {
   recentDocuments: DashboardDocument[];
   branchNameMap: Map<string, string>;
   moduleStatus: DashboardModuleStatus[];
+  selectedLocationName?: string | null;
 };
 
 function kindLabel(kind: string) {
@@ -143,6 +144,7 @@ export function CompanyDashboardWorkspace({
   recentDocuments,
   branchNameMap,
   moduleStatus,
+  selectedLocationName,
 }: CompanyDashboardWorkspaceProps) {
   const enabledModuleSet = new Set(
     moduleStatus.filter((module) => module.enabled).map((module) => module.code),
@@ -186,7 +188,7 @@ export function CompanyDashboardWorkspace({
             details={[
               { label: "Estado", value: statusLabel(organizationStatus) },
               { label: "Sucursales activas", value: branchesCount },
-              { label: "Vista", value: "General" },
+              { label: "Vista", value: selectedLocationName ? `Locacion: ${selectedLocationName}` : "General" },
             ]}
           />
         </AnimatedItem>
