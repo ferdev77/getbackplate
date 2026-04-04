@@ -58,7 +58,7 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
 
   const { data: announcements, error: annError } = await supabase
     .from("announcements")
-    .select("id, title, body, kind, is_featured, publish_at, expires_at, branch_id, target_scope, created_by")
+    .select("id, title, body, kind, is_featured, publish_at, created_at, expires_at, branch_id, target_scope, created_by")
     .eq("organization_id", tenant.organizationId)
     .order("publish_at", { ascending: false })
     .limit(100);
@@ -66,6 +66,23 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
   if (annError) {
     console.error("Error fetching announcements:", annError);
   }
+
+  const announcementTimestamp = (row: { publish_at: string | null; created_at: string }) => {
+    const dateValue = row.publish_at ?? row.created_at;
+    const timestamp = new Date(dateValue).getTime();
+    return Number.isNaN(timestamp) ? 0 : timestamp;
+  };
+
+  const orderedAnnouncements = [...(announcements ?? [])].sort((a, b) => {
+    if (Boolean(a.is_featured) !== Boolean(b.is_featured)) {
+      return a.is_featured ? -1 : 1;
+    }
+    return announcementTimestamp(b) - announcementTimestamp(a);
+  });
+
+  const latestAnnouncement = [...(announcements ?? [])].sort(
+    (a, b) => announcementTimestamp(b) - announcementTimestamp(a),
+  )[0] ?? null;
 
   // Optimize payload: Only fetch what we need for the listed announcements, unless opening the form modal
   const uniqueBranchIds = new Set<string>();
@@ -177,8 +194,7 @@ const employeesQuery = supabase
     return exp >= now && exp <= in7Days;
   }).length;
 
-  const latestAnnouncement = (announcements ?? [])[0] ?? null;
-  const latestDate = latestAnnouncement?.publish_at;
+  const latestDate = latestAnnouncement ? (latestAnnouncement.publish_at ?? latestAnnouncement.created_at) : null;
   const today = new Date().toISOString().slice(0, 10);
 
   const editingAnnouncement = action === "edit"
@@ -231,7 +247,7 @@ const employeesQuery = supabase
       <section className="space-y-3">
         {announcements && announcements.length > 0 ? (
           <div className="space-y-3">
-            {announcements.map((ann) => {
+            {orderedAnnouncements.map((ann) => {
               const target = parseAnnouncementScope(ann.target_scope);
               const scopedLocations = target.locations;
               const scopedDepartments = target.department_ids;
