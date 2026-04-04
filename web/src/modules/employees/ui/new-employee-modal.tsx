@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, startTransition, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -13,6 +12,7 @@ type ModalPosition = { id: string; department_id: string; name: string; is_activ
 
 type NewEmployeeModalProps = {
   open: boolean;
+  onClose?: () => void;
   companyName: string;
   branches: ModalBranch[];
   departments: ModalDepartment[];
@@ -56,6 +56,7 @@ const FIELD_INPUT = "w-full rounded-xl border-[1.5px] border-[var(--gbp-border2)
 
 export function NewEmployeeModal({
   open,
+  onClose,
   companyName,
   branches,
   departments,
@@ -86,6 +87,14 @@ export function NewEmployeeModal({
     initialEmployee?.salary_amount != null ? String(initialEmployee.salary_amount) : "",
   );
   const [paymentFrequency, setPaymentFrequency] = useState(initialEmployee?.payment_frequency ?? "");
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+      return;
+    }
+    router.push("/app/employees");
+  };
 
   useEffect(() => {
     if (!initialEmployee?.documents_by_slot) {
@@ -373,9 +382,13 @@ export function NewEmployeeModal({
               {mode === "edit" ? "Editar Usuario / Empleado" : "Nuevo Usuario / Empleado"}
             </h2>
           </div>
-          <Link href="/app/employees" className={`flex h-8 w-8 items-center justify-center rounded-full text-[var(--gbp-muted)] transition-colors hover:bg-[var(--gbp-bg)] hover:text-[var(--gbp-text)] ${DARK_GHOST}`}>
+          <button
+            type="button"
+            onClick={handleClose}
+            className={`flex h-8 w-8 items-center justify-center rounded-full text-[var(--gbp-muted)] transition-colors hover:bg-[var(--gbp-bg)] hover:text-[var(--gbp-text)] ${DARK_GHOST}`}
+          >
             <span className="text-xl">✕</span>
-          </Link>
+          </button>
         </div>
 
         {/* Tabs */}
@@ -997,12 +1010,13 @@ export function NewEmployeeModal({
               ) : <span />}
             </div>
             <div className="flex items-center gap-3">
-              <Link
-                href="/app/employees"
+              <button
+                type="button"
+                onClick={handleClose}
                 className={`rounded-full px-6 py-2.5 text-sm font-bold text-[var(--gbp-text2)] transition-colors hover:bg-[var(--gbp-bg)] ${DARK_GHOST}`}
               >
                 Cancelar
-              </Link>
+              </button>
               <SubmitButton
                 label={mode === "edit" ? "Actualizar Usuario / Empleado" : "Guardar Usuario / Empleado"}
                 pendingLabel={mode === "edit" ? "Actualizando..." : "Guardando..."}

@@ -1,16 +1,8 @@
-import Link from "next/link";
-import { Plus } from "lucide-react";
-
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { EmployeesTableWorkspace } from "@/modules/employees/ui/employees-table-workspace";
+import { EmployeesPageWorkspace } from "@/modules/employees/ui/employees-page-workspace";
 import { getEmployeeDirectoryView } from "@/modules/employees/services";
 import { requireTenantModule } from "@/shared/lib/access";
 import { extractDisplayName } from "@/shared/lib/user";
-import dynamicImport from "next/dynamic";
-
-const NewEmployeeModal = dynamicImport(
-  () => import("@/modules/employees/ui/new-employee-modal").then((mod) => mod.NewEmployeeModal)
-);
 
 
 type CompanyEmployeesPageProps = {
@@ -59,10 +51,11 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   const supabase = await createSupabaseServerClient();
   const params = await searchParams;
   const action = String(params.action ?? "").trim().toLowerCase();
+  const isEditAction = action === "edit" || action === "edit-employee" || action === "edit-user";
   const openEmployeeModal = action === "create" || action === "edit" || action === "create-employee" || action === "edit-employee" || action === "edit-user";
 
-  const editEmployeeId = (await searchParams).employeeId;
-  const editProfileId = (await searchParams).profileId;
+  const editEmployeeId = params.employeeId;
+  const editProfileId = params.profileId;
   const statusParam = params.status;
   const messageParam = params.message;
 
@@ -73,10 +66,25 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
     pageLimit, 
     offset,
     {
-      includeModalsData: openEmployeeModal,
+      includeModalsData: isEditAction,
       includeUsersTab: true,
     }
   );
+
+  const [{ data: departmentsData }, { data: positionsData }] = await Promise.all([
+    supabase
+      .from("organization_departments")
+      .select("id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("name"),
+    supabase
+      .from("department_positions")
+      .select("id, department_id, name, is_active")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("name"),
+  ]);
 
   const { data: organizationUserProfiles } = await supabase
     .from("organization_user_profiles")
@@ -390,42 +398,18 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   const directoryRows = [...employeeRows, ...userRows];
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8">
-      <section className="rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-[var(--gbp-muted)] uppercase">Recursos Humanos</p>
-            <h1 className="mb-1 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Usuarios / Empleados</h1>
-            <p className="text-sm text-[var(--gbp-text2)]">Crea usuarios con o sin perfil de empleado y gestiona su estado laboral. El acceso a la plataforma se controla por separado.</p>
-          </div>
-          <div className="flex gap-2">
-            <Link href="/app/employees?action=create" className="inline-flex items-center gap-1 rounded-lg bg-[var(--gbp-accent)] px-3 py-2 text-sm font-semibold text-white hover:bg-[var(--gbp-accent-hover)]"><Plus className="h-4 w-4" /> Nuevo Usuario / Empleado</Link>
-          </div>
-        </div>
-      </section>
-
-      {messageParam ? (
-        <section className={`rounded-xl border px-4 py-3 text-sm ${statusParam === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-rose-200 bg-rose-50 text-rose-800"}`}>
-          {messageParam}
-        </section>
-      ) : null}
-
-      <EmployeesTableWorkspace employees={directoryRows} />
-
-      {openEmployeeModal && (
-        <NewEmployeeModal
-          key={initialEmployeeData?.id || initialEmployeeData?.organization_user_profile_id || "new"}
-          open={true}
-          mode={(action === "edit" || action === "edit-employee" || action === "edit-user") ? "edit" : "create"}
-          initialEmployee={initialEmployeeData}
-          branches={viewData.branches}
-          recentDocuments={viewData.documents}
-          departments={viewData.departments}
-          positions={viewData.positions}
-          publisherName={publisherName}
-          companyName={organizationName}
-        />
-      )}
-    </main>
+    <EmployeesPageWorkspace
+      statusParam={statusParam}
+      messageParam={messageParam}
+      employees={directoryRows}
+      branches={viewData.branches}
+      departments={departmentsData ?? []}
+      positions={positionsData ?? []}
+      publisherName={publisherName}
+      companyName={organizationName}
+      initialModalOpen={openEmployeeModal}
+      initialModalMode={isEditAction ? "edit" : "create"}
+      initialEmployee={initialEmployeeData}
+    />
   );
 }
