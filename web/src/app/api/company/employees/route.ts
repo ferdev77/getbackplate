@@ -7,6 +7,7 @@ import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { EMPLOYEES_MESSAGES, employeesStorageLimitForSlot } from "@/shared/lib/employees-messages";
 import { analyzeUploadedFile } from "@/shared/lib/file-security";
+import { extractDisplayName } from "@/shared/lib/user";
 import {
   assertPlanLimitForEmployees,
   assertPlanLimitForStorage,
@@ -117,6 +118,59 @@ async function rollbackEmployeeCreateFlow(input: {
   } catch (rollbackError) {
     console.error("[rollbackEmployeeCreateFlow] Rollback failed:", rollbackError);
   }
+}
+
+export async function GET(request: Request) {
+  const moduleAccess = await assertCompanyManagerModuleApi("employees");
+  if (!moduleAccess.ok) {
+    return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
+  }
+
+  const url = new URL(request.url);
+  const catalog = url.searchParams.get("catalog");
+  if (catalog !== "create_modal") {
+    return NextResponse.json({ error: "Consulta no soportada" }, { status: 400 });
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const organizationId = moduleAccess.tenant.organizationId;
+
+  const [{ data: authData }, { data: customBrandingEnabled }, { data: organizationRow }, { data: branches }, { data: departments }, { data: positions }] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.rpc("is_module_enabled", { org_id: organizationId, module_code: "custom_branding" }),
+    supabase.from("organizations").select("name").eq("id", organizationId).maybeSingle(),
+    supabase
+      .from("branches")
+      .select("id, name, city")
+      .eq("organization_id", organizationId)
+      .eq("is_active", true)
+      .order("name"),
+    supabase
+      .from("organization_departments")
+      .select("id, name")
+      .eq("organization_id", organizationId)
+      .eq("is_active", true)
+      .order("name"),
+    supabase
+      .from("department_positions")
+      .select("id, department_id, name, is_active")
+      .eq("organization_id", organizationId)
+      .eq("is_active", true)
+      .order("name"),
+  ]);
+
+  const mappedBranches = (branches ?? []).map((branch) => ({
+    id: branch.id,
+    name: customBrandingEnabled && branch.city ? branch.city : branch.name,
+  }));
+
+  return NextResponse.json({
+    branches: mappedBranches,
+    departments: departments ?? [],
+    positions: positions ?? [],
+    publisherName: extractDisplayName(authData.user),
+    companyName: organizationRow?.name ?? "la empresa",
+  });
 }
 
 type UpsertEmployeeContractDocumentInput = {

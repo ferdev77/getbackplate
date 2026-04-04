@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Bell,
@@ -29,6 +29,12 @@ import {
 import { FloatingAiAssistant } from "@/shared/ui/floating-ai-assistant";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
 import { GetBackplateMark } from "@/shared/ui/getbackplate-mark";
+import { AnnouncementCreateModal } from "@/shared/ui/announcement-create-modal";
+import { ChecklistUpsertModal } from "@/modules/checklists/ui/checklist-upsert-modal";
+import { DocumentFolderModal } from "@/modules/documents/ui/document-folder-modal";
+import { UploadDocumentModal } from "@/modules/documents/ui/upload-document-modal";
+import { NewEmployeeModal } from "@/modules/employees/ui/new-employee-modal";
+import { NewUserModal } from "@/modules/employees/ui/new-user-modal";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 import { toast } from "sonner";
@@ -102,6 +108,13 @@ type SidebarItem = {
   icon: React.ComponentType<{ className?: string }>;
   sub?: boolean;
   moduleCode?: string;
+  actionKey?:
+    | "openAnnouncementModal"
+    | "openChecklistModal"
+    | "openDocumentFolderModal"
+    | "openDocumentUploadModal"
+    | "openEmployeeModal"
+    | "openUserModal";
 };
 
 type SidebarSection = {
@@ -110,6 +123,73 @@ type SidebarSection = {
 };
 
 type BillingCycle = "monthly" | "yearly";
+
+type AnnouncementModalCatalog = {
+  publisherName: string;
+  branches: Array<{ id: string; name: string }>;
+  departments: Array<{ id: string; name: string }>;
+  positions: Array<{ id: string; department_id: string; name: string }>;
+  users: Array<{
+    id: string;
+    user_id: string | null;
+    first_name: string;
+    last_name: string;
+    role_label?: string;
+    location_label?: string;
+    department_label?: string;
+    position_label?: string;
+  }>;
+};
+
+const ANNOUNCEMENT_CATALOG_TTL_MS = 60_000;
+const CHECKLIST_CATALOG_TTL_MS = 60_000;
+const DOCUMENTS_CATALOG_TTL_MS = 60_000;
+const EMPLOYEES_CATALOG_TTL_MS = 60_000;
+const USERS_CATALOG_TTL_MS = 30_000;
+
+type ScopeUserOption = {
+  id: string;
+  user_id: string | null;
+  first_name: string;
+  last_name: string;
+  role_label?: string;
+  location_label?: string;
+  department_label?: string;
+  position_label?: string;
+};
+
+type ScopeBranchOption = { id: string; name: string };
+type ScopeDepartmentOption = { id: string; name: string };
+type ScopePositionOption = { id: string; department_id: string; name: string };
+
+type ChecklistModalCatalog = {
+  branches: ScopeBranchOption[];
+  departments: ScopeDepartmentOption[];
+  positions: ScopePositionOption[];
+  users: ScopeUserOption[];
+};
+
+type DocumentsModalCatalog = {
+  folders: Array<{ id: string; name: string }>;
+  branches: ScopeBranchOption[];
+  departments: ScopeDepartmentOption[];
+  positions: ScopePositionOption[];
+  users: ScopeUserOption[];
+  recentDocuments: Array<{ id: string; title: string; branch_id: string | null; created_at: string }>;
+};
+
+type EmployeesModalCatalog = {
+  branches: ScopeBranchOption[];
+  departments: Array<{ id: string; name: string }>;
+  positions: Array<{ id: string; department_id: string; name: string; is_active: boolean }>;
+  publisherName: string;
+  companyName: string;
+};
+
+type UsersModalCatalog = {
+  branches: ScopeBranchOption[];
+  roleOptions: Array<{ value: string; label: string }>;
+};
 
 const SECTIONS: SidebarSection[] = [
   {
@@ -124,22 +204,50 @@ const SECTIONS: SidebarSection[] = [
     items: [
       { href: "/app/reports", label: "Reportes Checklists", icon: ClipboardList, moduleCode: "reports" },
       { href: "/app/checklists", label: "Mis Checklists", icon: ClipboardList, moduleCode: "checklists" },
-      { href: "/app/checklists/new", label: "Nuevo Checklist", icon: FilePlus2, sub: true, moduleCode: "checklists" },
+      {
+        href: "/app/checklists/new",
+        label: "Nuevo Checklist",
+        icon: FilePlus2,
+        sub: true,
+        moduleCode: "checklists",
+        actionKey: "openChecklistModal",
+      },
     ],
   },
   {
     label: "Comunicacion",
     items: [
       { href: "/app/announcements", label: "Avisos", icon: Bell, moduleCode: "announcements" },
-      { href: "/app/announcements?action=create", label: "Nuevo Aviso", icon: MessageSquarePlus, sub: true, moduleCode: "announcements" },
+      {
+        href: "/app/announcements?action=create",
+        label: "Nuevo Aviso",
+        icon: MessageSquarePlus,
+        sub: true,
+        moduleCode: "announcements",
+        actionKey: "openAnnouncementModal",
+      },
     ],
   },
   {
     label: "File Manager",
     items: [
       { href: "/app/documents", label: "Documentos", icon: LayoutGrid, moduleCode: "documents" },
-      { href: "/app/documents?action=create-folder", label: "Crear Carpeta", icon: FolderPlus, sub: true, moduleCode: "documents" },
-      { href: "/app/documents?action=upload", label: "Subir Archivo", icon: Upload, sub: true, moduleCode: "documents" },
+      {
+        href: "/app/documents?action=create-folder",
+        label: "Crear Carpeta",
+        icon: FolderPlus,
+        sub: true,
+        moduleCode: "documents",
+        actionKey: "openDocumentFolderModal",
+      },
+      {
+        href: "/app/documents?action=upload",
+        label: "Subir Archivo",
+        icon: Upload,
+        sub: true,
+        moduleCode: "documents",
+        actionKey: "openDocumentUploadModal",
+      },
       { href: "/app/trash", label: "Papelera", icon: Trash2, sub: true, moduleCode: "documents" },
     ],
   },
@@ -147,9 +255,23 @@ const SECTIONS: SidebarSection[] = [
     label: "Recursos Humanos",
     items: [
       { href: "/app/employees", label: "Usuarios / Empleados", icon: Users, moduleCode: "employees" },
-      { href: "/app/employees?action=create", label: "Nuevo Usuario / Empleado", icon: UserPlus, sub: true, moduleCode: "employees" },
+      {
+        href: "/app/employees?action=create",
+        label: "Nuevo Usuario / Empleado",
+        icon: UserPlus,
+        sub: true,
+        moduleCode: "employees",
+        actionKey: "openEmployeeModal",
+      },
       { href: "/app/users", label: "Administradores", icon: User, moduleCode: "employees" },
-      { href: "/app/users?action=create-user", label: "Nuevo Administrador", icon: UserPlus, sub: true, moduleCode: "employees" },
+      {
+        href: "/app/users?action=create-user",
+        label: "Nuevo Administrador",
+        icon: UserPlus,
+        sub: true,
+        moduleCode: "employees",
+        actionKey: "openUserModal",
+      },
     ],
   },
 ];
@@ -294,6 +416,22 @@ export function CompanyShell({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsView, setSettingsView] = useState<"main" | "profile" | "billing" | "preferences">("main");
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [checklistModalOpen, setChecklistModalOpen] = useState(false);
+  const [checklistModalLoading, setChecklistModalLoading] = useState(false);
+  const [checklistModalCatalog, setChecklistModalCatalog] = useState<ChecklistModalCatalog | null>(null);
+  const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
+  const [announcementModalLoading, setAnnouncementModalLoading] = useState(false);
+  const [announcementModalCatalog, setAnnouncementModalCatalog] = useState<AnnouncementModalCatalog | null>(null);
+  const [documentFolderModalOpen, setDocumentFolderModalOpen] = useState(false);
+  const [documentUploadModalOpen, setDocumentUploadModalOpen] = useState(false);
+  const [documentsModalLoading, setDocumentsModalLoading] = useState(false);
+  const [documentsModalCatalog, setDocumentsModalCatalog] = useState<DocumentsModalCatalog | null>(null);
+  const [employeeModalOpen, setEmployeeModalOpen] = useState(false);
+  const [employeeModalLoading, setEmployeeModalLoading] = useState(false);
+  const [employeesModalCatalog, setEmployeesModalCatalog] = useState<EmployeesModalCatalog | null>(null);
+  const [userModalOpen, setUserModalOpen] = useState(false);
+  const [userModalLoading, setUserModalLoading] = useState(false);
+  const [usersModalCatalog, setUsersModalCatalog] = useState<UsersModalCatalog | null>(null);
   const [planOpen, setPlanOpen] = useState(false);
   const [planBillingCycle, setPlanBillingCycle] = useState<BillingCycle>("monthly");
   const [planChangeTargetId, setPlanChangeTargetId] = useState<string | null>(null);
@@ -361,6 +499,16 @@ export function CompanyShell({
   const [stoppingImpersonation, setStoppingImpersonation] = useState(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const billingToastHandledRef = useRef(false);
+  const checklistCatalogPrefetchStartedRef = useRef(false);
+  const documentsCatalogPrefetchStartedRef = useRef(false);
+  const employeesCatalogPrefetchStartedRef = useRef(false);
+  const usersCatalogPrefetchStartedRef = useRef(false);
+  const announcementCatalogPrefetchStartedRef = useRef(false);
+  const checklistCatalogFetchedAtRef = useRef<number | null>(null);
+  const documentsCatalogFetchedAtRef = useRef<number | null>(null);
+  const employeesCatalogFetchedAtRef = useRef<number | null>(null);
+  const usersCatalogFetchedAtRef = useRef<number | null>(null);
+  const announcementCatalogFetchedAtRef = useRef<number | null>(null);
   const currentPlanCardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -696,6 +844,335 @@ export function CompanyShell({
     }
   }
 
+  const ensureAnnouncementModalCatalog = useCallback(async (options?: { force?: boolean }) => {
+    const force = Boolean(options?.force);
+    if (announcementModalLoading) return announcementModalCatalog ?? null;
+    if (!force && announcementModalCatalog) return announcementModalCatalog;
+
+    setAnnouncementModalLoading(true);
+    try {
+      const response = await fetch("/api/company/announcements?catalog=create_modal", {
+        method: "GET",
+        cache: "no-store",
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || "No se pudo cargar el formulario de aviso");
+      }
+      const nextCatalog = data as AnnouncementModalCatalog;
+      setAnnouncementModalCatalog(nextCatalog);
+      announcementCatalogFetchedAtRef.current = Date.now();
+      return nextCatalog;
+    } catch (error) {
+      throw error;
+    } finally {
+      setAnnouncementModalLoading(false);
+    }
+  }, [announcementModalCatalog, announcementModalLoading]);
+
+  async function openAnnouncementModal() {
+    setAnnouncementModalOpen(true);
+
+    if (!announcementModalCatalog) {
+      try {
+        await ensureAnnouncementModalCatalog();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "No se pudo cargar el formulario de aviso");
+        setAnnouncementModalOpen(false);
+      }
+      return;
+    }
+
+    const fetchedAt = announcementCatalogFetchedAtRef.current;
+    const shouldRevalidate = !fetchedAt || Date.now() - fetchedAt > ANNOUNCEMENT_CATALOG_TTL_MS;
+    if (shouldRevalidate) {
+      void ensureAnnouncementModalCatalog({ force: true }).catch(() => {
+        // keep cached modal data if revalidation fails
+      });
+    }
+  }
+
+  function closeAnnouncementModal() {
+    setAnnouncementModalOpen(false);
+  }
+
+  const ensureChecklistModalCatalog = useCallback(async (options?: { force?: boolean }) => {
+    const force = Boolean(options?.force);
+    if (checklistModalLoading) return checklistModalCatalog ?? null;
+    if (!force && checklistModalCatalog) return checklistModalCatalog;
+
+    setChecklistModalLoading(true);
+    try {
+      const response = await fetch("/api/company/checklists?catalog=create_modal", {
+        method: "GET",
+        cache: "no-store",
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || "No se pudo cargar el formulario de checklist");
+      }
+      const nextCatalog = data as ChecklistModalCatalog;
+      setChecklistModalCatalog(nextCatalog);
+      checklistCatalogFetchedAtRef.current = Date.now();
+      return nextCatalog;
+    } finally {
+      setChecklistModalLoading(false);
+    }
+  }, [checklistModalCatalog, checklistModalLoading]);
+
+  async function openChecklistModal() {
+    setChecklistModalOpen(true);
+
+    if (!checklistModalCatalog) {
+      try {
+        await ensureChecklistModalCatalog();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "No se pudo cargar el formulario de checklist");
+        setChecklistModalOpen(false);
+      }
+      return;
+    }
+
+    const fetchedAt = checklistCatalogFetchedAtRef.current;
+    const shouldRevalidate = !fetchedAt || Date.now() - fetchedAt > CHECKLIST_CATALOG_TTL_MS;
+    if (shouldRevalidate) {
+      void ensureChecklistModalCatalog({ force: true }).catch(() => {
+        // keep cached modal data if revalidation fails
+      });
+    }
+  }
+
+  const ensureDocumentsModalCatalog = useCallback(async (options?: { force?: boolean }) => {
+    const force = Boolean(options?.force);
+    if (documentsModalLoading) return documentsModalCatalog ?? null;
+    if (!force && documentsModalCatalog) return documentsModalCatalog;
+
+    setDocumentsModalLoading(true);
+    try {
+      const response = await fetch("/api/company/documents?catalog=create_modals", {
+        method: "GET",
+        cache: "no-store",
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || "No se pudo cargar el formulario de documentos");
+      }
+      const nextCatalog = data as DocumentsModalCatalog;
+      setDocumentsModalCatalog(nextCatalog);
+      documentsCatalogFetchedAtRef.current = Date.now();
+      return nextCatalog;
+    } finally {
+      setDocumentsModalLoading(false);
+    }
+  }, [documentsModalCatalog, documentsModalLoading]);
+
+  async function openDocumentFolderModal() {
+    setDocumentFolderModalOpen(true);
+    if (!documentsModalCatalog) {
+      try {
+        await ensureDocumentsModalCatalog();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "No se pudo cargar el formulario de carpeta");
+        setDocumentFolderModalOpen(false);
+      }
+      return;
+    }
+
+    const fetchedAt = documentsCatalogFetchedAtRef.current;
+    const shouldRevalidate = !fetchedAt || Date.now() - fetchedAt > DOCUMENTS_CATALOG_TTL_MS;
+    if (shouldRevalidate) {
+      void ensureDocumentsModalCatalog({ force: true }).catch(() => {
+        // keep cached modal data if revalidation fails
+      });
+    }
+  }
+
+  async function openDocumentUploadModal() {
+    setDocumentUploadModalOpen(true);
+    if (!documentsModalCatalog) {
+      try {
+        await ensureDocumentsModalCatalog();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "No se pudo cargar el formulario de carga");
+        setDocumentUploadModalOpen(false);
+      }
+      return;
+    }
+
+    const fetchedAt = documentsCatalogFetchedAtRef.current;
+    const shouldRevalidate = !fetchedAt || Date.now() - fetchedAt > DOCUMENTS_CATALOG_TTL_MS;
+    if (shouldRevalidate) {
+      void ensureDocumentsModalCatalog({ force: true }).catch(() => {
+        // keep cached modal data if revalidation fails
+      });
+    }
+  }
+
+  const ensureEmployeesModalCatalog = useCallback(async (options?: { force?: boolean }) => {
+    const force = Boolean(options?.force);
+    if (employeeModalLoading) return employeesModalCatalog ?? null;
+    if (!force && employeesModalCatalog) return employeesModalCatalog;
+
+    setEmployeeModalLoading(true);
+    try {
+      const response = await fetch("/api/company/employees?catalog=create_modal", {
+        method: "GET",
+        cache: "no-store",
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || "No se pudo cargar el formulario de empleados");
+      }
+      const nextCatalog = data as EmployeesModalCatalog;
+      setEmployeesModalCatalog(nextCatalog);
+      employeesCatalogFetchedAtRef.current = Date.now();
+      return nextCatalog;
+    } finally {
+      setEmployeeModalLoading(false);
+    }
+  }, [employeeModalLoading, employeesModalCatalog]);
+
+  async function openEmployeeModal() {
+    setEmployeeModalOpen(true);
+    if (!employeesModalCatalog) {
+      try {
+        await ensureEmployeesModalCatalog();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "No se pudo cargar el formulario de empleados");
+        setEmployeeModalOpen(false);
+      }
+      return;
+    }
+
+    const fetchedAt = employeesCatalogFetchedAtRef.current;
+    const shouldRevalidate = !fetchedAt || Date.now() - fetchedAt > EMPLOYEES_CATALOG_TTL_MS;
+    if (shouldRevalidate) {
+      void ensureEmployeesModalCatalog({ force: true }).catch(() => {
+        // keep cached modal data if revalidation fails
+      });
+    }
+  }
+
+  const ensureUsersModalCatalog = useCallback(async (options?: { force?: boolean }) => {
+    const force = Boolean(options?.force);
+    if (userModalLoading) return usersModalCatalog ?? null;
+    if (!force && usersModalCatalog) return usersModalCatalog;
+
+    setUserModalLoading(true);
+    try {
+      const response = await fetch("/api/company/users?catalog=create_modal", {
+        method: "GET",
+        cache: "no-store",
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || "No se pudo cargar el formulario de administradores");
+      }
+      const nextCatalog = data as UsersModalCatalog;
+      setUsersModalCatalog(nextCatalog);
+      usersCatalogFetchedAtRef.current = Date.now();
+      return nextCatalog;
+    } finally {
+      setUserModalLoading(false);
+    }
+  }, [userModalLoading, usersModalCatalog]);
+
+  async function openUserModal() {
+    setUserModalOpen(true);
+    if (!usersModalCatalog) {
+      try {
+        await ensureUsersModalCatalog();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "No se pudo cargar el formulario de administradores");
+        setUserModalOpen(false);
+      }
+      return;
+    }
+
+    const fetchedAt = usersCatalogFetchedAtRef.current;
+    const shouldRevalidate = !fetchedAt || Date.now() - fetchedAt > USERS_CATALOG_TTL_MS;
+    if (shouldRevalidate) {
+      void ensureUsersModalCatalog({ force: true }).catch(() => {
+        // keep cached modal data if revalidation fails
+      });
+    }
+  }
+
+  useEffect(() => {
+    if (!enabledModuleSet.has("announcements")) return;
+    if (announcementCatalogPrefetchStartedRef.current) return;
+    if (announcementModalCatalog) return;
+
+    announcementCatalogPrefetchStartedRef.current = true;
+    const timer = setTimeout(() => {
+      void ensureAnnouncementModalCatalog().catch(() => {
+        announcementCatalogPrefetchStartedRef.current = false;
+      });
+    }, 180);
+
+    return () => clearTimeout(timer);
+  }, [announcementModalCatalog, enabledModuleSet, ensureAnnouncementModalCatalog]);
+
+  useEffect(() => {
+    if (!enabledModuleSet.has("checklists")) return;
+    if (checklistCatalogPrefetchStartedRef.current) return;
+    if (checklistModalCatalog) return;
+
+    checklistCatalogPrefetchStartedRef.current = true;
+    const timer = setTimeout(() => {
+      void ensureChecklistModalCatalog().catch(() => {
+        checklistCatalogPrefetchStartedRef.current = false;
+      });
+    }, 220);
+
+    return () => clearTimeout(timer);
+  }, [checklistModalCatalog, enabledModuleSet, ensureChecklistModalCatalog]);
+
+  useEffect(() => {
+    if (!enabledModuleSet.has("documents")) return;
+    if (documentsCatalogPrefetchStartedRef.current) return;
+    if (documentsModalCatalog) return;
+
+    documentsCatalogPrefetchStartedRef.current = true;
+    const timer = setTimeout(() => {
+      void ensureDocumentsModalCatalog().catch(() => {
+        documentsCatalogPrefetchStartedRef.current = false;
+      });
+    }, 240);
+
+    return () => clearTimeout(timer);
+  }, [documentsModalCatalog, enabledModuleSet, ensureDocumentsModalCatalog]);
+
+  useEffect(() => {
+    if (!enabledModuleSet.has("employees")) return;
+    if (employeesCatalogPrefetchStartedRef.current) return;
+    if (employeesModalCatalog) return;
+
+    employeesCatalogPrefetchStartedRef.current = true;
+    const timer = setTimeout(() => {
+      void ensureEmployeesModalCatalog().catch(() => {
+        employeesCatalogPrefetchStartedRef.current = false;
+      });
+    }, 260);
+
+    return () => clearTimeout(timer);
+  }, [employeesModalCatalog, enabledModuleSet, ensureEmployeesModalCatalog]);
+
+  useEffect(() => {
+    if (!enabledModuleSet.has("employees")) return;
+    if (usersCatalogPrefetchStartedRef.current) return;
+    if (usersModalCatalog) return;
+
+    usersCatalogPrefetchStartedRef.current = true;
+    const timer = setTimeout(() => {
+      void ensureUsersModalCatalog().catch(() => {
+        usersCatalogPrefetchStartedRef.current = false;
+      });
+    }, 280);
+
+    return () => clearTimeout(timer);
+  }, [enabledModuleSet, ensureUsersModalCatalog, usersModalCatalog]);
+
   const sidebarWidth = collapsed ? "w-[56px]" : "w-[240px]";
   const sidebarPaddingX = collapsed ? "px-2" : "px-4";
   const normalizedCurrentPlanCode = (currentPlanCode ?? "").toLowerCase();
@@ -792,6 +1269,40 @@ export function CompanyShell({
     }));
   }
 
+  function handleSidebarItemClick(item: SidebarItem) {
+    if (item.actionKey === "openAnnouncementModal") {
+      setMenuOpen(false);
+      void openAnnouncementModal();
+      return;
+    }
+    if (item.actionKey === "openChecklistModal") {
+      setMenuOpen(false);
+      void openChecklistModal();
+      return;
+    }
+    if (item.actionKey === "openDocumentFolderModal") {
+      setMenuOpen(false);
+      void openDocumentFolderModal();
+      return;
+    }
+    if (item.actionKey === "openDocumentUploadModal") {
+      setMenuOpen(false);
+      void openDocumentUploadModal();
+      return;
+    }
+    if (item.actionKey === "openEmployeeModal") {
+      setMenuOpen(false);
+      void openEmployeeModal();
+      return;
+    }
+    if (item.actionKey === "openUserModal") {
+      setMenuOpen(false);
+      void openUserModal();
+      return;
+    }
+    setMenuOpen(false);
+  }
+
   return (
     <div
       data-theme={isDarkTheme ? "dark-pro" : normalizedTheme}
@@ -864,16 +1375,33 @@ export function CompanyShell({
                   <div className="space-y-0.5">
                     {section.items.map((item) => {
                       const active = isActive(pathname, searchParams, item.href);
+                      const isQuickAction = Boolean(item.actionKey);
+                      const itemClassName = `flex items-center gap-2.5 border-l-[2.5px] text-[13px] transition ${
+                        collapsed ? "justify-center px-0 py-2.5" : item.sub ? "px-5 py-1.5 pl-7" : "px-5 py-2"
+                      } ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-[var(--gbp-surface2)] font-semibold text-[var(--gbp-text)]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-[var(--gbp-text2)] hover:border-l-[var(--gbp-border2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]")}`;
+
+                      if (isQuickAction) {
+                        return (
+                          <button
+                            key={item.href}
+                            type="button"
+                            className={itemClassName}
+                            onClick={() => handleSidebarItemClick(item)}
+                          >
+                            <item.icon className="h-4 w-4" />
+                            {!collapsed ? <span>{item.label}</span> : null}
+                          </button>
+                        );
+                      }
+
                       return (
                         <Link
                           key={item.href}
                           href={hrefWithBranch(item.href)}
-                          className={`flex items-center gap-2.5 border-l-[2.5px] text-[13px] transition ${
-                             collapsed ? "justify-center px-0 py-2.5" : item.sub ? "px-5 py-1.5 pl-7" : "px-5 py-2"
-                            } ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-[var(--gbp-surface2)] font-semibold text-[var(--gbp-text)]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-[var(--gbp-text2)] hover:border-l-[var(--gbp-border2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]")}`}
-                           style={active ? { borderLeftColor: palette.accent } : undefined}
-                           onClick={() => setMenuOpen(false)}
-                         >
+                          className={itemClassName}
+                          style={active ? { borderLeftColor: palette.accent } : undefined}
+                          onClick={() => handleSidebarItemClick(item)}
+                        >
                           <item.icon className="h-4 w-4" />
                           {!collapsed ? <span>{item.label}</span> : null}
                         </Link>
@@ -1319,6 +1847,146 @@ export function CompanyShell({
         </div>
       ) : null}
 
+      {announcementModalOpen ? (
+        announcementModalCatalog ? (
+          <AnnouncementCreateModal
+            onClose={closeAnnouncementModal}
+            mode="create"
+            branches={announcementModalCatalog.branches}
+            departments={announcementModalCatalog.departments}
+            positions={announcementModalCatalog.positions}
+            users={announcementModalCatalog.users}
+            publisherName={announcementModalCatalog.publisherName}
+          />
+        ) : (
+          <div className="fixed inset-0 z-[1200] grid place-items-center bg-black/45 p-4">
+            <div className="w-full max-w-[420px] rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-[0_24px_70px_rgba(0,0,0,.18)]">
+              <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Nuevo Aviso</p>
+              <div className="mt-3 flex items-center gap-2 text-sm text-[var(--gbp-text2)]">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Cargando formulario...</span>
+              </div>
+            </div>
+          </div>
+        )
+      ) : null}
+
+      {checklistModalOpen ? (
+        checklistModalCatalog ? (
+          <ChecklistUpsertModal
+            onClose={() => setChecklistModalOpen(false)}
+            branches={checklistModalCatalog.branches}
+            departments={checklistModalCatalog.departments}
+            positions={checklistModalCatalog.positions}
+            users={checklistModalCatalog.users}
+            action="create"
+          />
+        ) : (
+          <div className="fixed inset-0 z-[1200] grid place-items-center bg-black/45 p-4">
+            <div className="w-full max-w-[420px] rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-[0_24px_70px_rgba(0,0,0,.18)]">
+              <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Nuevo Checklist</p>
+              <div className="mt-3 flex items-center gap-2 text-sm text-[var(--gbp-text2)]">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Cargando formulario...</span>
+              </div>
+            </div>
+          </div>
+        )
+      ) : null}
+
+      {documentFolderModalOpen ? (
+        documentsModalCatalog ? (
+          <DocumentFolderModal
+            onClose={() => setDocumentFolderModalOpen(false)}
+            folders={documentsModalCatalog.folders}
+            branches={documentsModalCatalog.branches}
+            departments={documentsModalCatalog.departments}
+            positions={documentsModalCatalog.positions}
+            employees={documentsModalCatalog.users}
+          />
+        ) : (
+          <div className="fixed inset-0 z-[1200] grid place-items-center bg-black/45 p-4">
+            <div className="w-full max-w-[420px] rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-[0_24px_70px_rgba(0,0,0,.18)]">
+              <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Nueva Carpeta</p>
+              <div className="mt-3 flex items-center gap-2 text-sm text-[var(--gbp-text2)]">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Cargando formulario...</span>
+              </div>
+            </div>
+          </div>
+        )
+      ) : null}
+
+      {documentUploadModalOpen ? (
+        documentsModalCatalog ? (
+          <UploadDocumentModal
+            onClose={() => setDocumentUploadModalOpen(false)}
+            folders={documentsModalCatalog.folders}
+            branches={documentsModalCatalog.branches}
+            departments={documentsModalCatalog.departments}
+            positions={documentsModalCatalog.positions}
+            employees={documentsModalCatalog.users}
+            recentDocuments={documentsModalCatalog.recentDocuments}
+          />
+        ) : (
+          <div className="fixed inset-0 z-[1200] grid place-items-center bg-black/45 p-4">
+            <div className="w-full max-w-[420px] rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-[0_24px_70px_rgba(0,0,0,.18)]">
+              <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Subir Archivo</p>
+              <div className="mt-3 flex items-center gap-2 text-sm text-[var(--gbp-text2)]">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Cargando formulario...</span>
+              </div>
+            </div>
+          </div>
+        )
+      ) : null}
+
+      {employeeModalOpen ? (
+        employeesModalCatalog ? (
+          <NewEmployeeModal
+            open
+            mode="create"
+            onClose={() => setEmployeeModalOpen(false)}
+            branches={employeesModalCatalog.branches}
+            departments={employeesModalCatalog.departments}
+            positions={employeesModalCatalog.positions}
+            publisherName={employeesModalCatalog.publisherName}
+            companyName={employeesModalCatalog.companyName}
+          />
+        ) : (
+          <div className="fixed inset-0 z-[1200] grid place-items-center bg-black/45 p-4">
+            <div className="w-full max-w-[420px] rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-[0_24px_70px_rgba(0,0,0,.18)]">
+              <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Nuevo Usuario / Empleado</p>
+              <div className="mt-3 flex items-center gap-2 text-sm text-[var(--gbp-text2)]">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Cargando formulario...</span>
+              </div>
+            </div>
+          </div>
+        )
+      ) : null}
+
+      {userModalOpen ? (
+        usersModalCatalog ? (
+          <NewUserModal
+            open
+            onClose={() => setUserModalOpen(false)}
+            branches={usersModalCatalog.branches}
+            roleOptions={usersModalCatalog.roleOptions}
+          />
+        ) : (
+          <div className="fixed inset-0 z-[1200] grid place-items-center bg-black/45 p-4">
+            <div className="w-full max-w-[420px] rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-[0_24px_70px_rgba(0,0,0,.18)]">
+              <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Nuevo Administrador</p>
+              <div className="mt-3 flex items-center gap-2 text-sm text-[var(--gbp-text2)]">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Cargando formulario...</span>
+              </div>
+            </div>
+          </div>
+        )
+      ) : null}
+
       {planOpen ? (
         <div className="fixed inset-0 z-[1200]" onClick={() => setPlanOpen(false)}>
           <div className={`absolute bottom-[72px] left-3 w-[280px] overflow-hidden rounded-[14px] border bg-[var(--gbp-surface)] shadow-[0_12px_40px_rgba(0,0,0,.38)] ${isDarkTheme ? "border-white/10 text-white" : "border-[var(--gbp-border)] text-[var(--gbp-text)]"}`} onClick={(event) => event.stopPropagation()}>
@@ -1536,13 +2204,30 @@ export function CompanyShell({
                     <div className="space-y-0.5">
                       {section.items.map((item) => {
                         const active = isActive(pathname, searchParams, item.href);
+                        const isQuickAction = Boolean(item.actionKey);
+                        const itemClassName = `flex items-center gap-2.5 border-l-[2.5px] px-4 text-[13px] transition ${item.sub ? "py-1.5 pl-6" : "py-2"} ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-black/5 font-semibold text-[var(--gbp-text)]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-black/60 hover:border-l-black/20 hover:bg-black/5 hover:text-black/85")}`;
+
+                        if (isQuickAction) {
+                          return (
+                            <button
+                              key={item.href}
+                              type="button"
+                              className={itemClassName}
+                              onClick={() => handleSidebarItemClick(item)}
+                            >
+                              <item.icon className="h-4 w-4" />
+                              <span>{item.label}</span>
+                            </button>
+                          );
+                        }
+
                         return (
                           <Link
                             key={item.href}
                             href={hrefWithBranch(item.href)}
-                            className={`flex items-center gap-2.5 border-l-[2.5px] px-4 text-[13px] transition ${item.sub ? "py-1.5 pl-6" : "py-2"} ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-black/5 font-semibold text-[var(--gbp-text)]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-black/60 hover:border-l-black/20 hover:bg-black/5 hover:text-black/85")}`}
+                            className={itemClassName}
                             style={active ? { borderLeftColor: palette.accent } : undefined}
-                            onClick={() => setMenuOpen(false)}
+                            onClick={() => handleSidebarItemClick(item)}
                           >
                             <item.icon className="h-4 w-4" />
                             <span>{item.label}</span>

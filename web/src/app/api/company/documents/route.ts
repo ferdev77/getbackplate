@@ -6,6 +6,7 @@ import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
 import { analyzeUploadedFile } from "@/shared/lib/file-security";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { assertPlanLimitForStorage, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
+import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
 
@@ -75,6 +76,58 @@ export async function GET(request: Request) {
   const { supabase, tenant } = context;
   const url = new URL(request.url);
   const catalog = url.searchParams.get("catalog");
+
+  if (catalog === "create_modals") {
+    const [{ data: customBrandingEnabled }, { data: folders }, { data: branches }, { data: departments }, { data: positions }, { data: recentDocuments }, users] = await Promise.all([
+      supabase.rpc("is_module_enabled", { org_id: tenant.organizationId, module_code: "custom_branding" }),
+      supabase
+        .from("document_folders")
+        .select("id, name")
+        .eq("organization_id", tenant.organizationId)
+        .is("deleted_at", null)
+        .order("name"),
+      supabase
+        .from("branches")
+        .select("id, name, city")
+        .eq("organization_id", tenant.organizationId)
+        .eq("is_active", true)
+        .order("name"),
+      supabase
+        .from("organization_departments")
+        .select("id, name")
+        .eq("organization_id", tenant.organizationId)
+        .eq("is_active", true)
+        .order("name"),
+      supabase
+        .from("department_positions")
+        .select("id, department_id, name")
+        .eq("organization_id", tenant.organizationId)
+        .eq("is_active", true)
+        .order("name"),
+      supabase
+        .from("documents")
+        .select("id, title, branch_id, created_at")
+        .eq("organization_id", tenant.organizationId)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(12),
+      buildScopeUsersCatalog(tenant.organizationId),
+    ]);
+
+    const mappedBranches = (branches ?? []).map((branch) => ({
+      id: branch.id,
+      name: customBrandingEnabled && branch.city ? branch.city : branch.name,
+    }));
+
+    return NextResponse.json({
+      folders: folders ?? [],
+      branches: mappedBranches,
+      departments: departments ?? [],
+      positions: positions ?? [],
+      users,
+      recentDocuments: recentDocuments ?? [],
+    });
+  }
 
   if (catalog !== "share_scopes") {
     return NextResponse.json({ error: "Consulta no soportada" }, { status: 400 });

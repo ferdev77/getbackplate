@@ -40,6 +40,7 @@ type EmployeeChecklistPreviewModalProps = {
   templateName: string;
   sections: PreviewSection[];
   initialReport: InitialReport;
+  onClose?: () => void;
 };
 
 function sectionIcon(name: string) {
@@ -69,6 +70,7 @@ export function EmployeeChecklistPreviewModal({
   templateName,
   sections,
   initialReport,
+  onClose,
 }: EmployeeChecklistPreviewModalProps) {
   const router = useRouter();
   const checklistBodyRef = useRef<HTMLDivElement | null>(null);
@@ -128,6 +130,10 @@ export function EmployeeChecklistPreviewModal({
   function closeModal() {
     setVisible(false);
     setTimeout(() => {
+      if (onClose) {
+        onClose();
+        return;
+      }
       if (typeof window !== "undefined") {
         window.sessionStorage.setItem("portal-checklist-scroll-y", String(window.scrollY || 0));
       }
