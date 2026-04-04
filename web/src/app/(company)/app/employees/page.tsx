@@ -59,6 +59,24 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   const statusParam = params.status;
   const messageParam = params.message;
 
+  if (!isEditAction) {
+    return (
+      <EmployeesPageWorkspace
+        statusParam={statusParam}
+        messageParam={messageParam}
+        employees={[]}
+        branches={[]}
+        departments={[]}
+        positions={[]}
+        publisherName=""
+        companyName=""
+        initialModalOpen={openEmployeeModal}
+        initialModalMode="create"
+        deferredDataUrl={`/api/company/employees?catalog=directory_page&limit=100&page=1`}
+      />
+    );
+  }
+
   const pageLimit = params.limit ? parseInt(params.limit, 10) : 100; const pageNumber = params.page ? parseInt(params.page, 10) : 1; const offset = Math.max(0, (pageNumber - 1) * pageLimit);
   
   const viewData = await getEmployeeDirectoryView(

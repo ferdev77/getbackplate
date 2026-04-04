@@ -13,6 +13,7 @@ import {
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { SlideUp, AnimatedList, AnimatedItem } from "@/shared/ui/animations";
 
 type DashboardAnnouncement = {
@@ -56,6 +57,7 @@ type CompanyDashboardWorkspaceProps = {
   branchNameMap: Map<string, string>;
   moduleStatus: DashboardModuleStatus[];
   selectedLocationName?: string | null;
+  deferredDataUrl?: string;
 };
 
 function kindLabel(kind: string) {
@@ -145,7 +147,76 @@ export function CompanyDashboardWorkspace({
   branchNameMap,
   moduleStatus,
   selectedLocationName,
+  deferredDataUrl,
 }: CompanyDashboardWorkspaceProps) {
+  const [metrics, setMetrics] = useState(() => ({
+    employeesCount,
+    employeesOnlyCount,
+    usersOnlyCount,
+    branchesCount,
+    checklistTodayCount,
+    checklistWeekCount,
+    pendingReviewCount,
+    openFlagsCount,
+    announcements,
+    recentDocuments,
+  }));
+
+  useEffect(() => {
+    if (!deferredDataUrl) return;
+
+    const controller = new AbortController();
+    void fetch(deferredDataUrl, { method: "GET", cache: "no-store", signal: controller.signal })
+      .then((response) => response.json())
+      .then((data) => {
+        if (controller.signal.aborted) return;
+        setMetrics((prev) => ({
+          employeesCount: typeof data?.employeesCount === "number" ? data.employeesCount : prev.employeesCount,
+          employeesOnlyCount: typeof data?.employeesOnlyCount === "number" ? data.employeesOnlyCount : prev.employeesOnlyCount,
+          usersOnlyCount: typeof data?.usersOnlyCount === "number" ? data.usersOnlyCount : prev.usersOnlyCount,
+          branchesCount: typeof data?.branchesCount === "number" ? data.branchesCount : prev.branchesCount,
+          checklistTodayCount: typeof data?.checklistTodayCount === "number" ? data.checklistTodayCount : prev.checklistTodayCount,
+          checklistWeekCount: typeof data?.checklistWeekCount === "number" ? data.checklistWeekCount : prev.checklistWeekCount,
+          pendingReviewCount: typeof data?.pendingReviewCount === "number" ? data.pendingReviewCount : prev.pendingReviewCount,
+          openFlagsCount: typeof data?.openFlagsCount === "number" ? data.openFlagsCount : prev.openFlagsCount,
+          announcements: Array.isArray(data?.announcements) ? data.announcements : prev.announcements,
+          recentDocuments: Array.isArray(data?.recentDocuments) ? data.recentDocuments : prev.recentDocuments,
+        }));
+      })
+      .catch(() => {
+        // keep current snapshot if deferred fetch fails
+      });
+
+    return () => controller.abort();
+  }, [
+    announcements,
+    branchesCount,
+    checklistTodayCount,
+    checklistWeekCount,
+    deferredDataUrl,
+    employeesCount,
+    employeesOnlyCount,
+    openFlagsCount,
+    pendingReviewCount,
+    recentDocuments,
+    usersOnlyCount,
+  ]);
+
+  const effectiveMetrics = deferredDataUrl
+    ? metrics
+    : {
+        employeesCount,
+        employeesOnlyCount,
+        usersOnlyCount,
+        branchesCount,
+        checklistTodayCount,
+        checklistWeekCount,
+        pendingReviewCount,
+        openFlagsCount,
+        announcements,
+        recentDocuments,
+      };
+
   const enabledModuleSet = new Set(
     moduleStatus.filter((module) => module.enabled).map((module) => module.code),
   );
@@ -155,12 +226,12 @@ export function CompanyDashboardWorkspace({
   const showAnnouncementsPanel = enabledModuleSet.has("announcements");
   const showDocumentsPanel = enabledModuleSet.has("documents");
   const showChecklistsPanel = enabledModuleSet.has("checklists");
-  const workforceTotal = employeesOnlyCount + usersOnlyCount;
-  const employeeRatio = workforceTotal > 0 ? Math.round((employeesOnlyCount / workforceTotal) * 100) : 0;
-  const checklistsTodayValue = showChecklistsPanel ? checklistTodayCount : 0;
-  const checklistsWeekValue = showChecklistsPanel ? checklistWeekCount : 0;
-  const pendingReviewValue = showChecklistsPanel ? pendingReviewCount : 0;
-  const openFlagsValue = showChecklistsPanel ? openFlagsCount : 0;
+  const workforceTotal = effectiveMetrics.employeesOnlyCount + effectiveMetrics.usersOnlyCount;
+  const employeeRatio = workforceTotal > 0 ? Math.round((effectiveMetrics.employeesOnlyCount / workforceTotal) * 100) : 0;
+  const checklistsTodayValue = showChecklistsPanel ? effectiveMetrics.checklistTodayCount : 0;
+  const checklistsWeekValue = showChecklistsPanel ? effectiveMetrics.checklistWeekCount : 0;
+  const pendingReviewValue = showChecklistsPanel ? effectiveMetrics.pendingReviewCount : 0;
+  const openFlagsValue = showChecklistsPanel ? effectiveMetrics.openFlagsCount : 0;
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
@@ -189,7 +260,7 @@ export function CompanyDashboardWorkspace({
             subtitle={organizationName}
             details={[
               { label: "Estado", value: statusLabel(organizationStatus) },
-              { label: "Sucursales activas", value: branchesCount },
+              { label: "Sucursales activas", value: effectiveMetrics.branchesCount },
               { label: "Vista", value: selectedLocationName ? `Locacion: ${selectedLocationName}` : "General" },
             ]}
           />
@@ -198,12 +269,12 @@ export function CompanyDashboardWorkspace({
           <DashboardMetricCard
             icon={UsersRound}
             label="Usuarios / Empleados"
-            value={employeesCount}
-            subtitle={`Empleados: ${employeesOnlyCount} · Usuarios: ${usersOnlyCount}`}
+            value={effectiveMetrics.employeesCount}
+            subtitle={`Empleados: ${effectiveMetrics.employeesOnlyCount} · Usuarios: ${effectiveMetrics.usersOnlyCount}`}
             progress={{ value: employeeRatio, label: `Composicion laboral: ${employeeRatio}% empleados` }}
             details={[
-              { label: "Empleados", value: employeesOnlyCount },
-              { label: "Usuarios", value: usersOnlyCount },
+              { label: "Empleados", value: effectiveMetrics.employeesOnlyCount },
+              { label: "Usuarios", value: effectiveMetrics.usersOnlyCount },
               { label: "Total workforce", value: workforceTotal },
             ]}
           />
@@ -267,15 +338,15 @@ export function CompanyDashboardWorkspace({
             <div className="space-y-2">
               <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
                 <p className="inline-flex items-center gap-1 text-xs text-[var(--gbp-text2)]"><CalendarClock className="h-3.5 w-3.5" /> Checklists semana</p>
-                <p className="mt-1 text-xl font-bold text-[var(--gbp-text)]">{showChecklistsPanel ? checklistWeekCount : 0}</p>
+                <p className="mt-1 text-xl font-bold text-[var(--gbp-text)]">{showChecklistsPanel ? effectiveMetrics.checklistWeekCount : 0}</p>
               </div>
               <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
                 <p className="inline-flex items-center gap-1 text-xs text-[var(--gbp-text2)]"><ClipboardCheck className="h-3.5 w-3.5" /> Pendientes de revision</p>
-                <p className="mt-1 text-xl font-bold text-[var(--gbp-text)]">{showChecklistsPanel ? pendingReviewCount : 0}</p>
+                <p className="mt-1 text-xl font-bold text-[var(--gbp-text)]">{showChecklistsPanel ? effectiveMetrics.pendingReviewCount : 0}</p>
               </div>
               <div className="rounded-lg border border-[var(--gbp-error)]/30 bg-[var(--gbp-error-soft)] p-3">
                 <p className="inline-flex items-center gap-1 text-xs text-[var(--gbp-error)]"><Flag className="h-3.5 w-3.5" /> Incidencias abiertas</p>
-                <p className="mt-1 text-xl font-bold text-[var(--gbp-error)]">{showChecklistsPanel ? openFlagsCount : 0}</p>
+                <p className="mt-1 text-xl font-bold text-[var(--gbp-error)]">{showChecklistsPanel ? effectiveMetrics.openFlagsCount : 0}</p>
               </div>
             </div>
           </article>
@@ -287,9 +358,9 @@ export function CompanyDashboardWorkspace({
           <article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4">
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--gbp-text2)]">Avisos recientes</h2>
             <div className="space-y-2">
-              {showAnnouncementsPanel && announcements.length ? (
+              {showAnnouncementsPanel && effectiveMetrics.announcements.length ? (
                 <AnimatedList className="space-y-2">
-                  {announcements.map((notice) => (
+                  {effectiveMetrics.announcements.map((notice) => (
                     <AnimatedItem key={notice.id}>
                       <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -324,9 +395,9 @@ export function CompanyDashboardWorkspace({
           <article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4">
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--gbp-text2)]">Documentos recientes</h2>
             <div className="space-y-2">
-              {showDocumentsPanel && recentDocuments.length ? (
+              {showDocumentsPanel && effectiveMetrics.recentDocuments.length ? (
                 <AnimatedList className="space-y-2">
-                  {recentDocuments.map((doc) => (
+                  {effectiveMetrics.recentDocuments.map((doc) => (
                     <AnimatedItem key={doc.id}>
                       <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
                         <p className="inline-flex items-center gap-1 text-sm font-medium text-[var(--gbp-text)]"><FileText className="h-4 w-4 text-[var(--gbp-text2)]" /> {doc.title}</p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -26,6 +26,7 @@ type UsersPageWorkspaceProps = {
   statusParam?: string;
   messageParam?: string;
   initialModalOpen?: boolean;
+  deferredDataUrl?: string;
 };
 
 export function UsersPageWorkspace({
@@ -35,9 +36,38 @@ export function UsersPageWorkspace({
   statusParam,
   messageParam,
   initialModalOpen = false,
+  deferredDataUrl,
 }: UsersPageWorkspaceProps) {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(initialModalOpen);
+  const [deferredSnapshot, setDeferredSnapshot] = useState<{
+    users: UserRow[];
+    branches: Array<{ id: string; name: string }>;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!deferredDataUrl) return;
+    const controller = new AbortController();
+    void fetch(deferredDataUrl, { method: "GET", cache: "no-store", signal: controller.signal })
+      .then((response) => response.json())
+      .then((data) => {
+        if (controller.signal.aborted) return;
+        setDeferredSnapshot((prev) => ({
+          users: Array.isArray(data?.users) ? (data.users as UserRow[]) : (prev?.users ?? users),
+          branches: Array.isArray(data?.branches)
+            ? (data.branches as Array<{ id: string; name: string }>)
+            : (prev?.branches ?? branchOptions),
+        }));
+      })
+      .catch(() => {
+        // keep current snapshot
+      });
+
+    return () => controller.abort();
+  }, [branchOptions, deferredDataUrl, users]);
+
+  const effectiveRows = deferredSnapshot?.users ?? users;
+  const effectiveBranches = deferredSnapshot?.branches ?? branchOptions;
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -72,16 +102,16 @@ export function UsersPageWorkspace({
       ) : null}
 
       <UsersTableWorkspace
-        users={users}
+        users={effectiveRows}
         roleOptions={roleOptions}
-        branchOptions={branchOptions}
+        branchOptions={effectiveBranches}
         onCreateUser={() => setIsModalOpen(true)}
       />
 
       <NewUserModal
         open={isModalOpen}
         onClose={closeModal}
-        branches={branchOptions}
+        branches={effectiveBranches}
         roleOptions={roleOptions}
       />
     </main>

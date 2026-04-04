@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 
@@ -60,6 +60,7 @@ type EmployeesPageWorkspaceProps = {
   initialModalOpen: boolean;
   initialModalMode: "create" | "edit";
   initialEmployee?: InitialEmployeePayload;
+  deferredDataUrl?: string;
 };
 
 export function EmployeesPageWorkspace({
@@ -74,14 +75,55 @@ export function EmployeesPageWorkspace({
   initialModalOpen,
   initialModalMode,
   initialEmployee,
+  deferredDataUrl,
 }: EmployeesPageWorkspaceProps) {
   const router = useRouter();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(initialModalOpen && initialModalMode === "create");
+  const [deferredSnapshot, setDeferredSnapshot] = useState<{
+    employees: EmployeeRow[];
+    branches: Array<{ id: string; name: string }>;
+    departments: Array<{ id: string; name: string }>;
+    positions: Array<{ id: string; department_id: string; name: string; is_active: boolean }>;
+    publisherName: string;
+    companyName: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!deferredDataUrl) return;
+    const controller = new AbortController();
+    void fetch(deferredDataUrl, { method: "GET", cache: "no-store", signal: controller.signal })
+      .then((response) => response.json())
+      .then((data) => {
+        if (controller.signal.aborted) return;
+        setDeferredSnapshot((prev) => ({
+          employees: Array.isArray(data?.employees) ? (data.employees as EmployeeRow[]) : (prev?.employees ?? employees),
+          branches: Array.isArray(data?.branches) ? (data.branches as Array<{ id: string; name: string }>) : (prev?.branches ?? branches),
+          departments: Array.isArray(data?.departments) ? (data.departments as Array<{ id: string; name: string }>) : (prev?.departments ?? departments),
+          positions: Array.isArray(data?.positions)
+            ? (data.positions as Array<{ id: string; department_id: string; name: string; is_active: boolean }>)
+            : (prev?.positions ?? positions),
+          publisherName: typeof data?.publisherName === "string" ? data.publisherName : (prev?.publisherName ?? publisherName),
+          companyName: typeof data?.companyName === "string" ? data.companyName : (prev?.companyName ?? companyName),
+        }));
+      })
+      .catch(() => {
+        // keep current snapshot
+      });
+
+    return () => controller.abort();
+  }, [branches, companyName, deferredDataUrl, departments, employees, positions, publisherName]);
 
   const closeCreateModal = useCallback(() => {
     setIsCreateModalOpen(false);
     router.replace("/app/employees");
   }, [router]);
+
+  const effectiveRows = deferredSnapshot?.employees ?? employees;
+  const effectiveBranches = deferredSnapshot?.branches ?? branches;
+  const effectiveDepartments = deferredSnapshot?.departments ?? departments;
+  const effectivePositions = deferredSnapshot?.positions ?? positions;
+  const effectivePublisherName = deferredSnapshot?.publisherName ?? publisherName;
+  const effectiveCompanyName = deferredSnapshot?.companyName ?? companyName;
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8">
@@ -110,18 +152,18 @@ export function EmployeesPageWorkspace({
         </section>
       ) : null}
 
-      <EmployeesTableWorkspace employees={employees} />
+      <EmployeesTableWorkspace employees={effectiveRows} />
 
       {isCreateModalOpen ? (
         <NewEmployeeModal
           open
           mode="create"
           onClose={closeCreateModal}
-          branches={branches}
-          departments={departments}
-          positions={positions}
-          publisherName={publisherName}
-          companyName={companyName}
+          branches={effectiveBranches}
+          departments={effectiveDepartments}
+          positions={effectivePositions}
+          publisherName={effectivePublisherName}
+          companyName={effectiveCompanyName}
         />
       ) : null}
 
@@ -131,11 +173,11 @@ export function EmployeesPageWorkspace({
           mode="edit"
           onClose={() => router.replace("/app/employees")}
           initialEmployee={initialEmployee}
-          branches={branches}
-          departments={departments}
-          positions={positions}
-          publisherName={publisherName}
-          companyName={companyName}
+          branches={effectiveBranches}
+          departments={effectiveDepartments}
+          positions={effectivePositions}
+          publisherName={effectivePublisherName}
+          companyName={effectiveCompanyName}
         />
       ) : null}
     </main>

@@ -1,4 +1,3 @@
-import { getEmployeeDirectoryView } from "@/modules/employees/services";
 import { requireTenantModule } from "@/shared/lib/access";
 import { UsersPageWorkspace } from "@/modules/employees/ui/users-page-workspace";
 
@@ -15,7 +14,7 @@ const ROLE_OPTIONS = [
 export const revalidate = 0;
 
 export default async function CompanyUsersPage({ searchParams }: CompanyUsersPageProps) {
-  const tenant = await requireTenantModule("employees");
+  await requireTenantModule("employees");
   const params = await searchParams;
   const action = String(params.action ?? "").trim().toLowerCase();
   const openUserModal = action === "create-user" || action === "edit-user";
@@ -23,24 +22,15 @@ export default async function CompanyUsersPage({ searchParams }: CompanyUsersPag
   const statusParam = params.status;
   const messageParam = params.message;
 
-  const viewData = await getEmployeeDirectoryView(
-    tenant.organizationId, 
-    100,
-    0,
-    {
-      includeEmployeesData: false,
-      includeUsersTab: true,
-    }
-  );
-
   return (
     <UsersPageWorkspace
-      users={viewData.users}
+      users={[]}
       roleOptions={ROLE_OPTIONS}
-      branchOptions={viewData.branches.map((branch) => ({ id: branch.id, name: branch.name }))}
+      branchOptions={[]}
       statusParam={statusParam}
       messageParam={messageParam}
       initialModalOpen={openUserModal}
+      deferredDataUrl={`/api/company/users?catalog=list`}
     />
   );
 }

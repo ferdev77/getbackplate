@@ -94,6 +94,7 @@ type ChecklistReportsDashboardProps = {
   locationCards: LocationCard[];
   reports: ChecklistReportView[];
   attentionFeed: AttentionFeedItem[];
+  deferredDataUrl?: string;
 };
 
 function toneClasses(tone: ReportStatCard["tone"]) {
@@ -110,9 +111,41 @@ export function ChecklistReportsDashboard({
   locationCards,
   reports,
   attentionFeed,
+  deferredDataUrl,
 }: ChecklistReportsDashboardProps) {
   const router = useRouter();
-  const hasSingleLocationCard = locationCards.length === 1;
+  const [generatedLabel, setGeneratedLabel] = useState(generatedAt);
+  const [statCardsState, setStatCardsState] = useState(statCards);
+  const [locationCardsState, setLocationCardsState] = useState(locationCards);
+  const [reportsState, setReportsState] = useState(reports);
+  const [attentionFeedState, setAttentionFeedState] = useState(attentionFeed);
+
+  useEffect(() => {
+    if (!deferredDataUrl) return;
+    const controller = new AbortController();
+    void fetch(deferredDataUrl, { method: "GET", cache: "no-store", signal: controller.signal })
+      .then((response) => response.json())
+      .then((data) => {
+        if (controller.signal.aborted) return;
+        if (typeof data?.generatedAt === "string") setGeneratedLabel(data.generatedAt);
+        if (Array.isArray(data?.statCards)) setStatCardsState(data.statCards as ReportStatCard[]);
+        if (Array.isArray(data?.locationCards)) setLocationCardsState(data.locationCards as LocationCard[]);
+        if (Array.isArray(data?.reports)) setReportsState(data.reports as ChecklistReportView[]);
+        if (Array.isArray(data?.attentionFeed)) setAttentionFeedState(data.attentionFeed as AttentionFeedItem[]);
+      })
+      .catch(() => {
+        // keep current snapshot
+      });
+
+    return () => controller.abort();
+  }, [deferredDataUrl]);
+
+  const effectiveGeneratedAt = deferredDataUrl ? generatedLabel : generatedAt;
+  const effectiveStatCards = deferredDataUrl ? statCardsState : statCards;
+  const effectiveLocationCards = deferredDataUrl ? locationCardsState : locationCards;
+  const effectiveReports = deferredDataUrl ? reportsState : reports;
+  const effectiveAttentionFeed = deferredDataUrl ? attentionFeedState : attentionFeed;
+  const hasSingleLocationCard = effectiveLocationCards.length === 1;
   const [query, setQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<"" | "ok" | "warn">("");
@@ -199,8 +232,8 @@ export function ChecklistReportsDashboard({
   }, [organizationId, router]);
 
   const selectedReport = useMemo(
-    () => reports.find((report) => report.id === selectedReportId) ?? null,
-    [reports, selectedReportId],
+    () => effectiveReports.find((report) => report.id === selectedReportId) ?? null,
+    [effectiveReports, selectedReportId],
   );
 
   const locationCardsGridClass = hasSingleLocationCard
@@ -208,14 +241,14 @@ export function ChecklistReportsDashboard({
     : "grid gap-3 md:grid-cols-2";
 
   const locations = useMemo(
-    () => [...new Set(reports.map((report) => report.locationName))].sort((a, b) => a.localeCompare(b, "es")),
-    [reports],
+    () => [...new Set(effectiveReports.map((report) => report.locationName))].sort((a, b) => a.localeCompare(b, "es")),
+    [effectiveReports],
   );
   const showAttentionLocationBadge = locations.length >= 2;
 
   const filteredReports = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return reports.filter((report) => {
+    return effectiveReports.filter((report) => {
       if (locationFilter && report.locationName !== locationFilter) return false;
       if (statusFilter && report.status !== statusFilter) return false;
       if (!q) return true;
@@ -225,7 +258,7 @@ export function ChecklistReportsDashboard({
         report.templateName.toLowerCase().includes(q)
       );
     });
-  }, [reports, query, locationFilter, statusFilter]);
+  }, [effectiveReports, query, locationFilter, statusFilter]);
 
   async function markSelectedReportAsReviewed() {
     if (!selectedReport || selectedReport.dbStatus === "reviewed" || isReviewing) {
@@ -259,12 +292,12 @@ export function ChecklistReportsDashboard({
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-[var(--gbp-muted)]">Reportes de apertura</p>
           <h1 className="mt-1 font-serif text-[31px] leading-none text-[var(--gbp-text)]">Dashboard de Reportes</h1>
-          <p className="mt-1 text-xs text-[var(--gbp-text2)]">{generatedAt}</p>
+          <p className="mt-1 text-xs text-[var(--gbp-text2)]">{effectiveGeneratedAt}</p>
         </div>
       </section>
 
       <section className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {statCards.map((card) => (
+        {effectiveStatCards.map((card) => (
           <article key={card.label} className="rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-5 py-4 transition hover:shadow-[var(--gbp-shadow-md)]">
             <p className="text-xl leading-none">{card.icon}</p>
             <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">{card.label}</p>
@@ -277,7 +310,7 @@ export function ChecklistReportsDashboard({
       <section className="mb-7">
         <h2 className="mb-3 font-serif text-[22px] text-[var(--gbp-text)]">Estado por Ubicación - Hoy</h2>
         <div className={locationCardsGridClass}>
-          {locationCards.map((card) => (
+          {effectiveLocationCards.map((card) => (
             <button
               key={card.branchId}
               type="button"
@@ -464,7 +497,7 @@ export function ChecklistReportsDashboard({
         <aside>
           <h2 className="mb-3 font-serif text-[22px] text-[var(--gbp-text)]">⚑ Ítems para Atención</h2>
           <div className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
-            {attentionFeed.map((item) => (
+            {effectiveAttentionFeed.map((item) => (
               <button
                 key={item.id}
                 type="button"
@@ -482,7 +515,7 @@ export function ChecklistReportsDashboard({
                 ) : null}
               </button>
             ))}
-            {!attentionFeed.length ? (
+            {!effectiveAttentionFeed.length ? (
               <EmptyState title="Sin incidencias" description="No hay incidencias abiertas en este momento." />
             ) : null}
           </div>
