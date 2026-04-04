@@ -8,7 +8,7 @@ import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 import { EmptyState } from "@/shared/ui/empty-state";
 
-type EmployeeRow = {
+export type EmployeeRow = {
   recordType: "employee" | "user";
   id: string;
   organizationUserProfileId?: string | null;
