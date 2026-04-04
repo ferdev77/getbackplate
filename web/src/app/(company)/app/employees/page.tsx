@@ -142,6 +142,12 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   }
 
   const { data: authData } = await supabase.auth.getUser();
+  const { data: organizationRow } = await supabase
+    .from("organizations")
+    .select("name")
+    .eq("id", tenant.organizationId)
+    .maybeSingle();
+  const organizationName = organizationRow?.name ?? "la empresa";
 
   const publisherName = extractDisplayName(authData.user);
 
@@ -408,6 +414,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
           departments={viewData.departments}
           positions={viewData.positions}
           publisherName={publisherName}
+          companyName={organizationName}
         />
       )}
     </main>

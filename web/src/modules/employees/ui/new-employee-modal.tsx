@@ -13,6 +13,7 @@ type ModalPosition = { id: string; department_id: string; name: string; is_activ
 
 type NewEmployeeModalProps = {
   open: boolean;
+  companyName: string;
   branches: ModalBranch[];
   departments: ModalDepartment[];
   positions: ModalPosition[];
@@ -38,6 +39,7 @@ type NewEmployeeModalProps = {
     contract_signed_at: string | null;
     contract_signer_name: string | null;
     salary_amount?: number | null;
+    salary_currency?: string | null;
     payment_frequency?: string | null;
     has_dashboard_access?: boolean;
     documents_by_slot?: Record<string, { documentId: string; title: string; status: string }>;
@@ -54,6 +56,7 @@ const FIELD_INPUT = "w-full rounded-xl border-[1.5px] border-[var(--gbp-border2)
 
 export function NewEmployeeModal({
   open,
+  companyName,
   branches,
   departments,
   positions,
@@ -63,6 +66,8 @@ export function NewEmployeeModal({
   const [isActionPending, setIsActionPending] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [selectedDept, setSelectedDept] = useState(initialEmployee?.department_id ?? "");
+  const [selectedBranch, setSelectedBranch] = useState(initialEmployee?.branch_id ?? "");
+  const [selectedPosition, setSelectedPosition] = useState(initialEmployee?.position_id ?? "");
   const [createAccount, setCreateAccount] = useState(Boolean(initialEmployee?.has_dashboard_access));
   const [isEmployeeProfile, setIsEmployeeProfile] = useState(
     initialEmployee?.organization_user_profile_id ? false : mode === "edit",
@@ -70,6 +75,14 @@ export function NewEmployeeModal({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(0);
   const [selectedDocumentFiles, setSelectedDocumentFiles] = useState<Record<string, string>>({});
+  const [firstName, setFirstName] = useState(initialEmployee?.first_name ?? "");
+  const [lastName, setLastName] = useState(initialEmployee?.last_name ?? "");
+  const [hireDate, setHireDate] = useState(initialEmployee?.hire_date ?? "");
+  const [contractType, setContractType] = useState(initialEmployee?.contract_type ?? "indefinite");
+  const [salaryAmount, setSalaryAmount] = useState(
+    initialEmployee?.salary_amount != null ? String(initialEmployee.salary_amount) : "",
+  );
+  const [paymentFrequency, setPaymentFrequency] = useState(initialEmployee?.payment_frequency ?? "");
 
   useEffect(() => {
     if (!initialEmployee?.documents_by_slot) {
@@ -159,6 +172,40 @@ export function NewEmployeeModal({
   const filteredPositions = useMemo(() => {
     return positions.filter((p) => p.department_id === selectedDept && p.is_active);
   }, [positions, selectedDept]);
+
+  const branchNameById = useMemo(() => new Map(branches.map((row) => [row.id, row.name])), [branches]);
+  const departmentNameById = useMemo(() => new Map(departments.map((row) => [row.id, row.name])), [departments]);
+  const positionNameById = useMemo(() => new Map(positions.map((row) => [row.id, row.name])), [positions]);
+
+  const employeeFullName = `${firstName} ${lastName}`.trim() || "[Nombre del empleado]";
+  const previewBranch = selectedBranch ? (branchNameById.get(selectedBranch) ?? "Sin locación") : "Sin locación";
+  const previewDepartment = selectedDept ? (departmentNameById.get(selectedDept) ?? "Sin departamento") : "Sin departamento";
+  const previewPosition = selectedPosition ? (positionNameById.get(selectedPosition) ?? "Puesto no definido") : "Puesto no definido";
+  const previewHireDate = hireDate
+    ? new Intl.DateTimeFormat("es-ES", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${hireDate}T00:00:00`))
+    : "[Fecha de ingreso]";
+
+  const contractTypeLabelMap: Record<string, string> = {
+    indefinite: "Indeterminado",
+    fixed_term: "Plazo fijo",
+    seasonal: "Temporada",
+    internship: "Pasantía",
+  };
+
+  const paymentFrequencyLabelMap: Record<string, string> = {
+    hora: "Por hora",
+    semana: "Semanal",
+    quincena: "Quincenal",
+    mes: "Mensual",
+  };
+
+  const previewContractType = contractTypeLabelMap[contractType] ?? "[Tipo de contrato]";
+  const previewPaymentFrequency = paymentFrequencyLabelMap[paymentFrequency] ?? "[Frecuencia de pago]";
+  const salaryCurrency = initialEmployee?.salary_currency ?? "USD";
+  const salaryNumeric = salaryAmount.trim() ? Number(salaryAmount) : NaN;
+  const previewSalary = Number.isFinite(salaryNumeric)
+    ? new Intl.NumberFormat("es-ES", { style: "currency", currency: salaryCurrency }).format(salaryNumeric)
+    : "[Salario]";
 
   const tabs = useMemo(
     () => [
@@ -273,7 +320,8 @@ export function NewEmployeeModal({
                   <input
                     name="first_name"
                     required
-                    defaultValue={initialEmployee?.first_name ?? ""}
+                    value={firstName}
+                    onChange={(event) => setFirstName(event.target.value)}
                     className={FIELD_INPUT}
                     placeholder="Juan"
                   />
@@ -283,7 +331,8 @@ export function NewEmployeeModal({
                   <input
                     name="last_name"
                     required
-                    defaultValue={initialEmployee?.last_name ?? ""}
+                    value={lastName}
+                    onChange={(event) => setLastName(event.target.value)}
                     className={FIELD_INPUT}
                     placeholder="García López"
                   />
@@ -374,7 +423,8 @@ export function NewEmployeeModal({
                   <label className={FIELD_LABEL}>Locación / Sucursal</label>
                   <select
                     name="branch_id"
-                    defaultValue={initialEmployee?.branch_id ?? ""}
+                    value={selectedBranch}
+                    onChange={(event) => setSelectedBranch(event.target.value)}
                     className={`${FIELD_INPUT} appearance-none`}
                     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: 'right 1rem center', backgroundRepeat: 'no-repeat' }}
                   >
@@ -410,7 +460,8 @@ export function NewEmployeeModal({
                   <label className={FIELD_LABEL}>Puesto</label>
                   <select
                     name="position_id"
-                    defaultValue={initialEmployee?.position_id ?? ""}
+                    value={selectedPosition}
+                    onChange={(event) => setSelectedPosition(event.target.value)}
                     className={`${FIELD_INPUT} appearance-none`}
                     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: 'right 1rem center', backgroundRepeat: 'no-repeat' }}
                   >
@@ -514,7 +565,8 @@ export function NewEmployeeModal({
                   <input
                     name="hire_date"
                     type="date"
-                    defaultValue={initialEmployee?.hire_date ?? ""}
+                    value={hireDate}
+                    onChange={(event) => setHireDate(event.target.value)}
                     className={FIELD_INPUT}
                   />
                 </div>
@@ -522,7 +574,8 @@ export function NewEmployeeModal({
                   <label className={FIELD_LABEL}>Tipo Contrato</label>
                   <select
                     name="contract_type"
-                    defaultValue={initialEmployee?.contract_type ?? "indefinite"}
+                    value={contractType}
+                    onChange={(event) => setContractType(event.target.value)}
                     className={`${FIELD_INPUT} appearance-none`}
                     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: 'right 1rem center', backgroundRepeat: 'no-repeat' }}
                   >
@@ -542,7 +595,8 @@ export function NewEmployeeModal({
                     name="salary_amount"
                     type="number"
                     step="0.01"
-                    defaultValue={initialEmployee?.salary_amount ?? ""}
+                    value={salaryAmount}
+                    onChange={(event) => setSalaryAmount(event.target.value)}
                     className={FIELD_INPUT}
                     placeholder="0.00"
                   />
@@ -551,7 +605,8 @@ export function NewEmployeeModal({
                   <label className={FIELD_LABEL}>Frecuencia de pago</label>
                   <select
                     name="payment_frequency"
-                    defaultValue={initialEmployee?.payment_frequency ?? ""}
+                    value={paymentFrequency}
+                    onChange={(event) => setPaymentFrequency(event.target.value)}
                     className={`${FIELD_INPUT} appearance-none`}
                     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: 'right 1rem center', backgroundRepeat: 'no-repeat' }}
                   >
@@ -569,33 +624,23 @@ export function NewEmployeeModal({
               </h4>
               <article className="mb-6 rounded-2xl border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-5 text-[13px] leading-6 text-[var(--gbp-text2)]">
                 <p className="mb-3">
-                  El presente contrato se celebra entre <span className="font-semibold text-[var(--gbp-text)]">[Nombre del empleado]</span> y la empresa,
-                  para desempenar funciones en el puesto asignado con cumplimiento de las politicas internas.
+                  El presente contrato se celebra entre <span className="font-semibold text-[var(--gbp-text)]">{employeeFullName}</span> y la empresa
+                  <span className="font-semibold text-[var(--gbp-text)]"> {companyName}</span>, para desempeñar funciones como
+                  <span className="font-semibold text-[var(--gbp-text)]"> {previewPosition}</span> en
+                  <span className="font-semibold text-[var(--gbp-text)]"> {previewBranch}</span>, área
+                  <span className="font-semibold text-[var(--gbp-text)]"> {previewDepartment}</span>, con cumplimiento de las políticas internas.
                 </p>
                 <p>
-                  <span className="font-semibold text-[var(--gbp-text)]">Fecha de ingreso:</span> [Fecha de ingreso]
+                  <span className="font-semibold text-[var(--gbp-text)]">Fecha de ingreso:</span> {previewHireDate}
                   <span className="mx-2 text-[var(--gbp-muted)]">|</span>
-                  <span className="font-semibold text-[var(--gbp-text)]">Tipo de contrato:</span> [Tipo de contrato]
+                  <span className="font-semibold text-[var(--gbp-text)]">Tipo de contrato:</span> {previewContractType}
                 </p>
                 <p>
-                  <span className="font-semibold text-[var(--gbp-text)]">Salario base:</span> [Salario]
+                  <span className="font-semibold text-[var(--gbp-text)]">Salario base:</span> {previewSalary}
                   <span className="mx-2 text-[var(--gbp-muted)]">|</span>
-                  <span className="font-semibold text-[var(--gbp-text)]">Frecuencia:</span> [Frecuencia de pago]
+                  <span className="font-semibold text-[var(--gbp-text)]">Frecuencia:</span> {previewPaymentFrequency}
                 </p>
               </article>
-
-              <h4 className="mb-3 border-b border-[var(--gbp-border)] pb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--gbp-muted)]">
-                Firma del empleado
-              </h4>
-              <div className="mb-6 overflow-hidden rounded-2xl border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
-                <canvas className="h-[140px] w-full cursor-crosshair bg-[var(--gbp-bg)]" />
-                <div className="flex items-center justify-between border-t border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3 px-4">
-                  <button type="button" className="text-[11px] font-bold text-[var(--gbp-accent)] hover:underline">
-                    Limpiar firma
-                  </button>
-                  <span className="text-[10px] font-bold tracking-wider text-[var(--gbp-muted)] uppercase">Esperando firma</span>
-                </div>
-              </div>
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="space-y-2">
