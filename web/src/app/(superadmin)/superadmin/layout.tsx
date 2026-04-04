@@ -11,7 +11,7 @@ export default async function SuperadminLayout({
   await requireSuperadmin();
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-bg)_42%,var(--gbp-bg2)_100%)]">
+    <div data-theme="default" className="min-h-screen bg-[linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-bg)_42%,var(--gbp-bg2)_100%)]">
       <SuperadminRealtimeListener />
       <header className="sticky top-0 z-40 border-b border-[var(--gbp-border)]/70 bg-[color:color-mix(in_oklab,var(--gbp-surface)_82%,transparent)] backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-2.5">

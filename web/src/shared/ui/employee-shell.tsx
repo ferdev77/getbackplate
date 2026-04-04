@@ -191,7 +191,7 @@ export function EmployeeShell({
   }, [items, pathname, router]);
 
   return (
-    <div className="min-h-screen text-[var(--gbp-text)]" style={{ background: palette.pageGradient }}>
+    <div data-theme="default" className="min-h-screen text-[var(--gbp-text)]" style={{ background: palette.pageGradient }}>
       <div className="flex min-h-screen">
         {/* Sidebar */}
         <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-[var(--gbp-border)] transition-all duration-200 lg:sticky lg:top-0 lg:h-screen ${menuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} ${sidebarWidth}`} style={{ background: palette.sidebarGradient }}>

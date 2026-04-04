@@ -64,8 +64,19 @@ export function LandingExperience({ plans }: Props) {
   }, []);
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", darkMode ? "dark-pro" : "default");
+    const root = document.documentElement;
+    const previousTheme = root.getAttribute("data-theme");
+
+    root.setAttribute("data-theme", darkMode ? "dark-pro" : "default");
     localStorage.setItem("gbp-marketing-theme", darkMode ? "dark" : "light");
+
+    return () => {
+      if (previousTheme) {
+        root.setAttribute("data-theme", previousTheme);
+      } else {
+        root.removeAttribute("data-theme");
+      }
+    };
   }, [darkMode]);
 
   useEffect(() => {

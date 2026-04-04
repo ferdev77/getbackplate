@@ -5,7 +5,6 @@ import { resolveTenantAuthBrandingByHint } from "@/shared/lib/tenant-auth-brandi
 import { SubmitButton } from "@/shared/ui/submit-button";
 import { SlideUp } from "@/shared/ui/animations";
 import { TagPill } from "@/shared/ui/tag-pill";
-import { ThemeToggle } from "@/shared/ui/theme-toggle";
 import { ThemeAwareGetBackplateLogo } from "@/shared/ui/theme-aware-getbackplate-logo";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 
@@ -26,9 +25,8 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
     <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_var(--gbp-surface)_0%,_var(--gbp-bg)_48%,_var(--gbp-bg2)_100%)] px-6 py-10">
       <SlideUp className="w-full max-w-md">
         <section className="rounded-[var(--gbp-radius-3xl)] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-8 text-[var(--gbp-text)] shadow-[var(--gbp-shadow-lg)]">
-          <div className="mb-4 flex items-center justify-between gap-2">
+          <div className="mb-4 flex items-center">
             <TagPill>Recuperacion</TagPill>
-            <ThemeToggle showLabel={false} />
           </div>
 
           <div className="mb-5 flex justify-center">
