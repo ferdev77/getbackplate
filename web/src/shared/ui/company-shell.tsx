@@ -804,7 +804,7 @@ export function CompanyShell({
             <button
               type="button"
               onClick={() => setCollapsed((v) => !v)}
-              className={`absolute z-10 grid place-items-center rounded-md ${collapsed ? "right-1 top-1 h-7 w-7" : "right-2 top-2 h-8 w-8"} ${isDarkTheme ? "bg-white/5 text-white/65 hover:bg-white/10 hover:text-white" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"}`}
+              className={`absolute z-10 grid place-items-center rounded-md ${collapsed ? "left-1/2 top-1 h-7 w-7 -translate-x-1/2" : "right-2 top-2 h-8 w-8"} ${isDarkTheme ? "bg-white/5 text-white/65 hover:bg-white/10 hover:text-white" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"}`}
               aria-label="Alternar sidebar"
             >
               <PanelsLeftRight className="h-4 w-4" />

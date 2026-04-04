@@ -182,7 +182,7 @@ export function EmployeeShell({
             <button
               type="button"
               onClick={() => setCollapsed((v) => !v)}
-              className={`absolute hidden place-items-center rounded-md bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)] lg:grid ${collapsed ? "right-1 top-1 h-7 w-7" : "right-2 top-2 h-8 w-8"}`}
+              className={`absolute hidden place-items-center rounded-md bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)] lg:grid ${collapsed ? "left-1/2 top-1 h-7 w-7 -translate-x-1/2" : "right-2 top-2 h-8 w-8"}`}
               aria-label="Alternar sidebar"
             >
               <PanelsLeftRight className="h-4 w-4" />
