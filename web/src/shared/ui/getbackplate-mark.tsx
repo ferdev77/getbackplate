@@ -14,8 +14,16 @@ export function GetBackplateMark({ variant = "light", className }: GetBackplateM
       role="img"
       className={className}
     >
-      <path d="M18 10H8V54H18" fill="none" stroke={leftFill} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M46 10H56V54H46" fill="none" stroke="#d4531a" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M37.01,212.99H4.09V29.54h32.92v3.66h-15.59v176.14h15.59v3.66Z"
+        fill={leftFill}
+        transform="translate(7 0) scale(0.26)"
+      />
+      <path
+        d="M967.17,29.54h32.92v183.45h-32.92v-3.66h15.59V33.19h-15.59v-3.66Z"
+        fill="#d4531a"
+        transform="translate(-205.4 0) scale(0.26)"
+      />
     </svg>
   );
 }
