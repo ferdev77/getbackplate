@@ -5,6 +5,8 @@ import { TooltipLabel } from "@/shared/ui/tooltip";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
+import { ChecklistCreateTrigger } from "@/modules/checklists/ui/checklist-create-trigger";
+import { ChecklistEditTrigger } from "@/modules/checklists/ui/checklist-edit-trigger";
 import { ChecklistUpsertModal } from "@/modules/checklists/ui/checklist-upsert-modal";
 import { ChecklistDeleteModal } from "@/modules/checklists/ui/checklist-delete-modal";
 import { requireTenantModule } from "@/shared/lib/access";
@@ -120,14 +122,15 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
       .eq("job_type", "checklist_generator")
   ]);
 
-  const targetTemplateId = previewTemplateId || (action === "edit" ? templateId : null);
+  const templateIds = (templates ?? []).map((template) => template.id);
 
-  const { data: sections } = targetTemplateId
+  const { data: sections } = templateIds.length > 0
     ? await supabase
         .from("checklist_template_sections")
         .select("id, template_id, name, sort_order")
         .eq("organization_id", tenant.organizationId)
-        .eq("template_id", targetTemplateId)
+        .in("template_id", templateIds)
+        .order("sort_order")
     : { data: [] };
 
   const sectionIds = (sections ?? []).map((s) => s.id);
@@ -141,10 +144,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
         .order("sort_order")
     : { data: [] };
 
-  const scopedUsers =
-    openCreateModal || Boolean(previewTemplateId)
-      ? await buildScopeUsersCatalog(tenant.organizationId)
-      : [];
+  const scopedUsers = await buildScopeUsersCatalog(tenant.organizationId);
 
   if (scopedUsers.some((row) => row.first_name === "Usuario" && row.user_id)) {
     try {
@@ -208,20 +208,14 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
   );
 
   const templateRows = (templates ?? []).map((template) => {
-    let templateItems: Array<{ id: string; label: string; priority: string; sort_order: number }> = [];
-    let sectionViews: Array<{ id: string; name: string; items: string[] }> = [];
-    let itemsCount: number | null = null;
-    
-    if (template.id === targetTemplateId) {
-      const templateSections = sectionsByTemplate.get(template.id) ?? [];
-      templateItems = templateSections.flatMap((section) => itemsBySection.get(section.id) ?? []);
-      sectionViews = templateSections.map((section) => ({
-        id: section.id,
-        name: section.name,
-        items: (itemsBySection.get(section.id) ?? []).map((item) => item.label),
-      }));
-      itemsCount = templateItems.length;
-    }
+    const templateSections = sectionsByTemplate.get(template.id) ?? [];
+    const templateItems = templateSections.flatMap((section) => itemsBySection.get(section.id) ?? []);
+    const sectionViews = templateSections.map((section) => ({
+      id: section.id,
+      name: section.name,
+      items: (itemsBySection.get(section.id) ?? []).map((item) => item.label),
+    }));
+    const itemsCount = templateItems.length;
 
     const scope = typeof template.target_scope === "object" && template.target_scope !== null ? (template.target_scope as Record<string, string[]>) : {};
     const scopeLocationNames = Array.isArray(scope.locations) && scope.locations.length > 0
@@ -297,7 +291,15 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
               <h1 className={`mt-1 text-2xl font-bold tracking-tight ${TEXT_STRONG}`}>Mis Checklists</h1>
               <p className={`mt-1 text-sm ${TEXT_MUTED}`}>Replica funcional del tablero final: plantillas, ejecuciones e incidencias.</p>
             </div>
-            <Link href="/app/checklists?action=create" className="inline-flex items-center gap-1 rounded-lg bg-[var(--gbp-text)] px-3 py-2 text-sm font-semibold text-white hover:bg-[var(--gbp-accent)]"><ClipboardPlus className="h-4 w-4" /> Nuevo Checklist</Link>
+            <ChecklistCreateTrigger
+              className="inline-flex items-center gap-1 rounded-lg bg-[var(--gbp-text)] px-3 py-2 text-sm font-semibold text-white hover:bg-[var(--gbp-accent)]"
+              branches={mappedBranches}
+              departments={departments ?? []}
+              positions={positions ?? []}
+              users={scopedUsers}
+            >
+              <ClipboardPlus className="h-4 w-4" /> Nuevo Checklist
+            </ChecklistCreateTrigger>
           </div>
         </section>
       </SlideUp>
@@ -377,7 +379,17 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
                       <span className={`hidden md:inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] ${template.is_active ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-neutral-200 bg-neutral-100 text-neutral-600"}`}>{template.is_active ? "Activa" : "Inactiva"}</span>
                       <div className="flex gap-1">
                         <Link href={`/app/checklists?preview=${template.id}`} className={ACTION_BTN_PREVIEW}><Eye className="h-3.5 w-3.5" /><TooltipLabel label="Vista previa" /></Link>
-                        <Link href={`/app/checklists?action=edit&templateId=${template.id}`} className={ACTION_BTN_NEUTRAL}><Pencil className="h-3.5 w-3.5" /><TooltipLabel label="Editar" /></Link>
+                        <ChecklistEditTrigger
+                          className={ACTION_BTN_NEUTRAL}
+                          template={template}
+                          branches={mappedBranches}
+                          departments={departments ?? []}
+                          positions={positions ?? []}
+                          users={scopedUsers}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          <TooltipLabel label="Editar" />
+                        </ChecklistEditTrigger>
                         <Link href={`/app/checklists?delete=${template.id}`} className={ACTION_BTN_DANGER}><Trash2 className="h-3.5 w-3.5" /><TooltipLabel label="Eliminar" /></Link>
                       </div>
                     </div>
