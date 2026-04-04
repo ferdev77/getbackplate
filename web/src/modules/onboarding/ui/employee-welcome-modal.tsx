@@ -1,7 +1,7 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { BriefcaseBusiness, CheckCircle2, HeartHandshake, Loader2, ShieldCheck, Users } from "lucide-react";
+import { Bell, CheckCircle2, ClipboardList, FileText, LayoutDashboard, Loader2, FolderOpen } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 
@@ -47,63 +47,78 @@ function FinishPortalButton({ disabled }: { disabled: boolean }) {
 
 const BASE_SECTIONS: Section[] = [
   {
-    id: "values",
-    tab: "Valores",
-    icon: HeartHandshake,
+    id: "dashboard",
+    tab: "Dashboard",
+    icon: LayoutDashboard,
     iconBg: "bg-[var(--gbp-accent-glow)]",
     iconColor: "text-[var(--gbp-accent)]",
-    title: "Cultura y valores",
+    title: "Vista general del portal",
     description:
-      "En Juan's trabajamos en equipo, con respeto y foco en la experiencia del cliente.",
+      "Cuando ingresas, el Dashboard te muestra un resumen rapido de lo mas importante de tu jornada.",
     points: [
-      "Actitud de servicio en cada turno.",
-      "Comunicacion clara con el equipo y gerencia.",
-      "Cuidado de la marca y del ambiente de trabajo.",
+      "Revisa tu bienvenida, sucursal y datos de tu perfil.",
+      "Consulta accesos directos a checklists, avisos y documentos.",
+      "Usalo como punto de inicio antes de navegar a otras secciones.",
     ],
   },
   {
-    id: "service",
-    tab: "Servicio",
-    icon: Users,
+    id: "checklists",
+    tab: "Checklists",
+    icon: ClipboardList,
     iconBg: "bg-[var(--gbp-accent-glow)]",
     iconColor: "text-[var(--gbp-accent)]",
-    title: "Estandar de servicio",
+    title: "Checklists pendientes",
     description:
-      "Revisa los protocolos de atencion para mantener calidad consistente en cada sucursal.",
+      "En esta pagina completas tareas operativas de tu turno y registras evidencias cuando se solicite.",
     points: [
-      "Saludo inicial y cierre de servicio obligatorio.",
-      "Tiempo de respuesta segun protocolo operativo.",
-      "Escalado de incidentes con tu encargado directo.",
+      "Abre cada checklist asignado y completa todos sus items.",
+      "Si una tarea pide evidencia, carga el archivo o dato requerido.",
+      "Guarda y envia para que tu responsable pueda revisarlo.",
     ],
   },
   {
-    id: "operations",
-    tab: "Operaciones",
-    icon: BriefcaseBusiness,
+    id: "announcements",
+    tab: "Avisos",
+    icon: Bell,
     iconBg: "bg-[var(--gbp-accent-glow)]",
     iconColor: "text-[var(--gbp-accent)]",
-    title: "Operacion diaria",
+    title: "Comunicados del equipo",
     description:
-      "Tus documentos y procesos estan organizados por puesto, departamento y locacion.",
+      "En Avisos encuentras anuncios oficiales, recordatorios y novedades que impactan tu trabajo diario.",
     points: [
-      "Usa " + '"Mis Documentos"' + " para acceder solo a lo asignado.",
-      "Sigue checklists del turno y registra evidencias cuando aplique.",
-      "No compartas archivos internos fuera de la plataforma.",
+      "Prioriza avisos urgentes o con fecha de vencimiento.",
+      "Lee el detalle completo para entender responsables y plazos.",
+      "Vuelve a esta seccion al inicio de cada turno.",
     ],
   },
   {
-    id: "hr",
-    tab: "RRHH",
-    icon: ShieldCheck,
+    id: "documents",
+    tab: "Documentos",
+    icon: FolderOpen,
     iconBg: "bg-[var(--gbp-success-soft)]",
     iconColor: "text-[var(--gbp-success)]",
-    title: "Politicas de RRHH",
+    title: "Biblioteca de documentos",
     description:
-      "Antes de entrar al portal debes confirmar que leiste estas politicas y reglas de uso.",
+      "Aqui tienes los documentos que te corresponden por puesto, sucursal o asignacion directa.",
     points: [
-      "Credenciales personales e intransferibles.",
-      "Respeto de politicas de privacidad y datos internos.",
-      "Canal de soporte: gerente directo o RRHH.",
+      "Descarga y revisa archivos operativos cuando lo necesites.",
+      "Mantente al dia con versiones y documentos nuevos.",
+      "Usa esta seccion como referencia oficial de tu operacion.",
+    ],
+  },
+  {
+    id: "instructions",
+    tab: "Instrucciones",
+    icon: FileText,
+    iconBg: "bg-[var(--gbp-success-soft)]",
+    iconColor: "text-[var(--gbp-success)]",
+    title: "Instrucciones y seguimiento",
+    description:
+      "La seccion Instrucciones concentra guias de uso para ayudarte a trabajar con orden dentro de la plataforma.",
+    points: [
+      "Consulta pasos sugeridos para completar tus tareas del portal.",
+      "Si tienes dudas, valida primero esta seccion antes de escalar.",
+      "Canal de soporte: encargado directo o equipo de RRHH.",
     ],
   },
 ];
@@ -116,13 +131,15 @@ export function EmployeeWelcomeModal({
 }: EmployeeWelcomeModalProps) {
   const sections = useMemo(() => {
     return BASE_SECTIONS.map((section) =>
-      section.id === "operations"
+      section.id === "documents"
         ? {
             ...section,
             points: [
+              "Descarga y revisa archivos operativos cuando lo necesites.",
+              "Mantente al dia con versiones y documentos nuevos.",
               `Documentos aprobados: ${approvedDocs}`,
               `Documentos pendientes: ${pendingDocs}`,
-              `Contrato: ${contractSigned ? "completado" : "pendiente"}`,
+              `Estado de contrato: ${contractSigned ? "completado" : "pendiente"}`,
             ],
           }
         : section,
@@ -158,8 +175,8 @@ export function EmployeeWelcomeModal({
           <div className="relative flex items-center justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold tracking-[0.12em] text-white/65 uppercase">Portal Interno - Empleados</p>
-              <h2 className="mt-1 font-serif text-[30px] font-bold leading-tight">Bienvenido</h2>
-               <p className="mt-1 text-sm text-white/70">Completa esta induccion para habilitar el acceso final al portal.</p>
+              <h2 className="mt-1 font-serif text-[30px] font-bold leading-tight">Recorrido del portal</h2>
+               <p className="mt-1 text-sm text-white/70">Revisa estas secciones para entender donde encontrar cada herramienta de trabajo.</p>
             </div>
             <div className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85">
               Paso {step + 1}/{sections.length}
