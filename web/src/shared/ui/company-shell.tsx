@@ -804,15 +804,15 @@ export function CompanyShell({
             <button
               type="button"
               onClick={() => setCollapsed((v) => !v)}
-              className={`absolute right-2 top-2 z-10 grid h-8 w-8 place-items-center rounded-md ${isDarkTheme ? "bg-white/5 text-white/65 hover:bg-white/10 hover:text-white" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"}`}
+              className={`absolute z-10 grid place-items-center rounded-md ${collapsed ? "right-1 top-1 h-7 w-7" : "right-2 top-2 h-8 w-8"} ${isDarkTheme ? "bg-white/5 text-white/65 hover:bg-white/10 hover:text-white" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"}`}
               aria-label="Alternar sidebar"
             >
               <PanelsLeftRight className="h-4 w-4" />
             </button>
 
-            <div className={`flex items-center justify-center ${collapsed ? "pt-3" : ""}`}>
+            <div className={`flex items-center justify-center ${collapsed ? "pt-8" : ""}`}>
               {customBrandingEnabled ? (
-                <div className={`${collapsed ? "grid h-11 w-11 place-items-center overflow-hidden rounded-md" : "flex h-[112px] w-full items-center justify-center overflow-hidden rounded-md bg-transparent px-2"}`}>
+                <div className={`${collapsed ? "grid h-10 w-10 place-items-center overflow-hidden rounded-md" : "flex h-[112px] w-full items-center justify-center overflow-hidden rounded-md bg-transparent px-2"}`}>
                   {effectiveCompanyLogoUrl ? (
                     <Image
                       src={effectiveCompanyLogoUrl}
@@ -829,9 +829,9 @@ export function CompanyShell({
                   )}
                 </div>
               ) : (
-                <div className={`${collapsed ? "grid h-11 w-11 place-items-center overflow-hidden rounded-md" : ""}`}>
+                <div className={`${collapsed ? "grid h-10 w-10 place-items-center rounded-md" : ""}`}>
                   {collapsed ? (
-                    <GetBackplateMark variant={isDarkTheme ? "dark" : "light"} className="h-6 w-auto" />
+                    <GetBackplateMark variant={isDarkTheme ? "dark" : "light"} className="h-6 w-6 translate-y-0.5" />
                   ) : (
                     <GetBackplateLogo
                       variant={isDarkTheme ? "dark" : "light"}

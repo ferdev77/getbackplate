@@ -8,14 +8,14 @@ export function GetBackplateMark({ variant = "light", className }: GetBackplateM
 
   return (
     <svg
-      viewBox="0 0 1011.8 242.5"
+      viewBox="0 0 64 64"
       xmlns="http://www.w3.org/2000/svg"
       aria-label="GetBackplate"
       role="img"
       className={className}
     >
-      <path d="M967.2,29.5h32.9v183.5h-32.9v-3.7h15.6V33.2h-15.6v-3.7Z" fill="#d4531a" />
-      <path d="M37,213H4.1V29.5h32.9v3.7h-15.6v176.1h15.6v3.7Z" fill={leftFill} />
+      <path d="M18 10H8V54H18" fill="none" stroke={leftFill} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M46 10H56V54H46" fill="none" stroke="#d4531a" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

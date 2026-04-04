@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { LayoutDashboard, ClipboardList, Folder, Bell, FileText, PanelsLeftRight, LogOut, Menu } from "lucide-react";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
+import { GetBackplateMark } from "@/shared/ui/getbackplate-mark";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 
@@ -181,14 +182,14 @@ export function EmployeeShell({
             <button
               type="button"
               onClick={() => setCollapsed((v) => !v)}
-              className="absolute right-2 top-2 hidden h-8 w-8 place-items-center rounded-md bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)] lg:grid"
+              className={`absolute hidden place-items-center rounded-md bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)] lg:grid ${collapsed ? "right-1 top-1 h-7 w-7" : "right-2 top-2 h-8 w-8"}`}
               aria-label="Alternar sidebar"
             >
               <PanelsLeftRight className="h-4 w-4" />
             </button>
-            <div className={`flex items-center justify-center ${collapsed ? "pt-3" : ""}`}>
+            <div className={`flex items-center justify-center ${collapsed ? "pt-8" : ""}`}>
               {customBrandingEnabled ? (
-                <div className={`${collapsed ? "grid h-11 w-11 place-items-center overflow-hidden rounded-md" : "flex h-[84px] w-full items-center justify-center overflow-hidden rounded-md bg-transparent px-2"}`}>
+                <div className={`${collapsed ? "grid h-10 w-10 place-items-center overflow-hidden rounded-md" : "flex h-[84px] w-full items-center justify-center overflow-hidden rounded-md bg-transparent px-2"}`}>
                   {effectiveCompanyLogoUrl ? (
                     <Image
                       src={effectiveCompanyLogoUrl}
@@ -205,8 +206,12 @@ export function EmployeeShell({
                   )}
                 </div>
               ) : (
-                <div className={`${collapsed ? "mx-auto" : ""}`}>
-                  <GetBackplateLogo variant="light" width={220} height={40} className={`${collapsed ? BRAND_SCALE.sidebarCollapsedHeight : BRAND_SCALE.sidebarDesktopHeight} w-auto`} />
+                <div className={`${collapsed ? "grid h-10 w-10 place-items-center rounded-md" : ""}`}>
+                  {collapsed ? (
+                    <GetBackplateMark variant="light" className="h-6 w-6 translate-y-0.5" />
+                  ) : (
+                    <GetBackplateLogo variant="light" width={220} height={40} className={`${BRAND_SCALE.sidebarDesktopHeight} w-auto`} />
+                  )}
                 </div>
               )}
               <button 
