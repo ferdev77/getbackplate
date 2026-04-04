@@ -11,7 +11,9 @@ type AnnouncementRow = {
   title: string;
   body: string;
   kind: "urgent" | "reminder" | "celebration" | "general" | string | null;
+  is_featured: boolean;
   publish_at: string | null;
+  created_at: string;
   expires_at: string | null;
   target_scope: unknown;
   created_by: string | null;
@@ -60,10 +62,16 @@ export default async function EmployeeAnnouncementsPage() {
     const now = new Date();
     const { data } = await supabase
       .from("announcements")
-      .select("id, title, body, kind, publish_at, expires_at, target_scope, created_by")
+      .select("id, title, body, kind, is_featured, publish_at, created_at, expires_at, target_scope, created_by")
       .eq("organization_id", tenant.organizationId)
       .order("publish_at", { ascending: false })
       .limit(60);
+
+    const announcementTimestamp = (row: { publish_at: string | null; created_at: string }) => {
+      const dateValue = row.publish_at ?? row.created_at;
+      const timestamp = new Date(dateValue).getTime();
+      return Number.isNaN(timestamp) ? 0 : timestamp;
+    };
 
     announcements = (data ?? []).filter((item) => {
       const publishAt = item.publish_at ? new Date(item.publish_at) : null;
@@ -80,6 +88,11 @@ export default async function EmployeeAnnouncementsPage() {
         positionIds: employeePositionIds,
         targetScope: item.target_scope,
       });
+    }).sort((a, b) => {
+      if (Boolean(a.is_featured) !== Boolean(b.is_featured)) {
+        return a.is_featured ? -1 : 1;
+      }
+      return announcementTimestamp(b) - announcementTimestamp(a);
     });
   }
 

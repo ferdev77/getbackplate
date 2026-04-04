@@ -68,7 +68,7 @@ export function NewUserModal({ open, onClose, branches, roleOptions }: NewUserMo
             ✕
           </button>
         </div>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} autoComplete="off">
           <div className="max-h-[68vh] overflow-y-auto px-6 py-5">
 
             {/* Nombre */}
@@ -78,6 +78,8 @@ export function NewUserModal({ open, onClose, branches, roleOptions }: NewUserMo
             <input
               name="full_name"
               required
+              defaultValue=""
+              autoComplete="off"
               className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)]"
               placeholder="ej. Juan Garcia"
             />
@@ -90,6 +92,8 @@ export function NewUserModal({ open, onClose, branches, roleOptions }: NewUserMo
               name="email"
               type="email"
               required
+              defaultValue=""
+              autoComplete="off"
               className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)]"
               placeholder="nombre@empresa.com"
             />
@@ -103,6 +107,8 @@ export function NewUserModal({ open, onClose, branches, roleOptions }: NewUserMo
               type="password"
               required
               minLength={8}
+              defaultValue=""
+              autoComplete="new-password"
               className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)]"
               placeholder="Mínimo 8 caracteres"
             />
