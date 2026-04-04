@@ -870,11 +870,12 @@ export async function POST(request: Request) {
   }
 
   if (isEditMode) {
+    const employeeIdValue = employeeId as string;
     const { data: existingEmployee, error: existingEmployeeError } = await supabase
       .from("employees")
       .select("id, user_id, status")
       .eq("organization_id", tenant.organizationId)
-      .eq("id", employeeId)
+      .eq("id", employeeIdValue)
       .maybeSingle();
 
     if (existingEmployeeError || !existingEmployee) {
@@ -1104,7 +1105,7 @@ export async function POST(request: Request) {
     if (allDocumentIds.length) {
       const payload = allDocumentIds.map((documentId) => ({
         organization_id: tenant.organizationId,
-        employee_id: employeeId,
+        employee_id: employeeIdValue,
         document_id: documentId,
         status: "pending",
       }));
@@ -1147,7 +1148,7 @@ export async function POST(request: Request) {
         .from("employee_contracts")
         .select("id")
         .eq("organization_id", tenant.organizationId)
-        .eq("employee_id", employeeId)
+        .eq("employee_id", employeeIdValue)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -1163,7 +1164,7 @@ export async function POST(request: Request) {
         : (
             await supabase.from("employee_contracts").insert({
               organization_id: tenant.organizationId,
-              employee_id: employeeId,
+              employee_id: employeeIdValue,
               ...payload,
               created_by: actorId,
             })
@@ -1178,7 +1179,7 @@ export async function POST(request: Request) {
           organizationId: tenant.organizationId,
           companyName,
           actorId,
-          employeeId,
+          employeeId: employeeIdValue,
           linkedUserId: linkedUserId ?? existingEmployee.user_id,
           firstName,
           lastName,
