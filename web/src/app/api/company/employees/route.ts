@@ -30,9 +30,9 @@ const DOCUMENT_SLOT_LABELS: Record<string, string> = {
   photo: "Foto del Empleado",
   id: "ID / Identificacion",
   ssn: "Numero de Seguro Social",
-  rec1: "Carta de Recomendacion 1",
-  rec2: "Carta de Recomendacion 2",
-  other: "Otro Documento",
+  rec1: "Food Handler Certificate",
+  rec2: "Alcohol Server Certificate",
+  other: "Food Protection Manager",
 };
 
 let bucketExistsChecked = false;
@@ -466,6 +466,34 @@ export async function POST(request: Request) {
     }
   }
 
+  const customDocumentTitles = formData
+    .getAll("custom_document_title")
+    .map((value) => String(value ?? "").trim());
+  const customDocumentFiles = formData.getAll("custom_document_file");
+
+  for (let index = 0; index < customDocumentFiles.length; index += 1) {
+    const file = customDocumentFiles[index];
+    if (!(file instanceof File) || file.size <= 0) continue;
+
+    const rawTitle = customDocumentTitles[index] ?? "";
+    const slotLabel = rawTitle || `Documento Adicional ${index + 1}`;
+
+    try {
+      const analysis = await analyzeUploadedFile(file);
+      uploadFiles.push({
+        slotKey: `custom_${index + 1}`,
+        slotLabel,
+        file,
+        analysis,
+      });
+    } catch (error) {
+      return NextResponse.json(
+        { error: `${slotLabel}: ${error instanceof Error ? error.message : "archivo invalido"}` },
+        { status: 400 },
+      );
+    }
+  }
+
   if (!firstName || !lastName || !email || !phone) {
     return NextResponse.json(
       { error: "Nombre, apellido, telefono y email son obligatorios" },
@@ -776,6 +804,7 @@ export async function POST(request: Request) {
               locations: branchId ? [branchId] : [],
               department_ids: departmentId ? [departmentId] : [],
               users: [linkedUserId],
+              internal_only: true,
             },
           })
           .select("id")
@@ -1041,6 +1070,7 @@ export async function POST(request: Request) {
               locations: branchId ? [branchId] : [],
               department_ids: departmentId ? [departmentId] : [],
               users: existingEmployee.user_id ? [existingEmployee.user_id] : [],
+              internal_only: true,
             },
           })
           .select("id")
@@ -1436,6 +1466,7 @@ export async function POST(request: Request) {
             locations: branchId ? [branchId] : [],
             department_ids: departmentId ? [departmentId] : [],
             users: linkedUserId ? [linkedUserId] : [],
+            internal_only: true,
           },
         })
         .select("id")

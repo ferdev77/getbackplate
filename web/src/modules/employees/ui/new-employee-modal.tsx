@@ -75,6 +75,9 @@ export function NewEmployeeModal({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(0);
   const [selectedDocumentFiles, setSelectedDocumentFiles] = useState<Record<string, string>>({});
+  const [customDocumentRows, setCustomDocumentRows] = useState<Array<{ id: string; title: string; fileName: string }>>([]);
+  const [showAddDocumentTitleBox, setShowAddDocumentTitleBox] = useState(false);
+  const [newDocumentTitle, setNewDocumentTitle] = useState("");
   const [firstName, setFirstName] = useState(initialEmployee?.first_name ?? "");
   const [lastName, setLastName] = useState(initialEmployee?.last_name ?? "");
   const [hireDate, setHireDate] = useState(initialEmployee?.hire_date ?? "");
@@ -329,9 +332,28 @@ export function NewEmployeeModal({
   );
 
   const currentTabIndex = activeTab <= tabs.length - 1 ? activeTab : 0;
+  const isDocumentsTabActive = tabs[currentTabIndex]?.key === "documents";
   const requiresAccountPassword = createAccount && !(mode === "edit" && initialEmployee?.has_dashboard_access);
 
   if (!open) return null;
+
+  const confirmAddCustomDocumentRow = () => {
+    const safeTitle = newDocumentTitle.trim();
+    if (!safeTitle) return;
+    const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    setCustomDocumentRows((prev) => [...prev, { id, title: safeTitle, fileName: "" }]);
+    setNewDocumentTitle("");
+    setShowAddDocumentTitleBox(false);
+  };
+
+  const openAddCustomDocumentRow = () => {
+    setShowAddDocumentTitleBox(true);
+    setNewDocumentTitle("");
+  };
+
+  const updateCustomDocumentRow = (id: string, patch: Partial<{ fileName: string }>) => {
+    setCustomDocumentRows((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)));
+  };
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
@@ -357,21 +379,75 @@ export function NewEmployeeModal({
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-6">
-          {tabs.map((tab, idx) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(idx)}
-              className={`border-b-2 px-4 py-4 text-sm font-semibold transition-all ${
-                currentTabIndex === idx
-                  ? "border-brand text-brand"
-                  : `border-transparent text-[var(--gbp-text2)] hover:text-[var(--gbp-text)] ${DARK_MUTED}`
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="flex items-center justify-between border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-6">
+          <div className="flex">
+            {tabs.map((tab, idx) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(idx)}
+                className={`border-b-2 px-4 py-4 text-sm font-semibold transition-all ${
+                  currentTabIndex === idx
+                    ? "border-brand text-brand"
+                    : `border-transparent text-[var(--gbp-text2)] hover:text-[var(--gbp-text)] ${DARK_MUTED}`
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {isDocumentsTabActive ? (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={openAddCustomDocumentRow}
+                className="inline-flex items-center gap-1.5 rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-2.5 py-1 text-[10px] font-semibold text-[var(--gbp-text2)] hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
+              >
+                <span className="text-[12px] leading-none">+</span>
+                Agregar documento
+              </button>
+
+              {showAddDocumentTitleBox ? (
+                <div className="absolute right-0 top-[calc(100%+8px)] z-30 w-[290px] rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3 shadow-xl">
+                  <p className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] text-[var(--gbp-muted)]">Nuevo documento</p>
+                  <input
+                    value={newDocumentTitle}
+                    onChange={(event) => setNewDocumentTitle(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        confirmAddCustomDocumentRow();
+                      }
+                      if (event.key === "Escape") {
+                        setShowAddDocumentTitleBox(false);
+                      }
+                    }}
+                    className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none focus:border-[var(--gbp-accent)]"
+                    placeholder="Ej. Licencia Sanitaria"
+                    autoFocus
+                  />
+                  <div className="mt-2 flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddDocumentTitleBox(false)}
+                      className="rounded-md px-2.5 py-1 text-[11px] font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={confirmAddCustomDocumentRow}
+                      disabled={!newDocumentTitle.trim()}
+                      className="rounded-md bg-[var(--gbp-accent)] px-2.5 py-1 text-[11px] font-semibold text-white disabled:opacity-50"
+                    >
+                      Agregar
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -600,9 +676,9 @@ export function NewEmployeeModal({
                   { id: "empInputFoto", slot: "photo", name: "document_file_photo", icon: "📷", label: "Foto del Empleado" },
                   { id: "empInputId", slot: "id", name: "document_file_id", icon: "🪪", label: "ID / Identificación" },
                   { id: "empInputSs", slot: "ssn", name: "document_file_ssn", icon: "📋", label: "Número de Seguro Social" },
-                  { id: "empInputRec1", slot: "rec1", name: "document_file_rec1", icon: "📄", label: "Carta de Recomendación 1" },
-                  { id: "empInputRec2", slot: "rec2", name: "document_file_rec2", icon: "📄", label: "Carta de Recomendación 2" },
-                  { id: "empInputOther", slot: "other", name: "document_file_other", icon: "🖇️", label: "Otro Documento" },
+                  { id: "empInputRec1", slot: "rec1", name: "document_file_rec1", icon: "📄", label: "Food Handler Certificate" },
+                  { id: "empInputRec2", slot: "rec2", name: "document_file_rec2", icon: "📄", label: "Alcohol Server Certificate" },
+                  { id: "empInputOther", slot: "other", name: "document_file_other", icon: "📄", label: "Food Protection Manager" },
                 ].map((doc) => (
                   <div
                     key={doc.id}
@@ -654,6 +730,42 @@ export function NewEmployeeModal({
                         </div>
                         <p className="mt-2 line-clamp-1 max-w-[220px] text-center text-[11px] font-semibold text-[var(--gbp-success)]">
                           {selectedDocumentFiles[doc.name]}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="mt-2 text-center text-[11px] text-[var(--gbp-muted)]">Haz clic para adjuntar</p>
+                    )}
+                  </div>
+                ))}
+                {customDocumentRows.map((row) => (
+                  <div
+                    key={row.id}
+                    onClick={() => document.getElementById(`customInput-${row.id}`)?.click()}
+                    className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 transition-all hover:border-[var(--gbp-accent)] hover:bg-[var(--gbp-bg)] ${row.fileName ? "border-[var(--gbp-success)] bg-[var(--gbp-success-soft)]" : "border-[var(--gbp-border2)]"}`}
+                  >
+                    <input type="hidden" name="custom_document_title" value={row.title} />
+                    <input
+                      type="file"
+                      id={`customInput-${row.id}`}
+                      name="custom_document_file"
+                      accept="image/*,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx"
+                      className="hidden"
+                      onChange={(event) => {
+                        const fileName = event.target.files?.[0]?.name ?? "";
+                        updateCustomDocumentRow(row.id, { fileName });
+                      }}
+                    />
+
+                    <span className="mb-3 text-4xl transition-transform group-hover:scale-110">📄</span>
+                    <span className="text-center text-[13px] font-bold text-[var(--gbp-text2)]">{row.title}</span>
+
+                    {row.fileName ? (
+                      <>
+                        <div className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-[12px] text-white">
+                          ✓
+                        </div>
+                        <p className="mt-2 line-clamp-1 max-w-[220px] text-center text-[11px] font-semibold text-[var(--gbp-success)]">
+                          {row.fileName}
                         </p>
                       </>
                     ) : (
