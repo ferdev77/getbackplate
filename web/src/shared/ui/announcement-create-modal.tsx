@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { MessageSquare, Pin, Smartphone, Clock3, Mail } from "lucide-react";
 import { useActionState, useEffect, useState, startTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -39,6 +38,7 @@ type UserOption = {
 };
 
 type AnnouncementCreateModalProps = {
+  onClose?: () => void;
   branches: BranchOption[];
   departments: DepartmentOption[];
   positions: PositionOption[];
@@ -62,7 +62,7 @@ type AnnouncementCreateModalProps = {
   };
 };
 
-export function AnnouncementCreateModal({ branches, departments, positions, users, publisherName, mode = "create", initial }: AnnouncementCreateModalProps) {
+export function AnnouncementCreateModal({ onClose, branches, departments, positions, users, publisherName, mode = "create", initial }: AnnouncementCreateModalProps) {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(createAnnouncementAction, { success: false, message: "" });
   const [notifyWhatsapp, setNotifyWhatsapp] = useState(false);
@@ -86,17 +86,26 @@ export function AnnouncementCreateModal({ branches, departments, positions, user
     }
   }, [state, router]);
 
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+      return;
+    }
+    router.push("/app/announcements");
+  };
+
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
       <div className="max-h-[90vh] w-[540px] max-w-[95vw] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
         <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
           <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">{mode === "edit" ? "Editar Aviso" : "Nuevo Aviso"}</p>
-          <Link
-            href="/app/announcements"
+          <button
+            type="button"
+            onClick={handleClose}
             className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"
           >
             ✕
-          </Link>
+          </button>
         </div>
 
         <form action={formAction}>
@@ -263,12 +272,13 @@ export function AnnouncementCreateModal({ branches, departments, positions, user
           </div>
 
           <div className="flex justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
-            <Link
-              href="/app/announcements"
+            <button
+              type="button"
+              onClick={handleClose}
               className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"
             >
               Cancelar
-            </Link>
+            </button>
             <SubmitButton
               label={mode === "edit" ? "Guardar cambios" : "Publicar Aviso"}
               pendingLabel={mode === "edit" ? "Guardando..." : "Publicando..."}

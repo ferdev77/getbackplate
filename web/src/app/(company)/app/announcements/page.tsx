@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { Bell, BellPlus, CalendarClock, Pencil, Pin } from "lucide-react";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { parseAnnouncementScope } from "@/modules/announcements/lib/scope";
+import { AnnouncementModalTrigger } from "@/modules/announcements/ui/announcement-modal-trigger";
 import {
   deleteAnnouncementAction,
   toggleAnnouncementFeaturedAction,
@@ -164,7 +164,7 @@ const employeesQuery = supabase
     employeeNameByUserId.set(profile.user_id, `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim() || "Usuario");
   }
 
-  const scopeUsers = openCreateModal ? await buildScopeUsersCatalog(tenant.organizationId) : [];
+  const scopeUsers = await buildScopeUsersCatalog(tenant.organizationId);
   const positionNameMap = new Map((positions ?? []).map((row) => [row.id, row.name]));
 
   const now = new Date();
@@ -194,7 +194,17 @@ const employeesQuery = supabase
             <Bell className="h-4 w-4" />
             <h1 className="text-[18px] font-bold">Avisos</h1>
           </div>
-          <Link href="/app/announcements?action=create" className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white hover:bg-[var(--gbp-accent)]"><BellPlus className="h-3.5 w-3.5" /> Nuevo Aviso</Link>
+          <AnnouncementModalTrigger
+            className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white hover:bg-[var(--gbp-accent)]"
+            mode="create"
+            publisherName={publisherName}
+            branches={mappedBranches}
+            departments={departments ?? []}
+            positions={positions ?? []}
+            users={scopeUsers}
+          >
+            <BellPlus className="h-3.5 w-3.5" /> Nuevo Aviso
+          </AnnouncementModalTrigger>
         </section>
       </SlideUp>
 
@@ -275,7 +285,30 @@ const employeesQuery = supabase
                           <input type="hidden" name="next_featured" value={String(!ann.is_featured)} />
                           <button className={ann.is_featured ? ACTION_BTN_DANGER : ACTION_BTN_NEUTRAL} type="submit"><Pin className="h-3.5 w-3.5" /><TooltipLabel label={ann.is_featured ? "Quitar fijado" : "Fijar"} /></button>
                         </form>
-                        <Link href={`/app/announcements?action=edit&announcementId=${ann.id}`} className={ACTION_BTN_NEUTRAL}><Pencil className="h-3.5 w-3.5" /><TooltipLabel label="Editar" /></Link>
+                        <AnnouncementModalTrigger
+                          className={ACTION_BTN_NEUTRAL}
+                          mode="edit"
+                          publisherName={publisherName}
+                          branches={mappedBranches}
+                          departments={departments ?? []}
+                          positions={positions ?? []}
+                          users={scopeUsers}
+                          initial={{
+                            id: ann.id,
+                            kind: ann.kind,
+                            title: ann.title,
+                            body: ann.body,
+                            expires_at: ann.expires_at,
+                            is_featured: ann.is_featured,
+                            location_scope: target.locations,
+                            department_scope: target.department_ids,
+                            position_scope: target.position_ids,
+                            user_scope: target.users,
+                          }}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          <TooltipLabel label="Editar" />
+                        </AnnouncementModalTrigger>
                         <form action={deleteAnnouncementAction}>
                           <input type="hidden" name="announcement_id" value={ann.id} />
                           <ConfirmSubmitButton

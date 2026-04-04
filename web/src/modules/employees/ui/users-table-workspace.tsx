@@ -27,6 +27,7 @@ type UsersTableWorkspaceProps = {
   users: UserRow[];
   roleOptions: Option[];
   branchOptions: BranchOption[];
+  onCreateUser?: () => void;
 };
 
 const ACTION_BTN_NEUTRAL = "group/tooltip relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] [.theme-dark-pro_&]:border-[var(--gbp-border2)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)] [.theme-dark-pro_&]:text-[var(--gbp-text2)] [.theme-dark-pro_&]:hover:bg-[var(--gbp-surface2)]";
@@ -51,7 +52,7 @@ function roleLabel(code: string) {
   return "Empleado";
 }
 
-export function UsersTableWorkspace({ users, roleOptions, branchOptions }: UsersTableWorkspaceProps) {
+export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreateUser }: UsersTableWorkspaceProps) {
   const [rows, setRows] = useState<UserRow[]>(users);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -298,7 +299,11 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions }: Users
             </div>
             <div className="flex items-center justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
               <button type="button" onClick={() => setEditMembershipId(selected.membershipId)} className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">Editar</button>
-              <Link href="/app/users?action=create-user" className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">Nuevo administrador</Link>
+              {onCreateUser ? (
+                <button type="button" onClick={onCreateUser} className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">Nuevo administrador</button>
+              ) : (
+                <Link href="/app/users?action=create-user" className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">Nuevo administrador</Link>
+              )}
             </div>
           </div>
         </div>

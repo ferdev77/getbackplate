@@ -26,6 +26,7 @@
     "verify:plan-limit-enforcement": "node --env-file=.env.local scripts/verify-plan-limit-enforcement.mjs",
     "verify:plan-limit-messages": "node --env-file=.env.local scripts/verify-plan-limit-messages.mjs",
     "verify:plan-change-rules": "node --env-file=.env.local scripts/verify-plan-change-rules.mjs",
+    "perf:routes": "node --env-file=.env.local scripts/measure-route-latency.mjs",
     "report:tenant-usage": "node --env-file=.env.local scripts/generate-tenant-usage-report.mjs --format=table",
     "report:tenant-usage:json": "node --env-file=.env.local scripts/generate-tenant-usage-report.mjs --format=json",
     "report:tenant-usage:csv": "node --env-file=.env.local scripts/generate-tenant-usage-report.mjs --format=csv"

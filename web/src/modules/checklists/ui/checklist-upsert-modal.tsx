@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useEffect, useState, startTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Mail, MessageSquare, Smartphone } from "lucide-react";
@@ -39,6 +38,7 @@ type EditingTemplate = {
 };
 
 type ChecklistUpsertModalProps = {
+  onClose?: () => void;
   branches: BranchOption[];
   departments: DepartmentOption[];
   positions: PositionOption[];
@@ -48,6 +48,7 @@ type ChecklistUpsertModalProps = {
 };
 
 export function ChecklistUpsertModal({
+  onClose,
   branches,
   departments,
   positions,
@@ -75,12 +76,20 @@ export function ChecklistUpsertModal({
     }
   }, [state, router]);
 
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+      return;
+    }
+    router.push("/app/checklists");
+  };
+
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
       <div className="flex max-h-[90vh] w-[680px] max-w-[95vw] flex-col overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-xl)]">
         <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 pb-4 pt-5">
           <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">{action === "edit" ? "Editar Checklist" : "Nuevo Checklist"}</p>
-          <Link href="/app/checklists" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</Link>
+          <button type="button" onClick={handleClose} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</button>
         </div>
         <form action={formAction}>
           {editingTemplate ? <input type="hidden" name="template_id" value={editingTemplate.id} /> : null}
@@ -193,7 +202,7 @@ export function ChecklistUpsertModal({
             ) : null}
           </div>
           <div className="flex justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
-            <Link href="/app/checklists" className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">Cancelar</Link>
+            <button type="button" onClick={handleClose} className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">Cancelar</button>
             <SubmitButton 
               label={editingTemplate ? "Actualizar Checklist" : "Guardar Checklist"} 
               pendingLabel={editingTemplate ? "Actualizando..." : "Guardando..."} 
