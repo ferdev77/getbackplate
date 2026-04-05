@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { requireAuthenticatedUser, requireEmployeeAccess } from "@/shared/lib/access";
 import { EmployeeShell } from "@/shared/ui/employee-shell";
@@ -6,6 +7,41 @@ import {
   getOrganizationSettingsCached,
   getOrganizationByIdCached,
 } from "@/modules/organizations/cached-queries";
+
+export async function generateMetadata(): Promise<Metadata> {
+  let tenant;
+  try {
+    tenant = await requireEmployeeAccess();
+  } catch {
+    return {};
+  }
+
+  const [organization, orgSettings, enabledModules] = await Promise.all([
+    getOrganizationByIdCached(tenant.organizationId),
+    getOrganizationSettingsCached(tenant.organizationId),
+    getEnabledModulesCached(tenant.organizationId),
+  ]);
+
+  const customBranding = enabledModules.includes("custom_branding");
+
+  if (customBranding && (organization?.name || orgSettings?.company_favicon_url)) {
+    return {
+      title: {
+        template: `%s | ${organization?.name ?? "Portal"}`,
+        default: organization?.name ?? "Portal",
+      },
+      icons: orgSettings?.company_favicon_url
+        ? {
+            icon: [
+              { url: orgSettings.company_favicon_url },
+            ],
+          }
+        : undefined,
+    };
+  }
+
+  return {};
+}
 
 export default async function EmployeeLayout({
   children,

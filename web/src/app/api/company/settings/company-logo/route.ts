@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   const formData = await request.formData();
   const file = formData.get("logo");
   const rawVariant = formData.get("variant");
-  const variant = rawVariant === "dark" ? "dark" : "light";
+  const variant = rawVariant === "dark" ? "dark" : rawVariant === "favicon" ? "favicon" : "light";
   const validation = validateOrganizationLogoFile(file instanceof File ? file : null);
 
   if (!validation.ok) {
@@ -28,20 +28,24 @@ export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
   const { data: existingSettings } = await supabase
     .from("organization_settings")
-    .select("company_logo_path, company_logo_dark_path")
+    .select("company_logo_path, company_logo_dark_path, company_favicon_path")
     .eq("organization_id", moduleAccess.tenant.organizationId)
     .maybeSingle();
 
   await ensureOrganizationLogoBucketExists();
 
+  const previousLogoPath =
+    variant === "dark"
+      ? (existingSettings?.company_logo_dark_path ?? null)
+      : variant === "favicon"
+      ? (existingSettings?.company_favicon_path ?? null)
+      : (existingSettings?.company_logo_path ?? null);
+
   const uploadResult = await uploadOrganizationLogo({
     organizationId: moduleAccess.tenant.organizationId,
     file: file as File,
     variant,
-    previousLogoPath:
-      variant === "dark"
-        ? (existingSettings?.company_logo_dark_path ?? null)
-        : (existingSettings?.company_logo_path ?? null),
+    previousLogoPath,
   });
 
   if (!uploadResult.ok) {
@@ -60,20 +64,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: uploadResult.error }, { status: 400 });
   }
 
+  const updatePayload: any = {
+    organization_id: moduleAccess.tenant.organizationId,
+    updated_by: moduleAccess.userId,
+  };
+
+  if (variant === "dark") {
+    updatePayload.company_logo_dark_url = uploadResult.logoUrl;
+    updatePayload.company_logo_dark_path = uploadResult.logoPath;
+  } else if (variant === "favicon") {
+    updatePayload.company_favicon_url = uploadResult.logoUrl;
+    updatePayload.company_favicon_path = uploadResult.logoPath;
+  } else {
+    updatePayload.company_logo_url = uploadResult.logoUrl;
+    updatePayload.company_logo_path = uploadResult.logoPath;
+  }
+
   const { error: updateError } = await supabase.from("organization_settings").upsert(
-    {
-      organization_id: moduleAccess.tenant.organizationId,
-      ...(variant === "dark"
-        ? {
-            company_logo_dark_url: uploadResult.logoUrl,
-            company_logo_dark_path: uploadResult.logoPath,
-          }
-        : {
-            company_logo_url: uploadResult.logoUrl,
-            company_logo_path: uploadResult.logoPath,
-          }),
-      updated_by: moduleAccess.userId,
-    },
+    updatePayload,
     { onConflict: "organization_id" },
   );
 
