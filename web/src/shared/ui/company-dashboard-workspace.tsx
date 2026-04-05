@@ -6,7 +6,6 @@ import {
   CalendarClock,
   CheckCircle2,
   ClipboardCheck,
-  FileText,
   Flag,
   FolderOpen,
   Megaphone,
@@ -82,9 +81,9 @@ function statusLabel(status: string) {
 }
 
 const QUICK_ACTIONS = [
-  { href: "/app/documents", label: "Subir documento", icon: FolderOpen, moduleCode: "documents" },
   { href: "/app/announcements", label: "Publicar aviso", icon: Megaphone, moduleCode: "announcements" },
   { href: "/app/checklists", label: "Crear checklist", icon: ClipboardCheck, moduleCode: "checklists" },
+  { href: "/app/documents", label: "Subir documento", icon: FolderOpen, moduleCode: "documents" },
   { href: "/app/employees", label: "Agregar usuario/empleado", icon: UsersRound, moduleCode: "employees" },
 ];
 
@@ -224,7 +223,6 @@ export function CompanyDashboardWorkspace({
     enabledModuleSet.has(action.moduleCode),
   );
   const showAnnouncementsPanel = enabledModuleSet.has("announcements");
-  const showDocumentsPanel = enabledModuleSet.has("documents");
   const showChecklistsPanel = enabledModuleSet.has("checklists");
   const workforceTotal = effectiveMetrics.employeesOnlyCount + effectiveMetrics.usersOnlyCount;
   const employeeRatio = workforceTotal > 0 ? Math.round((effectiveMetrics.employeesOnlyCount / workforceTotal) * 100) : 0;
@@ -232,6 +230,16 @@ export function CompanyDashboardWorkspace({
   const checklistsWeekValue = showChecklistsPanel ? effectiveMetrics.checklistWeekCount : 0;
   const pendingReviewValue = showChecklistsPanel ? effectiveMetrics.pendingReviewCount : 0;
   const openFlagsValue = showChecklistsPanel ? effectiveMetrics.openFlagsCount : 0;
+  const announcementsCount = showAnnouncementsPanel ? effectiveMetrics.announcements.length : 0;
+  const featuredAnnouncementsCount = showAnnouncementsPanel
+    ? effectiveMetrics.announcements.filter((notice) => notice.is_featured).length
+    : 0;
+  const urgentAnnouncementsCount = showAnnouncementsPanel
+    ? effectiveMetrics.announcements.filter((notice) => notice.kind === "urgent").length
+    : 0;
+  const companyWideAnnouncementsCount = showAnnouncementsPanel
+    ? effectiveMetrics.announcements.filter((notice) => !notice.branch_id).length
+    : 0;
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
@@ -293,61 +301,41 @@ export function CompanyDashboardWorkspace({
           />
         </AnimatedItem>
         <AnimatedItem>
-          <article className="group flex h-full flex-col rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 transition hover:-translate-y-[1px] hover:shadow-[0_10px_26px_rgba(0,0,0,.09)]">
-            <p className="text-xs text-[var(--gbp-text2)]">Estado de empresa</p>
-            <p className="mt-1 inline-block rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-sm font-semibold text-emerald-700">
-              {statusLabel(organizationStatus)}
-            </p>
-            <div className="mt-auto rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-2 pt-2 transition duration-200 group-hover:border-[var(--gbp-border2)] group-hover:bg-[var(--gbp-surface2)]">
-              <p className="flex items-center justify-between gap-2 text-[11px] text-[var(--gbp-text2)]"><span>Pendientes revision</span><span className="font-semibold text-[var(--gbp-text)]">{pendingReviewValue}</span></p>
-              <p className="mt-1 flex items-center justify-between gap-2 text-[11px] text-[var(--gbp-text2)]"><span>Incidencias abiertas</span><span className="font-semibold text-[var(--gbp-text)]">{openFlagsValue}</span></p>
-              <p className="mt-1 flex items-center justify-between gap-2 text-[11px] text-[var(--gbp-text2)]"><span>Checklists semana</span><span className="font-semibold text-[var(--gbp-text)]">{checklistsWeekValue}</span></p>
-            </div>
-          </article>
+          <DashboardMetricCard
+            icon={Megaphone}
+            label="Avisos"
+            value={announcementsCount}
+            subtitle={showAnnouncementsPanel ? "Publicaciones recientes" : "Modulo deshabilitado"}
+            details={[
+              { label: "Urgentes", value: urgentAnnouncementsCount },
+              { label: "Fijados", value: featuredAnnouncementsCount },
+              { label: "Toda la empresa", value: companyWideAnnouncementsCount },
+            ]}
+          />
         </AnimatedItem>
       </AnimatedList>
 
-      <section className="mb-5 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+      <section className="mb-5">
         <SlideUp delay={0.2}>
           <article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4">
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--gbp-text2)]">Acciones rapidas</h2>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="flex w-full gap-2">
               {visibleQuickActions.map((action) => (
                 <Link
                   key={action.label}
                   href={action.href}
-                  className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-left text-sm text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
+                  className="flex min-w-0 flex-1 items-center justify-center rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-center text-sm text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
                 >
-                  <span className="inline-flex items-center gap-1.5">
+                  <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
                     <action.icon className="h-4 w-4" /> {action.label}
                   </span>
                 </Link>
               ))}
               {!visibleQuickActions.length ? (
-                <div className="rounded-lg border border-dashed border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-4 text-sm text-[var(--gbp-text2)]">
+                <div className="w-full rounded-lg border border-dashed border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-4 text-sm text-[var(--gbp-text2)]">
                   No hay acciones rapidas disponibles con los modulos activos.
                 </div>
               ) : null}
-            </div>
-          </article>
-        </SlideUp>
-
-        <SlideUp delay={0.25}>
-          <article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--gbp-text2)]">Seguimiento de checklist</h2>
-            <div className="space-y-2">
-              <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
-                <p className="inline-flex items-center gap-1 text-xs text-[var(--gbp-text2)]"><CalendarClock className="h-3.5 w-3.5" /> Checklists semana</p>
-                <p className="mt-1 text-xl font-bold text-[var(--gbp-text)]">{showChecklistsPanel ? effectiveMetrics.checklistWeekCount : 0}</p>
-              </div>
-              <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
-                <p className="inline-flex items-center gap-1 text-xs text-[var(--gbp-text2)]"><ClipboardCheck className="h-3.5 w-3.5" /> Pendientes de revision</p>
-                <p className="mt-1 text-xl font-bold text-[var(--gbp-text)]">{showChecklistsPanel ? effectiveMetrics.pendingReviewCount : 0}</p>
-              </div>
-              <div className="rounded-lg border border-[var(--gbp-error)]/30 bg-[var(--gbp-error-soft)] p-3">
-                <p className="inline-flex items-center gap-1 text-xs text-[var(--gbp-error)]"><Flag className="h-3.5 w-3.5" /> Incidencias abiertas</p>
-                <p className="mt-1 text-xl font-bold text-[var(--gbp-error)]">{showChecklistsPanel ? effectiveMetrics.openFlagsCount : 0}</p>
-              </div>
             </div>
           </article>
         </SlideUp>
@@ -393,32 +381,20 @@ export function CompanyDashboardWorkspace({
 
         <SlideUp delay={0.35}>
           <article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--gbp-text2)]">Documentos recientes</h2>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--gbp-text2)]">Seguimiento de checklist</h2>
             <div className="space-y-2">
-              {showDocumentsPanel && effectiveMetrics.recentDocuments.length ? (
-                <AnimatedList className="space-y-2">
-                  {effectiveMetrics.recentDocuments.map((doc) => (
-                    <AnimatedItem key={doc.id}>
-                      <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
-                        <p className="inline-flex items-center gap-1 text-sm font-medium text-[var(--gbp-text)]"><FileText className="h-4 w-4 text-[var(--gbp-text2)]" /> {doc.title}</p>
-                        <p className="mt-1 text-xs text-[var(--gbp-text2)]">
-                          {doc.branch_id ? branchNameMap.get(doc.branch_id) ?? "Sucursal" : "Empresa"}
-                        </p>
-                        <p className="mt-1 text-xs text-[var(--gbp-muted)]">
-                          {new Date(doc.created_at).toLocaleDateString("es-AR")}
-                          {typeof doc.file_size_bytes === "number"
-                            ? ` - ${Math.max(Math.round(doc.file_size_bytes / 1024), 1)} KB`
-                            : ""}
-                        </p>
-                      </div>
-                    </AnimatedItem>
-                  ))}
-                </AnimatedList>
-              ) : (
-                <div className="rounded-lg border border-dashed border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-6 text-center text-sm text-[var(--gbp-text2)]">
-                  {showDocumentsPanel ? "No hay documentos cargados todavia." : "Modulo de documentos deshabilitado para esta empresa."}
-                </div>
-              )}
+              <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
+                <p className="inline-flex items-center gap-1 text-xs text-[var(--gbp-text2)]"><CalendarClock className="h-3.5 w-3.5" /> Checklists semana</p>
+                <p className="mt-1 text-xl font-bold text-[var(--gbp-text)]">{showChecklistsPanel ? effectiveMetrics.checklistWeekCount : 0}</p>
+              </div>
+              <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
+                <p className="inline-flex items-center gap-1 text-xs text-[var(--gbp-text2)]"><ClipboardCheck className="h-3.5 w-3.5" /> Pendientes de revision</p>
+                <p className="mt-1 text-xl font-bold text-[var(--gbp-text)]">{showChecklistsPanel ? effectiveMetrics.pendingReviewCount : 0}</p>
+              </div>
+              <div className="rounded-lg border border-[var(--gbp-error)]/30 bg-[var(--gbp-error-soft)] p-3">
+                <p className="inline-flex items-center gap-1 text-xs text-[var(--gbp-error)]"><Flag className="h-3.5 w-3.5" /> Incidencias abiertas</p>
+                <p className="mt-1 text-xl font-bold text-[var(--gbp-error)]">{showChecklistsPanel ? effectiveMetrics.openFlagsCount : 0}</p>
+              </div>
             </div>
           </article>
         </SlideUp>
