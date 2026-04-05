@@ -44,11 +44,11 @@ export async function uploadOrganizationLogo(params: {
   organizationId: string;
   file: File;
   previousLogoPath?: string | null;
-  variant?: "light" | "dark";
+  variant?: "light" | "dark" | "favicon";
 }) {
   const admin = createSupabaseAdminClient();
   const safeName = sanitizeOrganizationLogoFileName(params.file.name || "logo.png") || "logo.png";
-  const variantFolder = params.variant === "dark" ? "dark" : "light";
+  const variantFolder = params.variant === "dark" ? "dark" : params.variant === "favicon" ? "favicon" : "light";
   const path = `organizations/${params.organizationId}/${variantFolder}/${Date.now()}-${safeName}`;
 
   const { error: uploadError } = await admin.storage.from(ORGANIZATION_LOGO_BUCKET).upload(path, params.file, {

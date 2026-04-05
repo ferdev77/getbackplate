@@ -12,6 +12,7 @@ type CompanyContactSettingsCardProps = {
   websiteUrl: string;
   companyLogoUrl: string;
   companyLogoDarkUrl: string;
+  companyFaviconUrl: string;
   customBrandingEnabled: boolean;
 };
 
@@ -23,6 +24,7 @@ export function CompanyContactSettingsCard({
   websiteUrl,
   companyLogoUrl,
   companyLogoDarkUrl,
+  companyFaviconUrl,
   customBrandingEnabled,
 }: CompanyContactSettingsCardProps) {
   const router = useRouter();
@@ -36,6 +38,7 @@ export function CompanyContactSettingsCard({
   const [websiteValue, setWebsiteValue] = useState(websiteUrl);
   const [lightLogoUrl, setLightLogoUrl] = useState(companyLogoUrl);
   const [darkLogoUrl, setDarkLogoUrl] = useState(companyLogoDarkUrl);
+  const [faviconUrl, setFaviconUrl] = useState(companyFaviconUrl);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
   async function handleSave() {
@@ -71,7 +74,7 @@ export function CompanyContactSettingsCard({
 
   const buttonLabel = isSaving ? "Guardando..." : savedPulse ? "Datos guardados" : isEditing ? "Guardar" : "Editar";
 
-  async function handleLogoUpload(file: File | null, variant: "light" | "dark") {
+  async function handleLogoUpload(file: File | null, variant: "light" | "dark" | "favicon") {
     if (!file || uploadingLogo) return;
 
     setUploadingLogo(true);
@@ -90,13 +93,16 @@ export function CompanyContactSettingsCard({
     setUploadingLogo(false);
 
     if (!response.ok || !payload?.ok || !payload.logoUrl) {
-      setNotice({ tone: "error", message: payload?.error ?? "No se pudo cargar el logo" });
+      setNotice({ tone: "error", message: payload?.error ?? "No se pudo cargar la imagen" });
       return;
     }
 
     if (variant === "dark") {
       setDarkLogoUrl(payload.logoUrl);
       setNotice({ tone: "success", message: "Logo dark actualizado correctamente" });
+    } else if (variant === "favicon") {
+      setFaviconUrl(payload.logoUrl);
+      setNotice({ tone: "success", message: "Favicon actualizado correctamente" });
     } else {
       setLightLogoUrl(payload.logoUrl);
       setNotice({ tone: "success", message: "Logo claro actualizado correctamente" });
@@ -115,7 +121,7 @@ export function CompanyContactSettingsCard({
       {customBrandingEnabled ? (
         <div className="mt-4 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Branding personalizado</p>
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-3">
             <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3">
               <p className="mb-2 text-[11px] font-semibold text-[var(--gbp-text2)]">Logo claro</p>
               <div className="mb-2 grid min-h-[92px] w-full place-items-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] p-2">
@@ -166,7 +172,32 @@ export function CompanyContactSettingsCard({
                 {uploadingLogo ? "Subiendo..." : "Cargar logo dark"}
               </label>
             </div>
-            <p className="text-[11px] text-[var(--gbp-text2)] md:col-span-2">PNG/JPG/WebP/GIF/SVG · Max 2MB</p>
+            <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3">
+              <p className="mb-2 text-[11px] font-semibold text-[var(--gbp-text2)]">Favicon (32x32)</p>
+              <div className="mb-2 grid min-h-[92px] w-full place-items-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] p-2">
+                {faviconUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={faviconUrl} alt="Favicon de empresa" className="block h-8 w-8 object-contain" />
+                ) : (
+                  <span className="text-[10px] font-bold text-[var(--gbp-muted)]">Sin favicon</span>
+                )}
+              </div>
+              <label className="inline-flex cursor-pointer items-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]">
+                <input
+                  type="file"
+                  accept="image/png, image/x-icon, image/svg+xml"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] ?? null;
+                    void handleLogoUpload(file, "favicon");
+                    event.currentTarget.value = "";
+                  }}
+                  disabled={uploadingLogo}
+                />
+                {uploadingLogo ? "Subiendo..." : "Cargar favicon"}
+              </label>
+            </div>
+            <p className="text-[11px] text-[var(--gbp-text2)] md:col-span-3">PNG/JPG/WebP/GIF/SVG · Max 2MB</p>
           </div>
         </div>
       ) : (
