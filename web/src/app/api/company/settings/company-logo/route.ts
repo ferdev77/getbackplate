@@ -1,3 +1,4 @@
+import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
@@ -114,6 +115,8 @@ export async function POST(request: Request) {
       variant,
     },
   });
+
+  revalidateTag("org-settings-v1");
 
   return NextResponse.json({ ok: true, logoUrl: uploadResult.logoUrl, variant });
 }
