@@ -1,9 +1,11 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { getEnabledModules } from "@/modules/organizations/queries";
 import { requireAuthenticatedUser, requireEmployeeAccess } from "@/shared/lib/access";
 import { EmployeeShell } from "@/shared/ui/employee-shell";
-
-export const dynamic = "force-dynamic";
+import {
+  getEnabledModulesCached,
+  getOrganizationSettingsCached,
+  getOrganizationByIdCached,
+} from "@/modules/organizations/cached-queries";
 
 export default async function EmployeeLayout({
   children,
@@ -12,7 +14,10 @@ export default async function EmployeeLayout({
   const tenant = await requireEmployeeAccess();
   const supabase = await createSupabaseServerClient();
 
-  const [{ data: employee }, { data: branch }, { data: organization }] = await Promise.all([
+  const organizationPromise = getOrganizationByIdCached(tenant.organizationId);
+  const settingsPromise = getOrganizationSettingsCached(tenant.organizationId);
+
+  const [{ data: employee }, { data: branch }, organizationData] = await Promise.all([
     supabase
       .from("employees")
       .select("id, first_name, last_name, position, department_id, branch_id")
@@ -27,18 +32,10 @@ export default async function EmployeeLayout({
           .eq("id", tenant.branchId ?? null)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    supabase
-      .from("organizations")
-      .select("name")
-      .eq("id", tenant.organizationId)
-      .maybeSingle(),
+    organizationPromise,
   ]);
 
-  const { data: brandingSettings } = await supabase
-    .from("organization_settings")
-    .select("company_logo_url")
-    .eq("organization_id", tenant.organizationId)
-    .maybeSingle();
+  const brandingSettings = await settingsPromise;
 
   const { data: department } = employee?.department_id
     ? await supabase
@@ -60,7 +57,8 @@ export default async function EmployeeLayout({
         .maybeSingle()
     : { data: null };
 
-  const enabledModuleCodes = await getEnabledModules(tenant.organizationId);
+  const enabledModulesArr = await getEnabledModulesCached(tenant.organizationId);
+  const enabledModuleCodes = new Set(enabledModulesArr);
 
   const isDocumentsEnabled = enabledModuleCodes.has("documents");
   const isChecklistEnabled = enabledModuleCodes.has("checklists");
@@ -80,7 +78,7 @@ export default async function EmployeeLayout({
       organizationId={tenant.organizationId}
       userId={user.id}
       employeeId={employee?.id ?? null}
-      organizationName={organization?.name ?? "Empresa"}
+      organizationName={organizationData?.name ?? "Empresa"}
       employeeName={employeeName}
       employeePosition={employee?.position ?? null}
       branchName={(() => {

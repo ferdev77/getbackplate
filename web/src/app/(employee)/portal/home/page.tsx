@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { markEmployeeOnboardingSeenAction } from "@/modules/onboarding/actions";
 import { EmployeeHomeWelcomeWorkspace } from "@/modules/onboarding/ui/employee-home-welcome-workspace";
 import { requireEmployeeAccess } from "@/shared/lib/access";
-import { getEnabledModules } from "@/modules/organizations/queries";
+import { getEnabledModulesCached } from "@/modules/organizations/cached-queries";
 import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
 import { canReadAnnouncementInTenant } from "@/shared/lib/announcement-access";
 import { canReadDocumentInTenant } from "@/shared/lib/document-access";
@@ -75,7 +75,7 @@ export default async function EmployeeHomePage() {
     { data: department },
     resolvedBranch,
   ] = await Promise.all([
-    getEnabledModules(tenant.organizationId),
+    getEnabledModulesCached(tenant.organizationId),
     supabase
       .from("user_preferences")
       .select("onboarding_seen_at")
@@ -100,14 +100,16 @@ export default async function EmployeeHomePage() {
       : Promise.resolve({ data: null }),
   ]);
 
-  const customBrandingEnabled = enabledModules.has("custom_branding");
+  const enabledModulesSet = new Set(enabledModules);
+
+  const customBrandingEnabled = enabledModulesSet.has("custom_branding");
   const resolvedBranchDisplayName = resolvedBranch.data
     ? (customBrandingEnabled && resolvedBranch.data.city ? resolvedBranch.data.city : resolvedBranch.data.name)
     : null;
 
-  const hasAnnouncementsModule = enabledModules.has("announcements");
-  const hasDocumentsModule = enabledModules.has("documents");
-  const hasChecklistsModule = enabledModules.has("checklists");
+  const hasAnnouncementsModule = enabledModulesSet.has("announcements");
+  const hasDocumentsModule = enabledModulesSet.has("documents");
+  const hasChecklistsModule = enabledModulesSet.has("checklists");
 
   const announcementsPromise = hasAnnouncementsModule
     ? supabase

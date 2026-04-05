@@ -3,8 +3,7 @@ import { requireEmployeeAccess } from "@/shared/lib/access";
 import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
 import { canReadAnnouncementInTenant } from "@/shared/lib/announcement-access";
 import { AlertCircle, CalendarClock, PartyPopper, Megaphone } from "lucide-react";
-
-export const dynamic = "force-dynamic";
+import { getEnabledModulesCached } from "@/modules/organizations/cached-queries";
 
 type AnnouncementRow = {
   id: string;
@@ -49,12 +48,8 @@ export default async function EmployeeAnnouncementsPage() {
     employeePositionIds = (positionRows ?? []).map((row) => row.id);
   }
 
-  const { data: moduleData } = await supabase.rpc("is_module_enabled", { 
-    org_id: tenant.organizationId, 
-    module_code: "announcements" 
-  });
-  
-  const hasAnnouncementsModule = Boolean(moduleData);
+  const enabledModules = await getEnabledModulesCached(tenant.organizationId);
+  const hasAnnouncementsModule = new Set(enabledModules).has("announcements");
 
   let announcements: AnnouncementRow[] = [];
 
