@@ -1,7 +1,7 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 
 export const ORGANIZATION_LOGO_BUCKET = "organization-branding";
-export const MAX_ORGANIZATION_LOGO_SIZE_BYTES = 2 * 1024 * 1024;
+export const MAX_ORGANIZATION_LOGO_SIZE_BYTES = 5 * 1024 * 1024;
 
 export function validateOrganizationLogoFile(file: File | null) {
   if (!(file instanceof File) || file.size === 0) {
@@ -13,7 +13,7 @@ export function validateOrganizationLogoFile(file: File | null) {
   }
 
   if (file.size > MAX_ORGANIZATION_LOGO_SIZE_BYTES) {
-    return { ok: false as const, error: "El logo supera el limite de 2MB" };
+    return { ok: false as const, error: "El logo supera el limite de 5MB" };
   }
 
   return { ok: true as const };
@@ -31,13 +31,18 @@ export function sanitizeOrganizationLogoFileName(name: string) {
 export async function ensureOrganizationLogoBucketExists() {
   const admin = createSupabaseAdminClient();
   const { data: bucket } = await admin.storage.getBucket(ORGANIZATION_LOGO_BUCKET);
-  if (bucket) return;
-
-  await admin.storage.createBucket(ORGANIZATION_LOGO_BUCKET, {
+  const bucketConfig = {
     public: true,
     fileSizeLimit: `${MAX_ORGANIZATION_LOGO_SIZE_BYTES}`,
     allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"],
-  });
+  };
+
+  if (!bucket) {
+    await admin.storage.createBucket(ORGANIZATION_LOGO_BUCKET, bucketConfig);
+    return;
+  }
+
+  await admin.storage.updateBucket(ORGANIZATION_LOGO_BUCKET, bucketConfig);
 }
 
 export async function uploadOrganizationLogo(params: {
