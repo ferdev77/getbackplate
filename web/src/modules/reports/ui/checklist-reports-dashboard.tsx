@@ -368,7 +368,7 @@ export function ChecklistReportsDashboard({
       </section>
 
       <section className="grid items-start gap-4 xl:grid-cols-[1fr_340px]">
-        <div>
+        <div className="min-w-0">
           <h2 className="mb-3 font-serif text-[22px] text-[var(--gbp-text)]">Historial de Reportes</h2>
           <div className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
             <div className="flex flex-wrap items-center gap-2 border-b border-[var(--gbp-border)] px-4 py-3">
@@ -494,7 +494,7 @@ export function ChecklistReportsDashboard({
           </div>
         </div>
 
-        <aside>
+        <aside className="min-w-0">
           <h2 className="mb-3 font-serif text-[22px] text-[var(--gbp-text)]">⚑ Ítems para Atención</h2>
           <div className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
             {effectiveAttentionFeed.map((item) => (
@@ -502,16 +502,16 @@ export function ChecklistReportsDashboard({
                 key={item.id}
                 type="button"
                 onClick={() => setSelectedReportId(item.reportId)}
-                className="flex w-full items-start gap-3 border-b border-[var(--gbp-border)] px-4 py-3 text-left transition hover:bg-[var(--gbp-bg)]"
+                className="flex w-full max-w-full items-start gap-3 overflow-hidden border-b border-[var(--gbp-border)] px-4 py-3 text-left transition hover:bg-[var(--gbp-bg)]"
               >
                 <span className={`mt-1 h-2.5 w-2.5 rounded-full ${item.resolved ? "bg-[var(--gbp-success)]" : "bg-[var(--gbp-accent)]"}`} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-semibold text-[var(--gbp-text)]">{item.task}</p>
+                  <p className="break-words text-[13px] font-semibold text-[var(--gbp-text)]">{item.task}</p>
                   <p className="truncate text-xs text-[var(--gbp-text2)]">&quot;{item.note || "Sin comentario"}&quot;</p>
-                  <p className="mt-1 text-[11px] text-[var(--gbp-muted)]">{item.managerShort} · {item.timeLabel}</p>
+                  <p className="mt-1 truncate text-[11px] text-[var(--gbp-muted)]">{item.managerShort} · {item.timeLabel}</p>
                 </div>
                 {showAttentionLocationBadge ? (
-                  <span className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] font-medium text-[var(--gbp-accent)]">{item.locationShort}</span>
+                  <span className="inline-flex max-w-[48%] shrink-0 items-center truncate rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] font-medium text-[var(--gbp-accent)]">{item.locationShort}</span>
                 ) : null}
               </button>
             ))}
