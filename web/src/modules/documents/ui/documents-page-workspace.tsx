@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FolderPlus, LayoutGrid, UploadCloud } from "lucide-react";
 
@@ -81,7 +80,6 @@ export function DocumentsPageWorkspace({
             <h1 className="text-[18px] font-bold">Documentos</h1>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href="/api/company/documents/export" className="inline-flex h-[33px] items-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]">Exportar</Link>
             <button type="button" onClick={() => setIsFolderModalOpen(true)} className="inline-flex h-[33px] items-center gap-1 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"><FolderPlus className="h-3.5 w-3.5" /> Nueva Carpeta</button>
             <button type="button" onClick={() => setIsUploadModalOpen(true)} className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[var(--gbp-accent)] px-3 text-xs font-bold text-white hover:bg-[var(--gbp-accent-hover)]"><UploadCloud className="h-3.5 w-3.5" /> Subir Archivo</button>
           </div>
