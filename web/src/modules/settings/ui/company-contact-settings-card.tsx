@@ -197,7 +197,7 @@ export function CompanyContactSettingsCard({
                 {uploadingLogo ? "Subiendo..." : "Cargar favicon"}
               </label>
             </div>
-            <p className="text-[11px] text-[var(--gbp-text2)] md:col-span-3">PNG/JPG/WebP/GIF/SVG · Max 2MB</p>
+            <p className="text-[11px] text-[var(--gbp-text2)] md:col-span-3">PNG/JPG/WebP/GIF/SVG · Max 5MB</p>
           </div>
         </div>
       ) : (
