@@ -13,6 +13,11 @@ type SuperadminModulesPageProps = {
 
 const NON_DEMOTABLE_CORE_MODULES = new Set(["dashboard", "settings", "employees", "documents"]);
 
+function moduleDisplayName(code: string, name: string) {
+  if (code === "announcements") return "Avisos";
+  return name;
+}
+
 export default async function SuperadminModulesPage({ searchParams }: SuperadminModulesPageProps) {
   const supabase = createSupabaseAdminClient();
   const params = await searchParams;
@@ -83,6 +88,7 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
         <div className="grid gap-4">
           {(modules ?? []).map((module, idx) => {
             const isCoreLocked = module.is_core && NON_DEMOTABLE_CORE_MODULES.has(module.code);
+            const displayName = moduleDisplayName(module.code, module.name);
             return (
               <motion.details 
                 key={module.id}
@@ -98,7 +104,7 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
                           {module.is_core ? <ShieldCheck className="h-6 w-6" /> : <Zap className="h-6 w-6" />}
                        </div>
                        <div>
-                          <h3 className="text-lg font-bold text-foreground">{module.name}</h3>
+                          <h3 className="text-lg font-bold text-foreground">{displayName}</h3>
                           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">{module.code}</p>
                        </div>
                     </div>
@@ -120,7 +126,7 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
                   <form action={updateModuleAction} className="grid gap-6 sm:grid-cols-4 items-end">
                     <input type="hidden" name="module_id" value={module.id} />
                     <SuperadminInputField label="Identificador de Sistema" value={module.code} disabled className="bg-muted/10 opacity-70" />
-                    <SuperadminInputField label="Nombre de Módulo" name="name" defaultValue={module.name} spellCheck={false} />
+                    <SuperadminInputField label="Nombre de Módulo" name="name" defaultValue={displayName} spellCheck={false} />
                     <SuperadminInputField label="Descripción Operativa" name="description" defaultValue={module.description ?? ""} className="sm:col-span-2" />
                     
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:col-span-4 mt-2">
