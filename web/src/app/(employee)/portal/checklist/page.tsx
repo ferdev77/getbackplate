@@ -6,8 +6,6 @@ import { RestoreChecklistScroll } from "@/modules/checklists/ui/restore-checklis
 import { requireEmployeeModule } from "@/shared/lib/access";
 import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
 
-export const dynamic = "force-dynamic";
-
 type EmployeeChecklistPageProps = {
   searchParams: Promise<{ preview?: string | string[] }>;
 };

@@ -113,7 +113,7 @@ export function EmployeeShell({
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         router.refresh();
-      }, 400);
+      }, 2000);
     }
 
     const uniqueSubscriptions = new Map<string, { table: string; filter: string }>();
