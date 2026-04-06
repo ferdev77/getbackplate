@@ -129,7 +129,8 @@ export async function loginWithPasswordAction(formData: FormData) {
 
     if (Boolean((authData.user.user_metadata as Record<string, unknown> | undefined)?.force_password_change)) {
       const nextAfterPassword = superadminRow?.user_id ? "/superadmin/dashboard" : "/app/dashboard";
-      redirect(`/auth/change-password?reason=first_login&next=${encodeURIComponent(nextAfterPassword)}`);
+      const orgQuery = organizationHint ? `&org=${encodeURIComponent(organizationHint)}` : "";
+      redirect(`/auth/change-password?reason=first_login&next=${encodeURIComponent(nextAfterPassword)}${orgQuery}`);
     }
 
     if (superadminRow?.user_id) {
