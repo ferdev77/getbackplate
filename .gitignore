@@ -49,3 +49,4 @@ debug-*.ts
 debug-*.js
 errors-*.txt
 errors-*.json
+*.bundle
