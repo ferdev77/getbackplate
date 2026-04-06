@@ -161,9 +161,10 @@ export function LandingExperience({ plans }: Props) {
   const planCards = useMemo(() => {
     const sorted = [...plans].sort((a, b) => (a.price_amount ?? 0) - (b.price_amount ?? 0));
     return sorted.map((plan) => {
-      const monthly = plan.price_amount ?? null;
-      const annualPerMonth = monthly ? Math.round((monthly * 10) / 12) : null;
-      const annualBilled = annualPerMonth ? annualPerMonth * 12 : null;
+      const parsedMonthly = plan.price_amount === null || plan.price_amount === undefined ? null : Number(plan.price_amount);
+      const monthly = parsedMonthly !== null && Number.isFinite(parsedMonthly) ? parsedMonthly : null;
+      const annualPerMonth = monthly !== null ? Math.round((monthly * 10) / 12) : null;
+      const annualBilled = monthly !== null ? Math.round(monthly * 10) : null;
       const tier = planTier(plan.code ?? plan.name);
 
       const features: string[] = [];
@@ -745,7 +746,16 @@ export function LandingExperience({ plans }: Props) {
 
           <div className="mt-7 flex items-center justify-center gap-3">
             <button type="button" onClick={() => setBillingMode("monthly")} className={`text-sm font-semibold ${billingMode === "monthly" ? "text-[var(--gbp-text)]" : "text-[var(--gbp-muted)]"}`}>{lang === "es" ? "Mensual" : "Monthly"}</button>
-            <button type="button" onClick={() => setBillingMode((v) => (v === "monthly" ? "annual" : "monthly"))} className={`relative h-6 w-11 rounded-full ${billingMode === "annual" ? "bg-[var(--gbp-violet)]" : "bg-[var(--gbp-border2)]"}`}><span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${billingMode === "annual" ? "translate-x-6" : "translate-x-1"}`} /></button>
+            <button
+              type="button"
+              onClick={() => setBillingMode((v) => (v === "monthly" ? "annual" : "monthly"))}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full p-0.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gbp-violet)]/50 ${billingMode === "annual" ? "bg-[var(--gbp-violet)]" : "bg-[var(--gbp-border2)]"}`}
+              aria-label={lang === "es" ? "Alternar facturacion" : "Toggle billing cycle"}
+            >
+              <span
+                className={`h-6 w-6 rounded-full bg-white shadow-sm transition-transform ${billingMode === "annual" ? "translate-x-[20px]" : "translate-x-0"}`}
+              />
+            </button>
             <button type="button" onClick={() => setBillingMode("annual")} className={`text-sm font-semibold ${billingMode === "annual" ? "text-[var(--gbp-text)]" : "text-[var(--gbp-muted)]"}`}>{lang === "es" ? "Anual" : "Annual"}</button>
             <span className={`ml-1 rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] transition-all ${billingMode === "annual" ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-400" : "border-transparent text-[var(--gbp-muted)]"}`}>
               {lang === "es" ? "2 meses gratis" : "2 months free"}
