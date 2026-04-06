@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 
 import { updatePasswordAction } from "@/modules/auth/actions";
+import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
+import { resolveTenantAuthBrandingByHint } from "@/shared/lib/tenant-auth-branding";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import { SlideUp } from "@/shared/ui/animations";
 import { TagPill } from "@/shared/ui/tag-pill";
@@ -12,13 +15,37 @@ export const metadata: Metadata = {
 };
 
 type ChangePasswordPageProps = {
-  searchParams: Promise<{ error?: string; reason?: string; next?: string }>;
+  searchParams: Promise<{ error?: string; reason?: string; next?: string; org?: string }>;
 };
 
 export default async function ChangePasswordPage({ searchParams }: ChangePasswordPageProps) {
   const params = await searchParams;
   const reason = params.reason;
   const nextPath = params.next && params.next.startsWith("/") ? params.next : "";
+  let organizationIdHint = String(params.org ?? "").trim();
+
+  if (!organizationIdHint) {
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user?.id) {
+      const admin = createSupabaseAdminClient();
+      const { data: memberships } = await admin
+        .from("memberships")
+        .select("organization_id")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .limit(2);
+
+      if (memberships?.length === 1 && memberships[0]?.organization_id) {
+        organizationIdHint = memberships[0].organization_id;
+      }
+    }
+  }
+
+  const tenantBranding = await resolveTenantAuthBrandingByHint(organizationIdHint);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_var(--gbp-surface)_0%,_var(--gbp-bg)_48%,_var(--gbp-bg2)_100%)] px-6 py-10">
@@ -27,9 +54,27 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
           <div className="mb-4 flex items-center">
             <TagPill variant="violet">Seguridad</TagPill>
           </div>
-          <div className="mb-5 flex justify-center">
-            <ThemeAwareGetBackplateLogo width={230} height={42} className={`${BRAND_SCALE.authHeight} w-auto`} priority />
-          </div>
+          {tenantBranding ? (
+            <div className="mb-6 flex flex-col items-center justify-center text-center">
+              <div className="grid min-h-[92px] min-w-[240px] place-items-center rounded-[var(--gbp-radius-xl)] border border-[var(--gbp-border)] bg-[linear-gradient(160deg,var(--gbp-surface)_0%,var(--gbp-bg)_100%)] px-4 py-4">
+                {tenantBranding.logoUrl ? (
+                  <picture>
+                    {tenantBranding.logoDarkUrl ? (
+                      <source media="(prefers-color-scheme: dark)" srcSet={tenantBranding.logoDarkUrl} />
+                    ) : null}
+                    <img src={tenantBranding.logoUrl} alt={`Logo ${tenantBranding.companyName}`} className="block h-auto max-h-14 w-auto max-w-[190px] object-contain" />
+                  </picture>
+                ) : (
+                  <span className="text-sm font-bold tracking-[0.08em] text-[var(--gbp-text)] uppercase">{tenantBranding.companyName}</span>
+                )}
+              </div>
+              <p className="mt-2 text-xs text-[var(--gbp-text2)]">Seguridad de empresa</p>
+            </div>
+          ) : (
+            <div className="mb-5 flex justify-center">
+              <ThemeAwareGetBackplateLogo width={230} height={42} className={`${BRAND_SCALE.authHeight} w-auto`} priority />
+            </div>
+          )}
           <h1 className="mb-1 text-2xl font-bold tracking-tight">Cambiar contrasena</h1>
           <p className="mb-6 text-sm text-[var(--gbp-text2)]">
             {reason === "first_login"
