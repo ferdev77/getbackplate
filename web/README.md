@@ -2,6 +2,8 @@
 
 Aplicacion principal del proyecto SaaS multi-tenant.
 
+Este README cubre solo la app `web/`; para alcance global del repositorio y entrega tecnica ver `../README.md`.
+
 ## Requisitos
 
 - Node.js 20+

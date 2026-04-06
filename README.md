@@ -2,6 +2,8 @@
 
 Repositorio principal del SaaS multi-tenant **GetBackplate**.
 
+Este README cubre el repositorio completo y la entrega tecnica de Etapa 1; para detalles operativos de la app web ver `web/README.md`.
+
 ## 1) Alcance del repositorio
 
 - App web (Next.js): `web/`
