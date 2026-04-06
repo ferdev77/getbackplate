@@ -49,11 +49,13 @@ Para futuras implementaciones o debugging, así funciona el ruteamiento y dispar
 *   **Creacion/Envio Inicial**: Se crea/actualiza usuario mediante `sendOrganizationAdminInvitation` y se invoca `initialInviteTemplate`.
 *   **Reenvio**: La ruta `web/src/app/api/superadmin/organizations/invitations/resend/route.ts` recibe la orden. Solo opera sobre usuario existente, re-estampa `force_password_change`, y envia `resendReminderTemplate`.
 
-### B. Desde el Panel de Empresa (Creando Empleados o Admins Extra)
-*   **Ubicación Principal (Crear Empleado)**: `web/src/app/api/company/employees/route.ts`
-*   **Ubicación Principal (Asignar Usuarios)**: `web/src/app/api/company/users/route.ts`
-*   **Creacion/Envio Inicial**: Si se provee una contraseña, el backend registra `createUser` (o `updateUserById` si el usuario ya existe), estampa `force_password_change`, y envia `initialInviteTemplate` con la contraseña temporal.
-*   **Reenvio**: La ruta `web/src/app/api/company/invitations/resend/route.ts` escucha y dispara `resendReminderTemplate` solo para usuario existente; si no existe, devuelve error funcional sin crear cuenta.
+### B. Desde el Panel de Empresa (Contrato vigente de altas)
+*   **Alta de Empleado (flujo RRHH)**: `web/src/app/api/company/employees/route.ts`.
+*   **Alta de Usuario Administrador**: `web/src/app/api/company/users/route.ts`.
+*   **Rol expuesto en modal de Usuarios**: actualmente solo `company_admin` (`roleOptions` del endpoint `GET /api/company/users?catalog=create_modal`).
+*   **Actores habilitados**: `company_admin` y `manager` con modulo `employees` activo (validados por `assertCompanyManagerModuleApi("employees")`).
+*   **Creacion/Envio Inicial**: si se provee contrasena, backend ejecuta `createUser` (o `updateUserById` si existe), estampa `force_password_change` y envia `initialInviteTemplate`.
+*   **Reenvio**: `web/src/app/api/company/invitations/resend/route.ts` solo reenvia a usuario existente; no crea cuentas en reenvio.
 
 ### C. Contrato final del sistema (obligatorio)
 1. **Altas/Asignaciones**: crean o actualizan credenciales y envian correo inicial con `initialInviteTemplate`.

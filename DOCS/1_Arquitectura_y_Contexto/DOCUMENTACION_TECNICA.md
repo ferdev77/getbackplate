@@ -1083,7 +1083,14 @@ Se dejan asentadas decisiones funcionales definidas para el modelo SaaS actual:
 
 - Alta de empleado existente en otra empresa: permitido.
 - Si una empresa registra a una persona que ya existe en otra empresa, se maneja como empleado independiente por tenant (registro propio en esa empresa, sin mezclar historial ni datos operativos entre empresas).
-- No aplicar bloqueo de manager para crear/asignar admins: se mantiene comportamiento actual por decision de negocio.
+- No aplicar bloqueo de manager para crear/asignar admins por API: se mantiene comportamiento actual por decision de negocio (con validacion de modulo y tenant).
+
+Contrato operativo vigente (panel empresa):
+
+- Alta de empleados: flujo `employees` (`/api/company/employees`).
+- Alta de administradores de empresa: flujo `users` (`/api/company/users`).
+- En el modal de alta de usuarios, el rol expuesto actualmente es solo `company_admin`.
+- No se considera fuente de verdad operativa ningun dato mock/seed para decisiones de negocio en runtime; la operacion diaria corre sobre datos reales del tenant.
 
 Impacto operativo:
 
