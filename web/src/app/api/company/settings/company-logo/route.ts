@@ -116,7 +116,7 @@ export async function POST(request: Request) {
     },
   });
 
-  revalidateTag("org-settings-v1");
+  revalidateTag("org-settings-v1", "max");
 
   return NextResponse.json({ ok: true, logoUrl: uploadResult.logoUrl, variant });
 }
