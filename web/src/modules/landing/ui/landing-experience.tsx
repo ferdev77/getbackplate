@@ -782,14 +782,14 @@ export function LandingExperience({ plans }: Props) {
                   ) : null}
                   <p className="text-xs font-black uppercase tracking-[0.1em] text-[var(--gbp-muted)]">{plan.name}</p>
                   <p className="mt-3 text-5xl font-extrabold tracking-tight">
-                    {billingMode === "annual" ? formatPrice(plan.annualPerMonth) : formatPrice(plan.monthly)}
+                    {billingMode === "annual" ? formatPrice(plan.annualBilled) : formatPrice(plan.monthly)}
                   </p>
                   <p className="mt-1 text-xs text-[var(--gbp-muted)]">
                     {billingMode === "annual"
-                        ? plan.annualBilled
+                        ? plan.annualBilled && plan.annualPerMonth
                         ? lang === "es"
-                          ? `por mes, facturado ${formatPrice(plan.annualBilled)}/año`
-                          : `per month, billed ${formatPrice(plan.annualBilled)}/yr`
+                          ? `por año, equivale a ${formatPrice(plan.annualPerMonth)}/mes`
+                          : `per year, equals ${formatPrice(plan.annualPerMonth)}/mo`
                         : lang === "es"
                           ? "anual"
                           : "annual"
