@@ -522,12 +522,6 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
       const locNames = getScopeLocNames(scope, null);
       const roles = getScopeRoles(scope);
 
-      // badge renderer helpers
-      const ScopeBadge = ({ label }: { label: string }) => (
-        <span className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-text)]">{label}</span>
-      );
-      const EmptyCell = () => <span className="text-xs text-[var(--gbp-muted)]">—</span>;
-
       const row = (
         <AnimatedItem key={folder.id}>
           <div className="border-b border-[var(--gbp-border)]">

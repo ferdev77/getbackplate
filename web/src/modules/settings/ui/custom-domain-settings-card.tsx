@@ -127,8 +127,9 @@ export function CustomDomainSettingsCard({
   const [notice, setNotice] = useState<NoticeState>(null);
   const [confirmDelete, setConfirmDelete] = useState<CustomDomainRow | null>(null);
 
-  // Throttle: track last-recheck timestamp per domain (key = domain, value = Date.ms)
-  const recheckTimestamps = useRef<Record<string, number>>({});
+  // Throttle: one recheck per domain every 10 seconds.
+  const recheckCooldowns = useRef<Record<string, boolean>>({});
+  const recheckTimers = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
 
   const primaryRow = useMemo(() => rows.find((row) => row.is_primary) ?? null, [rows]);
   const dnsTarget = primaryRow?.dns_target || defaultCnameTarget;
@@ -145,6 +146,19 @@ export function CustomDomainSettingsCard({
     const id = setTimeout(() => setNotice(null), 5000);
     return () => clearTimeout(id);
   }, [notice]);
+
+  useEffect(() => {
+    const timers = recheckTimers.current;
+
+    return () => {
+      for (const domain of Object.keys(timers)) {
+        const timer = timers[domain];
+        if (timer) {
+          clearTimeout(timer);
+        }
+      }
+    };
+  }, []);
 
   function isBusy(action: string) {
     return pendingAction === action;
@@ -204,13 +218,20 @@ export function CustomDomainSettingsCard({
   async function recheckDomain(domain: string) {
     if (pendingAction) return;
 
-    // 10-second throttle per domain
-    const lastCheck = recheckTimestamps.current[domain] ?? 0;
-    const secondsLeft = Math.ceil((10_000 - (Date.now() - lastCheck)) / 1000);
-    if (secondsLeft > 0) {
-      showNotice("error", `Esperá ${secondsLeft}s antes de revalidar este dominio de nuevo.`);
+    if (recheckCooldowns.current[domain]) {
+      showNotice("error", "Espera 10s antes de revalidar este dominio de nuevo.");
       return;
     }
+
+    recheckCooldowns.current[domain] = true;
+    const existingTimer = recheckTimers.current[domain];
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+    recheckTimers.current[domain] = setTimeout(() => {
+      delete recheckCooldowns.current[domain];
+      delete recheckTimers.current[domain];
+    }, 10_000);
 
     setPendingAction(`recheck:${domain}`);
     setNotice(null);
@@ -222,8 +243,6 @@ export function CustomDomainSettingsCard({
     });
 
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-
-    recheckTimestamps.current[domain] = Date.now();
 
     if (!response.ok) {
       setPendingAction(null);
