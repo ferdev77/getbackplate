@@ -71,8 +71,11 @@ function mapVercelDomainStatus(payload: Record<string, unknown>): VercelDomainCh
   const hasSsl =
     Boolean(payload.validCertificate) ||
     Boolean((payload as { certificate?: { valid?: boolean } }).certificate?.valid);
+  const hasExplicitSslSignal =
+    Object.prototype.hasOwnProperty.call(payload, "validCertificate") ||
+    Object.prototype.hasOwnProperty.call(payload, "certificate");
 
-  if (verified && hasSsl) {
+  if (verified && (!hasExplicitSslSignal || hasSsl)) {
     return {
       status: "active",
       verificationError: null,
