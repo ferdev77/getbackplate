@@ -1,5 +1,10 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { resolveCanonicalAppUrl } from "@/shared/lib/app-url";
+import {
+  normalizeRequestHost,
+  resolveOrganizationIdFromActiveDomain,
+  resolveTenantAppUrlByOrganizationId,
+} from "@/shared/lib/custom-domains";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -54,6 +59,26 @@ async function findOrganizationByHint(hint: string): Promise<OrganizationIdentit
   return null;
 }
 
+async function findOrganizationByActiveDomain(host: string): Promise<OrganizationIdentity | null> {
+  const organizationId = await resolveOrganizationIdFromActiveDomain(host);
+  if (!organizationId) {
+    return null;
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data } = await admin
+    .from("organizations")
+    .select("id, name, slug")
+    .eq("id", organizationId)
+    .maybeSingle();
+
+  if (!data?.id) {
+    return null;
+  }
+
+  return data;
+}
+
 export async function resolveOrganizationIdFromAuthHint(hint: string | null | undefined) {
   const normalized = normalizeHint(hint);
   if (!normalized) return null;
@@ -62,14 +87,30 @@ export async function resolveOrganizationIdFromAuthHint(hint: string | null | un
   return organization?.id ?? null;
 }
 
-export async function resolveTenantAuthBrandingByHint(hint: string | null | undefined) {
-  const normalized = normalizeHint(hint);
-  if (!normalized) return null;
+export async function resolveOrganizationIdFromAuthContext(params: {
+  hint?: string | null;
+  host?: string | null;
+}) {
+  const byHint = await resolveOrganizationIdFromAuthHint(params.hint);
+  if (byHint) {
+    return byHint;
+  }
 
-  const organization = await findOrganizationByHint(normalized);
-  if (!organization?.id) {
+  const normalizedHost = normalizeRequestHost(params.host);
+  if (!normalizedHost) {
     return null;
   }
+
+  return resolveOrganizationIdFromActiveDomain(normalizedHost);
+}
+
+export async function resolveTenantAuthBrandingByHint(hint: string | null | undefined, host?: string | null) {
+  const normalized = normalizeHint(hint);
+  const organization = normalized
+    ? await findOrganizationByHint(normalized)
+    : await findOrganizationByActiveDomain(normalizeRequestHost(host) ?? "");
+
+  if (!organization?.id) return null;
 
   const admin = createSupabaseAdminClient();
   const [{ data: moduleRows }, { data: settings }] = await Promise.all([
@@ -122,7 +163,10 @@ export async function buildTenantAuthUrls(params: {
   organizationId: string;
   includeRecovery?: boolean;
 }) {
-  const appBase = resolveCanonicalAppUrl(params.appUrl);
+  const appBase = await resolveTenantAppUrlByOrganizationId({
+    organizationId: params.organizationId,
+    fallbackAppUrl: resolveCanonicalAppUrl(params.appUrl),
+  });
   const hint = await resolvePublicOrganizationHintById(params.organizationId);
   const encodedHint = encodeURIComponent(hint);
 

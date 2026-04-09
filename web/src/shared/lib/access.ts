@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import {
@@ -14,6 +15,7 @@ import { AUDIT_REASON_CODES } from "@/shared/lib/audit-taxonomy";
 import {
   getActiveOrganizationIdFromCookie,
 } from "@/shared/lib/tenant-selection";
+import { resolveOrganizationIdFromActiveDomain } from "@/shared/lib/custom-domains";
 import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impersonation";
 import { markInvitedAdminFirstLoginIfNeeded } from "@/shared/lib/invited-admin-first-login";
 import { getBillingGateForOrganization } from "@/modules/billing/services/billing-gate.service";
@@ -48,7 +50,11 @@ async function resolveTenantFromCookie(options?: {
     ? memberships.filter((row) => options.roleCodes?.includes(row.roleCode))
     : memberships;
 
-  const preferredOrganizationId = await getActiveOrganizationIdFromCookie();
+  const requestHeaders = await headers();
+  const requestHost = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const hostOrganizationId = await resolveOrganizationIdFromActiveDomain(requestHost);
+  const cookieOrganizationId = await getActiveOrganizationIdFromCookie();
+  const preferredOrganizationId = hostOrganizationId ?? cookieOrganizationId;
   const resolved = resolvePreferredMembership(filteredMemberships, preferredOrganizationId);
 
   // Check impersonation whenever no direct membership was selected AND the user is a superadmin.

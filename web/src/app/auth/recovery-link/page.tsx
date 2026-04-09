@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 
 import { normalizeRecoveryTokenHash } from "@/shared/lib/recovery-link";
 import { resolveTenantAuthBrandingByHint } from "@/shared/lib/tenant-auth-branding";
@@ -19,9 +20,12 @@ export default async function RecoveryLinkPage({ searchParams }: RecoveryLinkPag
   const tokenHash = normalizeRecoveryTokenHash(params.t);
   const organizationHint = String(params.org ?? "").trim();
   const error = String(params.error ?? "").trim();
-  const tenantBranding = await resolveTenantAuthBrandingByHint(organizationHint);
-  const forgotPasswordHref = organizationHint
-    ? `/auth/forgot-password?org=${encodeURIComponent(organizationHint)}`
+  const requestHeaders = await headers();
+  const requestHost = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const tenantBranding = await resolveTenantAuthBrandingByHint(organizationHint, requestHost);
+  const effectiveOrganizationHint = organizationHint || tenantBranding?.organizationHint || "";
+  const forgotPasswordHref = effectiveOrganizationHint
+    ? `/auth/forgot-password?org=${encodeURIComponent(effectiveOrganizationHint)}`
     : "/auth/forgot-password";
 
   if (!tokenHash) {
@@ -102,7 +106,7 @@ export default async function RecoveryLinkPage({ searchParams }: RecoveryLinkPag
 
         <form action="/auth/recovery-link/continue" method="post">
           <input type="hidden" name="t" value={tokenHash} />
-          <input type="hidden" name="org" value={organizationHint} />
+          <input type="hidden" name="org" value={effectiveOrganizationHint} />
           <button
             type="submit"
             className="inline-flex w-full items-center justify-center rounded-lg bg-[var(--gbp-accent)] px-4 py-2 text-sm font-semibold text-white shadow-[var(--gbp-shadow-accent)] transition hover:bg-[var(--gbp-accent-hover)]"

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 
 import { loginWithPasswordAction } from "@/modules/auth/actions";
 import { resolveTenantAuthBrandingByHint } from "@/shared/lib/tenant-auth-branding";
@@ -21,8 +22,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const error = params.error;
   const organizationIdHint = String(params.org ?? "").trim();
-  const orgQuery = organizationIdHint ? `?org=${encodeURIComponent(organizationIdHint)}` : "";
-  const tenantBranding = await resolveTenantAuthBrandingByHint(organizationIdHint);
+  const requestHeaders = await headers();
+  const requestHost = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const tenantBranding = await resolveTenantAuthBrandingByHint(organizationIdHint, requestHost);
+  const effectiveOrganizationHint = organizationIdHint || tenantBranding?.organizationHint || "";
+  const orgQuery = effectiveOrganizationHint ? `?org=${encodeURIComponent(effectiveOrganizationHint)}` : "";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_var(--gbp-surface)_0%,_var(--gbp-bg)_48%,_var(--gbp-bg2)_100%)] px-6 py-10">
@@ -66,7 +70,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           ) : null}
 
           <form action={loginWithPasswordAction} className="space-y-4">
-            <input type="hidden" name="organization_id_hint" value={organizationIdHint} />
+            <input type="hidden" name="organization_id_hint" value={effectiveOrganizationHint} />
             <div>
               <label htmlFor="email" className="mb-1 block text-sm font-medium text-[var(--gbp-text)]">
                 Email

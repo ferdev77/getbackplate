@@ -15,8 +15,10 @@ import { InlineBranchForm } from "@/modules/settings/ui/inline-branch-form";
 import { InlineDepartmentForm } from "@/modules/settings/ui/inline-department-form";
 import { InlinePositionForm } from "@/modules/settings/ui/inline-position-form";
 import { CompanyContactSettingsCard } from "@/modules/settings/ui/company-contact-settings-card";
+import { CustomDomainSettingsCard } from "@/modules/settings/ui/custom-domain-settings-card";
 import { Button } from "@/shared/ui/button";
 import { isModuleEnabledForOrganization, requireTenantModule } from "@/shared/lib/access";
+import { DEFAULT_CUSTOM_DOMAIN_CNAME_TARGET } from "@/shared/lib/custom-domains";
 
 type CompanySettingsPageProps = {
   searchParams: Promise<{ status?: string; message?: string; action?: string; departmentId?: string }>;
@@ -48,6 +50,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
     { data: branches },
     { data: departments },
     { data: positions },
+    { data: customDomains },
   ] = await Promise.all([
     supabase
       .from("organizations")
@@ -84,6 +87,11 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
       .eq("organization_id", tenant.organizationId)
       .order("created_at", { ascending: false })
       .limit(200),
+    supabase
+      .from("organization_domains")
+      .select("id, domain, status, is_primary, dns_target, verification_error, verified_at, activated_at, last_checked_at")
+      .eq("organization_id", tenant.organizationId)
+      .order("created_at", { ascending: false }),
   ]);
 
   const activeBranches = (branches ?? []).filter((row) => row.is_active).length;
@@ -165,6 +173,23 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
           companyLogoDarkUrl={brandingSettings?.company_logo_dark_url ?? ""}
           companyFaviconUrl={brandingSettings?.company_favicon_url ?? ""}
           customBrandingEnabled={customBrandingEnabled}
+        />
+        <CustomDomainSettingsCard
+          enabled={customBrandingEnabled}
+          initialRows={(customDomains ?? []).map((row) => ({
+            ...row,
+            statusLabel:
+              row.status === "active"
+                ? "Activo"
+                : row.status === "verifying_ssl"
+                  ? "Verificando SSL"
+                  : row.status === "error"
+                    ? "Error"
+                    : row.status === "disabled"
+                      ? "Deshabilitado"
+                      : "Pendiente DNS",
+          }))}
+          defaultCnameTarget={DEFAULT_CUSTOM_DOMAIN_CNAME_TARGET}
         />
       </section>
 
