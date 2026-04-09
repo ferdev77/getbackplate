@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 
 import { updatePasswordAction } from "@/modules/auth/actions";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
@@ -23,6 +24,8 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
   const reason = params.reason;
   const nextPath = params.next && params.next.startsWith("/") ? params.next : "";
   let organizationIdHint = String(params.org ?? "").trim();
+  const requestHeaders = await headers();
+  const requestHost = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
 
   if (!organizationIdHint) {
     const supabase = await createSupabaseServerClient();
@@ -45,7 +48,7 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
     }
   }
 
-  const tenantBranding = await resolveTenantAuthBrandingByHint(organizationIdHint);
+  const tenantBranding = await resolveTenantAuthBrandingByHint(organizationIdHint, requestHost);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_var(--gbp-surface)_0%,_var(--gbp-bg)_48%,_var(--gbp-bg2)_100%)] px-6 py-10">
