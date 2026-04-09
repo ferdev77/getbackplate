@@ -133,9 +133,11 @@ export function CustomDomainSettingsCard({
   const primaryRow = useMemo(() => rows.find((row) => row.is_primary) ?? null, [rows]);
   const dnsTarget = primaryRow?.dns_target || defaultCnameTarget;
   const hasRows = rows.length > 0;
-  const hasActiveDomain = rows.some((row) => row.status === "active");
+  const hasConnectedDomain = rows.some(
+    (row) => row.status === "active" || row.status === "verifying_ssl",
+  );
   const showDomainCreateForm = !hasRows;
-  const showDnsInstructions = !hasRows || !hasActiveDomain;
+  const showDnsInstructions = !hasRows || !hasConnectedDomain;
 
   // Auto-dismiss notice after 5 s
   useEffect(() => {
