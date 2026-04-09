@@ -22,6 +22,32 @@ if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
   });
 }
 
+/**
+ * Resolve the canonical app hostname from NEXT_PUBLIC_APP_URL.
+ * Runs only once and is memoised for the lifetime of the worker.
+ */
+function getCanonicalAppHost(): string {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_APP_URL ?? "").hostname.toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+const canonicalAppHost = getCanonicalAppHost();
+
+/**
+ * Returns true if the host is a reserved platform host that should NOT be
+ * treated as a custom domain (localhost, *.vercel.app, the canonical app URL).
+ */
+function isReservedHost(host: string): boolean {
+  if (!host) return true;
+  if (host === "localhost" || host.endsWith(".localhost")) return true;
+  if (host.endsWith(".vercel.app")) return true;
+  if (canonicalAppHost && host === canonicalAppHost) return true;
+  return false;
+}
+
 export async function middleware(request: NextRequest) {
   // Rate limit API and auth routes
   const path = request.nextUrl.pathname;
@@ -75,12 +101,54 @@ export async function middleware(request: NextRequest) {
   }
 
   const response = await updateSupabaseSession(request);
+
+  // ─── Org cookie resolution ───────────────────────────────────────────────
+  //
+  // Priority order:
+  //  1. Custom domain host (if it resolves to an active organization).
+  //  2. Explicit ?org= query param.
+  //
   const organizationIdFromUrl = normalizeOrganizationId(
     request.nextUrl.searchParams.get("org"),
   );
 
-  if (organizationIdFromUrl) {
-    response.cookies.set(ACTIVE_ORGANIZATION_COOKIE, organizationIdFromUrl, {
+  let organizationIdFromHost: string | null = null;
+  const rawHost =
+    request.headers.get("x-forwarded-host") ??
+    request.headers.get("host") ??
+    "";
+  const host = rawHost.split(":")[0]?.trim().toLowerCase() ?? "";
+
+  if (!isReservedHost(host)) {
+    try {
+      const { createClient } = await import("@supabase/supabase-js");
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+
+      if (supabaseUrl && serviceKey) {
+        const admin = createClient(supabaseUrl, serviceKey, {
+          auth: { autoRefreshToken: false, persistSession: false },
+        });
+
+        const { data } = await admin
+          .from("organization_domains")
+          .select("organization_id")
+          .eq("domain", host)
+          .eq("status", "active")
+          .maybeSingle();
+
+        organizationIdFromHost = normalizeOrganizationId(data?.organization_id ?? null);
+      }
+    } catch {
+      // Non-fatal: if resolution fails, continue with URL-based org resolution.
+      organizationIdFromHost = null;
+    }
+  }
+
+  const organizationIdToPersist = organizationIdFromHost ?? organizationIdFromUrl;
+
+  if (organizationIdToPersist) {
+    response.cookies.set(ACTIVE_ORGANIZATION_COOKIE, organizationIdToPersist, {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",

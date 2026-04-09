@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
   const { data: existing } = await supabase
     .from("organization_domains")
-    .select("id")
+    .select("id, verified_at")
     .eq("organization_id", moduleAccess.tenant.organizationId)
     .eq("domain", domain)
     .maybeSingle();
@@ -61,7 +61,9 @@ export async function POST(request: Request) {
       status,
       verification_error: verificationError,
       dns_target: dnsTarget,
-      verified_at: status === "active" ? nowIso : null,
+      // Preserve the original first-verification timestamp: only set it the
+      // first time the domain becomes active, never overwrite it afterwards.
+      verified_at: existing.verified_at ?? (status === "active" ? nowIso : null),
       activated_at: status === "active" ? nowIso : null,
       last_checked_at: nowIso,
       updated_by: moduleAccess.userId,
