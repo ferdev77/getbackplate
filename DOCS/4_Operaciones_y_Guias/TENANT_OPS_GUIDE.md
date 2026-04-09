@@ -58,3 +58,9 @@ Si el cliente contrató un plan modularizado (ej. solo Checklists sin Recursos H
 
 - **Impersonación (Acceso en nombre del cliente):** NUNCA usar la contraseña del cliente ni alterar datos manuales sin su consentimiento. Para depurar fallas L3, buscar registros en `audit_logs` filtrando por `org_id`.
 - **Límites de Facturación (Stripe):** Si un Tenant solicita downgrade, antes de reducir su cuota, se debe auditar (`count_accessible_documents` RPC) que no superen la cuota futura; de lo contrario el downgrade puede romper referencias lógicas.
+
+---
+
+## Referencias operativas relacionadas
+
+- Custom Domains (estado implementado, alcance, checklist y runbook): `DOCS/4_Operaciones_y_Guias/GUIA_CUSTOM_DOMAINS.md`
