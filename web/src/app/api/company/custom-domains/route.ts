@@ -92,11 +92,23 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createSupabaseServerClient();
-  const { count: primaryCount } = await supabase
+
+  const { data: existingDomain } = await supabase
     .from("organization_domains")
-    .select("id", { count: "exact", head: true })
+    .select("id, domain")
     .eq("organization_id", moduleAccess.tenant.organizationId)
-    .eq("is_primary", true);
+    .limit(1)
+    .maybeSingle();
+
+  if (existingDomain?.id) {
+    return NextResponse.json(
+      {
+        error:
+          "Tu empresa ya tiene un dominio personalizado configurado. Eliminalo primero para cargar uno nuevo.",
+      },
+      { status: 409 },
+    );
+  }
 
   const { data: created, error: insertError } = await supabase
     .from("organization_domains")
@@ -104,7 +116,7 @@ export async function POST(request: Request) {
       organization_id: moduleAccess.tenant.organizationId,
       domain,
       status: "pending_dns",
-      is_primary: (primaryCount ?? 0) === 0,
+      is_primary: true,
       dns_target: DEFAULT_CUSTOM_DOMAIN_CNAME_TARGET,
       provider: "vercel",
       created_by: moduleAccess.userId,
@@ -204,7 +216,7 @@ export async function DELETE(request: Request) {
   const supabase = await createSupabaseServerClient();
   const { data: existing, error: existingError } = await supabase
     .from("organization_domains")
-    .select("id, domain")
+    .select("id, domain, is_primary")
     .eq("organization_id", moduleAccess.tenant.organizationId)
     .eq("domain", domain)
     .maybeSingle();
@@ -237,7 +249,7 @@ export async function DELETE(request: Request) {
     eventDomain: "settings",
     outcome: "success",
     severity: "medium",
-    metadata: { domain },
+    metadata: { domain, was_primary: existing.is_primary },
   });
 
   return NextResponse.json({ ok: true });
