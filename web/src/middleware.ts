@@ -134,7 +134,7 @@ export async function middleware(request: NextRequest) {
           .from("organization_domains")
           .select("organization_id")
           .eq("domain", host)
-          .eq("status", "active")
+          .in("status", ["active", "verifying_ssl"])
           .maybeSingle();
 
         organizationIdFromHost = normalizeOrganizationId(data?.organization_id ?? null);

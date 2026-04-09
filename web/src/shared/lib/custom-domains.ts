@@ -83,7 +83,7 @@ export async function resolveOrganizationIdFromActiveDomain(host: string | null 
     .from("organization_domains")
     .select("organization_id")
     .eq("domain", normalizedHost)
-    .eq("status", "active")
+    .in("status", ["active", "verifying_ssl"])
     .maybeSingle();
 
   return data?.organization_id ?? null;
