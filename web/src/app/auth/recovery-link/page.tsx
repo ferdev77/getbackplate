@@ -7,13 +7,32 @@ import { resolveTenantAuthBrandingByHint } from "@/shared/lib/tenant-auth-brandi
 import { ThemeAwareGetBackplateLogo } from "@/shared/ui/theme-aware-getbackplate-logo";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 
-export const metadata: Metadata = {
-  title: "Confirmar recuperacion | GetBackplate",
-};
-
 type RecoveryLinkPageProps = {
   searchParams: Promise<{ t?: string; org?: string; error?: string }>;
 };
+
+export async function generateMetadata({ searchParams }: RecoveryLinkPageProps): Promise<Metadata> {
+  const params = await searchParams;
+  const organizationHint = String(params.org ?? "").trim();
+  const requestHeaders = await headers();
+  const requestHost = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const tenantBranding = await resolveTenantAuthBrandingByHint(organizationHint, requestHost);
+
+  if (!tenantBranding) {
+    return {
+      title: "Confirmar recuperacion | GetBackplate",
+    };
+  }
+
+  return {
+    title: `Confirmar recuperacion | ${tenantBranding.companyName}`,
+    icons: tenantBranding.faviconUrl
+      ? {
+          icon: [{ url: tenantBranding.faviconUrl }],
+        }
+      : undefined,
+  };
+}
 
 export default async function RecoveryLinkPage({ searchParams }: RecoveryLinkPageProps) {
   const params = await searchParams;

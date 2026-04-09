@@ -11,13 +11,32 @@ import { TagPill } from "@/shared/ui/tag-pill";
 import { ThemeAwareGetBackplateLogo } from "@/shared/ui/theme-aware-getbackplate-logo";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 
-export const metadata: Metadata = {
-  title: "Cambiar contrasena | GetBackplate",
-};
-
 type ChangePasswordPageProps = {
   searchParams: Promise<{ error?: string; reason?: string; next?: string; org?: string }>;
 };
+
+export async function generateMetadata({ searchParams }: ChangePasswordPageProps): Promise<Metadata> {
+  const params = await searchParams;
+  const organizationIdHint = String(params.org ?? "").trim();
+  const requestHeaders = await headers();
+  const requestHost = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const tenantBranding = await resolveTenantAuthBrandingByHint(organizationIdHint, requestHost);
+
+  if (!tenantBranding) {
+    return {
+      title: "Cambiar contrasena | GetBackplate",
+    };
+  }
+
+  return {
+    title: `Cambiar contrasena | ${tenantBranding.companyName}`,
+    icons: tenantBranding.faviconUrl
+      ? {
+          icon: [{ url: tenantBranding.faviconUrl }],
+        }
+      : undefined,
+  };
+}
 
 export default async function ChangePasswordPage({ searchParams }: ChangePasswordPageProps) {
   const params = await searchParams;

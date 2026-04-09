@@ -10,13 +10,32 @@ import { TagPill } from "@/shared/ui/tag-pill";
 import { ThemeAwareGetBackplateLogo } from "@/shared/ui/theme-aware-getbackplate-logo";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 
-export const metadata: Metadata = {
-  title: "Login | GetBackplate",
-};
-
 type LoginPageProps = {
   searchParams: Promise<{ error?: string; org?: string }>;
 };
+
+export async function generateMetadata({ searchParams }: LoginPageProps): Promise<Metadata> {
+  const params = await searchParams;
+  const organizationIdHint = String(params.org ?? "").trim();
+  const requestHeaders = await headers();
+  const requestHost = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const tenantBranding = await resolveTenantAuthBrandingByHint(organizationIdHint, requestHost);
+
+  if (!tenantBranding) {
+    return {
+      title: "Login | GetBackplate",
+    };
+  }
+
+  return {
+    title: `Login | ${tenantBranding.companyName}`,
+    icons: tenantBranding.faviconUrl
+      ? {
+          icon: [{ url: tenantBranding.faviconUrl }],
+        }
+      : undefined,
+  };
+}
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
