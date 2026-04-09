@@ -7,6 +7,17 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 export const maxDuration = 60; // Attempt to allow up to 60s execution
 
 export async function GET(request: Request) {
+  const authHeader = request.headers.get("authorization");
+  const cronSecret = process.env.CRON_SECRET?.trim();
+
+  if (!cronSecret) {
+    return NextResponse.json({ error: "Cron secret not configured" }, { status: 500 });
+  }
+
+  if (authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const results = [];
     

@@ -10,6 +10,17 @@ import {
   validateOrganizationLogoFile,
 } from "@/shared/lib/organization-logo";
 
+type OrganizationSettingsUpsertPayload = {
+  organization_id: string;
+  updated_by: string;
+  company_logo_url?: string;
+  company_logo_path?: string;
+  company_logo_dark_url?: string;
+  company_logo_dark_path?: string;
+  company_favicon_url?: string;
+  company_favicon_path?: string;
+};
+
 export async function POST(request: Request) {
   const moduleAccess = await assertCompanyManagerModuleApi("custom_branding");
   if (!moduleAccess.ok) {
@@ -65,7 +76,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: uploadResult.error }, { status: 400 });
   }
 
-  const updatePayload: any = {
+  const updatePayload: OrganizationSettingsUpsertPayload = {
     organization_id: moduleAccess.tenant.organizationId,
     updated_by: moduleAccess.userId,
   };
