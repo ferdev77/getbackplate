@@ -121,7 +121,7 @@ export async function resolveTenantAuthBrandingByHint(hint: string | null | unde
       .eq("is_enabled", true),
     admin
       .from("organization_settings")
-      .select("company_logo_url, company_logo_dark_url")
+      .select("company_logo_url, company_logo_dark_url, company_favicon_url")
       .eq("organization_id", organization.id)
       .maybeSingle(),
   ]);
@@ -141,6 +141,7 @@ export async function resolveTenantAuthBrandingByHint(hint: string | null | unde
     companyName: organization.name ?? "Empresa",
     logoUrl: settings?.company_logo_url ?? "",
     logoDarkUrl: settings?.company_logo_dark_url ?? "",
+    faviconUrl: settings?.company_favicon_url ?? "",
   };
 }
 
