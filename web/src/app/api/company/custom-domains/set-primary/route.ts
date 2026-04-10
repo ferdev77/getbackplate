@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { normalizeCustomDomainInput } from "@/shared/lib/custom-domains";
+import { invalidateCustomDomainCaches, normalizeCustomDomainInput } from "@/shared/lib/custom-domains";
 import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 
@@ -68,6 +68,11 @@ export async function POST(request: Request) {
     outcome: "success",
     severity: "medium",
     metadata: { domain },
+  });
+
+  invalidateCustomDomainCaches({
+    organizationId: moduleAccess.tenant.organizationId,
+    domain,
   });
 
   return NextResponse.json({ ok: true });

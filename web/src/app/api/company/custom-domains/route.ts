@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import {
   normalizeCustomDomainInput,
   DEFAULT_CUSTOM_DOMAIN_CNAME_TARGET,
+  invalidateCustomDomainCaches,
 } from "@/shared/lib/custom-domains";
 import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
@@ -191,6 +192,11 @@ export async function POST(request: Request) {
     },
   });
 
+  invalidateCustomDomainCaches({
+    organizationId: moduleAccess.tenant.organizationId,
+    domain,
+  });
+
   return NextResponse.json({
     ok: true,
     domain,
@@ -250,6 +256,11 @@ export async function DELETE(request: Request) {
     outcome: "success",
     severity: "medium",
     metadata: { domain, was_primary: existing.is_primary },
+  });
+
+  invalidateCustomDomainCaches({
+    organizationId: moduleAccess.tenant.organizationId,
+    domain,
   });
 
   return NextResponse.json({ ok: true });

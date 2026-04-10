@@ -9,6 +9,11 @@ import {
   normalizeOrganizationId,
 } from "@/shared/lib/tenant-selection-shared";
 
+type DomainCacheEntry = {
+  organizationId: string | null;
+  expiresAt: number;
+};
+
 let ratelimit: Ratelimit | null = null;
 
 if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
@@ -35,6 +40,49 @@ function getCanonicalAppHost(): string {
 }
 
 const canonicalAppHost = getCanonicalAppHost();
+const domainResolutionCache = new Map<string, DomainCacheEntry>();
+const DOMAIN_CACHE_TTL_MS = 60_000;
+const DOMAIN_NEGATIVE_CACHE_TTL_MS = 15_000;
+const DOMAIN_CACHE_MAX_SIZE = 2_000;
+
+function getCachedOrganizationIdFromHost(host: string): string | null | undefined {
+  const now = Date.now();
+  const cached = domainResolutionCache.get(host);
+  if (!cached) return undefined;
+
+  if (cached.expiresAt <= now) {
+    domainResolutionCache.delete(host);
+    return undefined;
+  }
+
+  return cached.organizationId;
+}
+
+function setCachedOrganizationIdFromHost(host: string, organizationId: string | null) {
+  if (domainResolutionCache.size >= DOMAIN_CACHE_MAX_SIZE) {
+    let removed = 0;
+    const now = Date.now();
+    for (const [key, entry] of domainResolutionCache) {
+      if (entry.expiresAt <= now) {
+        domainResolutionCache.delete(key);
+        removed += 1;
+      }
+      if (removed >= 256) break;
+    }
+
+    if (domainResolutionCache.size >= DOMAIN_CACHE_MAX_SIZE) {
+      const oldestKey = domainResolutionCache.keys().next().value;
+      if (oldestKey) {
+        domainResolutionCache.delete(oldestKey);
+      }
+    }
+  }
+
+  domainResolutionCache.set(host, {
+    organizationId,
+    expiresAt: Date.now() + (organizationId ? DOMAIN_CACHE_TTL_MS : DOMAIN_NEGATIVE_CACHE_TTL_MS),
+  });
+}
 
 /**
  * Returns true if the host is a reserved platform host that should NOT be
@@ -48,7 +96,7 @@ function isReservedHost(host: string): boolean {
   return false;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Rate limit API and auth routes
   const path = request.nextUrl.pathname;
   const method = request.method.toUpperCase();
@@ -121,23 +169,29 @@ export async function middleware(request: NextRequest) {
 
   if (!isReservedHost(host)) {
     try {
-      const { createClient } = await import("@supabase/supabase-js");
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+      const cachedOrganizationId = getCachedOrganizationIdFromHost(host);
+      if (cachedOrganizationId !== undefined) {
+        organizationIdFromHost = cachedOrganizationId;
+      } else {
+        const { createClient } = await import("@supabase/supabase-js");
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
-      if (supabaseUrl && serviceKey) {
-        const admin = createClient(supabaseUrl, serviceKey, {
-          auth: { autoRefreshToken: false, persistSession: false },
-        });
+        if (supabaseUrl && serviceKey) {
+          const admin = createClient(supabaseUrl, serviceKey, {
+            auth: { autoRefreshToken: false, persistSession: false },
+          });
 
-        const { data } = await admin
-          .from("organization_domains")
-          .select("organization_id")
-          .eq("domain", host)
-          .in("status", ["active", "verifying_ssl"])
-          .maybeSingle();
+          const { data } = await admin
+            .from("organization_domains")
+            .select("organization_id")
+            .eq("domain", host)
+            .in("status", ["active", "verifying_ssl"])
+            .maybeSingle();
 
-        organizationIdFromHost = normalizeOrganizationId(data?.organization_id ?? null);
+          organizationIdFromHost = normalizeOrganizationId(data?.organization_id ?? null);
+          setCachedOrganizationIdFromHost(host, organizationIdFromHost);
+        }
       }
     } catch {
       // Non-fatal: if resolution fails, continue with URL-based org resolution.
