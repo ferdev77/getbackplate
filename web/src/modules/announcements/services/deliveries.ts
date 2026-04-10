@@ -4,8 +4,111 @@ import { sendTwilioMessage } from "@/infrastructure/twilio/client";
 import { getAuthEmailByUserId } from "@/shared/lib/auth-users";
 import { AnnouncementScope, parseAnnouncementScope } from "../lib/scope";
 
+type DeliveryRow = {
+  id: string;
+  organization_id: string;
+  announcement_id: string;
+  channel: string;
+  announcement:
+    | {
+        title: string;
+        body: string;
+        target_scope: unknown;
+      }
+    | {
+        title: string;
+        body: string;
+        target_scope: unknown;
+      }[]
+    | null;
+};
+
+const DELIVERY_BATCH_SIZE = Number(process.env.ANNOUNCEMENT_DELIVERIES_BATCH_SIZE ?? "50");
+const DELIVERY_MAX_CONCURRENCY = Number(process.env.ANNOUNCEMENT_DELIVERIES_CONCURRENCY ?? "4");
+const DELIVERY_SEND_TIMEOUT_MS = Number(process.env.ANNOUNCEMENT_DELIVERIES_SEND_TIMEOUT_MS ?? "12000");
+const DELIVERY_SEND_RETRIES = Number(process.env.ANNOUNCEMENT_DELIVERIES_SEND_RETRIES ?? "2");
+const RETRY_BASE_DELAY_MS = 250;
+
+function clampNumber(value: number, min: number, max: number, fallback: number) {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.max(min, Math.min(max, Math.trunc(value)));
+}
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} timeout (${timeoutMs}ms)`)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+async function withRetries<T>(
+  task: (attempt: number) => Promise<T>,
+  options?: { retries?: number; baseDelayMs?: number },
+) {
+  const retries = clampNumber(options?.retries ?? DELIVERY_SEND_RETRIES, 0, 5, DELIVERY_SEND_RETRIES);
+  const baseDelayMs = clampNumber(options?.baseDelayMs ?? RETRY_BASE_DELAY_MS, 50, 2_000, RETRY_BASE_DELAY_MS);
+
+  let lastError: unknown = null;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      return await task(attempt + 1);
+    } catch (error) {
+      lastError = error;
+      if (attempt >= retries) {
+        break;
+      }
+      const delay = baseDelayMs * 2 ** attempt;
+      await sleep(delay);
+    }
+  }
+
+  throw (lastError instanceof Error ? lastError : new Error("retry exhausted"));
+}
+
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  if (!items.length) return [];
+  const safeConcurrency = clampNumber(concurrency, 1, 20, 4);
+
+  const results = new Array<R>(items.length);
+  let cursor = 0;
+
+  await Promise.all(
+    Array.from({ length: Math.min(safeConcurrency, items.length) }, async () => {
+      while (true) {
+        const index = cursor;
+        cursor += 1;
+        if (index >= items.length) return;
+        results[index] = await worker(items[index], index);
+      }
+    }),
+  );
+
+  return results;
+}
+
 export async function processAnnouncementDeliveries() {
   const supabase = createSupabaseAdminClient();
+  const batchSize = clampNumber(DELIVERY_BATCH_SIZE, 1, 200, 50);
+  const sendConcurrency = clampNumber(DELIVERY_MAX_CONCURRENCY, 1, 20, 4);
   
   // 1. Fetch queued deliveries
   const { data: deliveries, error: fetchError } = await supabase
@@ -23,7 +126,7 @@ export async function processAnnouncementDeliveries() {
     `)
     .eq("status", "queued")
     .order("created_at", { ascending: true })
-    .limit(50); // Process in batches
+    .limit(batchSize);
     
   if (fetchError) {
     console.error("Failed to fetch queued deliveries:", fetchError);
@@ -34,86 +137,97 @@ export async function processAnnouncementDeliveries() {
     return { success: true, processed: 0, message: "No queued deliveries found." };
   }
 
+  const grouped = new Map<string, DeliveryRow[]>();
+  for (const row of deliveries as DeliveryRow[]) {
+    const dedupeKey = `${row.announcement_id}:${row.channel}`;
+    const list = grouped.get(dedupeKey) ?? [];
+    list.push(row);
+    grouped.set(dedupeKey, list);
+  }
+
   let successCount = 0;
   let failCount = 0;
   let sentContactsCount = 0;
-  const processedKeys = new Set<string>();
 
-  for (const delivery of deliveries) {
+  const groups = Array.from(grouped.values());
+  await mapWithConcurrency(groups, sendConcurrency, async (rows) => {
+    const primary = rows[0];
+
     try {
-      const dedupeKey = `${delivery.announcement_id}:${delivery.channel}`;
-      if (processedKeys.has(dedupeKey)) {
-        await markDeliveryStatus(supabase, delivery.id, "sent");
-        continue;
-      }
-      processedKeys.add(dedupeKey);
-
-      const announcement = Array.isArray(delivery.announcement) 
-        ? delivery.announcement[0] 
-        : delivery.announcement;
+      const announcement = Array.isArray(primary.announcement)
+        ? primary.announcement[0]
+        : primary.announcement;
 
       if (!announcement) {
-        await markDeliveryStatus(supabase, delivery.id, "failed");
-        failCount++;
-        continue;
+        await markDeliveryStatuses(supabase, rows.map((row) => row.id), "failed");
+        failCount += rows.length;
+        return;
       }
 
       const scope = parseAnnouncementScope(announcement.target_scope);
-      
-      // 2. Resolve audience to phones
-      const audience = await resolveAnnouncementAudienceContacts(supabase, delivery.organization_id, scope);
-      const targetContacts =
-        delivery.channel === "email"
-          ? audience.emails
-          : audience.phones;
+
+      const audience = await resolveAnnouncementAudienceContacts(
+        supabase,
+        primary.organization_id,
+        scope,
+      );
+      const targetContacts = primary.channel === "email" ? audience.emails : audience.phones;
 
       if (targetContacts.length === 0) {
-        await markDeliveryStatus(supabase, delivery.id, "sent");
-        successCount++;
-        continue;
+        await markDeliveryStatuses(supabase, rows.map((row) => row.id), "sent");
+        successCount += rows.length;
+        return;
       }
 
-      // 3. Send messages
-      // Note: Realistically, you should create a robust queue for Fan-out, 
-      // but considering Twilio supports multiple recipients or we can loop, 
-      // we will loop here for the MVP.
-      let sentCount = 0;
-      const errorMsgs: string[] = [];
+      const sendResults = await mapWithConcurrency(targetContacts, sendConcurrency, async (contact) => {
+        return withRetries(async () => {
+          if (primary.channel === "email") {
+            return withTimeout(
+              sendAnnouncementEmail(contact, announcement.title, announcement.body),
+              DELIVERY_SEND_TIMEOUT_MS,
+              `announcement email to ${contact}`,
+            );
+          }
 
-      for (const contact of targetContacts) {
-        const result =
-          delivery.channel === "email"
-            ? await sendAnnouncementEmail(contact, announcement.title, announcement.body)
-            : await sendTwilioMessage(
-                contact,
-                `*${announcement.title}*\n\n${announcement.body}`,
-                delivery.channel as "whatsapp" | "sms",
-              );
-        
-        if (result.success) {
-          sentCount++;
-        } else {
-          errorMsgs.push(result.error || "Unknown error");
-        }
-      }
+          return withTimeout(
+            sendTwilioMessage(
+              contact,
+              `*${announcement.title}*\n\n${announcement.body}`,
+              primary.channel as "whatsapp" | "sms",
+            ),
+            DELIVERY_SEND_TIMEOUT_MS,
+            `announcement ${primary.channel} to ${contact}`,
+          );
+        });
+      });
+
+      const sentCount = sendResults.filter((result) => result.success).length;
 
       if (sentCount > 0) {
-        await markDeliveryStatus(supabase, delivery.id, "sent");
-        successCount++;
+        await markDeliveryStatuses(supabase, rows.map((row) => row.id), "sent");
+        successCount += rows.length;
         sentContactsCount += sentCount;
       } else {
-        await markDeliveryStatus(supabase, delivery.id, "failed");
-        failCount++;
+        await markDeliveryStatuses(supabase, rows.map((row) => row.id), "failed");
+        failCount += rows.length;
       }
-
     } catch (err: unknown) {
-      console.error(`Error processing delivery ${delivery.id}:`, err);
-      await markDeliveryStatus(supabase, delivery.id, "failed");
-      failCount++;
+      console.error(`Error processing delivery group ${primary.announcement_id}:${primary.channel}:`, err);
+      await markDeliveryStatuses(supabase, rows.map((row) => row.id), "failed");
+      failCount += rows.length;
     }
-  }
+  });
 
-  return { success: true, processed: deliveries.length, successCount, failCount, sentContactsCount };
+  return {
+    success: true,
+    processed: deliveries.length,
+    successCount,
+    failCount,
+    sentContactsCount,
+    groupsProcessed: groups.length,
+    batchSize,
+    sendConcurrency,
+  };
 }
 
 async function sendAnnouncementEmail(email: string, title: string, body: string) {
@@ -264,16 +378,18 @@ async function resolveAnnouncementAudienceContacts(
   };
 }
 
-async function markDeliveryStatus(
+async function markDeliveryStatuses(
   supabase: ReturnType<typeof createSupabaseAdminClient>,
-  deliveryId: string,
+  deliveryIds: string[],
   status: "sent" | "failed",
 ) {
+  if (!deliveryIds.length) return;
+
   await supabase
     .from("announcement_deliveries")
     .update({ 
       status, 
       sent_at: new Date().toISOString(),
     })
-    .eq("id", deliveryId);
+    .in("id", deliveryIds);
 }
