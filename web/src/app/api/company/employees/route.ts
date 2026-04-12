@@ -21,6 +21,7 @@ import { provisionOrganizationUserAccount } from "@/shared/lib/user-provisioning
 const ALLOWED_CREATE_MODES = new Set(["without_account", "with_account"]);
 const ALLOWED_CONTRACT_STATUSES = new Set(["draft", "active", "ended", "cancelled"]);
 const ALLOWED_EMPLOYMENT_STATUSES = new Set(["active", "inactive", "vacation", "leave"]);
+const ALLOWED_DOCUMENT_TYPES = new Set(["dni", "cuil", "ssn", "passport"]);
 const BUCKET_NAME = "tenant-documents";
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const ASYNC_POST_PROCESS_THRESHOLD_BYTES = 5 * 1024 * 1024;
@@ -148,6 +149,90 @@ async function rollbackEmployeeCreateFlow(input: {
   } catch (rollbackError) {
     console.error("[rollbackEmployeeCreateFlow] Rollback failed:", rollbackError);
   }
+}
+
+async function syncEmployeeProfileProjection(input: {
+  organizationId: string;
+  employeeId: string;
+  userId: string | null;
+  branchId: string | null;
+  departmentId: string | null;
+  positionId: string | null;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string | null;
+  employeeStatus: string;
+}) {
+  const admin = createSupabaseAdminClient();
+  const normalizedProfileStatus = input.employeeStatus === "inactive" ? "inactive" : "active";
+
+  const payload = {
+    organization_id: input.organizationId,
+    user_id: input.userId,
+    employee_id: input.employeeId,
+    branch_id: input.branchId,
+    department_id: input.departmentId,
+    position_id: input.positionId,
+    first_name: input.firstName,
+    last_name: input.lastName,
+    email: input.email,
+    phone: input.phone,
+    is_employee: true,
+    status: normalizedProfileStatus,
+    source: "users_employees_modal",
+  };
+
+  const existingByEmployee = await admin
+    .from("organization_user_profiles")
+    .select("id")
+    .eq("organization_id", input.organizationId)
+    .eq("employee_id", input.employeeId)
+    .maybeSingle();
+
+  if (existingByEmployee.data?.id) {
+    return admin
+      .from("organization_user_profiles")
+      .update(payload)
+      .eq("organization_id", input.organizationId)
+      .eq("id", existingByEmployee.data.id);
+  }
+
+  if (input.userId) {
+    const existingByUser = await admin
+      .from("organization_user_profiles")
+      .select("id")
+      .eq("organization_id", input.organizationId)
+      .eq("user_id", input.userId)
+      .maybeSingle();
+
+    if (existingByUser.data?.id) {
+      return admin
+        .from("organization_user_profiles")
+        .update(payload)
+        .eq("organization_id", input.organizationId)
+        .eq("id", existingByUser.data.id);
+    }
+  }
+
+  const existingByEmail = await admin
+    .from("organization_user_profiles")
+    .select("id")
+    .eq("organization_id", input.organizationId)
+    .eq("email", input.email)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingByEmail.data?.id) {
+    return admin
+      .from("organization_user_profiles")
+      .update(payload)
+      .eq("organization_id", input.organizationId)
+      .eq("id", existingByEmail.data.id);
+  }
+
+  return admin.from("organization_user_profiles").insert(payload);
 }
 
 export async function GET(request: Request) {
@@ -660,6 +745,8 @@ export async function POST(request: Request) {
   const accountPassword = String(formData.get("account_password") ?? "");
 
   const birthDate = String(formData.get("birth_date") ?? "").trim() || null;
+  const documentType = String(formData.get("document_type") ?? "").trim().toLowerCase() || null;
+  const documentNumber = String(formData.get("document_number") ?? "").trim() || null;
   const sex = String(formData.get("sex") ?? "").trim() || null;
   const nationality = String(formData.get("nationality") ?? "").trim() || null;
   const phoneCountryCode = String(formData.get("phone_country_code") ?? "").trim() || null;
@@ -777,6 +864,10 @@ export async function POST(request: Request) {
   const normalizedEmploymentStatus = employmentStatusInput || "active";
   if (employmentStatusInput && !ALLOWED_EMPLOYMENT_STATUSES.has(normalizedEmploymentStatus)) {
     return NextResponse.json({ error: "Estado laboral invalido" }, { status: 400 });
+  }
+
+  if (documentType && !ALLOWED_DOCUMENT_TYPES.has(documentType)) {
+    return NextResponse.json({ error: "Tipo de documento invalido" }, { status: 400 });
   }
 
   if (!isEditMode && isEmployeeProfile) {
@@ -1220,6 +1311,8 @@ export async function POST(request: Request) {
         department_id: departmentId,
         hired_at: hiredAt,
         birth_date: birthDate,
+        document_type: documentType,
+        document_number: documentNumber,
         sex,
         nationality,
         phone_country_code: phoneCountryCode,
@@ -1354,11 +1447,14 @@ export async function POST(request: Request) {
 
     const allDocumentIds = Array.from(new Set([...uniqueDocIds, ...uploadedDocumentIds]));
     if (allDocumentIds.length) {
+      const reviewedAt = new Date().toISOString();
       const payload = allDocumentIds.map((documentId) => ({
         organization_id: tenant.organizationId,
         employee_id: employeeIdValue,
         document_id: documentId,
-        status: "pending",
+        status: "approved",
+        reviewed_by: actorId,
+        reviewed_at: reviewedAt,
       }));
 
       const { error: linkError } = await supabase
@@ -1450,6 +1546,26 @@ export async function POST(request: Request) {
           { error: error instanceof Error ? error.message : "No se pudo generar documento de contrato" },
           { status: 400 },
         );
+      }
+    }
+
+    {
+      const { error: profileSyncError } = await syncEmployeeProfileProjection({
+        organizationId: tenant.organizationId,
+        employeeId: employeeIdValue,
+        userId: linkedUserId ?? existingEmployee.user_id ?? null,
+        branchId,
+        departmentId,
+        positionId,
+        firstName,
+        lastName,
+        email,
+        phone,
+        employeeStatus: employmentStatus,
+      });
+
+      if (profileSyncError) {
+        return NextResponse.json({ error: `No se pudo sincronizar perfil de acceso: ${profileSyncError.message}` }, { status: 400 });
       }
     }
 
@@ -1590,6 +1706,8 @@ export async function POST(request: Request) {
       department_id: departmentId,
       hired_at: hiredAt,
       birth_date: birthDate,
+      document_type: documentType,
+      document_number: documentNumber,
       sex,
       nationality,
       phone_country_code: phoneCountryCode,
@@ -1758,11 +1876,14 @@ export async function POST(request: Request) {
 
   const allDocumentIds = Array.from(new Set([...uniqueDocIds, ...uploadedDocumentIds]));
   if (allDocumentIds.length) {
+    const reviewedAt = new Date().toISOString();
     const payload = allDocumentIds.map((documentId) => ({
       organization_id: tenant.organizationId,
       employee_id: employee.id,
       document_id: documentId,
-      status: "pending",
+      status: "approved",
+      reviewed_by: actorId,
+      reviewed_at: reviewedAt,
     }));
     const { error: linkError } = await supabase.from("employee_documents").insert(payload);
     if (linkError) {
@@ -1843,6 +1964,35 @@ export async function POST(request: Request) {
         { error: error instanceof Error ? error.message : "No se pudo generar documento de contrato" },
         { status: 400 },
       );
+    }
+  }
+
+  {
+    const { error: profileSyncError } = await syncEmployeeProfileProjection({
+      organizationId: tenant.organizationId,
+      employeeId: employee.id,
+      userId: linkedUserId,
+      branchId,
+      departmentId,
+      positionId,
+      firstName,
+      lastName,
+      email,
+      phone,
+      employeeStatus: normalizedEmploymentStatus,
+    });
+
+    if (profileSyncError) {
+      await rollbackEmployeeCreateFlow({
+        organizationId: tenant.organizationId,
+        employeeId: employee.id,
+        uploadedPaths,
+        uploadedDocumentIds,
+        linkedUserId,
+        createdMembershipForLinkedUser,
+        createdAuthUserId,
+      });
+      return NextResponse.json({ error: `No se pudo sincronizar perfil de acceso: ${profileSyncError.message}` }, { status: 400 });
     }
   }
 

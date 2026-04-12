@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
+import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { EmployeesPageWorkspace } from "@/modules/employees/ui/employees-page-workspace";
 import { getEmployeeDirectoryView } from "@/modules/employees/services";
 import { requireTenantModule } from "@/shared/lib/access";
@@ -25,6 +26,17 @@ type EmployeeDocumentSlot = {
   documentId: string;
   title: string;
   status: string;
+  uploaded_by_role?: "employee" | "company";
+  uploaded_by_label?: string;
+  review_comment?: string | null;
+  expires_at?: string | null;
+  reminder_days?: 15 | 30 | 45 | null;
+  has_no_expiration?: boolean;
+  expiration_configured?: boolean;
+  signature_status?: "requested" | "completed" | "declined" | "expired" | "failed" | null;
+  signature_embed_src?: string | null;
+  signature_requested_at?: string | null;
+  signature_completed_at?: string | null;
 };
 
 const EMPLOYEE_DOCUMENT_SLOT_RULES: Array<{ slot: string; prefix: string }> = [
@@ -188,28 +200,128 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
     : null;
   const editContract = editEmployee ? (editEmployee.contracts?.[0] ?? null) : null;
 
-  const editEmployeeDocuments = editEmployee
-    ? await supabase
+  let editEmployeeDocuments = { data: [] as unknown[] };
+  if (editEmployee) {
+    const withComment = await supabase
+      .from("employee_documents")
+      .select("document_id, status, reviewed_by, review_comment, expires_at, reminder_days, has_no_expiration, signature_status, signature_embed_src, signature_requested_at, signature_completed_at, created_at, linked_document:documents(id, title, owner_user_id)")
+      .eq("organization_id", tenant.organizationId)
+      .eq("employee_id", editEmployee.id)
+      .order("created_at", { ascending: false });
+
+    if (
+      withComment.error &&
+      ["review_comment", "expires_at", "reminder_days", "has_no_expiration", "signature_status", "signature_embed_src", "signature_requested_at", "signature_completed_at"].some((field) => String(withComment.error?.message ?? "").includes(field))
+    ) {
+      const fallback = await supabase
         .from("employee_documents")
-        .select("document_id, status, linked_document:documents(id, title)")
+        .select("document_id, status, reviewed_by, created_at, linked_document:documents(id, title, owner_user_id)")
         .eq("organization_id", tenant.organizationId)
         .eq("employee_id", editEmployee.id)
-    : { data: [] as unknown[] };
+        .order("created_at", { ascending: false });
+      editEmployeeDocuments = { data: (fallback.data ?? []) as unknown[] };
+    } else {
+      editEmployeeDocuments = { data: (withComment.data ?? []) as unknown[] };
+    }
+  }
+
+  const uploaderUserIds = Array.from(
+    new Set(
+      ((editEmployeeDocuments.data ?? []) as Array<{
+        reviewed_by?: string | null;
+        linked_document:
+          | { owner_user_id?: string | null }[]
+          | { owner_user_id?: string | null }
+          | null;
+      }>)
+        .flatMap((row) => {
+          const linked = Array.isArray(row.linked_document) ? row.linked_document[0] : row.linked_document;
+          return [linked?.owner_user_id ?? null, row.reviewed_by ?? null];
+        })
+        .filter((value): value is string => typeof value === "string" && value.length > 0),
+    ),
+  );
+
+  const { data: uploaderProfiles } = uploaderUserIds.length > 0
+    ? await supabase
+        .from("organization_user_profiles")
+        .select("user_id, first_name, last_name, email")
+        .eq("organization_id", tenant.organizationId)
+        .in("user_id", uploaderUserIds)
+    : { data: [] as Array<{ user_id: string; first_name: string | null; last_name: string | null; email: string | null }> };
+
+  const uploaderLabelByUserId = new Map(
+    (uploaderProfiles ?? []).map((row) => {
+      const fullName = `${row.first_name ?? ""} ${row.last_name ?? ""}`.trim();
+      return [row.user_id, fullName || row.email || "Administrador"];
+    }),
+  );
+
+  const unresolvedUploaderUserIds = uploaderUserIds.filter((userId) => !uploaderLabelByUserId.has(userId));
+  if (unresolvedUploaderUserIds.length > 0) {
+    const admin = createSupabaseAdminClient();
+    await Promise.all(
+      unresolvedUploaderUserIds.map(async (userId) => {
+        const { data } = await admin.auth.admin.getUserById(userId);
+        const authUser = data?.user;
+        const metadata = (authUser?.user_metadata ?? {}) as Record<string, unknown>;
+        const fromMetadata = typeof metadata.full_name === "string" ? metadata.full_name.trim() : "";
+        const fallbackLabel = fromMetadata || authUser?.email || "Administrador";
+        uploaderLabelByUserId.set(userId, fallbackLabel);
+      }),
+    );
+  }
 
   const editEmployeeDocumentsBySlot: Record<string, EmployeeDocumentSlot> = {};
   for (const row of (editEmployeeDocuments.data ?? []) as Array<{
     document_id: string;
     status: string;
-    linked_document: { id?: string; title?: string }[] | { id?: string; title?: string } | null;
+    reviewed_by?: string | null;
+    review_comment?: string | null;
+    expires_at?: string | null;
+    reminder_days?: number | null;
+    has_no_expiration?: boolean;
+    signature_status?: string | null;
+    signature_embed_src?: string | null;
+    signature_requested_at?: string | null;
+    signature_completed_at?: string | null;
+    created_at?: string;
+    linked_document:
+      | { id?: string; title?: string; owner_user_id?: string | null }[]
+      | { id?: string; title?: string; owner_user_id?: string | null }
+      | null;
   }>) {
     const linked = Array.isArray(row.linked_document) ? row.linked_document[0] : row.linked_document;
     const title = typeof linked?.title === "string" ? linked.title : "";
     const slot = EMPLOYEE_DOCUMENT_SLOT_RULES.find((rule) => title.startsWith(rule.prefix))?.slot;
     if (!slot) continue;
+    if (editEmployeeDocumentsBySlot[slot]) continue;
+    const uploadedByRole = linked?.owner_user_id && editEmployee?.userId && linked.owner_user_id === editEmployee.userId
+      ? "employee"
+      : "company";
+    const uploaderUserId = linked?.owner_user_id ?? row.reviewed_by ?? null;
+    const uploadedByLabel = uploadedByRole === "employee"
+      ? "Empleado"
+      : (uploaderUserId ? uploaderLabelByUserId.get(uploaderUserId) ?? "Administrador" : "Administrador");
     editEmployeeDocumentsBySlot[slot] = {
       documentId: row.document_id,
       title,
       status: row.status,
+      uploaded_by_role: uploadedByRole,
+      uploaded_by_label: uploadedByLabel,
+      review_comment: row.review_comment ?? null,
+      expires_at: row.expires_at ?? null,
+      reminder_days: row.reminder_days === 15 || row.reminder_days === 30 || row.reminder_days === 45
+        ? row.reminder_days
+        : null,
+      has_no_expiration: row.has_no_expiration === true,
+      expiration_configured: Boolean(row.expires_at) || row.has_no_expiration === true,
+      signature_status: row.signature_status === "requested" || row.signature_status === "completed" || row.signature_status === "declined" || row.signature_status === "expired" || row.signature_status === "failed"
+        ? row.signature_status
+        : null,
+      signature_embed_src: row.signature_embed_src ?? null,
+      signature_requested_at: row.signature_requested_at ?? null,
+      signature_completed_at: row.signature_completed_at ?? null,
     };
   }
 
@@ -252,6 +364,17 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
         documentId: row.id,
         title: row.title,
         status: "uploaded",
+        uploaded_by_role: "company",
+        uploaded_by_label: "Empresa",
+        review_comment: null,
+        expires_at: null,
+        reminder_days: null,
+        has_no_expiration: false,
+        expiration_configured: false,
+        signature_status: null,
+        signature_embed_src: null,
+        signature_requested_at: null,
+        signature_completed_at: null,
       };
     }
   }

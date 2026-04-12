@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
-import { LayoutDashboard, ClipboardList, Folder, Bell, FileText, PanelsLeftRight, LogOut, Menu } from "lucide-react";
+import { LayoutDashboard, ClipboardList, Folder, Bell, FileText, PanelsLeftRight, LogOut, Menu, User } from "lucide-react";
+import { NewEmployeeModal, type EmployeeModalInitialData, type ModalBranch, type ModalDepartment, type ModalPosition } from "@/modules/employees/ui/new-employee-modal";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
 import { GetBackplateMark } from "@/shared/ui/getbackplate-mark";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
@@ -31,6 +32,10 @@ type EmployeeShellProps = {
   };
   customBrandingEnabled: boolean;
   companyLogoUrl: string;
+  employeeProfile: EmployeeModalInitialData;
+  profileBranches: ModalBranch[];
+  profileDepartments: ModalDepartment[];
+  profilePositions: ModalPosition[];
 };
 
 function initials(value: string) {
@@ -54,6 +59,10 @@ export function EmployeeShell({
   enabledModules,
   customBrandingEnabled,
   companyLogoUrl,
+  employeeProfile,
+  profileBranches,
+  profileDepartments,
+  profilePositions,
 }: EmployeeShellProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -62,6 +71,7 @@ export function EmployeeShell({
 
   const [collapsed, setCollapsed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   // Realtime: auto-refresh when employee portal scoped data changes
   useEffect(() => {
@@ -69,11 +79,14 @@ export function EmployeeShell({
     const orgFilter = `organization_id=eq.${organizationId}`;
     const ownSubmissionFilter = `organization_id=eq.${organizationId},submitted_by=eq.${userId}`;
     const ownEmployeeFilter = `organization_id=eq.${organizationId},user_id=eq.${userId}`;
+    const ownEmployeeByIdFilter = employeeId ? `organization_id=eq.${organizationId},id=eq.${employeeId}` : "";
     const ownPreferencesFilter = `organization_id=eq.${organizationId},user_id=eq.${userId}`;
+    const ownProfileFilter = `organization_id=eq.${organizationId},user_id=eq.${userId}`;
 
     const subscriptions: Array<{ table: string; filter: string }> = [
       { table: "organization_modules", filter: orgFilter },
-      { table: "employees", filter: ownEmployeeFilter },
+      { table: "employees", filter: ownEmployeeByIdFilter || ownEmployeeFilter },
+      { table: "organization_user_profiles", filter: ownProfileFilter },
       { table: "user_preferences", filter: ownPreferencesFilter },
     ];
 
@@ -192,6 +205,17 @@ export function EmployeeShell({
 
   return (
     <div data-theme="default" className="min-h-screen text-[var(--gbp-text)]" style={{ background: palette.pageGradient }}>
+      <NewEmployeeModal
+        open={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        mode="employee_self"
+        companyName={organizationName}
+        branches={profileBranches}
+        departments={profileDepartments}
+        positions={profilePositions}
+        publisherName={employeeName}
+        initialEmployee={employeeProfile}
+      />
       <div className="flex min-h-screen">
         {/* Sidebar */}
         <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-[var(--gbp-border)] transition-all duration-200 lg:sticky lg:top-0 lg:h-screen ${menuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} ${sidebarWidth}`} style={{ background: palette.sidebarGradient }}>
@@ -284,14 +308,33 @@ export function EmployeeShell({
           <div className={`mt-auto border-t border-[var(--gbp-border)] py-4 ${sidebarPaddingX}`} style={{ background: palette.sidebarGradient }}>
             {!collapsed ? (
               <div className="mb-4 flex items-center gap-2.5 px-1">
-                <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full text-xs font-semibold text-white" style={{ background: palette.accent }}>
-                  {initials(employeeName)}
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate text-[13px] font-semibold text-[var(--gbp-text)]">{employeeName}</p>
-                  <p className="truncate text-[11px] text-[var(--gbp-text2)]">{employeePosition || "Empleado"}</p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setProfileModalOpen(true)}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-1 py-1 text-left hover:bg-[var(--gbp-surface2)]"
+                  aria-label="Abrir mi perfil"
+                >
+                  <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full text-xs font-semibold text-white" style={{ background: palette.accent }}>
+                    {initials(employeeName)}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-semibold text-[var(--gbp-text)]">{employeeName}</p>
+                    <p className="truncate text-[11px] text-[var(--gbp-text2)]">{employeePosition || "Empleado"}</p>
+                  </div>
+                </button>
               </div>
+            ) : null}
+
+            {collapsed ? (
+              <button
+                type="button"
+                onClick={() => setProfileModalOpen(true)}
+                className="group/tooltip relative mb-2 inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"
+                aria-label="Abrir mi perfil"
+              >
+                <User className="h-3.5 w-3.5" />
+                <TooltipLabel label="Mi perfil" />
+              </button>
             ) : null}
 
             <Link
