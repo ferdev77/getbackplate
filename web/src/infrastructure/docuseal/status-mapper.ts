@@ -15,6 +15,48 @@ export type DocusealInternalStatus =
   | "expired"
   | "failed";
 
+const TERMINAL_SIGNATURE_STATUSES = new Set<DocusealInternalStatus>([
+  "completed",
+  "declined",
+  "expired",
+]);
+
+export function isActiveSignatureStatus(
+  value: string | null | undefined,
+): value is "requested" | "viewed" {
+  return value === "requested" || value === "viewed";
+}
+
+export function shouldKeepCurrentSignatureStatus(
+  current: string | null | undefined,
+  incoming: DocusealInternalStatus,
+) {
+  const normalizedCurrent =
+    current === "requested" ||
+    current === "viewed" ||
+    current === "completed" ||
+    current === "declined" ||
+    current === "expired" ||
+    current === "failed"
+      ? current
+      : null;
+
+  if (!normalizedCurrent) return false;
+
+  if (normalizedCurrent === "completed" && incoming !== "completed") {
+    return true;
+  }
+
+  if (
+    TERMINAL_SIGNATURE_STATUSES.has(normalizedCurrent) &&
+    !TERMINAL_SIGNATURE_STATUSES.has(incoming)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 /**
  * Mapea el status crudo de DocuSeal (o event_type) al status interno.
  *

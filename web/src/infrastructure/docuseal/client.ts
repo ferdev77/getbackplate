@@ -62,7 +62,8 @@ async function docusealFetch(path: string, init: RequestInit) {
 export async function createPdfSubmission(input: {
   name: string;
   documentName: string;
-  documentFileBase64: string;
+  /** Base64-encoded PDF content OR a publicly-downloadable file URL */
+  documentFile: string;
   submitterName: string;
   submitterEmail: string;
   externalId: string;
@@ -75,21 +76,24 @@ export async function createPdfSubmission(input: {
       documents: [
         {
           name: input.documentName,
-          file: input.documentFileBase64,
+          file: input.documentFile,
           fields: [
             {
               name: "Firma",
               type: "signature",
               role: "Empleado",
               required: true,
-              areas: [{ page: 1, x: 0.58, y: 0.88, w: 0.34, h: 0.045 }],
+              // Coordenadas relativas 0-1 (según doc oficial DocuSeal)
+              // x:0.55 y:0.78 = sector inferior derecho visible, bien dentro del margen
+              areas: [{ page: 1, x: 0.55, y: 0.78, w: 0.38, h: 0.07 }],
             },
             {
               name: "Fecha de firma",
               type: "date",
               role: "Empleado",
               required: true,
-              areas: [{ page: 1, x: 0.58, y: 0.935, w: 0.2, h: 0.03 }],
+              // Debajo de la firma
+              areas: [{ page: 1, x: 0.55, y: 0.87, w: 0.25, h: 0.04 }],
             },
           ],
         },
@@ -141,4 +145,10 @@ export async function getSubmission(submissionId: number) {
     }>;
     documents?: Array<{ url?: string; name?: string }>;
   }>;
+}
+
+export async function deleteSubmission(submissionId: number) {
+  await docusealFetch(`/submissions/${submissionId}`, {
+    method: "DELETE",
+  });
 }

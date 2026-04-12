@@ -79,6 +79,7 @@ export async function POST(request: Request) {
         signature_requested_at: decision === "rejected" ? null : undefined,
         signature_completed_at: decision === "rejected" ? null : undefined,
         signature_error: decision === "rejected" ? null : undefined,
+        signature_last_webhook_event_id: decision === "rejected" ? null : undefined,
       })
       .eq("organization_id", tenant.organizationId)
       .eq("employee_id", employeeId)
@@ -108,6 +109,7 @@ export async function POST(request: Request) {
           signature_requested_at: decision === "rejected" ? null : undefined,
           signature_completed_at: decision === "rejected" ? null : undefined,
           signature_error: decision === "rejected" ? null : undefined,
+          signature_last_webhook_event_id: decision === "rejected" ? null : undefined,
         })
         .eq("organization_id", tenant.organizationId)
         .eq("employee_id", employeeId)

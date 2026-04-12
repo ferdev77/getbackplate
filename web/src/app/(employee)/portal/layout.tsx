@@ -437,7 +437,7 @@ export default async function EmployeeLayout({
       expiresAt: string | null;
       reminderDays: 15 | 30 | 45 | null;
       hasNoExpiration: boolean;
-      signatureStatus: "requested" | "completed" | "declined" | "expired" | "failed" | null;
+      signatureStatus: "requested" | "viewed" | "completed" | "declined" | "expired" | "failed" | null;
       signatureEmbedSrc: string | null;
       signatureRequestedAt: string | null;
       signatureCompletedAt: string | null;
@@ -537,7 +537,7 @@ export default async function EmployeeLayout({
         ? row.reminder_days
         : null,
       hasNoExpiration: row.has_no_expiration === true,
-      signatureStatus: row.signature_status === "requested" || row.signature_status === "completed" || row.signature_status === "declined" || row.signature_status === "expired" || row.signature_status === "failed"
+      signatureStatus: row.signature_status === "requested" || row.signature_status === "viewed" || row.signature_status === "completed" || row.signature_status === "declined" || row.signature_status === "expired" || row.signature_status === "failed"
         ? row.signature_status
         : null,
       signatureEmbedSrc: row.signature_embed_src ?? null,
@@ -579,7 +579,7 @@ export default async function EmployeeLayout({
       reminder_days: 15 | 30 | 45 | null;
       has_no_expiration: boolean;
       expiration_configured: boolean;
-      signature_status: "requested" | "completed" | "declined" | "expired" | "failed" | null;
+      signature_status: "requested" | "viewed" | "completed" | "declined" | "expired" | "failed" | null;
       signature_embed_src: string | null;
       signature_requested_at: string | null;
       signature_completed_at: string | null;

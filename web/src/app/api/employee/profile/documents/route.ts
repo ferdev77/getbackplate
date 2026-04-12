@@ -185,6 +185,7 @@ export async function POST(request: Request) {
         signature_requested_at: null,
         signature_completed_at: null,
         signature_error: null,
+        signature_last_webhook_event_id: null,
       })
       .eq("organization_id", tenant.organizationId)
       .eq("id", primary.id);
@@ -223,6 +224,7 @@ export async function POST(request: Request) {
       signature_requested_at: null,
       signature_completed_at: null,
       signature_error: null,
+      signature_last_webhook_event_id: null,
     });
 
     if (linkError) {

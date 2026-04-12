@@ -1,4 +1,15 @@
+# DOC_ID: COMP_F1_DOCUSEAL_SIGNATURE_PLAN
+# DOC_LEVEL: COMPLEMENTO
+# PHASE_NAMESPACE: COMP_F1_SUBPHASE
+# SOURCE_OF_TRUTH_FOR: Reglas de negocio, modelo de datos, API y plan de rollout para integración de firma con DocuSeal
+
 # Employee Document Signature Plan (DocuSeal)
+
+> **ESTADO ACTUAL DE IMPLEMENTACIÓN (Fase 1 MVP):** 
+> - **[✔] UI DocuSeal Modal (Empleado):** Integración nativa de `<docuseal-form>`, problemas de renderizado de altura absoluta en móviles (`Absolute inset-0` y scroll truncado) corregidos mediante inyección de contenedor flexible (`overflow-y-auto`, `min-h-full` y scroll nativo táctil de iOS). Fallbacks para bloqueadores de anuncios operativos.
+> - **[ ] Backend / Endpoints:** Creación de solicitud (`/api/company/employees/documents/signature/request`).
+> - **[ ] Webhook / Estado:** Endpoint (`/api/integrations/docuseal/webhook`), tabla `employee_document_signatures` y reflejo en estado de archivo.
+> - **[ ] UI Badges (Empresa/Empleado):** Lógica visual de sincronización (Badge "Firma solicitada").
 
 Objetivo: habilitar el boton `Solicitar firma` en documentos de empleado una vez que el documento fue aprobado y su regla de vencimiento fue configurada (con fecha o `sin vencimiento`), permitiendo firma electronica via DocuSeal con trazabilidad completa.
 

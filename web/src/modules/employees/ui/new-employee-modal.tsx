@@ -21,7 +21,7 @@ export type EmployeeModalInitialDocument = {
   reminder_days?: 15 | 30 | 45 | null;
   has_no_expiration?: boolean;
   expiration_configured?: boolean;
-  signature_status?: "requested" | "completed" | "declined" | "expired" | "failed" | null;
+  signature_status?: "requested" | "viewed" | "completed" | "declined" | "expired" | "failed" | null;
   signature_embed_src?: string | null;
   signature_requested_at?: string | null;
   signature_completed_at?: string | null;
@@ -184,9 +184,17 @@ export function NewEmployeeModal({
   const [docusealReady, setDocusealReady] = useState(false);
   const [docusealLoadFailed, setDocusealLoadFailed] = useState(false);
 
+  const openSignatureInNewTab = () => {
+    if (!signatureModal.src) return;
+    window.open(signatureModal.src, "_blank", "noopener,noreferrer");
+  };
+
   useEffect(() => {
     if (!signatureModal.open || !signatureModal.src) return;
     if (typeof window === "undefined") return;
+
+    setDocusealReady(false);
+    setDocusealLoadFailed(false);
 
     const timeout = window.setTimeout(() => {
       setDocusealLoadFailed(true);
@@ -238,7 +246,18 @@ export function NewEmployeeModal({
   useEffect(() => {
     if (!signatureModal.open) return;
 
+    const expectedOrigin = (() => {
+      if (!signatureModal.src) return null;
+      try {
+        return new URL(signatureModal.src).origin;
+      } catch {
+        return null;
+      }
+    })();
+
     const handler = (event: MessageEvent) => {
+      if (expectedOrigin && event.origin !== expectedOrigin) return;
+
       // DocuSeal puede emitir el evento en distintos formatos según versión del embed
       const isCompleted =
         event.data?.type === "docuseal:completed" ||
@@ -261,7 +280,7 @@ export function NewEmployeeModal({
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signatureModal.open, signatureModal.slot]);
+  }, [signatureModal.open, signatureModal.slot, signatureModal.src]);
 
   const [customDocumentRows, setCustomDocumentRows] = useState<Array<{ id: string; title: string; fileName: string }>>([]);
   const [showAddDocumentTitleBox, setShowAddDocumentTitleBox] = useState(false);
@@ -653,6 +672,44 @@ export function NewEmployeeModal({
       setSignatureActionBySlot((prev) => ({ ...prev, [slot]: false }));
     }
   }
+
+  async function handleForceRecreateSignature(slot: string) {
+    if (!initialEmployee?.id) return;
+    const row = documentsBySlotState?.[slot];
+    if (!row?.documentId) return;
+
+    setSignatureActionBySlot((prev) => ({ ...prev, [slot]: true }));
+    try {
+      const response = await fetch("/api/company/employees/documents/signature/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employeeId: initialEmployee.id, documentId: row.documentId, force: true }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || "No se pudo recrear la firma");
+      }
+
+      const newEmbedSrc = typeof data.signatureEmbedSrc === "string" ? data.signatureEmbedSrc : null;
+      setDocumentsBySlotState((prev) => ({
+        ...prev,
+        [slot]: {
+          ...row,
+          signature_status: "requested",
+          signature_embed_src: newEmbedSrc,
+          signature_requested_at: typeof data.signatureRequestedAt === "string" ? data.signatureRequestedAt : new Date().toISOString(),
+          signature_completed_at: null,
+        },
+      }));
+      toast.success("Solicitud de firma recreada correctamente");
+      startTransition(() => router.refresh());
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo recrear la firma");
+    } finally {
+      setSignatureActionBySlot((prev) => ({ ...prev, [slot]: false }));
+    }
+  }
+
 
   async function handleRefreshSignatureStatus(slot: string) {
     const row = documentsBySlotState?.[slot];
@@ -1315,15 +1372,17 @@ export function NewEmployeeModal({
                       const reminderSendDate = getReminderSendDate(row?.expires_at, row?.reminder_days ?? null);
                       if (!row?.reminder_days || !reminderSendDate) return null;
                       return (
-                        <p className="mt-1 text-center text-[10px] font-semibold text-[var(--gbp-text2)]">
+                        <p suppressHydrationWarning className="mt-1 text-center text-[10px] font-semibold text-[var(--gbp-text2)]">
                           Aviso recordatorio: {row.reminder_days} dias antes ({formatDateForUi(reminderSendDate)})
                         </p>
                       );
                     })()}
                     {documentsBySlotState?.[doc.slot]?.signature_status ? (
-                      <p className="mt-1 text-center text-[10px] font-semibold text-[var(--gbp-text2)]">
+                      <p suppressHydrationWarning className="mt-1 text-center text-[10px] font-semibold text-[var(--gbp-text2)]">
                         Firma: {documentsBySlotState[doc.slot].signature_status === "completed"
                           ? "Firmado"
+                          : documentsBySlotState[doc.slot].signature_status === "viewed"
+                            ? "Vista"
                           : documentsBySlotState[doc.slot].signature_status === "requested"
                             ? "Solicitada"
                             : documentsBySlotState[doc.slot].signature_status === "declined"
@@ -1333,10 +1392,12 @@ export function NewEmployeeModal({
                                 : "Error"}
                         {documentsBySlotState[doc.slot].signature_completed_at
                           ? ` (${formatDateTimeForUi(documentsBySlotState[doc.slot].signature_completed_at)})`
-                          : ""}
+                          : documentsBySlotState[doc.slot].signature_requested_at
+                            ? ` (${formatDateTimeForUi(documentsBySlotState[doc.slot].signature_requested_at)})`
+                            : ""}
                       </p>
                     ) : null}
-                    {!isEmployeeSelfMode && documentsBySlotState?.[doc.slot]?.status === "approved" && documentsBySlotState?.[doc.slot]?.expiration_configured && documentsBySlotState?.[doc.slot]?.signature_status !== "completed" && documentsBySlotState?.[doc.slot]?.signature_status !== "requested" ? (
+                    {!isEmployeeSelfMode && documentsBySlotState?.[doc.slot]?.status === "approved" && documentsBySlotState?.[doc.slot]?.expiration_configured && documentsBySlotState?.[doc.slot]?.signature_status !== "completed" && documentsBySlotState?.[doc.slot]?.signature_status !== "requested" && documentsBySlotState?.[doc.slot]?.signature_status !== "viewed" ? (
                       <button
                         type="button"
                         onClick={(event) => {
@@ -1349,7 +1410,7 @@ export function NewEmployeeModal({
                         Solicitar firma
                       </button>
                     ) : null}
-                    {isEmployeeSelfMode && documentsBySlotState?.[doc.slot]?.signature_status === "requested" && documentsBySlotState?.[doc.slot]?.signature_embed_src ? (
+                    {isEmployeeSelfMode && (documentsBySlotState?.[doc.slot]?.signature_status === "requested" || documentsBySlotState?.[doc.slot]?.signature_status === "viewed") && documentsBySlotState?.[doc.slot]?.signature_embed_src ? (
                       <div className="mt-2 flex items-center gap-2">
                         <button
                           type="button"
@@ -1376,18 +1437,32 @@ export function NewEmployeeModal({
                         </button>
                       </div>
                     ) : null}
-                    {!isEmployeeSelfMode && documentsBySlotState?.[doc.slot]?.signature_status === "requested" ? (
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          void handleRefreshSignatureStatus(doc.slot);
-                        }}
-                        disabled={Boolean(signatureActionBySlot[doc.slot])}
-                        className="mt-2 rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-2.5 py-1 text-[10px] font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)] disabled:opacity-60"
-                      >
-                        Actualizar firma
-                      </button>
+                    {!isEmployeeSelfMode && (documentsBySlotState?.[doc.slot]?.signature_status === "requested" || documentsBySlotState?.[doc.slot]?.signature_status === "viewed") ? (
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleRefreshSignatureStatus(doc.slot);
+                          }}
+                          disabled={Boolean(signatureActionBySlot[doc.slot])}
+                          className="rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-2.5 py-1 text-[10px] font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)] disabled:opacity-60"
+                        >
+                          Actualizar firma
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleForceRecreateSignature(doc.slot);
+                          }}
+                          disabled={Boolean(signatureActionBySlot[doc.slot])}
+                          title="Re-crea la solicitud en DocuSeal si el documento no se ve correctamente"
+                          className="rounded-md border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-surface)] px-2.5 py-1 text-[10px] font-semibold text-[var(--gbp-accent)] hover:bg-[var(--gbp-bg)] disabled:opacity-60"
+                        >
+                          Re-solicitar firma
+                        </button>
+                      </div>
                     ) : null}
                     {!isEmployeeSelfMode && documentsBySlotState?.[doc.slot]?.status === "approved" && !documentsBySlotState?.[doc.slot]?.expiration_configured ? (
                       <div className="mt-3 w-full space-y-2 rounded-xl border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] p-3" onClick={(event) => event.stopPropagation()}>
@@ -1821,25 +1896,50 @@ export function NewEmployeeModal({
         </form>
       </div>
       {signatureModal.open && signatureModal.src ? (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4">
-          <div className="relative h-[88vh] w-[min(1100px,96vw)] overflow-hidden rounded-3xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-5 py-3">
-              <div>
-                <p className="text-[12px] font-black uppercase tracking-[0.14em] text-[var(--gbp-text2)]">Firma del documento</p>
-                <p className="text-[11px] text-[var(--gbp-text2)]">Revisa y firma para completar el proceso</p>
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-md transition-all duration-300" />
+          <div className="relative flex h-[90vh] w-[min(1100px,96vw)] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-[var(--gbp-surface)] shadow-[0_0_80px_rgba(0,0,0,0.3)] animate-in fade-in zoom-in-95 duration-300">
+            {/* Cabecera Premium */}
+            <div className="flex items-center justify-between border-b border-[var(--gbp-border)] bg-[color:color-mix(in_oklab,var(--gbp-bg)_95%,transparent)] px-6 py-4 backdrop-blur-xl">
+              <div className="flex items-center gap-3.5">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color:color-mix(in_oklab,var(--gbp-accent)_15%,transparent)] shadow-sm">
+                  <svg className="h-5 w-5 text-[var(--gbp-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.48 9.55l-2.98 2.98a2.11 2.11 0 01-2.98 0l-3.53-3.53a2.11 2.11 0 010-2.98l2.98-2.98a2.11 2.11 0 012.98 0l3.53 3.53a2.11 2.11 0 010 2.98z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-[15px] font-bold tracking-tight text-[var(--gbp-text)]">Firma del documento</h3>
+                  <p className="text-[12px] font-medium text-[var(--gbp-text2)]">Firma criptográficamente segura</p>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => {
+                    setDocusealReady(false);
+                    setDocusealLoadFailed(false);
                     if (signatureModal.slot) {
                       void handleRefreshSignatureStatus(signatureModal.slot);
                     }
                   }}
-                  className="rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-2.5 py-1 text-[11px] font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]"
+                  className="group relative inline-flex items-center gap-1.5 overflow-hidden rounded-lg bg-[var(--gbp-bg)] px-3.5 py-2 text-[12px] font-bold text-[var(--gbp-text2)] ring-1 ring-inset ring-[var(--gbp-border2)] transition-all hover:bg-[var(--gbp-surface)] hover:text-[var(--gbp-text)] hover:shadow-sm"
                 >
-                  Actualizar estado
+                  <svg className="h-3.5 w-3.5 transition-transform group-hover:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>Actualizar</span>
                 </button>
+                {signatureModal.src ? (
+                  <button
+                    type="button"
+                    onClick={openSignatureInNewTab}
+                    className="group relative inline-flex items-center gap-1.5 overflow-hidden rounded-lg bg-[var(--gbp-accent)] px-3.5 py-2 text-[12px] font-bold text-white ring-1 ring-inset ring-[color:color-mix(in_oklab,var(--gbp-accent)_70%,black)] transition-all hover:bg-[var(--gbp-accent-hover)] hover:shadow-sm"
+                  >
+                    <span>Abrir en pestaña</span>
+                  </button>
+                ) : null}
+                <div className="h-5 w-px bg-[var(--gbp-border)]"></div>
                 <button
                   type="button"
                   onClick={() => {
@@ -1847,34 +1947,88 @@ export function NewEmployeeModal({
                     setDocusealReady(false);
                     setDocusealLoadFailed(false);
                   }}
-                  className="rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-2.5 py-1 text-[11px] font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]"
+                  className="group inline-flex items-center justify-center rounded-lg bg-[color:color-mix(in_oklab,var(--gbp-red)_10%,transparent)] p-2 text-[var(--gbp-red)] transition-all hover:bg-[var(--gbp-red)] hover:text-white"
+                  title="Cerrar modal"
                 >
-                  Cerrar
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
             </div>
-            <div className="h-[calc(88vh-56px)] w-full">
-              {docusealReady && !docusealLoadFailed
-                ? createElement("docuseal-form", {
-                    "data-src": signatureModal.src,
-                    "data-email": initialEmployee?.email || "",
-                    style: { width: "100%", height: "100%", display: "block" },
-                  } as Record<string, unknown>)
-                : (
-                    <div className="flex h-full flex-col items-center justify-center gap-3 px-4 text-center text-sm font-semibold text-[var(--gbp-text2)]">
-                      <p>{docusealLoadFailed ? "No se pudo cargar la firma embebida." : "Cargando experiencia de firma..."}</p>
-                      {signatureModal.src ? (
-                        <a
-                          href={signatureModal.src}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-1.5 text-[11px] font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]"
-                        >
-                          Abrir firma en nueva pestaña
-                        </a>
-                      ) : null}
-                    </div>
-                  )}
+            
+            {/* Área de Firma */}
+            <div 
+              className="flex-1 w-full bg-[var(--gbp-bg)] overflow-y-auto" 
+              style={{ WebkitOverflowScrolling: "touch" }}
+            >
+                {docusealReady && !docusealLoadFailed
+                  ? createElement("docuseal-form", {
+                      "data-src": signatureModal.src,
+                      "data-email": initialEmployee?.email || "",
+                      className: "w-full min-h-full border-none",
+                    } as Record<string, unknown>)
+                : docusealLoadFailed ? (
+                      <div className="flex min-h-full flex-col items-center justify-center gap-6 px-8 py-12 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="relative">
+                          <div className="absolute inset-0 animate-ping rounded-full bg-[var(--gbp-accent)] opacity-20"></div>
+                          <div className="relative flex h-24 w-24 items-center justify-center rounded-[2rem] bg-gradient-to-br from-[var(--gbp-accent)] to-[color:color-mix(in_oklab,var(--gbp-accent)_50%,black)] text-white shadow-xl shadow-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)]">
+                            <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div className="max-w-md space-y-3">
+                          <h4 className="text-2xl font-bold tracking-tight text-[var(--gbp-text)] text-balance">Protección de Navegador</h4>
+                          <p className="text-[14px] leading-relaxed text-[var(--gbp-text2)] text-balance">
+                            Parece que tu navegador o bloqueador de anuncios no permite incrustar de forma iframe este módulo seguro. <span className="font-semibold text-[var(--gbp-text)]">No hay problema.</span> Accede a nuestra pestaña cifrada certificada para firmarlo en una nueva ventana.
+                          </p>
+                        </div>
+                        {signatureModal.src ? (
+                          <div className="mt-4 flex flex-col items-center gap-4">
+                            <a
+                              href={signatureModal.src}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="group relative inline-flex items-center gap-2 overflow-hidden rounded-xl bg-gradient-to-b from-[var(--gbp-accent)] to-[color:color-mix(in_oklab,var(--gbp-accent)_85%,black)] px-8 py-3.5 text-sm font-black text-white shadow-[0_8px_30px_-10px_var(--gbp-accent)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-10px_var(--gbp-accent)] active:translate-y-0 active:shadow-none"
+                            >
+                              <span className="absolute inset-0 bg-white/20 opacity-0 transition-opacity group-hover:opacity-100"></span>
+                              <span>Firma Segura en Nueva Pestaña</span>
+                              <svg className="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                              </svg>
+                            </a>
+                            <p className="text-[12px] font-medium text-[var(--gbp-muted)]">Una vez firmado con éxito, regresa y cierra esta ventana.</p>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className="flex min-h-full flex-col items-center justify-center gap-8 px-6 py-12 text-center">
+                        <div className="relative flex items-center justify-center">
+                          <div className="absolute h-28 w-28 animate-[pulse_3s_ease-in-out_infinite] rounded-full bg-[var(--gbp-accent)] opacity-10 blur-xl"></div>
+                          <div className="absolute h-20 w-20 animate-[ping_2s_ease-in-out_infinite] rounded-full border border-[var(--gbp-accent)] opacity-20"></div>
+                          <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--gbp-surface)] shadow-lg shadow-[color:color-mix(in_oklab,var(--gbp-accent)_15%,transparent)] ring-1 ring-[var(--gbp-border2)]">
+                            <svg className="h-7 w-7 animate-spin text-[var(--gbp-accent)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          </div>
+                        </div>
+                        <div className="space-y-1.5 animate-in slide-in-from-bottom-2 duration-700">
+                          <h4 className="text-[17px] font-bold tracking-tight text-[var(--gbp-text)]">Creando entorno de firma</h4>
+                          <p className="mx-auto max-w-[280px] text-[13px] font-medium leading-relaxed text-[var(--gbp-text2)]">Estableciendo túnel encriptado con la plataforma certificada de firmas. Esto tomará un instante.</p>
+                        </div>
+                        {signatureModal.src ? (
+                          <button
+                            type="button"
+                            onClick={openSignatureInNewTab}
+                            className="inline-flex items-center justify-center rounded-xl bg-[var(--gbp-accent)] px-6 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[var(--gbp-accent-hover)]"
+                          >
+                            Abrir firma en nueva pestaña
+                          </button>
+                        ) : null}
+                      </div>
+                    )}
             </div>
           </div>
         </div>

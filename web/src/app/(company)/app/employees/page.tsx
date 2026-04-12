@@ -33,7 +33,7 @@ type EmployeeDocumentSlot = {
   reminder_days?: 15 | 30 | 45 | null;
   has_no_expiration?: boolean;
   expiration_configured?: boolean;
-  signature_status?: "requested" | "completed" | "declined" | "expired" | "failed" | null;
+  signature_status?: "requested" | "viewed" | "completed" | "declined" | "expired" | "failed" | null;
   signature_embed_src?: string | null;
   signature_requested_at?: string | null;
   signature_completed_at?: string | null;
@@ -316,7 +316,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
         : null,
       has_no_expiration: row.has_no_expiration === true,
       expiration_configured: Boolean(row.expires_at) || row.has_no_expiration === true,
-      signature_status: row.signature_status === "requested" || row.signature_status === "completed" || row.signature_status === "declined" || row.signature_status === "expired" || row.signature_status === "failed"
+      signature_status: row.signature_status === "requested" || row.signature_status === "viewed" || row.signature_status === "completed" || row.signature_status === "declined" || row.signature_status === "expired" || row.signature_status === "failed"
         ? row.signature_status
         : null,
       signature_embed_src: row.signature_embed_src ?? null,
