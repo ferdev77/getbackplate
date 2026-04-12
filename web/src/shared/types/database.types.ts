@@ -1135,8 +1135,23 @@ export type Database = {
           created_at: string
           document_id: string
           employee_id: string
+          expires_at: string | null
+          has_no_expiration: boolean
           id: string
           organization_id: string
+          reminder_days: number | null
+          reminder_last_sent_at: string | null
+          reminder_sent_for_date: string | null
+          signature_completed_at: string | null
+          signature_embed_src: string | null
+          signature_error: string | null
+          signature_provider: string | null
+          signature_requested_at: string | null
+          signature_requested_by: string | null
+          signature_status: string | null
+          signature_submission_id: number | null
+          signature_submitter_slug: string | null
+          review_comment: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
@@ -1146,8 +1161,23 @@ export type Database = {
           created_at?: string
           document_id: string
           employee_id: string
+          expires_at?: string | null
+          has_no_expiration?: boolean
           id?: string
           organization_id: string
+          reminder_days?: number | null
+          reminder_last_sent_at?: string | null
+          reminder_sent_for_date?: string | null
+          signature_completed_at?: string | null
+          signature_embed_src?: string | null
+          signature_error?: string | null
+          signature_provider?: string | null
+          signature_requested_at?: string | null
+          signature_requested_by?: string | null
+          signature_status?: string | null
+          signature_submission_id?: number | null
+          signature_submitter_slug?: string | null
+          review_comment?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
@@ -1157,8 +1187,23 @@ export type Database = {
           created_at?: string
           document_id?: string
           employee_id?: string
+          expires_at?: string | null
+          has_no_expiration?: boolean
           id?: string
           organization_id?: string
+          reminder_days?: number | null
+          reminder_last_sent_at?: string | null
+          reminder_sent_for_date?: string | null
+          signature_completed_at?: string | null
+          signature_embed_src?: string | null
+          signature_error?: string | null
+          signature_provider?: string | null
+          signature_requested_at?: string | null
+          signature_requested_by?: string | null
+          signature_status?: string | null
+          signature_submission_id?: number | null
+          signature_submitter_slug?: string | null
+          review_comment?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string

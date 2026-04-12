@@ -164,22 +164,23 @@ Referencias:
 
 ---
 
-## 4) Norte recomendado (implementable y con bajo retrabajo)
+## 4) Norte recomendado (repriorizado por negocio, implementable y con bajo retrabajo)
 
-### Fase 1 - Cerrar rapido lo parcialmente listo
-1. Stripe branding (operativo y QA mobile/desktop).
-2. Ajustes finales de Custom Domain (etiquetas, UX de estados, pruebas E2E).
+### Fase 1 - Custom Domain (cierre comercial inmediato)
+1. Ajustes finales de Custom Domain (etiquetas de estado comercial, UX de estados, pruebas E2E de auth/invitaciones/recovery).
 
-### Fase 2 - Valor operativo nuevo (modulos net-new)
-3. Shift Communication Log.
-4. Supplier & Vendor Directory.
+### Fase 2 - Compliance documental empleado
+2. Upload desde portal empleado + review loop completo (aprobar/rechazar/resubida con comentario).
+3. Vencimientos + alertas + estatus automatico + dashboard de riesgo.
+4. Integracion DocuSeal end-to-end (envio, webhook, archivado, auditoria, estatus).
 
-### Fase 3 - Documentacion de empleado (compliance)
-5. Upload desde portal empleado + review loop completo (aprobar/rechazar/resubida con comentario).
-6. Vencimientos + alertas + estatus automatico + dashboard de riesgo.
+### Fase 3 - Conversion y navegacion comercial
+5. Stripe branding (operativo y QA mobile/desktop).
+6. Vista de columnas en Documentos (toggle con arbol y persistencia de preferencia por usuario).
 
-### Fase 4 - Firma legal remota
-7. Integracion DocuSeal end-to-end (envio, webhook, archivado, auditoria, estatus).
+### Fase 4 - Valor operativo net-new
+7. Shift Communication Log.
+8. Supplier & Vendor Directory.
 
 ---
 
@@ -200,8 +201,8 @@ Hola Angelo, ya hice una revision profunda del sistema real (codigo + base + flu
 
 Confirmo que podemos avanzar con todo el paquete excepto AI, y ya lo ajustamos a los roles reales de la plataforma: `company_admin`, `manager`, `employee` (sin rol owner).
 
-Tambien te marco que Custom Domain ya esta bastante avanzado, mientras que Bitacora/Proveedores y Firma DocuSeal son desarrollo nuevo. En documentos de empleado hay base fuerte, pero faltan upload desde portal, circuito completo de revision y vencimientos con alertas.
+Tambien te marco que Custom Domain ya esta bastante avanzado, mientras que Bitacora/Proveedores y DocuSeal son desarrollo nuevo. En documentos de empleado hay base fuerte, pero faltan upload desde portal, circuito completo de revision y vencimientos con alertas.
 
-Para minimizar riesgo y cotizar mejor, recomiendo ejecutar por fases: (1) Stripe + cierre Custom Domain, (2) Bitacora + Proveedores, (3) Documentos/alertas, (4) DocuSeal.
+Para minimizar riesgo y mejorar salida comercial, recomiendo ejecutar por fases: (1) Custom Domain, (2) Documentos + Alertas + DocuSeal, (3) Stripe branding + Vista de columnas, (4) Bitacora + Proveedores.
 
 Si te parece, en el siguiente paso te envio la cotizacion por fase con tiempos, dependencias y criterios de aceptacion.

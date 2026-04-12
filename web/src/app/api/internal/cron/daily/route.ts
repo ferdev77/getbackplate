@@ -3,6 +3,7 @@ import { GET as purgeTrash } from "../../../webhooks/cron/purge-trash/route";
 import { GET as processDocuments } from "../documents/process/route";
 import { GET as processDeliveries } from "../deliveries/route";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { processEmployeeDocumentExpirationReminders } from "@/modules/employees/services/document-expiration-reminders";
 
 export const maxDuration = 60; // Attempt to allow up to 60s execution
 
@@ -45,6 +46,14 @@ export async function GET(request: Request) {
       task: "purgeStripeProcessedEvents",
       status: stripeCleanupError ? 500 : 200,
       error: stripeCleanupError?.message ?? null,
+    });
+
+    // 5. Process employee document expiration reminders
+    const reminderResult = await processEmployeeDocumentExpirationReminders();
+    results.push({
+      task: "processEmployeeDocumentExpirationReminders",
+      status: reminderResult.ok ? 200 : 500,
+      ...reminderResult,
     });
 
     return NextResponse.json({ ok: true, results });
