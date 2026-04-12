@@ -64,9 +64,12 @@
     "@types/pg": "^8.18.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "docuseal": "^1.0.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "pdf-lib": "^1.17.1",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

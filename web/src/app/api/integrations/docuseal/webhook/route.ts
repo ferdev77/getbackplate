@@ -3,7 +3,10 @@ import { timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { mapDocusealStatus } from "@/infrastructure/docuseal/status-mapper";
+import {
+  mapDocusealStatus,
+  shouldKeepCurrentSignatureStatus,
+} from "@/infrastructure/docuseal/status-mapper";
 import { logAuditEvent } from "@/shared/lib/audit";
 
 const DOCUSEAL_WEBHOOK_SECRET = process.env.DOCUSEAL_WEBHOOK_SECRET || "";
@@ -128,35 +131,10 @@ export async function POST(request: Request) {
 
   const admin = createSupabaseAdminClient();
 
-  // 4. Idempotencia: ignorar eventos ya procesados
-  const eventId = extractEventId(payload);
-  if (eventId) {
-    const { data: existing } = await admin
-      .from("employee_documents")
-      .select("signature_last_webhook_event_id")
-      .eq("signature_submission_id", submissionId)
-      .maybeSingle();
-
-    if (existing?.signature_last_webhook_event_id === eventId) {
-      return NextResponse.json({
-        ok: true,
-        ignored: true,
-        reason: "duplicate_event",
-      });
-    }
-  }
-
-  // 5. Mapear status
-  const signatureStatus = mapDocusealStatus(extractStatus(payload));
-  const completedAt =
-    signatureStatus === "completed"
-      ? extractCompletedAt(payload) || new Date().toISOString()
-      : null;
-
-  // 6. Buscar registros afectados
+  // 4. Buscar registros afectados
   const { data: affectedRows } = await admin
     .from("employee_documents")
-    .select("organization_id, employee_id, document_id")
+    .select("organization_id, employee_id, document_id, signature_status, signature_completed_at, signature_last_webhook_event_id")
     .eq("signature_submission_id", submissionId);
 
   if (!affectedRows || affectedRows.length === 0) {
@@ -167,29 +145,70 @@ export async function POST(request: Request) {
     });
   }
 
-  // 7. Actualizar estado + guardar event_id para idempotencia futura
-  const { error: updateError } = await admin
-    .from("employee_documents")
-    .update({
-      signature_status: signatureStatus,
-      signature_completed_at: completedAt,
-      signature_error:
-        signatureStatus === "failed"
-          ? "DocuSeal webhook status not recognized"
-          : null,
-      ...(eventId ? { signature_last_webhook_event_id: eventId } : {}),
-    })
-    .eq("signature_submission_id", submissionId);
+  // 5. Idempotencia: ignorar eventos ya procesados (por fila)
+  const eventId = extractEventId(payload);
+  if (eventId && affectedRows.every((row) => row.signature_last_webhook_event_id === eventId)) {
+    return NextResponse.json({
+      ok: true,
+      ignored: true,
+      reason: "duplicate_event",
+    });
+  }
 
-  if (updateError) {
-    return NextResponse.json(
-      { error: updateError.message },
-      { status: 400 },
-    );
+  // 6. Mapear status
+  const incomingStatus = mapDocusealStatus(extractStatus(payload));
+  const incomingCompletedAt =
+    incomingStatus === "completed"
+      ? extractCompletedAt(payload) || new Date().toISOString()
+      : null;
+
+  // 7. Actualizar estado + guardar event_id para idempotencia futura
+  let updatedCount = 0;
+  for (const row of affectedRows) {
+    const signatureStatus = shouldKeepCurrentSignatureStatus(
+      row.signature_status,
+      incomingStatus,
+    )
+      ? (row.signature_status ?? incomingStatus)
+      : incomingStatus;
+    const completedAt = signatureStatus === "completed"
+      ? (row.signature_completed_at ?? incomingCompletedAt)
+      : null;
+
+    const { error: updateError } = await admin
+      .from("employee_documents")
+      .update({
+        signature_status: signatureStatus,
+        signature_completed_at: completedAt,
+        signature_error:
+          signatureStatus === "failed"
+            ? "DocuSeal webhook status not recognized"
+            : null,
+        ...(eventId ? { signature_last_webhook_event_id: eventId } : {}),
+      })
+      .eq("organization_id", row.organization_id)
+      .eq("employee_id", row.employee_id)
+      .eq("document_id", row.document_id);
+
+    if (updateError) {
+      return NextResponse.json(
+        { error: updateError.message },
+        { status: 400 },
+      );
+    }
+
+    updatedCount += 1;
   }
 
   // 8. Auditoría por cada registro afectado
   for (const row of affectedRows) {
+    const signatureStatus = shouldKeepCurrentSignatureStatus(
+      row.signature_status,
+      incomingStatus,
+    )
+      ? (row.signature_status ?? incomingStatus)
+      : incomingStatus;
+
     await logAuditEvent({
       action: `employee_document.signature.${signatureStatus}`,
       entityType: "employee_document",
@@ -210,8 +229,8 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ok: true,
-    updated: affectedRows.length,
-    signatureStatus,
+    updated: updatedCount,
+    signatureStatus: incomingStatus,
     submissionId,
   });
 }

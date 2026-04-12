@@ -22,9 +22,10 @@ const nextConfig: NextConfig = {
     const cspDirectives = [
       `default-src 'self'`,
       `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.docuseal.com https://docuseal.com https://*.docuseal.com`,
+      `worker-src 'self' blob:`,
       `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
       `font-src 'self' https://fonts.gstatic.com`,
-      `img-src 'self' data: blob: https://${supabaseHost} https://*.supabase.co https://docuseal.com https://*.docuseal.com`,
+      `img-src 'self' data: blob: https://${supabaseHost} https://*.supabase.co https://docuseal.com https://*.docuseal.com https://docuseal.s3.amazonaws.com`,
       `connect-src 'self' https://${supabaseHost} https://*.supabase.co wss://${supabaseHost} wss://*.supabase.co https://sentry.io https://*.sentry.io https://api.brevo.com https://api.docuseal.com https://docuseal.com https://cdn.docuseal.com https://*.docuseal.com`,
       `frame-src 'self' https://docuseal.com https://*.docuseal.com`,
       `frame-ancestors 'none'`,
