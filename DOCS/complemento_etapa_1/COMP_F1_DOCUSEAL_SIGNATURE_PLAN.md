@@ -7,9 +7,9 @@
 
 > **ESTADO ACTUAL DE IMPLEMENTACIÓN (Fase 1 MVP):** 
 > - **[✔] UI DocuSeal Modal (Empleado):** Integración nativa de `<docuseal-form>`, problemas de renderizado de altura absoluta en móviles (`Absolute inset-0` y scroll truncado) corregidos mediante inyección de contenedor flexible (`overflow-y-auto`, `min-h-full` y scroll nativo táctil de iOS). Fallbacks para bloqueadores de anuncios operativos.
-> - **[ ] Backend / Endpoints:** Creación de solicitud (`/api/company/employees/documents/signature/request`).
-> - **[ ] Webhook / Estado:** Endpoint (`/api/integrations/docuseal/webhook`), tabla `employee_document_signatures` y reflejo en estado de archivo.
-> - **[ ] UI Badges (Empresa/Empleado):** Lógica visual de sincronización (Badge "Firma solicitada").
+> - **[✔] Backend / Endpoints:** Creación de solicitud (`/api/company/employees/documents/signature/request`).
+> - **[✔] Webhook / Estado:** Endpoint (`/api/integrations/docuseal/webhook`), modelo de BD (`employee_documents` columns + views) y validación de idempotencia.
+> - **[✔] UI Badges (Empresa/Empleado):** Lógica visual de sincronización (Badge "Firma solicitada" y listados actualizados).
 
 Objetivo: habilitar el boton `Solicitar firma` en documentos de empleado una vez que el documento fue aprobado y su regla de vencimiento fue configurada (con fecha o `sin vencimiento`), permitiendo firma electronica via DocuSeal con trazabilidad completa.
 

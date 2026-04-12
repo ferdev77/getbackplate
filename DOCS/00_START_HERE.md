@@ -22,6 +22,11 @@ Leer:
 - `DOCS/1_Arquitectura_y_Contexto/ANALISIS_INTEGRAL_APP_DB_2026-03-31.md`
 - `DOCS/2_Planes_y_Checklists/PLAN_EJECUCION_TABLERO_OPERATIVO_SIN_FECHAS.md`
 
+## 4) Si la pregunta es flujo de documentos de empleados (slots fijos/custom)
+
+Leer:
+- `DOCS/4_Operaciones_y_Guias/GUIA_FLUJO_DOCUMENTOS_CUSTOM_EMPLEADOS.md`
+
 ## Regla operativa para IA o humanos
 
 1. Responder primero lo puntual pedido por el usuario.
