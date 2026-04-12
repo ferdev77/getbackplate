@@ -1,14 +1,57 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, startTransition, type FormEvent } from "react";
+import { createElement, useEffect, useMemo, useState, startTransition, type FormEvent } from "react";
 import { toast } from "sonner";
 import { SubmitButton } from "@/shared/ui/submit-button";
 
-type ModalBranch = { id: string; name: string };
+export type ModalBranch = { id: string; name: string };
 type ModalDocument = { id: string; title: string; created_at: string };
-type ModalDepartment = { id: string; name: string };
-type ModalPosition = { id: string; department_id: string; name: string; is_active: boolean };
+export type ModalDepartment = { id: string; name: string };
+export type ModalPosition = { id: string; department_id: string; name: string; is_active: boolean };
+
+export type EmployeeModalInitialDocument = {
+  documentId: string;
+  title: string;
+  status: string;
+  uploaded_by_role?: "employee" | "company" | null;
+  uploaded_by_label?: string | null;
+  review_comment?: string | null;
+  expires_at?: string | null;
+  reminder_days?: 15 | 30 | 45 | null;
+  has_no_expiration?: boolean;
+  expiration_configured?: boolean;
+  signature_status?: "requested" | "completed" | "declined" | "expired" | "failed" | null;
+  signature_embed_src?: string | null;
+  signature_requested_at?: string | null;
+  signature_completed_at?: string | null;
+};
+
+export type EmployeeModalInitialData = {
+  id: string;
+  organization_user_profile_id?: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  branch_id: string;
+  department_id: string;
+  position_id: string;
+  document_type: string | null;
+  document_number: string | null;
+  personal_email: string | null;
+  phone: string | null;
+  address: string | null;
+  birth_date: string | null;
+  hire_date: string | null;
+  contract_type: string | null;
+  contract_signed_at: string | null;
+  contract_signer_name: string | null;
+  salary_amount?: number | null;
+  salary_currency?: string | null;
+  payment_frequency?: string | null;
+  has_dashboard_access?: boolean;
+  documents_by_slot?: Record<string, EmployeeModalInitialDocument>;
+};
 
 type NewEmployeeModalProps = {
   open: boolean;
@@ -18,33 +61,17 @@ type NewEmployeeModalProps = {
   departments: ModalDepartment[];
   positions: ModalPosition[];
   publisherName: string;
-  mode?: "create" | "edit";
-  initialEmployee?: {
-    id: string;
-    organization_user_profile_id?: string;
-    first_name: string;
-    last_name: string;
-    email: string;
-    branch_id: string;
-    department_id: string;
-    position_id: string;
-    document_type: string | null;
-    document_number: string | null;
-    personal_email: string | null;
-    phone: string | null;
-    address: string | null;
-    birth_date: string | null;
-    hire_date: string | null;
-    contract_type: string | null;
-    contract_signed_at: string | null;
-    contract_signer_name: string | null;
-    salary_amount?: number | null;
-    salary_currency?: string | null;
-    payment_frequency?: string | null;
-    has_dashboard_access?: boolean;
-    documents_by_slot?: Record<string, { documentId: string; title: string; status: string }>;
-  };
+  mode?: "create" | "edit" | "employee_self";
+  initialEmployee?: EmployeeModalInitialData;
+  selfProfileUploadEndpoint?: string;
   recentDocuments?: ModalDocument[];
+};
+
+type SlotUploadUiState = {
+  phase: "idle" | "uploading" | "success" | "error";
+  progress: number;
+  fileName: string | null;
+  message: string | null;
 };
 
 const DARK_PANEL = "[.theme-dark-pro_&]:border [.theme-dark-pro_&]:border-[var(--gbp-border)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)]";
@@ -53,6 +80,76 @@ const DARK_MUTED = "[.theme-dark-pro_&]:text-[var(--gbp-text2)]";
 const DARK_GHOST = "[.theme-dark-pro_&]:border-[var(--gbp-border2)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)] [.theme-dark-pro_&]:text-[var(--gbp-text2)] [.theme-dark-pro_&]:hover:bg-[var(--gbp-surface2)]";
 const FIELD_LABEL = "text-[12px] font-bold text-[var(--gbp-text2)]";
 const FIELD_INPUT = "w-full rounded-xl border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-4 py-3 text-sm text-[var(--gbp-text)] outline-none transition-all focus:border-[var(--gbp-accent)]";
+
+function formatDateForUi(value: string | null | undefined): string {
+  if (!value) return "";
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return new Intl.DateTimeFormat("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(parsed);
+}
+
+function getReminderSendDate(expiresAt: string | null | undefined, reminderDays: 15 | 30 | 45 | null | undefined): string | null {
+  if (!expiresAt || !reminderDays) return null;
+  const parsed = new Date(`${expiresAt}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  parsed.setUTCDate(parsed.getUTCDate() - reminderDays);
+  return parsed.toISOString().slice(0, 10);
+}
+
+function isDateExpired(expiresAt: string | null | undefined): boolean {
+  if (!expiresAt) return false;
+  const parsed = new Date(`${expiresAt}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime())) return false;
+  const now = new Date();
+  const todayUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return parsed.getTime() < todayUtc;
+}
+
+function formatDateTimeForUi(value: string | null | undefined): string {
+  if (!value) return "";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return new Intl.DateTimeFormat("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(parsed);
+}
+
+async function postFormDataWithProgress(
+  url: string,
+  formData: FormData,
+  onProgress: (percent: number) => void,
+): Promise<{ status: number; data: Record<string, unknown> }> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+    xhr.responseType = "json";
+
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+      const percent = Math.max(1, Math.min(98, Math.round((event.loaded / event.total) * 100)));
+      onProgress(percent);
+    };
+
+    xhr.onerror = () => reject(new Error("No se pudo subir el archivo"));
+    xhr.onload = () => {
+      const payload = xhr.response && typeof xhr.response === "object"
+        ? (xhr.response as Record<string, unknown>)
+        : {};
+      resolve({ status: xhr.status, data: payload });
+    };
+
+    xhr.send(formData);
+  });
+}
 
 export function NewEmployeeModal({
   open,
@@ -63,7 +160,9 @@ export function NewEmployeeModal({
   positions,
   mode = "create",
   initialEmployee,
+  selfProfileUploadEndpoint = "/api/employee/profile/documents",
 }: NewEmployeeModalProps) {
+  const isEmployeeSelfMode = mode === "employee_self";
   const [isActionPending, setIsActionPending] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [selectedDept, setSelectedDept] = useState(initialEmployee?.department_id ?? "");
@@ -71,22 +170,118 @@ export function NewEmployeeModal({
   const [selectedPosition, setSelectedPosition] = useState(initialEmployee?.position_id ?? "");
   const [createAccount, setCreateAccount] = useState(Boolean(initialEmployee?.has_dashboard_access));
   const [isEmployeeProfile, setIsEmployeeProfile] = useState(
-    initialEmployee?.organization_user_profile_id ? false : mode === "edit",
+    isEmployeeSelfMode ? true : initialEmployee?.organization_user_profile_id ? false : mode === "edit",
   );
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(0);
   const [selectedDocumentFiles, setSelectedDocumentFiles] = useState<Record<string, string>>({});
+  const [documentsBySlotState, setDocumentsBySlotState] = useState<Record<string, EmployeeModalInitialDocument>>(initialEmployee?.documents_by_slot ?? {});
+  const [reviewingBySlot, setReviewingBySlot] = useState<Record<string, boolean>>({});
+  const [savingExpirationBySlot, setSavingExpirationBySlot] = useState<Record<string, boolean>>({});
+  const [uploadUiBySlot, setUploadUiBySlot] = useState<Record<string, SlotUploadUiState>>({});
+  const [signatureActionBySlot, setSignatureActionBySlot] = useState<Record<string, boolean>>({});
+  const [signatureModal, setSignatureModal] = useState<{ open: boolean; slot: string | null; src: string | null }>({ open: false, slot: null, src: null });
+  const [docusealReady, setDocusealReady] = useState(false);
+  const [docusealLoadFailed, setDocusealLoadFailed] = useState(false);
+
+  useEffect(() => {
+    if (!signatureModal.open || !signatureModal.src) return;
+    if (typeof window === "undefined") return;
+
+    const timeout = window.setTimeout(() => {
+      setDocusealLoadFailed(true);
+    }, 8000);
+
+    const customElementReady = typeof window.customElements !== "undefined" && window.customElements.get("docuseal-form");
+    if (customElementReady) {
+      setDocusealReady(true);
+      setDocusealLoadFailed(false);
+      window.clearTimeout(timeout);
+      return;
+    }
+
+    const existingScript = document.getElementById("docuseal-form-script") as HTMLScriptElement | null;
+    if (existingScript) {
+      existingScript.addEventListener("load", () => {
+        setDocusealReady(true);
+        setDocusealLoadFailed(false);
+        window.clearTimeout(timeout);
+      }, { once: true });
+      existingScript.addEventListener("error", () => {
+        setDocusealLoadFailed(true);
+        window.clearTimeout(timeout);
+      }, { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = "docuseal-form-script";
+    script.src = "https://cdn.docuseal.com/js/form.js";
+    script.async = true;
+    script.onload = () => {
+      setDocusealReady(true);
+      setDocusealLoadFailed(false);
+      window.clearTimeout(timeout);
+    };
+    script.onerror = () => {
+      setDocusealLoadFailed(true);
+      window.clearTimeout(timeout);
+    };
+    document.body.appendChild(script);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [signatureModal.open, signatureModal.src]);
+
+  // Auto-cierre del modal de firma cuando DocuSeal notifica completion via postMessage
+  useEffect(() => {
+    if (!signatureModal.open) return;
+
+    const handler = (event: MessageEvent) => {
+      // DocuSeal puede emitir el evento en distintos formatos según versión del embed
+      const isCompleted =
+        event.data?.type === "docuseal:completed" ||
+        event.data?.event === "completed" ||
+        event.data?.completed === true;
+
+      if (!isCompleted) return;
+
+      const slotToRefresh = signatureModal.slot;
+      setSignatureModal({ open: false, slot: null, src: null });
+      setDocusealReady(false);
+      setDocusealLoadFailed(false);
+
+      if (slotToRefresh) {
+        toast.success("¡Documento firmado exitosamente!");
+        void handleRefreshSignatureStatus(slotToRefresh);
+      }
+    };
+
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signatureModal.open, signatureModal.slot]);
+
   const [customDocumentRows, setCustomDocumentRows] = useState<Array<{ id: string; title: string; fileName: string }>>([]);
   const [showAddDocumentTitleBox, setShowAddDocumentTitleBox] = useState(false);
   const [newDocumentTitle, setNewDocumentTitle] = useState("");
   const [firstName, setFirstName] = useState(initialEmployee?.first_name ?? "");
   const [lastName, setLastName] = useState(initialEmployee?.last_name ?? "");
+  const [phone, setPhone] = useState(initialEmployee?.phone ?? "");
+  const [email, setEmail] = useState(initialEmployee?.email ?? "");
+  const [birthDate, setBirthDate] = useState(initialEmployee?.birth_date ?? "");
+  const [documentType, setDocumentType] = useState(initialEmployee?.document_type ?? "");
+  const [documentNumber, setDocumentNumber] = useState(initialEmployee?.document_number ?? "");
+  const [address, setAddress] = useState(initialEmployee?.address ?? "");
   const [hireDate, setHireDate] = useState(initialEmployee?.hire_date ?? "");
   const [contractType, setContractType] = useState(initialEmployee?.contract_type ?? "indefinite");
   const [salaryAmount, setSalaryAmount] = useState(
     initialEmployee?.salary_amount != null ? String(initialEmployee.salary_amount) : "",
   );
   const [paymentFrequency, setPaymentFrequency] = useState(initialEmployee?.payment_frequency ?? "");
+  const [contractSignerName, setContractSignerName] = useState(initialEmployee?.contract_signer_name ?? "");
+  const [contractSignedAt, setContractSignedAt] = useState(initialEmployee?.contract_signed_at ?? "");
 
   const handleClose = () => {
     if (onClose) {
@@ -120,6 +315,129 @@ export function NewEmployeeModal({
 
     setSelectedDocumentFiles(byName);
   }, [initialEmployee?.documents_by_slot]);
+
+  useEffect(() => {
+    setDocumentsBySlotState(initialEmployee?.documents_by_slot ?? {});
+  }, [initialEmployee?.documents_by_slot]);
+
+  useEffect(() => {
+    setSelectedDept(initialEmployee?.department_id ?? "");
+    setSelectedBranch(initialEmployee?.branch_id ?? "");
+    setSelectedPosition(initialEmployee?.position_id ?? "");
+    setCreateAccount(Boolean(initialEmployee?.has_dashboard_access));
+    setIsEmployeeProfile(isEmployeeSelfMode ? true : initialEmployee?.organization_user_profile_id ? false : mode === "edit");
+    setFirstName(initialEmployee?.first_name ?? "");
+    setLastName(initialEmployee?.last_name ?? "");
+    setPhone(initialEmployee?.phone ?? "");
+    setEmail(initialEmployee?.email ?? "");
+    setBirthDate(initialEmployee?.birth_date ?? "");
+    setDocumentType(initialEmployee?.document_type ?? "");
+    setDocumentNumber(initialEmployee?.document_number ?? "");
+    setAddress(initialEmployee?.address ?? "");
+    setHireDate(initialEmployee?.hire_date ?? "");
+    setContractType(initialEmployee?.contract_type ?? "indefinite");
+    setSalaryAmount(initialEmployee?.salary_amount != null ? String(initialEmployee.salary_amount) : "");
+    setPaymentFrequency(initialEmployee?.payment_frequency ?? "");
+    setContractSignerName(initialEmployee?.contract_signer_name ?? "");
+    setContractSignedAt(initialEmployee?.contract_signed_at ?? "");
+  }, [initialEmployee, isEmployeeSelfMode, mode, open]);
+
+  async function handleInstantDocumentUpload(slot: string, inputName: string, file: File | null) {
+    if (!file) return;
+
+    const isCompanyInstant = !isEmployeeSelfMode && Boolean(initialEmployee?.id);
+    if (!isEmployeeSelfMode && !isCompanyInstant) {
+      return;
+    }
+
+    const endpoint = isEmployeeSelfMode ? selfProfileUploadEndpoint : "/api/company/employees/documents/upload";
+    const formData = new FormData();
+    formData.set("slot", slot);
+    formData.set("file", file);
+    if (isCompanyInstant) {
+      formData.set("employeeId", initialEmployee?.id ?? "");
+    }
+
+    setUploadUiBySlot((prev) => ({
+      ...prev,
+      [slot]: {
+        phase: "uploading",
+        progress: 2,
+        fileName: file.name,
+        message: "Subiendo...",
+      },
+    }));
+
+    try {
+      const { status, data } = await postFormDataWithProgress(endpoint, formData, (percent) => {
+        setUploadUiBySlot((prev) => ({
+          ...prev,
+          [slot]: {
+            phase: "uploading",
+            progress: percent,
+            fileName: file.name,
+            message: "Subiendo...",
+          },
+        }));
+      });
+
+      if (status < 200 || status >= 300 || !data.ok || typeof data.slot !== "string" || typeof data.documentId !== "string") {
+        throw new Error(typeof data.error === "string" ? data.error : "No se pudo cargar documento");
+      }
+
+      const uploadedSlot = data.slot;
+      const uploadedStatus = typeof data.status === "string" ? data.status : (isEmployeeSelfMode ? "pending" : "approved");
+      const uploadedTitle = typeof data.documentTitle === "string" && data.documentTitle.trim().length > 0 ? data.documentTitle.trim() : file.name;
+
+      setSelectedDocumentFiles((prev) => ({
+        ...prev,
+        [inputName]: uploadedTitle,
+      }));
+
+      setDocumentsBySlotState((prev) => ({
+        ...prev,
+        [uploadedSlot]: {
+          documentId: typeof data.documentId === "string" ? data.documentId : String(data.documentId ?? ""),
+          title: uploadedTitle,
+          status: uploadedStatus,
+          uploaded_by_role: isEmployeeSelfMode ? "employee" : "company",
+          uploaded_by_label: isEmployeeSelfMode ? "Empleado" : "Administrador",
+          review_comment: null,
+          expires_at: null,
+          reminder_days: null,
+          has_no_expiration: false,
+          expiration_configured: false,
+        },
+      }));
+
+      setUploadUiBySlot((prev) => ({
+        ...prev,
+        [slot]: {
+          phase: "success",
+          progress: 100,
+          fileName: file.name,
+          message: "Guardado",
+        },
+      }));
+
+      toast.success(isEmployeeSelfMode ? "Documento enviado para revision" : "Documento cargado y guardado");
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo cargar documento";
+      setUploadUiBySlot((prev) => ({
+        ...prev,
+        [slot]: {
+          phase: "error",
+          progress: 0,
+          fileName: file.name,
+          message,
+        },
+      }));
+      toast.error(message);
+    }
+  }
 
   async function handleResendInvitation() {
     const targetEmail = initialEmployee?.email;
@@ -155,6 +473,14 @@ export function NewEmployeeModal({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isEmployeeSelfMode) {
+      return;
+    }
+    const hasUploading = Object.values(uploadUiBySlot).some((row) => row.phase === "uploading");
+    if (hasUploading) {
+      toast.error("Espera a que termine la carga de documentos");
+      return;
+    }
     setIsActionPending(true);
 
     try {
@@ -178,6 +504,194 @@ export function NewEmployeeModal({
       toast.error(error instanceof Error ? error.message : "No se pudo guardar el registro");
     } finally {
       setIsActionPending(false);
+    }
+  }
+
+  async function handleCompanyDocumentReview(slot: string, decision: "approved" | "rejected") {
+    if (isEmployeeSelfMode) return;
+    const row = documentsBySlotState?.[slot];
+    if (!row?.documentId || !initialEmployee?.id) return;
+
+    const commentPrompt = window.prompt(
+      decision === "approved"
+        ? "Comentario de aprobación (opcional)"
+        : "Comentario de rechazo (opcional)",
+      row.review_comment ?? "",
+    );
+    if (commentPrompt === null) return;
+    const comment = commentPrompt.trim();
+
+    setReviewingBySlot((prev) => ({ ...prev, [slot]: true }));
+    try {
+      const response = await fetch("/api/company/employees/documents/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeId: initialEmployee.id,
+          documentId: row.documentId,
+          decision,
+          comment,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || "No se pudo actualizar la revisión");
+      }
+
+      setDocumentsBySlotState((prev) => ({
+        ...prev,
+        [slot]: {
+          ...row,
+          status: decision,
+          review_comment: (typeof data.reviewComment === "string" && data.reviewComment.trim().length > 0)
+            ? data.reviewComment.trim()
+            : null,
+        },
+      }));
+
+      toast.success(decision === "approved" ? "Documento aprobado" : "Documento rechazado");
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo actualizar la revisión");
+    } finally {
+      setReviewingBySlot((prev) => ({ ...prev, [slot]: false }));
+    }
+  }
+
+  async function handleCompanyDocumentExpirationSave(
+    slot: string,
+    overrides?: { expires_at: string | null; reminder_days: 15 | 30 | 45 | null; has_no_expiration?: boolean },
+  ) {
+    if (isEmployeeSelfMode) return;
+    const row = documentsBySlotState?.[slot];
+    if (!row?.documentId || !initialEmployee?.id) return;
+    if (row.status !== "approved") {
+      toast.error("Solo puedes configurar vencimiento en documentos aprobados");
+      return;
+    }
+
+    setSavingExpirationBySlot((prev) => ({ ...prev, [slot]: true }));
+    try {
+      const response = await fetch("/api/company/employees/documents/expiration", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeId: initialEmployee.id,
+          documentId: row.documentId,
+          expiresAt: overrides ? overrides.expires_at : (row.expires_at || null),
+          reminderDays: overrides ? overrides.reminder_days : (row.reminder_days ?? null),
+          noExpiration: overrides ? Boolean(overrides.has_no_expiration) : Boolean(row.has_no_expiration),
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || "No se pudo guardar el vencimiento");
+      }
+
+      setDocumentsBySlotState((prev) => ({
+        ...prev,
+        [slot]: {
+          ...row,
+          expires_at: typeof data.expiresAt === "string" ? data.expiresAt : null,
+          reminder_days: data.reminderDays === 15 || data.reminderDays === 30 || data.reminderDays === 45
+            ? data.reminderDays
+            : null,
+          has_no_expiration: data.noExpiration === true,
+          expiration_configured: true,
+        },
+      }));
+
+      toast.success("Vencimiento y recordatorio guardados");
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo guardar el vencimiento");
+    } finally {
+      setSavingExpirationBySlot((prev) => ({ ...prev, [slot]: false }));
+    }
+  }
+
+  async function handleCompanyDocumentSetNoExpiration(slot: string) {
+    await handleCompanyDocumentExpirationSave(slot, { expires_at: null, reminder_days: null, has_no_expiration: true });
+  }
+
+  async function handleCompanyRequestSignature(slot: string) {
+    if (!initialEmployee?.id) return;
+    const row = documentsBySlotState?.[slot];
+    if (!row?.documentId) return;
+
+    setSignatureActionBySlot((prev) => ({ ...prev, [slot]: true }));
+    try {
+      const response = await fetch("/api/company/employees/documents/signature/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employeeId: initialEmployee.id, documentId: row.documentId }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || "No se pudo solicitar firma");
+      }
+
+      setDocumentsBySlotState((prev) => ({
+        ...prev,
+        [slot]: {
+          ...row,
+          signature_status: "requested",
+          signature_embed_src: typeof data.signatureEmbedSrc === "string" ? data.signatureEmbedSrc : null,
+          signature_requested_at: typeof data.signatureRequestedAt === "string" ? data.signatureRequestedAt : new Date().toISOString(),
+          signature_completed_at: null,
+        },
+      }));
+      toast.success("Firma solicitada al empleado");
+      startTransition(() => router.refresh());
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo solicitar firma");
+    } finally {
+      setSignatureActionBySlot((prev) => ({ ...prev, [slot]: false }));
+    }
+  }
+
+  async function handleRefreshSignatureStatus(slot: string) {
+    const row = documentsBySlotState?.[slot];
+    if (!row?.documentId) return;
+    const endpoint = isEmployeeSelfMode
+      ? "/api/employee/profile/documents/signature/refresh"
+      : "/api/company/employees/documents/signature/refresh";
+
+    setSignatureActionBySlot((prev) => ({ ...prev, [slot]: true }));
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          isEmployeeSelfMode
+            ? { documentId: row.documentId }
+            : { employeeId: initialEmployee?.id, documentId: row.documentId },
+        ),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || "No se pudo actualizar estado de firma");
+      }
+
+      setDocumentsBySlotState((prev) => ({
+        ...prev,
+        [slot]: {
+          ...row,
+          signature_status: typeof data.signatureStatus === "string" ? data.signatureStatus as EmployeeModalInitialDocument["signature_status"] : row.signature_status,
+          signature_completed_at: typeof data.signatureCompletedAt === "string" ? data.signatureCompletedAt : row.signature_completed_at,
+        },
+      }));
+
+      toast.success("Estado de firma actualizado");
+      startTransition(() => router.refresh());
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo actualizar estado de firma");
+    } finally {
+      setSignatureActionBySlot((prev) => ({ ...prev, [slot]: false }));
     }
   }
 
@@ -335,9 +849,9 @@ export function NewEmployeeModal({
       { key: "personal", label: "Info Personal" },
       { key: "documents", label: "Documentos" },
       ...(isEmployeeProfile ? [{ key: "contract", label: "Contrato" }] : []),
-      { key: "account", label: "Cuenta (App)" },
+      ...(isEmployeeSelfMode ? [] : [{ key: "account", label: "Cuenta (App)" }]),
     ],
-    [isEmployeeProfile],
+    [isEmployeeProfile, isEmployeeSelfMode],
   );
 
   const currentTabIndex = activeTab <= tabs.length - 1 ? activeTab : 0;
@@ -379,7 +893,7 @@ export function NewEmployeeModal({
               </svg>
             </span>
             <h2 className={`text-xl font-bold tracking-tight text-[var(--gbp-text)] ${DARK_TEXT}`} style={{ fontFamily: 'Georgia, serif' }}>
-              {mode === "edit" ? "Editar Usuario / Empleado" : "Nuevo Usuario / Empleado"}
+              {isEmployeeSelfMode ? "Mi Perfil" : mode === "edit" ? "Editar Usuario / Empleado" : "Nuevo Usuario / Empleado"}
             </h2>
           </div>
           <button
@@ -410,7 +924,7 @@ export function NewEmployeeModal({
             ))}
           </div>
 
-          {isDocumentsTabActive ? (
+          {isDocumentsTabActive && !isEmployeeSelfMode ? (
             <div className="relative">
               <button
                 type="button"
@@ -477,6 +991,7 @@ export function NewEmployeeModal({
           <div className="flex-1 overflow-y-auto bg-[var(--gbp-surface)] p-8">
             {/* TAB 0 - Info Personal */}
             <div className={currentTabIndex === tabs.findIndex((tab) => tab.key === "personal") ? "block" : "hidden"}>
+              <fieldset disabled={isEmployeeSelfMode} className={isEmployeeSelfMode ? "opacity-90" : ""}>
               <h3 className={`mb-4 border-b border-[var(--gbp-border)] pb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--gbp-muted)] ${DARK_MUTED}`}>
                 Información Personal
               </h3>
@@ -484,15 +999,15 @@ export function NewEmployeeModal({
                 <button
                   type="button"
                   onClick={() => {
-                    if (mode === "edit") return;
+                    if (mode === "edit" || isEmployeeSelfMode) return;
                     setIsEmployeeProfile((prev) => !prev);
                   }}
-                  disabled={mode === "edit"}
+                  disabled={mode === "edit" || isEmployeeSelfMode}
                   className={`flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-left transition-colors ${
                     isEmployeeProfile
                       ? "border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,var(--gbp-border))] bg-[var(--gbp-accent-glow)]"
                       : "border-[var(--gbp-border)] bg-[var(--gbp-surface)]"
-                  } ${mode === "edit" ? "cursor-not-allowed opacity-70" : "cursor-pointer hover:border-[var(--gbp-accent)]"}`}
+                  } ${mode === "edit" || isEmployeeSelfMode ? "cursor-not-allowed opacity-70" : "cursor-pointer hover:border-[var(--gbp-accent)]"}`}
                   role="switch"
                   aria-checked={isEmployeeProfile}
                   aria-label="Perfil de empleado"
@@ -545,7 +1060,8 @@ export function NewEmployeeModal({
                   <input
                     name="phone"
                     required
-                    defaultValue={initialEmployee?.phone ?? ""}
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
                     className={FIELD_INPUT}
                     placeholder="+1 228 555 0000"
                   />
@@ -556,7 +1072,8 @@ export function NewEmployeeModal({
                     name="email"
                     type="email"
                     required
-                    defaultValue={initialEmployee?.email ?? ""}
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
                     className={FIELD_INPUT}
                     placeholder="usuario@empresa.com"
                   />
@@ -571,7 +1088,8 @@ export function NewEmployeeModal({
                       <input
                         name="birth_date"
                         type="date"
-                        defaultValue={initialEmployee?.birth_date ?? ""}
+                        value={birthDate}
+                        onChange={(event) => setBirthDate(event.target.value)}
                         className={FIELD_INPUT}
                       />
                     </div>
@@ -579,7 +1097,8 @@ export function NewEmployeeModal({
                       <label className={FIELD_LABEL}>Tipo de Documento</label>
                       <select
                         name="document_type"
-                        defaultValue={initialEmployee?.document_type ?? ""}
+                        value={documentType}
+                        onChange={(event) => setDocumentType(event.target.value)}
                         className={`${FIELD_INPUT} appearance-none`}
                         style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: 'right 1rem center', backgroundRepeat: 'no-repeat' }}
                       >
@@ -594,7 +1113,8 @@ export function NewEmployeeModal({
                       <label className={FIELD_LABEL}>Número de Documento</label>
                       <input
                         name="document_number"
-                        defaultValue={initialEmployee?.document_number ?? ""}
+                        value={documentNumber}
+                        onChange={(event) => setDocumentNumber(event.target.value)}
                         className={FIELD_INPUT}
                         placeholder="00.000.000"
                       />
@@ -606,7 +1126,8 @@ export function NewEmployeeModal({
                       <label className={FIELD_LABEL}>Dirección Completa</label>
                       <input
                         name="address"
-                        defaultValue={initialEmployee?.address ?? ""}
+                        value={address}
+                        onChange={(event) => setAddress(event.target.value)}
                         className={FIELD_INPUT}
                         placeholder="Calle, Número, Ciudad, Estado, País"
                       />
@@ -677,6 +1198,7 @@ export function NewEmployeeModal({
                 </div>
               </div>
 
+              </fieldset>
             </div>
 
             {/* TAB 1 - Documentos */}
@@ -695,7 +1217,10 @@ export function NewEmployeeModal({
                 ].map((doc) => (
                   <div
                     key={doc.id}
-                    onClick={() => document.getElementById(doc.id)?.click()}
+                    onClick={() => {
+                      if (isActionPending) return;
+                      document.getElementById(doc.id)?.click();
+                    }}
                     className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 transition-all hover:border-[var(--gbp-accent)] hover:bg-[var(--gbp-bg)] ${selectedDocumentFiles[doc.name] ? "border-[var(--gbp-success)] bg-[var(--gbp-success-soft)]" : "border-[var(--gbp-border2)]"}`}
                   >
                     <input
@@ -703,21 +1228,27 @@ export function NewEmployeeModal({
                       id={doc.id}
                       name={doc.name}
                       accept="image/*,.pdf"
+                      disabled={isActionPending}
                       className="hidden"
                       onChange={(event) => {
-                        const fileName = event.target.files?.[0]?.name ?? "";
+                        const file = event.target.files?.[0] ?? null;
+                        const fileName = file?.name ?? "";
                         setSelectedDocumentFiles((prev) => ({
                           ...prev,
                           [doc.name]: fileName,
                         }));
+                        if (isEmployeeSelfMode || initialEmployee?.id) {
+                          void handleInstantDocumentUpload(doc.slot, doc.name, file);
+                          event.currentTarget.value = "";
+                        }
                       }}
                     />
                     <span className="mb-3 text-4xl transition-transform group-hover:scale-110">{doc.icon}</span>
                     <span className="text-center text-[13px] font-bold text-[var(--gbp-text2)]">{doc.label}</span>
-                    {initialEmployee?.documents_by_slot?.[doc.slot] ? (
+                    {documentsBySlotState?.[doc.slot] ? (
                       <div className="mt-2 flex items-center gap-2">
                         <a
-                          href={`/api/documents/${initialEmployee.documents_by_slot[doc.slot].documentId}/download`}
+                          href={`/api/documents/${documentsBySlotState[doc.slot].documentId}/download`}
                           target="_blank"
                           rel="noreferrer"
                           onClick={(event) => event.stopPropagation()}
@@ -726,7 +1257,7 @@ export function NewEmployeeModal({
                           Ver
                         </a>
                         <a
-                          href={`/api/documents/${initialEmployee.documents_by_slot[doc.slot].documentId}/download`}
+                          href={`/api/documents/${documentsBySlotState[doc.slot].documentId}/download`}
                           target="_blank"
                           rel="noreferrer"
                           onClick={(event) => event.stopPropagation()}
@@ -734,9 +1265,263 @@ export function NewEmployeeModal({
                         >
                           Descargar
                         </a>
+                        {(() => {
+                          const row = documentsBySlotState[doc.slot];
+                          const expired = row.status === "approved" && !row.has_no_expiration && isDateExpired(row.expires_at);
+                          const label = expired
+                            ? "⚠ Vencido"
+                            : row.status === "approved"
+                              ? "Aprobado"
+                              : row.status === "rejected"
+                                ? "Rechazado"
+                                : "Pendiente";
+                          const tone = expired
+                            ? "border-amber-300 bg-amber-50 text-amber-700"
+                            : row.status === "approved"
+                              ? "border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]"
+                              : row.status === "rejected"
+                                ? "border-red-300 bg-red-50 text-red-700"
+                                : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]";
+                          return (
+                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${tone}`}>
+                              {label}
+                            </span>
+                          );
+                        })()}
                       </div>
                     ) : null}
-                    {selectedDocumentFiles[doc.name] ? (
+                    {documentsBySlotState?.[doc.slot]?.uploaded_by_label ? (
+                      <p className="mt-1 text-center text-[10px] font-semibold text-[var(--gbp-text2)]">
+                        Cargado por: {documentsBySlotState[doc.slot].uploaded_by_label}
+                      </p>
+                    ) : null}
+                    {documentsBySlotState?.[doc.slot]?.review_comment ? (
+                      <p className="mt-1 max-w-[250px] text-center text-[10px] text-[var(--gbp-text2)]">
+                        Comentario: {documentsBySlotState[doc.slot].review_comment}
+                      </p>
+                    ) : null}
+                    {documentsBySlotState?.[doc.slot]?.expires_at ? (
+                      <p className="mt-1 text-center text-[10px] font-semibold text-[var(--gbp-text2)]">
+                        Vence: {formatDateForUi(documentsBySlotState[doc.slot].expires_at)}
+                      </p>
+                    ) : null}
+                    {documentsBySlotState?.[doc.slot]?.has_no_expiration ? (
+                      <p className="mt-1 text-center text-[10px] font-semibold text-[var(--gbp-text2)]">
+                        Documento sin vencimiento
+                      </p>
+                    ) : null}
+                    {(() => {
+                      const row = documentsBySlotState?.[doc.slot];
+                      const reminderSendDate = getReminderSendDate(row?.expires_at, row?.reminder_days ?? null);
+                      if (!row?.reminder_days || !reminderSendDate) return null;
+                      return (
+                        <p className="mt-1 text-center text-[10px] font-semibold text-[var(--gbp-text2)]">
+                          Aviso recordatorio: {row.reminder_days} dias antes ({formatDateForUi(reminderSendDate)})
+                        </p>
+                      );
+                    })()}
+                    {documentsBySlotState?.[doc.slot]?.signature_status ? (
+                      <p className="mt-1 text-center text-[10px] font-semibold text-[var(--gbp-text2)]">
+                        Firma: {documentsBySlotState[doc.slot].signature_status === "completed"
+                          ? "Firmado"
+                          : documentsBySlotState[doc.slot].signature_status === "requested"
+                            ? "Solicitada"
+                            : documentsBySlotState[doc.slot].signature_status === "declined"
+                              ? "Rechazada"
+                              : documentsBySlotState[doc.slot].signature_status === "expired"
+                                ? "Expirada"
+                                : "Error"}
+                        {documentsBySlotState[doc.slot].signature_completed_at
+                          ? ` (${formatDateTimeForUi(documentsBySlotState[doc.slot].signature_completed_at)})`
+                          : ""}
+                      </p>
+                    ) : null}
+                    {!isEmployeeSelfMode && documentsBySlotState?.[doc.slot]?.status === "approved" && documentsBySlotState?.[doc.slot]?.expiration_configured && documentsBySlotState?.[doc.slot]?.signature_status !== "completed" && documentsBySlotState?.[doc.slot]?.signature_status !== "requested" ? (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleCompanyRequestSignature(doc.slot);
+                        }}
+                        disabled={Boolean(signatureActionBySlot[doc.slot])}
+                        className="mt-2 rounded-md border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-surface)] px-2.5 py-1 text-[10px] font-semibold text-[var(--gbp-accent)] hover:bg-[var(--gbp-bg)] disabled:opacity-60"
+                      >
+                        Solicitar firma
+                      </button>
+                    ) : null}
+                    {isEmployeeSelfMode && documentsBySlotState?.[doc.slot]?.signature_status === "requested" && documentsBySlotState?.[doc.slot]?.signature_embed_src ? (
+                      <div className="mt-2 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setDocusealReady(false);
+                            setDocusealLoadFailed(false);
+                            setSignatureModal({ open: true, slot: doc.slot, src: documentsBySlotState[doc.slot].signature_embed_src ?? null });
+                          }}
+                          className="rounded-md border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-surface)] px-2.5 py-1 text-[10px] font-semibold text-[var(--gbp-accent)] hover:bg-[var(--gbp-bg)]"
+                        >
+                          Firmar ahora
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleRefreshSignatureStatus(doc.slot);
+                          }}
+                          disabled={Boolean(signatureActionBySlot[doc.slot])}
+                          className="rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-2.5 py-1 text-[10px] font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)] disabled:opacity-60"
+                        >
+                          Actualizar firma
+                        </button>
+                      </div>
+                    ) : null}
+                    {!isEmployeeSelfMode && documentsBySlotState?.[doc.slot]?.signature_status === "requested" ? (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleRefreshSignatureStatus(doc.slot);
+                        }}
+                        disabled={Boolean(signatureActionBySlot[doc.slot])}
+                        className="mt-2 rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-2.5 py-1 text-[10px] font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)] disabled:opacity-60"
+                      >
+                        Actualizar firma
+                      </button>
+                    ) : null}
+                    {!isEmployeeSelfMode && documentsBySlotState?.[doc.slot]?.status === "approved" && !documentsBySlotState?.[doc.slot]?.expiration_configured ? (
+                      <div className="mt-3 w-full space-y-2 rounded-xl border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] p-3" onClick={(event) => event.stopPropagation()}>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-text2)]">Vencimiento y recordatorio</p>
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          <label className="text-left text-[10px] text-[var(--gbp-text2)]">
+                            Fecha de vencimiento
+                            <input
+                              type="date"
+                              value={documentsBySlotState[doc.slot].expires_at ?? ""}
+                              onChange={(event) => {
+                                const value = event.target.value.trim() || null;
+                                setDocumentsBySlotState((prev) => ({
+                                  ...prev,
+                                  [doc.slot]: {
+                                    ...prev[doc.slot],
+                                    expires_at: value,
+                                    reminder_days: value ? prev[doc.slot]?.reminder_days ?? null : null,
+                                    has_no_expiration: false,
+                                  },
+                                }));
+                              }}
+                              className="mt-1 w-full rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-2 py-1 text-[11px] text-[var(--gbp-text)]"
+                            />
+                          </label>
+                          <label className="text-left text-[10px] text-[var(--gbp-text2)]">
+                            Recordatorio
+                            <select
+                              value={documentsBySlotState[doc.slot].reminder_days?.toString() ?? ""}
+                              onChange={(event) => {
+                                const value = event.target.value;
+                                setDocumentsBySlotState((prev) => ({
+                                  ...prev,
+                                  [doc.slot]: {
+                                    ...prev[doc.slot],
+                                    reminder_days: value === "15" || value === "30" || value === "45"
+                                      ? Number(value) as 15 | 30 | 45
+                                      : null,
+                                    has_no_expiration: false,
+                                  },
+                                }));
+                              }}
+                              disabled={!documentsBySlotState[doc.slot].expires_at}
+                              className="mt-1 w-full rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-2 py-1 text-[11px] text-[var(--gbp-text)] disabled:opacity-60"
+                            >
+                              <option value="">Sin recordatorio</option>
+                              <option value="15">15 dias antes</option>
+                              <option value="30">30 dias antes</option>
+                              <option value="45">45 dias antes</option>
+                            </select>
+                          </label>
+                        </div>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void handleCompanyDocumentSetNoExpiration(doc.slot);
+                            }}
+                            disabled={Boolean(savingExpirationBySlot[doc.slot])}
+                            className="rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-2.5 py-1 text-[10px] font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)] disabled:opacity-60"
+                          >
+                            Sin vencimiento
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void handleCompanyDocumentExpirationSave(doc.slot);
+                            }}
+                            disabled={Boolean(savingExpirationBySlot[doc.slot])}
+                            className="rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-2.5 py-1 text-[10px] font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)] disabled:opacity-60"
+                          >
+                            Guardar vencimiento
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                    {!isEmployeeSelfMode && documentsBySlotState?.[doc.slot]?.uploaded_by_role === "employee" && documentsBySlotState?.[doc.slot]?.status === "pending" ? (
+                      <div className="mt-2 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleCompanyDocumentReview(doc.slot, "approved");
+                          }}
+                          disabled={Boolean(reviewingBySlot[doc.slot])}
+                          className="rounded-md border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-surface)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-success)] hover:bg-[var(--gbp-success-soft)] disabled:opacity-60"
+                        >
+                          Aprobar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleCompanyDocumentReview(doc.slot, "rejected");
+                          }}
+                          disabled={Boolean(reviewingBySlot[doc.slot])}
+                          className="rounded-md border border-red-300 bg-[var(--gbp-surface)] px-2 py-1 text-[10px] font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
+                        >
+                          Rechazar
+                        </button>
+                      </div>
+                    ) : null}
+                    {uploadUiBySlot[doc.slot]?.phase === "uploading" ? (
+                      <div className="mt-3 w-full max-w-[260px]" onClick={(event) => event.stopPropagation()}>
+                        <div className="mb-1 flex items-center justify-between text-[10px] font-semibold text-[var(--gbp-text2)]">
+                          <span>Subiendo...</span>
+                          <span>{uploadUiBySlot[doc.slot]?.progress ?? 0}%</span>
+                        </div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--gbp-border2)]">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-[var(--gbp-accent)] via-[var(--gbp-success)] to-[var(--gbp-accent)] transition-all duration-300"
+                            style={{ width: `${uploadUiBySlot[doc.slot]?.progress ?? 0}%` }}
+                          />
+                        </div>
+                        {uploadUiBySlot[doc.slot]?.fileName ? (
+                          <p className="mt-2 line-clamp-1 text-center text-[11px] font-semibold text-[var(--gbp-text2)]">
+                            {uploadUiBySlot[doc.slot]?.fileName}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : uploadUiBySlot[doc.slot]?.phase === "success" ? (
+                      <>
+                        <div className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--gbp-success)] text-[13px] text-white shadow-lg shadow-[color:color-mix(in_oklab,var(--gbp-success)_45%,transparent)] transition-transform duration-300 animate-[pulse_900ms_ease-out_1]">
+                          ✓
+                        </div>
+                        <p className="mt-2 line-clamp-1 max-w-[220px] text-center text-[11px] font-semibold text-[var(--gbp-success)]">
+                          {uploadUiBySlot[doc.slot]?.fileName || selectedDocumentFiles[doc.name]}
+                        </p>
+                      </>
+                    ) : uploadUiBySlot[doc.slot]?.phase === "error" ? (
+                      <p className="mt-2 max-w-[220px] text-center text-[11px] font-semibold text-red-600">
+                        {uploadUiBySlot[doc.slot]?.message || "Error al subir"}
+                      </p>
+                    ) : selectedDocumentFiles[doc.name] ? (
                       <>
                         <div className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-[12px] text-white">
                           ✓
@@ -746,11 +1531,13 @@ export function NewEmployeeModal({
                         </p>
                       </>
                     ) : (
-                      <p className="mt-2 text-center text-[11px] text-[var(--gbp-muted)]">Haz clic para adjuntar</p>
+                      <p className="mt-2 text-center text-[11px] text-[var(--gbp-muted)]">
+                        {isEmployeeSelfMode || initialEmployee?.id ? "Haz clic para adjuntar y subir" : "Haz clic para adjuntar"}
+                      </p>
                     )}
                   </div>
                 ))}
-                {customDocumentRows.map((row) => (
+                {!isEmployeeSelfMode && customDocumentRows.map((row) => (
                   <div
                     key={row.id}
                     onClick={() => document.getElementById(`customInput-${row.id}`)?.click()}
@@ -791,6 +1578,7 @@ export function NewEmployeeModal({
 
             {/* TAB 2 - Contrato (solo empleado) */}
             <div className={currentTabIndex === tabs.findIndex((tab) => tab.key === "contract") ? "block" : "hidden"}>
+              <fieldset disabled={isEmployeeSelfMode} className={isEmployeeSelfMode ? "opacity-90" : ""}>
               <h3 className="mb-4 border-b border-[var(--gbp-border)] pb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--gbp-muted)]">
                 Contrato y Salario
               </h3>
@@ -902,7 +1690,8 @@ export function NewEmployeeModal({
                   <label className={FIELD_LABEL}>Nombre del Firmante</label>
                   <input
                     name="contract_signer_name"
-                    defaultValue={initialEmployee?.contract_signer_name ?? ""}
+                    value={contractSignerName}
+                    onChange={(event) => setContractSignerName(event.target.value)}
                     className={FIELD_INPUT}
                     placeholder="Nombre completo"
                   />
@@ -912,11 +1701,13 @@ export function NewEmployeeModal({
                   <input
                     name="contract_signed_at"
                     type="date"
-                    defaultValue={initialEmployee?.contract_signed_at ?? ""}
+                    value={contractSignedAt}
+                    onChange={(event) => setContractSignedAt(event.target.value)}
                     className={FIELD_INPUT}
                   />
                 </div>
               </div>
+              </fieldset>
             </div>
 
             {/* TAB Cuenta App */}
@@ -993,7 +1784,7 @@ export function NewEmployeeModal({
           {/* Footer */}
            <div className="flex items-center justify-between gap-3 border-t border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 px-8">
             <div>
-              {mode === "edit" && initialEmployee?.email ? (
+              {mode === "edit" && initialEmployee?.email && !isEmployeeSelfMode ? (
                 <button
                   type="button"
                   onClick={() => void handleResendInvitation()}
@@ -1015,18 +1806,79 @@ export function NewEmployeeModal({
                 onClick={handleClose}
                 className={`rounded-full px-6 py-2.5 text-sm font-bold text-[var(--gbp-text2)] transition-colors hover:bg-[var(--gbp-bg)] ${DARK_GHOST}`}
               >
-                Cancelar
+                {isEmployeeSelfMode ? "Cerrar" : "Cancelar"}
               </button>
-              <SubmitButton
-                label={mode === "edit" ? "Actualizar Usuario / Empleado" : "Guardar Usuario / Empleado"}
-                pendingLabel={mode === "edit" ? "Actualizando..." : "Guardando..."}
-                pending={isActionPending}
-                className="rounded-full bg-[var(--gbp-accent)] px-10 py-2.5 text-sm font-bold text-white shadow-lg transition-transform hover:scale-[1.02] hover:bg-[var(--gbp-accent-hover)] active:scale-[0.98]"
-              />
+              {!isEmployeeSelfMode ? (
+                <SubmitButton
+                  label={mode === "edit" ? "Actualizar Usuario / Empleado" : "Guardar Usuario / Empleado"}
+                  pendingLabel={mode === "edit" ? "Actualizando..." : "Guardando..."}
+                  pending={isActionPending}
+                  className="rounded-full bg-[var(--gbp-accent)] px-10 py-2.5 text-sm font-bold text-white shadow-lg transition-transform hover:scale-[1.02] hover:bg-[var(--gbp-accent-hover)] active:scale-[0.98]"
+                />
+              ) : null}
             </div>
           </div>
         </form>
       </div>
+      {signatureModal.open && signatureModal.src ? (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4">
+          <div className="relative h-[88vh] w-[min(1100px,96vw)] overflow-hidden rounded-3xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-5 py-3">
+              <div>
+                <p className="text-[12px] font-black uppercase tracking-[0.14em] text-[var(--gbp-text2)]">Firma del documento</p>
+                <p className="text-[11px] text-[var(--gbp-text2)]">Revisa y firma para completar el proceso</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (signatureModal.slot) {
+                      void handleRefreshSignatureStatus(signatureModal.slot);
+                    }
+                  }}
+                  className="rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-2.5 py-1 text-[11px] font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]"
+                >
+                  Actualizar estado
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSignatureModal({ open: false, slot: null, src: null });
+                    setDocusealReady(false);
+                    setDocusealLoadFailed(false);
+                  }}
+                  className="rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-2.5 py-1 text-[11px] font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+            <div className="h-[calc(88vh-56px)] w-full">
+              {docusealReady && !docusealLoadFailed
+                ? createElement("docuseal-form", {
+                    "data-src": signatureModal.src,
+                    "data-email": initialEmployee?.email || "",
+                    style: { width: "100%", height: "100%", display: "block" },
+                  } as Record<string, unknown>)
+                : (
+                    <div className="flex h-full flex-col items-center justify-center gap-3 px-4 text-center text-sm font-semibold text-[var(--gbp-text2)]">
+                      <p>{docusealLoadFailed ? "No se pudo cargar la firma embebida." : "Cargando experiencia de firma..."}</p>
+                      {signatureModal.src ? (
+                        <a
+                          href={signatureModal.src}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-1.5 text-[11px] font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]"
+                        >
+                          Abrir firma en nueva pestaña
+                        </a>
+                      ) : null}
+                    </div>
+                  )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

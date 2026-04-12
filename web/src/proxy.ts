@@ -93,6 +93,8 @@ function isReservedHost(host: string): boolean {
   if (host === "localhost" || host.endsWith(".localhost")) return true;
   if (host.endsWith(".vercel.app")) return true;
   if (canonicalAppHost && host === canonicalAppHost) return true;
+  // ngrok tunnels used for local dev/webhook testing
+  if (host.endsWith(".ngrok-free.dev") || host.endsWith(".ngrok-free.app") || host.endsWith(".ngrok.io")) return true;
   return false;
 }
 
