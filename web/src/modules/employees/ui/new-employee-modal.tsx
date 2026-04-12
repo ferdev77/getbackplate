@@ -14,6 +14,7 @@ export type EmployeeModalInitialDocument = {
   documentId: string;
   title: string;
   status: string;
+  requested_without_file?: boolean;
   uploaded_by_role?: "employee" | "company" | null;
   uploaded_by_label?: string | null;
   review_comment?: string | null;
@@ -74,12 +75,24 @@ type SlotUploadUiState = {
   message: string | null;
 };
 
+type ReviewDecision = "approved" | "rejected";
+
 const DARK_PANEL = "[.theme-dark-pro_&]:border [.theme-dark-pro_&]:border-[var(--gbp-border)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)]";
 const DARK_TEXT = "[.theme-dark-pro_&]:text-[var(--gbp-text)]";
 const DARK_MUTED = "[.theme-dark-pro_&]:text-[var(--gbp-text2)]";
 const DARK_GHOST = "[.theme-dark-pro_&]:border-[var(--gbp-border2)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)] [.theme-dark-pro_&]:text-[var(--gbp-text2)] [.theme-dark-pro_&]:hover:bg-[var(--gbp-surface2)]";
 const FIELD_LABEL = "text-[12px] font-bold text-[var(--gbp-text2)]";
 const FIELD_INPUT = "w-full rounded-xl border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-4 py-3 text-sm text-[var(--gbp-text)] outline-none transition-all focus:border-[var(--gbp-accent)]";
+const APPROVAL_COMMENT_TEMPLATES = [
+  "Documento validado y legible.",
+  "Aprobado. Cumple con los requisitos solicitados.",
+  "Datos verificados correctamente.",
+];
+const REJECTION_COMMENT_TEMPLATES = [
+  "La imagen no es legible. Subir nuevamente con mejor calidad.",
+  "Documento vencido. Cargar una versión vigente.",
+  "Datos incompletos o no coinciden con el perfil.",
+];
 
 function formatDateForUi(value: string | null | undefined): string {
   if (!value) return "";
@@ -180,6 +193,13 @@ export function NewEmployeeModal({
   const [savingExpirationBySlot, setSavingExpirationBySlot] = useState<Record<string, boolean>>({});
   const [uploadUiBySlot, setUploadUiBySlot] = useState<Record<string, SlotUploadUiState>>({});
   const [signatureActionBySlot, setSignatureActionBySlot] = useState<Record<string, boolean>>({});
+  const [reviewDialog, setReviewDialog] = useState<{
+    open: boolean;
+    slot: string | null;
+    decision: ReviewDecision;
+    comment: string;
+  }>({ open: false, slot: null, decision: "approved", comment: "" });
+  const [isReviewDialogSubmitting, setIsReviewDialogSubmitting] = useState(false);
   const [signatureModal, setSignatureModal] = useState<{ open: boolean; slot: string | null; src: string | null }>({ open: false, slot: null, src: null });
   const [docusealReady, setDocusealReady] = useState(false);
   const [docusealLoadFailed, setDocusealLoadFailed] = useState(false);
@@ -285,6 +305,7 @@ export function NewEmployeeModal({
   const [customDocumentRows, setCustomDocumentRows] = useState<Array<{ id: string; title: string; fileName: string }>>([]);
   const [showAddDocumentTitleBox, setShowAddDocumentTitleBox] = useState(false);
   const [newDocumentTitle, setNewDocumentTitle] = useState("");
+  const [isCreatingCustomDocument, setIsCreatingCustomDocument] = useState(false);
   const [firstName, setFirstName] = useState(initialEmployee?.first_name ?? "");
   const [lastName, setLastName] = useState(initialEmployee?.last_name ?? "");
   const [phone, setPhone] = useState(initialEmployee?.phone ?? "");
@@ -361,7 +382,7 @@ export function NewEmployeeModal({
     setContractSignedAt(initialEmployee?.contract_signed_at ?? "");
   }, [initialEmployee, isEmployeeSelfMode, mode, open]);
 
-  async function handleInstantDocumentUpload(slot: string, inputName: string, file: File | null) {
+  async function handleInstantDocumentUpload(slot: string, inputName: string, file: File | null, customTitle?: string) {
     if (!file) return;
 
     const isCompanyInstant = !isEmployeeSelfMode && Boolean(initialEmployee?.id);
@@ -373,6 +394,9 @@ export function NewEmployeeModal({
     const formData = new FormData();
     formData.set("slot", slot);
     formData.set("file", file);
+    if (customTitle) {
+      formData.set("customTitle", customTitle);
+    }
     if (isCompanyInstant) {
       formData.set("employeeId", initialEmployee?.id ?? "");
     }
@@ -419,6 +443,7 @@ export function NewEmployeeModal({
           documentId: typeof data.documentId === "string" ? data.documentId : String(data.documentId ?? ""),
           title: uploadedTitle,
           status: uploadedStatus,
+          requested_without_file: false,
           uploaded_by_role: isEmployeeSelfMode ? "employee" : "company",
           uploaded_by_label: isEmployeeSelfMode ? "Empleado" : "Administrador",
           review_comment: null,
@@ -456,6 +481,53 @@ export function NewEmployeeModal({
       }));
       toast.error(message);
     }
+  }
+
+  async function handleCreateCustomDocumentRequest(title: string) {
+    if (isEmployeeSelfMode || !initialEmployee?.id) return;
+
+    const response = await fetch("/api/company/employees/documents/request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        employeeId: initialEmployee.id,
+        title,
+      }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data?.ok || typeof data?.slot !== "string" || typeof data?.documentId !== "string") {
+      throw new Error(typeof data?.error === "string" ? data.error : "No se pudo crear el documento solicitado");
+    }
+
+    const uploadedTitle = typeof data.documentTitle === "string" && data.documentTitle.trim().length > 0
+      ? data.documentTitle.trim()
+      : title;
+
+    setDocumentsBySlotState((prev) => ({
+      ...prev,
+      [data.slot]: {
+        documentId: data.documentId,
+        title: uploadedTitle,
+        status: "pending",
+        requested_without_file: true,
+        uploaded_by_role: "company",
+        uploaded_by_label: "Administrador",
+        review_comment: null,
+        expires_at: null,
+        reminder_days: null,
+        has_no_expiration: false,
+        expiration_configured: false,
+        signature_status: null,
+        signature_embed_src: null,
+        signature_requested_at: null,
+        signature_completed_at: null,
+      },
+    }));
+
+    startTransition(() => {
+      router.refresh();
+    });
   }
 
   async function handleResendInvitation() {
@@ -526,20 +598,40 @@ export function NewEmployeeModal({
     }
   }
 
-  async function handleCompanyDocumentReview(slot: string, decision: "approved" | "rejected") {
+  function openCompanyDocumentReviewDialog(slot: string, decision: ReviewDecision) {
     if (isEmployeeSelfMode) return;
     const row = documentsBySlotState?.[slot];
     if (!row?.documentId || !initialEmployee?.id) return;
 
-    const commentPrompt = window.prompt(
-      decision === "approved"
-        ? "Comentario de aprobación (opcional)"
-        : "Comentario de rechazo (opcional)",
-      row.review_comment ?? "",
-    );
-    if (commentPrompt === null) return;
-    const comment = commentPrompt.trim();
+    setReviewDialog({
+      open: true,
+      slot,
+      decision,
+      comment: row.review_comment ?? "",
+    });
+  }
 
+  function closeCompanyDocumentReviewDialog() {
+    if (isReviewDialogSubmitting) return;
+    setReviewDialog({ open: false, slot: null, decision: "approved", comment: "" });
+  }
+
+  async function submitCompanyDocumentReview() {
+    if (isEmployeeSelfMode) return;
+    if (!reviewDialog.slot) return;
+
+    const slot = reviewDialog.slot;
+    const decision = reviewDialog.decision;
+    const row = documentsBySlotState?.[slot];
+    if (!row?.documentId || !initialEmployee?.id) return;
+
+    const comment = reviewDialog.comment.trim();
+    if (decision === "rejected" && comment.length === 0) {
+      toast.error("Agrega un motivo para el rechazo");
+      return;
+    }
+
+    setIsReviewDialogSubmitting(true);
     setReviewingBySlot((prev) => ({ ...prev, [slot]: true }));
     try {
       const response = await fetch("/api/company/employees/documents/review", {
@@ -560,13 +652,15 @@ export function NewEmployeeModal({
       setDocumentsBySlotState((prev) => ({
         ...prev,
         [slot]: {
-          ...row,
+          ...prev[slot],
           status: decision,
           review_comment: (typeof data.reviewComment === "string" && data.reviewComment.trim().length > 0)
             ? data.reviewComment.trim()
             : null,
         },
       }));
+
+      setReviewDialog({ open: false, slot: null, decision: "approved", comment: "" });
 
       toast.success(decision === "approved" ? "Documento aprobado" : "Documento rechazado");
       startTransition(() => {
@@ -575,6 +669,7 @@ export function NewEmployeeModal({
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo actualizar la revisión");
     } finally {
+      setIsReviewDialogSubmitting(false);
       setReviewingBySlot((prev) => ({ ...prev, [slot]: false }));
     }
   }
@@ -917,9 +1012,27 @@ export function NewEmployeeModal({
 
   if (!open) return null;
 
-  const confirmAddCustomDocumentRow = () => {
+  const confirmAddCustomDocumentRow = async () => {
+    if (isCreatingCustomDocument) return;
     const safeTitle = newDocumentTitle.trim();
     if (!safeTitle) return;
+
+    if (!isEmployeeSelfMode && initialEmployee?.id) {
+      setIsCreatingCustomDocument(true);
+      const loadingToastId = toast.loading("Creando documento solicitado...");
+      try {
+        await handleCreateCustomDocumentRequest(safeTitle);
+        toast.success("Documento solicitado creado. El empleado ya puede subirlo.", { id: loadingToastId });
+        setNewDocumentTitle("");
+        setShowAddDocumentTitleBox(false);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "No se pudo crear el documento solicitado", { id: loadingToastId });
+      } finally {
+        setIsCreatingCustomDocument(false);
+      }
+      return;
+    }
+
     const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     setCustomDocumentRows((prev) => [...prev, { id, title: safeTitle, fileName: "" }]);
     setNewDocumentTitle("");
@@ -927,6 +1040,7 @@ export function NewEmployeeModal({
   };
 
   const openAddCustomDocumentRow = () => {
+    if (isCreatingCustomDocument) return;
     setShowAddDocumentTitleBox(true);
     setNewDocumentTitle("");
   };
@@ -986,10 +1100,20 @@ export function NewEmployeeModal({
               <button
                 type="button"
                 onClick={openAddCustomDocumentRow}
-                className="inline-flex items-center gap-1.5 rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-2.5 py-1 text-[10px] font-semibold text-[var(--gbp-text2)] hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
+                disabled={isCreatingCustomDocument}
+                className="inline-flex items-center gap-1.5 rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-2.5 py-1 text-[10px] font-semibold text-[var(--gbp-text2)] hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:cursor-not-allowed disabled:opacity-70"
               >
-                <span className="text-[12px] leading-none">+</span>
-                Agregar documento
+                {isCreatingCustomDocument ? (
+                  <>
+                    <span className="inline-block h-3 w-3 animate-spin rounded-full border border-current border-r-transparent" />
+                    Agregando...
+                  </>
+                ) : (
+                  <>
+                    <span className="text-[12px] leading-none">+</span>
+                    Agregar documento
+                  </>
+                )}
               </button>
 
               {showAddDocumentTitleBox ? (
@@ -998,7 +1122,9 @@ export function NewEmployeeModal({
                   <input
                     value={newDocumentTitle}
                     onChange={(event) => setNewDocumentTitle(event.target.value)}
+                    disabled={isCreatingCustomDocument}
                     onKeyDown={(event) => {
+                      if (isCreatingCustomDocument) return;
                       if (event.key === "Enter") {
                         event.preventDefault();
                         confirmAddCustomDocumentRow();
@@ -1014,18 +1140,29 @@ export function NewEmployeeModal({
                   <div className="mt-2 flex items-center justify-end gap-2">
                     <button
                       type="button"
-                      onClick={() => setShowAddDocumentTitleBox(false)}
-                      className="rounded-md px-2.5 py-1 text-[11px] font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]"
+                      onClick={() => {
+                        if (isCreatingCustomDocument) return;
+                        setShowAddDocumentTitleBox(false);
+                      }}
+                      disabled={isCreatingCustomDocument}
+                      className="rounded-md px-2.5 py-1 text-[11px] font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       Cancelar
                     </button>
                     <button
                       type="button"
                       onClick={confirmAddCustomDocumentRow}
-                      disabled={!newDocumentTitle.trim()}
-                      className="rounded-md bg-[var(--gbp-accent)] px-2.5 py-1 text-[11px] font-semibold text-white disabled:opacity-50"
+                      disabled={!newDocumentTitle.trim() || isCreatingCustomDocument}
+                      className="inline-flex items-center gap-1 rounded-md bg-[var(--gbp-accent)] px-2.5 py-1 text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      Agregar
+                      {isCreatingCustomDocument ? (
+                        <>
+                          <span className="inline-block h-3 w-3 animate-spin rounded-full border border-current border-r-transparent" />
+                          Agregando...
+                        </>
+                      ) : (
+                        "Agregar"
+                      )}
                     </button>
                   </div>
                 </div>
@@ -1264,14 +1401,35 @@ export function NewEmployeeModal({
                 Documentos del Empleado
               </h3>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {[
-                  { id: "empInputFoto", slot: "photo", name: "document_file_photo", icon: "📷", label: "Foto del Empleado" },
-                  { id: "empInputId", slot: "id", name: "document_file_id", icon: "🪪", label: "ID / Identificación" },
-                  { id: "empInputSs", slot: "ssn", name: "document_file_ssn", icon: "📋", label: "Número de Seguro Social" },
-                  { id: "empInputRec1", slot: "rec1", name: "document_file_rec1", icon: "📄", label: "Food Handler Certificate" },
-                  { id: "empInputRec2", slot: "rec2", name: "document_file_rec2", icon: "📄", label: "Alcohol Server Certificate" },
-                  { id: "empInputOther", slot: "other", name: "document_file_other", icon: "📄", label: "Food Protection Manager" },
-                ].map((doc) => (
+                {(() => {
+                  const standardDocs = [
+                    { id: "empInputFoto", slot: "photo", name: "document_file_photo", icon: "📷", label: "Foto del Empleado" },
+                    { id: "empInputId", slot: "id", name: "document_file_id", icon: "🪪", label: "ID / Identificación" },
+                    { id: "empInputSs", slot: "ssn", name: "document_file_ssn", icon: "📋", label: "Número de Seguro Social" },
+                    { id: "empInputRec1", slot: "rec1", name: "document_file_rec1", icon: "📄", label: "Food Handler Certificate" },
+                    { id: "empInputRec2", slot: "rec2", name: "document_file_rec2", icon: "📄", label: "Alcohol Server Certificate" },
+                    { id: "empInputOther", slot: "other", name: "document_file_other", icon: "📄", label: "Food Protection Manager" },
+                  ];
+                
+                  const customDocsMerged = Object.keys(documentsBySlotState)
+                    .filter((slot) => slot.startsWith("custom_"))
+                    .map((slot) => {
+                      const row = documentsBySlotState[slot];
+                      return {
+                        id: `empInputCustom_${slot}`,
+                        slot: slot,
+                        name: `document_file_${slot}`,
+                        icon: "📄",
+                        label: row.title || "Documento Adicional",
+                      };
+                    });
+                
+                  const allDocs = [...standardDocs, ...customDocsMerged];
+                  return allDocs;
+                })().map((doc) => {
+                  const row = documentsBySlotState?.[doc.slot];
+                  const hasUploadedFile = Boolean(row?.documentId) && !row?.requested_without_file;
+                  return (
                   <div
                     key={doc.id}
                     onClick={() => {
@@ -1295,17 +1453,18 @@ export function NewEmployeeModal({
                           [doc.name]: fileName,
                         }));
                         if (isEmployeeSelfMode || initialEmployee?.id) {
-                          void handleInstantDocumentUpload(doc.slot, doc.name, file);
+                          const customTitle = doc.slot.startsWith("custom_") ? doc.label : undefined;
+                          void handleInstantDocumentUpload(doc.slot, doc.name, file, customTitle);
                           event.currentTarget.value = "";
                         }
                       }}
                     />
                     <span className="mb-3 text-4xl transition-transform group-hover:scale-110">{doc.icon}</span>
                     <span className="text-center text-[13px] font-bold text-[var(--gbp-text2)]">{doc.label}</span>
-                    {documentsBySlotState?.[doc.slot] ? (
+                    {hasUploadedFile ? (
                       <div className="mt-2 flex items-center gap-2">
                         <a
-                          href={`/api/documents/${documentsBySlotState[doc.slot].documentId}/download`}
+                          href={`/api/documents/${row?.documentId}/download`}
                           target="_blank"
                           rel="noreferrer"
                           onClick={(event) => event.stopPropagation()}
@@ -1314,7 +1473,7 @@ export function NewEmployeeModal({
                           Ver
                         </a>
                         <a
-                          href={`/api/documents/${documentsBySlotState[doc.slot].documentId}/download`}
+                          href={`/api/documents/${row?.documentId}/download`}
                           target="_blank"
                           rel="noreferrer"
                           onClick={(event) => event.stopPropagation()}
@@ -1323,7 +1482,7 @@ export function NewEmployeeModal({
                           Descargar
                         </a>
                         {(() => {
-                          const row = documentsBySlotState[doc.slot];
+                          if (!row) return null;
                           const expired = row.status === "approved" && !row.has_no_expiration && isDateExpired(row.expires_at);
                           const label = expired
                             ? "⚠ Vencido"
@@ -1347,27 +1506,32 @@ export function NewEmployeeModal({
                         })()}
                       </div>
                     ) : null}
-                    {documentsBySlotState?.[doc.slot]?.uploaded_by_label ? (
+                    {row?.requested_without_file ? (
+                      <p className="mt-1 text-center text-[10px] font-semibold text-[var(--gbp-text2)]">
+                        Documento solicitado (pendiente de carga)
+                      </p>
+                    ) : null}
+                    {hasUploadedFile && documentsBySlotState?.[doc.slot]?.uploaded_by_label ? (
                       <p className="mt-1 text-center text-[10px] font-semibold text-[var(--gbp-text2)]">
                         Cargado por: {documentsBySlotState[doc.slot].uploaded_by_label}
                       </p>
                     ) : null}
-                    {documentsBySlotState?.[doc.slot]?.review_comment ? (
+                    {hasUploadedFile && documentsBySlotState?.[doc.slot]?.review_comment ? (
                       <p className="mt-1 max-w-[250px] text-center text-[10px] text-[var(--gbp-text2)]">
                         Comentario: {documentsBySlotState[doc.slot].review_comment}
                       </p>
                     ) : null}
-                    {documentsBySlotState?.[doc.slot]?.expires_at ? (
+                    {hasUploadedFile && documentsBySlotState?.[doc.slot]?.expires_at ? (
                       <p className="mt-1 text-center text-[10px] font-semibold text-[var(--gbp-text2)]">
                         Vence: {formatDateForUi(documentsBySlotState[doc.slot].expires_at)}
                       </p>
                     ) : null}
-                    {documentsBySlotState?.[doc.slot]?.has_no_expiration ? (
+                    {hasUploadedFile && documentsBySlotState?.[doc.slot]?.has_no_expiration ? (
                       <p className="mt-1 text-center text-[10px] font-semibold text-[var(--gbp-text2)]">
                         Documento sin vencimiento
                       </p>
                     ) : null}
-                    {(() => {
+                    {hasUploadedFile && (() => {
                       const row = documentsBySlotState?.[doc.slot];
                       const reminderSendDate = getReminderSendDate(row?.expires_at, row?.reminder_days ?? null);
                       if (!row?.reminder_days || !reminderSendDate) return null;
@@ -1377,7 +1541,7 @@ export function NewEmployeeModal({
                         </p>
                       );
                     })()}
-                    {documentsBySlotState?.[doc.slot]?.signature_status ? (
+                    {hasUploadedFile && documentsBySlotState?.[doc.slot]?.signature_status ? (
                       <p suppressHydrationWarning className="mt-1 text-center text-[10px] font-semibold text-[var(--gbp-text2)]">
                         Firma: {documentsBySlotState[doc.slot].signature_status === "completed"
                           ? "Firmado"
@@ -1397,7 +1561,7 @@ export function NewEmployeeModal({
                             : ""}
                       </p>
                     ) : null}
-                    {!isEmployeeSelfMode && documentsBySlotState?.[doc.slot]?.status === "approved" && documentsBySlotState?.[doc.slot]?.expiration_configured && documentsBySlotState?.[doc.slot]?.signature_status !== "completed" && documentsBySlotState?.[doc.slot]?.signature_status !== "requested" && documentsBySlotState?.[doc.slot]?.signature_status !== "viewed" ? (
+                    {!isEmployeeSelfMode && hasUploadedFile && documentsBySlotState?.[doc.slot]?.status === "approved" && documentsBySlotState?.[doc.slot]?.expiration_configured && documentsBySlotState?.[doc.slot]?.signature_status !== "completed" && documentsBySlotState?.[doc.slot]?.signature_status !== "requested" && documentsBySlotState?.[doc.slot]?.signature_status !== "viewed" ? (
                       <button
                         type="button"
                         onClick={(event) => {
@@ -1410,7 +1574,7 @@ export function NewEmployeeModal({
                         Solicitar firma
                       </button>
                     ) : null}
-                    {isEmployeeSelfMode && (documentsBySlotState?.[doc.slot]?.signature_status === "requested" || documentsBySlotState?.[doc.slot]?.signature_status === "viewed") && documentsBySlotState?.[doc.slot]?.signature_embed_src ? (
+                    {isEmployeeSelfMode && hasUploadedFile && (documentsBySlotState?.[doc.slot]?.signature_status === "requested" || documentsBySlotState?.[doc.slot]?.signature_status === "viewed") && documentsBySlotState?.[doc.slot]?.signature_embed_src ? (
                       <div className="mt-2 flex items-center gap-2">
                         <button
                           type="button"
@@ -1437,7 +1601,7 @@ export function NewEmployeeModal({
                         </button>
                       </div>
                     ) : null}
-                    {!isEmployeeSelfMode && (documentsBySlotState?.[doc.slot]?.signature_status === "requested" || documentsBySlotState?.[doc.slot]?.signature_status === "viewed") ? (
+                    {!isEmployeeSelfMode && hasUploadedFile && (documentsBySlotState?.[doc.slot]?.signature_status === "requested" || documentsBySlotState?.[doc.slot]?.signature_status === "viewed") ? (
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
                         <button
                           type="button"
@@ -1464,7 +1628,7 @@ export function NewEmployeeModal({
                         </button>
                       </div>
                     ) : null}
-                    {!isEmployeeSelfMode && documentsBySlotState?.[doc.slot]?.status === "approved" && !documentsBySlotState?.[doc.slot]?.expiration_configured ? (
+                    {!isEmployeeSelfMode && hasUploadedFile && documentsBySlotState?.[doc.slot]?.status === "approved" && !documentsBySlotState?.[doc.slot]?.expiration_configured ? (
                       <div className="mt-3 w-full space-y-2 rounded-xl border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] p-3" onClick={(event) => event.stopPropagation()}>
                         <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-text2)]">Vencimiento y recordatorio</p>
                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -1539,13 +1703,13 @@ export function NewEmployeeModal({
                         </div>
                       </div>
                     ) : null}
-                    {!isEmployeeSelfMode && documentsBySlotState?.[doc.slot]?.uploaded_by_role === "employee" && documentsBySlotState?.[doc.slot]?.status === "pending" ? (
+                    {!isEmployeeSelfMode && hasUploadedFile && documentsBySlotState?.[doc.slot]?.uploaded_by_role === "employee" && documentsBySlotState?.[doc.slot]?.status === "pending" ? (
                       <div className="mt-2 flex items-center gap-2">
                         <button
                           type="button"
                           onClick={(event) => {
                             event.stopPropagation();
-                            void handleCompanyDocumentReview(doc.slot, "approved");
+                            openCompanyDocumentReviewDialog(doc.slot, "approved");
                           }}
                           disabled={Boolean(reviewingBySlot[doc.slot])}
                           className="rounded-md border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-surface)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-success)] hover:bg-[var(--gbp-success-soft)] disabled:opacity-60"
@@ -1556,7 +1720,7 @@ export function NewEmployeeModal({
                           type="button"
                           onClick={(event) => {
                             event.stopPropagation();
-                            void handleCompanyDocumentReview(doc.slot, "rejected");
+                            openCompanyDocumentReviewDialog(doc.slot, "rejected");
                           }}
                           disabled={Boolean(reviewingBySlot[doc.slot])}
                           className="rounded-md border border-red-300 bg-[var(--gbp-surface)] px-2 py-1 text-[10px] font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
@@ -1611,8 +1775,11 @@ export function NewEmployeeModal({
                       </p>
                     )}
                   </div>
-                ))}
-                {!isEmployeeSelfMode && customDocumentRows.map((row) => (
+                );
+                })}
+                {!isEmployeeSelfMode && customDocumentRows
+                  .filter((row) => !documentsBySlotState[`custom_${row.id}`])
+                  .map((row) => (
                   <div
                     key={row.id}
                     onClick={() => document.getElementById(`customInput-${row.id}`)?.click()}
@@ -1626,8 +1793,13 @@ export function NewEmployeeModal({
                       accept="image/*,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx"
                       className="hidden"
                       onChange={(event) => {
-                        const fileName = event.target.files?.[0]?.name ?? "";
+                        const file = event.target.files?.[0] ?? null;
+                        const fileName = file?.name ?? "";
                         updateCustomDocumentRow(row.id, { fileName });
+                        if (initialEmployee?.id) {
+                          void handleInstantDocumentUpload(`custom_${row.id}`, "custom_document_file", file, row.title);
+                          event.currentTarget.value = "";
+                        }
                       }}
                     />
 
@@ -1895,6 +2067,92 @@ export function NewEmployeeModal({
           </div>
         </form>
       </div>
+      {reviewDialog.open ? (
+        <div className="fixed inset-0 z-[75] flex items-center justify-center p-4">
+          <button
+            type="button"
+            aria-label="Cerrar revisión"
+            onClick={closeCompanyDocumentReviewDialog}
+            className="absolute inset-0 bg-black/45 backdrop-blur-sm"
+          />
+          <div className="relative z-10 w-full max-w-[560px] rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-5 shadow-2xl">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--gbp-muted)]">Revisión de documento</p>
+                <h4 className="mt-1 text-[17px] font-bold text-[var(--gbp-text)]">
+                  {reviewDialog.decision === "approved" ? "Aprobar documento" : "Rechazar documento"}
+                </h4>
+                <p className="mt-1 text-[12px] text-[var(--gbp-text2)]">
+                  {reviewDialog.decision === "approved"
+                    ? "Deja un comentario de validación para trazabilidad del equipo."
+                    : "Explica claramente el motivo para que el empleado pueda corregirlo rápido."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeCompanyDocumentReviewDialog}
+                disabled={isReviewDialogSubmitting}
+                className="rounded-lg p-2 text-[var(--gbp-text2)] transition-colors hover:bg-[var(--gbp-bg)] hover:text-[var(--gbp-text)] disabled:opacity-50"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mb-3 flex flex-wrap gap-2">
+              {(reviewDialog.decision === "approved" ? APPROVAL_COMMENT_TEMPLATES : REJECTION_COMMENT_TEMPLATES).map((template) => (
+                <button
+                  key={template}
+                  type="button"
+                  onClick={() => setReviewDialog((prev) => ({ ...prev, comment: template }))}
+                  disabled={isReviewDialogSubmitting}
+                  className="rounded-full border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-2.5 py-1 text-[10px] font-semibold text-[var(--gbp-text2)] transition-colors hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:opacity-60"
+                >
+                  {template}
+                </button>
+              ))}
+            </div>
+
+            <label className="text-[11px] font-bold text-[var(--gbp-text2)]">
+              Comentario {reviewDialog.decision === "rejected" ? "(obligatorio)" : "(opcional)"}
+              <textarea
+                value={reviewDialog.comment}
+                onChange={(event) => setReviewDialog((prev) => ({ ...prev, comment: event.target.value }))}
+                placeholder={reviewDialog.decision === "approved" ? "Ej. Documento validado y aprobado." : "Ej. La foto está borrosa y no se leen los datos."}
+                rows={4}
+                disabled={isReviewDialogSubmitting}
+                className="mt-1.5 w-full resize-none rounded-xl border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none focus:border-[var(--gbp-accent)] disabled:opacity-60"
+              />
+            </label>
+
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-[10px] text-[var(--gbp-muted)]">{reviewDialog.comment.trim().length} caracteres</p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={closeCompanyDocumentReviewDialog}
+                  disabled={isReviewDialogSubmitting}
+                  className="rounded-md px-3 py-1.5 text-[12px] font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)] disabled:opacity-60"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void submitCompanyDocumentReview()}
+                  disabled={isReviewDialogSubmitting || (reviewDialog.decision === "rejected" && reviewDialog.comment.trim().length === 0)}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-[var(--gbp-accent)] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[var(--gbp-accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isReviewDialogSubmitting ? (
+                    <>
+                      <span className="inline-block h-3 w-3 animate-spin rounded-full border border-current border-r-transparent" />
+                      Guardando...
+                    </>
+                  ) : reviewDialog.decision === "approved" ? "Aprobar" : "Rechazar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {signatureModal.open && signatureModal.src ? (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-md transition-all duration-300" />

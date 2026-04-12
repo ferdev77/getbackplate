@@ -26,6 +26,7 @@ type EmployeeDocumentSlot = {
   documentId: string;
   title: string;
   status: string;
+  requested_without_file?: boolean;
   uploaded_by_role?: "employee" | "company";
   uploaded_by_label?: string;
   review_comment?: string | null;
@@ -204,7 +205,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   if (editEmployee) {
     const withComment = await supabase
       .from("employee_documents")
-      .select("document_id, status, reviewed_by, review_comment, expires_at, reminder_days, has_no_expiration, signature_status, signature_embed_src, signature_requested_at, signature_completed_at, created_at, linked_document:documents(id, title, owner_user_id)")
+      .select("document_id, status, reviewed_by, review_comment, expires_at, reminder_days, has_no_expiration, signature_status, signature_embed_src, signature_requested_at, signature_completed_at, created_at, linked_document:documents(id, title, owner_user_id, mime_type, original_file_name, file_path)")
       .eq("organization_id", tenant.organizationId)
       .eq("employee_id", editEmployee.id)
       .order("created_at", { ascending: false });
@@ -215,7 +216,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
     ) {
       const fallback = await supabase
         .from("employee_documents")
-        .select("document_id, status, reviewed_by, created_at, linked_document:documents(id, title, owner_user_id)")
+        .select("document_id, status, reviewed_by, created_at, linked_document:documents(id, title, owner_user_id, mime_type, original_file_name, file_path)")
         .eq("organization_id", tenant.organizationId)
         .eq("employee_id", editEmployee.id)
         .order("created_at", { ascending: false });
@@ -287,15 +288,15 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
     signature_completed_at?: string | null;
     created_at?: string;
     linked_document:
-      | { id?: string; title?: string; owner_user_id?: string | null }[]
-      | { id?: string; title?: string; owner_user_id?: string | null }
+      | { id?: string; title?: string; owner_user_id?: string | null; mime_type?: string | null; original_file_name?: string | null; file_path?: string | null }[]
+      | { id?: string; title?: string; owner_user_id?: string | null; mime_type?: string | null; original_file_name?: string | null; file_path?: string | null }
       | null;
   }>) {
     const linked = Array.isArray(row.linked_document) ? row.linked_document[0] : row.linked_document;
     const title = typeof linked?.title === "string" ? linked.title : "";
     const slot = EMPLOYEE_DOCUMENT_SLOT_RULES.find((rule) => title.startsWith(rule.prefix))?.slot;
-    if (!slot) continue;
-    if (editEmployeeDocumentsBySlot[slot]) continue;
+    const finalSlot = slot || `custom_${row.document_id}`;
+    if (editEmployeeDocumentsBySlot[finalSlot]) continue;
     const uploadedByRole = linked?.owner_user_id && editEmployee?.userId && linked.owner_user_id === editEmployee.userId
       ? "employee"
       : "company";
@@ -303,10 +304,16 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
     const uploadedByLabel = uploadedByRole === "employee"
       ? "Empleado"
       : (uploaderUserId ? uploaderLabelByUserId.get(uploaderUserId) ?? "Administrador" : "Administrador");
-    editEmployeeDocumentsBySlot[slot] = {
+    editEmployeeDocumentsBySlot[finalSlot] = {
       documentId: row.document_id,
       title,
       status: row.status,
+      requested_without_file: row.status === "pending"
+        && uploadedByRole === "company"
+        && linked?.mime_type === "text/plain"
+        && linked?.original_file_name === "solicitud-documento.txt"
+        && typeof linked?.file_path === "string"
+        && linked.file_path.includes("/company/request/"),
       uploaded_by_role: uploadedByRole,
       uploaded_by_label: uploadedByLabel,
       review_comment: row.review_comment ?? null,
@@ -359,8 +366,8 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
     editUserDocumentsBySlot = {};
     for (const row of filteredRows) {
       const slot = resolveDocumentSlotFromTitle(typeof row.title === "string" ? row.title : null);
-      if (!slot) continue;
-      editUserDocumentsBySlot[slot] = {
+      const finalSlot = slot || `custom_${row.id}`;
+      editUserDocumentsBySlot[finalSlot] = {
         documentId: row.id,
         title: row.title,
         status: "uploaded",

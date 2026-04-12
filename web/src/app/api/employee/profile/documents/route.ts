@@ -32,8 +32,18 @@ async function ensureBucketExists() {
   bucketExistsChecked = true;
 }
 
-function isValidSlot(value: string): value is EmployeeDocumentSlotKey {
-  return EMPLOYEE_DOCUMENT_SLOT_DEFINITIONS.some((item) => item.slot === value);
+function isValidSlot(value: string): boolean {
+  return value.startsWith("custom_") || EMPLOYEE_DOCUMENT_SLOT_DEFINITIONS.some((item) => item.slot === value);
+}
+
+function getSlotLabel(slot: string, customTitle: unknown): string {
+  if (slot.startsWith("custom_")) {
+    if (typeof customTitle === "string" && customTitle.trim().length > 0) {
+      return customTitle.trim();
+    }
+    return "Documento Adicional";
+  }
+  return getEmployeeDocumentSlotLabel(slot as EmployeeDocumentSlotKey);
 }
 
 export async function POST(request: Request) {
@@ -48,6 +58,7 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const slotRaw = String(formData.get("slot") ?? "").trim();
+  const customTitle = formData.get("customTitle");
   const file = formData.get("file");
 
   if (!isValidSlot(slotRaw)) {
@@ -94,7 +105,7 @@ export async function POST(request: Request) {
     await assertPlanLimitForStorage(tenant.organizationId, file.size);
   } catch (error) {
     return NextResponse.json(
-      { error: getPlanLimitErrorMessage(error, `Limite de almacenamiento alcanzado para ${getEmployeeDocumentSlotLabel(slot)}.`) },
+      { error: getPlanLimitErrorMessage(error, `Limite de almacenamiento alcanzado para ${getSlotLabel(slot, customTitle)}.`) },
       { status: 400 },
     );
   }
@@ -107,7 +118,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Ruta de almacenamiento invalida" }, { status: 400 });
   }
 
-  const slotLabel = getEmployeeDocumentSlotLabel(slot);
+  const slotLabel = getSlotLabel(slot, customTitle);
   const fullName = `${employee.first_name ?? ""} ${employee.last_name ?? ""}`.trim() || "Empleado";
 
   const { data: uploadResult, error: uploadError } = await admin.storage
@@ -127,7 +138,7 @@ export async function POST(request: Request) {
       organization_id: tenant.organizationId,
       branch_id: employee.branch_id,
       owner_user_id: userId,
-      title: `${slotLabel} - ${fullName}`,
+      title: slot.startsWith("custom_") ? slotLabel : `${slotLabel} - ${fullName}`,
       file_path: path,
       mime_type: analysis.normalizedMime,
       original_file_name: analysis.originalName,
@@ -155,6 +166,9 @@ export async function POST(request: Request) {
     .eq("employee_id", employee.id);
 
   const sameSlotLinks = (existingLinks ?? []).filter((row) => {
+    if (slot.startsWith("custom_")) {
+      return row.document_id === slot.substring(7);
+    }
     const linked = Array.isArray(row.linked_document) ? row.linked_document[0] : row.linked_document;
     return resolveEmployeeDocumentSlotFromTitle(linked?.title) === slot;
   });

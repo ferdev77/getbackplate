@@ -11,6 +11,7 @@ type EmployeeDocumentSlot = {
   documentId: string;
   title: string;
   status: string;
+  requested_without_file?: boolean;
 };
 
 type InitialEmployeePayload = {

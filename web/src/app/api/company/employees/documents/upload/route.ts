@@ -32,7 +32,7 @@ async function ensureBucketExists() {
 }
 
 function isValidSlot(value: string): value is EmployeeDocumentSlotKey {
-  return EMPLOYEE_DOCUMENT_SLOT_DEFINITIONS.some((item) => item.slot === value);
+  return value.startsWith("custom_") || EMPLOYEE_DOCUMENT_SLOT_DEFINITIONS.some((item) => item.slot === value);
 }
 
 export async function POST(request: Request) {
@@ -102,7 +102,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Ruta de almacenamiento invalida" }, { status: 400 });
   }
 
-  const slotLabel = getEmployeeDocumentSlotLabel(slot);
+  const customTitle = formData.get("customTitle");
+  const slotLabel = slot.startsWith("custom_") 
+    ? (typeof customTitle === "string" && customTitle.trim() ? customTitle.trim() : "Documento Adicional") 
+    : getEmployeeDocumentSlotLabel(slot as EmployeeDocumentSlotKey);
   const fullName = `${employee.first_name ?? ""} ${employee.last_name ?? ""}`.trim() || "Empleado";
 
   const { data: uploadResult, error: uploadError } = await admin.storage
@@ -122,7 +125,7 @@ export async function POST(request: Request) {
       organization_id: tenant.organizationId,
       branch_id: employee.branch_id,
       owner_user_id: actorId,
-      title: `${slotLabel} - ${fullName}`,
+      title: slot.startsWith("custom_") ? slotLabel : `${slotLabel} - ${fullName}`,
       file_path: path,
       mime_type: analysis.normalizedMime,
       original_file_name: analysis.originalName,
@@ -145,11 +148,14 @@ export async function POST(request: Request) {
 
   const { data: existingLinks } = await admin
     .from("employee_documents")
-    .select("id, linked_document:documents(title)")
+    .select("id, document_id, linked_document:documents(title)")
     .eq("organization_id", tenant.organizationId)
     .eq("employee_id", employee.id);
 
   const sameSlotLinks = (existingLinks ?? []).filter((row) => {
+    if (slot.startsWith("custom_")) {
+      return row.document_id === slot.substring(7);
+    }
     const linked = Array.isArray(row.linked_document) ? row.linked_document[0] : row.linked_document;
     return resolveEmployeeDocumentSlotFromTitle(linked?.title) === slot;
   });

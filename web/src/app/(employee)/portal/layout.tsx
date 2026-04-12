@@ -290,7 +290,7 @@ export default async function EmployeeLayout({
         .maybeSingle(),
       supabase
         .from("employee_documents")
-        .select("status, reviewed_at, reviewed_by, review_comment, expires_at, reminder_days, has_no_expiration, signature_status, signature_embed_src, signature_requested_at, signature_completed_at, linked_document:documents(id, title, owner_user_id)")
+        .select("status, reviewed_at, reviewed_by, review_comment, expires_at, reminder_days, has_no_expiration, signature_status, signature_embed_src, signature_requested_at, signature_completed_at, linked_document:documents(id, title, owner_user_id, mime_type, original_file_name, file_path)")
         .eq("organization_id", tenant.organizationId)
         .eq("employee_id", resolvedEmployee.id)
         .order("created_at", { ascending: false }),
@@ -303,7 +303,7 @@ export default async function EmployeeLayout({
     ) {
       const fallbackDocsResult = await supabase
         .from("employee_documents")
-        .select("status, reviewed_at, reviewed_by, linked_document:documents(id, title, owner_user_id)")
+        .select("status, reviewed_at, reviewed_by, linked_document:documents(id, title, owner_user_id, mime_type, original_file_name, file_path)")
         .eq("organization_id", tenant.organizationId)
         .eq("employee_id", resolvedEmployee.id)
         .order("created_at", { ascending: false });
@@ -326,7 +326,7 @@ export default async function EmployeeLayout({
         .maybeSingle(),
       admin
         .from("employee_documents")
-        .select("status, reviewed_at, reviewed_by, review_comment, expires_at, reminder_days, has_no_expiration, signature_status, signature_embed_src, signature_requested_at, signature_completed_at, linked_document:documents(id, title, owner_user_id)")
+        .select("status, reviewed_at, reviewed_by, review_comment, expires_at, reminder_days, has_no_expiration, signature_status, signature_embed_src, signature_requested_at, signature_completed_at, linked_document:documents(id, title, owner_user_id, mime_type, original_file_name, file_path)")
         .eq("organization_id", tenant.organizationId)
         .eq("employee_id", resolvedEmployee.id)
         .order("created_at", { ascending: false }),
@@ -339,7 +339,7 @@ export default async function EmployeeLayout({
     ) {
       const fallbackAdminDocsResult = await admin
         .from("employee_documents")
-        .select("status, reviewed_at, reviewed_by, linked_document:documents(id, title, owner_user_id)")
+        .select("status, reviewed_at, reviewed_by, linked_document:documents(id, title, owner_user_id, mime_type, original_file_name, file_path)")
         .eq("organization_id", tenant.organizationId)
         .eq("employee_id", resolvedEmployee.id)
         .order("created_at", { ascending: false });
@@ -431,6 +431,7 @@ export default async function EmployeeLayout({
       reviewedAt: string | null;
       documentId: string | null;
       title: string | null;
+      requestedWithoutFile: boolean;
       uploadedByRole: "employee" | "company";
       uploadedByLabel: string;
       reviewComment: string | null;
@@ -508,12 +509,14 @@ export default async function EmployeeLayout({
     signature_requested_at?: string | null;
     signature_completed_at?: string | null;
     linked_document:
-      | { id?: string; title?: string; owner_user_id?: string | null }[]
-      | { id?: string; title?: string; owner_user_id?: string | null }
+      | { id?: string; title?: string; owner_user_id?: string | null; mime_type?: string | null; original_file_name?: string | null; file_path?: string | null }[]
+      | { id?: string; title?: string; owner_user_id?: string | null; mime_type?: string | null; original_file_name?: string | null; file_path?: string | null }
       | null;
   }>) {
     const linked = Array.isArray(row.linked_document) ? row.linked_document[0] : row.linked_document;
-    const slot = resolveEmployeeDocumentSlotFromTitle(linked?.title);
+    const resolvedSlot = resolveEmployeeDocumentSlotFromTitle(linked?.title);
+    const fallbackCustomSlot = linked?.id ? `custom_${linked.id}` : null;
+    const slot = resolvedSlot ?? fallbackCustomSlot;
     if (!slot || profileDocumentsBySlot.has(slot)) continue;
     const uploadedByRole = linked?.owner_user_id && resolvedEmployee?.user_id && linked.owner_user_id === resolvedEmployee.user_id
       ? "employee"
@@ -529,6 +532,12 @@ export default async function EmployeeLayout({
       reviewedAt: row.reviewed_at,
       documentId: linked?.id ?? null,
       title: linked?.title ?? null,
+      requestedWithoutFile: row.status === "pending"
+        && uploadedByRole === "company"
+        && linked?.mime_type === "text/plain"
+        && linked?.original_file_name === "solicitud-documento.txt"
+        && typeof linked?.file_path === "string"
+        && linked.file_path.includes("/company/request/"),
       uploadedByRole,
       uploadedByLabel,
       reviewComment: row.review_comment ?? null,
@@ -545,6 +554,11 @@ export default async function EmployeeLayout({
       signatureCompletedAt: row.signature_completed_at ?? null,
     });
   }
+
+  const fixedDocumentSlots = ["photo", "id", "ssn", "rec1", "rec2", "other"] as const;
+  const fixedDocumentSlotSet = new Set<string>(fixedDocumentSlots);
+  const customDocumentSlots = Array.from(profileDocumentsBySlot.keys()).filter((slot) => !fixedDocumentSlotSet.has(slot));
+  const allDocumentSlotsInOrder = [...fixedDocumentSlots, ...customDocumentSlots];
 
   const employeeProfile = {
     id: resolvedEmployee?.id ?? "",
@@ -568,10 +582,11 @@ export default async function EmployeeLayout({
     salary_currency: latestContract?.salary_currency ?? null,
     payment_frequency: latestContract?.payment_frequency ?? null,
     has_dashboard_access: true,
-    documents_by_slot: (["photo", "id", "ssn", "rec1", "rec2", "other"] as const).reduce<Record<string, {
+    documents_by_slot: allDocumentSlotsInOrder.reduce<Record<string, {
       documentId: string;
       title: string;
       status: string;
+      requested_without_file: boolean;
       uploaded_by_role: "employee" | "company";
       uploaded_by_label: string;
       review_comment: string | null;
@@ -590,6 +605,7 @@ export default async function EmployeeLayout({
         documentId: row.documentId,
         title: row.title ?? "",
         status: row.status,
+        requested_without_file: row.requestedWithoutFile,
         uploaded_by_role: row.uploadedByRole,
         uploaded_by_label: row.uploadedByLabel,
         review_comment: row.reviewComment,
