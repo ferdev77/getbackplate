@@ -83,13 +83,12 @@ Definir el comportamiento oficial de los documentos `custom_*` para que sean equ
 
 ## Pipeline CI
 
-- Workflow: `.github/workflows/documents-quality.yml`
-- Ejecuta en `pull_request`, `push` a `main` y manual (`workflow_dispatch`).
-- Corre:
+- Estado actual: pendiente de habilitar en repositorio (se difirio para no tocar permisos `workflow` de GitHub en este push).
+- Cuando se habilite, debe incluir estos checks:
   - `npm run e2e:setup-documents`
   - `npm run verify:employee-documents-custom-flow`
   - `npm run e2e:documents`
-- Secrets minimos requeridos:
+- Secrets minimos requeridos al habilitarlo:
   - `SUPABASE_DB_POOLER_URL`
   - `NEXT_PUBLIC_SUPABASE_URL`
   - `SUPABASE_SERVICE_ROLE_KEY`
@@ -101,6 +100,9 @@ Definir el comportamiento oficial de los documentos `custom_*` para que sean equ
 - Empresa (`/app/documents`): toggle de vista con persistencia local por usuario/organizacion.
 - Empleado (`/portal/documents`): mismo toggle de vista con persistencia local por usuario/organizacion.
 - El modo columnas mantiene seleccion de carpeta y panel de detalle con acciones de archivo.
+- El panel `Detalle` incluye preview embebida con altura adaptativa y comportamiento sticky en desktop.
+- Preview usa endpoint dedicado `GET /api/documents/preview?documentId=...`.
+- Hardening aplicado al preview: rate-limit liviano por usuario + telemetria/auditoria de errores de render.
 
 ## Norte recomendado (siguiente etapa)
 

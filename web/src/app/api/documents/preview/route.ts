@@ -6,6 +6,7 @@ import { isModuleEnabledForOrganization } from "@/shared/lib/access";
 import { canReadDocumentInTenant } from "@/shared/lib/document-access";
 import { isEmployeePrivateDocument } from "@/shared/lib/employee-private-documents";
 import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impersonation";
+import { logAuditEvent } from "@/shared/lib/audit";
 import {
   isAllowedDocumentMime,
   isAllowedDocumentSize,
@@ -13,6 +14,42 @@ import {
 } from "@/shared/lib/storage-guardrails";
 
 const BUCKET_NAME = "tenant-documents";
+const PREVIEW_RATE_WINDOW_MS = 60_000;
+const PREVIEW_RATE_LIMIT = 120;
+
+type PreviewRateEntry = {
+  count: number;
+  resetAt: number;
+};
+
+const previewRateMap = new Map<string, PreviewRateEntry>();
+
+function consumePreviewRateToken(key: string) {
+  const now = Date.now();
+
+  if (previewRateMap.size > 2000) {
+    for (const [entryKey, entry] of previewRateMap) {
+      if (entry.resetAt <= now) {
+        previewRateMap.delete(entryKey);
+      }
+    }
+  }
+
+  const existing = previewRateMap.get(key);
+  if (!existing || existing.resetAt <= now) {
+    const next: PreviewRateEntry = { count: 1, resetAt: now + PREVIEW_RATE_WINDOW_MS };
+    previewRateMap.set(key, next);
+    return { allowed: true, remaining: PREVIEW_RATE_LIMIT - 1, resetAt: next.resetAt };
+  }
+
+  if (existing.count >= PREVIEW_RATE_LIMIT) {
+    return { allowed: false, remaining: 0, resetAt: existing.resetAt };
+  }
+
+  existing.count += 1;
+  previewRateMap.set(key, existing);
+  return { allowed: true, remaining: PREVIEW_RATE_LIMIT - existing.count, resetAt: existing.resetAt };
+}
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -27,6 +64,35 @@ export async function GET(request: Request) {
 
   if (!userId) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  }
+
+  const rateBucketKey = `preview:${userId}`;
+  const rate = consumePreviewRateToken(rateBucketKey);
+  if (!rate.allowed) {
+    await logAuditEvent({
+      action: "document.preview.ratelimit",
+      entityType: "document",
+      entityId: documentId,
+      eventDomain: "security",
+      outcome: "denied",
+      severity: "medium",
+      reasonCode: "preview_rate_limited",
+      metadata: {
+        path: "/api/documents/preview",
+        user_id: userId,
+      },
+    });
+    return NextResponse.json(
+      { error: "Demasiadas solicitudes de vista previa. Intenta nuevamente en unos segundos." },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": String(PREVIEW_RATE_LIMIT),
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": String(rate.resetAt),
+        },
+      },
+    );
   }
 
   const { data: memberships } = await supabase
@@ -169,11 +235,37 @@ export async function GET(request: Request) {
     .createSignedUrl(document.file_path, 60);
 
   if (signedError || !signed?.signedUrl) {
+    await logAuditEvent({
+      action: "document.preview.error",
+      entityType: "document",
+      entityId: document.id,
+      organizationId: document.organization_id,
+      eventDomain: "documents",
+      outcome: "error",
+      severity: "medium",
+      reasonCode: "preview_signed_url_failed",
+      metadata: {
+        message: signedError?.message ?? "signed_url_missing",
+      },
+    });
     return NextResponse.json({ error: "No se pudo generar enlace" }, { status: 500 });
   }
 
   const storageResponse = await fetch(signed.signedUrl);
   if (!storageResponse.ok || !storageResponse.body) {
+    await logAuditEvent({
+      action: "document.preview.error",
+      entityType: "document",
+      entityId: document.id,
+      organizationId: document.organization_id,
+      eventDomain: "documents",
+      outcome: "error",
+      severity: "medium",
+      reasonCode: "preview_storage_fetch_failed",
+      metadata: {
+        status: storageResponse.status,
+      },
+    });
     return NextResponse.json({ error: "No se pudo generar vista previa" }, { status: 500 });
   }
 
@@ -184,6 +276,9 @@ export async function GET(request: Request) {
       "Content-Type": document.mime_type || storageResponse.headers.get("content-type") || "application/octet-stream",
       "Content-Disposition": `inline; filename="${safeFileName}"`,
       "Cache-Control": "private, max-age=30",
+      "X-RateLimit-Limit": String(PREVIEW_RATE_LIMIT),
+      "X-RateLimit-Remaining": String(rate.remaining),
+      "X-RateLimit-Reset": String(rate.resetAt),
     },
   });
 }
