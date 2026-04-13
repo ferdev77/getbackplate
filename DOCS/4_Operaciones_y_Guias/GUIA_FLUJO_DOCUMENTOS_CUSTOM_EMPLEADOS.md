@@ -68,7 +68,9 @@ Definir el comportamiento oficial de los documentos `custom_*` para que sean equ
 ## E2E UI (Playwright)
 
 - Configuracion: `web/playwright.config.ts`
-- Test: `web/e2e/documents-custom-flow.spec.ts`
+- Tests:
+  - `web/e2e/documents-custom-flow.spec.ts`
+  - `web/e2e/documents-view-mode.spec.ts`
 - Comandos:
   - `npm run e2e:install`
   - `npm run e2e:setup-documents`
@@ -78,6 +80,27 @@ Definir el comportamiento oficial de los documentos `custom_*` para que sean equ
   - `E2E_COMPANY_EMAIL`
   - `E2E_COMPANY_PASSWORD`
   - `E2E_EMPLOYEE_ID`
+
+## Pipeline CI
+
+- Workflow: `.github/workflows/documents-quality.yml`
+- Ejecuta en `pull_request`, `push` a `main` y manual (`workflow_dispatch`).
+- Corre:
+  - `npm run e2e:setup-documents`
+  - `npm run verify:employee-documents-custom-flow`
+  - `npm run e2e:documents`
+- Secrets minimos requeridos:
+  - `SUPABASE_DB_POOLER_URL`
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `SUPABASE_SERVICE_ROLE_KEY`
+  - `E2E_COMPANY_EMAIL`
+  - `E2E_COMPANY_PASSWORD`
+
+## Vista Arbol / Columnas (empresa + portal empleado)
+
+- Empresa (`/app/documents`): toggle de vista con persistencia local por usuario/organizacion.
+- Empleado (`/portal/documents`): mismo toggle de vista con persistencia local por usuario/organizacion.
+- El modo columnas mantiene seleccion de carpeta y panel de detalle con acciones de archivo.
 
 ## Norte recomendado (siguiente etapa)
 

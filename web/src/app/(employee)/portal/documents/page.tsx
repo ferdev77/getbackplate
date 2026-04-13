@@ -4,8 +4,14 @@ import { isEmployeePrivateDocument } from "@/shared/lib/employee-private-documen
 import { requireEmployeeModule } from "@/shared/lib/access";
 import { EmployeeDocumentsTree } from "@/modules/documents/ui/employee-documents-tree";
 
-export default async function EmployeeDocumentsPage() {
+type EmployeeDocumentsPageProps = {
+  searchParams: Promise<{ view?: string }>;
+};
+
+export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDocumentsPageProps) {
   const tenant = await requireEmployeeModule("documents");
+  const params = await searchParams;
+  const initialViewMode = String(params.view ?? "").trim().toLowerCase() === "columns" ? "columns" : "tree";
   const supabase = await createSupabaseServerClient();
   const { data: authData } = await supabase.auth.getUser();
   const userId = authData.user?.id;
@@ -121,11 +127,14 @@ export default async function EmployeeDocumentsPage() {
       </div>
 
       <EmployeeDocumentsTree
+        organizationId={tenant.organizationId}
+        viewerUserId={userId}
         folders={finalFolders}
         documents={visibleDocuments.map((doc, i) => ({
           ...doc,
           is_new: i < 2, 
         }))}
+        initialViewMode={initialViewMode}
       />
     </>
   );
