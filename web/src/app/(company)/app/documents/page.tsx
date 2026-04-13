@@ -5,7 +5,7 @@ import { getEnabledModules } from "@/modules/organizations/queries";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 
 type CompanyDocumentsPageProps = {
-  searchParams: Promise<{ status?: string; message?: string; action?: string }>;
+  searchParams: Promise<{ status?: string; message?: string; action?: string; view?: string }>;
 };
 
 export default async function CompanyDocumentsPage({
@@ -14,6 +14,9 @@ export default async function CompanyDocumentsPage({
   const tenant = await requireTenantModule("documents");
   const params = await searchParams;
   const supabase = await createSupabaseServerClient();
+  const { data: authData } = await supabase.auth.getUser();
+  const viewerUserId = authData.user?.id ?? "";
+  const initialViewMode = String(params.view ?? "").trim().toLowerCase() === "columns" ? "columns" : "tree";
 
   const [{ data: folders }, { data: documents }, { data: branches }, { data: departments }, { data: positions }] =
     await Promise.all([
@@ -62,6 +65,7 @@ export default async function CompanyDocumentsPage({
   return (
     <DocumentsPageWorkspace
       organizationId={tenant.organizationId}
+      viewerUserId={viewerUserId}
       folders={folders ?? []}
       documents={documents ?? []}
       branches={branches ?? []}
@@ -71,6 +75,7 @@ export default async function CompanyDocumentsPage({
       users={scopedUsers}
       customBrandingEnabled={customBrandingEnabled}
       initialAction={params.action}
+      initialViewMode={initialViewMode}
     />
   );
 }

@@ -14,12 +14,12 @@ import {
 
 const BUCKET_NAME = "tenant-documents";
 
-type Context = {
-  params: Promise<{ documentId: string }>;
-};
-
-export async function GET(request: Request, { params }: Context) {
-  const { documentId } = await params;
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const documentId = String(url.searchParams.get("documentId") ?? "").trim();
+  if (!documentId) {
+    return NextResponse.json({ error: "documentId requerido" }, { status: 400 });
+  }
 
   const supabase = await createSupabaseServerClient();
   const { data: authData } = await supabase.auth.getUser();
@@ -58,7 +58,7 @@ export async function GET(request: Request, { params }: Context) {
   const { data: document, error: docError } = await admin
     .from("documents")
     .select("id, title, file_path, organization_id, branch_id, folder_id, access_scope, mime_type, file_size_bytes")
-.is('deleted_at', null)
+    .is("deleted_at", null)
     .eq("id", documentId)
     .in("organization_id", orgIds)
     .single();
@@ -68,7 +68,6 @@ export async function GET(request: Request, { params }: Context) {
   }
 
   const membership = (memberships ?? []).find((row) => row.organization_id === document.organization_id);
-
   if (!membership && impersonation?.organizationId !== document.organization_id) {
     return NextResponse.json({ error: "Sin acceso a este documento" }, { status: 403 });
   }
@@ -102,7 +101,6 @@ export async function GET(request: Request, { params }: Context) {
       .eq("is_active", true)
       .eq("name", employeeRow.position)
       .limit(20);
-
     employeePositionIds = (positionRows ?? []).map((row) => row.id);
   }
 
@@ -115,7 +113,6 @@ export async function GET(request: Request, { params }: Context) {
       .eq("employee_id", employeeRow.id)
       .eq("document_id", document.id)
       .maybeSingle();
-
     isDirectlyAssigned = Boolean(link);
   }
 
@@ -133,7 +130,6 @@ export async function GET(request: Request, { params }: Context) {
   }
 
   const isPrivateEmployeeDoc = isEmployeePrivateDocument(effectiveAccessScope, document.title);
-
   const orgMemberships = (memberships ?? []).filter((row) => row.organization_id === document.organization_id);
   const fallbackMemberships =
     !orgMemberships.length && impersonation?.organizationId === document.organization_id
@@ -141,27 +137,24 @@ export async function GET(request: Request, { params }: Context) {
       : [];
 
   let canRead = false;
-  for (const membership of [...orgMemberships, ...fallbackMemberships]) {
+  for (const candidate of [...orgMemberships, ...fallbackMemberships]) {
     const roleCode =
-      membership.role_id === "__impersonation__"
+      candidate.role_id === "__impersonation__"
         ? "company_admin"
-        : (roleCodeById.get(membership.role_id) ?? "");
+        : (roleCodeById.get(candidate.role_id) ?? "");
+    if (roleCode === "employee" && isPrivateEmployeeDoc) continue;
 
-    if (roleCode === "employee" && isPrivateEmployeeDoc) {
-      continue;
-    }
-
-    const isAllowed = canReadDocumentInTenant({
+    const allowed = canReadDocumentInTenant({
       roleCode,
       userId,
-      branchId: membership.branch_id ?? employeeRow?.branch_id ?? null,
+      branchId: candidate.branch_id ?? employeeRow?.branch_id ?? null,
       departmentId: employeeRow?.department_id ?? null,
       positionIds: employeePositionIds,
       isDirectlyAssigned,
       accessScope: effectiveAccessScope,
     });
 
-    if (isAllowed) {
+    if (allowed) {
       canRead = true;
       break;
     }
@@ -179,25 +172,18 @@ export async function GET(request: Request, { params }: Context) {
     return NextResponse.json({ error: "No se pudo generar enlace" }, { status: 500 });
   }
 
-  const inlineMode = new URL(request.url).searchParams.get("inline") === "1";
-  if (inlineMode) {
-    const storageResponse = await fetch(signed.signedUrl);
-    if (!storageResponse.ok || !storageResponse.body) {
-      return NextResponse.json({ error: "No se pudo generar vista previa" }, { status: 500 });
-    }
-
-    const safeFileName = `${document.title || "documento"}`.replace(/[\r\n"]/g, "").slice(0, 120);
-    return new NextResponse(storageResponse.body, {
-      status: 200,
-      headers: {
-        "Content-Type": document.mime_type || storageResponse.headers.get("content-type") || "application/octet-stream",
-        "Content-Disposition": `inline; filename="${safeFileName}"`,
-        "Cache-Control": "private, max-age=30",
-        "X-Frame-Options": "SAMEORIGIN",
-        "Content-Security-Policy": "frame-ancestors 'self'",
-      },
-    });
+  const storageResponse = await fetch(signed.signedUrl);
+  if (!storageResponse.ok || !storageResponse.body) {
+    return NextResponse.json({ error: "No se pudo generar vista previa" }, { status: 500 });
   }
 
-  return NextResponse.redirect(signed.signedUrl);
+  const safeFileName = `${document.title || "documento"}`.replace(/[\r\n"]/g, "").slice(0, 120);
+  return new NextResponse(storageResponse.body, {
+    status: 200,
+    headers: {
+      "Content-Type": document.mime_type || storageResponse.headers.get("content-type") || "application/octet-stream",
+      "Content-Disposition": `inline; filename="${safeFileName}"`,
+      "Cache-Control": "private, max-age=30",
+    },
+  });
 }

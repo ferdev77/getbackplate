@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FolderPlus, LayoutGrid, UploadCloud } from "lucide-react";
 
@@ -28,6 +28,7 @@ type ScopeUser = { id: string; user_id: string | null; first_name: string; last_
 
 type DocumentsPageWorkspaceProps = {
   organizationId: string;
+  viewerUserId: string;
   folders: Folder[];
   documents: Document[];
   branches: Branch[];
@@ -37,10 +38,12 @@ type DocumentsPageWorkspaceProps = {
   users: ScopeUser[];
   customBrandingEnabled: boolean;
   initialAction?: string;
+  initialViewMode?: "tree" | "columns";
 };
 
 export function DocumentsPageWorkspace({
   organizationId,
+  viewerUserId,
   folders,
   documents,
   branches,
@@ -50,11 +53,31 @@ export function DocumentsPageWorkspace({
   users,
   customBrandingEnabled,
   initialAction,
+  initialViewMode = "tree",
 }: DocumentsPageWorkspaceProps) {
   const router = useRouter();
   const normalizedAction = String(initialAction ?? "").trim().toLowerCase();
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(normalizedAction === "create-folder");
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(normalizedAction === "upload");
+  const [viewMode, setViewMode] = useState<"tree" | "columns">(initialViewMode);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const key = `gbp.documents.view:${organizationId}:${viewerUserId}`;
+    const stored = window.localStorage.getItem(key);
+    if (stored !== "tree" && stored !== "columns") return;
+
+    const frame = window.requestAnimationFrame(() => {
+      setViewMode((prev) => (prev === stored ? prev : stored));
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [organizationId, viewerUserId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const key = `gbp.documents.view:${organizationId}:${viewerUserId}`;
+    window.localStorage.setItem(key, viewMode);
+  }, [organizationId, viewerUserId, viewMode]);
 
   const recentDocuments = useMemo(
     () => documents.map((document) => ({ id: document.id, title: document.title, branch_id: document.branch_id, created_at: document.created_at })),
@@ -80,6 +103,24 @@ export function DocumentsPageWorkspace({
             <h1 className="text-[18px] font-bold">Documentos</h1>
           </div>
           <div className="flex flex-wrap gap-2">
+            <div className="inline-flex h-[33px] items-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode("tree")}
+                data-testid="documents-view-tree"
+                className={`rounded-md px-2.5 text-xs font-semibold ${viewMode === "tree" ? "bg-[var(--gbp-bg)] text-[var(--gbp-text)]" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}
+              >
+                Arbol
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("columns")}
+                data-testid="documents-view-columns"
+                className={`rounded-md px-2.5 text-xs font-semibold ${viewMode === "columns" ? "bg-[var(--gbp-bg)] text-[var(--gbp-text)]" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}
+              >
+                Columnas
+              </button>
+            </div>
             <button type="button" onClick={() => setIsFolderModalOpen(true)} className="inline-flex h-[33px] items-center gap-1 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"><FolderPlus className="h-3.5 w-3.5" /> Nueva Carpeta</button>
             <button type="button" onClick={() => setIsUploadModalOpen(true)} className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[var(--gbp-accent)] px-3 text-xs font-bold text-white hover:bg-[var(--gbp-accent-hover)]"><UploadCloud className="h-3.5 w-3.5" /> Subir Archivo</button>
           </div>
@@ -89,6 +130,7 @@ export function DocumentsPageWorkspace({
       <SlideUp delay={0.1}>
         <DocumentsTreeWorkspace
           organizationId={organizationId}
+          viewerUserId={viewerUserId}
           folders={folders}
           documents={documents}
           branches={branches}
@@ -96,6 +138,7 @@ export function DocumentsPageWorkspace({
           positions={positions}
           users={users}
           customBrandingEnabled={customBrandingEnabled}
+          viewMode={viewMode}
         />
       </SlideUp>
 

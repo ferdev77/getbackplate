@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
     // Build Content-Security-Policy — tight but allows known first/third-party origins
     // Note: unsafe-inline & unsafe-eval are required by Next.js App Router internals and some UI libs.
     // For a hardened prod setup, replace with nonce-based CSP via middleware.
-    const cspDirectives = [
+    const baseCspDirectives = [
       `default-src 'self'`,
       `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.docuseal.com https://docuseal.com https://*.docuseal.com`,
       `worker-src 'self' blob:`,
@@ -28,12 +28,14 @@ const nextConfig: NextConfig = {
       `img-src 'self' data: blob: https://${supabaseHost} https://*.supabase.co https://docuseal.com https://*.docuseal.com https://docuseal.s3.amazonaws.com`,
       `connect-src 'self' https://${supabaseHost} https://*.supabase.co wss://${supabaseHost} wss://*.supabase.co https://sentry.io https://*.sentry.io https://api.brevo.com https://api.docuseal.com https://docuseal.com https://cdn.docuseal.com https://*.docuseal.com`,
       `frame-src 'self' https://docuseal.com https://*.docuseal.com`,
-      `frame-ancestors 'none'`,
       `base-uri 'self'`,
       `form-action 'self'`,
       `object-src 'none'`,
       `upgrade-insecure-requests`,
-    ].join("; ");
+    ];
+
+    const cspDirectives = [...baseCspDirectives, `frame-ancestors 'none'`].join("; ");
+    const previewCspDirectives = [...baseCspDirectives, `frame-ancestors 'self'`].join("; ");
 
     return [
       {
@@ -62,6 +64,20 @@ const nextConfig: NextConfig = {
               "accelerometer=()",
             ].join(", "),
           },
+        ],
+      },
+      {
+        source: "/api/documents/:path*/download",
+        headers: [
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Content-Security-Policy", value: previewCspDirectives },
+        ],
+      },
+      {
+        source: "/api/documents/preview",
+        headers: [
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Content-Security-Policy", value: previewCspDirectives },
         ],
       },
     ];

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Eye, MapPin, Pencil, Search, Share2, Trash2, ChevronRight, Folder, Mail } from "lucide-react";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
 import { TooltipLabel } from "@/shared/ui/tooltip";
@@ -39,6 +39,7 @@ type User = { id: string; user_id: string | null; first_name: string; last_name:
 
 type Props = {
   organizationId: string;
+  viewerUserId: string;
   folders: FolderRow[];
   documents: DocumentRow[];
   branches: Branch[];
@@ -46,6 +47,7 @@ type Props = {
   positions: Position[];
   users: User[];
   customBrandingEnabled?: boolean;
+  viewMode?: "tree" | "columns";
 };
 
 function formatDate(dateText: string) {
@@ -57,6 +59,11 @@ function formatSize(bytes: number | null) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function isPreviewableMime(mimeType: string | null) {
+  if (!mimeType) return false;
+  return mimeType.startsWith("image/") || mimeType === "application/pdf" || mimeType.startsWith("text/");
 }
 
 function parseScope(scope: unknown) {
@@ -76,7 +83,7 @@ function parseScope(scope: unknown) {
   };
 }
 
-export function DocumentsTreeWorkspace({ organizationId, folders, documents, branches, departments, positions, users, customBrandingEnabled = false }: Props) {
+export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, documents, branches, departments, positions, users, customBrandingEnabled = false, viewMode = "tree" }: Props) {
   const router = useRouter();
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [folderRows, setFolderRows] = useState(folders);
@@ -95,7 +102,35 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
   const [shareFolderId, setShareFolderId] = useState<string | null>(null);
   const [emailShareDocId, setEmailShareDocId] = useState<string | null>(null);
   const [dropFolderId, setDropFolderId] = useState<string | null>(null);
+  const [selectedColumnFolderId, setSelectedColumnFolderId] = useState<string | null>(null);
+  const [selectedColumnDocId, setSelectedColumnDocId] = useState<string | null>(null);
+  const [previewState, setPreviewState] = useState<{ docId: string | null; status: "idle" | "loading" | "ready" | "error" }>({
+    docId: null,
+    status: "idle",
+  });
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const key = `gbp.documents.columns.folder:${organizationId}:${viewerUserId}`;
+    if (selectedColumnFolderId) {
+      window.localStorage.setItem(key, selectedColumnFolderId);
+    } else {
+      window.localStorage.removeItem(key);
+    }
+  }, [organizationId, selectedColumnFolderId, viewerUserId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const key = `gbp.documents.columns.folder:${organizationId}:${viewerUserId}`;
+    const stored = window.localStorage.getItem(key);
+    if (!stored) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      setSelectedColumnFolderId((prev) => (prev === stored ? prev : stored));
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [organizationId, viewerUserId]);
 
   const mappedBranches = useMemo(
     () => branches.map((b) => ({ ...b, name: customBrandingEnabled && b.city ? b.city : b.name })),
@@ -663,6 +698,42 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
 
   const rootDocuments = sortDocuments((docsByFolder.get(null) ?? []).filter(includeDocument));
 
+  const orderedFolderRows = useMemo(
+    () => [...folderRows].sort((a, b) => a.name.localeCompare(b.name, "es")),
+    [folderRows],
+  );
+
+  const effectiveSelectedColumnFolderId = selectedColumnFolderId && folderRows.some((folder) => folder.id === selectedColumnFolderId)
+    ? selectedColumnFolderId
+    : null;
+
+  const columnDocuments = useMemo(() => {
+    const rows = docsByFolder.get(effectiveSelectedColumnFolderId) ?? [];
+    return [...rows.filter((doc) => {
+      const q = query.trim().toLowerCase();
+      if (q && !doc.title.toLowerCase().includes(q)) return false;
+      if (locationFilter && doc.branch_id !== locationFilter) return false;
+      const scope = parseScope(doc.access_scope);
+      if (departmentFilter && !scope.departments.includes(departmentFilter)) return false;
+      return true;
+    })].sort((a, b) => {
+      if (sortBy === "date-asc") return +new Date(a.created_at) - +new Date(b.created_at);
+      if (sortBy === "name-asc") return a.title.localeCompare(b.title, "es");
+      if (sortBy === "name-desc") return b.title.localeCompare(a.title, "es");
+      if (sortBy === "size-desc") return (b.file_size_bytes ?? 0) - (a.file_size_bytes ?? 0);
+      if (sortBy === "size-asc") return (a.file_size_bytes ?? 0) - (b.file_size_bytes ?? 0);
+      return +new Date(b.created_at) - +new Date(a.created_at);
+    });
+  }, [departmentFilter, docsByFolder, effectiveSelectedColumnFolderId, locationFilter, query, sortBy]);
+
+  useEffect(() => {
+    if (viewMode !== "columns") return;
+    if (selectedColumnDocId && columnDocuments.some((doc) => doc.id === selectedColumnDocId)) return;
+    setSelectedColumnDocId(columnDocuments[0]?.id ?? null);
+  }, [columnDocuments, selectedColumnDocId, viewMode]);
+
+  const selectedColumnDocument = columnDocuments.find((doc) => doc.id === selectedColumnDocId) ?? null;
+
   const editDocument = documentRows.find((doc) => doc.id === editDocId) ?? null;
   const editFolder = folderRows.find((folder) => folder.id === editFolderId) ?? null;
   const deleteDocument = documentRows.find((doc) => doc.id === deleteDocId) ?? null;
@@ -685,13 +756,24 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--gbp-muted)]" />
           <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-[34px] w-[220px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] pl-9 pr-3 text-xs" placeholder="Buscar documentos..." />
         </div>
-        <select value={folderFilter} onChange={(event) => setFolderFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las carpetas</option>{folderOptions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
+        {viewMode === "tree" ? (
+          <select value={folderFilter} onChange={(event) => setFolderFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las carpetas</option>{folderOptions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
+        ) : null}
         <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las locaciones</option>{branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
         <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todos los departamentos</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
         <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="date-desc">Mas recientes primero</option><option value="date-asc">Mas antiguos primero</option><option value="name-asc">Nombre A-Z</option><option value="name-desc">Nombre Z-A</option><option value="size-desc">Mayor tamano</option><option value="size-asc">Menor tamano</option></select>
       </section>
 
       <SlideUp delay={0.2}>
+        <AnimatePresence mode="wait">
+        <motion.div
+          key={viewMode}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.18 }}
+        >
+        {viewMode === "tree" ? (
         <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
           <div className="grid grid-cols-[1fr_auto] gap-2 bg-[var(--gbp-bg)] px-4 py-3 text-[11px] font-bold tracking-[0.07em] text-[var(--gbp-muted)] uppercase md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px]">
             <p>Nombre</p>
@@ -764,6 +846,142 @@ export function DocumentsTreeWorkspace({ organizationId, folders, documents, bra
             </AnimatePresence>
           </div>
         </section>
+        ) : (
+          <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
+            <div className="grid min-h-[560px] grid-cols-1 divide-y divide-[var(--gbp-border)] lg:grid-cols-[260px_minmax(280px,1fr)_minmax(260px,1fr)] lg:divide-x lg:divide-y-0">
+              <div className="bg-[var(--gbp-bg)] p-3">
+                <p className="mb-2 px-1 text-[11px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Carpetas</p>
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedColumnFolderId(null)}
+                    className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm ${effectiveSelectedColumnFolderId === null ? "bg-[var(--gbp-surface)] font-semibold text-[var(--gbp-text)]" : "text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface)]"}`}
+                  >
+                    <span>Raiz</span>
+                    <span className="text-[11px] text-[var(--gbp-muted)]">{docsByFolder.get(null)?.length ?? 0}</span>
+                  </button>
+                  {orderedFolderRows.map((folder) => (
+                    <button
+                      key={folder.id}
+                      type="button"
+                      onClick={() => setSelectedColumnFolderId(folder.id)}
+                      className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm ${effectiveSelectedColumnFolderId === folder.id ? "bg-[var(--gbp-surface)] font-semibold text-[var(--gbp-text)]" : "text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface)]"}`}
+                    >
+                      <span className="truncate">{folder.name}</span>
+                      <span className="text-[11px] text-[var(--gbp-muted)]">{docsByFolder.get(folder.id)?.length ?? 0}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-3">
+                <p className="mb-2 px-1 text-[11px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Documentos</p>
+                <div className="space-y-1">
+                  {columnDocuments.length === 0 ? (
+                    <p className="rounded-lg border border-dashed border-[var(--gbp-border2)] px-3 py-8 text-center text-sm text-[var(--gbp-muted)]">No hay documentos para los filtros seleccionados.</p>
+                  ) : columnDocuments.map((doc) => (
+                    <button
+                      key={doc.id}
+                      type="button"
+                      onClick={() => setSelectedColumnDocId(doc.id)}
+                      className={`w-full rounded-lg border px-3 py-2 text-left ${selectedColumnDocId === doc.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] hover:bg-[var(--gbp-bg)]"}`}
+                    >
+                      <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{doc.title}</p>
+                      <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">{formatDate(doc.created_at)} · {formatSize(doc.file_size_bytes)}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-3">
+                <p className="mb-2 px-1 text-[11px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Detalle</p>
+                {!selectedColumnDocument ? (
+                  <p className="rounded-lg border border-dashed border-[var(--gbp-border2)] px-3 py-8 text-center text-sm text-[var(--gbp-muted)]">Selecciona un documento para ver sus acciones y permisos.</p>
+                ) : (
+                  <div className="space-y-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--gbp-text)]">{selectedColumnDocument.title}</p>
+                      <p className="mt-1 text-xs text-[var(--gbp-text2)]">{formatDate(selectedColumnDocument.created_at)} · {formatSize(selectedColumnDocument.file_size_bytes)} · {selectedColumnDocument.mime_type ?? "archivo"}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <a href={`/api/documents/${selectedColumnDocument.id}/download`} className={ACTION_BTN_NEUTRAL}><Eye className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Ver" /></a>
+                      <button type="button" onClick={() => setEditDocId(selectedColumnDocument.id)} className={ACTION_BTN_NEUTRAL}><Pencil className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Editar" /></button>
+                      {selectedColumnDocument.folder_id ? null : (
+                        <button type="button" onClick={() => setShareDocId(selectedColumnDocument.id)} className={ACTION_BTN_NEUTRAL}><Share2 className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Compartir" /></button>
+                      )}
+                      <button type="button" onClick={() => setEmailShareDocId(selectedColumnDocument.id)} className={ACTION_BTN_MAIL}><Mail className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Compartir por email" /></button>
+                      <a href={`/api/documents/${selectedColumnDocument.id}/download`} className={ACTION_BTN_NEUTRAL}><Download className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Descargar" /></a>
+                      <button type="button" onClick={() => setDeleteDocId(selectedColumnDocument.id)} className={ACTION_BTN_DANGER}><Trash2 className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Eliminar" /></button>
+                    </div>
+                    <div className="relative overflow-hidden rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
+                      <AnimatePresence mode="wait">
+                        <motion.div
+                          key={selectedColumnDocument.id}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.12 }}
+                        >
+                          {selectedColumnDocument.mime_type?.startsWith("image/") ? (
+                            <img
+                              src={`/api/documents/preview?documentId=${encodeURIComponent(selectedColumnDocument.id)}`}
+                              alt={`Vista previa ${selectedColumnDocument.title}`}
+                              className="h-[300px] w-full object-contain bg-white"
+                              onLoad={() => setPreviewState({ docId: selectedColumnDocument.id, status: "ready" })}
+                              onError={() => setPreviewState({ docId: selectedColumnDocument.id, status: "error" })}
+                            />
+                          ) : isPreviewableMime(selectedColumnDocument.mime_type) ? (
+                            <iframe
+                              src={`/api/documents/preview?documentId=${encodeURIComponent(selectedColumnDocument.id)}`}
+                              title={`Vista previa ${selectedColumnDocument.title}`}
+                              className="h-[300px] w-full bg-white"
+                              onLoad={() => setPreviewState({ docId: selectedColumnDocument.id, status: "ready" })}
+                            />
+                          ) : (
+                            <div className="grid h-[240px] place-items-center p-4 text-center text-sm text-[var(--gbp-text2)]">
+                              Este formato no tiene previsualizacion embebida. Usa Ver o Descargar.
+                            </div>
+                          )}
+                        </motion.div>
+                      </AnimatePresence>
+                      {previewState.docId !== selectedColumnDocument.id || previewState.status === "loading" ? (
+                        <div className="pointer-events-none absolute inset-0 grid place-items-center bg-[color:color-mix(in_oklab,var(--gbp-surface)_82%,transparent)]">
+                          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--gbp-border2)] border-t-[var(--gbp-accent)]" />
+                        </div>
+                      ) : null}
+                      {previewState.docId === selectedColumnDocument.id && previewState.status === "error" ? (
+                        <div className="absolute inset-0 grid place-items-center bg-[color:color-mix(in_oklab,var(--gbp-surface)_90%,transparent)] p-3 text-center text-xs text-[var(--gbp-text2)]">
+                          No se pudo cargar la vista previa. Usa Ver o Descargar.
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="space-y-2">
+                      {(() => {
+                        const scope = getEffectiveDocumentScope(selectedColumnDocument);
+                        const locs = getScopeLocNames(scope, selectedColumnDocument.branch_id);
+                        const roles = getScopeRoles(scope);
+                        return (
+                          <>
+                            <div>
+                              <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Locaciones</p>
+                              <ScopePillsOverflow pills={locs.map((name) => ({ name, type: "location" as const }))} max={6} emptyLabel={<span className="text-xs text-[var(--gbp-muted)]">Todas</span>} />
+                            </div>
+                            <div>
+                              <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Deptos / Puestos</p>
+                              <ScopePillsOverflow pills={roles.map((role) => ({ name: role.name, type: role.type }))} max={6} emptyLabel={<span className="text-xs text-[var(--gbp-muted)]">Todos</span>} />
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+        </motion.div>
+        </AnimatePresence>
       </SlideUp>
 
       {editDocument ? (
