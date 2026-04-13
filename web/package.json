@@ -8,6 +8,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "e2e:install": "playwright install chromium",
+    "e2e:setup-documents": "node --env-file=.env.local scripts/setup-e2e-documents.mjs",
+    "e2e:documents": "playwright test e2e/documents-custom-flow.spec.ts",
+    "e2e:documents:headed": "playwright test e2e/documents-custom-flow.spec.ts --headed",
     "setup:demo": "node --env-file=.env.local scripts/setup-demo.mjs",
     "worker:documents": "node --env-file=.env.local scripts/process-document-jobs.mjs",
     "verify:rls-isolation": "node --env-file=.env.local scripts/verify-tenant-isolation.mjs",
@@ -19,6 +23,7 @@
     "setup:tenant-qa-7-locations": "node --env-file=.env.local scripts/setup-tenant-qa-7-locations.mjs",
     "verify:tenant-7-locations": "node --env-file=.env.local scripts/verify-tenant-7-locations.mjs",
     "verify:document-guardrails": "node --env-file=.env.local scripts/verify-document-guardrails.mjs",
+    "verify:employee-documents-custom-flow": "node --env-file=.env.local scripts/verify-employee-documents-custom-flow.mjs",
     "verify:audit-coverage": "node --env-file=.env.local scripts/verify-audit-coverage.mjs",
     "verify:operational-metrics-consistency": "node --env-file=.env.local scripts/verify-operational-metrics-consistency.mjs",
     "verify:operational-alerts": "node --env-file=.env.local scripts/evaluate-operational-alerts.mjs",
@@ -59,6 +64,7 @@
     "axios": "^1.15.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "^8.18.0",

@@ -59,6 +59,26 @@ Definir el comportamiento oficial de los documentos `custom_*` para que sean equ
 5. Aprobado -> configurar vencimiento o sin vencimiento.
 6. Con vencimiento configurado -> solicitar firma y completar ciclo de firma.
 
+## Verificacion automatizada (smoke)
+
+- Script: `web/scripts/verify-employee-documents-custom-flow.mjs`
+- Comando: `npm run verify:employee-documents-custom-flow`
+- Objetivo: validar con datos temporales que el flujo base custom/fijo mantenga transiciones esperadas y limpiar datos al finalizar.
+
+## E2E UI (Playwright)
+
+- Configuracion: `web/playwright.config.ts`
+- Test: `web/e2e/documents-custom-flow.spec.ts`
+- Comandos:
+  - `npm run e2e:install`
+  - `npm run e2e:setup-documents`
+  - `npm run e2e:documents`
+- Variables de entorno requeridas para el test UI:
+  - `E2E_BASE_URL` (ej. `http://127.0.0.1:3000`)
+  - `E2E_COMPANY_EMAIL`
+  - `E2E_COMPANY_PASSWORD`
+  - `E2E_EMPLOYEE_ID`
+
 ## Norte recomendado (siguiente etapa)
 
 1. Mover deteccion de `requested_without_file` a metadata explicita en DB para eliminar heuristicas por `mime_type/file_path`.
