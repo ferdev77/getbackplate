@@ -344,7 +344,7 @@ export function EmployeeDocumentsTree({ organizationId, viewerUserId, folders, d
                       </div>
                     </div>
 
-                    <div className="p-3">
+                    <div className="self-start p-3 lg:sticky lg:top-3">
                       <p className="mb-2 px-1 text-[11px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Documentos</p>
                       <div className="space-y-1">
                         {columnDocuments.length === 0 ? (
@@ -396,7 +396,7 @@ export function EmployeeDocumentsTree({ organizationId, viewerUserId, folders, d
                                   <img
                                     src={`/api/documents/preview?documentId=${encodeURIComponent(selectedColumnDocument.id)}`}
                                     alt={`Vista previa ${selectedColumnDocument.title}`}
-                                    className="h-[300px] w-full object-contain bg-white"
+                                    className="h-[clamp(260px,42vh,420px)] w-full object-contain bg-white"
                                     onLoad={() => setPreviewState({ docId: selectedColumnDocument.id, status: "ready" })}
                                     onError={() => setPreviewState({ docId: selectedColumnDocument.id, status: "error" })}
                                   />
@@ -404,7 +404,7 @@ export function EmployeeDocumentsTree({ organizationId, viewerUserId, folders, d
                                   <iframe
                                     src={`/api/documents/preview?documentId=${encodeURIComponent(selectedColumnDocument.id)}`}
                                     title={`Vista previa ${selectedColumnDocument.title}`}
-                                    className="h-[300px] w-full bg-white"
+                                    className="h-[clamp(260px,42vh,420px)] w-full bg-white"
                                     onLoad={() => setPreviewState({ docId: selectedColumnDocument.id, status: "ready" })}
                                   />
                                 ) : (
