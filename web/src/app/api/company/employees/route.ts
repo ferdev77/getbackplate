@@ -704,6 +704,10 @@ async function upsertEmployeeContractDocument(input: UpsertEmployeeContractDocum
       employee_id: input.employeeId,
       document_id: documentId,
       status: "approved",
+      requested_without_file: false,
+      pending_since_at: null,
+      pending_reminder_stage: 0,
+      pending_reminder_last_sent_at: null,
     },
     { onConflict: "employee_id,document_id" },
   );
@@ -1453,6 +1457,10 @@ export async function POST(request: Request) {
         employee_id: employeeIdValue,
         document_id: documentId,
         status: "approved",
+        requested_without_file: false,
+        pending_since_at: null,
+        pending_reminder_stage: 0,
+        pending_reminder_last_sent_at: null,
         reviewed_by: actorId,
         reviewed_at: reviewedAt,
       }));
@@ -1872,6 +1880,10 @@ export async function POST(request: Request) {
       employee_id: employee.id,
       document_id: documentId,
       status: "approved",
+      requested_without_file: false,
+      pending_since_at: null,
+      pending_reminder_stage: 0,
+      pending_reminder_last_sent_at: null,
       reviewed_by: actorId,
       reviewed_at: reviewedAt,
     }));

@@ -205,14 +205,14 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   if (editEmployee) {
     const withComment = await supabase
       .from("employee_documents")
-      .select("document_id, status, reviewed_by, review_comment, expires_at, reminder_days, has_no_expiration, signature_status, signature_embed_src, signature_requested_at, signature_completed_at, created_at, linked_document:documents(id, title, owner_user_id, mime_type, original_file_name, file_path)")
+      .select("document_id, status, requested_without_file, reviewed_by, review_comment, expires_at, reminder_days, has_no_expiration, signature_status, signature_embed_src, signature_requested_at, signature_completed_at, created_at, linked_document:documents(id, title, owner_user_id, mime_type, original_file_name, file_path)")
       .eq("organization_id", tenant.organizationId)
       .eq("employee_id", editEmployee.id)
       .order("created_at", { ascending: false });
 
     if (
       withComment.error &&
-      ["review_comment", "expires_at", "reminder_days", "has_no_expiration", "signature_status", "signature_embed_src", "signature_requested_at", "signature_completed_at"].some((field) => String(withComment.error?.message ?? "").includes(field))
+      ["review_comment", "expires_at", "reminder_days", "has_no_expiration", "signature_status", "signature_embed_src", "signature_requested_at", "signature_completed_at", "requested_without_file"].some((field) => String(withComment.error?.message ?? "").includes(field))
     ) {
       const fallback = await supabase
         .from("employee_documents")
@@ -277,6 +277,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   for (const row of (editEmployeeDocuments.data ?? []) as Array<{
     document_id: string;
     status: string;
+    requested_without_file?: boolean;
     reviewed_by?: string | null;
     review_comment?: string | null;
     expires_at?: string | null;
@@ -308,12 +309,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       documentId: row.document_id,
       title,
       status: row.status,
-      requested_without_file: row.status === "pending"
-        && uploadedByRole === "company"
-        && linked?.mime_type === "text/plain"
-        && linked?.original_file_name === "solicitud-documento.txt"
-        && typeof linked?.file_path === "string"
-        && linked.file_path.includes("/company/request/"),
+      requested_without_file: row.requested_without_file === true,
       uploaded_by_role: uploadedByRole,
       uploaded_by_label: uploadedByLabel,
       review_comment: row.review_comment ?? null,

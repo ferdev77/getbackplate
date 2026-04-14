@@ -62,6 +62,10 @@ export async function POST(request: Request) {
       .from("employee_documents")
       .update({
         status: decision,
+        requested_without_file: false,
+        pending_since_at: null,
+        pending_reminder_stage: 0,
+        pending_reminder_last_sent_at: null,
         reviewed_by: actorId,
         reviewed_at: reviewedAt,
         review_comment: reviewComment,
@@ -93,6 +97,10 @@ export async function POST(request: Request) {
         .from("employee_documents")
         .update({
           status: decision,
+          requested_without_file: false,
+          pending_since_at: null,
+          pending_reminder_stage: 0,
+          pending_reminder_last_sent_at: null,
           reviewed_by: actorId,
           reviewed_at: reviewedAt,
           expires_at: decision === "rejected" ? null : undefined,
