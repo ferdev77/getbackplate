@@ -1587,20 +1587,10 @@ export async function POST(request: Request) {
   }
 
   if (uniqueDocIds.length) {
-    const { data: docs, error: docsError } = await supabase
-      .from("documents")
-      .select("id")
-.is('deleted_at', null)
-      .eq("organization_id", tenant.organizationId)
-      .in("id", uniqueDocIds);
-
-    if (docsError) {
-      return NextResponse.json({ error: docsError.message }, { status: 400 });
-    }
-
-    if ((docs?.length ?? 0) !== uniqueDocIds.length) {
-      return NextResponse.json({ error: "Uno o mas documentos no pertenecen a la empresa" }, { status: 400 });
-    }
+    return NextResponse.json(
+      { error: "No se permite vincular documentos del modulo Documentos al legajo del empleado" },
+      { status: 400 },
+    );
   }
 
   for (const upload of uploadFiles) {

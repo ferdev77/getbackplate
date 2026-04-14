@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { requireTenantModule } from "@/shared/lib/access";
 import { DocumentTrashList } from "@/modules/trash/ui/document-trash-list";
 import { SlideUp } from "@/shared/ui/animations";
+import { getEmployeeDocumentIdSet } from "@/shared/lib/document-domain";
 
 export default async function CompanyTrashPage() {
   const tenant = await requireTenantModule("documents");
@@ -11,14 +12,19 @@ export default async function CompanyTrashPage() {
   const fifteenDaysAgo = new Date();
   fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
 
-  const { data: documents } = await supabase
-    .from("documents")
-    .select("id, title, file_size_bytes, deleted_at")
-    .eq("organization_id", tenant.organizationId)
-    .not("deleted_at", "is", null)
-    .gte("deleted_at", fifteenDaysAgo.toISOString())
-    .order("deleted_at", { ascending: false })
-    .limit(100);
+  const [{ data: documents }, employeeDocumentIds] = await Promise.all([
+    supabase
+      .from("documents")
+      .select("id, title, file_size_bytes, deleted_at")
+      .eq("organization_id", tenant.organizationId)
+      .not("deleted_at", "is", null)
+      .gte("deleted_at", fifteenDaysAgo.toISOString())
+      .order("deleted_at", { ascending: false })
+      .limit(400),
+    getEmployeeDocumentIdSet(supabase, tenant.organizationId),
+  ]);
+
+  const companyTrashDocuments = (documents ?? []).filter((doc) => !employeeDocumentIds.has(doc.id)).slice(0, 100);
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
@@ -35,7 +41,7 @@ export default async function CompanyTrashPage() {
       </SlideUp>
 
       <SlideUp delay={0.1}>
-        <DocumentTrashList documents={documents ?? []} />
+        <DocumentTrashList documents={companyTrashDocuments} />
       </SlideUp>
     </main>
   );

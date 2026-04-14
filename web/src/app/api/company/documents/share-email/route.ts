@@ -5,6 +5,7 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
+import { isEmployeeLinkedDocument } from "@/shared/lib/document-domain";
 
 const BUCKET_NAME = "tenant-documents";
 
@@ -47,6 +48,11 @@ export async function POST(request: Request) {
 
   if (documentError || !document) {
     return NextResponse.json({ error: "Documento no encontrado" }, { status: 404 });
+  }
+
+  const employeeLinked = await isEmployeeLinkedDocument(admin, tenant.organizationId, documentId);
+  if (employeeLinked) {
+    return NextResponse.json({ error: "Documento de empleado: no se comparte desde Documentos de empresa" }, { status: 403 });
   }
 
   if (!isSafeTenantStoragePath(document.file_path, tenant.organizationId, { allowLegacySeedPrefix: true })) {

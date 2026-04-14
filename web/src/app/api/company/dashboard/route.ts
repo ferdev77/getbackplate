@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { getEnabledModules } from "@/modules/organizations/queries";
 import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { getEmployeeDocumentIdSet } from "@/shared/lib/document-domain";
 
 async function getOpenFlagsCountByBranch(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
@@ -134,6 +135,7 @@ export async function GET(request: Request) {
     openFlagsCount,
     { data: announcements },
     { data: recentDocuments },
+    employeeDocumentIds,
   ] = await Promise.all([
     employeesCountQuery,
     usersCountQuery,
@@ -161,11 +163,16 @@ export async function GET(request: Request) {
             .is("deleted_at", null)
             .eq("organization_id", organizationId)
             .order("created_at", { ascending: false })
-            .limit(6);
+            .limit(40);
           return selectedBranch ? query.eq("branch_id", selectedBranch) : query;
         })()
       : Promise.resolve({ data: [] }),
+    isDocumentsEnabled
+      ? getEmployeeDocumentIdSet(supabase, organizationId)
+      : Promise.resolve(new Set<string>()),
   ]);
+
+  const companyRecentDocuments = (recentDocuments ?? []).filter((doc) => !employeeDocumentIds.has(doc.id)).slice(0, 6);
 
   return NextResponse.json({
     employeesCount: (employeesCount ?? 0) + (usersCount ?? 0),
@@ -177,6 +184,6 @@ export async function GET(request: Request) {
     pendingReviewCount: pendingReviewCount ?? 0,
     openFlagsCount: openFlagsCount ?? 0,
     announcements: announcements ?? [],
-    recentDocuments: recentDocuments ?? [],
+    recentDocuments: companyRecentDocuments,
   });
 }
