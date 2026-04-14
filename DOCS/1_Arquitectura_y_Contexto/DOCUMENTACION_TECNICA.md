@@ -1469,6 +1469,41 @@ QA ejecutado post-implementacion:
   - `npm run build` ✅
   - `npm run verify:smoke-modules` ✅
   - `npm run verify:role-permissions` ✅
+
+### 38. Separacion estricta Documentos Empresa vs Documentos Empleado (2026-04)
+
+- Objetivo:
+  - evitar mezcla entre flujo `Documentos` de empresa y legajo documental de empleados.
+
+- Regla funcional:
+  - documentos del legajo empleado (vinculados en `employee_documents` o almacenados bajo ruta `/<org>/employees/...`) no deben aparecer ni gestionarse desde `/app/documents`.
+
+- Implementacion:
+  - helper central de dominio documental:
+    - `web/src/shared/lib/document-domain.ts`
+    - `getEmployeeDocumentIdSet`
+    - `isEmployeeLinkedDocument`
+  - filtros y bloqueos aplicados en:
+    - `web/src/app/(company)/app/documents/page.tsx`
+    - `web/src/app/api/company/documents/route.ts`
+    - `web/src/app/api/company/documents/export/route.ts`
+    - `web/src/app/api/company/documents/share-email/route.ts`
+    - `web/src/app/api/company/dashboard/route.ts`
+    - `web/src/app/(company)/app/trash/page.tsx`
+    - `web/src/app/api/company/trash/documents/route.ts`
+  - hardening adicional en alta/edicion de empleado:
+    - `web/src/app/api/company/employees/route.ts`
+    - se bloquea el canal legacy `employee_document_id` para evitar cruces desde Documentos empresa.
+
+- Verificacion profunda ejecutada:
+  - `npm run lint` ✅
+  - `npm run build` ✅
+  - chequeo cruzado API/UI con sesion real:
+    - `/api/company/dashboard` sin solapamiento de IDs empleados.
+    - `/api/company/documents?catalog=create_modals` sin solapamiento.
+    - `/api/company/documents/export` sin titulos de legajo empleado.
+    - `/app/documents` sin titulos de legajo empleado.
+    - `PATCH/DELETE/share-email` de `/api/company/documents*` sobre documento empleado => `403` esperado.
   - `web/docs/twilio-whatsapp-produccion-plan.md`
 - Incluye:
   - precondiciones de compliance

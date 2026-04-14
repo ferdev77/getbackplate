@@ -9,6 +9,7 @@ import { assertPlanLimitForStorage, getPlanLimitErrorMessage } from "@/shared/li
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
+import { getEmployeeDocumentIdSet, isEmployeeLinkedDocument } from "@/shared/lib/document-domain";
 
 const BUCKET_NAME = "tenant-documents";
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -78,7 +79,7 @@ export async function GET(request: Request) {
   const catalog = url.searchParams.get("catalog");
 
   if (catalog === "create_modals") {
-    const [{ data: customBrandingEnabled }, { data: folders }, { data: branches }, { data: departments }, { data: positions }, { data: recentDocuments }, users] = await Promise.all([
+    const [{ data: customBrandingEnabled }, { data: folders }, { data: branches }, { data: departments }, { data: positions }, { data: recentDocuments }, users, employeeDocumentIds] = await Promise.all([
       supabase.rpc("is_module_enabled", { org_id: tenant.organizationId, module_code: "custom_branding" }),
       supabase
         .from("document_folders")
@@ -110,8 +111,9 @@ export async function GET(request: Request) {
         .eq("organization_id", tenant.organizationId)
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
-        .limit(12),
+        .limit(80),
       buildScopeUsersCatalog(tenant.organizationId),
+      getEmployeeDocumentIdSet(supabase, tenant.organizationId),
     ]);
 
     const mappedBranches = (branches ?? []).map((branch) => ({
@@ -125,7 +127,7 @@ export async function GET(request: Request) {
       departments: departments ?? [],
       positions: positions ?? [],
       users,
-      recentDocuments: recentDocuments ?? [],
+      recentDocuments: (recentDocuments ?? []).filter((doc) => !employeeDocumentIds.has(doc.id)).slice(0, 12),
     });
   }
 
@@ -378,6 +380,11 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Documento no encontrado" }, { status: 404 });
   }
 
+  const employeeLinked = await isEmployeeLinkedDocument(supabase, tenant.organizationId, documentId);
+  if (employeeLinked) {
+    return NextResponse.json({ error: "Documento de empleado: gestionarlo desde el flujo de Empleados" }, { status: 403 });
+  }
+
   let targetFolderScope: DocumentScope | null = null;
   const targetFolderId = folderId === undefined ? currentDocument.folder_id : folderId;
 
@@ -513,6 +520,11 @@ export async function DELETE(request: Request) {
 
   if (!document) {
     return NextResponse.json({ error: "Documento no encontrado" }, { status: 404 });
+  }
+
+  const employeeLinked = await isEmployeeLinkedDocument(supabase, tenant.organizationId, documentId);
+  if (employeeLinked) {
+    return NextResponse.json({ error: "Documento de empleado: gestionarlo desde el flujo de Empleados" }, { status: 403 });
   }
 
   const { error } = await supabase

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { getEmployeeDocumentIdSet } from "@/shared/lib/document-domain";
 
 type Scope = {
   locations?: string[];
@@ -35,7 +36,7 @@ export async function GET() {
 
   const { supabase, tenant } = context;
 
-  const [{ data: docs }, { data: folders }, { data: branches }, { data: departments }] = await Promise.all([
+  const [{ data: docs }, { data: folders }, { data: branches }, { data: departments }, employeeDocumentIds] = await Promise.all([
     supabase
       .from("documents")
       .select("id, title, folder_id, branch_id, mime_type, file_size_bytes, created_at, access_scope")
@@ -55,7 +56,10 @@ export async function GET() {
       .from("organization_departments")
       .select("id, name")
       .eq("organization_id", tenant.organizationId),
+    getEmployeeDocumentIdSet(supabase, tenant.organizationId),
   ]);
+
+  const companyDocs = (docs ?? []).filter((doc) => !employeeDocumentIds.has(doc.id));
 
   const folderMap = new Map((folders ?? []).map((row) => [row.id, row]));
   const branchMap = new Map((branches ?? []).map((row) => [row.id, row.name]));
@@ -74,7 +78,7 @@ export async function GET() {
     "Creado",
   ];
 
-  const rows = (docs ?? []).map((doc) => {
+  const rows = companyDocs.map((doc) => {
     const folderScope = doc.folder_id ? ((folderMap.get(doc.folder_id)?.access_scope as Scope | null) ?? null) : null;
     const scope = folderScope ?? ((doc.access_scope as Scope | null) ?? {});
     const deptName = (scope.department_ids ?? []).map((id) => deptMap.get(id) ?? id).join(" | ");

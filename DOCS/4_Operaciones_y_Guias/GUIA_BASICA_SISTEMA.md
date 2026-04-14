@@ -187,6 +187,14 @@ Si hay datos de tiempo de respuesta, tambien mostrara promedio y p95.
 - Onboarding empleado: muestra progreso segun datos reales de perfil, documentos y contrato.
 - Documentos empleado: muestra y descarga solo documentos visibles/asignados para ese usuario.
 
+## Separacion de dominios documentales (empresa vs legajo empleado)
+
+- `Documentos` en panel empresa (`/app/documents`) administra solo documentos corporativos de empresa.
+- El legajo documental de empleados (modal de empleado) se gestiona exclusivamente en flujo `Empleados`.
+- No se permite mezclar operaciones:
+  - documentos de legajo empleado no deben aparecer ni gestionarse desde `Documentos` empresa,
+  - documentos corporativos no deben inyectarse en slots del legajo por canal legacy.
+
 ## Decisiones de negocio activas (2026-03-13)
 
 - Una empresa puede registrar a una persona aunque esa persona ya exista en otra empresa del sistema.

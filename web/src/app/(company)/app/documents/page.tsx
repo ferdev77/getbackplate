@@ -3,6 +3,7 @@ import { DocumentsPageWorkspace } from "@/modules/documents/ui/documents-page-wo
 import { requireTenantModule } from "@/shared/lib/access";
 import { getEnabledModules } from "@/modules/organizations/queries";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
+import { getEmployeeDocumentIdSet } from "@/shared/lib/document-domain";
 
 type CompanyDocumentsPageProps = {
   searchParams: Promise<{ status?: string; message?: string; action?: string; view?: string }>;
@@ -18,7 +19,7 @@ export default async function CompanyDocumentsPage({
   const viewerUserId = authData.user?.id ?? "";
   const initialViewMode = String(params.view ?? "").trim().toLowerCase() === "columns" ? "columns" : "tree";
 
-  const [{ data: folders }, { data: documents }, { data: branches }, { data: departments }, { data: positions }] =
+  const [{ data: folders }, { data: documents }, { data: branches }, { data: departments }, { data: positions }, employeeDocumentIds] =
     await Promise.all([
       supabase
         .from("document_folders")
@@ -31,7 +32,7 @@ export default async function CompanyDocumentsPage({
 .is('deleted_at', null)
         .eq("organization_id", tenant.organizationId)
         .order("created_at", { ascending: false })
-        .limit(100),
+        .limit(1000),
       supabase
         .from("branches")
         .select("id, name, city")
@@ -50,7 +51,10 @@ export default async function CompanyDocumentsPage({
         .eq("organization_id", tenant.organizationId)
         .eq("is_active", true)
         .order("name"),
+      getEmployeeDocumentIdSet(supabase, tenant.organizationId),
     ]);
+
+  const companyDocuments = (documents ?? []).filter((doc) => !employeeDocumentIds.has(doc.id)).slice(0, 100);
 
   const enabledModules = await getEnabledModules(tenant.organizationId);
   const customBrandingEnabled = enabledModules.has("custom_branding");
@@ -67,7 +71,7 @@ export default async function CompanyDocumentsPage({
       organizationId={tenant.organizationId}
       viewerUserId={viewerUserId}
       folders={folders ?? []}
-      documents={documents ?? []}
+      documents={companyDocuments}
       branches={branches ?? []}
       mappedBranches={mappedBranches}
       departments={departments ?? []}

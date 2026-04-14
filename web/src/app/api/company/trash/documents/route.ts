@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
+import { isEmployeeLinkedDocument } from "@/shared/lib/document-domain";
 
 const BUCKET_NAME = "tenant-documents";
 
@@ -46,6 +47,11 @@ export async function PATCH(request: Request) {
 
   if (!document) {
     return NextResponse.json({ error: "Documento no encontrado o no está en la papelera" }, { status: 404 });
+  }
+
+  const employeeLinked = await isEmployeeLinkedDocument(supabase, tenant.organizationId, documentId);
+  if (employeeLinked) {
+    return NextResponse.json({ error: "Documento de empleado: gestionar desde el flujo de Empleados" }, { status: 403 });
   }
 
   const { error } = await supabase
@@ -104,6 +110,11 @@ export async function DELETE(request: Request) {
 
   if (!document) {
     return NextResponse.json({ error: "Documento no encontrado o no está en la papelera" }, { status: 404 });
+  }
+
+  const employeeLinked = await isEmployeeLinkedDocument(supabase, tenant.organizationId, documentId);
+  if (employeeLinked) {
+    return NextResponse.json({ error: "Documento de empleado: gestionar desde el flujo de Empleados" }, { status: 403 });
   }
 
   const { error } = await supabase
