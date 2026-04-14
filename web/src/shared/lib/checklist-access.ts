@@ -30,7 +30,7 @@ function readScopeList(scope: ChecklistScope, key: ScopeKey): string[] {
 }
 
 export function canUseChecklistTemplateInTenant(input: ChecklistTemplateAccessInput) {
-  if (input.roleCode === "company_admin" || input.roleCode === "manager") {
+  if (input.roleCode === "company_admin") {
     return true;
   }
 

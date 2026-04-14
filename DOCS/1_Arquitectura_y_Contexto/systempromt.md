@@ -214,9 +214,8 @@ Debés implementar un sistema de roles y permisos serio.
 Separar:
 1. superadmin global
 2. admin de empresa
-3. manager / encargado
-4. empleado
-5. futuros roles si fueran necesarios
+3. empleado
+4. futuros roles si fueran necesarios
 
 Definir con claridad:
 - qué puede ver cada rol

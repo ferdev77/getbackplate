@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { analyzeUploadedFile } from "@/shared/lib/file-security";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { assertPlanLimitForStorage, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
@@ -57,7 +57,7 @@ async function ensureBucketExists() {
 }
 
 async function requireContext() {
-  const moduleAccess = await assertCompanyManagerModuleApi("documents");
+  const moduleAccess = await assertCompanyAdminModuleApi("documents");
   if (!moduleAccess.ok) {
     return {
       error: NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status }),

@@ -82,7 +82,7 @@ Input:
 
 Proceso:
 
-1. Validar permisos (`assertCompanyManagerModuleApi("employees")`).
+1. Validar permisos (`assertCompanyAdminModuleApi("employees")`).
 2. Validar reglas (`approved` + configuracion vencimiento + no solicitud activa).
 3. Crear submission en DocuSeal.
 4. Persistir en `employee_document_signatures`.

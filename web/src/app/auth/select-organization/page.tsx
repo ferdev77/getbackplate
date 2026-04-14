@@ -19,7 +19,7 @@ type SelectOrganizationPageProps = {
 
 const ROLE_LABELS: Record<string, string> = {
   company_admin: "Admin de empresa",
-  manager: "Manager",
+  
   employee: "Empleado",
 };
 

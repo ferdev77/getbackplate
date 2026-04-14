@@ -173,7 +173,7 @@ Naming oficial de modulo 2.1: `ai_assistant`.
 
 - Backend:
   - `POST /api/company/ai/chat` en `web/src/app/api/company/ai/chat/route.ts`
-  - guardas de acceso por tenant/modulo/rol (`assertCompanyManagerModuleApi("ai_assistant")`)
+  - guardas de acceso por tenant/modulo/rol (`assertCompanyAdminModuleApi("ai_assistant")`)
   - rate limit por usuario en ventana corta
   - sanitizacion de pregunta e historial
   - auditoria por consulta (`ai_assistant.chat.query`)
@@ -279,7 +279,7 @@ Construir una plataforma SaaS multi-tenant con aislamiento real de datos, modulo
 
 - superadmin global
 - admin de empresa
-- roles operativos (manager/empleado)
+- roles operativos (company_admin/empleado)
 
 ## 2. Stack propuesto
 
@@ -399,7 +399,6 @@ Toda entidad de negocio del tenant debe incluir `organization_id`.
 
 - `superadmin`
 - `company_admin`
-- `manager`
 - `employee`
 
 Permisos controlados por:
@@ -616,7 +615,7 @@ Se aplicaron mejoras de seguridad y consistencia de datos en backend y portal em
 - Endurecimiento de acceso documental en descarga (`/api/documents/[documentId]/download`):
   - ya no alcanza con pertenecer al tenant
   - se valida asignacion directa (`employee_documents`) o alcance por `access_scope` (usuario/sucursal/departamento)
-  - admins/manager conservan acceso operativo completo
+  - admins conservan acceso operativo completo
 - Hardening de RLS en base de datos para documentos:
   - nueva migracion `supabase/migrations/202603120001_harden_document_rls.sql`
   - `documents_tenant_select` ahora usa `public.can_read_document(...)`
@@ -624,7 +623,7 @@ Se aplicaron mejoras de seguridad y consistencia de datos en backend y portal em
 - Hardening de RLS en base de datos para checklists:
   - nueva migracion `supabase/migrations/202603120002_harden_checklist_rls.sql`
   - select de `checklist_templates/sections/items` ahora respeta branch/departamento/target_scope por usuario
-  - select/insert/update de `checklist_submissions` y tablas hijas ahora restringe por ownership (o admin/manager)
+  - select/insert/update de `checklist_submissions` y tablas hijas ahora restringe por ownership (o admin)
 - Hardening de RLS en base de datos para anuncios:
   - nueva migracion `supabase/migrations/202603120003_harden_announcement_rls.sql`
   - `announcements_tenant_select` ahora usa `public.can_read_announcement(...)`
@@ -803,7 +802,7 @@ Se agrego script de verificacion de matriz de acceso por rol:
 Matriz validada:
 
 - `company_admin`: acceso de gestion (`manage_scope`) + acceso panel empresa, sin portal empleado
-- `manager`: acceso de gestion (`manage_scope`) + acceso panel empresa, sin portal empleado
+- `company_admin`: acceso de gestion (`manage_scope`) + acceso panel empresa, sin portal empleado
 - `employee`: sin gestion, sin panel empresa, con acceso portal empleado
 
 Resultado de ejecucion local reciente:
@@ -1083,7 +1082,7 @@ Se dejan asentadas decisiones funcionales definidas para el modelo SaaS actual:
 
 - Alta de empleado existente en otra empresa: permitido.
 - Si una empresa registra a una persona que ya existe en otra empresa, se maneja como empleado independiente por tenant (registro propio en esa empresa, sin mezclar historial ni datos operativos entre empresas).
-- No aplicar bloqueo de manager para crear/asignar admins por API: se mantiene comportamiento actual por decision de negocio (con validacion de modulo y tenant).
+- No aplicar bloqueo adicional para crear/asignar admins por API: se mantiene comportamiento actual por decision de negocio (con validacion de modulo y tenant).
 
 Contrato operativo vigente (panel empresa):
 
@@ -1096,7 +1095,7 @@ Impacto operativo:
 
 - se prioriza autonomia por empresa en gestion de personal
 - se mantiene separacion multi-tenant de datos por `organization_id`
-- el cambio sugerido de "bloquear manager -> admin" queda descartado por ahora
+- el cambio sugerido de "bloquear rol intermedio -> admin" queda descartado por ahora
 
 ## 29. Seleccion de empresa activa (multiempresa)
 
@@ -1329,7 +1328,7 @@ Variables requeridas en runtime (Vercel):
 - Seguridad y tenant en billing:
   - `web/src/app/api/stripe/checkout/route.ts`
   - `web/src/app/api/stripe/billing-portal/route.ts`
-  - ambos endpoints ahora resuelven tenant activo por contexto/cookie y exigen rol `company_admin|manager`.
+  - ambos endpoints ahora resuelven tenant activo por contexto/cookie y exigen rol `company_admin`.
   - eliminado acceso por membership ambiguo (`.single()` sobre multiples organizaciones activas).
 
 - Consistencia RRHH estado usuario no-empleado:

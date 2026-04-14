@@ -97,7 +97,7 @@ Indices/constraints:
 
 RLS:
 
-- `company_admin/manager` del tenant: CRUD acotado a su `organization_id`.
+- `company_admin` del tenant: CRUD acotado a su `organization_id`.
 - `superadmin`: lectura global y operaciones de soporte.
 
 ## 6) Contratos API (propuestos)

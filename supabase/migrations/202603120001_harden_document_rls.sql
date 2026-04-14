@@ -40,7 +40,7 @@ begin
     and m.status = 'active'
   limit 1;
 
-  if v_role_code in ('company_admin', 'manager') then
+  if v_role_code in ('company_admin') then
     return true;
   end if;
 

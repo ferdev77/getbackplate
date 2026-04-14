@@ -39,7 +39,7 @@ Entregar los dos modulos operativos net-new de mayor impacto diario: Bitacora de
 ## C) Proveedores
 
 - [ ] C1. Crear esquema DB (vendors, asignacion por locacion, auditoria minima).
-- [ ] C2. Implementar CRUD company para admin/manager segun permiso.
+- [ ] C2. Implementar CRUD company para admin segun permiso.
 - [ ] C3. Implementar vista de consulta para empleados segun alcance.
 - [ ] C4. Implementar filtros utiles (categoria, locacion, disponibilidad/contacto).
 - [ ] C5. Agregar auditoria para altas/ediciones/bajas.

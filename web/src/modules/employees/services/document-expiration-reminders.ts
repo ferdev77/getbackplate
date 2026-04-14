@@ -225,7 +225,7 @@ export async function processEmployeeDocumentPendingReminders() {
       .select("organization_id, user_id, role:roles!inner(code)")
       .eq("status", "active")
       .in("organization_id", organizationIds)
-      .in("role.code", ["company_admin", "manager"]),
+      .in("role.code", ["company_admin"]),
   ]);
 
   const allProfileUserIds = Array.from(

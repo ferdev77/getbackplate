@@ -34,7 +34,7 @@ Completar el flujo de compliance documental de empleado end-to-end: carga desde 
 - [ ] A2. Agregar `expires_at` y configuracion de alertas en documentos de empleado.
 - [ ] A3. Definir estados contractuales para firma remota (`pending_signature`, `signed`, `rejected`).
 - [ ] A4. Crear migraciones y validar compatibilidad con datos existentes.
-- [ ] A5. Verificar politicas RLS para employee/company_admin/manager en cada tabla impactada.
+- [ ] A5. Verificar politicas RLS para employee/company_admin en cada tabla impactada.
 
 ## B) Mis Documentos (portal empleado)
 

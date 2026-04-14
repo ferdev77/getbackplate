@@ -29,7 +29,7 @@ function readScopeList(scope: DocumentAccessScope, key: ScopeKey): string[] {
 }
 
 export function canReadDocumentInTenant(input: EmployeeDocumentAccessInput) {
-  if (input.roleCode === "company_admin" || input.roleCode === "manager") {
+  if (input.roleCode === "company_admin") {
     return true;
   }
 

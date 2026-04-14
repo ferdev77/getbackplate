@@ -9,9 +9,9 @@
 
 Esta devolucion esta basada en implementacion real de `web/` + `supabase/migrations/` y no en supuestos.
 
-- Roles reales en produccion/dev: `superadmin`, `company_admin`, `manager`, `employee`.
+- Roles reales en produccion/dev: `superadmin`, `company_admin`, `employee`.
 - **No existe rol `owner`** en modelo de datos ni en flujos de acceso.
-- El panel empresa usa permisos de gestion para `company_admin` y `manager`.
+- El panel empresa usa permisos de gestion para `company_admin`.
 - El portal empleado opera separado para `employee`.
 - Multi-tenant activo con `organization_id`, RLS y validacion por membership.
 
@@ -27,7 +27,7 @@ Referencias clave:
 Se toma el paquete completo de Complemento Etapa 1, con dos ajustes acordados:
 
 1. Se excluye el modulo de soporte con AI.
-2. Se elimina cualquier referencia a `owner` y se mapea a roles reales (`company_admin` / `manager` segun accion).
+2. Se elimina cualquier referencia a `owner` y se mapea a roles reales (`company_admin` / `employee` segun accion).
 
 ---
 
@@ -60,7 +60,7 @@ Impacto tecnico esperado:
 
 Lo que ya existe:
 - Vínculo empleado-documento con estados `pending|approved|rejected`.
-- Flujo robusto de carga desde panel empresa (admin/manager) en altas/edicion de empleado.
+- Flujo robusto de carga desde panel empresa (admin) en altas/edicion de empleado.
 - Portal empleado ya lista y descarga documentos visibles.
 
 Lo que falta para requerimiento:
@@ -199,7 +199,7 @@ Referencias:
 
 - `superadmin`: habilita modulos a nivel plataforma/tenant y soporte de operacion global.
 - `company_admin`: gestion completa dentro de su empresa.
-- `manager`: gestion operativa (segun reglas actuales del panel empresa y endpoints company).
+- `company_admin`: gestion operativa (segun reglas actuales del panel empresa y endpoints company).
 - `employee`: uso de portal, lectura/ejecucion segun modulo.
 
 Regla para comunicacion externa: no usar "owner" en alcance tecnico ni funcional porque no existe en RBAC actual.
@@ -210,7 +210,7 @@ Regla para comunicacion externa: no usar "owner" en alcance tecnico ni funcional
 
 Hola Angelo, ya hice una revision profunda del sistema real (codigo + base + flujos) para aterrizar el Complemento Etapa 1 de forma veridica.
 
-Confirmo que podemos avanzar con todo el paquete excepto AI, y ya lo ajustamos a los roles reales de la plataforma: `company_admin`, `manager`, `employee` (sin rol owner).
+Confirmo que podemos avanzar con todo el paquete excepto AI, y ya lo ajustamos a los roles reales de la plataforma: `company_admin`, `employee` (sin rol owner).
 
 Tambien te marco que Custom Domain ya esta bastante avanzado, mientras que Bitacora/Proveedores y DocuSeal son desarrollo nuevo. En documentos de empleado hay base fuerte, pero faltan upload desde portal, circuito completo de revision y vencimientos con alertas.
 

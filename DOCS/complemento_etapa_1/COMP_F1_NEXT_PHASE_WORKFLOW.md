@@ -27,7 +27,7 @@ Para cada subfase ejecutar siempre este flujo:
 
 ## Definition of Done minima
 
-- Rol y permisos verificados (`company_admin`, `manager`, `employee`, `superadmin`).
+- Rol y permisos verificados (`company_admin`, `employee`, `superadmin`).
 - Tenant isolation validado.
 - Auditoria de acciones clave activa.
 - Flujos criticos cubiertos por pruebas de smoke/manual guiado.

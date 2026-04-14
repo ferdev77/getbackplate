@@ -28,7 +28,7 @@ function readScopeList(scope: AnnouncementScope, key: ScopeKey): string[] {
 }
 
 export function canReadAnnouncementInTenant(input: AnnouncementAccessInput) {
-  if (input.roleCode === "company_admin" || input.roleCode === "manager") {
+  if (input.roleCode === "company_admin") {
     return true;
   }
 

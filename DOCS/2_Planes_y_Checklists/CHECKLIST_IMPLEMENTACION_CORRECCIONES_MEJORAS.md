@@ -156,13 +156,13 @@ Con el cierre de este checklist, las nuevas implementaciones pasan a:
 - **Qué pasa hoy (simple):** un camino verifica módulo habilitado y otro no siempre.
 - **Por qué está mal:** riesgo de operar sobre módulo apagado por plan.
 - **Plan a seguir:**
-  1. Garantizar `assertCompanyManagerModuleApi("employees")` o equivalente en toda mutación de RRHH.
+  1. Garantizar `assertCompanyAdminModuleApi("employees")` o equivalente en toda mutación de RRHH.
   2. Revisar rutas y actions relacionadas.
 - **Comportamiento esperado después:** si módulo está deshabilitado, ninguna mutación crítica pasa.
 - **Evidencia de cierre:**
   - Todas las mutaciones RRHH quedaron centralizadas en APIs con guarda de módulo/rol:
-    - `web/src/app/api/company/employees/route.ts` (`POST`, `PATCH`, `DELETE`) con `assertCompanyManagerModuleApi("employees")`.
-    - `web/src/app/api/company/users/route.ts` (`POST`, `PATCH`, `DELETE`) con `assertCompanyManagerModuleApi("employees")`.
+    - `web/src/app/api/company/employees/route.ts` (`POST`, `PATCH`, `DELETE`) con `assertCompanyAdminModuleApi("employees")`.
+    - `web/src/app/api/company/users/route.ts` (`POST`, `PATCH`, `DELETE`) con `assertCompanyAdminModuleApi("employees")`.
   - Las UIs de RRHH llaman únicamente esas APIs para mutaciones:
     - `web/src/modules/employees/ui/new-employee-modal.tsx`
     - `web/src/modules/employees/ui/new-user-modal.tsx`

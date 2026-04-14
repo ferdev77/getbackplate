@@ -275,7 +275,7 @@ Avance registrado (2026-03-29, validacion post-cierre DS):
 - Se corrio verificacion de permisos por rol para reforzar QA de rutas company/employee:
   - `npm run verify:role-permissions` OK.
 - Resultado: todos los modulos principales en estado OK (`superadmin`, `employees`, `documents`, `announcements`, `checklists`, `reports`, `settings`, `audit`, `module-enablement`, `module-guardrails`).
-- Resultado por rol: `company_admin`, `manager` y `employee` en estado OK segun expectativas de acceso.
+- Resultado por rol: `company_admin` y `employee` en estado OK segun expectativas de acceso.
 - Chequeo rapido de legibilidad de colores base (texto vs fondo) en tokens DS:
   - OK fuerte: `--gbp-text` y `--gbp-text2` en light/dark.
   - A revisar: `--gbp-muted` (light/dark) y `--gbp-accent` sobre fondo claro para texto pequeno.

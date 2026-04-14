@@ -75,7 +75,7 @@ async function hasCompanyPanelAccess(client, organizationId, userId) {
       where m.organization_id = $1
         and m.user_id = $2
         and m.status = 'active'
-        and r.code in ('company_admin', 'manager')
+        and r.code in ('company_admin')
     ) as allowed
     `,
     [organizationId, userId],
@@ -132,19 +132,16 @@ async function run() {
     }
 
     const roleCompanyAdminId = await getRoleIdByCode(client, "company_admin");
-    const roleManagerId = await getRoleIdByCode(client, "manager");
     const roleEmployeeId = await getRoleIdByCode(client, "employee");
 
-    if (!roleCompanyAdminId || !roleManagerId || !roleEmployeeId) {
-      throw new Error("Faltan roles base (company_admin, manager, employee).");
+    if (!roleCompanyAdminId || !roleEmployeeId) {
+      throw new Error("Faltan roles base (company_admin, employee).");
     }
 
     const companyAdminUser = await getOrCreateAuthUser("e2e.module.admin@getbackplate.local");
-    const managerUser = await getOrCreateAuthUser("e2e.module.manager@getbackplate.local");
     const employeeUser = await getOrCreateAuthUser("e2e.module.employee@getbackplate.local");
 
     await ensureUserMembership(client, org.id, companyAdminUser.id, roleCompanyAdminId);
-    await ensureUserMembership(client, org.id, managerUser.id, roleManagerId);
     await ensureUserMembership(client, org.id, employeeUser.id, roleEmployeeId);
 
     await client.query("begin");
@@ -184,15 +181,6 @@ async function run() {
         {
           role: "company_admin",
           userId: companyAdminUser.id,
-          expected: {
-            appDocuments: true,
-            appAnnouncements: false,
-            portalDocuments: false,
-          },
-        },
-        {
-          role: "manager",
-          userId: managerUser.id,
           expected: {
             appDocuments: true,
             appAnnouncements: false,

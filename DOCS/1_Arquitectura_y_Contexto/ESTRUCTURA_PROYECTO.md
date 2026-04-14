@@ -117,7 +117,7 @@ La logica de dominio vive en `services/{dominio}.service.ts`:
 - `/superadmin/modules`
 - `/superadmin/plans`
 
-### Empresa (admin/manager)
+### Empresa (admin)
 
 - `/app/dashboard`
 - `/app/employees`

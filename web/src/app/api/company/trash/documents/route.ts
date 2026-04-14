@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
 import { isEmployeeLinkedDocument } from "@/shared/lib/document-domain";
@@ -11,7 +11,7 @@ const BUCKET_NAME = "tenant-documents";
 
 async function requireContext() {
   // Using 'documents' module access since it's document trash
-  const moduleAccess = await assertCompanyManagerModuleApi("documents");
+  const moduleAccess = await assertCompanyAdminModuleApi("documents");
   if (!moduleAccess.ok) {
     return {
       error: NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status }),

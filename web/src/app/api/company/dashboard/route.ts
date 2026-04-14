@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { getEnabledModules } from "@/modules/organizations/queries";
-import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { getEmployeeDocumentIdSet } from "@/shared/lib/document-domain";
 
 async function getOpenFlagsCountByBranch(
@@ -41,7 +41,7 @@ async function getOpenFlagsCountByBranch(
 }
 
 export async function GET(request: Request) {
-  const moduleAccess = await assertCompanyManagerModuleApi("dashboard");
+  const moduleAccess = await assertCompanyAdminModuleApi("dashboard");
   if (!moduleAccess.ok) {
     return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
   }

@@ -6,10 +6,10 @@ import {
   shouldKeepCurrentSignatureStatus,
 } from "@/infrastructure/docuseal/status-mapper";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 
 export async function POST(request: Request) {
-  const moduleAccess = await assertCompanyManagerModuleApi("employees");
+  const moduleAccess = await assertCompanyAdminModuleApi("employees");
   if (!moduleAccess.ok) {
     return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
   }

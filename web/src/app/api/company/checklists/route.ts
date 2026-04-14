@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 
 export async function GET(request: Request) {
-  const moduleAccess = await assertCompanyManagerModuleApi("checklists");
+  const moduleAccess = await assertCompanyAdminModuleApi("checklists");
   if (!moduleAccess.ok) {
     return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
   }

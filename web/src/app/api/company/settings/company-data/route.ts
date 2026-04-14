@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 
 const requestSchema = z.object({
@@ -23,7 +23,7 @@ function normalizeWebsiteUrl(value: string | null) {
 }
 
 export async function POST(request: Request) {
-  const moduleAccess = await assertCompanyManagerModuleApi("settings");
+  const moduleAccess = await assertCompanyAdminModuleApi("settings");
   if (!moduleAccess.ok) {
     return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
   }

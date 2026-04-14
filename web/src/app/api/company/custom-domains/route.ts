@@ -7,7 +7,7 @@ import {
   DEFAULT_CUSTOM_DOMAIN_CNAME_TARGET,
   invalidateCustomDomainCaches,
 } from "@/shared/lib/custom-domains";
-import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import {
   registerDomainInVercel,
@@ -37,7 +37,7 @@ function domainPayloadStatus(status: string) {
 }
 
 export async function GET() {
-  const moduleAccess = await assertCompanyManagerModuleApi("settings");
+  const moduleAccess = await assertCompanyAdminModuleApi("settings");
   if (!moduleAccess.ok) {
     return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
   }
@@ -64,7 +64,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const moduleAccess = await assertCompanyManagerModuleApi("settings");
+  const moduleAccess = await assertCompanyAdminModuleApi("settings");
   if (!moduleAccess.ok) {
     return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
   }
@@ -208,7 +208,7 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const moduleAccess = await assertCompanyManagerModuleApi("settings");
+  const moduleAccess = await assertCompanyAdminModuleApi("settings");
   if (!moduleAccess.ok) {
     return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
   }

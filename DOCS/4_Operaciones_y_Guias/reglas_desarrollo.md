@@ -222,7 +222,6 @@ Debe existir un sistema robusto de roles y permisos.
 Separar como mínimo:
 - superadmin
 - admin de empresa
-- manager / encargado
 - empleado
 
 Y definir claramente:

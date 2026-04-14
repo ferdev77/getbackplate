@@ -189,7 +189,7 @@ export async function requireTenantContext() {
     await logAccessDeniedEvent({
       area: "company",
       reasonCode: AUDIT_REASON_CODES.MISSING_ACTIVE_MEMBERSHIP,
-      requiredRole: "company_admin|manager|employee",
+      requiredRole: "company_admin|employee",
       pathHint: "/app/* or /portal/*",
     });
 
@@ -266,7 +266,7 @@ export async function requireTenantModule(moduleCode: string) {
     await logAccessDeniedEvent({
       area: "company",
       reasonCode: AUDIT_REASON_CODES.MISSING_ACTIVE_MEMBERSHIP,
-      requiredRole: "company_admin|manager|employee",
+      requiredRole: "company_admin|employee",
       pathHint: "/app/*",
     });
     redirect("/auth/login?error=" + encodeURIComponent("Tu usuario no tiene acceso asignado a una empresa"));
@@ -313,7 +313,7 @@ async function requireTenantModuleFallback(
     await logAccessDeniedEvent({
       area: "company",
       reasonCode: AUDIT_REASON_CODES.MISSING_ACTIVE_MEMBERSHIP,
-      requiredRole: "company_admin|manager|employee",
+      requiredRole: "company_admin|employee",
       pathHint: "/app/*",
     });
     redirect("/auth/login?error=" + encodeURIComponent("Tu usuario no tiene acceso asignado a una empresa"));
@@ -406,7 +406,7 @@ export async function assertTenantModuleApi(
     await logAccessDeniedEvent({
       area: "company",
       reasonCode: AUDIT_REASON_CODES.MISSING_ACTIVE_MEMBERSHIP,
-      requiredRole: "company_admin|manager|employee",
+      requiredRole: "company_admin|employee",
       pathHint: "/api/*",
     });
 
@@ -431,7 +431,7 @@ export async function assertTenantModuleApi(
         reasonCode: AUDIT_REASON_CODES.BILLING_REQUIRED_FOR_TENANT,
         organizationId: tenant.organizationId,
         branchId: tenant.branchId,
-        requiredRole: "company_admin|manager",
+        requiredRole: "company_admin",
         pathHint: "/api/company/*",
       });
 
@@ -470,7 +470,7 @@ export async function assertTenantModuleApi(
   };
 }
 
-export async function assertCompanyManagerModuleApi(
+export async function assertCompanyAdminModuleApi(
   moduleCode: string,
   options?: { allowBillingBypass?: boolean },
 ) {
@@ -482,16 +482,13 @@ export async function assertCompanyManagerModuleApi(
     return moduleAccess;
   }
 
-  if (
-    moduleAccess.tenant.roleCode !== "company_admin" &&
-    moduleAccess.tenant.roleCode !== "manager"
-  ) {
+  if (moduleAccess.tenant.roleCode !== "company_admin") {
     await logAccessDeniedEvent({
       area: "company",
       reasonCode: AUDIT_REASON_CODES.MISSING_COMPANY_ROLE,
       organizationId: moduleAccess.tenant.organizationId,
       branchId: moduleAccess.tenant.branchId,
-      requiredRole: "company_admin|manager",
+      requiredRole: "company_admin",
       pathHint: "/api/company/*",
     });
 
@@ -515,7 +512,7 @@ export async function requireCompanyAccess() {
 
   const isSuperadmin = await isCurrentUserSuperadmin();
   const context = await resolveTenantFromCookie({
-    roleCodes: ["company_admin", "manager"],
+    roleCodes: ["company_admin"],
     userId: user.id,
     isSuperadmin,
   });
@@ -533,7 +530,7 @@ export async function requireCompanyAccess() {
       reasonCode: AUDIT_REASON_CODES.MISSING_COMPANY_ROLE,
       organizationId: fallbackMembership?.organizationId ?? null,
       branchId: fallbackMembership?.branchId ?? null,
-      requiredRole: "company_admin|manager",
+      requiredRole: "company_admin",
       pathHint: "/app/*",
     });
     redirect(

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { getEmployeeDirectoryView } from "@/modules/employees/services";
 import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
@@ -15,7 +15,7 @@ import { sendEmail } from "@/shared/lib/brevo";
 import { initialInviteTemplate } from "@/shared/lib/email-templates/invitation";
 import { resendReminderTemplate } from "@/shared/lib/email-templates/invitation";
 import { isUserMemberOfOrganization } from "@/shared/lib/tenant-membership";
-const ALLOWED_ROLE_CODES = new Set(["employee", "manager", "company_admin"]);
+const ALLOWED_ROLE_CODES = new Set(["employee", "company_admin"]);
 const ALLOWED_STATUSES = new Set(["active", "inactive"]);
 
 async function resolveOrCreateAuthUser(params: {
@@ -137,7 +137,7 @@ async function resolveOrCreateAuthUser(params: {
 }
 
 async function requireUserContext() {
-  const moduleAccess = await assertCompanyManagerModuleApi("employees");
+  const moduleAccess = await assertCompanyAdminModuleApi("employees");
   if (!moduleAccess.ok) {
     return {
       error: NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status }),

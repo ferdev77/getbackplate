@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { invalidateCustomDomainCaches, normalizeCustomDomainInput } from "@/shared/lib/custom-domains";
-import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { inspectDomainInVercel } from "@/modules/settings/services/custom-domain.service";
 
@@ -12,7 +12,7 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const moduleAccess = await assertCompanyManagerModuleApi("settings");
+  const moduleAccess = await assertCompanyAdminModuleApi("settings");
   if (!moduleAccess.ok) {
     return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
   }

@@ -57,7 +57,7 @@ Esta implementacion se considera un **nuevo modulo** del sistema, integrado con 
 
 ### [x] 2.1.5 QA y cierre
 
-- [x] QA por rol (admin/manager permitido, employee restringido por diseño)
+- [x] QA por rol (admin permitido, employee restringido por diseño)
 - [x] QA multiempresa (aislamiento)
 - [x] QA performance (no degradar navegacion)
 - [x] Documentacion final de release 2.1

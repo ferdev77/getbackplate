@@ -75,7 +75,7 @@ async function hasCompanyPanelAccess(client, organizationId, userId) {
       where m.organization_id = $1
         and m.user_id = $2
         and m.status = 'active'
-        and r.code in ('company_admin', 'manager')
+        and r.code in ('company_admin')
     ) as allowed
     `,
     [organizationId, userId],
@@ -113,7 +113,7 @@ async function hasManageRoleScope(client, organizationId, userId) {
       where m.organization_id = $1
         and m.user_id = $2
         and m.status = 'active'
-        and r.code in ('company_admin', 'manager')
+        and r.code in ('company_admin')
     ) as allowed
     `,
     [organizationId, userId],
@@ -139,32 +139,22 @@ async function run() {
     }
 
     const roleCompanyAdminId = await getRoleIdByCode(client, "company_admin");
-    const roleManagerId = await getRoleIdByCode(client, "manager");
     const roleEmployeeId = await getRoleIdByCode(client, "employee");
 
-    if (!roleCompanyAdminId || !roleManagerId || !roleEmployeeId) {
-      throw new Error("Faltan roles base (company_admin, manager, employee).");
+    if (!roleCompanyAdminId || !roleEmployeeId) {
+      throw new Error("Faltan roles base (company_admin, employee).");
     }
 
     const companyAdminUser = await getOrCreateAuthUser("role.company.admin@getbackplate.local");
-    const managerUser = await getOrCreateAuthUser("role.manager@getbackplate.local");
     const employeeUser = await getOrCreateAuthUser("role.employee@getbackplate.local");
 
     await ensureUserMembership(client, org.id, companyAdminUser.id, roleCompanyAdminId);
-    await ensureUserMembership(client, org.id, managerUser.id, roleManagerId);
     await ensureUserMembership(client, org.id, employeeUser.id, roleEmployeeId);
 
     const matrix = [
       {
         label: "company_admin",
         userId: companyAdminUser.id,
-        expectedManageScope: true,
-        expectedCompanyPanel: true,
-        expectedEmployeePortal: false,
-      },
-      {
-        label: "manager",
-        userId: managerUser.id,
         expectedManageScope: true,
         expectedCompanyPanel: true,
         expectedEmployeePortal: false,

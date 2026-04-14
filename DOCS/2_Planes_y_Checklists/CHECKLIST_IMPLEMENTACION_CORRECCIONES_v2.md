@@ -21,7 +21,7 @@ Objetivo: eliminar riesgos de cobro/permisos y desalineaciones criticas de estad
   - Arreglo: resolver `organization_id` desde tenant activo y validar pertenencia.
   - Resultado esperado: checkout/portal operan solo sobre la empresa seleccionada.
 
-- [x] `P0.2` Billing restringido por rol (`company_admin|manager`)
+- [x] `P0.2` Billing restringido por rol (`company_admin`)
   - Problema actual: usuarios no autorizados podrian iniciar flujo de billing.
   - Arreglo: control estricto de rol en endpoints de Stripe.
   - Resultado esperado: solo perfiles autorizados pueden pagar/gestionar suscripcion.
@@ -39,7 +39,7 @@ Objetivo: eliminar riesgos de cobro/permisos y desalineaciones criticas de estad
 ### Criterio de salida P0
 
 - [x] Prueba multi-tenant de billing (usuario con 2 empresas) en verde.
-- [x] Prueba por rol de billing (admin/manager permitido, empleado bloqueado) en verde.
+- [x] Prueba por rol de billing (admin permitido, empleado bloqueado) en verde.
 - [x] Prueba RRHH de activar/desactivar usuario con acceso en verde.
 - [x] Metrica superadmin coincide con consulta SQL real.
 

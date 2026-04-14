@@ -199,7 +199,7 @@ Si hay datos de tiempo de respuesta, tambien mostrara promedio y p95.
 
 - Una empresa puede registrar a una persona aunque esa persona ya exista en otra empresa del sistema.
 - Ese registro se trata como empleado separado por empresa (cada empresa maneja su propio legajo, documentos, contrato y estado).
-- Se mantiene la regla actual donde `manager` y `company_admin` pueden operar altas de usuarios via API (con modulo `employees` activo).
+- Se mantiene la regla actual donde `company_admin` pueden operar altas de usuarios via API (con modulo `employees` activo).
 - En el modal de `Usuarios` del panel empresa, el rol de alta expuesto actualmente es `Administrador` (`company_admin`).
 - El alta de empleados se realiza en el flujo de `Empleados`; no depende de datos mock/seed para operacion diaria.
 

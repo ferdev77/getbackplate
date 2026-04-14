@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { getEmployeeDocumentIdSet } from "@/shared/lib/document-domain";
 
 type Scope = {
@@ -17,7 +17,7 @@ function csvCell(value: string | number | null | undefined) {
 }
 
 async function requireContext() {
-  const moduleAccess = await assertCompanyManagerModuleApi("documents");
+  const moduleAccess = await assertCompanyAdminModuleApi("documents");
   if (!moduleAccess.ok) {
     return {
       error: NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status }),

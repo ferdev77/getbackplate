@@ -109,4 +109,4 @@ Definir el comportamiento oficial de los documentos `custom_*` para que sean equ
 1. Mover deteccion de `requested_without_file` a metadata explicita en DB para eliminar heuristicas por `mime_type/file_path`.
 2. Agregar tests E2E (Playwright) del flujo custom completo (empresa + empleado).
 3. Agregar metricas/auditoria de embudo documental (slot creado -> cargado -> aprobado -> firmado).
-4. Definir SLA operativo para documentos pendientes (alertas a manager y empleado).
+4. Definir SLA operativo para documentos pendientes (alertas a administrador y empleado).

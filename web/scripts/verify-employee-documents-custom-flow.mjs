@@ -80,7 +80,7 @@ async function run() {
         join public.roles r on r.id = m.role_id
         where m.organization_id = $1
           and m.status = 'active'
-          and r.code in ('company_admin', 'manager')
+          and r.code in ('company_admin')
         order by m.created_at asc
         limit 1
       `,

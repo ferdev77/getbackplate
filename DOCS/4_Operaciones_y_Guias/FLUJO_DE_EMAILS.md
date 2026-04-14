@@ -53,7 +53,7 @@ Para futuras implementaciones o debugging, así funciona el ruteamiento y dispar
 *   **Alta de Empleado (flujo RRHH)**: `web/src/app/api/company/employees/route.ts`.
 *   **Alta de Usuario Administrador**: `web/src/app/api/company/users/route.ts`.
 *   **Rol expuesto en modal de Usuarios**: actualmente solo `company_admin` (`roleOptions` del endpoint `GET /api/company/users?catalog=create_modal`).
-*   **Actores habilitados**: `company_admin` y `manager` con modulo `employees` activo (validados por `assertCompanyManagerModuleApi("employees")`).
+*   **Actores habilitados**: `company_admin` con modulo `employees` activo (validados por `assertCompanyAdminModuleApi("employees")`).
 *   **Creacion/Envio Inicial**: si se provee contrasena, backend ejecuta `createUser` (o `updateUserById` si existe), estampa `force_password_change` y envia `initialInviteTemplate`.
 *   **Reenvio**: `web/src/app/api/company/invitations/resend/route.ts` solo reenvia a usuario existente; no crea cuentas en reenvio.
 

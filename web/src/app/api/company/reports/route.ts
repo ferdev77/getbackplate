@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { getEnabledModules } from "@/modules/organizations/queries";
-import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 
 type ReportStatCard = {
   label: string;
@@ -79,7 +79,7 @@ function colorForUser(userId: string) {
 }
 
 export async function GET() {
-  const moduleAccess = await assertCompanyManagerModuleApi("reports");
+  const moduleAccess = await assertCompanyAdminModuleApi("reports");
   if (!moduleAccess.ok) {
     return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
   }
