@@ -8,6 +8,8 @@ import { syncOrganizationPlan } from '@/modules/organizations/services/organizat
 import { assertCompanyManagerModuleApi } from '@/shared/lib/access';
 import { isSuperadminImpersonating } from '@/shared/lib/impersonation';
 import { logAuditEvent } from '@/shared/lib/audit';
+import { resolveCanonicalAppUrl } from '@/shared/lib/app-url';
+import { resolveTenantAppUrlByOrganizationId } from '@/shared/lib/custom-domains';
 
 type BillingPeriod = 'monthly' | 'yearly';
 
@@ -56,7 +58,7 @@ export async function POST(request: Request) {
     const headersList = request.headers;
     const host = headersList.get('host') || 'localhost:3000';
     const protocol = headersList.get('x-forwarded-proto') || 'http';
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
+    const requestBaseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
 
     const moduleAccess = await assertCompanyManagerModuleApi('dashboard', {
       allowBillingBypass: true,
@@ -86,6 +88,17 @@ export async function POST(request: Request) {
     }
 
     const organizationId = moduleAccess.tenant.organizationId;
+    const { data: customBrandingEnabledData } = await supabase.rpc('is_module_enabled', {
+      org_id: organizationId,
+      module_code: 'custom_branding',
+    });
+    const customBrandingEnabled = Boolean(customBrandingEnabledData);
+    const baseUrl = customBrandingEnabled
+      ? await resolveTenantAppUrlByOrganizationId({
+          organizationId,
+          fallbackAppUrl: requestBaseUrl,
+        })
+      : resolveCanonicalAppUrl(requestBaseUrl);
     const { data: targetPlan } = await supabase
       .from('plans')
       .select('id, stripe_price_id')

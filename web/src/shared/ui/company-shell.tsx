@@ -788,28 +788,19 @@ export function CompanyShell({
     }
   }
 
-  async function startCheckout(planId: string, cycle: BillingCycle) {
+  function startCheckout(planId: string, cycle: BillingCycle) {
     if (impersonationMode) {
       toast.error("Billing bloqueado en modo impersonación");
       return;
     }
 
     setBusy(true);
-    try {
-      const response = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ planId, billingPeriod: cycle }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Error al conectar con Stripe");
-      
-      // Redirect out softly to Stripe Checkout URL
-      window.location.href = data.url;
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Falló la conexión de pagos");
-      setBusy(false);
-    }
+    const params = new URLSearchParams({
+      planId,
+      billingPeriod: cycle,
+    });
+    router.push(`/app/billing/checkout-launch?${params.toString()}`);
+    setTimeout(() => setBusy(false), 2500);
   }
 
   function openPlanChangeDialog(planId: string) {
@@ -821,23 +812,15 @@ export function CompanyShell({
     setPlanChangeTargetId(planId);
   }
 
-  async function openBillingPortal() {
+  function openBillingPortal() {
     if (impersonationMode) {
       toast.error("Billing bloqueado en modo impersonación");
       return;
     }
 
     setBusy(true);
-    try {
-      const response = await fetch("/api/stripe/billing-portal", { method: "POST" });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || data.error || "No se pudo abrir el portal de pagos");
-      if (!data.url) throw new Error("No se encontro URL del portal de pagos");
-      window.location.href = data.url;
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo abrir el portal de pagos");
-      setBusy(false);
-    }
+    router.push("/app/billing/portal-launch");
+    setTimeout(() => setBusy(false), 2500);
   }
 
   async function sendFeedback() {
