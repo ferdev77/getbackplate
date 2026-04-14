@@ -4,8 +4,10 @@ import { stripe } from '@/infrastructure/stripe/client';
 import { assertCompanyManagerModuleApi } from '@/shared/lib/access';
 import { isSuperadminImpersonating } from '@/shared/lib/impersonation';
 import { logAuditEvent } from '@/shared/lib/audit';
+import { resolveCanonicalAppUrl } from '@/shared/lib/app-url';
+import { resolveTenantAppUrlByOrganizationId } from '@/shared/lib/custom-domains';
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const moduleAccess = await assertCompanyManagerModuleApi('dashboard');
     if (!moduleAccess.ok) {
@@ -34,6 +36,11 @@ export async function POST() {
     }
 
     const organizationId = moduleAccess.tenant.organizationId;
+    const { data: customBrandingEnabledData } = await supabase.rpc('is_module_enabled', {
+      org_id: organizationId,
+      module_code: 'custom_branding',
+    });
+    const customBrandingEnabled = Boolean(customBrandingEnabledData);
 
     // Look up their Stripe Customer ID in our DB
     const { data: stripeMapping } = await supabase
@@ -49,7 +56,16 @@ export async function POST() {
 
     // Generate the portal link
     // The user will see their past invoices and can update cards
-    const returnUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/app/dashboard`;
+    const host = request.headers.get('host') || 'localhost:3000';
+    const protocol = request.headers.get('x-forwarded-proto') || 'http';
+    const requestBaseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
+    const resolvedBaseUrl = customBrandingEnabled
+      ? await resolveTenantAppUrlByOrganizationId({
+          organizationId,
+          fallbackAppUrl: requestBaseUrl,
+        })
+      : resolveCanonicalAppUrl(requestBaseUrl);
+    const returnUrl = `${resolvedBaseUrl}/app/dashboard`;
     
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: stripeMapping.stripe_customer_id,
