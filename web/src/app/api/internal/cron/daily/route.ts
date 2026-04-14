@@ -3,7 +3,10 @@ import { GET as purgeTrash } from "../../../webhooks/cron/purge-trash/route";
 import { GET as processDocuments } from "../documents/process/route";
 import { GET as processDeliveries } from "../deliveries/route";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { processEmployeeDocumentExpirationReminders } from "@/modules/employees/services/document-expiration-reminders";
+import {
+  processEmployeeDocumentExpirationReminders,
+  processEmployeeDocumentPendingReminders,
+} from "@/modules/employees/services/document-expiration-reminders";
 
 export const maxDuration = 60; // Attempt to allow up to 60s execution
 
@@ -54,6 +57,14 @@ export async function GET(request: Request) {
       task: "processEmployeeDocumentExpirationReminders",
       status: reminderResult.ok ? 200 : 500,
       ...reminderResult,
+    });
+
+    // 6. Process employee document pending SLA reminders
+    const pendingReminderResult = await processEmployeeDocumentPendingReminders();
+    results.push({
+      task: "processEmployeeDocumentPendingReminders",
+      status: pendingReminderResult.ok ? 200 : 500,
+      ...pendingReminderResult,
     });
 
     return NextResponse.json({ ok: true, results });

@@ -1139,6 +1139,10 @@ export type Database = {
           has_no_expiration: boolean
           id: string
           organization_id: string
+          pending_reminder_last_sent_at: string | null
+          pending_reminder_stage: number
+          pending_since_at: string | null
+          requested_without_file: boolean
           reminder_days: number | null
           reminder_last_sent_at: string | null
           reminder_sent_for_date: string | null
@@ -1165,6 +1169,10 @@ export type Database = {
           has_no_expiration?: boolean
           id?: string
           organization_id: string
+          pending_reminder_last_sent_at?: string | null
+          pending_reminder_stage?: number
+          pending_since_at?: string | null
+          requested_without_file?: boolean
           reminder_days?: number | null
           reminder_last_sent_at?: string | null
           reminder_sent_for_date?: string | null
@@ -1191,6 +1199,10 @@ export type Database = {
           has_no_expiration?: boolean
           id?: string
           organization_id?: string
+          pending_reminder_last_sent_at?: string | null
+          pending_reminder_stage?: number
+          pending_since_at?: string | null
+          requested_without_file?: boolean
           reminder_days?: number | null
           reminder_last_sent_at?: string | null
           reminder_sent_for_date?: string | null

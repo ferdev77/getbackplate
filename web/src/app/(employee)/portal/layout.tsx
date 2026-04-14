@@ -290,7 +290,7 @@ export default async function EmployeeLayout({
         .maybeSingle(),
       supabase
         .from("employee_documents")
-        .select("status, reviewed_at, reviewed_by, review_comment, expires_at, reminder_days, has_no_expiration, signature_status, signature_embed_src, signature_requested_at, signature_completed_at, linked_document:documents(id, title, owner_user_id, mime_type, original_file_name, file_path)")
+        .select("status, requested_without_file, reviewed_at, reviewed_by, review_comment, expires_at, reminder_days, has_no_expiration, signature_status, signature_embed_src, signature_requested_at, signature_completed_at, linked_document:documents(id, title, owner_user_id, mime_type, original_file_name, file_path)")
         .eq("organization_id", tenant.organizationId)
         .eq("employee_id", resolvedEmployee.id)
         .order("created_at", { ascending: false }),
@@ -299,7 +299,7 @@ export default async function EmployeeLayout({
     latestContract = contractResult.data ?? null;
     if (
       employeeDocsResult.error &&
-      ["review_comment", "expires_at", "reminder_days", "has_no_expiration", "signature_status", "signature_embed_src", "signature_requested_at", "signature_completed_at"].some((field) => String(employeeDocsResult.error?.message ?? "").includes(field))
+      ["review_comment", "expires_at", "reminder_days", "has_no_expiration", "signature_status", "signature_embed_src", "signature_requested_at", "signature_completed_at", "requested_without_file"].some((field) => String(employeeDocsResult.error?.message ?? "").includes(field))
     ) {
       const fallbackDocsResult = await supabase
         .from("employee_documents")
@@ -326,7 +326,7 @@ export default async function EmployeeLayout({
         .maybeSingle(),
       admin
         .from("employee_documents")
-        .select("status, reviewed_at, reviewed_by, review_comment, expires_at, reminder_days, has_no_expiration, signature_status, signature_embed_src, signature_requested_at, signature_completed_at, linked_document:documents(id, title, owner_user_id, mime_type, original_file_name, file_path)")
+        .select("status, requested_without_file, reviewed_at, reviewed_by, review_comment, expires_at, reminder_days, has_no_expiration, signature_status, signature_embed_src, signature_requested_at, signature_completed_at, linked_document:documents(id, title, owner_user_id, mime_type, original_file_name, file_path)")
         .eq("organization_id", tenant.organizationId)
         .eq("employee_id", resolvedEmployee.id)
         .order("created_at", { ascending: false }),
@@ -335,7 +335,7 @@ export default async function EmployeeLayout({
     latestContract = adminContractResult.data ?? null;
     if (
       adminEmployeeDocumentLinksResult.error &&
-      ["review_comment", "expires_at", "reminder_days", "has_no_expiration", "signature_status", "signature_embed_src", "signature_requested_at", "signature_completed_at"].some((field) => String(adminEmployeeDocumentLinksResult.error?.message ?? "").includes(field))
+      ["review_comment", "expires_at", "reminder_days", "has_no_expiration", "signature_status", "signature_embed_src", "signature_requested_at", "signature_completed_at", "requested_without_file"].some((field) => String(adminEmployeeDocumentLinksResult.error?.message ?? "").includes(field))
     ) {
       const fallbackAdminDocsResult = await admin
         .from("employee_documents")
@@ -498,6 +498,7 @@ export default async function EmployeeLayout({
 
   for (const row of (employeeDocumentLinks ?? []) as Array<{
     status: string;
+    requested_without_file?: boolean;
     reviewed_at: string | null;
     reviewed_by?: string | null;
     review_comment?: string | null;
@@ -532,12 +533,7 @@ export default async function EmployeeLayout({
       reviewedAt: row.reviewed_at,
       documentId: linked?.id ?? null,
       title: linked?.title ?? null,
-      requestedWithoutFile: row.status === "pending"
-        && uploadedByRole === "company"
-        && linked?.mime_type === "text/plain"
-        && linked?.original_file_name === "solicitud-documento.txt"
-        && typeof linked?.file_path === "string"
-        && linked.file_path.includes("/company/request/"),
+      requestedWithoutFile: row.requested_without_file === true,
       uploadedByRole,
       uploadedByLabel,
       reviewComment: row.review_comment ?? null,
