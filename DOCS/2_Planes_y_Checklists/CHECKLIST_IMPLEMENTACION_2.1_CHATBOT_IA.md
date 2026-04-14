@@ -66,13 +66,12 @@ Esta implementacion se considera un **nuevo modulo** del sistema, integrado con 
 
 - API operativa: `POST /api/company/ai/chat`
 - UI operativa: boton flotante + panel chat en shell empresa
-- Modo por plan:
-  - `basico`: OpenRouter -> fallback estructurado
-  - `pro`: OpenAI -> OpenRouter -> fallback estructurado
+- Modo IA (agnostico al nombre del plan):
+  - `ai_assistant` habilitado: Anthropic -> OpenRouter -> fallback estructurado
 - Integracion de modulo:
   - `module_catalog.code = ai_assistant`
-  - `plan_modules` habilitado para `basico/pro`
-  - `organization_modules` sincronizado para tenants con esos planes
+  - `plan_modules` configurable por cualquier plan (sin hardcode por nombre)
+  - `organization_modules` define habilitacion efectiva por tenant
 - Verificaciones:
   - `npm run verify:official-plan-packaging` OK
   - `npm run build` OK

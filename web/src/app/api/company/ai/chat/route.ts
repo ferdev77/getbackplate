@@ -1,3 +1,4 @@
+import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
@@ -48,7 +49,7 @@ type Facts = {
 type AiResult = {
   content: string;
   model: string;
-  provider: "openai" | "openrouter";
+  provider: "anthropic" | "openrouter";
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
@@ -58,7 +59,7 @@ type CachedAnswer = {
   answer: string;
   mode: AssistantMode;
   confidence: Confidence;
-  provider: "openai" | "openrouter" | "structured";
+  provider: "anthropic" | "openrouter" | "structured";
   model: string | null;
   createdAt: number;
 };
@@ -74,6 +75,7 @@ const MAX_REQUESTS_PER_WINDOW = 20;
 const SESSION_MEMORY_TTL_MS = 30 * 60 * 1000;
 const SESSION_MEMORY_MAX_TURNS = 6;
 const FAQ_CACHE_TTL_MS = 90 * 1000;
+const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-6";
 
 const requestTimestampsByUser = new Map<string, number[]>();
 const faqCache = new Map<string, CachedAnswer>();
@@ -539,23 +541,32 @@ function answerWithRules(question: string, facts: Facts) {
   ].join("\n");
 }
 
-async function callOpenAi(params: {
+/**
+ * Llama a la API de Anthropic usando el SDK oficial (@anthropic-ai/sdk).
+ *
+ * Ventajas sobre fetch manual:
+ * - Tipado completo: errores, respuestas y parámetros están completamente tipados.
+ * - Manejo automático de reintentos y timeouts del SDK.
+ * - Sin necesidad de gestionar cabeceras HTTP ni serialización manual.
+ * - Compatible con el patrón de streaming si se requiere en el futuro.
+ *
+ * Modelo configurado vía .env:
+ *   ANTHROPIC_API_KEY  → clave secreta de Anthropic
+ *   ANTHROPIC_MODEL    → alias o versión exacta (ej: "claude-sonnet-4-6")
+ */
+async function callAnthropic(params: {
   question: string;
   history: ChatMessage[];
   facts: Facts;
   roleCode: string;
   originModule: string;
   intent: AssistantIntent;
-  complexity: Complexity;
   forceQualityPrompt?: boolean;
 }): Promise<AiResult | null> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
-  const model =
-    params.complexity === "complex"
-      ? process.env.OPENAI_MODEL_COMPLEX ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini"
-      : process.env.OPENAI_MODEL_FAST ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+  const model = process.env.ANTHROPIC_MODEL ?? DEFAULT_ANTHROPIC_MODEL;
 
   const systemPrompt = buildSystemPrompt({
     roleCode: params.roleCode,
@@ -567,48 +578,46 @@ async function callOpenAi(params: {
     ? "Mejora la claridad y respeta exactamente el formato Resumen / Dato clave / Siguiente accion."
     : "";
 
-  const factsPrompt = JSON.stringify(params.facts);
-  const messages = [
-    { role: "system", content: systemPrompt },
-    ...params.history,
+  const factsPrompt = JSON.stringify(params.facts, null, 2);
+  const messages: Anthropic.MessageParam[] = [
+    ...params.history.map((m) => ({ role: m.role, content: m.content } as Anthropic.MessageParam)),
     {
       role: "user",
       content: `Facts actuales de la organizacion: ${factsPrompt}. Pregunta: ${params.question}. ${qualityPrompt}`,
     },
   ];
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.2,
-      messages,
-    }),
-  });
+  try {
+    const client = new Anthropic({ apiKey });
 
-  if (!response.ok) return null;
-  const data = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string | null } }>;
-    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
-  };
-  const content = data.choices?.[0]?.message?.content?.trim();
-  if (!content) return null;
-  const usage = data.usage;
-  return {
-    content,
-    model,
-    provider: "openai",
-    inputTokens: usage?.prompt_tokens ?? estimateTokens(JSON.stringify(messages)),
-    outputTokens: usage?.completion_tokens ?? estimateTokens(content),
-    totalTokens:
-      usage?.total_tokens ??
-      (usage?.prompt_tokens ?? estimateTokens(JSON.stringify(messages))) +
-        (usage?.completion_tokens ?? estimateTokens(content)),
-  };
+    const response = await client.messages.create({
+      model,
+      max_tokens: 700,
+      temperature: 0.2,
+      system: systemPrompt,
+      messages,
+    });
+
+    const textBlock = response.content.find((block) => block.type === "text");
+    const content = textBlock && textBlock.type === "text" ? textBlock.text?.trim() : null;
+    if (!content) return null;
+
+    const inputTokens = response.usage?.input_tokens ?? estimateTokens(JSON.stringify(messages));
+    const outputTokens = response.usage?.output_tokens ?? estimateTokens(content);
+
+    return {
+      content,
+      model: response.model ?? model,
+      provider: "anthropic",
+      inputTokens,
+      outputTokens,
+      totalTokens: inputTokens + outputTokens,
+    };
+  } catch {
+    // El SDK lanza APIError, AuthenticationError, RateLimitError, etc.
+    // Retornamos null para que el sistema haga fallback a OpenRouter.
+    return null;
+  }
 }
 
 async function callOpenRouter(params: {
@@ -749,6 +758,32 @@ export async function POST(request: Request) {
     if (cached) {
       const assistantMessage: ChatMessage = { role: "assistant", content: cached.answer };
       await setSessionMemory(memoryKey, [...history, { role: "user", content: question }, assistantMessage]);
+      await logAuditEvent({
+        action: "ai_assistant.chat.query",
+        entityType: "ai_assistant",
+        organizationId: access.tenant.organizationId,
+        branchId: access.tenant.branchId,
+        eventDomain: "settings",
+        outcome: "success",
+        severity: "low",
+        metadata: {
+          mode: cached.mode,
+          confidence: cached.confidence,
+          provider: cached.provider,
+          model: cached.model,
+          intent,
+          complexity,
+          origin_module: originModule,
+          duration_ms: Date.now() - startedAt,
+          input_tokens: 0,
+          output_tokens: 0,
+          total_tokens: 0,
+          estimated_cost_usd: 0,
+          question_preview: question.slice(0, 120),
+          plan_code: facts.planCode,
+          cached: true,
+        },
+      });
       return NextResponse.json({
         answer: cached.answer,
         mode: cached.mode,
@@ -766,85 +801,45 @@ export async function POST(request: Request) {
   let answer = answerWithRules(question, facts);
   let mode: AssistantMode = "basic";
   let confidence: Confidence = intent === "general" ? "medio" : "alto";
-  let provider: "openai" | "openrouter" | "structured" = "structured";
+  let provider: "anthropic" | "openrouter" | "structured" = "structured";
   let modelUsed: string | null = null;
   let inputTokens = estimateTokens(question);
   let outputTokens = estimateTokens(answer);
   let totalTokens = inputTokens + outputTokens;
 
-  if (facts.planCode === "pro") {
-    const openAiResult = await withQualityRetry(
-      () =>
-        callOpenAi({
-          question,
-          history,
-          facts,
-          roleCode: access.tenant.roleCode,
-          originModule,
-          intent,
-          complexity,
-        }),
-      () =>
-        callOpenAi({
-          question,
-          history,
-          facts,
-          roleCode: access.tenant.roleCode,
-          originModule,
-          intent,
-          complexity,
-          forceQualityPrompt: true,
-        }),
-      intent,
-    );
-
-    if (openAiResult?.content) {
-      answer = openAiResult.content;
-      mode = "pro_ai";
-      confidence = "alto";
-      provider = "openai";
-      modelUsed = openAiResult.model;
-      inputTokens = openAiResult.inputTokens;
-      outputTokens = openAiResult.outputTokens;
-      totalTokens = openAiResult.totalTokens;
-    } else {
-      const openRouterFallback = await withQualityRetry(
-        () =>
-          callOpenRouter({
-            question,
-            history,
-            facts,
-            roleCode: access.tenant.roleCode,
-            originModule,
-            intent,
-            complexity,
-          }),
-        () =>
-          callOpenRouter({
-            question,
-            history,
-            facts,
-            roleCode: access.tenant.roleCode,
-            originModule,
-            intent,
-            complexity,
-            forceQualityPrompt: true,
-          }),
+  const anthropicResult = await withQualityRetry(
+    () =>
+      callAnthropic({
+        question,
+        history,
+        facts,
+        roleCode: access.tenant.roleCode,
+        originModule,
         intent,
-      );
+      }),
+    () =>
+      callAnthropic({
+        question,
+        history,
+        facts,
+        roleCode: access.tenant.roleCode,
+        originModule,
+        intent,
+        forceQualityPrompt: true,
+      }),
+    intent,
+  );
 
-      if (openRouterFallback?.content) {
-        answer = openRouterFallback.content;
-        mode = "basic_ai";
-        confidence = "medio";
-        provider = "openrouter";
-        modelUsed = openRouterFallback.model;
-        inputTokens = openRouterFallback.inputTokens;
-        outputTokens = openRouterFallback.outputTokens;
-        totalTokens = openRouterFallback.totalTokens;
-      }
-    }
-  } else if (facts.planCode === "basico") {
+  if (anthropicResult?.content) {
+    answer = anthropicResult.content;
+    mode = "pro_ai";
+    confidence = "alto";
+    provider = "anthropic";
+    modelUsed = anthropicResult.model;
+    inputTokens = anthropicResult.inputTokens;
+    outputTokens = anthropicResult.outputTokens;
+    totalTokens = anthropicResult.totalTokens;
+  } else {
     const openRouterResult = await withQualityRetry(
       () =>
         callOpenRouter({
@@ -918,7 +913,9 @@ export async function POST(request: Request) {
       output_tokens: outputTokens,
       total_tokens: totalTokens,
       estimated_cost_usd:
-        provider === "structured" ? 0 : Number((totalTokens * (provider === "openai" ? 0.0000015 : 0.0000012)).toFixed(6)),
+        provider === "structured"
+          ? 0
+          : Number((totalTokens * (provider === "anthropic" ? 0.0000022 : 0.0000012)).toFixed(6)),
       question_preview: question.slice(0, 120),
       plan_code: facts.planCode,
       cached: false,

@@ -186,9 +186,9 @@ Naming oficial de modulo 2.1: `ai_assistant`.
 - Integracion de modulos:
   - `web/src/app/(company)/app/layout.tsx` ahora considera `ai_assistant` en `enabledModules`
 
-- Comportamiento por plan:
-  - `basico`: IA via OpenRouter (si hay key), fallback estructurado
-  - `pro`: IA via OpenAI (principal), fallback OpenRouter y luego estructurado
+- Comportamiento IA (agnostico al nombre del plan):
+  - si `ai_assistant` esta habilitado para el tenant: Anthropic (principal), fallback OpenRouter y luego estructurado
+  - el nombre del plan no define el motor IA
 
 - Etiqueta de modo mostrada al usuario:
   - `Modo estructurado`
@@ -196,7 +196,7 @@ Naming oficial de modulo 2.1: `ai_assistant`.
   - `Modo IA Pro`
 
 - Variables esperadas:
-  - `OPENAI_API_KEY` / `OPENAI_MODEL`
+  - `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL`
   - `OPENROUTER_API_KEY` / `OPENROUTER_MODEL`
 
 ### Mejora 2.1.1 (fase A) - calidad de respuesta
@@ -1376,7 +1376,7 @@ Variables requeridas en runtime (Vercel):
   - `web/src/app/auth/checkout-redirect/page.tsx` ahora redirige al flujo oficial en panel empresa.
 
 - Alineacion documental IA:
-  - `web/docs/official-plan-packaging.md` actualizado para reflejar `basico: OpenRouter + fallback estructurado` y `pro: OpenAI + fallback`.
+  - contrato actualizado a enfoque agnostico de plan: `ai_assistant` habilitado => Anthropic + fallback OpenRouter + fallback estructurado.
 
 - Limpieza de calidad:
   - `npm run lint` sin warnings ni errores.

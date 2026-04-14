@@ -79,9 +79,9 @@ Desde `web/`:
   - Integracion de notificaciones en backend
   - Variables: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`, `TWILIO_WHATSAPP_NUMBER`, `TWILIO_TRIAL_MODE`
 
-- **IA (OpenRouter/OpenAI)**
+- **IA (Anthropic/OpenRouter)**
   - Endpoint principal: `web/src/app/api/company/ai/chat/route.ts`
-  - Variables principales: `OPENROUTER_API_KEY` o `OPENAI_API_KEY`
+  - Variables principales: `ANTHROPIC_API_KEY` (principal) y `OPENROUTER_API_KEY` (fallback)
 
 - **Upstash Redis (rate limit/cache opcional)**
   - Variables: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
@@ -103,12 +103,42 @@ cd web
 npm run verify:migrations-sync
 ```
 
-## 7) Entornos Supabase esperados
+## 7) Entornos Supabase y despliegue
 
-- Produccion: `mfhyemwypuzsqjqxtbjf`
-- Desarrollo: `uubdslmtfxwraszinpao`
+### Dos bases de datos separadas
 
-Regla: esquema alineado en ambos entornos con `supabase/migrations`.
+| Entorno | Proyecto Supabase | Región AWS | Archivo de configuración |
+|---|---|---|---|
+| **Desarrollo local** | `uubdslmtfxwraszinpao` | `us-east-1` | `web/.env.local` |
+| **Producción** | `mfhyemwypuzsqjqxtbjf` | `us-west-2` | `web/.env.production.local` |
+
+Regla: el esquema debe estar alineado en ambos entornos mediante `supabase/migrations`.
+
+### Despliegue en Vercel
+
+La app está publicada en Vercel bajo el proyecto `getbackplate`:
+- **URL de producción:** `https://app.getbackplate.com`
+- **Project ID:** `prj_IvTEU3Ta3ApMY5Sa8tZCY4SxT0Mc`
+- **Org ID:** `team_Ajv0vLA1g46FuSu4It7WjJSk`
+- Configurado en `.vercel/project.json`
+
+En producción, Vercel inyecta las variables de `web/.env.production.local` automáticamente.
+
+### Correr localmente contra producción (solo para debugging)
+
+Por defecto `npm run dev` apunta a la base de **desarrollo**. Si necesitás conectarte a producción desde local:
+
+```bash
+# Opción recomendada: usar el archivo de producción directamente
+node --env-file=web/.env.production.local scripts/mi-script.mjs
+
+# Para el servidor de Next.js completo contra producción
+# (requiere pasar las variables manualmente en la sesión de PowerShell)
+$env:NEXT_PUBLIC_SUPABASE_URL="https://mfhyemwypuzsqjqxtbjf.supabase.co"
+npm run dev
+```
+
+> ⚠️ **ADVERTENCIA:** Correr localmente apuntando a producción significa operar sobre **datos reales de clientes activos**. Usar exclusivamente para debugging puntual y nunca ejecutar scripts de seeds, migraciones destructivas o limpieza masiva contra producción desde local.
 
 ## 8) Entrega de bundle Git
 

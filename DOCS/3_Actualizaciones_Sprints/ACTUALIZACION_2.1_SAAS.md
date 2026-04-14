@@ -81,29 +81,26 @@ Debe incluir:
    - recibe pregunta + contexto permitido
    - devuelve respuesta final en espanol claro
 
-## Comportamiento por plan
+## Comportamiento IA (agnostico al nombre del plan)
 
-- `basico`:
-  - intenta IA via OpenRouter
-  - fallback a modo estructurado (consultas directas con reglas)
-  - responde con datos reales de la organizacion
-
-- `pro`:
-  - usa IA via OpenAI como motor principal
-  - fallback a OpenRouter y luego a modo estructurado si falla
+- Si el modulo `ai_assistant` esta habilitado para el tenant:
+  - usa Anthropic como motor principal
+  - fallback a OpenRouter
+  - fallback final a modo estructurado (consultas directas con reglas)
+- El nombre del plan no condiciona el motor IA. Se pueden crear/renombrar/eliminar planes sin romper IA.
 
 ## Variables de entorno requeridas para IA real
 
-- `OPENAI_API_KEY` (obligatoria para modo pro con IA generativa)
-- `OPENAI_MODEL` (opcional, por defecto `gpt-4o-mini`)
-- `OPENROUTER_API_KEY` (obligatoria para IA en plan basico)
+- `ANTHROPIC_API_KEY` (obligatoria para IA principal generativa)
+- `ANTHROPIC_MODEL` (opcional, por defecto `claude-sonnet-4-6`)
+- `OPENROUTER_API_KEY` (opcional, fallback IA)
 - `OPENROUTER_MODEL` (opcional, por defecto `openai/gpt-4o-mini`)
 
 ## Etiquetas visibles de modo en UI
 
 - `Modo estructurado` (sin proveedor IA)
 - `Modo OpenRouter` (respuesta via OpenRouter)
-- `Modo IA Pro` (respuesta via OpenAI)
+- `Modo IA Pro` (respuesta via Anthropic)
 
 ## Mejora 2.1.1 aplicada (OpenRouter Pro)
 

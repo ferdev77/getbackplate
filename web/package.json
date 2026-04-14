@@ -41,6 +41,7 @@
     "report:tenant-usage:csv": "node --env-file=.env.local scripts/generate-tenant-usage-report.mjs --format=csv"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.89.0",
     "@sentry/nextjs": "^10.43.0",
     "@stripe/stripe-js": "^8.9.0",
     "@supabase/ssr": "^0.9.0",
