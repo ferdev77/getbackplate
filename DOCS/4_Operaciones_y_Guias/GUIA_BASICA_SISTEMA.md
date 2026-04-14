@@ -210,6 +210,17 @@ Tip de uso:
 
 Con esto se evita que el sistema tome una empresa "al azar".
 
+## Billing y marca (Stripe) - estado actual
+
+- El panel empresa ahora usa una pantalla intermedia antes de salir a Stripe:
+  - `/app/billing/checkout-launch`
+  - `/app/billing/portal-launch`
+- Esa pantalla muestra marca por tenant:
+  - si `custom_branding` esta activo, usa logo/nombre de la empresa,
+  - si no, usa branding oficial `GetBackplate`.
+- Los retornos de Stripe (`success`, `cancel`, `return`) ya se resuelven tenant-aware para volver al dominio correcto (custom activo o fallback plataforma).
+- Importante: el look de la pagina hosted de Stripe sigue dependiendo de Stripe Dashboard; no se define por request desde la app.
+
 ## Auditoria (estado actual)
 
 - Ya se guardan en base los eventos de acciones criticas con: quien lo hizo, que hizo y cuando.

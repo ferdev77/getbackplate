@@ -1427,6 +1427,48 @@ QA ejecutado post-implementacion:
 ### 36. Plan futuro: Twilio/WhatsApp en produccion
 
 - Se agrega plan maestro paso a paso para migrar de sandbox a produccion:
+
+### 37. Stripe launch branded + retorno tenant-aware (2026-04)
+
+- Objetivo:
+  - mejorar UX comercial del salto a Stripe,
+  - mantener coherencia de marca por tenant,
+  - asegurar retorno correcto a dominio tenant/plataforma segun contexto.
+
+- Cambios funcionales aplicados:
+  - nuevo flujo intermedio en app antes de Stripe:
+    - `GET /app/billing/checkout-launch`
+    - `GET /app/billing/portal-launch`
+  - `CompanyShell` ya no redirige directo a Stripe; ahora navega a launch pages branded.
+  - launch pages crean sesion en backend y redirigen automaticamente con fallback manual (`Continuar a Stripe`) y retry ante error.
+
+- Politica de branding:
+  - si tenant tiene modulo `custom_branding` activo: launch page usa logo/nombre empresa.
+  - si no: fallback oficial `GetBackplate`.
+  - limite conocido: branding hosted de Stripe Checkout/Portal depende de Stripe Dashboard (no theming por request en codigo app).
+
+- Endpoints billing ajustados:
+  - `POST /api/stripe/checkout`:
+    - `success_url` y `cancel_url` resuelven base URL tenant-aware.
+  - `POST /api/stripe/billing-portal`:
+    - `return_url` resuelve base URL tenant-aware.
+  - resolucion tenant-aware:
+    - con `custom_branding`: intenta dominio activo tenant (`resolveTenantAppUrlByOrganizationId`).
+    - sin `custom_branding`: fallback URL canonica plataforma (`resolveCanonicalAppUrl`).
+
+- Archivos clave:
+  - `web/src/modules/billing/ui/stripe-launch-bridge.tsx`
+  - `web/src/app/(company)/app/billing/checkout-launch/page.tsx`
+  - `web/src/app/(company)/app/billing/portal-launch/page.tsx`
+  - `web/src/shared/ui/company-shell.tsx`
+  - `web/src/app/api/stripe/checkout/route.ts`
+  - `web/src/app/api/stripe/billing-portal/route.ts`
+
+- QA ejecutado post-cambio:
+  - `npm run lint` ✅
+  - `npm run build` ✅
+  - `npm run verify:smoke-modules` ✅
+  - `npm run verify:role-permissions` ✅
   - `web/docs/twilio-whatsapp-produccion-plan.md`
 - Incluye:
   - precondiciones de compliance

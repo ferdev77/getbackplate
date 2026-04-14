@@ -148,19 +148,30 @@ Referencias:
 - `web/src/modules/settings/ui/custom-domain-settings-card.tsx`
 
 ### 3.8 Estilos de Stripe (checkout + billing portal) (mejora)
-**Estado real:** parcial.
+**Estado real:** operativo en app + pendiente de branding hosted en Stripe Dashboard.
 
 Lo que ya existe:
 - Flujo de checkout y billing portal funcionando.
 - Integracion webhook y sincronizacion de plan.
+- Pantalla intermedia branded en app para checkout y billing portal:
+  - `/app/billing/checkout-launch`
+  - `/app/billing/portal-launch`
+- Politica de marca tenant-aware:
+  - tenant con modulo `custom_branding` activo: usa marca de empresa en la pantalla intermedia,
+  - tenant sin modulo: fallback marca `GetBackplate`.
+- Retornos tenant-aware en backend Stripe:
+  - `success_url`, `cancel_url` y `return_url` ahora resuelven dominio por tenant (custom activo o fallback plataforma).
 
 Gap real:
-- No hay personalizacion aplicada desde codigo para marca en checkout/portal.
-- En Stripe Checkout hosted, el branding principal se define en Dashboard/Branding de Stripe (o por cuenta conectada), no como theming libre por request.
+- En Stripe Checkout/Billing Portal hosted, el branding principal se define en Stripe Dashboard (cuenta Stripe), no como theming libre por request por tenant.
+- Queda pendiente homologar y validar branding hosted en Stripe Dashboard para cerrar consistencia visual end-to-end.
 
 Referencias:
 - `web/src/app/api/stripe/checkout/route.ts`
 - `web/src/app/api/stripe/billing-portal/route.ts`
+- `web/src/app/(company)/app/billing/checkout-launch/page.tsx`
+- `web/src/app/(company)/app/billing/portal-launch/page.tsx`
+- `web/src/modules/billing/ui/stripe-launch-bridge.tsx`
 
 ---
 

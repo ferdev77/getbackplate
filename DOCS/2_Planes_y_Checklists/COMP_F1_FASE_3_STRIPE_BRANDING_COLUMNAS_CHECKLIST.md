@@ -5,7 +5,7 @@
 
 # Checklist Fase 3 - Stripe Branding + Vista de Columnas
 
-Estado inicial: pendiente
+Estado inicial: en ejecucion (sub-bloque Stripe launch branding + columnas base completado)
 Dependencia para abrir fase: Fase 2 cerrada
 
 ## Objetivo de fase
@@ -19,48 +19,52 @@ Mejorar conversion y experiencia de cobro/navegacion documental con ajustes de m
 
 ## A) Stripe branding (checkout + billing portal)
 
-- [ ] A1. Definir lineamientos de marca aprobados para Stripe (logo, colores, tono).
-- [ ] A2. Homologar configuracion entre Dashboard Stripe y experiencia dentro de app.
-- [ ] A3. Verificar consistencia visual en checkout y billing portal (desktop/mobile).
-- [ ] A4. Confirmar mensajes de fallback si branding externo no aplica por cuenta/config.
+- [x] A1. Definir lineamientos de marca aplicables en app (pantalla intermedia) y fallback tenant/platform.
+- [x] A2. Homologar experiencia dentro de app con pantalla launch branded para checkout/portal.
+- [x] A3. Verificar experiencia funcional de redireccion y retorno tenant-aware (backend + UI).
+- [x] A4. Confirmar fallback de marca de plataforma cuando `custom_branding` no aplica.
+- [ ] A5. Homologar branding hosted en Stripe Dashboard (pendiente manual fuera de codigo).
 
 ## B) Vista de columnas en Documentos
 
-- [ ] B1. Diseñar contrato funcional del toggle `arbol <-> columnas` sin romper acciones.
-- [ ] B2. Implementar componente de navegacion por columnas (estilo finder).
-- [ ] B3. Mantener acciones existentes: descargar, compartir, eliminar segun permisos.
-- [ ] B4. Persistir preferencia de vista por usuario.
-- [ ] B5. Confirmar permisos por rol en ambas vistas.
+- [x] B1. Diseñar contrato funcional del toggle `arbol <-> columnas` sin romper acciones.
+- [x] B2. Implementar componente de navegacion por columnas (estilo finder).
+- [x] B3. Mantener acciones existentes: descargar, compartir, eliminar segun permisos.
+- [x] B4. Persistir preferencia de vista por usuario.
+- [x] B5. Confirmar permisos por rol en ambas vistas.
 
 ## C) Integracion UX y performance
 
-- [ ] C1. Asegurar carga progresiva y feedback visual consistente en vista columnas.
-- [ ] C2. Validar que no empeore tiempos de respuesta en carpetas con alto volumen.
-- [ ] C3. Revisar responsive de la vista columnas en tablet/mobile.
+- [x] C1. Asegurar carga progresiva y feedback visual consistente en vista columnas.
+- [x] C2. Validar que no empeore tiempos de respuesta en carpetas con alto volumen.
+- [x] C3. Revisar responsive de la vista columnas en tablet/mobile.
 
 ## D) QA y evidencia
 
-- [ ] D1. Ejecutar `npm run lint`.
-- [ ] D2. Ejecutar `npm run build`.
-- [ ] D3. Ejecutar `npm run verify:smoke-modules`.
-- [ ] D4. Ejecutar `npm run verify:role-permissions`.
+- [x] D1. Ejecutar `npm run lint`.
+- [x] D2. Ejecutar `npm run build`.
+- [x] D3. Ejecutar `npm run verify:smoke-modules`.
+- [x] D4. Ejecutar `npm run verify:role-permissions`.
 - [ ] D5. Casos funcionales minimos:
-  - [ ] checkout branded en desktop
-  - [ ] checkout branded en mobile
-  - [ ] billing portal branded consistente
-  - [ ] toggle arbol/columnas conserva contexto
-  - [ ] acciones de documentos funcionan igual en ambas vistas
+  - [x] checkout launch branded en desktop
+  - [x] checkout launch branded en mobile
+  - [x] billing portal launch branded consistente
+  - [x] toggle arbol/columnas conserva contexto
+  - [x] acciones de documentos funcionan igual en ambas vistas
 
 ## E) Documentacion de cierre
 
-- [ ] E1. Actualizar `DOCS/1_Arquitectura_y_Contexto/DOCUMENTACION_TECNICA.md`.
-- [ ] E2. Actualizar `DOCS/4_Operaciones_y_Guias/GUIA_BASICA_SISTEMA.md`.
-- [ ] E3. Documentar decision UX de persistencia de vista por usuario.
+- [x] E1. Actualizar `DOCS/1_Arquitectura_y_Contexto/DOCUMENTACION_TECNICA.md`.
+- [x] E2. Actualizar `DOCS/4_Operaciones_y_Guias/GUIA_BASICA_SISTEMA.md`.
+- [x] E3. Documentar decision UX de persistencia de vista por usuario.
 - [ ] E4. Registrar avance de fase en `DOCS/3_Actualizaciones_Sprints/ACTUALIZACION_2.2_SAAS.md` o nuevo archivo vigente.
 
 ## Definition of Done (Fase 3)
 
-- [ ] DoD1. Stripe checkout y portal transmiten marca de forma consistente.
-- [ ] DoD2. Vista columnas esta operativa, usable y segura por permisos.
-- [ ] DoD3. No hay regresion funcional en acciones de documentos.
+- [x] DoD1. Stripe checkout y portal transmiten marca de forma consistente (en app launch flow).
+- [x] DoD2. Vista columnas esta operativa, usable y segura por permisos.
+- [x] DoD3. No hay regresion funcional en acciones de documentos.
 - [ ] DoD4. Evidencia tecnica + documentacion cerradas.
+
+Notas de alcance:
+- El branding hosted de Stripe (checkout/portal en dominio Stripe) sigue dependiendo de Stripe Dashboard; no se define por request en codigo app.
