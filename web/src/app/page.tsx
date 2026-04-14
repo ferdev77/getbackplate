@@ -34,7 +34,7 @@ export default async function Home() {
     const memberships = await getCurrentUserMemberships();
     const codes = new Set(memberships.map((row) => row.roleCode));
 
-    if (codes.has("company_admin") || codes.has("manager")) {
+    if (codes.has("company_admin")) {
       redirect(`/app/dashboard${orgQuery}`);
     }
 

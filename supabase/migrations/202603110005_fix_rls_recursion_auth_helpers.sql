@@ -54,8 +54,7 @@ security definer
 set search_path = public
 as $$
   select public.is_superadmin()
-    or public.has_org_role(org_id, 'company_admin')
-    or public.has_org_role(org_id, 'manager');
+    or public.has_org_role(org_id, 'company_admin');
 $$;
 
 create or replace function public.is_module_enabled(org_id uuid, module_code text)

@@ -264,7 +264,7 @@ export async function reviewChecklistSubmissionAction(_prevState: unknown, formD
   const supabase = await createSupabaseServerClient();
   const { data: authData } = await supabase.auth.getUser();
 
-  if (tenant.roleCode !== "company_admin" && tenant.roleCode !== "manager") {
+  if (tenant.roleCode !== "company_admin") {
     return { success: false, message: "No tienes permisos para revisar ejecuciones" };
   }
 
@@ -306,7 +306,7 @@ export async function deleteChecklistTemplateAction(_prevState: unknown, formDat
   const tenant = await requireTenantModule("checklists");
   const supabase = await createSupabaseServerClient();
 
-  if (tenant.roleCode !== "company_admin" && tenant.roleCode !== "manager") {
+  if (tenant.roleCode !== "company_admin") {
     return { success: false, message: "No tienes permisos para eliminar checklists" };
   }
 

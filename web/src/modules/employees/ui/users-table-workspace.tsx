@@ -48,7 +48,6 @@ function statusLabel(status: string) {
 
 function roleLabel(code: string) {
   if (code === "company_admin") return "Administrador";
-  if (code === "manager") return "Manager";
   return "Empleado";
 }
 

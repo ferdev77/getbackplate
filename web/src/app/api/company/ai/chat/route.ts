@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import {
   applySharedRateLimit,
   deleteSharedRuntimeValue,
@@ -698,7 +698,7 @@ async function withQualityRetry(call: () => Promise<AiResult | null>, retry: () 
 
 export async function POST(request: Request) {
   const startedAt = Date.now();
-  const access = await assertCompanyManagerModuleApi("ai_assistant");
+  const access = await assertCompanyAdminModuleApi("ai_assistant");
   if (!access.ok) {
     return NextResponse.json({ error: access.error }, { status: access.status });
   }

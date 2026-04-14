@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { EMPLOYEES_MESSAGES, employeesStorageLimitForSlot } from "@/shared/lib/employees-messages";
 import { analyzeUploadedFile } from "@/shared/lib/file-security";
@@ -236,7 +236,7 @@ async function syncEmployeeProfileProjection(input: {
 }
 
 export async function GET(request: Request) {
-  const moduleAccess = await assertCompanyManagerModuleApi("employees");
+  const moduleAccess = await assertCompanyAdminModuleApi("employees");
   if (!moduleAccess.ok) {
     return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
   }
@@ -714,7 +714,7 @@ async function upsertEmployeeContractDocument(input: UpsertEmployeeContractDocum
 }
 
 export async function POST(request: Request) {
-  const moduleAccess = await assertCompanyManagerModuleApi("employees");
+  const moduleAccess = await assertCompanyAdminModuleApi("employees");
   if (!moduleAccess.ok) {
     return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
   }
@@ -2018,7 +2018,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const moduleAccess = await assertCompanyManagerModuleApi("employees");
+  const moduleAccess = await assertCompanyAdminModuleApi("employees");
   if (!moduleAccess.ok) {
     return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
   }
@@ -2178,7 +2178,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const moduleAccess = await assertCompanyManagerModuleApi("employees");
+  const moduleAccess = await assertCompanyAdminModuleApi("employees");
   if (!moduleAccess.ok) {
     return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
   }

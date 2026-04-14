@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import {
   EMPLOYEE_DOCUMENT_SLOT_DEFINITIONS,
@@ -36,7 +36,7 @@ function isValidSlot(value: string): value is EmployeeDocumentSlotKey {
 }
 
 export async function POST(request: Request) {
-  const moduleAccess = await assertCompanyManagerModuleApi("employees");
+  const moduleAccess = await assertCompanyAdminModuleApi("employees");
   if (!moduleAccess.ok) {
     return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
   }

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { isSuperadminImpersonating } from "@/shared/lib/impersonation";
 
@@ -26,7 +26,7 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const moduleAccess = await assertCompanyManagerModuleApi("settings");
+  const moduleAccess = await assertCompanyAdminModuleApi("settings");
   if (!moduleAccess.ok) {
     return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
   }
@@ -186,7 +186,7 @@ export async function POST(request: Request) {
   }
 
   if (kind === "billing") {
-    if (tenant.roleCode !== "company_admin" && tenant.roleCode !== "manager") {
+    if (tenant.roleCode !== "company_admin") {
       return NextResponse.json({ error: "Sin permisos para editar billing" }, { status: 403 });
     }
 

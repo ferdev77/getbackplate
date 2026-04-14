@@ -13,8 +13,7 @@ export type MembershipContext = {
 
 const ROLE_PRIORITY: Record<string, number> = {
   company_admin: 0,
-  manager: 1,
-  employee: 2,
+  employee: 1,
 };
 
 function sortMembershipsDeterministically(rows: MembershipContext[]) {

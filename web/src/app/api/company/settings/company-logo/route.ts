@@ -2,7 +2,7 @@ import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import {
   ensureOrganizationLogoBucketExists,
@@ -22,7 +22,7 @@ type OrganizationSettingsUpsertPayload = {
 };
 
 export async function POST(request: Request) {
-  const moduleAccess = await assertCompanyManagerModuleApi("custom_branding");
+  const moduleAccess = await assertCompanyAdminModuleApi("custom_branding");
   if (!moduleAccess.ok) {
     return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
   }

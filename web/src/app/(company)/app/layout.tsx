@@ -129,7 +129,7 @@ export default async function CompanyLayout({
 
   const roleLabelByCode: Record<string, string> = {
     company_admin: "Admin de empresa",
-    manager: "Manager",
+    
     employee: "Empleado",
   };
 

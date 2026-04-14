@@ -18,8 +18,8 @@ DECLARE
   v_count INT := 0;
   v_employee_id UUID;
 BEGIN
-  -- Admins and managers can see ALL documents
-  IF p_role_code IN ('company_admin', 'manager') THEN
+  -- Company admins can see ALL documents
+  IF p_role_code IN ('company_admin') THEN
     SELECT COUNT(*)::INT INTO v_count
     FROM documents
     WHERE organization_id = p_organization_id;

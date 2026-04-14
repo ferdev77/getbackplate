@@ -252,8 +252,7 @@ export async function loginWithPasswordAction(formData: FormData) {
     );
 
     if (
-      roleCodesInResolvedOrganization.has("company_admin") ||
-      roleCodesInResolvedOrganization.has("manager")
+      roleCodesInResolvedOrganization.has("company_admin")
     ) {
       await logAuthEvent({
         action: "login.success",
@@ -572,10 +571,7 @@ export async function updatePasswordAction(formData: FormData) {
       .map((row) => row.roleCode),
   );
 
-  if (
-    roleCodesInResolvedOrganization.has("company_admin") ||
-    roleCodesInResolvedOrganization.has("manager")
-  ) {
+  if (roleCodesInResolvedOrganization.has("company_admin")) {
     redirect("/app/dashboard");
   }
 
@@ -648,7 +644,7 @@ export async function selectOrganizationAction(formData: FormData) {
   }
 
   if (mode === "company") {
-    if (roleCodes.has("company_admin") || roleCodes.has("manager")) {
+    if (roleCodes.has("company_admin")) {
       redirect("/app/dashboard");
     }
 
@@ -662,7 +658,7 @@ export async function selectOrganizationAction(formData: FormData) {
     );
   }
 
-  if (roleCodes.has("company_admin") || roleCodes.has("manager")) {
+  if (roleCodes.has("company_admin")) {
     redirect("/app/dashboard");
   }
 

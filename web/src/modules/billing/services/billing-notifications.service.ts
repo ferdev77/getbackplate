@@ -23,7 +23,7 @@ async function getOrganizationAdminEmail(organizationId: string): Promise<string
   const { data: roleRows } = await supabase
     .from("roles")
     .select("id")
-    .in("code", ["company_admin", "manager"]);
+    .in("code", ["company_admin"]);
 
   const roleIds = (roleRows ?? []).map((row) => row.id).filter(Boolean);
   if (!roleIds.length) {

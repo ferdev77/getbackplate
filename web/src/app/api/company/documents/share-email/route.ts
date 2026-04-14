@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { assertCompanyManagerModuleApi } from "@/shared/lib/access";
+import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
 import { isEmployeeLinkedDocument } from "@/shared/lib/document-domain";
@@ -10,7 +10,7 @@ import { isEmployeeLinkedDocument } from "@/shared/lib/document-domain";
 const BUCKET_NAME = "tenant-documents";
 
 export async function POST(request: Request) {
-  const moduleAccess = await assertCompanyManagerModuleApi("documents");
+  const moduleAccess = await assertCompanyAdminModuleApi("documents");
   if (!moduleAccess.ok) {
     return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
   }

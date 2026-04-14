@@ -18,7 +18,7 @@ const newCode = `async function rollbackStorageAndAuth(input: {
 }
 
 export async function POST(request: Request) {
-  const moduleAccess = await assertCompanyManagerModuleApi("employees");
+  const moduleAccess = await assertCompanyAdminModuleApi("employees");
   if (!moduleAccess.ok) {
     return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
   }

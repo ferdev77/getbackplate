@@ -5,7 +5,7 @@ import { stripe } from '@/infrastructure/stripe/client';
 import { sendPlanChangeDecisionEmail } from '@/modules/billing/services/plan-change-notifications.service';
 import { resolveTrialPolicyForOrganization } from '@/modules/billing/services/trial-policy.service';
 import { syncOrganizationPlan } from '@/modules/organizations/services/organization.service';
-import { assertCompanyManagerModuleApi } from '@/shared/lib/access';
+import { assertCompanyAdminModuleApi } from '@/shared/lib/access';
 import { isSuperadminImpersonating } from '@/shared/lib/impersonation';
 import { logAuditEvent } from '@/shared/lib/audit';
 import { resolveCanonicalAppUrl } from '@/shared/lib/app-url';
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     const protocol = headersList.get('x-forwarded-proto') || 'http';
     const requestBaseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
 
-    const moduleAccess = await assertCompanyManagerModuleApi('dashboard', {
+    const moduleAccess = await assertCompanyAdminModuleApi('dashboard', {
       allowBillingBypass: true,
     });
     if (!moduleAccess.ok) {

@@ -30,7 +30,6 @@ insert into public.roles (code, name, level, is_system)
 values
   ('superadmin', 'Superadmin Global', 1, true),
   ('company_admin', 'Admin de Empresa', 10, true),
-  ('manager', 'Manager/Encargado', 30, true),
   ('employee', 'Empleado', 50, true)
 on conflict (code) do update
 set
@@ -80,20 +79,6 @@ select r.id, p.id
 from public.roles r
 join public.permissions p on true
 where r.code in ('superadmin', 'company_admin')
-on conflict do nothing;
-
-insert into public.role_permissions (role_id, permission_id)
-select r.id, p.id
-from public.roles r
-join public.permissions p on p.code in (
-  'employees.read',
-  'documents.read',
-  'announcements.read',
-  'checklists.read',
-  'reports.read',
-  'announcements.write'
-)
-where r.code = 'manager'
 on conflict do nothing;
 
 insert into public.role_permissions (role_id, permission_id)

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { stripe } from '@/infrastructure/stripe/client';
-import { assertCompanyManagerModuleApi } from '@/shared/lib/access';
+import { assertCompanyAdminModuleApi } from '@/shared/lib/access';
 import { isSuperadminImpersonating } from '@/shared/lib/impersonation';
 import { logAuditEvent } from '@/shared/lib/audit';
 import { resolveCanonicalAppUrl } from '@/shared/lib/app-url';
@@ -9,7 +9,7 @@ import { resolveTenantAppUrlByOrganizationId } from '@/shared/lib/custom-domains
 
 export async function POST(request: Request) {
   try {
-    const moduleAccess = await assertCompanyManagerModuleApi('dashboard');
+    const moduleAccess = await assertCompanyAdminModuleApi('dashboard');
     if (!moduleAccess.ok) {
       return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
     }
