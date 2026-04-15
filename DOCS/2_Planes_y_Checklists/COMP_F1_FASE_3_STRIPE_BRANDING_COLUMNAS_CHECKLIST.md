@@ -23,7 +23,7 @@ Mejorar conversion y experiencia de cobro/navegacion documental con ajustes de m
 - [x] A2. Homologar experiencia dentro de app con pantalla launch branded para checkout/portal.
 - [x] A3. Verificar experiencia funcional de redireccion y retorno tenant-aware (backend + UI).
 - [x] A4. Confirmar fallback de marca de plataforma cuando `custom_branding` no aplica.
-- [ ] A5. Homologar branding hosted en Stripe Dashboard (pendiente manual fuera de codigo).
+- [x] A5. Homologar branding hosted en Stripe Dashboard (pendiente manual fuera de codigo. HECHO MANUALMENTE).
 
 ## B) Vista de columnas en Documentos
 
@@ -45,7 +45,7 @@ Mejorar conversion y experiencia de cobro/navegacion documental con ajustes de m
 - [x] D2. Ejecutar `npm run build`.
 - [x] D3. Ejecutar `npm run verify:smoke-modules`.
 - [x] D4. Ejecutar `npm run verify:role-permissions`.
-- [ ] D5. Casos funcionales minimos:
+- [x] D5. Casos funcionales minimos:
   - [x] checkout launch branded en desktop
   - [x] checkout launch branded en mobile
   - [x] billing portal launch branded consistente
@@ -57,14 +57,14 @@ Mejorar conversion y experiencia de cobro/navegacion documental con ajustes de m
 - [x] E1. Actualizar `DOCS/1_Arquitectura_y_Contexto/DOCUMENTACION_TECNICA.md`.
 - [x] E2. Actualizar `DOCS/4_Operaciones_y_Guias/GUIA_BASICA_SISTEMA.md`.
 - [x] E3. Documentar decision UX de persistencia de vista por usuario.
-- [ ] E4. Registrar avance de fase en `DOCS/3_Actualizaciones_Sprints/ACTUALIZACION_2.2_SAAS.md` o nuevo archivo vigente.
+- [x] E4. Registrar avance de fase en `DOCS/3_Actualizaciones_Sprints/ACTUALIZACION_2.2_SAAS.md` o nuevo archivo vigente.
 
 ## Definition of Done (Fase 3)
 
 - [x] DoD1. Stripe checkout y portal transmiten marca de forma consistente (en app launch flow).
 - [x] DoD2. Vista columnas esta operativa, usable y segura por permisos.
 - [x] DoD3. No hay regresion funcional en acciones de documentos.
-- [ ] DoD4. Evidencia tecnica + documentacion cerradas.
+- [x] DoD4. Evidencia tecnica + documentacion cerradas.
 
 Notas de alcance:
 - El branding hosted de Stripe (checkout/portal en dominio Stripe) sigue dependiendo de Stripe Dashboard; no se define por request en codigo app.

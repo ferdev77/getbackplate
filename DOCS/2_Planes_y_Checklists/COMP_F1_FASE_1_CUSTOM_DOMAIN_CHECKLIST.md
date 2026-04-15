@@ -48,8 +48,8 @@ Cerrar comercial y tecnicamente el modulo de dominio personalizado, priorizando 
 
 - [x] E1. Ejecutar `npm run lint`.
 - [x] E2. Ejecutar `npm run build`.
-- [ ] E3. Ejecutar `npm run verify:smoke-modules`.
-- [ ] E4. Ejecutar `npm run verify:role-permissions` (si hubo cambios de acceso).
+- [x] E3. Ejecutar `npm run verify:smoke-modules`.
+- [x] E4. Ejecutar `npm run verify:role-permissions` (si hubo cambios de acceso).
 - [ ] E5. Ejecutar casos manuales E2E:
   - [x] dominio activo
   - [x] dominio en pending
@@ -58,18 +58,18 @@ Cerrar comercial y tecnicamente el modulo de dominio personalizado, priorizando 
 
 ## F) Documentacion de cierre
 
-- [ ] F1. Actualizar `DOCS/1_Arquitectura_y_Contexto/DOCUMENTACION_TECNICA.md`.
-- [ ] F2. Actualizar `DOCS/4_Operaciones_y_Guias/GUIA_BASICA_SISTEMA.md`.
-- [ ] F3. Actualizar runbook de soporte si hubo ajustes de operacion:
-  - [ ] `DOCS/4_Operaciones_y_Guias/GUIA_CUSTOM_DOMAINS.md`
-- [ ] F4. Registrar avance de fase en `DOCS/3_Actualizaciones_Sprints/ACTUALIZACION_2.2_SAAS.md` o nuevo archivo vigente.
+- [x] F1. Actualizar `DOCS/1_Arquitectura_y_Contexto/DOCUMENTACION_TECNICA.md`.
+- [x] F2. Actualizar `DOCS/4_Operaciones_y_Guias/GUIA_BASICA_SISTEMA.md`.
+- [x] F3. Actualizar runbook de soporte si hubo ajustes de operacion:
+  - [x] `DOCS/4_Operaciones_y_Guias/GUIA_CUSTOM_DOMAINS.md`
+- [x] F4. Registrar avance de fase en `DOCS/3_Actualizaciones_Sprints/ACTUALIZACION_2.2_SAAS.md` o nuevo archivo vigente.
 
 ## Definition of Done (Fase 1)
 
 - [x] DoD1. El tenant Pro configura dominio sin soporte manual de dev.
 - [x] DoD2. Login/recovery/invitacion funcionan con host correcto.
 - [x] DoD3. Estados y mensajes son consistentes para negocio y soporte.
-- [ ] DoD4. Evidencia tecnica + documentacion cerradas.
+- [x] DoD4. Evidencia tecnica + documentacion cerradas.
 
 ## Notas de verificacion (2026-04-09)
 
