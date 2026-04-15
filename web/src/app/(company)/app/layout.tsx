@@ -125,6 +125,7 @@ export default async function CompanyLayout({
     ...(enabledModuleCodesSet.has("checklists") ? ["checklists"] : []),
     ...(enabledModuleCodesSet.has("reports") ? ["reports"] : []),
     ...(enabledModuleCodesSet.has("ai_assistant") ? ["ai_assistant"] : []),
+    ...(enabledModuleCodesSet.has("vendors") ? ["vendors"] : []),
   ];
 
   const roleLabelByCode: Record<string, string> = {
