@@ -19,6 +19,7 @@ import {
   PanelsLeftRight,
   Settings,
   Sparkles,
+  Truck,
   Upload,
   UserPlus,
   Users,
@@ -295,6 +296,12 @@ const SECTIONS: SidebarSection[] = [
       },
     ],
   },
+  {
+    label: "Proveedores",
+    items: [
+      { href: "/app/vendors", label: "Proveedores", icon: Truck, moduleCode: "vendors" },
+    ],
+  },
 ];
 
 const THEMES = [
@@ -370,6 +377,7 @@ const MODULE_LABELS: Record<string, string> = {
   ai_assistant: "Asistente IA",
   dashboard: "Dashboard",
   company_portal: "Portal Empresa",
+  vendors: "Proveedores",
 };
 
 function isActive(pathname: string, searchParams: URLSearchParams, href: string) {
@@ -587,6 +595,10 @@ export function CompanyShell({
         { table: "branches", filter: orgFilter },
         { table: "organization_departments", filter: orgFilter },
         { table: "department_positions", filter: orgFilter },
+      );
+    } else if (pathname.startsWith("/app/vendors")) {
+      subscriptions.push(
+        { table: "vendors", filter: orgFilter },
       );
     } else if (pathname.startsWith("/app/settings")) {
       subscriptions.push(
