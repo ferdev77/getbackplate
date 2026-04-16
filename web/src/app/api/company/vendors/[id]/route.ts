@@ -192,7 +192,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     entityId: id,
     organizationId,
     actorId: access.userId,
-    eventDomain: "company",
+    eventDomain: "settings",
     outcome: "success",
     severity: isDeactivation ? "medium" : "low",
     metadata: { 
@@ -244,7 +244,7 @@ export async function DELETE(_req: Request, { params }: RouteParams) {
     entityId: id,
     organizationId,
     actorId: access.userId,
-    eventDomain: "company",
+    eventDomain: "settings",
     outcome: "success",
     severity: "high",
     metadata: { name: existing.name },
