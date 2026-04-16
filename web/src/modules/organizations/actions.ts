@@ -615,7 +615,7 @@ export async function reorderBranchesAction(branchIds: string[]) {
     entityType: "organization",
     entityId: organizationId,
     organizationId,
-    eventDomain: "company",
+    eventDomain: "settings",
     outcome: "success",
     severity: "low",
     metadata: { branchCount: filteredIds.length },
