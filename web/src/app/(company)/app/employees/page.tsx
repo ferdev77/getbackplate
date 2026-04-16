@@ -43,6 +43,7 @@ type EmployeeDocumentSlot = {
 const EMPLOYEE_DOCUMENT_SLOT_RULES: Array<{ slot: string; prefix: string }> = [
   { slot: "photo", prefix: "Foto del Empleado - " },
   { slot: "id", prefix: "ID / Identificacion - " },
+  { slot: "ssn", prefix: "SSN / EAD - " },
   { slot: "ssn", prefix: "Numero de Seguro Social - " },
   { slot: "rec1", prefix: "Food Handler Certificate - " },
   { slot: "rec2", prefix: "Alcohol Server Certificate - " },
@@ -151,6 +152,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       .or([
         "title.ilike.Foto del Empleado - %",
         "title.ilike.ID / Identificacion - %",
+        "title.ilike.SSN / EAD - %",
         "title.ilike.Numero de Seguro Social - %",
         "title.ilike.Food Handler Certificate - %",
         "title.ilike.Alcohol Server Certificate - %",
@@ -342,6 +344,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       .or([
         "title.ilike.Foto del Empleado - %",
         "title.ilike.ID / Identificacion - %",
+        "title.ilike.SSN / EAD - %",
         "title.ilike.Numero de Seguro Social - %",
         "title.ilike.Food Handler Certificate - %",
         "title.ilike.Alcohol Server Certificate - %",

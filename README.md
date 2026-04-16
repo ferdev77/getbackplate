@@ -58,6 +58,12 @@ Desde `web/`:
   - `supabase/migrations` (fuente de verdad)
   - proyecto Supabase linkeado (dev)
   - base de production (leyendo Vercel env)
+- `npm run verify:flow:local`: valida flujo DB de anuncios/documentos/checklists en local (conserva datos de prueba)
+- `npm run verify:flow:local:cleanup`: valida flujo DB en local y limpia los datos de prueba al final
+- `npm run verify:flow:prod:cleanup`: valida flujo DB en produccion y limpia los datos de prueba al final
+
+Guia canonica de estos flujos:
+- `DOCS/4_Operaciones_y_Guias/GUIA_VALIDACION_FLUJOS_LOCAL_PROD.md`
 
 ## 5) Servicios conectados y como se usan
 

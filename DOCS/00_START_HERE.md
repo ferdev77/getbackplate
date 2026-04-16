@@ -27,6 +27,12 @@ Leer:
 Leer:
 - `DOCS/4_Operaciones_y_Guias/GUIA_FLUJO_DOCUMENTOS_CUSTOM_EMPLEADOS.md`
 
+## 5) Si la pregunta es validar flujos DB (anuncios, documentos, checklists) en local/prod
+
+Leer:
+- `DOCS/4_Operaciones_y_Guias/GUIA_VALIDACION_FLUJOS_LOCAL_PROD.md`
+- `DOCS/4_Operaciones_y_Guias/REPORTE_VALIDACION_FLUJOS_LOCAL_PROD_2026-04-16.md`
+
 ## Regla operativa para IA o humanos
 
 1. Responder primero lo puntual pedido por el usuario.

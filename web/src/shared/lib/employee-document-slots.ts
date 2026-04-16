@@ -22,9 +22,9 @@ export const EMPLOYEE_DOCUMENT_SLOT_DEFINITIONS: EmployeeDocumentSlotDefinition[
   },
   {
     slot: "ssn",
-    label: "Numero de Seguro Social",
+    label: "SSN / EAD",
     icon: "📋",
-    titlePrefixes: ["Numero de Seguro Social - "],
+    titlePrefixes: ["SSN / EAD - ", "Numero de Seguro Social - "],
   },
   {
     slot: "rec1",

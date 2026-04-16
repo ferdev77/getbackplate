@@ -1410,7 +1410,7 @@ export function NewEmployeeModal({
                   const standardDocs = [
                     { id: "empInputFoto", slot: "photo", name: "document_file_photo", icon: "📷", label: "Foto del Empleado" },
                     { id: "empInputId", slot: "id", name: "document_file_id", icon: "🪪", label: "ID / Identificación" },
-                    { id: "empInputSs", slot: "ssn", name: "document_file_ssn", icon: "📋", label: "Número de Seguro Social" },
+                    { id: "empInputSs", slot: "ssn", name: "document_file_ssn", icon: "📋", label: "SSN / EAD" },
                     { id: "empInputRec1", slot: "rec1", name: "document_file_rec1", icon: "📄", label: "Food Handler Certificate" },
                     { id: "empInputRec2", slot: "rec2", name: "document_file_rec2", icon: "📄", label: "Alcohol Server Certificate" },
                     { id: "empInputOther", slot: "other", name: "document_file_other", icon: "📄", label: "Food Protection Manager" },

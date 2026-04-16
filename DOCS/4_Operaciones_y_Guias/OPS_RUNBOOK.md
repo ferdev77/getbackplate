@@ -52,10 +52,26 @@ Vercel no requiere escalar explícitamente el CPU, pero si detectas latencias al
 4. En el archivo generado (`supabase/migrations/xxxx_revert_broken_changes.sql`), escribe el código inverso (`DROP TABLE`, `DROP FUNCTION`, `UNDO RLS`).
 5. Aplica a producción:
    ```bash
-   npx supabase db push --linked
-   ```
+    npx supabase db push --linked
+    ```
 
-### 3. Fuga de Datos o Modificación Errónea (Corrupción)
+### 3. Validacion operativa rapida de flujos core (Anuncios/Documentos/Checklists)
+**Uso recomendado antes y despues de cambios sensibles en DB o endpoints:**
+
+Desde `web/`:
+
+```bash
+npm run verify:flow:local
+npm run verify:flow:prod:cleanup
+```
+
+Guia canónica:
+- `DOCS/4_Operaciones_y_Guias/GUIA_VALIDACION_FLUJOS_LOCAL_PROD.md`
+
+Reporte de referencia:
+- `DOCS/4_Operaciones_y_Guias/REPORTE_VALIDACION_FLUJOS_LOCAL_PROD_2026-04-16.md`
+
+### 4. Fuga de Datos o Modificación Errónea (Corrupción)
 **Síntoma:** Datos críticos se borraron o alteraron por accidente.
 **Acción:**
 Supabase (plan Pro+) genera respaldos (Point in Time Recovery - PITR).

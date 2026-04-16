@@ -8,6 +8,7 @@ import {
   ACTIVE_ORGANIZATION_COOKIE_MAX_AGE,
   normalizeOrganizationId,
 } from "@/shared/lib/tenant-selection-shared";
+import { resolveUpstashConfig } from "@/shared/lib/upstash-env";
 
 type DomainCacheEntry = {
   organizationId: string | null;
@@ -16,11 +17,12 @@ type DomainCacheEntry = {
 
 let ratelimit: Ratelimit | null = null;
 
-if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+const upstashConfig = resolveUpstashConfig();
+if (upstashConfig) {
   ratelimit = new Ratelimit({
     redis: new Redis({
-      url: process.env.KV_REST_API_URL,
-      token: process.env.KV_REST_API_TOKEN,
+      url: upstashConfig.url,
+      token: upstashConfig.token,
     }),
     limiter: Ratelimit.slidingWindow(20, "10 s"),
     analytics: true,

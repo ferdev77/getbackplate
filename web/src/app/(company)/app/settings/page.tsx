@@ -17,14 +17,10 @@ import {
 } from "@/modules/settings/actions";
 import { InlineBranchForm } from "@/modules/settings/ui/inline-branch-form";
 import { InlineDepartmentForm } from "@/modules/settings/ui/inline-department-form";
-import { EditableBranchItem } from "@/modules/settings/ui/editable-branch-item";
-import { EditableDepartmentItem } from "@/modules/settings/ui/editable-department-item";
-import { InlinePositionForm } from "@/modules/settings/ui/inline-position-form";
 import { CompanyContactSettingsCard } from "@/modules/settings/ui/company-contact-settings-card";
 import { CustomDomainSettingsCard } from "@/modules/settings/ui/custom-domain-settings-card";
 import { ReorderableBranchList } from "@/modules/settings/ui/reorderable-branch-list";
 import { ReorderableDepartmentList } from "@/modules/settings/ui/reorderable-department-list";
-import { Button } from "@/shared/ui/button";
 import { isModuleEnabledForOrganization, requireTenantModule } from "@/shared/lib/access";
 import { DEFAULT_CUSTOM_DOMAIN_CNAME_TARGET } from "@/shared/lib/custom-domains";
 
@@ -32,18 +28,38 @@ type CompanySettingsPageProps = {
   searchParams: Promise<{ status?: string; message?: string; action?: string; departmentId?: string }>;
 };
 
-function statusPill(active: boolean) {
-  return active
-    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-    : "border-neutral-200 bg-neutral-100 text-neutral-600";
-}
-
 const CARD = "border-[var(--gbp-border)] bg-[var(--gbp-surface)]";
-const CARD_SOFT = "border-[var(--gbp-border)] bg-[var(--gbp-bg)]";
-const INPUT = "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)]";
 const TEXT_STRONG = "text-[var(--gbp-text)]";
 const TEXT_MUTED = "text-[var(--gbp-text2)]";
-const BTN_GHOST = "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
+
+type BranchRow = {
+  id: string;
+  name: string;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  address: string | null;
+  phone: string | null;
+  is_active: boolean;
+  sort_order: number;
+};
+
+type DepartmentRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  sort_order: number;
+};
+
+type PositionRow = {
+  id: string;
+  department_id: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  sort_order: number;
+};
 
 export default async function CompanySettingsPage({ searchParams }: CompanySettingsPageProps) {
   const params = await searchParams;
@@ -129,7 +145,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
       }
     : (orgSettingsWithWebsite ?? { website_url: "" });
 
-  const positionsByDepartment: Record<string, any[]> = {};
+  const positionsByDepartment: Record<string, PositionRow[]> = {};
   for (const position of positions ?? []) {
     const list = positionsByDepartment[position.department_id] ?? [];
     list.push(position);
@@ -218,7 +234,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
 
           <div className="space-y-3">
             <ReorderableBranchList
-              initialBranches={(branches ?? []) as any[]}
+              initialBranches={(branches ?? []) as BranchRow[]}
               updateAction={updateBranchAction}
               deleteAction={deleteBranchAction}
               toggleStatusAction={toggleBranchStatusAction}
@@ -239,7 +255,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
 
           <div className="space-y-3">
             <ReorderableDepartmentList
-              initialDepartments={(departments ?? []) as any[]}
+              initialDepartments={(departments ?? []) as DepartmentRow[]}
               positionsByDepartment={positionsByDepartment}
               updateDepartmentAction={updateDepartmentAction}
               deleteDepartmentAction={deleteDepartmentAction}

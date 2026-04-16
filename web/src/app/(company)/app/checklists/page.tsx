@@ -10,6 +10,7 @@ import { ChecklistCreateTrigger } from "@/modules/checklists/ui/checklist-create
 import { ChecklistEditTrigger } from "@/modules/checklists/ui/checklist-edit-trigger";
 import { ChecklistUpsertModal } from "@/modules/checklists/ui/checklist-upsert-modal";
 import { ChecklistDeleteModal } from "@/modules/checklists/ui/checklist-delete-modal";
+import { EmployeeChecklistRealtimeRefresh } from "@/modules/checklists/ui/employee-checklist-realtime-refresh";
 import { requireTenantModule } from "@/shared/lib/access";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { getEnabledModulesCached } from "@/modules/organizations/cached-queries";
@@ -282,9 +283,12 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
   const activeTemplates = (templates ?? []).filter((row) => row.is_active).length;
   const completed = completedCount ?? 0;
   const pending = pendingCount ?? 0;
+  const { data: authData } = await supabase.auth.getUser();
+  const userId = authData.user?.id ?? "";
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
+      <EmployeeChecklistRealtimeRefresh organizationId={tenant.organizationId} userId={userId} />
       <SlideUp>
         <section className={`mb-5 rounded-2xl border p-6 ${CARD_SOFT}`}>
           <div className="flex flex-wrap items-center justify-between gap-3">

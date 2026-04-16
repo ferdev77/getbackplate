@@ -10,24 +10,10 @@ async function getOpenFlagsCountByBranch(
   organizationId: string,
   branchId: string,
 ) {
-  const { data: submissions } = await supabase
-    .from("checklist_submissions")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .eq("branch_id", branchId)
-    .limit(2000);
-
-  const submissionIds = (submissions ?? []).map((row) => row.id);
+  const submissionIds = await collectSubmissionIdsByBranch(supabase, organizationId, branchId);
   if (!submissionIds.length) return 0;
 
-  const { data: submissionItems } = await supabase
-    .from("checklist_submission_items")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .in("submission_id", submissionIds)
-    .limit(5000);
-
-  const submissionItemIds = (submissionItems ?? []).map((row) => row.id);
+  const submissionItemIds = await collectSubmissionItemIds(supabase, organizationId, submissionIds);
   if (!submissionItemIds.length) return 0;
 
   const { count } = await supabase
@@ -38,6 +24,53 @@ async function getOpenFlagsCountByBranch(
     .in("submission_item_id", submissionItemIds);
 
   return count ?? 0;
+}
+
+async function collectSubmissionIdsByBranch(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  organizationId: string,
+  branchId: string,
+) {
+  const pageSize = 1000;
+  const ids: string[] = [];
+
+  for (let from = 0; from < 100_000; from += pageSize) {
+    const { data } = await supabase
+      .from("checklist_submissions")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .eq("branch_id", branchId)
+      .range(from, from + pageSize - 1);
+
+    const batch = (data ?? []).map((row) => row.id);
+    ids.push(...batch);
+
+    if (batch.length < pageSize) break;
+  }
+
+  return ids;
+}
+
+async function collectSubmissionItemIds(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  organizationId: string,
+  submissionIds: string[],
+) {
+  const ids: string[] = [];
+  const chunkSize = 200;
+
+  for (let i = 0; i < submissionIds.length; i += chunkSize) {
+    const chunk = submissionIds.slice(i, i + chunkSize);
+    const { data } = await supabase
+      .from("checklist_submission_items")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .in("submission_id", chunk);
+
+    ids.push(...(data ?? []).map((row) => row.id));
+  }
+
+  return ids;
 }
 
 export async function GET(request: Request) {

@@ -15,8 +15,7 @@ const EMP2 = {
     email: 'e2e.emp2.1776326162230@getbackplate.local' 
 };
 
-// Se marcan como configurados explícitamente
-const credentialsConfigured = true;
+type TextOrLocator = string | ReturnType<Page["getByText"]>;
 
 /** Login helper - handles org selection and portal redirect */
 async function loginUser(page: Page, email: string, pass: string, isCompany: boolean = false) {
@@ -52,7 +51,7 @@ async function loginUser(page: Page, email: string, pass: string, isCompany: boo
   }
 }
 
-async function verifyWithRetry(page: Page, textOrLocator: string | any, timeout: number = 20_000) {
+async function verifyWithRetry(page: Page, textOrLocator: TextOrLocator, timeout: number = 20_000) {
   const locator = typeof textOrLocator === 'string' ? page.getByText(textOrLocator).first() : textOrLocator;
   
   // Initial wait to allow backend processing
@@ -60,7 +59,7 @@ async function verifyWithRetry(page: Page, textOrLocator: string | any, timeout:
 
   try {
     await expect(locator).toBeVisible({ timeout });
-  } catch (e) {
+  } catch {
     console.log(`Element not found, taking checkpoint and reloading...`);
     await page.reload();
     await page.waitForTimeout(4000); // Wait for list to load after reload

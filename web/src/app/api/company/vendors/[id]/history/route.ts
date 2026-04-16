@@ -72,12 +72,12 @@ export async function GET(_req: Request, { params }: RouteParams) {
 
   const entries = (logs ?? []).map((l) => {
     // Audit lib stores some fields in metadata for non-core columns
-    const m = (l.metadata as Record<string, any>) || {};
+    const m = (l.metadata as Record<string, unknown>) || {};
     return {
       id: l.id,
       action: l.action,
-      outcome: m.outcome ?? "success",
-      severity: m.severity ?? "low",
+      outcome: typeof m.outcome === "string" ? m.outcome : "success",
+      severity: typeof m.severity === "string" ? m.severity : "low",
       metadata: l.metadata,
       createdAt: l.created_at,
       actorId: l.actor_user_id,

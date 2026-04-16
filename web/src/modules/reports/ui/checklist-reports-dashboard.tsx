@@ -119,6 +119,7 @@ export function ChecklistReportsDashboard({
   const [locationCardsState, setLocationCardsState] = useState(locationCards);
   const [reportsState, setReportsState] = useState(reports);
   const [attentionFeedState, setAttentionFeedState] = useState(attentionFeed);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!deferredDataUrl) return;
@@ -138,7 +139,7 @@ export function ChecklistReportsDashboard({
       });
 
     return () => controller.abort();
-  }, [deferredDataUrl]);
+  }, [deferredDataUrl, refreshKey]);
 
   const effectiveGeneratedAt = deferredDataUrl ? generatedLabel : generatedAt;
   const effectiveStatCards = deferredDataUrl ? statCardsState : statCards;
@@ -166,6 +167,7 @@ export function ChecklistReportsDashboard({
       }
       refreshTimerRef.current = setTimeout(() => {
         router.refresh();
+        setRefreshKey((prev) => prev + 1);
       }, 300);
     }
 

@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type PointerEvent } from "react";
 import { Reorder, useDragControls } from "framer-motion";
-import { GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { EditablePositionItem } from "./editable-position-item";
 import { reorderDepartmentPositionsAction } from "@/modules/organizations/actions";
@@ -12,7 +11,7 @@ interface Position {
   name: string;
   description: string | null;
   is_active: boolean;
-  sort_order: number;
+  sort_order?: number;
 }
 
 interface ReorderablePositionListProps {
@@ -68,7 +67,6 @@ export function ReorderablePositionList({
       {items.map((position) => (
         <ReorderPositionWrapper
           key={position.id}
-          departmentId={departmentId}
           position={position}
           updateAction={updateAction}
           deleteAction={deleteAction}
@@ -86,7 +84,13 @@ function ReorderPositionWrapper({
   deleteAction,
   toggleStatusAction,
   onReorderFinish,
-}: any) {
+}: {
+  position: Position;
+  updateAction: (formData: FormData) => Promise<void>;
+  deleteAction: (formData: FormData) => Promise<void>;
+  toggleStatusAction: (formData: FormData) => Promise<void>;
+  onReorderFinish: () => void;
+}) {
   const controls = useDragControls();
 
   return (
@@ -103,7 +107,7 @@ function ReorderPositionWrapper({
         deleteAction={deleteAction}
         toggleStatusAction={toggleStatusAction}
         dragHandleProps={{
-          onPointerDown: (e: any) => controls.start(e)
+          onPointerDown: (event: PointerEvent) => controls.start(event),
         }}
       />
     </Reorder.Item>

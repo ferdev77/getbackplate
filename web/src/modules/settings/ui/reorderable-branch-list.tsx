@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type PointerEvent } from "react";
 import { Reorder, useDragControls } from "framer-motion";
-import { GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { EditableBranchItem } from "./editable-branch-item";
 import { reorderBranchesAction } from "@/modules/organizations/actions";
@@ -80,7 +79,13 @@ function ReorderItemWrapper({
   deleteAction,
   toggleStatusAction,
   onReorderFinish,
-}: any) {
+}: {
+  branch: Branch;
+  updateAction: (formData: FormData) => Promise<void>;
+  deleteAction: (formData: FormData) => Promise<void>;
+  toggleStatusAction: (formData: FormData) => Promise<void>;
+  onReorderFinish: () => void;
+}) {
   const controls = useDragControls();
 
   return (
@@ -97,7 +102,7 @@ function ReorderItemWrapper({
         deleteAction={deleteAction}
         toggleStatusAction={toggleStatusAction}
         dragHandleProps={{
-          onPointerDown: (e: any) => controls.start(e)
+          onPointerDown: (event: PointerEvent) => controls.start(event),
         }}
       />
     </Reorder.Item>

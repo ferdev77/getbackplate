@@ -28,6 +28,19 @@ npm run lint
 npm run build
 ```
 
+## Validacion de flujos DB (obligatorio en operaciones)
+
+Comandos canonicos:
+
+```bash
+npm run verify:flow:local
+npm run verify:flow:local:cleanup
+npm run verify:flow:prod:cleanup
+```
+
+Guia completa:
+- `../DOCS/4_Operaciones_y_Guias/GUIA_VALIDACION_FLUJOS_LOCAL_PROD.md`
+
 ## Estructura clave
 
 - `src/app/` rutas por contexto (superadmin, empresa, empleado)

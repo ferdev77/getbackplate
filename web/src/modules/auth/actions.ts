@@ -60,7 +60,7 @@ function buildForgotPasswordPath(options?: {
   return query ? `/auth/forgot-password?${query}` : "/auth/forgot-password";
 }
 
-function getFriendlyAuthErrorMessage(error: any): string {
+function getFriendlyAuthErrorMessage(error: { message?: string } | null | undefined): string {
   const message = (error?.message || "").toLowerCase();
 
   if (message.includes("invalid login credentials")) {

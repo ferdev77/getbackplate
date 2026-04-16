@@ -27,7 +27,6 @@ export function EmployeeChecklistRealtimeRefresh({
       }, 350);
     }
 
-    const ownSubmissionsFilter = `organization_id=eq.${organizationId},submitted_by=eq.${userId}`;
     const orgFilter = `organization_id=eq.${organizationId}`;
 
     const channel = supabase
@@ -38,7 +37,7 @@ export function EmployeeChecklistRealtimeRefresh({
           event: "*",
           schema: "public",
           table: "checklist_submissions",
-          filter: ownSubmissionsFilter,
+          filter: orgFilter,
         },
         scheduleRefresh,
       )

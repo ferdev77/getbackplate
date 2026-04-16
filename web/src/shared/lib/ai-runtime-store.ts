@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import { resolveUpstashConfig } from "@/shared/lib/upstash-env";
 
 let redisClient: Redis | null | undefined;
 
@@ -7,14 +8,13 @@ function getRedisClient() {
     return redisClient;
   }
 
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) {
+  const config = resolveUpstashConfig();
+  if (!config) {
     redisClient = null;
     return redisClient;
   }
 
-  redisClient = new Redis({ url, token });
+  redisClient = new Redis({ url: config.url, token: config.token });
   return redisClient;
 }
 
