@@ -3,7 +3,7 @@
 import { useState, useCallback, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Truck, Plus, Search, Pencil, Trash2, X, ChevronRight, Phone, Mail, Globe, MapPin, FileText, Building2, Clock } from "lucide-react";
+import { Truck, Plus, Search, Pencil, Trash2, X, Phone, Mail, Globe, MapPin, FileText, Building2, Clock } from "lucide-react";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { SlideUp } from "@/shared/ui/animations";
 import type { VendorRow } from "@/modules/vendors/types";
@@ -86,20 +86,28 @@ const FIELD_LABELS: Record<string, string> = {
   branch_ids: "Locaciones"
 };
 
-function getChangesSummary(metadata: Record<string, any> | null): string[] | null {
+type FieldChange = { old?: unknown; new?: unknown };
+
+function formatUnknown(value: unknown, fallback: string) {
+  if (value === null || value === undefined || value === "") return fallback;
+  return String(value);
+}
+
+function getChangesSummary(metadata: Record<string, unknown> | null): string[] | null {
   if (!metadata) return null;
   const changesList: string[] = [];
-  
-  if (metadata.changes) {
-    for (const [key, value] of Object.entries(metadata.changes)) {
+
+  const changes = metadata.changes;
+  if (changes && typeof changes === "object") {
+    for (const [key, value] of Object.entries(changes)) {
       const label = FIELD_LABELS[key] || key;
-      
+
       // Manejar el formato nuevo { old: x, new: y }
       if (value && typeof value === "object" && "old" in value && "new" in value) {
-        const payload = value as { old: any, new: any };
-        const oldVal = payload.old ? String(payload.old) : "nada";
-        const newVal = payload.new ? String(payload.new) : "vacío";
-        
+        const payload = value as FieldChange;
+        const oldVal = formatUnknown(payload.old, "nada");
+        const newVal = formatUnknown(payload.new, "vacio");
+
         // Manejo especial para categorías
         if (key === "category") {
            const oldCat = VENDOR_CATEGORIES.find(c => c.value === payload.old)?.label ?? oldVal;
@@ -125,7 +133,7 @@ function getChangesSummary(metadata: Record<string, any> | null): string[] | nul
   if (changesList.length > 0) return changesList;
   
   // For creations or deletions where we have name and category
-  if (metadata.name) {
+  if (typeof metadata.name === "string" && metadata.name.trim()) {
     return [`Proveedor: ${metadata.name}`];
   }
   
@@ -142,16 +150,28 @@ function formatDate(iso: string) {
 // ─── History Tab ──────────────────────────────────────────────────────────────
 function VendorHistoryTab({ vendorId }: { vendorId: string }) {
   const [history, setHistory] = useState<HistoryEntry[] | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
+    let cancelled = false;
+
     fetch(`/api/company/vendors/${vendorId}/history`)
       .then((r) => r.json())
-      .then((d) => { setHistory(d.history ?? []); setLoading(false); })
-      .catch(() => { setError("No se pudo cargar el historial"); setLoading(false); });
+      .then((d) => {
+        if (cancelled) return;
+        setHistory(Array.isArray(d.history) ? d.history : []);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setError("No se pudo cargar el historial");
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [vendorId]);
+
+  const loading = !history && !error;
 
   if (loading) return <div className={`py-10 text-center text-xs ${TEXT_MUTED}`}>Cargando historial...</div>;
   if (error) return <div className="py-6 px-5 text-xs text-[var(--gbp-error)]">{error}</div>;
@@ -304,7 +324,7 @@ function VendorDetailPanel({ vendor, onClose, onEdit, onDelete }: {
               )}
             </div>
           ) : (
-            <VendorHistoryTab vendorId={vendor.id} />
+            <VendorHistoryTab key={vendor.id} vendorId={vendor.id} />
           )}
         </div>
 
@@ -590,8 +610,9 @@ export default function VendorsTableWorkspace({ initialVendors, branches, organi
         setDeleteTarget(null);
         setDetailVendor(null);
         router.refresh();
-      } catch (e: any) {
-        toast.error(e.message || "Error al eliminar");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Error al eliminar";
+        toast.error(message);
       }
     });
   }, [deleteTarget, router]);

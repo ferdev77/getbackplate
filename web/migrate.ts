@@ -1,7 +1,14 @@
-const { Client } = require('pg');
+import { Client } from "pg";
+
+const connectionString = process.env.SUPABASE_DB_POOLER_URL || process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error("Missing SUPABASE_DB_POOLER_URL or DATABASE_URL");
+}
 
 const client = new Client({
-  connectionString: 'postgresql://postgres.uubdslmtfxwraszinpao:wfr9Rhcq28L8Dg90@aws-1-us-east-1.pooler.supabase.com:5432/postgres'
+  connectionString,
+  ssl: { rejectUnauthorized: false },
 });
 
 async function run() {
@@ -11,12 +18,12 @@ async function run() {
     ALTER TABLE public.organization_departments ADD COLUMN IF NOT EXISTS sort_order integer not null default 0;
     ALTER TABLE public.department_positions ADD COLUMN IF NOT EXISTS sort_order integer not null default 0;
     ALTER TABLE public.branches ADD COLUMN IF NOT EXISTS sort_order integer not null default 0;
-    
-    -- Sync existing rows based on created_at arbitrarily if needed, 
-    -- but for now default 0 is fine and they will re-order when dragged.
   `);
   console.log("Migration applied.");
   await client.end();
 }
 
-run().catch(console.error);
+run().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

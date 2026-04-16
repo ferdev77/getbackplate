@@ -5,6 +5,7 @@ type AccessScopeLike = {
 const EMPLOYEE_PRIVATE_PREFIXES = [
   "Foto del Empleado - ",
   "ID / Identificacion - ",
+  "SSN / EAD - ",
   "Numero de Seguro Social - ",
   "Food Handler Certificate - ",
   "Alcohol Server Certificate - ",

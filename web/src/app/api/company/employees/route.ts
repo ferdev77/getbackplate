@@ -41,6 +41,7 @@ type DirectoryMembershipUser = {
 const EMPLOYEE_DOCUMENT_SLOT_RULES: Array<{ slot: string; prefix: string }> = [
   { slot: "photo", prefix: "Foto del Empleado - " },
   { slot: "id", prefix: "ID / Identificacion - " },
+  { slot: "ssn", prefix: "SSN / EAD - " },
   { slot: "ssn", prefix: "Numero de Seguro Social - " },
   { slot: "rec1", prefix: "Food Handler Certificate - " },
   { slot: "rec2", prefix: "Alcohol Server Certificate - " },
@@ -61,7 +62,7 @@ const dateOnlySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const DOCUMENT_SLOT_LABELS: Record<string, string> = {
   photo: "Foto del Empleado",
   id: "ID / Identificacion",
-  ssn: "Numero de Seguro Social",
+  ssn: "SSN / EAD",
   rec1: "Food Handler Certificate",
   rec2: "Alcohol Server Certificate",
   other: "Food Protection Manager",
@@ -324,6 +325,7 @@ export async function GET(request: Request) {
         .or([
           "title.ilike.Foto del Empleado - %",
           "title.ilike.ID / Identificacion - %",
+          "title.ilike.SSN / EAD - %",
           "title.ilike.Numero de Seguro Social - %",
           "title.ilike.Food Handler Certificate - %",
           "title.ilike.Alcohol Server Certificate - %",
@@ -332,6 +334,7 @@ export async function GET(request: Request) {
           "title.ilike.Carta de Recomendacion 2 - %",
           "title.ilike.Otro Documento - %",
         ].join(","));
+
 
       const docIdsByUser = new Map<string, Set<string>>();
       for (const row of profileScopedDocuments ?? []) {

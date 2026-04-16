@@ -36,14 +36,7 @@ export async function GET() {
 
   const { supabase, tenant } = context;
 
-  const [{ data: docs }, { data: folders }, { data: branches }, { data: departments }, employeeDocumentIds] = await Promise.all([
-    supabase
-      .from("documents")
-      .select("id, title, folder_id, branch_id, mime_type, file_size_bytes, created_at, access_scope")
-.is('deleted_at', null)
-      .eq("organization_id", tenant.organizationId)
-      .order("created_at", { ascending: false })
-      .limit(5000),
+  const [{ data: folders }, { data: branches }, { data: departments }, employeeDocumentIds] = await Promise.all([
     supabase
       .from("document_folders")
       .select("id, name, access_scope")
@@ -58,6 +51,8 @@ export async function GET() {
       .eq("organization_id", tenant.organizationId),
     getEmployeeDocumentIdSet(supabase, tenant.organizationId),
   ]);
+
+  const docs = await collectAllDocumentsForExport(supabase, tenant.organizationId);
 
   const companyDocs = (docs ?? []).filter((doc) => !employeeDocumentIds.has(doc.id));
 
@@ -113,4 +108,49 @@ export async function GET() {
       "Cache-Control": "no-store",
     },
   });
+}
+
+async function collectAllDocumentsForExport(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  organizationId: string,
+) {
+  const pageSize = 1000;
+  const rows: Array<{
+    id: string;
+    title: string;
+    folder_id: string | null;
+    branch_id: string | null;
+    mime_type: string | null;
+    file_size_bytes: number | null;
+    created_at: string;
+    access_scope: unknown;
+  }> = [];
+
+  for (let from = 0; from < 100_000; from += pageSize) {
+    const { data } = await supabase
+      .from("documents")
+      .select("id, title, folder_id, branch_id, mime_type, file_size_bytes, created_at, access_scope")
+      .is("deleted_at", null)
+      .eq("organization_id", organizationId)
+      .order("created_at", { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    const batch = (data ?? []) as Array<{
+      id: string;
+      title: string;
+      folder_id: string | null;
+      branch_id: string | null;
+      mime_type: string | null;
+      file_size_bytes: number | null;
+      created_at: string;
+      access_scope: unknown;
+    }>;
+
+    rows.push(...batch);
+    if (batch.length < pageSize) {
+      break;
+    }
+  }
+
+  return rows;
 }

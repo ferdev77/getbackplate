@@ -5,6 +5,18 @@ import { processAnnouncementDeliveries } from "@/modules/announcements/services/
 
 type JobError = { id: string; error: string };
 
+type ScheduledJob = {
+  id: string;
+  organization_id: string;
+  job_type: string;
+  target_id: string;
+  metadata: Record<string, unknown> | null;
+  recurrence_type: string;
+  cron_expression: string | null;
+  custom_days: number[] | null;
+  next_run_at: string;
+};
+
 export async function POST(req: Request) {
   return await processRecurrence(req);
 }
@@ -34,12 +46,14 @@ async function processRecurrence(req: Request) {
     }
 
     // 2. Fetch all scheduled jobs that are active and whose next_run_at <= now()
+    const nowIso = new Date().toISOString();
     const { data: jobs, error: fetchError } = await supabaseAdmin
-      .from('scheduled_jobs')
-      .select('*')
-      .eq('is_active', true)
-      .lte('next_run_at', new Date().toISOString())
-      .limit(100); // Lote de procesamiento p/ evitar timeout
+      .from("scheduled_jobs")
+      .select("id, organization_id, job_type, target_id, metadata, recurrence_type, cron_expression, custom_days, next_run_at")
+      .eq("is_active", true)
+      .lte("next_run_at", nowIso)
+      .order("next_run_at", { ascending: true })
+      .limit(100);
 
     if (fetchError) {
       console.error("Error fetching scheduled jobs:", fetchError);
@@ -55,8 +69,36 @@ async function processRecurrence(req: Request) {
     const errors: JobError[] = [];
 
     // 3. Process each job
-    for (const job of jobs) {
+    for (const job of (jobs ?? []) as ScheduledJob[]) {
       try {
+        const nextRun = calculateNextRunAt(
+          job.recurrence_type as RecurrenceType,
+          job.cron_expression,
+          job.custom_days,
+        );
+        const runStartedAt = new Date().toISOString();
+
+        const { data: claimedRows, error: claimError } = await supabaseAdmin
+          .from("scheduled_jobs")
+          .update({
+            last_run_at: runStartedAt,
+            next_run_at: nextRun.toISOString(),
+          })
+          .eq("organization_id", job.organization_id)
+          .eq("id", job.id)
+          .eq("is_active", true)
+          .eq("next_run_at", job.next_run_at)
+          .select("id")
+          .limit(1);
+
+        if (claimError) {
+          throw new Error(`Failed to claim job: ${claimError.message}`);
+        }
+
+        if (!claimedRows || claimedRows.length === 0) {
+          continue;
+        }
+
         console.info(`Processing job ${job.id} of type ${job.job_type}`);
         
         if (job.job_type === 'checklist_generator') {
@@ -122,8 +164,10 @@ async function processRecurrence(req: Request) {
                }
              }
            }
-        } else if (job.job_type === 'announcement_delivery') {
-           const channels: string[] = job.metadata?.channels || ["email"];
+         } else if (job.job_type === 'announcement_delivery') {
+            const channels = Array.isArray(job.metadata?.channels)
+              ? (job.metadata.channels as string[])
+              : ["email"];
            
            const { error: insertError } = await supabaseAdmin
              .from("announcement_deliveries")
@@ -141,26 +185,6 @@ async function processRecurrence(req: Request) {
            }
            
            pushDeliveriesToProcess = true;
-        }
-
-        // Calculate next run date based on job properties
-        const nextRun = calculateNextRunAt(
-          job.recurrence_type as RecurrenceType, 
-          job.cron_expression, 
-          job.custom_days
-        );
-        
-        const { error: updateError } = await supabaseAdmin
-          .from('scheduled_jobs')
-          .update({ 
-            last_run_at: new Date().toISOString(), 
-            next_run_at: nextRun.toISOString() 
-          })
-          .eq('organization_id', job.organization_id)
-          .eq('id', job.id);
-          
-        if (updateError) {
-          throw new Error(`Failed to update job next_run_at: ${updateError.message}`);
         }
 
         processedCount++;

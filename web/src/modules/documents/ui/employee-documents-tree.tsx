@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Download, Eye, Search, ChevronRight, Folder } from "lucide-react";
+import { Download, Eye, Search, ChevronRight, Folder, ListTree, Columns3 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FadeIn, SlideUp, AnimatedItem } from "@/shared/ui/animations";
 import { EmptyState } from "@/shared/ui/empty-state";
@@ -244,17 +244,19 @@ export function EmployeeDocumentsTree({ organizationId, viewerUserId, folders, d
             type="button"
             onClick={() => setViewMode("tree")}
             data-testid="portal-documents-view-tree"
-            className={`rounded-md px-3 text-xs font-semibold ${viewMode === "tree" ? "bg-[var(--gbp-bg)] text-[var(--gbp-text)]" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}
+            className={`rounded-md p-1.5 transition-colors ${viewMode === "tree" ? "bg-[var(--gbp-bg)] text-[var(--gbp-text)] shadow-sm" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}
+            title="Vista de Árbol"
           >
-            Arbol
+            <ListTree className="h-4.5 w-4.5" />
           </button>
           <button
             type="button"
             onClick={() => setViewMode("columns")}
             data-testid="portal-documents-view-columns"
-            className={`rounded-md px-3 text-xs font-semibold ${viewMode === "columns" ? "bg-[var(--gbp-bg)] text-[var(--gbp-text)]" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}
+            className={`rounded-md p-1.5 transition-colors ${viewMode === "columns" ? "bg-[var(--gbp-bg)] text-[var(--gbp-text)] shadow-sm" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}
+            title="Vista de Columnas"
           >
-            Columnas
+            <Columns3 className="h-4.5 w-4.5" />
           </button>
         </div>
       </section>

@@ -114,6 +114,7 @@ export const getEmployeeDirectoryView = cache(async (
   const slotFromTitle: Array<{ prefix: string; slot: (typeof requiredDocumentSlots)[number] }> = [
     { prefix: "Foto del Empleado - ", slot: "photo" },
     { prefix: "ID / Identificacion - ", slot: "id" },
+    { prefix: "SSN / EAD - ", slot: "ssn" },
     { prefix: "Numero de Seguro Social - ", slot: "ssn" },
     { prefix: "Food Handler Certificate - ", slot: "rec1" },
     { prefix: "Alcohol Server Certificate - ", slot: "rec2" },

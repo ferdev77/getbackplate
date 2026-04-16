@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Edit2, Trash2, MapPin, Check, X, ShieldAlert, GripVertical } from "lucide-react";
+import type { PointerEventHandler } from "react";
+import { Edit2, Trash2, MapPin, ShieldAlert, GripVertical } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
 
 interface Branch {
@@ -20,7 +21,9 @@ interface EditableBranchItemProps {
   updateAction: (formData: FormData) => Promise<void>;
   deleteAction: (formData: FormData) => Promise<void>;
   toggleStatusAction: (formData: FormData) => Promise<void>;
-  dragHandleProps?: any;
+  dragHandleProps?: {
+    onPointerDown?: PointerEventHandler;
+  };
 }
 
 export function EditableBranchItem({

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Edit2, Trash2, Check, X, ShieldAlert, ChevronDown, ChevronUp, Briefcase, GripVertical } from "lucide-react";
+import type { PointerEventHandler } from "react";
+import { Edit2, Trash2, ShieldAlert, ChevronDown, ChevronUp, Briefcase, GripVertical } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
-import { EditablePositionItem } from "./editable-position-item";
 import { InlinePositionForm } from "./inline-position-form";
 import { ReorderablePositionList } from "./reorderable-position-list";
 
@@ -12,6 +12,7 @@ interface Position {
   name: string;
   description: string | null;
   is_active: boolean;
+  sort_order?: number;
 }
 
 interface Department {
@@ -31,7 +32,9 @@ interface EditableDepartmentItemProps {
   updatePositionAction: (formData: FormData) => Promise<void>;
   deletePositionAction: (formData: FormData) => Promise<void>;
   togglePositionStatusAction: (formData: FormData) => Promise<void>;
-  dragHandleProps?: any;
+  dragHandleProps?: {
+    onPointerDown?: PointerEventHandler;
+  };
 }
 
 export function EditableDepartmentItem({
@@ -225,7 +228,7 @@ export function EditableDepartmentItem({
           <div className="space-y-1">
             <ReorderablePositionList
               departmentId={department.id}
-              initialPositions={positions as any[]}
+              initialPositions={positions}
               updateAction={updatePositionAction}
               deleteAction={deletePositionAction}
               toggleStatusAction={togglePositionStatusAction}
