@@ -484,8 +484,8 @@ export function CompanyShell({
 
   const handleReorderFinish = useCallback(async (newOrder: typeof branchOptions) => {
     const ids = newOrder.map(b => b.id);
-    const result = await reorderBranchesAction(tenantId, ids);
-    if (result.success) {
+    const result = await reorderBranchesAction(ids);
+    if (result.ok) {
       toast.success("Orden de ubicaciones actualizado", {
         description: "Los cambios se han guardado profesionalmente.",
         duration: 2000,
