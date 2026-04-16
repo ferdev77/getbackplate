@@ -4,6 +4,7 @@ import { useState, startTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { SubmitButton } from "@/shared/ui/submit-button";
+import { PasswordInput } from "@/shared/ui/password-input";
 
 type NewUserModalProps = {
   open: boolean;
@@ -102,9 +103,8 @@ export function NewUserModal({ open, onClose, branches, roleOptions }: NewUserMo
             <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">
               Contraseña inicial
             </label>
-            <input
+            <PasswordInput
               name="password"
-              type="password"
               required
               minLength={8}
               defaultValue=""

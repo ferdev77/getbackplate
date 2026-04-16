@@ -12,6 +12,7 @@ type ConfirmSubmitButtonProps = {
   className?: string;
   disabled?: boolean;
   children?: React.ReactNode;
+  "data-testid"?: string;
 };
 
 export function ConfirmSubmitButton({
@@ -23,6 +24,7 @@ export function ConfirmSubmitButton({
   className,
   disabled,
   children,
+  "data-testid": dataTestId,
 }: ConfirmSubmitButtonProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -43,6 +45,7 @@ export function ConfirmSubmitButton({
         className={className}
         onClick={() => setOpen(true)}
         disabled={disabled}
+        data-testid={dataTestId}
       >
         {children || label}
       </button>
@@ -71,6 +74,7 @@ export function ConfirmSubmitButton({
               <button
                 type="button"
                 onClick={submitClosestForm}
+                data-testid={dataTestId ? `${dataTestId}-confirm` : undefined}
                 className="rounded-lg bg-[var(--gbp-error)] px-3 py-1.5 text-sm font-semibold text-white hover:brightness-95"
               >
                 {confirmLabel}

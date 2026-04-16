@@ -14,8 +14,12 @@ import {
   createDepartment,
   updateDepartment,
   toggleDepartmentStatus,
+  deleteDepartment,
   createDepartmentPosition,
   toggleDepartmentPositionStatus,
+  updateDepartmentPosition,
+  deleteDepartmentPosition,
+  deleteBranch,
 } from "./services/org-structure.service";
 
 // ---------------------------------------------------------------------------
@@ -240,6 +244,36 @@ export async function updateBranchAction(formData: FormData) {
   redirect("/app/settings?status=success&message=" + qs("Locacion editada") + "#org-structure");
 }
 
+export async function deleteBranchAction(formData: FormData) {
+  const tenant = await requireTenantModule("settings");
+  const supabase = await createSupabaseServerClient();
+
+  const branchId = String(formData.get("branch_id") ?? "").trim();
+
+  const result = await deleteBranch({
+    supabase,
+    organizationId: tenant.organizationId,
+    branchId,
+  });
+
+  if (!result.ok) {
+    redirect("/app/settings?status=error&message=" + qs(result.message) + "#org-structure");
+  }
+
+  await logAuditEvent({
+    action: "settings.branch.delete",
+    entityType: "branch",
+    entityId: branchId,
+    organizationId: tenant.organizationId,
+    eventDomain: "settings",
+    outcome: "success",
+    severity: "high",
+  });
+
+  revalidateStructurePaths();
+  redirect("/app/settings?status=success&message=" + qs("Locacion eliminada") + "#org-structure");
+}
+
 // ---------------------------------------------------------------------------
 // Departments
 // ---------------------------------------------------------------------------
@@ -335,6 +369,36 @@ export async function updateDepartmentAction(formData: FormData) {
   redirect("/app/settings?status=success&message=" + qs("Departamento editado") + "#org-structure");
 }
 
+export async function deleteDepartmentAction(formData: FormData) {
+  const tenant = await requireTenantModule("settings");
+  const supabase = await createSupabaseServerClient();
+
+  const departmentId = String(formData.get("department_id") ?? "").trim();
+
+  const result = await deleteDepartment({
+    supabase,
+    organizationId: tenant.organizationId,
+    departmentId,
+  });
+
+  if (!result.ok) {
+    redirect("/app/settings?status=error&message=" + qs(result.message) + "#org-structure");
+  }
+
+  await logAuditEvent({
+    action: "settings.department.delete",
+    entityType: "organization_department",
+    entityId: departmentId,
+    organizationId: tenant.organizationId,
+    eventDomain: "settings",
+    outcome: "success",
+    severity: "high",
+  });
+
+  revalidateStructurePaths();
+  redirect("/app/settings?status=success&message=" + qs("Departamento eliminado") + "#org-structure");
+}
+
 // ---------------------------------------------------------------------------
 // Department Positions
 // ---------------------------------------------------------------------------
@@ -401,4 +465,69 @@ export async function toggleDepartmentPositionStatusAction(formData: FormData) {
   revalidatePath("/app/settings");
   revalidatePath("/app/employees");
   redirect("/app/settings?status=success&message=" + qs("Puesto actualizado") + "#org-structure");
+}
+
+export async function updateDepartmentPositionAction(formData: FormData) {
+  const tenant = await requireTenantModule("settings");
+  const supabase = await createSupabaseServerClient();
+
+  const positionId = String(formData.get("position_id") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim() || null;
+
+  const result = await updateDepartmentPosition({
+    supabase,
+    organizationId: tenant.organizationId,
+    positionId,
+    name,
+    description,
+  });
+
+  if (!result.ok) {
+    redirect("/app/settings?status=error&message=" + qs(result.message) + "#org-structure");
+  }
+
+  await logAuditEvent({
+    action: "settings.department_position.update",
+    entityType: "department_position",
+    entityId: positionId,
+    organizationId: tenant.organizationId,
+    metadata: { name },
+    eventDomain: "settings",
+    outcome: "success",
+    severity: "high",
+  });
+
+  revalidateStructurePaths();
+  redirect("/app/settings?status=success&message=" + qs("Puesto editado") + "#org-structure");
+}
+
+export async function deleteDepartmentPositionAction(formData: FormData) {
+  const tenant = await requireTenantModule("settings");
+  const supabase = await createSupabaseServerClient();
+
+  const positionId = String(formData.get("position_id") ?? "").trim();
+
+  const result = await deleteDepartmentPosition({
+    supabase,
+    organizationId: tenant.organizationId,
+    positionId,
+  });
+
+  if (!result.ok) {
+    redirect("/app/settings?status=error&message=" + qs(result.message) + "#org-structure");
+  }
+
+  await logAuditEvent({
+    action: "settings.department_position.delete",
+    entityType: "department_position",
+    entityId: positionId,
+    organizationId: tenant.organizationId,
+    eventDomain: "settings",
+    outcome: "success",
+    severity: "high",
+  });
+
+  revalidateStructurePaths();
+  redirect("/app/settings?status=success&message=" + qs("Puesto eliminado") + "#org-structure");
 }

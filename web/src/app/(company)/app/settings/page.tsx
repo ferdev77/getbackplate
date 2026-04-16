@@ -10,9 +10,15 @@ import {
   toggleDepartmentStatusAction,
   updateBranchAction,
   updateDepartmentAction,
+  deleteBranchAction,
+  deleteDepartmentAction,
+  updateDepartmentPositionAction,
+  deleteDepartmentPositionAction,
 } from "@/modules/settings/actions";
 import { InlineBranchForm } from "@/modules/settings/ui/inline-branch-form";
 import { InlineDepartmentForm } from "@/modules/settings/ui/inline-department-form";
+import { EditableBranchItem } from "@/modules/settings/ui/editable-branch-item";
+import { EditableDepartmentItem } from "@/modules/settings/ui/editable-department-item";
 import { InlinePositionForm } from "@/modules/settings/ui/inline-position-form";
 import { CompanyContactSettingsCard } from "@/modules/settings/ui/company-contact-settings-card";
 import { CustomDomainSettingsCard } from "@/modules/settings/ui/custom-domain-settings-card";
@@ -118,10 +124,10 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
       }
     : (orgSettingsWithWebsite ?? { website_url: "" });
 
-  const positionsByDepartment = new Map<string, Array<{ id: string; name: string; is_active: boolean }>>();
+  const positionsByDepartment = new Map<string, Array<any>>();
   for (const position of positions ?? []) {
     const list = positionsByDepartment.get(position.department_id) ?? [];
-    list.push({ id: position.id, name: position.name, is_active: position.is_active });
+    list.push(position);
     positionsByDepartment.set(position.department_id, list);
   }
 
@@ -195,105 +201,57 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
 
       <section id="org-structure" className="grid gap-4 xl:grid-cols-2">
         <article className={`rounded-2xl border p-5 ${CARD}`}>
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <p className={`inline-flex items-center gap-1 text-xs font-semibold tracking-[0.1em] uppercase ${TEXT_MUTED}`}><MapPin className="h-3.5 w-3.5" /> Locaciones</p>
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <div>
+              <p className={`inline-flex items-center gap-1 text-[11px] font-bold tracking-[0.1em] uppercase ${TEXT_MUTED}`}>
+                <MapPin className="h-3.5 w-3.5" /> Cobertura Geográfica
+              </p>
+              <h2 className="mt-1 text-lg font-bold text-[var(--gbp-text)]">Locaciones / Sucursales</h2>
+            </div>
             <InlineBranchForm createAction={createBranchAction} />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             {(branches ?? []).map((branch) => (
-              <details key={branch.id} className={`rounded-lg border p-3 ${CARD_SOFT}`}>
-                <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className={`text-sm font-semibold ${TEXT_STRONG}`}>{branch.name}</p>
-                    <p className={`text-xs ${TEXT_MUTED}`}>{[branch.city, branch.state, branch.country].filter(Boolean).join(", ") || "Sin ubicacion"}</p>
-                    {branch.phone ? (
-                      <p className={`text-xs ${TEXT_MUTED}`}>{branch.phone}</p>
-                    ) : null}
-                  </div>
-                  <form action={toggleBranchStatusAction}>
-                    <input type="hidden" name="branch_id" value={branch.id} />
-                    <input type="hidden" name="next_status" value={branch.is_active ? "inactive" : "active"} />
-                    <button type="submit" className={`rounded-full border px-2.5 py-1 text-xs ${statusPill(branch.is_active)}`}>
-                      {branch.is_active ? "Activa" : "Inactiva"}
-                    </button>
-                  </form>
-                </summary>
-                <form action={updateBranchAction} className="mt-3 grid gap-2 sm:grid-cols-2">
-                  <input type="hidden" name="branch_id" value={branch.id} />
-                  <input name="name" defaultValue={branch.name} required className={`rounded-lg border px-3 py-2 text-sm ${INPUT}`} />
-                  <input name="city" defaultValue={branch.city ?? ""} placeholder="Ciudad" className={`rounded-lg border px-3 py-2 text-sm ${INPUT}`} />
-                  <input name="state" defaultValue={branch.state ?? ""} placeholder="Estado" className={`rounded-lg border px-3 py-2 text-sm ${INPUT}`} />
-                  <input name="country" defaultValue={branch.country ?? ""} placeholder="Pais" className={`rounded-lg border px-3 py-2 text-sm ${INPUT}`} />
-                  <input name="phone" defaultValue={branch.phone ?? ""} placeholder="Telefono" className={`rounded-lg border px-3 py-2 text-sm ${INPUT}`} />
-                  <input name="address" defaultValue={branch.address ?? ""} placeholder="Direccion" className={`rounded-lg border px-3 py-2 text-sm sm:col-span-2 ${INPUT}`} />
-                  <Button type="submit" size="sm" className="sm:w-fit">Guardar cambios</Button>
-                </form>
-              </details>
+              <EditableBranchItem
+                key={branch.id}
+                branch={branch}
+                updateAction={updateBranchAction}
+                deleteAction={deleteBranchAction}
+                toggleStatusAction={toggleBranchStatusAction}
+              />
             ))}
-            {!branches?.length ? <p className={`text-sm ${TEXT_MUTED}`}>Aun no hay locaciones.</p> : null}
+            {!branches?.length ? <p className={`text-center py-8 rounded-xl border border-dashed border-[var(--gbp-border2)] text-sm ${TEXT_MUTED}`}>Aun no hay locaciones.</p> : null}
           </div>
         </article>
 
         <article className={`rounded-2xl border p-5 ${CARD}`}>
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <p className={`inline-flex items-center gap-1 text-xs font-semibold tracking-[0.1em] uppercase ${TEXT_MUTED}`}><Building2 className="h-3.5 w-3.5" /> Departamentos y Puestos</p>
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <div>
+              <p className={`inline-flex items-center gap-1 text-[11px] font-bold tracking-[0.1em] uppercase ${TEXT_MUTED}`}>
+                <Building2 className="h-3.5 w-3.5" /> Estructura Organizacional
+              </p>
+              <h2 className="mt-1 text-lg font-bold text-[var(--gbp-text)]">Departamentos y Puestos</h2>
+            </div>
             <InlineDepartmentForm createAction={createDepartmentAction} />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             {(departments ?? []).map((department) => (
-              <details key={department.id} className={`rounded-lg border p-3 ${CARD_SOFT}`}>
-                <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className={`text-sm font-semibold ${TEXT_STRONG}`}>{department.name}</p>
-                    <p className={`text-xs ${TEXT_MUTED}`}>{department.description || "Sin descripcion"}</p>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {(positionsByDepartment.get(department.id) ?? []).map((position) => (
-                        <span key={position.id} className={`rounded-full border px-2 py-0.5 text-[10px] ${position.is_active ? "border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]" : "border-[var(--gbp-border2)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]"}`}>{position.name}</span>
-                      ))}
-                      {!(positionsByDepartment.get(department.id) ?? []).length ? <span className={`rounded-full border px-2 py-0.5 text-[10px] ${BTN_GHOST}`}>Sin puestos</span> : null}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <form action={toggleDepartmentStatusAction}>
-                      <input type="hidden" name="department_id" value={department.id} />
-                      <input type="hidden" name="next_status" value={department.is_active ? "inactive" : "active"} />
-                      <button type="submit" className={`rounded-full border px-2.5 py-1 text-xs ${statusPill(department.is_active)}`}>
-                        {department.is_active ? "Activo" : "Inactivo"}
-                      </button>
-                    </form>
-                  </div>
-                </summary>
-                <form action={updateDepartmentAction} className="mt-3 grid gap-2">
-                  <input type="hidden" name="department_id" value={department.id} />
-                  <input name="name" defaultValue={department.name} required className={`rounded-lg border px-3 py-2 text-sm ${INPUT}`} />
-                  <input name="description" defaultValue={department.description ?? ""} placeholder="Descripcion" className={`rounded-lg border px-3 py-2 text-sm ${INPUT}`} />
-                  <Button type="submit" size="sm" className="sm:w-fit">Guardar cambios</Button>
-                </form>
-                <InlinePositionForm departmentId={department.id} departmentName={department.name} createAction={createDepartmentPositionAction} />
-                {(positionsByDepartment.get(department.id) ?? []).length ? (
-                  <div className="mt-3 border-t border-[var(--gbp-border)] pt-3">
-                    <p className={`mb-2 text-[11px] font-bold tracking-[0.1em] uppercase ${TEXT_MUTED}`}>Puestos del departamento</p>
-                    <div className="space-y-2">
-                      {(positionsByDepartment.get(department.id) ?? []).map((position) => (
-                        <div key={position.id} className={`flex items-center justify-between rounded-lg border px-3 py-2 ${CARD_SOFT}`}>
-                          <p className={`text-xs font-semibold ${TEXT_STRONG}`}>{position.name}</p>
-                          <form action={toggleDepartmentPositionStatusAction}>
-                            <input type="hidden" name="position_id" value={position.id} />
-                            <input type="hidden" name="next_status" value={position.is_active ? "inactive" : "active"} />
-                            <button type="submit" className={`rounded-full border px-2.5 py-1 text-xs ${statusPill(position.is_active)}`}>
-                              {position.is_active ? "Activo" : "Inactivo"}
-                            </button>
-                          </form>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-              </details>
+              <EditableDepartmentItem
+                key={department.id}
+                department={department}
+                positions={positionsByDepartment.get(department.id) ?? []}
+                updateDepartmentAction={updateDepartmentAction}
+                deleteDepartmentAction={deleteDepartmentAction}
+                toggleDepartmentStatusAction={toggleDepartmentStatusAction}
+                createPositionAction={createDepartmentPositionAction}
+                updatePositionAction={updateDepartmentPositionAction}
+                deletePositionAction={deleteDepartmentPositionAction}
+                togglePositionStatusAction={toggleDepartmentPositionStatusAction}
+              />
             ))}
-            {!departments?.length ? <p className={`text-sm ${TEXT_MUTED}`}>Aun no hay departamentos.</p> : null}
+            {!departments?.length ? <p className={`text-center py-8 rounded-xl border border-dashed border-[var(--gbp-border2)] text-sm ${TEXT_MUTED}`}>Aun no hay departamentos.</p> : null}
           </div>
         </article>
       </section>

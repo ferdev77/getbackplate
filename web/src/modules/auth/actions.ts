@@ -60,6 +60,29 @@ function buildForgotPasswordPath(options?: {
   return query ? `/auth/forgot-password?${query}` : "/auth/forgot-password";
 }
 
+function getFriendlyAuthErrorMessage(error: any): string {
+  const message = (error?.message || "").toLowerCase();
+
+  if (message.includes("invalid login credentials")) {
+    return "Email o contraseña incorrectos. Por favor, revisa tus datos e intenta nuevamente.";
+  }
+
+  if (message.includes("email not confirmed")) {
+    return "Tu cuenta de correo aún no ha sido confirmada. Por favor, revisa tu bandeja de entrada.";
+  }
+
+  if (message.includes("too many requests")) {
+    return "Demasiados intentos fallidos. Por favor, intenta de nuevo en unos minutos.";
+  }
+
+  if (message.includes("user already registered")) {
+    return "Ya existe una cuenta con este correo electrónico.";
+  }
+
+  // Fallback for unexpected errors but kept in Spanish
+  return error?.message || "Ocurrió un error inesperado al iniciar sesión.";
+}
+
 export async function loginWithPasswordAction(formData: FormData) {
   try {
     const email = String(formData.get("email") ?? "").trim().toLowerCase();
@@ -80,7 +103,7 @@ export async function loginWithPasswordAction(formData: FormData) {
           email_domain: emailDomain,
         },
       });
-      redirect(buildLoginPath({ error: "Completa email y contrasena", organizationIdHint: organizationHint }));
+      redirect(buildLoginPath({ error: "Completa email y contraseña", organizationIdHint: organizationHint }));
     }
 
     const supabase = await createSupabaseServerClient();
@@ -101,7 +124,7 @@ export async function loginWithPasswordAction(formData: FormData) {
           provider: "password",
         },
       });
-      redirect(buildLoginPath({ error: error.message, organizationIdHint: organizationHint }));
+      redirect(buildLoginPath({ error: getFriendlyAuthErrorMessage(error), organizationIdHint: organizationHint }));
     }
 
     const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -116,7 +139,7 @@ export async function loginWithPasswordAction(formData: FormData) {
           email_domain: emailDomain,
         },
       });
-      redirect(buildLoginPath({ error: "No se pudo validar la sesion", organizationIdHint: organizationHint }));
+      redirect(buildLoginPath({ error: "No se pudo validar la sesión", organizationIdHint: organizationHint }));
     }
 
     const admin = createSupabaseAdminClient();
@@ -165,7 +188,7 @@ export async function loginWithPasswordAction(formData: FormData) {
       });
       redirect(
         "/auth/login?error=" +
-          encodeURIComponent(`No se pudo cargar membresias: ${membershipsError.message}`),
+          encodeURIComponent(`No se pudo cargar membresías: ${membershipsError.message}`),
       );
     }
 
@@ -311,7 +334,7 @@ export async function loginWithPasswordAction(formData: FormData) {
 
     redirect(
       buildLoginPath({
-        error: `Error en inicio de sesion: ${error instanceof Error ? error.message : "desconocido"}`,
+        error: `Error en inicio de sesión: ${error instanceof Error ? error.message : "desconocido"}`,
         organizationIdHint: normalizeOrganizationId(
           String(formData.get("organization_id_hint") ?? ""),
         ),
@@ -328,7 +351,7 @@ export async function requestPasswordRecoveryAction(formData: FormData) {
   const resolvedOrganizationId = await resolveOrganizationIdFromAuthHint(organizationIdHint);
 
   if (!email) {
-    redirect(buildForgotPasswordPath({ error: "Ingresa un email valido", organizationIdHint }));
+    redirect(buildForgotPasswordPath({ error: "Ingresa un email válido", organizationIdHint }));
   }
 
   const admin = createSupabaseAdminClient();
@@ -350,13 +373,13 @@ export async function requestPasswordRecoveryAction(formData: FormData) {
     if (message.includes("user") && (message.includes("not found") || message.includes("no user"))) {
       redirect(buildForgotPasswordPath({
         status: "success",
-        message: "Te enviamos un enlace para restablecer tu contrasena",
+        message: "Te enviamos un enlace para restablecer tu contraseña",
         organizationIdHint,
       }));
     }
 
     redirect(buildForgotPasswordPath({
-      error: `No se pudo preparar el enlace de recuperacion: ${linkError?.message || "intenta nuevamente"}`,
+      error: `No se pudo preparar el enlace de recuperación: ${linkError?.message || "intenta nuevamente"}`,
       organizationIdHint,
     }));
   }
@@ -373,7 +396,7 @@ export async function requestPasswordRecoveryAction(formData: FormData) {
 
   const mailResult = await sendEmail({
     to: [{ email }],
-    subject: `Restablece tu contrasena en ${branding.companyName || "GetBackplate"}`,
+    subject: `Restablece tu contraseña en ${branding.companyName || "GetBackplate"}`,
     htmlContent: passwordRecoveryTemplate({
       recoveryUrl: recoveryBridgeUrl,
       branding,
@@ -382,14 +405,14 @@ export async function requestPasswordRecoveryAction(formData: FormData) {
 
   if (!mailResult.ok) {
     redirect(buildForgotPasswordPath({
-      error: `No se pudo enviar el correo de recuperacion: ${mailResult.error}`,
+      error: `No se pudo enviar el correo de recuperación: ${mailResult.error}`,
       organizationIdHint,
     }));
   }
 
   redirect(buildForgotPasswordPath({
     status: "success",
-    message: "Te enviamos un enlace para restablecer tu contrasena",
+    message: "Te enviamos un enlace para restablecer tu contraseña",
     organizationIdHint,
   }));
 }
@@ -413,7 +436,7 @@ export async function updatePasswordAction(formData: FormData) {
     });
     redirect(
       "/auth/change-password?error=" +
-        encodeURIComponent("La contrasena debe tener al menos 8 caracteres"),
+        encodeURIComponent("La contraseña debe tener al menos 8 caracteres"),
     );
   }
 
@@ -430,7 +453,7 @@ export async function updatePasswordAction(formData: FormData) {
     });
     redirect(
       "/auth/change-password?error=" +
-        encodeURIComponent("La confirmacion de contrasena no coincide"),
+        encodeURIComponent("La confirmación de contraseña no coincide"),
     );
   }
 
@@ -450,7 +473,7 @@ export async function updatePasswordAction(formData: FormData) {
         reason: "missing_authenticated_user",
       },
     });
-    redirect("/auth/login?error=" + encodeURIComponent("Tu sesion expiro. Inicia sesion nuevamente"));
+    redirect("/auth/login?error=" + encodeURIComponent("Tu sesión expiró. Inicia sesión nuevamente"));
   }
 
   const currentMetadata =
@@ -481,7 +504,7 @@ export async function updatePasswordAction(formData: FormData) {
     });
     redirect(
       "/auth/change-password?error=" +
-        encodeURIComponent(`No se pudo actualizar la contrasena: ${error.message}`),
+        encodeURIComponent(`No se pudo actualizar la contraseña: ${error.message}`),
     );
   }
 
@@ -520,7 +543,7 @@ export async function updatePasswordAction(formData: FormData) {
   if (membershipsError) {
     redirect(
       "/auth/login?error=" +
-        encodeURIComponent(`No se pudo resolver tu acceso despues del cambio: ${membershipsError.message}`),
+        encodeURIComponent(`No se pudo resolver tu acceso después del cambio: ${membershipsError.message}`),
     );
   }
 
@@ -540,7 +563,7 @@ export async function updatePasswordAction(formData: FormData) {
   if (rolesError) {
     redirect(
       "/auth/login?error=" +
-        encodeURIComponent(`No se pudo resolver tu rol despues del cambio: ${rolesError.message}`),
+        encodeURIComponent(`No se pudo resolver tu rol después del cambio: ${rolesError.message}`),
     );
   }
 

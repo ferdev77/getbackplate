@@ -44,6 +44,7 @@ export function ChecklistDeleteModal({ template }: ChecklistDeleteModalProps) {
               pendingLabel="Eliminando..." 
               pending={isPending}
               className="rounded-lg bg-[var(--gbp-error)] px-4 py-2 text-sm font-bold text-white hover:brightness-95"
+              data-testid="confirm-delete-checklist-btn"
             />
           </form>
         </div>

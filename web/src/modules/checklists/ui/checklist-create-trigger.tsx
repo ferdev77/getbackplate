@@ -46,7 +46,7 @@ export function ChecklistCreateTrigger({
 
   return (
     <>
-      <button type="button" onClick={() => setIsOpen(true)} className={className}>
+      <button type="button" onClick={() => setIsOpen(true)} className={className} data-testid="create-checklist-btn">
         {children}
       </button>
 

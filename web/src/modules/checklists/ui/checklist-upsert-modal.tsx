@@ -98,7 +98,7 @@ export function ChecklistUpsertModal({
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="grid gap-1.5 sm:col-span-2">
                 <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Nombre del checklist</span>
-                <input name="name" required defaultValue={editingTemplate?.name ?? ""} placeholder="Ej: Apertura Cocina - Turno Manana" className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)]" />
+                <input name="name" required defaultValue={editingTemplate?.name ?? ""} placeholder="Ej: Apertura Cocina - Turno Manana" className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)]" data-testid="checklist-title-input" />
               </label>
               <label className="grid gap-1.5">
                 <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Tipo de checklist</span>

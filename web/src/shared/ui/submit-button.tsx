@@ -14,6 +14,7 @@ type SubmitButtonProps = {
   name?: string;
   value?: string;
   formNoValidate?: boolean;
+  "data-testid"?: string;
 };
 
 const variantClasses: Record<NonNullable<SubmitButtonProps["variant"]>, string> = {
@@ -35,6 +36,7 @@ export function SubmitButton({
   name,
   value,
   formNoValidate,
+  "data-testid": dataTestId,
 }: SubmitButtonProps) {
   const { pending: internalPending } = useFormStatus();
   const isPending = externalPending ?? internalPending ?? disabled;
@@ -47,6 +49,7 @@ export function SubmitButton({
       name={name}
       value={value}
       formNoValidate={formNoValidate}
+      data-testid={dataTestId}
       className={[
         "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition shadow-sm",
         variantClasses[variant],

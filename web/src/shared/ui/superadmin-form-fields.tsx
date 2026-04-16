@@ -1,4 +1,5 @@
 import type * as React from "react";
+import { PasswordInput } from "@/shared/ui/password-input";
 
 type CommonFieldProps = {
   label: string;
@@ -33,9 +34,13 @@ export function SuperadminInputField({
   ...props
 }: InputFieldProps) {
   return (
-    <label className={join("relative", className)}>
-      <span className={join(baseLabelClass, labelBgClassName)}>{label}</span>
-      <input {...props} className={join(baseFieldClass, fieldClassName)} />
+    <label className={join("relative", className, props.type === "password" ? "flex flex-col" : "")}>
+      <span className={join(baseLabelClass, labelBgClassName, "z-10")}>{label}</span>
+      {props.type === "password" ? (
+        <PasswordInput {...props} className={join(baseFieldClass, fieldClassName)} />
+      ) : (
+        <input {...props} className={join(baseFieldClass, fieldClassName)} />
+      )}
     </label>
   );
 }
