@@ -10,6 +10,7 @@ import { SlideUp } from "@/shared/ui/animations";
 import { ThemeAwareGetBackplateLogo } from "@/shared/ui/theme-aware-getbackplate-logo";
 import { PasswordInput } from "@/shared/ui/password-input";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
+import { TagPill } from "@/shared/ui/tag-pill";
 
 type ChangePasswordPageProps = {
   searchParams: Promise<{ error?: string; reason?: string; next?: string; org?: string }>;
