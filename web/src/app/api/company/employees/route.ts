@@ -1585,9 +1585,10 @@ export async function POST(request: Request) {
       eventDomain: "employees",
       outcome: "success",
       severity: "low",
+      actorId,
       metadata: {
-        actor_user_id: actorId,
         mode: "edit",
+        is_impersonated: !!isImpersonated,
       },
     });
 
@@ -1729,8 +1730,8 @@ export async function POST(request: Request) {
       eventDomain: "employees",
       outcome: "error",
       severity: "high",
+      actorId,
       metadata: {
-        actor_user_id: actorId,
         mode: "create",
         error: employeeError?.message ?? "No se pudo crear empleado",
       },
@@ -2006,8 +2007,8 @@ export async function POST(request: Request) {
     eventDomain: "employees",
     outcome: "success",
     severity: "low",
+    actorId,
     metadata: {
-      actor_user_id: actorId,
       mode: "create",
       with_account: createMode === "with_account",
       linked_user_id: linkedUserId,
@@ -2087,8 +2088,8 @@ export async function PATCH(request: Request) {
         eventDomain: "employees",
         outcome: "error",
         severity: "medium",
+        actorId,
         metadata: {
-          actor_user_id: actorId,
           status_scope: "membership_sync",
           next_status: status,
           error: membershipError.message,
@@ -2106,8 +2107,8 @@ export async function PATCH(request: Request) {
       eventDomain: "employees",
       outcome: "success",
       severity: "low",
+      actorId,
       metadata: {
-        actor_user_id: actorId,
         status_scope: "laboral",
         previous_status: previousProfile?.status ?? null,
         next_status: status,
@@ -2147,8 +2148,8 @@ export async function PATCH(request: Request) {
       eventDomain: "employees",
       outcome: "error",
       severity: "medium",
+      actorId,
       metadata: {
-        actor_user_id: actorId,
         status_scope: "laboral",
         previous_status: previousEmployee?.status ?? null,
         next_status: status,
@@ -2166,8 +2167,8 @@ export async function PATCH(request: Request) {
     eventDomain: "employees",
     outcome: "success",
     severity: "low",
+    actorId,
     metadata: {
-      actor_user_id: actorId,
       status_scope: "laboral",
       previous_status: previousEmployee?.status ?? null,
       next_status: status,
@@ -2233,8 +2234,8 @@ export async function DELETE(request: Request) {
           eventDomain: "employees",
           outcome: "denied",
           severity: "high",
+          actorId,
           metadata: {
-            actor_user_id: actorId,
             membership_id: membershipId,
             reason: "membership_profile_mismatch",
           },
@@ -2277,8 +2278,8 @@ export async function DELETE(request: Request) {
       eventDomain: "employees",
       outcome: "success",
       severity: "medium",
+      actorId,
       metadata: {
-        actor_user_id: actorId,
         membership_id: membershipId || null,
       },
     });
@@ -2313,8 +2314,8 @@ export async function DELETE(request: Request) {
       eventDomain: "employees",
       outcome: "error",
       severity: "high",
+      actorId,
       metadata: {
-        actor_user_id: actorId,
         error: deleteError.message,
       },
     });
