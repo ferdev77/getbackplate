@@ -22,6 +22,8 @@ import { EditableDepartmentItem } from "@/modules/settings/ui/editable-departmen
 import { InlinePositionForm } from "@/modules/settings/ui/inline-position-form";
 import { CompanyContactSettingsCard } from "@/modules/settings/ui/company-contact-settings-card";
 import { CustomDomainSettingsCard } from "@/modules/settings/ui/custom-domain-settings-card";
+import { ReorderableBranchList } from "@/modules/settings/ui/reorderable-branch-list";
+import { ReorderableDepartmentList } from "@/modules/settings/ui/reorderable-department-list";
 import { Button } from "@/shared/ui/button";
 import { isModuleEnabledForOrganization, requireTenantModule } from "@/shared/lib/access";
 import { DEFAULT_CUSTOM_DOMAIN_CNAME_TARGET } from "@/shared/lib/custom-domains";
@@ -77,20 +79,23 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
       .maybeSingle(),
     supabase
       .from("branches")
-      .select("id, name, city, state, country, address, phone, is_active, created_at")
+      .select("id, name, city, state, country, address, phone, is_active, created_at, sort_order")
       .eq("organization_id", tenant.organizationId)
+      .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false })
       .limit(30),
     supabase
       .from("organization_departments")
-      .select("id, name, description, is_active, created_at")
+      .select("id, name, description, is_active, created_at, sort_order")
       .eq("organization_id", tenant.organizationId)
+      .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false })
       .limit(40),
     supabase
       .from("department_positions")
-      .select("id, department_id, name, description, is_active, created_at")
+      .select("id, department_id, name, description, is_active, created_at, sort_order")
       .eq("organization_id", tenant.organizationId)
+      .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false })
       .limit(200),
     supabase
@@ -124,11 +129,11 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
       }
     : (orgSettingsWithWebsite ?? { website_url: "" });
 
-  const positionsByDepartment = new Map<string, Array<any>>();
+  const positionsByDepartment: Record<string, any[]> = {};
   for (const position of positions ?? []) {
-    const list = positionsByDepartment.get(position.department_id) ?? [];
+    const list = positionsByDepartment[position.department_id] ?? [];
     list.push(position);
-    positionsByDepartment.set(position.department_id, list);
+    positionsByDepartment[position.department_id] = list;
   }
 
   return (
@@ -212,16 +217,12 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
           </div>
 
           <div className="space-y-3">
-            {(branches ?? []).map((branch) => (
-              <EditableBranchItem
-                key={branch.id}
-                branch={branch}
-                updateAction={updateBranchAction}
-                deleteAction={deleteBranchAction}
-                toggleStatusAction={toggleBranchStatusAction}
-              />
-            ))}
-            {!branches?.length ? <p className={`text-center py-8 rounded-xl border border-dashed border-[var(--gbp-border2)] text-sm ${TEXT_MUTED}`}>Aun no hay locaciones.</p> : null}
+            <ReorderableBranchList
+              initialBranches={(branches ?? []) as any[]}
+              updateAction={updateBranchAction}
+              deleteAction={deleteBranchAction}
+              toggleStatusAction={toggleBranchStatusAction}
+            />
           </div>
         </article>
 
@@ -237,21 +238,17 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
           </div>
 
           <div className="space-y-3">
-            {(departments ?? []).map((department) => (
-              <EditableDepartmentItem
-                key={department.id}
-                department={department}
-                positions={positionsByDepartment.get(department.id) ?? []}
-                updateDepartmentAction={updateDepartmentAction}
-                deleteDepartmentAction={deleteDepartmentAction}
-                toggleDepartmentStatusAction={toggleDepartmentStatusAction}
-                createPositionAction={createDepartmentPositionAction}
-                updatePositionAction={updateDepartmentPositionAction}
-                deletePositionAction={deleteDepartmentPositionAction}
-                togglePositionStatusAction={toggleDepartmentPositionStatusAction}
-              />
-            ))}
-            {!departments?.length ? <p className={`text-center py-8 rounded-xl border border-dashed border-[var(--gbp-border2)] text-sm ${TEXT_MUTED}`}>Aun no hay departamentos.</p> : null}
+            <ReorderableDepartmentList
+              initialDepartments={(departments ?? []) as any[]}
+              positionsByDepartment={positionsByDepartment}
+              updateDepartmentAction={updateDepartmentAction}
+              deleteDepartmentAction={deleteDepartmentAction}
+              toggleDepartmentStatusAction={toggleDepartmentStatusAction}
+              createPositionAction={createDepartmentPositionAction}
+              updatePositionAction={updateDepartmentPositionAction}
+              deletePositionAction={deleteDepartmentPositionAction}
+              togglePositionStatusAction={toggleDepartmentPositionStatusAction}
+            />
           </div>
         </article>
       </section>

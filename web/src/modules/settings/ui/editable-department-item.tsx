@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Edit2, Trash2, Check, X, ShieldAlert, ChevronDown, ChevronUp, Briefcase } from "lucide-react";
+import { Edit2, Trash2, Check, X, ShieldAlert, ChevronDown, ChevronUp, Briefcase, GripVertical } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
 import { EditablePositionItem } from "./editable-position-item";
 import { InlinePositionForm } from "./inline-position-form";
+import { ReorderablePositionList } from "./reorderable-position-list";
 
 interface Position {
   id: string;
@@ -30,6 +31,7 @@ interface EditableDepartmentItemProps {
   updatePositionAction: (formData: FormData) => Promise<void>;
   deletePositionAction: (formData: FormData) => Promise<void>;
   togglePositionStatusAction: (formData: FormData) => Promise<void>;
+  dragHandleProps?: any;
 }
 
 export function EditableDepartmentItem({
@@ -42,6 +44,7 @@ export function EditableDepartmentItem({
   updatePositionAction,
   deletePositionAction,
   togglePositionStatusAction,
+  dragHandleProps,
 }: EditableDepartmentItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -107,6 +110,11 @@ export function EditableDepartmentItem({
         onClick={() => !isEditing && setIsExpanded(!isExpanded)}
       >
         <div className="flex items-start gap-3">
+          {dragHandleProps && (
+            <div {...dragHandleProps} className="mt-2.5 -ml-1 mr-1 cursor-grab active:cursor-grabbing text-[var(--gbp-muted)] hover:text-[var(--gbp-text)] transition-colors">
+              <GripVertical className="h-4 w-4" />
+            </div>
+          )}
           <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)]">
             <Briefcase className="h-4 w-4" />
           </div>
@@ -215,20 +223,13 @@ export function EditableDepartmentItem({
           </div>
 
           <div className="space-y-1">
-            {positions.map((position) => (
-              <EditablePositionItem
-                key={position.id}
-                position={position}
-                updateAction={updatePositionAction}
-                deleteAction={deletePositionAction}
-                toggleStatusAction={togglePositionStatusAction}
-              />
-            ))}
-            {positions.length === 0 && (
-              <div className="rounded-lg border border-dashed border-[var(--gbp-border2)] p-6 text-center">
-                <p className="text-xs text-[var(--gbp-muted)]">No hay puestos en este departamento.</p>
-              </div>
-            )}
+            <ReorderablePositionList
+              departmentId={department.id}
+              initialPositions={positions as any[]}
+              updateAction={updatePositionAction}
+              deleteAction={deletePositionAction}
+              toggleStatusAction={togglePositionStatusAction}
+            />
           </div>
         </div>
       )}

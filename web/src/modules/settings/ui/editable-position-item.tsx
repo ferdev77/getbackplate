@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Edit2, Trash2, Check, X, ShieldAlert } from "lucide-react";
+import { Edit2, Trash2, Check, X, ShieldAlert, GripVertical } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
 
 interface Position {
@@ -16,6 +16,7 @@ interface EditablePositionItemProps {
   updateAction: (formData: FormData) => Promise<void>;
   deleteAction: (formData: FormData) => Promise<void>;
   toggleStatusAction: (formData: FormData) => Promise<void>;
+  dragHandleProps?: any;
 }
 
 export function EditablePositionItem({
@@ -23,6 +24,7 @@ export function EditablePositionItem({
   updateAction,
   deleteAction,
   toggleStatusAction,
+  dragHandleProps,
 }: EditablePositionItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -128,9 +130,15 @@ export function EditablePositionItem({
 
   return (
     <div className={`group flex items-center justify-between rounded-lg border border-transparent px-2 py-1.5 transition-all hover:border-[var(--gbp-border2)] hover:bg-[var(--gbp-surface)] ${!position.is_active ? "opacity-60" : ""}`}>
-      <div className="flex-1">
-        <div className="flex items-center gap-2">
-          <span className="text-[14px] font-medium text-[var(--gbp-text)]">{position.name}</span>
+      <div className="flex flex-1 items-center gap-2">
+        {dragHandleProps && (
+          <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing text-[var(--gbp-muted)] hover:text-[var(--gbp-text)] transition-colors">
+            <GripVertical className="h-3.5 w-3.5" />
+          </div>
+        )}
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[14px] font-medium text-[var(--gbp-text)]">{position.name}</span>
           {!position.is_active && (
             <span className="rounded bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--gbp-muted)]">
               Inactivo
@@ -140,6 +148,7 @@ export function EditablePositionItem({
         {position.description && (
           <p className="line-clamp-1 text-[12px] text-[var(--gbp-text2)]">{position.description}</p>
         )}
+        </div>
       </div>
 
       <div className="flex items-center gap-1 transition-opacity">

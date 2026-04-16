@@ -567,8 +567,8 @@ export async function assignCompanyAdminAction(formData: FormData) {
 export async function reorderBranchesAction(branchIds: string[]) {
   const { assertCompanyAdminModuleApi } = await import("@/shared/lib/access");
 
-  // Basic validation: core module is enough to manage branches
-  const access = await assertCompanyAdminModuleApi("core");
+  // Basic validation: settings module is enough to manage branches
+  const access = await assertCompanyAdminModuleApi("settings");
 
   if (!access.ok) {
     return { ok: false, error: access.error };
@@ -624,3 +624,96 @@ export async function reorderBranchesAction(branchIds: string[]) {
   revalidatePath("/app"); // Revalidate sidebar
   return { ok: true };
 }
+
+// ---------------------------------------------------------------------------
+// Reorder Departments
+// ---------------------------------------------------------------------------
+
+export async function reorderDepartmentsAction(departmentIds: string[] = []) {
+  if (!departmentIds || departmentIds.length === 0) return { ok: true };
+  const { assertCompanyAdminModuleApi } = await import("@/shared/lib/access");
+
+  const access = await assertCompanyAdminModuleApi("settings");
+
+  if (!access.ok) {
+    return { ok: false, error: access.error };
+  }
+
+  const organizationId = access.tenant.organizationId;
+  const admin = createSupabaseAdminClient();
+
+  // Verify ownership
+  const { data: validItems } = await admin
+    .from("organization_departments")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .in("id", departmentIds);
+
+  const validIds = (validItems ?? []).map((i) => i.id);
+  const filteredIds = departmentIds.filter((id) => validIds.includes(id));
+
+  if (filteredIds.length === 0) {
+    return { ok: false, error: "No se encontraron departamentos validos" };
+  }
+
+  const updates = filteredIds.map((id, index) =>
+    admin
+      .from("organization_departments")
+      .update({ sort_order: index })
+      .eq("id", id)
+      .eq("organization_id", organizationId)
+  );
+
+  await Promise.all(updates);
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Reorder Department Positions
+// ---------------------------------------------------------------------------
+
+export async function reorderDepartmentPositionsAction(params: {
+  departmentId: string;
+  positionIds: string[];
+}) {
+  const { departmentId, positionIds = [] } = params;
+  if (!positionIds || positionIds.length === 0) return { ok: true };
+  const { assertCompanyAdminModuleApi } = await import("@/shared/lib/access");
+
+  const access = await assertCompanyAdminModuleApi("settings");
+
+  if (!access.ok) {
+    return { ok: false, error: access.error };
+  }
+
+  const organizationId = access.tenant.organizationId;
+  const admin = createSupabaseAdminClient();
+
+  // Verify ownership and department relation
+  const { data: validItems } = await admin
+    .from("department_positions")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("department_id", departmentId)
+    .in("id", positionIds);
+
+  const validIds = (validItems ?? []).map((i) => i.id);
+  const filteredIds = positionIds.filter((id) => validIds.includes(id));
+
+  if (filteredIds.length === 0) {
+    return { ok: false, error: "No se encontraron puestos validos" };
+  }
+
+  const updates = filteredIds.map((id, index) =>
+    admin
+      .from("department_positions")
+      .update({ sort_order: index })
+      .eq("id", id)
+      .eq("organization_id", organizationId)
+      .eq("department_id", departmentId)
+  );
+
+  await Promise.all(updates);
+  return { ok: true };
+}
+
