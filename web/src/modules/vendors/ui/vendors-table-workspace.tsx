@@ -86,25 +86,47 @@ const FIELD_LABELS: Record<string, string> = {
   branch_ids: "Locaciones"
 };
 
-function getChangesSummary(metadata: Record<string, any> | null) {
+function getChangesSummary(metadata: Record<string, any> | null): string[] | null {
   if (!metadata) return null;
-  const fields = [];
+  const changesList: string[] = [];
+  
   if (metadata.changes) {
-    fields.push(...Object.keys(metadata.changes).map(k => FIELD_LABELS[k] || k));
-  }
-  if (metadata.branch_ids) {
-    fields.push("Locaciones");
+    for (const [key, value] of Object.entries(metadata.changes)) {
+      const label = FIELD_LABELS[key] || key;
+      
+      // Manejar el formato nuevo { old: x, new: y }
+      if (value && typeof value === "object" && "old" in value && "new" in value) {
+        const payload = value as { old: any, new: any };
+        const oldVal = payload.old ? String(payload.old) : "nada";
+        const newVal = payload.new ? String(payload.new) : "vacío";
+        
+        // Manejo especial para categorías
+        if (key === "category") {
+           const oldCat = VENDOR_CATEGORIES.find(c => c.value === payload.old)?.label ?? oldVal;
+           const newCat = VENDOR_CATEGORIES.find(c => c.value === payload.new)?.label ?? newVal;
+           changesList.push(`${label}: de "${oldCat}" a "${newCat}"`);
+        } else if (key === "is_active") {
+           const newStatus = payload.new ? "Activo" : "Inactivo";
+           changesList.push(`Estado cambiado a ${newStatus}`);
+        } else {
+           changesList.push(`${label}: de "${oldVal}" a "${newVal}"`);
+        }
+      } else {
+        // Formato viejo donde solo era el valor { name: "Nuevo" }
+        changesList.push(`Editó ${label}`);
+      }
+    }
   }
   
-  if (fields.length > 0) {
-    // Deduplicate fields (branch_ids might be in changes or outside depending on the payload)
-    const unique = Array.from(new Set(fields));
-    return `Editó: ${unique.join(", ")}`;
+  if (metadata.branch_ids) {
+    changesList.push("Actualizó las locaciones asignadas");
   }
+  
+  if (changesList.length > 0) return changesList;
   
   // For creations or deletions where we have name and category
   if (metadata.name) {
-    return `Proveedor: ${metadata.name}`;
+    return [`Proveedor: ${metadata.name}`];
   }
   
   return null;
@@ -158,9 +180,13 @@ function VendorHistoryTab({ vendorId }: { vendorId: string }) {
                 </span>
                 <span className={`text-[11px] font-medium whitespace-nowrap pt-0.5 ${TEXT_MUTED}`}>{formatDate(entry.createdAt)}</span>
               </div>
-              {summary && (
-                <div className={`text-xs inline-flex w-fit bg-[var(--gbp-surface2)] px-2 py-1 rounded-md border border-[var(--gbp-border)] mt-0.5 ${TEXT_MUTED}`}>
-                  {summary}
+              {summary && summary.length > 0 && (
+                <div className="flex flex-col gap-1 mt-1.5">
+                  {summary.map((changeLine, idx) => (
+                    <div key={idx} className={`text-xs inline-flex w-fit bg-[var(--gbp-surface2)] px-2 py-1 rounded-md border border-[var(--gbp-border)] ${TEXT_MUTED}`}>
+                      {changeLine}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

@@ -175,12 +175,12 @@ export async function PUT(request: Request, { params }: RouteParams) {
   }
 
   // Calculate actual changes to log
-  const changedFields: Record<string, unknown> = {};
+  const changedFields: Record<string, { old: unknown; new: unknown }> = {};
   for (const [k, v] of Object.entries(updatePayload)) {
     if (existing[k] !== v) {
       // Small workaround to prevent logging empty string vs null as a change
       if (!v && !existing[k]) continue;
-      changedFields[k] = v;
+      changedFields[k] = { old: existing[k], new: v };
     }
   }
 

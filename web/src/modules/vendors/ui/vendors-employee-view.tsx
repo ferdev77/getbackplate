@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { VendorRow } from "@/modules/vendors/services";
-import { VENDOR_CATEGORIES } from "@/modules/vendors/services";
+import type { VendorRow } from "@/modules/vendors/types";
+import { VENDOR_CATEGORIES } from "@/modules/vendors/types";
 
 type Branch = { id: string; name: string };
 
