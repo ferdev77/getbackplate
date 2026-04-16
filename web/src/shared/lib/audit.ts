@@ -15,6 +15,7 @@ type AuditInput = {
   outcome?: AuditOutcome;
   severity?: AuditSeverity;
   reasonCode?: AuditReasonCode | string | null;
+  actorId?: string | null;
   metadata?: Record<string, unknown>;
 };
 
@@ -55,11 +56,14 @@ export async function logAuditEvent(input: AuditInput) {
     const supabaseAuth = await createSupabaseServerClient();
     const { data: authData } = await supabaseAuth.auth.getUser();
 
+    // Extraer actorId de metadata si no viene en el input principal (soporte legacy)
+    const effectiveActorId = input.actorId ?? (input.metadata?.actor_user_id as string | undefined) ?? authData.user?.id ?? null;
+
     const supabase = createSupabaseAdminClient();
     await supabase.from("audit_logs").insert({
       organization_id: input.organizationId ?? null,
       branch_id: input.branchId ?? null,
-      actor_user_id: authData.user?.id ?? null,
+      actor_user_id: effectiveActorId,
       action: input.action,
       entity_type: input.entityType,
       entity_id: input.entityId ?? null,
