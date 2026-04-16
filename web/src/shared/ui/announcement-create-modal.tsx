@@ -77,7 +77,7 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
         toast.success(state.message);
         startTransition(() => {
           router.refresh();
-          // Redirect to main list after success
+          if (onClose) onClose();
           router.push("/app/announcements");
         });
       } else {
@@ -132,6 +132,7 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
                 required
                 defaultValue={initial?.title ?? ""}
                 placeholder="ej. Reunion obligatoria"
+                data-testid="announcement-title-input"
               className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]"
             />
 
@@ -142,6 +143,7 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
                 rows={4}
                 defaultValue={initial?.body ?? ""}
                 placeholder="Escribe el mensaje completo"
+                data-testid="announcement-body-textarea"
               className="w-full resize-y rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]"
             />
 
@@ -284,6 +286,7 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
               pendingLabel={mode === "edit" ? "Guardando..." : "Publicando..."}
               pending={isPending}
               className="px-5 py-2 text-sm font-bold"
+              data-testid="announcement-submit-btn"
             />
           </div>
         </form>

@@ -4,6 +4,7 @@ import { registerPublicAction } from "@/modules/auth/public-actions";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import { SlideUp } from "@/shared/ui/animations";
 import { ThemeAwareGetBackplateLogo } from "@/shared/ui/theme-aware-getbackplate-logo";
+import { PasswordInput } from "@/shared/ui/password-input";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 
 export const metadata: Metadata = {
@@ -101,10 +102,9 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
               >
                 Contraseña
               </label>
-              <input
+              <PasswordInput
                 id="password"
                 name="password"
-                type="password"
                 required
                 minLength={8}
                 className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none ring-brand/20 transition focus:ring-2"

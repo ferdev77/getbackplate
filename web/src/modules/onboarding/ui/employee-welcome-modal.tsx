@@ -32,6 +32,7 @@ function FinishPortalButton({ disabled }: { disabled: boolean }) {
       className="inline-flex items-center gap-2 rounded-lg bg-[var(--gbp-text)] px-5 py-2 text-sm font-bold text-white transition-all hover:-translate-y-[1px] hover:bg-[var(--gbp-accent)] disabled:opacity-50"
       disabled={disabled || pending}
       aria-busy={pending}
+      data-testid="welcome-modal-finish-btn"
     >
       {pending ? (
         <>

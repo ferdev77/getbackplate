@@ -7,8 +7,8 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { resolveTenantAuthBrandingByHint } from "@/shared/lib/tenant-auth-branding";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import { SlideUp } from "@/shared/ui/animations";
-import { TagPill } from "@/shared/ui/tag-pill";
 import { ThemeAwareGetBackplateLogo } from "@/shared/ui/theme-aware-getbackplate-logo";
+import { PasswordInput } from "@/shared/ui/password-input";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 
 type ChangePasswordPageProps = {
@@ -116,10 +116,9 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
               <label htmlFor="password" className="mb-1 block text-sm font-medium text-[var(--gbp-text)]">
                 Nueva contrasena
               </label>
-              <input
+              <PasswordInput
                 id="password"
                 name="password"
-                type="password"
                 minLength={8}
                 required
                 className="auth-input w-full rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none ring-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] placeholder:text-[var(--gbp-muted)] transition focus:ring-2"
@@ -131,10 +130,9 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
               <label htmlFor="confirm_password" className="mb-1 block text-sm font-medium text-[var(--gbp-text)]">
                 Confirmar contrasena
               </label>
-              <input
+              <PasswordInput
                 id="confirm_password"
                 name="confirm_password"
-                type="password"
                 minLength={8}
                 required
                 className="auth-input w-full rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none ring-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] placeholder:text-[var(--gbp-muted)] transition focus:ring-2"

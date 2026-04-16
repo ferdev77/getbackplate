@@ -158,6 +158,45 @@ export async function toggleBranchStatus(params: {
   return { ok: true, id: branchId };
 }
 
+export async function deleteBranch(params: {
+  supabase: SupabaseClient;
+  organizationId: string;
+  branchId: string;
+}): Promise<ServiceResult> {
+  const { supabase, organizationId, branchId } = params;
+
+  if (!branchId) {
+    return { ok: false, message: "Locacion invalida" };
+  }
+
+  // Check if in use by memberships
+  const { count, error: countError } = await supabase
+    .from("memberships")
+    .select("*", { count: "exact", head: true })
+    .eq("organization_id", organizationId)
+    .eq("branch_id", branchId);
+
+  if (countError) {
+    return { ok: false, message: `No se pudo verificar uso de la locacion: ${countError.message}` };
+  }
+
+  if (count && count > 0) {
+    return { ok: false, message: "No se puede eliminar la locacion porque tiene personal asignado. Desactivala en su lugar." };
+  }
+
+  const { error } = await supabase
+    .from("branches")
+    .delete()
+    .eq("organization_id", organizationId)
+    .eq("id", branchId);
+
+  if (error) {
+    return { ok: false, message: `No se pudo eliminar locacion: ${error.message}` };
+  }
+
+  return { ok: true };
+}
+
 // ---------------------------------------------------------------------------
 // Departments
 // ---------------------------------------------------------------------------
@@ -262,6 +301,60 @@ export async function toggleDepartmentStatus(params: {
   return { ok: true, id: departmentId };
 }
 
+export async function deleteDepartment(params: {
+  supabase: SupabaseClient;
+  organizationId: string;
+  departmentId: string;
+}): Promise<ServiceResult> {
+  const { supabase, organizationId, departmentId } = params;
+
+  if (!departmentId) {
+    return { ok: false, message: "Departamento invalido" };
+  }
+
+  // Check if it has positions
+  const { count: posCount, error: posError } = await supabase
+    .from("department_positions")
+    .select("*", { count: "exact", head: true })
+    .eq("organization_id", organizationId)
+    .eq("department_id", departmentId);
+
+  if (posError) {
+    return { ok: false, message: `No se pudo verificar puestos del departamento: ${posError.message}` };
+  }
+
+  if (posCount && posCount > 0) {
+    return { ok: false, message: "No se puede eliminar el departamento porque tiene puestos asociados. Elimina los puestos primero." };
+  }
+
+  // Check if in use by memberships (just in case some memberships are linked to department but no position)
+  const { count: memCount, error: memError } = await supabase
+    .from("memberships")
+    .select("*", { count: "exact", head: true })
+    .eq("organization_id", organizationId)
+    .eq("department_id", departmentId);
+
+  if (memError) {
+    return { ok: false, message: `No se pudo verificar uso del departamento: ${memError.message}` };
+  }
+
+  if (memCount && memCount > 0) {
+    return { ok: false, message: "No se puede eliminar el departamento porque tiene personal asignado. Desactivalo en su lugar." };
+  }
+
+  const { error } = await supabase
+    .from("organization_departments")
+    .delete()
+    .eq("organization_id", organizationId)
+    .eq("id", departmentId);
+
+  if (error) {
+    return { ok: false, message: `No se pudo eliminar departamento: ${error.message}` };
+  }
+
+  return { ok: true };
+}
+
 // ---------------------------------------------------------------------------
 // Department Positions
 // ---------------------------------------------------------------------------
@@ -349,4 +442,71 @@ export async function toggleDepartmentPositionStatus(params: {
   }
 
   return { ok: true, id: positionId };
+}
+
+export async function updateDepartmentPosition(params: {
+  supabase: SupabaseClient;
+  organizationId: string;
+  positionId: string;
+  name: string;
+  description: string | null;
+}): Promise<ServiceResult> {
+  const { supabase, organizationId, positionId, name, description } = params;
+
+  if (!positionId || !name) {
+    return { ok: false, message: "Puesto invalido" };
+  }
+
+  const code = toCode(name);
+
+  const { error } = await supabase
+    .from("department_positions")
+    .update({ name, code: code || null, description })
+    .eq("organization_id", organizationId)
+    .eq("id", positionId);
+
+  if (error) {
+    return { ok: false, message: `No se pudo actualizar puesto: ${error.message}` };
+  }
+
+  return { ok: true, id: positionId };
+}
+
+export async function deleteDepartmentPosition(params: {
+  supabase: SupabaseClient;
+  organizationId: string;
+  positionId: string;
+}): Promise<ServiceResult> {
+  const { supabase, organizationId, positionId } = params;
+
+  if (!positionId) {
+    return { ok: false, message: "Puesto invalido" };
+  }
+
+  // Check if in use
+  const { count, error: countError } = await supabase
+    .from("memberships")
+    .select("*", { count: "exact", head: true })
+    .eq("organization_id", organizationId)
+    .eq("position_id", positionId);
+
+  if (countError) {
+    return { ok: false, message: `No se pudo verificar uso del puesto: ${countError.message}` };
+  }
+
+  if (count && count > 0) {
+    return { ok: false, message: "No se puede eliminar el puesto porque tiene personal asignado. Desactivalo en su lugar." };
+  }
+
+  const { error } = await supabase
+    .from("department_positions")
+    .delete()
+    .eq("organization_id", organizationId)
+    .eq("id", positionId);
+
+  if (error) {
+    return { ok: false, message: `No se pudo eliminar puesto: ${error.message}` };
+  }
+
+  return { ok: true };
 }

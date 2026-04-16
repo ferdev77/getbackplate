@@ -25,8 +25,11 @@ import {
   Users,
   User,
   X,
-  Trash2
+  Trash2,
+  GripVertical
 } from "lucide-react";
+import { Reorder } from "framer-motion";
+import { reorderBranchesAction } from "@/modules/organizations/actions";
 import dynamic from "next/dynamic";
 import { FloatingAiAssistant } from "@/shared/ui/floating-ai-assistant";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
@@ -130,6 +133,8 @@ type SidebarItem = {
   icon: React.ComponentType<{ className?: string }>;
   sub?: boolean;
   moduleCode?: string;
+  isBranch?: boolean;
+  branchId?: string;
   actionKey?:
     | "openAnnouncementModal"
     | "openChecklistModal"
@@ -468,6 +473,31 @@ export function CompanyShell({
     Object.fromEntries(SECTIONS.map((section) => [section.label, false])),
   );
   const [busy, setBusy] = useState(false);
+  const [localBranches, setLocalBranches] = useState(() => branchOptions);
+  const [isReordering, setIsReordering] = useState(false);
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setLocalBranches(branchOptions);
+  }, [branchOptions]);
+
+  const handleReorderFinish = useCallback(async (newOrder: typeof branchOptions) => {
+    const ids = newOrder.map(b => b.id);
+    const result = await reorderBranchesAction(tenantId, ids);
+    if (result.success) {
+      toast.success("Orden de ubicaciones actualizado", {
+        description: "Los cambios se han guardado profesionalmente.",
+        duration: 2000,
+      });
+    } else {
+      toast.error("Error al sincronizar el orden");
+    }
+  }, [tenantId]);
+
+  const onReorder = (newOrder: typeof localBranches) => {
+    setLocalBranches(newOrder);
+  };
   const selectedBranch = searchParams.get("branch") ?? "";
   const selectedPlanIdFromUrl = searchParams.get("selectPlanId");
   const selectedBillingPeriodFromUrl = searchParams.get("billingPeriod");
@@ -494,11 +524,13 @@ export function CompanyShell({
 
         const before = filteredItems.slice(0, dashboardIndex + 1);
         const after = filteredItems.slice(dashboardIndex + 1);
-        const locationItems: SidebarItem[] = branchOptions.map((branch) => ({
+        const locationItems: SidebarItem[] = localBranches.map((branch) => ({
           href: `/app/dashboard/location?branch=${branch.id}`,
           label: customBrandingEnabled && branch.city ? branch.city : branch.name,
           icon: MapPin,
           sub: true,
+          isBranch: true,
+          branchId: branch.id,
         }));
 
         return {
@@ -507,7 +539,7 @@ export function CompanyShell({
         };
       })
       .filter((section) => section.items.length > 0);
-  }, [enabledModuleSet, branchOptions, customBrandingEnabled]);
+  }, [enabledModuleSet, localBranches, customBrandingEnabled]);
 
   const [theme, setTheme] = useState(() => normalizeTheme(settingsSnapshot.theme || THEME_DEFAULT));
   const [profileName] = useState(sessionUserName);
@@ -1444,42 +1476,156 @@ export function CompanyShell({
                 ) : null}
                 {collapsed || expandedSections[section.label] ? (
                   <div className="space-y-0.5">
-                    {section.items.map((item) => {
-                      const active = isActive(pathname, searchParams, item.href);
-                      const isQuickAction = Boolean(item.actionKey);
-                      const itemClassName = `flex items-center gap-2.5 border-l-[2.5px] text-[13px] transition ${
-                        collapsed ? "justify-center px-0 py-2.5" : item.sub ? "px-5 py-1.5 pl-7" : "px-5 py-2"
-                      } ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-[var(--gbp-surface2)] font-semibold text-[var(--gbp-text)]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-[var(--gbp-text2)] hover:border-l-[var(--gbp-border2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]")}`;
+                    {section.label === "Operaciones" ? (
+                      <>
+                        {/* Render Dashboard Link */}
+                        {section.items.filter(i => !i.isBranch && i.href === "/app/dashboard").map((item) => {
+                          const active = isActive(pathname, searchParams, item.href);
+                          return (
+                            <Link
+                              key={item.href}
+                              href={hrefWithBranch(item.href)}
+                              className={`flex items-center gap-2.5 border-l-[2.5px] text-[13px] transition ${
+                                collapsed ? "justify-center px-0 py-2.5" : "px-5 py-2"
+                              } ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-[var(--gbp-surface2)] font-semibold text-[var(--gbp-text)]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-[var(--gbp-text2)] hover:border-l-[var(--gbp-border2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]")}`}
+                              style={active ? { borderLeftColor: palette.accent } : undefined}
+                              onClick={() => handleSidebarItemClick(item)}
+                            >
+                              <item.icon className="h-4 w-4" />
+                              {!collapsed ? <span>{item.label}</span> : null}
+                            </Link>
+                          );
+                        })}
 
-                      if (isQuickAction) {
+                        {/* Reorderable Branches List */}
+                        <Reorder.Group
+                          axis="y"
+                          values={localBranches}
+                          onReorder={onReorder}
+                          className="space-y-0.5"
+                        >
+                          {localBranches.map((branch) => {
+                            const href = `/app/dashboard/location?branch=${branch.id}`;
+                            const label = customBrandingEnabled && branch.city ? branch.city : branch.name;
+                            const active = isActive(pathname, searchParams, href);
+                            const isDraggingThis = activeDragId === branch.id;
+
+                            return (
+                              <Reorder.Item
+                                key={branch.id}
+                                value={branch}
+                                onDragStart={() => {
+                                  setActiveDragId(branch.id);
+                                  setIsReordering(true);
+                                }}
+                                onDragEnd={() => {
+                                  setActiveDragId(null);
+                                  setIsReordering(false);
+                                  void handleReorderFinish(localBranches);
+                                }}
+                                initial={false}
+                                className="relative list-none"
+                              >
+                                <Link
+                                  href={isReordering ? "#" : hrefWithBranch(href)}
+                                  draggable={false}
+                                  onPointerDown={(e) => {
+                                    // Prevent default to prevent native drag text selection on touch
+                                    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+                                    longPressTimerRef.current = setTimeout(() => {
+                                      if ("vibrate" in navigator) navigator.vibrate(40);
+                                      setIsReordering(true);
+                                    }, 400); // 400ms feels more snappy
+                                  }}
+                                  onPointerUp={() => { if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current); }}
+                                  onPointerLeave={() => { if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current); }}
+                                  onDragStart={(e) => {
+                                    if (!isReordering) {
+                                       e.preventDefault();
+                                    }
+                                  }}
+                                  onClick={(e) => {
+                                    if (isReordering) {
+                                      e.preventDefault();
+                                      return;
+                                    }
+                                    handleSidebarItemClick({ href, label, icon: MapPin });
+                                  }}
+                                  className={`group flex items-center gap-2.5 border-l-[2.5px] text-[13px] transition-all select-none ${
+                                    collapsed ? "justify-center px-0 py-2.5" : "px-5 py-1.5 pl-7"
+                                  } ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-[var(--gbp-surface2)] font-semibold text-[var(--gbp-text)]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-[var(--gbp-text2)] hover:border-l-[var(--gbp-border2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]")} ${isDraggingThis ? "!bg-[var(--gbp-surface2)] !border-l-[var(--gbp-accent)] shadow-xl ring-1 ring-[var(--gbp-accent)]/20 scale-[1.04] z-50 rounded-md" : ""}`}
+                                  style={active && !isDraggingThis ? { borderLeftColor: palette.accent } : undefined}
+                                >
+                                  <div className="flex flex-1 items-center gap-2.5 overflow-hidden">
+                                     <MapPin className={`h-4 w-4 shrink-0 ${active ? "text-[var(--gbp-accent)]" : ""}`} />
+                                     {!collapsed ? <span className="truncate">{label}</span> : null}
+                                  </div>
+                                  {!collapsed && (
+                                    <GripVertical className={`h-3.5 w-3.5 shrink-0 transition-opacity ${isDraggingThis ? "opacity-100" : "opacity-0 group-hover:opacity-40"}`} />
+                                  )}
+                                </Link>
+                              </Reorder.Item>
+                            );
+                          })}
+                        </Reorder.Group>
+
+                        {/* Render Remaining Links */}
+                        {section.items.filter(i => !i.isBranch && i.href !== "/app/dashboard").map((item) => {
+                          const active = isActive(pathname, searchParams, item.href);
+                          return (
+                            <Link
+                              key={item.href}
+                              href={hrefWithBranch(item.href)}
+                              className={`flex items-center gap-2.5 border-l-[2.5px] text-[13px] transition ${
+                                collapsed ? "justify-center px-0 py-2.5" : "px-5 py-2"
+                              } ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-[var(--gbp-surface2)] font-semibold text-[var(--gbp-text)]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-[var(--gbp-text2)] hover:border-l-[var(--gbp-border2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]")}`}
+                              style={active ? { borderLeftColor: palette.accent } : undefined}
+                              onClick={() => handleSidebarItemClick(item)}
+                            >
+                              <item.icon className="h-4 w-4" />
+                              {!collapsed ? <span>{item.label}</span> : null}
+                            </Link>
+                          );
+                        })}
+                      </>
+                    ) : (
+                      section.items.map((item) => {
+                        const active = isActive(pathname, searchParams, item.href);
+                        const isQuickAction = Boolean(item.actionKey);
+                        const itemClassName = `flex items-center gap-2.5 border-l-[2.5px] text-[13px] transition ${
+                          collapsed ? "justify-center px-0 py-2.5" : item.sub ? "px-5 py-1.5 pl-7" : "px-5 py-2"
+                        } ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-[var(--gbp-surface2)] font-semibold text-[var(--gbp-text)]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-[var(--gbp-text2)] hover:border-l-[var(--gbp-border2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]")}`;
+
+                        if (isQuickAction) {
+                          return (
+                            <button
+                              key={item.href}
+                              type="button"
+                              className={itemClassName}
+                              onClick={() => handleSidebarItemClick(item)}
+                              onMouseEnter={() => prefetchQuickActionCatalog(item)}
+                            >
+                              <item.icon className="h-4 w-4" />
+                              {!collapsed ? <span>{item.label}</span> : null}
+                            </button>
+                          );
+                        }
+
                         return (
-                          <button
+                          <Link
                             key={item.href}
-                            type="button"
+                            href={hrefWithBranch(item.href)}
                             className={itemClassName}
+                            style={active ? { borderLeftColor: palette.accent } : undefined}
                             onClick={() => handleSidebarItemClick(item)}
-                            onMouseEnter={() => prefetchQuickActionCatalog(item)}
+                            onMouseEnter={() => router.prefetch(hrefWithBranch(item.href))}
                           >
                             <item.icon className="h-4 w-4" />
                             {!collapsed ? <span>{item.label}</span> : null}
-                          </button>
+                          </Link>
                         );
-                      }
-
-                      return (
-                        <Link
-                          key={item.href}
-                          href={hrefWithBranch(item.href)}
-                          className={itemClassName}
-                          style={active ? { borderLeftColor: palette.accent } : undefined}
-                          onClick={() => handleSidebarItemClick(item)}
-                          onMouseEnter={() => router.prefetch(hrefWithBranch(item.href))}
-                        >
-                          <item.icon className="h-4 w-4" />
-                          {!collapsed ? <span>{item.label}</span> : null}
-                        </Link>
-                      );
-                    })}
+                      })
+                    )}
                   </div>
                 ) : null}
                 {idx < visibleSections.length - 1 ? <div className={`mx-4 mt-2 h-px ${isDarkTheme ? "bg-white/10" : "bg-black/10"} ${collapsed ? "mx-2" : ""}`} /> : null}

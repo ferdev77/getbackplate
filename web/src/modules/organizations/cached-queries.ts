@@ -129,7 +129,8 @@ export const getActiveBranchesCached = unstable_cache(
       .select("id, name, city")
       .eq("organization_id", organizationId)
       .eq("is_active", true)
-      .order("name");
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true });
     return data ?? [];
   },
   ["active-branches-v1"],

@@ -333,6 +333,7 @@ const employeesQuery = supabase
                             confirmDescription="Se eliminara el anuncio y su audiencia. Esta accion no se puede deshacer."
                             confirmLabel="Eliminar"
                             className={ACTION_BTN_DANGER}
+                            data-testid="delete-announcement-btn"
                           />
                         </form>
                       </div>

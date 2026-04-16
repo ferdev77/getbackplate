@@ -559,3 +559,68 @@ export async function assignCompanyAdminAction(formData: FormData) {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Reorder Branches
+// ---------------------------------------------------------------------------
+
+export async function reorderBranchesAction(branchIds: string[]) {
+  const { assertCompanyAdminModuleApi } = await import("@/shared/lib/access");
+
+  // Basic validation: core module is enough to manage branches
+  const access = await assertCompanyAdminModuleApi("core");
+
+  if (!access.ok) {
+    return { ok: false, error: access.error };
+  }
+
+  const organizationId = access.tenant.organizationId;
+  const admin = createSupabaseAdminClient();
+
+  // First, verify all IDs belong to this organization to prevent cross-tenant updates
+  const { data: validBranches } = await admin
+    .from("branches")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .in("id", branchIds);
+
+  const validIds = (validBranches ?? []).map((b) => b.id);
+  const filteredIds = branchIds.filter((id) => validIds.includes(id));
+
+  if (filteredIds.length === 0) {
+    return { ok: false, error: "No se encontraron locaciones validas para reordenar" };
+  }
+
+  // Perform sequential updates for sort_order
+  // In a real high-scale app, we might use a single RPC, 
+  // but for a dozen branches, individual updates are fine and cleaner.
+  const updates = filteredIds.map((id, index) =>
+    admin
+      .from("branches")
+      .update({ sort_order: index })
+      .eq("id", id)
+      .eq("organization_id", organizationId) // Redundant but safe
+  );
+
+  const results = await Promise.all(updates);
+  const hasError = results.some((r) => r.error);
+
+  if (hasError) {
+    console.error("Error reordering branches", results.find((r) => r.error)?.error);
+    return { ok: false, error: "Error al guardar el nuevo orden" };
+  }
+
+  await logAuditEvent({
+    action: "organization.branches.reorder",
+    entityType: "organization",
+    entityId: organizationId,
+    organizationId,
+    eventDomain: "company",
+    outcome: "success",
+    severity: "low",
+    metadata: { branchCount: filteredIds.length },
+  });
+
+  revalidatePath("/app"); // Revalidate sidebar
+  return { ok: true };
+}

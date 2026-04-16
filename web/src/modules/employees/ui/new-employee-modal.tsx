@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { createElement, useEffect, useMemo, useState, startTransition, type FormEvent } from "react";
 import { toast } from "sonner";
 import { SubmitButton } from "@/shared/ui/submit-button";
+import { PasswordInput } from "@/shared/ui/password-input";
 
 export type ModalBranch = { id: string; name: string };
 type ModalDocument = { id: string; title: string; created_at: string };
@@ -1084,6 +1085,7 @@ export function NewEmployeeModal({
                 key={tab.key}
                 type="button"
                 onClick={() => setActiveTab(idx)}
+                data-testid={`employee-tab-${tab.key}`}
                 className={`border-b-2 px-4 py-4 text-sm font-semibold transition-all ${
                   currentTabIndex === idx
                     ? "border-brand text-brand"
@@ -1101,6 +1103,7 @@ export function NewEmployeeModal({
                 type="button"
                 onClick={openAddCustomDocumentRow}
                 disabled={isCreatingCustomDocument}
+                data-testid="add-document-btn"
                 className="inline-flex items-center gap-1.5 rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-2.5 py-1 text-[10px] font-semibold text-[var(--gbp-text2)] hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {isCreatingCustomDocument ? (
@@ -1123,6 +1126,7 @@ export function NewEmployeeModal({
                     value={newDocumentTitle}
                     onChange={(event) => setNewDocumentTitle(event.target.value)}
                     disabled={isCreatingCustomDocument}
+                    data-testid="add-document-title-input"
                     onKeyDown={(event) => {
                       if (isCreatingCustomDocument) return;
                       if (event.key === "Enter") {
@@ -1153,6 +1157,7 @@ export function NewEmployeeModal({
                       type="button"
                       onClick={confirmAddCustomDocumentRow}
                       disabled={!newDocumentTitle.trim() || isCreatingCustomDocument}
+                      data-testid="confirm-add-document-btn"
                       className="inline-flex items-center gap-1 rounded-md bg-[var(--gbp-accent)] px-2.5 py-1 text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {isCreatingCustomDocument ? (
@@ -2008,9 +2013,8 @@ export function NewEmployeeModal({
                   </div>
                   <div className="space-y-2">
                     <label className={FIELD_LABEL}>Contraseña inicial</label>
-                    <input
+                    <PasswordInput
                       name="account_password"
-                      type="password"
                       required={requiresAccountPassword}
                       minLength={8}
                       placeholder={mode === "edit" && initialEmployee?.has_dashboard_access ? "Opcional: dejar vacio para mantener" : "Mínimo 8 caracteres"}

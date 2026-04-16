@@ -383,7 +383,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
                           <Pencil className="h-3.5 w-3.5" />
                           <TooltipLabel label="Editar" />
                         </ChecklistEditTrigger>
-                        <Link href={`/app/checklists?delete=${template.id}`} className={ACTION_BTN_DANGER}><Trash2 className="h-3.5 w-3.5" /><TooltipLabel label="Eliminar" /></Link>
+                        <Link href={`/app/checklists?delete=${template.id}`} className={ACTION_BTN_DANGER} data-testid="delete-checklist-btn"><Trash2 className="h-3.5 w-3.5" /><TooltipLabel label="Eliminar" /></Link>
                       </div>
                     </div>
                   </div>
