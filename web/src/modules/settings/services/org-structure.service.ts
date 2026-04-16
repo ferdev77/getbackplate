@@ -66,6 +66,15 @@ export async function createBranch(params: {
     return { ok: false, message: "Ya existe una locacion con ese nombre" };
   }
 
+  const { data: maxOrderData } = await supabase
+    .from("branches")
+    .select("sort_order")
+    .eq("organization_id", organizationId)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const sortOrder = (maxOrderData?.sort_order ?? -1) + 1;
+
   const { data: created, error } = await supabase
     .from("branches")
     .insert({
@@ -78,6 +87,7 @@ export async function createBranch(params: {
       address,
       phone,
       is_active: true,
+      sort_order: sortOrder,
     })
     .select("id")
     .single();
@@ -216,6 +226,15 @@ export async function createDepartment(params: {
 
   const code = toCode(name);
 
+  const { data: maxOrderData } = await supabase
+    .from("organization_departments")
+    .select("sort_order")
+    .eq("organization_id", organizationId)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const sortOrder = (maxOrderData?.sort_order ?? -1) + 1;
+
   const { data: created, error } = await supabase
     .from("organization_departments")
     .insert({
@@ -225,6 +244,7 @@ export async function createDepartment(params: {
       description,
       created_by: createdBy,
       is_active: true,
+      sort_order: sortOrder,
     })
     .select("id")
     .single();
@@ -398,6 +418,16 @@ export async function createDepartmentPosition(params: {
     return { ok: false, message: "Ya existe ese puesto en el departamento" };
   }
 
+  const { data: maxOrderData } = await supabase
+    .from("department_positions")
+    .select("sort_order")
+    .eq("organization_id", organizationId)
+    .eq("department_id", departmentId)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const sortOrder = (maxOrderData?.sort_order ?? -1) + 1;
+
   const { data: created, error } = await supabase
     .from("department_positions")
     .insert({
@@ -408,6 +438,7 @@ export async function createDepartmentPosition(params: {
       description,
       created_by: createdBy,
       is_active: true,
+      sort_order: sortOrder,
     })
     .select("id")
     .single();

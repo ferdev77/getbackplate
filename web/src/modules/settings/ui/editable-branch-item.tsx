@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Edit2, Trash2, MapPin, Check, X, ShieldAlert } from "lucide-react";
+import { Edit2, Trash2, MapPin, Check, X, ShieldAlert, GripVertical } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
 
 interface Branch {
@@ -20,6 +20,7 @@ interface EditableBranchItemProps {
   updateAction: (formData: FormData) => Promise<void>;
   deleteAction: (formData: FormData) => Promise<void>;
   toggleStatusAction: (formData: FormData) => Promise<void>;
+  dragHandleProps?: any;
 }
 
 export function EditableBranchItem({
@@ -27,6 +28,7 @@ export function EditableBranchItem({
   updateAction,
   deleteAction,
   toggleStatusAction,
+  dragHandleProps,
 }: EditableBranchItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -185,6 +187,11 @@ export function EditableBranchItem({
   return (
     <div className={`group relative flex items-center justify-between rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 transition-all hover:border-[var(--gbp-border2)] hover:shadow-sm ${!branch.is_active ? "opacity-60" : ""}`}>
       <div className="flex items-start gap-3">
+        {dragHandleProps && (
+          <div {...dragHandleProps} className="mt-1 -ml-1 mr-1 cursor-grab active:cursor-grabbing text-[var(--gbp-muted)] hover:text-[var(--gbp-text)] transition-colors">
+            <GripVertical className="h-4 w-4" />
+          </div>
+        )}
         <div className={`mt-0.5 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] p-2 text-[var(--gbp-text2)]`}>
           <MapPin className="h-4 w-4" />
         </div>
