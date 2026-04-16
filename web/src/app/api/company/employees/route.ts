@@ -1588,7 +1588,6 @@ export async function POST(request: Request) {
       actorId,
       metadata: {
         mode: "edit",
-        is_impersonated: !!isImpersonated,
       },
     });
 
