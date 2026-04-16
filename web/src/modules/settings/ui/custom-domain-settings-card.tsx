@@ -126,6 +126,11 @@ export function CustomDomainSettingsCard({
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [notice, setNotice] = useState<NoticeState>(null);
   const [confirmDelete, setConfirmDelete] = useState<CustomDomainRow | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Throttle: one recheck per domain every 10 seconds.
   const recheckCooldowns = useRef<Record<string, boolean>>({});
@@ -424,7 +429,7 @@ export function CustomDomainSettingsCard({
                   </div>
 
                   <p className="mt-2 text-[11px] text-[var(--gbp-text2)]">
-                    Ultima verificacion: {formatLastChecked(row.last_checked_at)}
+                    Ultima verificacion: {isMounted ? formatLastChecked(row.last_checked_at) : "..."}
                   </p>
 
                   {row.verification_error ? (
