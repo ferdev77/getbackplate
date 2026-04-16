@@ -48,7 +48,8 @@ export async function PATCH(request: Request) {
       eventDomain: "documents",
       outcome: "error",
       severity: "high",
-      metadata: { error: error.message, actor_user_id: access.userId },
+      actorId: access.userId,
+      metadata: { error: error.message },
     });
     return NextResponse.json({ error: `No se pudo restaurar el documento: ${error.message}` }, { status: 400 });
   }
@@ -61,7 +62,8 @@ export async function PATCH(request: Request) {
     eventDomain: "documents",
     outcome: "success",
     severity: "low",
-    metadata: { actor_user_id: access.userId },
+    actorId: access.userId,
+    metadata: {},
   });
 
   return NextResponse.json({ ok: true, message: "Documento restaurado" });
@@ -107,7 +109,8 @@ export async function DELETE(request: Request) {
       eventDomain: "documents",
       outcome: "error",
       severity: "high",
-      metadata: { file_path: document.file_path, error: error.message, actor_user_id: access.userId },
+      actorId: access.userId,
+      metadata: { file_path: document.file_path, error: error.message },
     });
     return NextResponse.json({ error: `No se pudo eliminar definitivamente: ${error.message}` }, { status: 400 });
   }
@@ -128,7 +131,8 @@ export async function DELETE(request: Request) {
     eventDomain: "documents",
     outcome: "success",
     severity: "medium",
-    metadata: { file_path: document.file_path, actor_user_id: access.userId },
+    actorId: access.userId,
+    metadata: { file_path: document.file_path },
   });
 
   return NextResponse.json({ ok: true });

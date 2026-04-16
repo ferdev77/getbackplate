@@ -86,8 +86,8 @@ export async function POST(request: Request) {
       eventDomain: "checklists",
       outcome: "error",
       severity: "medium",
+      actorId: userId,
       metadata: {
-        actor_user_id: userId,
         error: message,
         ...metadata,
       },
@@ -300,8 +300,8 @@ export async function POST(request: Request) {
     eventDomain: "checklists",
     outcome: "success",
     severity: "medium",
+    actorId: userId,
     metadata: {
-      actor_user_id: userId,
       template_id: templateId,
       items_count: items.length,
       evidence_files_count: uploadedEvidencePaths.length,

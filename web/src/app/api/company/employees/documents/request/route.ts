@@ -143,8 +143,8 @@ export async function POST(request: Request) {
     eventDomain: "employees",
     outcome: "success",
     severity: "low",
+    actorId,
     metadata: {
-      actor_user_id: actorId,
       employee_id: employee.id,
       source: "company.employees.modal",
       slot: `custom_${createdDoc.id}`,

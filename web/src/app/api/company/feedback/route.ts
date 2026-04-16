@@ -66,10 +66,10 @@ export async function POST(request: Request) {
     eventDomain: "settings",
     outcome: "success",
     severity: "low",
+    actorId: userId,
     metadata: {
       feedback_type: normalizedType,
       page_path: pagePath,
-      actor_user_id: userId,
     },
   });
 

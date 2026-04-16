@@ -116,8 +116,8 @@ export async function POST(request: Request) {
       eventDomain: "documents",
       outcome: "error",
       severity: "medium",
+      actorId: userId,
       metadata: {
-        actor_user_id: userId,
         name,
         parent_id: parentId,
         error: error.message,
@@ -134,8 +134,8 @@ export async function POST(request: Request) {
     eventDomain: "documents",
     outcome: "success",
     severity: "medium",
+    actorId: userId,
     metadata: {
-      actor_user_id: userId,
       name,
       parent_id: parentId,
     },
@@ -292,8 +292,8 @@ export async function PATCH(request: Request) {
       eventDomain: "documents",
       outcome: "error",
       severity: "medium",
+      actorId: userId,
       metadata: {
-        actor_user_id: userId,
         error: error.message,
       },
     });
@@ -308,8 +308,8 @@ export async function PATCH(request: Request) {
     eventDomain: "documents",
     outcome: "success",
     severity: "low",
+    actorId: userId,
     metadata: {
-      actor_user_id: userId,
       updated_fields: Object.keys(updatePayload),
     },
   });
@@ -364,8 +364,8 @@ export async function DELETE(request: Request) {
       eventDomain: "documents",
       outcome: "error",
       severity: "high",
+      actorId: userId,
       metadata: {
-        actor_user_id: userId,
         error: error.message,
       },
     });
@@ -380,9 +380,8 @@ export async function DELETE(request: Request) {
     eventDomain: "documents",
     outcome: "success",
     severity: "medium",
-    metadata: {
-      actor_user_id: userId,
-    },
+    actorId: userId,
+    metadata: {},
   });
 
   return NextResponse.json({ ok: true });

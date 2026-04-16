@@ -233,8 +233,8 @@ export async function POST(request: Request) {
         eventDomain: 'settings',
         outcome: notificationResult.ok ? 'success' : 'error',
         severity: notificationResult.ok ? 'medium' : 'high',
+        actorId: user.id,
         metadata: {
-          actor_user_id: user.id,
           actor_email: user.email,
           target_plan_id: planId || null,
           target_price_id: targetPriceId,
@@ -306,8 +306,8 @@ export async function POST(request: Request) {
       eventDomain: 'settings',
       outcome: 'success',
       severity: 'low',
+      actorId: user.id,
       metadata: {
-        actor_user_id: user.id,
         target_plan_id: planId,
         target_price_id: targetPriceId,
         billing_period: requestedPeriod,
