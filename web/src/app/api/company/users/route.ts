@@ -275,8 +275,8 @@ export async function PATCH(request: Request) {
       eventDomain: "employees",
       outcome: "error",
       severity: "medium",
+      actorId: userId,
       metadata: {
-        actor_user_id: userId,
         role_code: roleCode,
         status,
         branch_id: branchId,
@@ -297,8 +297,8 @@ export async function PATCH(request: Request) {
     eventDomain: "employees",
     outcome: "success",
     severity: "low",
+    actorId: userId,
     metadata: {
-      actor_user_id: userId,
       role_code: roleCode,
       status,
       branch_id: branchId,
@@ -316,8 +316,8 @@ export async function PATCH(request: Request) {
       eventDomain: "employees",
       outcome: "success",
       severity: "low",
+      actorId: userId,
       metadata: {
-        actor_user_id: userId,
         status_scope: "acceso",
         previous_status: previousMembership?.status ?? null,
         next_status: status,
@@ -444,8 +444,8 @@ export async function POST(request: Request) {
     eventDomain: "employees",
     outcome: "success",
     severity: "high",
+    actorId: userId,
     metadata: {
-      actor_user_id: userId,
       target_user_id: targetUserId,
       full_name: fullName,
       email,
@@ -464,8 +464,8 @@ export async function POST(request: Request) {
     eventDomain: "employees",
     outcome: "success",
     severity: "low",
+    actorId: userId,
     metadata: {
-      actor_user_id: userId,
       status_scope: "acceso",
       previous_status: existingMembership ? "(existing)" : null,
       next_status: accessStatus,
@@ -515,8 +515,8 @@ export async function DELETE(request: Request) {
       eventDomain: "employees",
       outcome: "error",
       severity: "high",
+      actorId: userId,
       metadata: {
-        actor_user_id: userId,
         error: error.message,
       },
     });
@@ -534,9 +534,8 @@ export async function DELETE(request: Request) {
     eventDomain: "employees",
     outcome: "success",
     severity: "medium",
-    metadata: {
-      actor_user_id: userId,
-    },
+    actorId: userId,
+    metadata: {},
   });
 
   return NextResponse.json({ ok: true });

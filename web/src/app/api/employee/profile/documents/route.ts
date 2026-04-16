@@ -264,8 +264,8 @@ export async function POST(request: Request) {
     eventDomain: "employees",
     outcome: "success",
     severity: "low",
+    actorId: userId,
     metadata: {
-      actor_user_id: userId,
       employee_id: employee.id,
       slot,
       source: "employee.portal.profile_modal",

@@ -323,6 +323,7 @@ export async function POST(request: Request) {
     entityType: "document",
     entityId: document?.id,
     organizationId: tenant.organizationId,
+    actorId: context.userId,
     metadata: { title: titleInput || file.name, folderId, size: file.size },
     eventDomain: "documents",
     outcome: "success",
@@ -473,8 +474,8 @@ export async function PATCH(request: Request) {
       eventDomain: "documents",
       outcome: "error",
       severity: "medium",
+      actorId: context.userId,
       metadata: {
-        actor_user_id: context.userId,
         updated_fields: Object.keys(updatePayload),
         error: error.message,
       },
@@ -490,8 +491,8 @@ export async function PATCH(request: Request) {
     eventDomain: "documents",
     outcome: "success",
     severity: "low",
+    actorId: context.userId,
     metadata: {
-      actor_user_id: context.userId,
       updated_fields: Object.keys(updatePayload),
     },
   });
@@ -542,8 +543,8 @@ export async function DELETE(request: Request) {
       eventDomain: "documents",
       outcome: "error",
       severity: "high",
+      actorId: context.userId,
       metadata: {
-        actor_user_id: context.userId,
         file_path: document.file_path,
         error: error.message,
       },
@@ -562,8 +563,8 @@ export async function DELETE(request: Request) {
     eventDomain: "documents",
     outcome: "success",
     severity: "medium",
+    actorId: context.userId,
     metadata: {
-      actor_user_id: context.userId,
       file_path: document.file_path,
     },
   });

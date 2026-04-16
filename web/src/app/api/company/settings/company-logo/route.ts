@@ -68,8 +68,8 @@ export async function POST(request: Request) {
       eventDomain: "settings",
       outcome: "error",
       severity: "medium",
+      actorId: moduleAccess.userId,
       metadata: {
-        actor_user_id: moduleAccess.userId,
         error: uploadResult.error,
       },
     });
@@ -105,8 +105,8 @@ export async function POST(request: Request) {
       eventDomain: "settings",
       outcome: "error",
       severity: "high",
+      actorId: moduleAccess.userId,
       metadata: {
-        actor_user_id: moduleAccess.userId,
         error: updateError.message,
       },
     });
@@ -120,8 +120,8 @@ export async function POST(request: Request) {
     eventDomain: "settings",
     outcome: "success",
     severity: "medium",
+    actorId: moduleAccess.userId,
     metadata: {
-      actor_user_id: moduleAccess.userId,
       logo_path: uploadResult.logoPath,
       variant,
     },

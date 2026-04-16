@@ -137,8 +137,8 @@ export async function POST(request: Request) {
     eventDomain: "employees",
     outcome: "success",
     severity: "low",
+    actorId,
     metadata: {
-      actor_user_id: actorId,
       employee_id: employeeId,
       document_id: documentId,
       comment: reviewComment,

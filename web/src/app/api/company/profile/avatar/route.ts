@@ -29,7 +29,8 @@ export async function POST(request: Request) {
       eventDomain: "settings",
       outcome: "error",
       severity: "low",
-      metadata: { actor_user_id: user.id, error: validation.error },
+      actorId: user.id,
+      metadata: { error: validation.error },
     });
     return NextResponse.json({ error: validation.error }, { status: 400 });
   }
@@ -55,7 +56,8 @@ export async function POST(request: Request) {
       eventDomain: "settings",
       outcome: "error",
       severity: "medium",
-      metadata: { actor_user_id: user.id, error: uploadResult.error },
+      actorId: user.id,
+      metadata: { error: uploadResult.error },
     });
     return NextResponse.json({ error: uploadResult.error }, { status: 400 });
   }
@@ -67,7 +69,8 @@ export async function POST(request: Request) {
     eventDomain: "settings",
     outcome: "success",
     severity: "low",
-    metadata: { actor_user_id: user.id, avatar_path: uploadResult.avatarPath },
+    actorId: user.id,
+    metadata: { avatar_path: uploadResult.avatarPath },
   });
 
   return NextResponse.json({ ok: true, avatarUrl: uploadResult.avatarUrl });
