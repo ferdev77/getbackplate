@@ -192,7 +192,7 @@ export async function POST(request: Request) {
       entityId: newVendor.id,
       organizationId,
       actorId,
-      eventDomain: "company",
+      eventDomain: "settings",
       outcome: "success",
       severity: "medium",
       metadata: { name: vendorData.name, category: vendorData.category, branch_ids },
