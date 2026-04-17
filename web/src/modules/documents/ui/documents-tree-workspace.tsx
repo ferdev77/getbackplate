@@ -109,6 +109,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
     status: "idle",
   });
   const [busy, setBusy] = useState(false);
+  const [connectedUsersCount, setConnectedUsersCount] = useState<number | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -181,6 +182,47 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
     };
   }, [organizationId, router, supabase]);
 
+  useEffect(() => {
+    if (!organizationId || !viewerUserId) return;
+
+    const channel = supabase.channel(`documents-presence-${organizationId}`, {
+      config: {
+        presence: {
+          key: viewerUserId,
+        },
+      },
+    });
+
+    const computeConnectedUsers = () => {
+      const state = channel.presenceState();
+      const keys = Object.keys(state);
+      setConnectedUsersCount(keys.length);
+    };
+
+    channel.on("presence", { event: "sync" }, computeConnectedUsers);
+    channel.on("presence", { event: "join" }, computeConnectedUsers);
+    channel.on("presence", { event: "leave" }, computeConnectedUsers);
+
+    channel.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await channel.track({
+          organization_id: organizationId,
+          user_id: viewerUserId,
+          online_at: new Date().toISOString(),
+        });
+      }
+
+      if (status === "CLOSED" || status === "TIMED_OUT" || status === "CHANNEL_ERROR") {
+        setConnectedUsersCount(0);
+      }
+    });
+
+    return () => {
+      setConnectedUsersCount(0);
+      void supabase.removeChannel(channel);
+    };
+  }, [organizationId, viewerUserId, supabase]);
+
   const folderOptions = useMemo(() => folderRows.map((row) => ({ id: row.id, name: row.name })), [folderRows]);
   const folderById = useMemo(() => new Map(folderRows.map((row) => [row.id, row])), [folderRows]);
 
@@ -235,7 +277,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   }, [folderRows]);
 
   const totalDocuments = documentRows.length;
-  const activeUsers = users.length;
+  const activeUsers = connectedUsersCount ?? users.length;
   const docsThisMonth = useMemo(() => {
     const now = new Date();
     const y = now.getFullYear();
