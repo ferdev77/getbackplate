@@ -61,6 +61,11 @@ type PositionRow = {
   sort_order: number;
 };
 
+function hasMissingColumnError(error: { message?: string } | null, column: string) {
+  const message = error?.message?.toLowerCase() ?? "";
+  return message.includes("column") && message.includes(column.toLowerCase());
+}
+
 export default async function CompanySettingsPage({ searchParams }: CompanySettingsPageProps) {
   const params = await searchParams;
   const tenant = await requireTenantModule("settings");
@@ -71,9 +76,6 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
     { data: organization },
     { data: orgSettingsWithWebsite, error: orgSettingsWithWebsiteError },
     { data: brandingSettings },
-    { data: branches },
-    { data: departments },
-    { data: positions },
     { data: customDomains },
   ] = await Promise.all([
     supabase
@@ -94,36 +96,81 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
       .eq("organization_id", tenant.organizationId)
       .maybeSingle(),
     supabase
-      .from("branches")
-      .select("id, name, city, state, country, address, phone, is_active, created_at, sort_order")
-      .eq("organization_id", tenant.organizationId)
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: false })
-      .limit(30),
-    supabase
-      .from("organization_departments")
-      .select("id, name, description, is_active, created_at, sort_order")
-      .eq("organization_id", tenant.organizationId)
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: false })
-      .limit(40),
-    supabase
-      .from("department_positions")
-      .select("id, department_id, name, description, is_active, created_at, sort_order")
-      .eq("organization_id", tenant.organizationId)
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: false })
-      .limit(200),
-    supabase
       .from("organization_domains")
       .select("id, domain, status, is_primary, dns_target, verification_error, verified_at, activated_at, last_checked_at")
       .eq("organization_id", tenant.organizationId)
       .order("created_at", { ascending: false }),
   ]);
 
-  const activeBranches = (branches ?? []).filter((row) => row.is_active).length;
-  const activeDepartments = (departments ?? []).filter((row) => row.is_active).length;
-  const activePositions = (positions ?? []).filter((row) => row.is_active).length;
+  const branchesResult = await supabase
+    .from("branches")
+    .select("id, name, city, state, country, address, phone, is_active, created_at, sort_order")
+    .eq("organization_id", tenant.organizationId)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false })
+    .limit(30);
+
+  const branchesData: BranchRow[] = hasMissingColumnError(branchesResult.error, "sort_order")
+    ? (
+        await supabase
+          .from("branches")
+          .select("id, name, city, state, country, address, phone, is_active, created_at")
+          .eq("organization_id", tenant.organizationId)
+          .order("created_at", { ascending: false })
+          .limit(30)
+      ).data?.map((row, index) => ({ ...row, sort_order: index })) ?? []
+    : (branchesResult.data ?? []).map((row, index) => ({
+        ...row,
+        sort_order: typeof row.sort_order === "number" ? row.sort_order : index,
+      }));
+
+  const departmentsResult = await supabase
+    .from("organization_departments")
+    .select("id, name, description, is_active, created_at, sort_order")
+    .eq("organization_id", tenant.organizationId)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false })
+    .limit(40);
+
+  const departmentsData: DepartmentRow[] = hasMissingColumnError(departmentsResult.error, "sort_order")
+    ? (
+        await supabase
+          .from("organization_departments")
+          .select("id, name, description, is_active, created_at")
+          .eq("organization_id", tenant.organizationId)
+          .order("created_at", { ascending: false })
+          .limit(40)
+      ).data?.map((row, index) => ({ ...row, sort_order: index })) ?? []
+    : (departmentsResult.data ?? []).map((row, index) => ({
+        ...row,
+        sort_order: typeof row.sort_order === "number" ? row.sort_order : index,
+      }));
+
+  const positionsResult = await supabase
+    .from("department_positions")
+    .select("id, department_id, name, description, is_active, created_at, sort_order")
+    .eq("organization_id", tenant.organizationId)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  const positionsData: PositionRow[] = hasMissingColumnError(positionsResult.error, "sort_order")
+    ? (
+        await supabase
+          .from("department_positions")
+          .select("id, department_id, name, description, is_active, created_at")
+          .eq("organization_id", tenant.organizationId)
+          .order("created_at", { ascending: false })
+          .limit(200)
+      ).data?.map((row, index) => ({ ...row, sort_order: index })) ?? []
+    : (positionsResult.data ?? []).map((row, index) => ({
+        ...row,
+        sort_order: typeof row.sort_order === "number" ? row.sort_order : index,
+      }));
+
+  const activeBranches = branchesData.filter((row) => row.is_active).length;
+  const activeDepartments = departmentsData.filter((row) => row.is_active).length;
+  const activePositions = positionsData.filter((row) => row.is_active).length;
 
   const orgSettingsMissingWebsiteColumn =
     Boolean(orgSettingsWithWebsiteError?.message) &&
@@ -146,7 +193,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
     : (orgSettingsWithWebsite ?? { website_url: "" });
 
   const positionsByDepartment: Record<string, PositionRow[]> = {};
-  for (const position of positions ?? []) {
+  for (const position of positionsData) {
     const list = positionsByDepartment[position.department_id] ?? [];
     list.push(position);
     positionsByDepartment[position.department_id] = list;
@@ -234,7 +281,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
 
           <div className="space-y-3">
             <ReorderableBranchList
-              initialBranches={(branches ?? []) as BranchRow[]}
+              initialBranches={branchesData}
               updateAction={updateBranchAction}
               deleteAction={deleteBranchAction}
               toggleStatusAction={toggleBranchStatusAction}
@@ -255,7 +302,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
 
           <div className="space-y-3">
             <ReorderableDepartmentList
-              initialDepartments={(departments ?? []) as DepartmentRow[]}
+              initialDepartments={departmentsData}
               positionsByDepartment={positionsByDepartment}
               updateDepartmentAction={updateDepartmentAction}
               deleteDepartmentAction={deleteDepartmentAction}

@@ -67,7 +67,7 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
   const [state, formAction, isPending] = useActionState(createAnnouncementAction, { success: false, message: "" });
   const [notifyWhatsapp, setNotifyWhatsapp] = useState(false);
   const [notifySms, setNotifySms] = useState(false);
-  const [notifyEmail, setNotifyEmail] = useState(true);
+  const [notifyEmail, setNotifyEmail] = useState(false);
   const [hasExpiry, setHasExpiry] = useState(Boolean(initial?.expires_at));
   const [isRecurring, setIsRecurring] = useState(Boolean(initial?.is_recurring));
 

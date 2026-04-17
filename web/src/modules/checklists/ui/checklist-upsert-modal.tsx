@@ -60,7 +60,7 @@ export function ChecklistUpsertModal({
   const [state, formAction, isPending] = useActionState(createChecklistTemplateAction, { success: false, message: "" });
   const [notifyWhatsapp, setNotifyWhatsapp] = useState(false);
   const [notifySms, setNotifySms] = useState(false);
-  const [notifyEmail, setNotifyEmail] = useState(true);
+  const [notifyEmail, setNotifyEmail] = useState(false);
 
   useEffect(() => {
     if (state.message) {
