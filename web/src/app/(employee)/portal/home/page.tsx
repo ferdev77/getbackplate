@@ -8,7 +8,7 @@ import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-author
 import { canReadAnnouncementInTenant } from "@/shared/lib/announcement-access";
 import { canReadDocumentInTenant } from "@/shared/lib/document-access";
 import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
-import { FileText, ClipboardCheck, ArrowRight, AlertCircle, CalendarClock, PartyPopper, Megaphone } from "lucide-react";
+import { FileText, ClipboardCheck, ArrowRight, AlertCircle, CalendarClock, PartyPopper, Megaphone, Pin } from "lucide-react";
 
 type AnnouncementRow = {
   id: string;
@@ -292,11 +292,13 @@ export default async function EmployeeHomePage() {
       <section className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-sm sm:p-8">
         <div>
           <p className="text-xs text-[var(--gbp-muted)]">Bienvenido de vuelta</p>
-          <h1 className="mt-1 font-serif text-3xl font-bold text-[var(--gbp-text)]">{employeeName}</h1>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] font-medium">
+            <h1 className="font-serif text-3xl font-bold leading-none text-[var(--gbp-text)]">{employeeName}</h1>
+            {department?.name && <span className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-0.5 text-blue-600 dark:text-blue-400">{department.name}</span>}
+            {employeeRow?.position && <span className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] px-2.5 py-0.5 text-[var(--gbp-success)]">{employeeRow.position}</span>}
+          </div>
           <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-medium">
             {resolvedBranchDisplayName && <span className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-3 py-1 text-[var(--gbp-accent)]">{resolvedBranchDisplayName}</span>}
-            {department?.name && <span className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-blue-600 dark:text-blue-400">{department.name}</span>}
-            {employeeRow?.position && <span className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] px-3 py-1 text-[var(--gbp-success)]">{employeeRow.position}</span>}
           </div>
         </div>
         <div className="min-w-[140px] rounded-xl bg-[var(--gbp-bg)] p-5 text-center">
@@ -304,14 +306,17 @@ export default async function EmployeeHomePage() {
           <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-[var(--gbp-text2)]">Documentos</p>
         </div>
       </section>
-      <section
-        className={`relative overflow-hidden rounded-3xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-8 shadow-sm ${heroAnnouncement?.is_featured ? "border-x-[3.5px] border-x-[var(--gbp-accent)]" : ""}`}
-      >
+      <section className="relative overflow-hidden rounded-3xl border border-x-[3.5px] border-[var(--gbp-border)] border-x-[var(--gbp-accent)] bg-[var(--gbp-surface)] p-8 shadow-sm">
         <div className="relative z-10 flex flex-col items-start">
           <div className="mb-3 flex items-center gap-2">
             <span className="inline-flex rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_12%,transparent)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--gbp-accent)]">
               Mensaje Principal
             </span>
+            {heroAnnouncement?.is_featured ? (
+              <span title="Aviso fijado" aria-label="Aviso fijado" className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]">
+                <Pin className="h-3.5 w-3.5" />
+              </span>
+            ) : null}
             {heroAnnouncement?.kind && (
               <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-widest ${
                 heroAnnouncement.kind === "urgent" ? "bg-rose-100 text-rose-700" :
