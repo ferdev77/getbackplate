@@ -32,11 +32,11 @@ function statusClass(status: string) {
 }
 
 function formatLastChecked(value: string | null) {
-  if (!value) return "Sin verificacion reciente";
+  if (!value) return "Sin verificación reciente";
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return "Sin verificacion reciente";
+    return "Sin verificación reciente";
   }
 
   return new Intl.DateTimeFormat("es-AR", {
@@ -336,7 +336,7 @@ export function CustomDomainSettingsCard({
           <>
             {showDnsInstructions ? (
               <div className="mt-4 rounded-xl border border-[var(--gbp-border)] bg-[linear-gradient(160deg,var(--gbp-bg)_0%,var(--gbp-surface)_100%)] p-4 text-xs text-[var(--gbp-text2)]">
-                <p className="font-semibold text-[var(--gbp-text)]">Configuracion DNS</p>
+                <p className="font-semibold text-[var(--gbp-text)]">Configuración DNS</p>
                 <div className="mt-3 grid gap-2 sm:grid-cols-3">
                   <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-2.5">
                     <p className="text-[10px] font-semibold tracking-[0.08em] uppercase">Tipo</p>
@@ -369,7 +369,7 @@ export function CustomDomainSettingsCard({
                     </div>
                   </div>
                 </div>
-                <p className="mt-2 text-[11px]">Despues de guardar el CNAME, usa Revalidar para actualizar estado.</p>
+                <p className="mt-2 text-[11px]">Después de guardar el CNAME, usa Revalidar para actualizar estado.</p>
               </div>
             ) : null}
 
@@ -424,7 +424,7 @@ export function CustomDomainSettingsCard({
                   </div>
 
                   <p className="mt-2 text-[11px] text-[var(--gbp-text2)]">
-                    Ultima verificacion: <span suppressHydrationWarning>{formatLastChecked(row.last_checked_at)}</span>
+                    Última verificación: <span suppressHydrationWarning>{formatLastChecked(row.last_checked_at)}</span>
                   </p>
 
                   {row.verification_error ? (
@@ -469,14 +469,14 @@ export function CustomDomainSettingsCard({
 
               {!hasRows ? (
                 <div className="rounded-lg border border-dashed border-[var(--gbp-border2)] bg-[var(--gbp-bg)] p-4 text-xs text-[var(--gbp-text2)]">
-                  Aun no hay dominios configurados. Carga `app.tuempresa.com` para iniciar verificacion.
+                  Aún no hay dominios configurados. Carga `app.tuempresa.com` para iniciar verificación.
                 </div>
               ) : null}
             </div>
           </>
         ) : (
           <div className="mt-4 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3 text-xs text-[var(--gbp-text2)]">
-            El modulo <strong>Custom Branding</strong> debe estar activo para usar dominio personalizado.
+            El módulo <strong>Custom Branding</strong> debe estar activo para usar dominio personalizado.
           </div>
         )}
 

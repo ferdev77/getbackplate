@@ -63,7 +63,7 @@ export function ReorderableDepartmentList({
   }, [initialDepartments]);
 
   if (!items?.length) {
-    return <p className="text-center py-8 rounded-xl border border-dashed border-[var(--gbp-border2)] text-sm text-[var(--gbp-text2)]">Aun no hay departamentos.</p>;
+    return <p className="text-center py-8 rounded-xl border border-dashed border-[var(--gbp-border2)] text-sm text-[var(--gbp-text2)]">Aún no hay departamentos.</p>;
   }
 
   return (

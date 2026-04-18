@@ -269,7 +269,7 @@ export function CompanyDashboardWorkspace({
             details={[
               { label: "Estado", value: statusLabel(organizationStatus) },
               { label: "Sucursales activas", value: effectiveMetrics.branchesCount },
-              { label: "Vista", value: selectedLocationName ? `Locacion: ${selectedLocationName}` : "General" },
+              { label: "Vista", value: selectedLocationName ? `Locación: ${selectedLocationName}` : "General" },
             ]}
           />
         </AnimatedItem>
@@ -279,7 +279,7 @@ export function CompanyDashboardWorkspace({
             label="Usuarios / Empleados"
             value={effectiveMetrics.employeesCount}
             subtitle={`Empleados: ${effectiveMetrics.employeesOnlyCount} · Usuarios: ${effectiveMetrics.usersOnlyCount}`}
-            progress={{ value: employeeRatio, label: `Composicion laboral: ${employeeRatio}% empleados` }}
+            progress={{ value: employeeRatio, label: `Composición laboral: ${employeeRatio}% empleados` }}
             details={[
               { label: "Empleados", value: effectiveMetrics.employeesOnlyCount },
               { label: "Usuarios", value: effectiveMetrics.usersOnlyCount },
@@ -292,7 +292,7 @@ export function CompanyDashboardWorkspace({
             icon={CheckCircle2}
             label="Checklists hoy"
             value={checklistsTodayValue}
-            subtitle={showChecklistsPanel ? "Actividad del dia en curso" : "Modulo deshabilitado"}
+            subtitle={showChecklistsPanel ? "Actividad del día en curso" : "Módulo deshabilitado"}
             details={[
               { label: "Semana", value: checklistsWeekValue },
               { label: "Pendientes", value: pendingReviewValue },
@@ -305,7 +305,7 @@ export function CompanyDashboardWorkspace({
             icon={Megaphone}
             label="Avisos"
             value={announcementsCount}
-            subtitle={showAnnouncementsPanel ? "Publicaciones recientes" : "Modulo deshabilitado"}
+            subtitle={showAnnouncementsPanel ? "Publicaciones recientes" : "Módulo deshabilitado"}
             details={[
               { label: "Urgentes", value: urgentAnnouncementsCount },
               { label: "Fijados", value: featuredAnnouncementsCount },
@@ -318,7 +318,7 @@ export function CompanyDashboardWorkspace({
       <section className="mb-5">
         <SlideUp delay={0.2}>
           <article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--gbp-text2)]">Acciones rapidas</h2>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--gbp-text2)]">Acciones rápidas</h2>
             <div className="flex w-full gap-2">
               {visibleQuickActions.map((action) => (
                 <Link
@@ -333,7 +333,7 @@ export function CompanyDashboardWorkspace({
               ))}
               {!visibleQuickActions.length ? (
                 <div className="w-full rounded-lg border border-dashed border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-4 text-sm text-[var(--gbp-text2)]">
-                  No hay acciones rapidas disponibles con los modulos activos.
+                  No hay acciones rápidas disponibles con los módulos activos.
                 </div>
               ) : null}
             </div>
@@ -364,7 +364,7 @@ export function CompanyDashboardWorkspace({
                         <p className="mt-1 text-xs text-[var(--gbp-muted)]">
                           {notice.publish_at
                             ? `Publicado ${new Date(notice.publish_at).toLocaleDateString("es-AR")}`
-                            : "Sin fecha de publicacion"}
+                            : "Sin fecha de publicación"}
                         </p>
                       </div>
                     </AnimatedItem>
@@ -372,7 +372,7 @@ export function CompanyDashboardWorkspace({
                 </AnimatedList>
               ) : (
                 <div className="rounded-lg border border-dashed border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-6 text-center text-sm text-[var(--gbp-text2)]">
-                  {showAnnouncementsPanel ? "Sin anuncios recientes." : "Modulo de avisos deshabilitado para esta empresa."}
+                  {showAnnouncementsPanel ? "Sin anuncios recientes." : "Módulo de avisos deshabilitado para esta empresa."}
                 </div>
               )}
             </div>

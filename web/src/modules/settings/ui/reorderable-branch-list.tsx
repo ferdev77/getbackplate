@@ -49,7 +49,7 @@ export function ReorderableBranchList({
   }, [initialBranches]);
 
   if (!items?.length) {
-    return <p className="text-center py-8 rounded-xl border border-dashed border-[var(--gbp-border2)] text-sm text-[var(--gbp-text2)]">Aun no hay locaciones.</p>;
+    return <p className="text-center py-8 rounded-xl border border-dashed border-[var(--gbp-border2)] text-sm text-[var(--gbp-text2)]">Aún no hay locaciones.</p>;
   }
 
   return (

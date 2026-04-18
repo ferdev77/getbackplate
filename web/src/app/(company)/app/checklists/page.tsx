@@ -293,7 +293,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
         <section className={`mb-5 rounded-2xl border p-6 ${CARD_SOFT}`}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className={`text-[11px] font-semibold tracking-[0.14em] uppercase ${TEXT_MUTED}`}>Operacion diaria</p>
+              <p className={`text-[11px] font-semibold tracking-[0.14em] uppercase ${TEXT_MUTED}`}>Operación diaria</p>
               <h1 className={`mt-1 text-2xl font-bold tracking-tight ${TEXT_STRONG}`}>Mis Checklists</h1>
               <p className={`mt-1 text-sm ${TEXT_MUTED}`}>Replica funcional del tablero final: plantillas, ejecuciones e incidencias.</p>
             </div>
@@ -337,7 +337,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
       <SlideUp delay={0.2}>
         <section className={`overflow-hidden rounded-xl border ${CARD}`}>
           <div className={`grid grid-cols-[1fr_120px] md:grid-cols-[2fr_100px_90px_120px] lg:grid-cols-[minmax(160px,2fr)_80px_80px_100px_120px_230px_80px_110px] gap-x-3 border-b-[1.5px] px-4 py-2.5 text-[11px] font-bold tracking-[0.07em] uppercase ${CARD_SOFT} ${TEXT_MUTED}`}>
-            <p>Checklist</p><p className="hidden md:block">Tipo</p><p className="hidden lg:block">Shift</p><p className="hidden lg:block">Frecuencia</p><p className="hidden lg:block">Locacion</p><p className="hidden lg:block">Deptos / Puestos</p><p className="hidden md:block">Estado</p><p>Acciones</p>
+            <p>Checklist</p><p className="hidden md:block">Tipo</p><p className="hidden lg:block">Shift</p><p className="hidden lg:block">Frecuencia</p><p className="hidden lg:block">Locación</p><p className="hidden lg:block">Deptos / Puestos</p><p className="hidden md:block">Estado</p><p>Acciones</p>
           </div>
           <div>
             {filteredTemplates && filteredTemplates.length > 0 ? (
@@ -448,7 +448,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
                         <div>
                           <p className="mb-1 font-semibold text-[var(--gbp-text)]">Locaciones</p>
                           <div className="flex flex-wrap gap-1">
-                            {locations.length ? locations.map((name) => <span key={`loc-${name}`} className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-medium text-[var(--gbp-accent)]">{name}</span>) : <span>{hasScopedRules ? "No restringe por locacion" : "Todas"}</span>}
+                            {locations.length ? locations.map((name) => <span key={`loc-${name}`} className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-medium text-[var(--gbp-accent)]">{name}</span>) : <span>{hasScopedRules ? "No restringe por locación" : "Todas"}</span>}
                           </div>
                         </div>
                         <div>

@@ -1761,11 +1761,11 @@ export function CompanyShell({
           <div className={`w-full max-w-4xl overflow-hidden rounded-2xl border shadow-[0_35px_90px_rgba(0,0,0,.55)] ${isDarkTheme ? "border-white/15 bg-[var(--gbp-bg2)] text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text)]"}`}>
             <div className="h-1.5 w-full bg-[linear-gradient(90deg,var(--gbp-accent),var(--gbp-violet))]" />
             <div className="px-6 py-5 sm:px-8">
-              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--gbp-accent)]">Activacion requerida</p>
-              <h2 className="mt-1 text-2xl font-bold">Finaliza tu suscripcion para desbloquear el panel</h2>
+              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--gbp-accent)]">Activación requerida</p>
+              <h2 className="mt-1 text-2xl font-bold">Finaliza tu suscripción para desbloquear el panel</h2>
               <p className={`mt-2 text-sm ${isDarkTheme ? "text-white/75" : "text-[var(--gbp-text2)]"}`}>
-                Selecciona tu plan y continua en Stripe para activar la prueba gratis de 30 dias.
-                {billingGate?.reason === "trial_expired" ? " Tu periodo de prueba vencio y debes reactivar la suscripcion." : ""}
+                Selecciona tu plan y continúa en Stripe para activar la prueba gratis de 30 días.
+                {billingGate?.reason === "trial_expired" ? " Tu periodo de prueba venció y debes reactivar la suscripción." : ""}
               </p>
 
               <div className={`mt-4 inline-flex rounded-lg border p-1 text-xs font-semibold ${isDarkTheme ? "border-white/15 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
@@ -1804,7 +1804,7 @@ export function CompanyShell({
                         disabled={busy || !plan.stripePriceId || impersonationMode}
                         className={`mt-3 w-full rounded-md px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-60 ${isSuggested ? "bg-[var(--gbp-accent)] hover:opacity-95" : "bg-[color:color-mix(in_oklab,var(--gbp-accent)_75%,black)] hover:opacity-95"}`}
                       >
-                        {busy ? "Redirigiendo..." : "Comenzar trial 30 dias"}
+                        {busy ? "Redirigiendo..." : "Comenzar trial 30 días"}
                       </button>
                     </article>
                   );
@@ -1813,11 +1813,11 @@ export function CompanyShell({
 
               <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--gbp-border)] pt-4">
                 <p className={`text-xs ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-text2)]"}`}>
-                  El acceso al panel permanece bloqueado hasta confirmar la suscripcion en Stripe.
+                  El acceso al panel permanece bloqueado hasta confirmar la suscripción en Stripe.
                 </p>
                 <Link prefetch={false} href="/auth/logout" className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-semibold ${isDarkTheme ? "border-white/15 bg-white/5 text-white/80 hover:bg-white/10" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)]"}`}>
                   <LogOut className="h-3.5 w-3.5" />
-                  Cerrar sesion
+                  Cerrar sesión
                 </Link>
               </div>
             </div>
@@ -2003,7 +2003,7 @@ export function CompanyShell({
                         Abrir Portal de Pagos
                     </button>
                     {impersonationMode ? (
-                      <p className="mt-2 text-[10px] font-semibold text-amber-300">Accion bloqueada durante impersonacion.</p>
+                      <p className="mt-2 text-[10px] font-semibold text-amber-300">Acción bloqueada durante impersonación.</p>
                     ) : null}
                   </div>
                 </div>

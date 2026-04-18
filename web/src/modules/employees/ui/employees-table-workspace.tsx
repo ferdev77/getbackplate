@@ -264,9 +264,9 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
       const rowsText = [
         ["Nombre", fullName],
         ["Email", row.email || "-"],
-        ["Telefono", row.phone || "-"],
+        ["Teléfono", row.phone || "-"],
         ["Puesto", row.position || "-"],
-        ["Locacion", row.branchName],
+        ["Locación", row.branchName],
         ["Departamento", row.departmentName],
         ["Estado laboral", statusLabel(row.status)],
         ["Fecha de ingreso", formatDate(row.hiredAt)],
@@ -291,9 +291,9 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
         "",
         `Nombre: ${fullName}`,
         `Email: ${row.email || "-"}`,
-        `Telefono: ${row.phone || "-"}`,
+        `Teléfono: ${row.phone || "-"}`,
         `Puesto: ${row.position || "-"}`,
-        `Locacion: ${row.branchName}`,
+        `Locación: ${row.branchName}`,
         `Departamento: ${row.departmentName}`,
         `Estado laboral: ${statusLabel(row.status)}`,
       ].join("\n");
@@ -385,7 +385,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
       <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
         <div className="grid grid-cols-[1fr_80px] gap-x-3 border-b-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-5 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[var(--gbp-muted)] uppercase md:grid-cols-[1.5fr_1fr_120px] lg:grid-cols-[2fr_1fr_1.1fr_100px_80px_90px_136px] xl:grid-cols-[minmax(180px,2fr)_minmax(100px,1fr)_minmax(120px,1.1fr)_minmax(100px,.8fr)_minmax(70px,.6fr)_minmax(110px,.9fr)_minmax(90px,.8fr)_136px]">
           <p>Nombre</p>
-          <p className="hidden md:block">Locacion</p>
+          <p className="hidden md:block">Locación</p>
           <p className="hidden lg:block">Departamento</p>
           <p className="hidden xl:block">Empleado</p>
           <p className="hidden lg:block">Docs</p>
@@ -494,17 +494,17 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
             </div>
             <div className="grid gap-3 px-6 py-5 sm:grid-cols-3">
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Email</p><p className="text-sm text-[var(--gbp-text)]">{selected.email || "-"}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Telefono</p><p className="text-sm text-[var(--gbp-text)]">{selected.phone || "-"}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Teléfono</p><p className="text-sm text-[var(--gbp-text)]">{selected.phone || "-"}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Fecha ingreso</p><p className="text-sm text-[var(--gbp-text)]">{formatDate(selected.hiredAt)}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Nacimiento</p><p className="text-sm text-[var(--gbp-text)]">{formatDate(selected.birthDate)}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Sexo</p><p className="text-sm text-[var(--gbp-text)]">{selected.sex || "-"}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Nacionalidad</p><p className="text-sm text-[var(--gbp-text)]">{selected.nationality || "-"}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Direccion</p><p className="text-sm text-[var(--gbp-text)]">{selected.addressLine1 || "-"}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Dirección</p><p className="text-sm text-[var(--gbp-text)]">{selected.addressLine1 || "-"}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Ciudad / Estado</p><p className="text-sm text-[var(--gbp-text)]">{[selected.addressCity, selected.addressState].filter(Boolean).join(", ") || "-"}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Pais</p><p className="text-sm text-[var(--gbp-text)]">{selected.addressCountry || "-"}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Contacto emergencia</p><p className="text-sm text-[var(--gbp-text)]">{selected.emergencyName || "-"}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Telefono emergencia</p><p className="text-sm text-[var(--gbp-text)]">{selected.emergencyPhone || "-"}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Email emergencia</p><p className="text-sm text-[var(--gbp-text)]">{selected.emergencyEmail || "-"}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">País</p><p className="text-sm text-[var(--gbp-text)]">{selected.addressCountry || "-"}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Contacto de emergencia</p><p className="text-sm text-[var(--gbp-text)]">{selected.emergencyName || "-"}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Teléfono de emergencia</p><p className="text-sm text-[var(--gbp-text)]">{selected.emergencyPhone || "-"}</p></div>
+              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Email de emergencia</p><p className="text-sm text-[var(--gbp-text)]">{selected.emergencyEmail || "-"}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Contrato</p><p className="text-sm text-[var(--gbp-text)]">{selected.contractStatus || "-"}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Firma contrato</p><p className="text-sm text-[var(--gbp-text)]">{formatDate(selected.contractSignedAt)}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Docs</p><p className="text-sm text-[var(--gbp-text)]">{selected.recordType === "employee" ? `${6 - selected.pendingDocuments}/6 · ${selected.docsCompletionStatus === "complete" ? "Completa" : `Incompleta (${selected.pendingDocuments} faltantes)`}` : `${selected.docsUploadedCount ?? 0} cargados`}</p></div>
