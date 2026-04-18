@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Eye, MapPin, Pencil, Search, Share2, Trash2, ChevronRight, Folder, Mail } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -110,6 +110,8 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   });
   const [busy, setBusy] = useState(false);
   const [connectedUsersCount, setConnectedUsersCount] = useState<number | null>(null);
+  const columnsScrollRef = useRef<HTMLDivElement | null>(null);
+  const previousColumnCountRef = useRef(1);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -776,6 +778,22 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
 
   useEffect(() => {
     if (viewMode !== "columns") return;
+    const totalColumns = folderColumns.length + (selectedColumnDocument ? 1 : 0);
+    const grew = totalColumns > previousColumnCountRef.current;
+    previousColumnCountRef.current = totalColumns;
+    if (!grew) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const container = columnsScrollRef.current;
+      if (!container) return;
+      container.scrollTo({ left: container.scrollWidth, behavior: "smooth" });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [folderColumns.length, selectedColumnDocument, viewMode]);
+
+  useEffect(() => {
+    if (viewMode !== "columns") return;
     if (!selectedColumnDocId) return;
     const existsInVisibleColumns = folderColumns.some((column) => column.documents.some((doc) => doc.id === selectedColumnDocId));
     if (!existsInVisibleColumns) {
@@ -897,7 +915,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
         </section>
         ) : (
           <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
-            <div className="overflow-x-auto">
+            <div ref={columnsScrollRef} className="overflow-x-auto">
               <div className="flex min-h-[560px] divide-x divide-[var(--gbp-border)]">
                 {folderColumns.map((column, index) => {
                   const parentFolder = column.parentId ? (folderById.get(column.parentId) ?? null) : null;
