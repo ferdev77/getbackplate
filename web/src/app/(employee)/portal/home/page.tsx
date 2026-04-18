@@ -15,6 +15,7 @@ type AnnouncementRow = {
   title: string;
   body: string;
   kind: "urgent" | "reminder" | "celebration" | "general" | string | null;
+  is_featured: boolean;
   publish_at: string | null;
   expires_at: string | null;
   target_scope: unknown;
@@ -113,11 +114,11 @@ export default async function EmployeeHomePage() {
 
   const announcementsPromise = hasAnnouncementsModule
     ? supabase
-        .from("announcements")
-        .select("id, title, body, kind, publish_at, expires_at, target_scope, created_by")
-        .eq("organization_id", tenant.organizationId)
-        .order("publish_at", { ascending: false })
-        .limit(30)
+      .from("announcements")
+      .select("id, title, body, kind, is_featured, publish_at, expires_at, target_scope, created_by")
+      .eq("organization_id", tenant.organizationId)
+      .order("publish_at", { ascending: false })
+      .limit(30)
     : Promise.resolve({ data: [] as AnnouncementRow[] });
 
   const documentsPromise = hasDocumentsModule
@@ -196,6 +197,11 @@ export default async function EmployeeHomePage() {
 
   if (hasAnnouncementsModule) {
     const now = new Date();
+    const announcementTimestamp = (row: { publish_at: string | null }) => {
+      const timestamp = row.publish_at ? new Date(row.publish_at).getTime() : 0;
+      return Number.isNaN(timestamp) ? 0 : timestamp;
+    };
+
     announcements = (announcementsRaw ?? []).filter((item) => {
       const publishAt = item.publish_at ? new Date(item.publish_at) : null;
       const expiresAt = item.expires_at ? new Date(item.expires_at) : null;
@@ -211,6 +217,11 @@ export default async function EmployeeHomePage() {
         positionIds: employeePositionIds,
         targetScope: item.target_scope,
       });
+    }).sort((a, b) => {
+      if (Boolean(a.is_featured) !== Boolean(b.is_featured)) {
+        return a.is_featured ? -1 : 1;
+      }
+      return announcementTimestamp(b) - announcementTimestamp(a);
     });
   }
 
@@ -293,10 +304,9 @@ export default async function EmployeeHomePage() {
           <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-[var(--gbp-text2)]">Documentos</p>
         </div>
       </section>
-      <section className="relative overflow-hidden rounded-3xl bg-[linear-gradient(145deg,var(--gbp-text)_0%,color-mix(in_oklab,var(--gbp-text)_88%,black)_100%)] p-8 text-white shadow-xl">
-        <div className="absolute top-0 right-0 p-12 opacity-10 blur-2xl">
-           <div className="w-64 h-64 bg-brand rounded-full"></div>
-        </div>
+      <section
+        className={`relative overflow-hidden rounded-3xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-8 shadow-sm ${heroAnnouncement?.is_featured ? "border-x-[3.5px] border-x-[var(--gbp-accent)]" : ""}`}
+      >
         <div className="relative z-10 flex flex-col items-start">
           <div className="mb-3 flex items-center gap-2">
             <span className="inline-flex rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_12%,transparent)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--gbp-accent)]">
@@ -304,10 +314,10 @@ export default async function EmployeeHomePage() {
             </span>
             {heroAnnouncement?.kind && (
               <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-widest ${
-                heroAnnouncement.kind === "urgent" ? "bg-rose-500/20 text-rose-300" :
-                heroAnnouncement.kind === "reminder" ? "bg-amber-500/20 text-amber-300" :
-                heroAnnouncement.kind === "celebration" ? "bg-blue-500/20 text-blue-300" :
-                "bg-white/10 text-white/70"
+                heroAnnouncement.kind === "urgent" ? "bg-rose-100 text-rose-700" :
+                heroAnnouncement.kind === "reminder" ? "bg-amber-100 text-amber-700" :
+                heroAnnouncement.kind === "celebration" ? "bg-blue-100 text-blue-700" :
+                "bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"
               }`}>
                 {heroAnnouncement.kind === "urgent" && "Urgente"}
                 {heroAnnouncement.kind === "reminder" && "Recordatorio"}
@@ -316,15 +326,15 @@ export default async function EmployeeHomePage() {
               </span>
             )}
           </div>
-          <h2 className="font-serif text-3xl font-bold leading-tight max-w-3xl">{heroAnnouncement?.title ?? "Bienvenido al Portal Interno"}</h2>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-white/70">{heroAnnouncement?.body ?? "Aquí encontrarás avisos, checklists pendientes y documentos recientes de tu puesto."}</p>
+          <h2 className="max-w-3xl font-serif text-3xl font-bold leading-tight text-[var(--gbp-text)]">{heroAnnouncement?.title ?? "Bienvenido al Portal Interno"}</h2>
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--gbp-text2)]">{heroAnnouncement?.body ?? "Aquí encontrarás avisos, checklists pendientes y documentos recientes de tu puesto."}</p>
           <div className="mt-6 flex items-center gap-3">
-            <div className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-[10px] font-bold text-white/90">
+            <div className="grid h-8 w-8 place-items-center rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[10px] font-bold text-[var(--gbp-text)]">
               {(authorNameMap.get(heroAnnouncement?.created_by ?? "") || "DG").substring(0, 2).toUpperCase()}
             </div>
             <div className="text-[11px] leading-tight">
-              <p className="font-medium text-white/90">{authorNameMap.get(heroAnnouncement?.created_by ?? "") || "Dirección General"}</p>
-              <p className="text-white/45">{heroAnnouncement?.publish_at ? new Date(heroAnnouncement.publish_at).toLocaleDateString("es-AR") : "-"}</p>
+              <p className="font-medium text-[var(--gbp-text)]">{authorNameMap.get(heroAnnouncement?.created_by ?? "") || "Dirección General"}</p>
+              <p className="text-[var(--gbp-muted)]">{heroAnnouncement?.publish_at ? new Date(heroAnnouncement.publish_at).toLocaleDateString("es-AR") : "-"}</p>
             </div>
           </div>
         </div>

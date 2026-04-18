@@ -102,7 +102,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   const [shareFolderId, setShareFolderId] = useState<string | null>(null);
   const [emailShareDocId, setEmailShareDocId] = useState<string | null>(null);
   const [dropFolderId, setDropFolderId] = useState<string | null>(null);
-  const [selectedColumnFolderId, setSelectedColumnFolderId] = useState<string | null>(null);
+  const [columnPath, setColumnPath] = useState<string[]>([]);
   const [selectedColumnDocId, setSelectedColumnDocId] = useState<string | null>(null);
   const [previewState, setPreviewState] = useState<{ docId: string | null; status: "idle" | "loading" | "ready" | "error" }>({
     docId: null,
@@ -114,12 +114,13 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const key = `gbp.documents.columns.folder:${organizationId}:${viewerUserId}`;
-    if (selectedColumnFolderId) {
-      window.localStorage.setItem(key, selectedColumnFolderId);
+    const currentFolderId = columnPath[columnPath.length - 1] ?? null;
+    if (currentFolderId) {
+      window.localStorage.setItem(key, currentFolderId);
     } else {
       window.localStorage.removeItem(key);
     }
-  }, [organizationId, selectedColumnFolderId, viewerUserId]);
+  }, [columnPath, organizationId, viewerUserId]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -128,10 +129,17 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
     if (!stored) return;
 
     const frame = window.requestAnimationFrame(() => {
-      setSelectedColumnFolderId((prev) => (prev === stored ? prev : stored));
+      setColumnPath((prev) => (prev[prev.length - 1] === stored ? prev : [stored]));
     });
     return () => window.cancelAnimationFrame(frame);
   }, [organizationId, viewerUserId]);
+
+  useEffect(() => {
+    if (columnPath.length === 0) return;
+    const validFolderIds = new Set(folderRows.map((folder) => folder.id));
+    if (columnPath.every((folderId) => validFolderIds.has(folderId))) return;
+    setColumnPath((prev) => prev.filter((folderId) => validFolderIds.has(folderId)));
+  }, [columnPath, folderRows]);
 
   const mappedBranches = useMemo(
     () => branches.map((b) => ({ ...b, name: customBrandingEnabled && b.city ? b.city : b.name })),
@@ -740,41 +748,40 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
 
   const rootDocuments = sortDocuments((docsByFolder.get(null) ?? []).filter(includeDocument));
 
-  const orderedFolderRows = useMemo(
-    () => [...folderRows].sort((a, b) => a.name.localeCompare(b.name, "es")),
-    [folderRows],
+  const visibleDocumentsByFolder = (() => {
+    const map = new Map<string | null, DocumentRow[]>();
+    for (const [parentId, rows] of docsByFolder.entries()) {
+      map.set(parentId, sortDocuments(rows.filter(includeDocument)));
+    }
+    return map;
+  })();
+
+  const folderColumns = (() => {
+    const levels: Array<{ parentId: string | null; folders: FolderRow[]; documents: DocumentRow[]; selectedFolderId: string | null }> = [];
+    const depth = columnPath.length;
+    for (let index = 0; index <= depth; index += 1) {
+      const parentId = index === 0 ? null : columnPath[index - 1] ?? null;
+      const selectedFolderId = columnPath[index] ?? null;
+      const foldersAtLevel = [...(childrenByFolder.get(parentId) ?? [])].sort((a, b) => a.name.localeCompare(b.name, "es"));
+      const documentsAtLevel = visibleDocumentsByFolder.get(parentId) ?? [];
+      levels.push({ parentId, folders: foldersAtLevel, documents: documentsAtLevel, selectedFolderId });
+    }
+    return levels;
+  })();
+
+  const selectedColumnDocument = useMemo(
+    () => documentRows.find((doc) => doc.id === selectedColumnDocId) ?? null,
+    [documentRows, selectedColumnDocId],
   );
-
-  const effectiveSelectedColumnFolderId = selectedColumnFolderId && folderRows.some((folder) => folder.id === selectedColumnFolderId)
-    ? selectedColumnFolderId
-    : null;
-
-  const columnDocuments = useMemo(() => {
-    const rows = docsByFolder.get(effectiveSelectedColumnFolderId) ?? [];
-    return [...rows.filter((doc) => {
-      const q = query.trim().toLowerCase();
-      if (q && !doc.title.toLowerCase().includes(q)) return false;
-      if (locationFilter && doc.branch_id !== locationFilter) return false;
-      const scope = parseScope(doc.access_scope);
-      if (departmentFilter && !scope.departments.includes(departmentFilter)) return false;
-      return true;
-    })].sort((a, b) => {
-      if (sortBy === "date-asc") return +new Date(a.created_at) - +new Date(b.created_at);
-      if (sortBy === "name-asc") return a.title.localeCompare(b.title, "es");
-      if (sortBy === "name-desc") return b.title.localeCompare(a.title, "es");
-      if (sortBy === "size-desc") return (b.file_size_bytes ?? 0) - (a.file_size_bytes ?? 0);
-      if (sortBy === "size-asc") return (a.file_size_bytes ?? 0) - (b.file_size_bytes ?? 0);
-      return +new Date(b.created_at) - +new Date(a.created_at);
-    });
-  }, [departmentFilter, docsByFolder, effectiveSelectedColumnFolderId, locationFilter, query, sortBy]);
 
   useEffect(() => {
     if (viewMode !== "columns") return;
-    if (selectedColumnDocId && columnDocuments.some((doc) => doc.id === selectedColumnDocId)) return;
-    setSelectedColumnDocId(columnDocuments[0]?.id ?? null);
-  }, [columnDocuments, selectedColumnDocId, viewMode]);
-
-  const selectedColumnDocument = columnDocuments.find((doc) => doc.id === selectedColumnDocId) ?? null;
+    if (!selectedColumnDocId) return;
+    const existsInVisibleColumns = folderColumns.some((column) => column.documents.some((doc) => doc.id === selectedColumnDocId));
+    if (!existsInVisibleColumns) {
+      setSelectedColumnDocId(null);
+    }
+  }, [folderColumns, selectedColumnDocId, viewMode]);
 
   const editDocument = documentRows.find((doc) => doc.id === editDocId) ?? null;
   const editFolder = folderRows.find((folder) => folder.id === editFolderId) ?? null;
@@ -890,134 +897,147 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
         </section>
         ) : (
           <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
-            <div className="grid min-h-[560px] grid-cols-1 divide-y divide-[var(--gbp-border)] lg:grid-cols-[260px_minmax(280px,1fr)_minmax(260px,1fr)] lg:divide-x lg:divide-y-0">
-              <div className="bg-[var(--gbp-bg)] p-3">
-                <p className="mb-2 px-1 text-[11px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Carpetas</p>
-                <div className="space-y-1">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedColumnFolderId(null)}
-                    className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm ${effectiveSelectedColumnFolderId === null ? "bg-[var(--gbp-surface)] font-semibold text-[var(--gbp-text)]" : "text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface)]"}`}
-                  >
-                    <span>Raiz</span>
-                    <span className="text-[11px] text-[var(--gbp-muted)]">{docsByFolder.get(null)?.length ?? 0}</span>
-                  </button>
-                  {orderedFolderRows.map((folder) => (
-                    <button
-                      key={folder.id}
-                      type="button"
-                      onClick={() => setSelectedColumnFolderId(folder.id)}
-                      className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm ${effectiveSelectedColumnFolderId === folder.id ? "bg-[var(--gbp-surface)] font-semibold text-[var(--gbp-text)]" : "text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface)]"}`}
-                    >
-                      <span className="truncate">{folder.name}</span>
-                      <span className="text-[11px] text-[var(--gbp-muted)]">{docsByFolder.get(folder.id)?.length ?? 0}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+            <div className="overflow-x-auto">
+              <div className="flex min-h-[560px] divide-x divide-[var(--gbp-border)]">
+                {folderColumns.map((column, index) => {
+                  const parentFolder = column.parentId ? (folderById.get(column.parentId) ?? null) : null;
+                  const isRootColumn = index === 0;
+                  return (
+                    <div key={`col-${index}-${column.parentId ?? "root"}`} className="w-[300px] shrink-0 bg-[var(--gbp-bg)] p-3">
+                      <p className="mb-2 px-1 text-[11px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">
+                        {isRootColumn ? "Principal" : parentFolder?.name ?? "Carpeta"}
+                      </p>
+                      <div className="space-y-1">
+                        {column.folders.map((folder) => (
+                          <button
+                            key={folder.id}
+                            type="button"
+                            onClick={() => {
+                              setColumnPath((prev) => {
+                                const next = prev.slice(0, index);
+                                next[index] = folder.id;
+                                return next;
+                              });
+                              setSelectedColumnDocId(null);
+                            }}
+                            className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left ${column.selectedFolderId === folder.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] hover:bg-[var(--gbp-bg)]"}`}
+                          >
+                            <span className="flex min-w-0 items-center gap-2">
+                              <Folder className="h-3.5 w-3.5 shrink-0 text-[var(--gbp-text2)]" />
+                              <span className="truncate text-sm font-medium text-[var(--gbp-text)]">{folder.name}</span>
+                            </span>
+                            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[var(--gbp-muted)]" />
+                          </button>
+                        ))}
 
-              <div className="self-start p-3 lg:sticky lg:top-3">
-                <p className="mb-2 px-1 text-[11px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Documentos</p>
-                <div className="space-y-1">
-                  {columnDocuments.length === 0 ? (
-                    <p className="rounded-lg border border-dashed border-[var(--gbp-border2)] px-3 py-8 text-center text-sm text-[var(--gbp-muted)]">No hay documentos para los filtros seleccionados.</p>
-                  ) : columnDocuments.map((doc) => (
-                    <button
-                      key={doc.id}
-                      type="button"
-                      onClick={() => setSelectedColumnDocId(doc.id)}
-                      className={`w-full rounded-lg border px-3 py-2 text-left ${selectedColumnDocId === doc.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] hover:bg-[var(--gbp-bg)]"}`}
-                    >
-                      <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{doc.title}</p>
-                      <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">{formatDate(doc.created_at)} · {formatSize(doc.file_size_bytes)}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
+                        {column.documents.map((doc) => (
+                          <button
+                            key={doc.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedColumnDocId(doc.id);
+                              setPreviewState({
+                                docId: doc.id,
+                                status: isPreviewableMime(doc.mime_type) ? "loading" : "ready",
+                              });
+                            }}
+                            className={`w-full rounded-lg border px-3 py-2 text-left ${selectedColumnDocId === doc.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] hover:bg-[var(--gbp-bg)]"}`}
+                          >
+                            <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{doc.title}</p>
+                            <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">{formatDate(doc.created_at)} · {formatSize(doc.file_size_bytes)}</p>
+                          </button>
+                        ))}
 
-              <div className="p-3">
-                <p className="mb-2 px-1 text-[11px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Detalle</p>
-                {!selectedColumnDocument ? (
-                  <p className="rounded-lg border border-dashed border-[var(--gbp-border2)] px-3 py-8 text-center text-sm text-[var(--gbp-muted)]">Selecciona un documento para ver sus acciones y permisos.</p>
-                ) : (
-                  <div className="space-y-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
-                    <div>
-                      <p className="text-sm font-semibold text-[var(--gbp-text)]">{selectedColumnDocument.title}</p>
-                      <p className="mt-1 text-xs text-[var(--gbp-text2)]">{formatDate(selectedColumnDocument.created_at)} · {formatSize(selectedColumnDocument.file_size_bytes)} · {selectedColumnDocument.mime_type ?? "archivo"}</p>
+                        {column.folders.length === 0 && column.documents.length === 0 ? (
+                          <p className="rounded-lg border border-dashed border-[var(--gbp-border2)] px-3 py-8 text-center text-sm text-[var(--gbp-muted)]">Sin elementos para este nivel.</p>
+                        ) : null}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      <a href={`/api/documents/${selectedColumnDocument.id}/download`} className={ACTION_BTN_NEUTRAL}><Eye className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Ver" /></a>
-                      <button type="button" onClick={() => setEditDocId(selectedColumnDocument.id)} className={ACTION_BTN_NEUTRAL}><Pencil className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Editar" /></button>
-                      {selectedColumnDocument.folder_id ? null : (
-                        <button type="button" onClick={() => setShareDocId(selectedColumnDocument.id)} className={ACTION_BTN_NEUTRAL}><Share2 className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Compartir" /></button>
-                      )}
-                      <button type="button" onClick={() => setEmailShareDocId(selectedColumnDocument.id)} className={ACTION_BTN_MAIL}><Mail className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Compartir por email" /></button>
-                      <a href={`/api/documents/${selectedColumnDocument.id}/download`} className={ACTION_BTN_NEUTRAL}><Download className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Descargar" /></a>
-                      <button type="button" onClick={() => setDeleteDocId(selectedColumnDocument.id)} className={ACTION_BTN_DANGER}><Trash2 className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Eliminar" /></button>
-                    </div>
-                    <div className="relative overflow-hidden rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
-                      <AnimatePresence mode="wait">
-                        <motion.div
-                          key={selectedColumnDocument.id}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.12 }}
-                        >
-                          {selectedColumnDocument.mime_type?.startsWith("image/") ? (
-                            <img
-                              src={`/api/documents/preview?documentId=${encodeURIComponent(selectedColumnDocument.id)}`}
-                              alt={`Vista previa ${selectedColumnDocument.title}`}
-                              className="h-[clamp(260px,42vh,420px)] w-full object-contain bg-white"
-                              onLoad={() => setPreviewState({ docId: selectedColumnDocument.id, status: "ready" })}
-                              onError={() => setPreviewState({ docId: selectedColumnDocument.id, status: "error" })}
-                            />
-                          ) : isPreviewableMime(selectedColumnDocument.mime_type) ? (
-                            <iframe
-                              src={`/api/documents/preview?documentId=${encodeURIComponent(selectedColumnDocument.id)}`}
-                              title={`Vista previa ${selectedColumnDocument.title}`}
-                              className="h-[clamp(260px,42vh,420px)] w-full bg-white"
-                              onLoad={() => setPreviewState({ docId: selectedColumnDocument.id, status: "ready" })}
-                            />
-                          ) : (
-                            <div className="grid h-[240px] place-items-center p-4 text-center text-sm text-[var(--gbp-text2)]">
-                              Este formato no tiene previsualizacion embebida. Usa Ver o Descargar.
-                            </div>
-                          )}
-                        </motion.div>
-                      </AnimatePresence>
-                      {previewState.docId !== selectedColumnDocument.id || previewState.status === "loading" ? (
-                        <div className="pointer-events-none absolute inset-0 grid place-items-center bg-[color:color-mix(in_oklab,var(--gbp-surface)_82%,transparent)]">
-                          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--gbp-border2)] border-t-[var(--gbp-accent)]" />
-                        </div>
-                      ) : null}
-                      {previewState.docId === selectedColumnDocument.id && previewState.status === "error" ? (
-                        <div className="absolute inset-0 grid place-items-center bg-[color:color-mix(in_oklab,var(--gbp-surface)_90%,transparent)] p-3 text-center text-xs text-[var(--gbp-text2)]">
-                          No se pudo cargar la vista previa. Usa Ver o Descargar.
-                        </div>
-                      ) : null}
-                    </div>
-                    <div className="space-y-2">
-                      {(() => {
-                        const scope = getEffectiveDocumentScope(selectedColumnDocument);
-                        const locs = getScopeLocNames(scope, selectedColumnDocument.branch_id);
-                        const roles = getScopeRoles(scope);
-                        return (
-                          <>
-                            <div>
-                              <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Locaciones</p>
-                              <ScopePillsOverflow pills={locs.map((name) => ({ name, type: "location" as const }))} max={6} emptyLabel={<span className="text-xs text-[var(--gbp-muted)]">Todas</span>} />
-                            </div>
-                            <div>
-                              <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Deptos / Puestos</p>
-                              <ScopePillsOverflow pills={roles.map((role) => ({ name: role.name, type: role.type }))} max={6} emptyLabel={<span className="text-xs text-[var(--gbp-muted)]">Todos</span>} />
-                            </div>
-                          </>
-                        );
-                      })()}
+                  );
+                })}
+
+                {selectedColumnDocument ? (
+                  <div className="min-w-[360px] flex-1 p-3">
+                    <p className="mb-2 px-1 text-[11px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Detalle</p>
+                    <div className="space-y-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
+                      <div>
+                        <p className="text-sm font-semibold text-[var(--gbp-text)]">{selectedColumnDocument.title}</p>
+                        <p className="mt-1 text-xs text-[var(--gbp-text2)]">{formatDate(selectedColumnDocument.created_at)} · {formatSize(selectedColumnDocument.file_size_bytes)} · {selectedColumnDocument.mime_type ?? "archivo"}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        <a href={`/api/documents/${selectedColumnDocument.id}/download`} className={ACTION_BTN_NEUTRAL}><Eye className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Ver" /></a>
+                        <button type="button" onClick={() => setEditDocId(selectedColumnDocument.id)} className={ACTION_BTN_NEUTRAL}><Pencil className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Editar" /></button>
+                        {selectedColumnDocument.folder_id ? null : (
+                          <button type="button" onClick={() => setShareDocId(selectedColumnDocument.id)} className={ACTION_BTN_NEUTRAL}><Share2 className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Compartir" /></button>
+                        )}
+                        <button type="button" onClick={() => setEmailShareDocId(selectedColumnDocument.id)} className={ACTION_BTN_MAIL}><Mail className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Compartir por email" /></button>
+                        <a href={`/api/documents/${selectedColumnDocument.id}/download`} className={ACTION_BTN_NEUTRAL}><Download className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Descargar" /></a>
+                        <button type="button" onClick={() => setDeleteDocId(selectedColumnDocument.id)} className={ACTION_BTN_DANGER}><Trash2 className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Eliminar" /></button>
+                      </div>
+                      <div className="relative overflow-hidden rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={selectedColumnDocument.id}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.12 }}
+                          >
+                            {selectedColumnDocument.mime_type?.startsWith("image/") ? (
+                              <img
+                                src={`/api/documents/preview?documentId=${encodeURIComponent(selectedColumnDocument.id)}`}
+                                alt={`Vista previa ${selectedColumnDocument.title}`}
+                                className="h-[clamp(260px,42vh,420px)] w-full object-contain bg-white"
+                                onLoad={() => setPreviewState({ docId: selectedColumnDocument.id, status: "ready" })}
+                                onError={() => setPreviewState({ docId: selectedColumnDocument.id, status: "error" })}
+                              />
+                            ) : isPreviewableMime(selectedColumnDocument.mime_type) ? (
+                              <iframe
+                                src={`/api/documents/preview?documentId=${encodeURIComponent(selectedColumnDocument.id)}`}
+                                title={`Vista previa ${selectedColumnDocument.title}`}
+                                className="h-[clamp(260px,42vh,420px)] w-full bg-white"
+                                onLoad={() => setPreviewState({ docId: selectedColumnDocument.id, status: "ready" })}
+                              />
+                            ) : (
+                              <div className="grid h-[240px] place-items-center p-4 text-center text-sm text-[var(--gbp-text2)]">
+                                Este formato no tiene previsualizacion embebida. Usa Ver o Descargar.
+                              </div>
+                            )}
+                          </motion.div>
+                        </AnimatePresence>
+                        {previewState.docId !== selectedColumnDocument.id || previewState.status === "loading" ? (
+                          <div className="pointer-events-none absolute inset-0 grid place-items-center bg-[color:color-mix(in_oklab,var(--gbp-surface)_82%,transparent)]">
+                            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--gbp-border2)] border-t-[var(--gbp-accent)]" />
+                          </div>
+                        ) : null}
+                        {previewState.docId === selectedColumnDocument.id && previewState.status === "error" ? (
+                          <div className="absolute inset-0 grid place-items-center bg-[color:color-mix(in_oklab,var(--gbp-surface)_90%,transparent)] p-3 text-center text-xs text-[var(--gbp-text2)]">
+                            No se pudo cargar la vista previa. Usa Ver o Descargar.
+                          </div>
+                        ) : null}
+                      </div>
+                      <div className="space-y-2">
+                        {(() => {
+                          const scope = getEffectiveDocumentScope(selectedColumnDocument);
+                          const locs = getScopeLocNames(scope, selectedColumnDocument.branch_id);
+                          const roles = getScopeRoles(scope);
+                          return (
+                            <>
+                              <div>
+                                <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Locaciones</p>
+                                <ScopePillsOverflow pills={locs.map((name) => ({ name, type: "location" as const }))} max={6} emptyLabel={<span className="text-xs text-[var(--gbp-muted)]">Todas</span>} />
+                              </div>
+                              <div>
+                                <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Deptos / Puestos</p>
+                                <ScopePillsOverflow pills={roles.map((role) => ({ name: role.name, type: role.type }))} max={6} emptyLabel={<span className="text-xs text-[var(--gbp-muted)]">Todos</span>} />
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
                     </div>
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           </section>
