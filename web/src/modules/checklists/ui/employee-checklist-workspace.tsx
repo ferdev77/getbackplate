@@ -63,11 +63,16 @@ export function EmployeeChecklistWorkspace({
   templates: TemplateRow[];
   initialPreviewTemplateId?: string;
 }) {
+  const [templateRows, setTemplateRows] = useState<TemplateRow[]>(templates);
   const [openTemplateId, setOpenTemplateId] = useState<string>("");
   const [loadingTemplateId, setLoadingTemplateId] = useState<string>("");
   const [payload, setPayload] = useState<PreviewPayload | null>(null);
   const cacheRef = useRef<Map<string, { fetchedAt: number; payload: PreviewPayload }>>(new Map());
   const ttlMs = 60_000;
+
+  useEffect(() => {
+    setTemplateRows(templates);
+  }, [templates]);
 
   const fetchPreview = useCallback(async (templateId: string, options?: { force?: boolean; silent?: boolean }) => {
     const force = Boolean(options?.force);
@@ -119,14 +124,14 @@ export function EmployeeChecklistWorkspace({
 
   useEffect(() => {
     if (!initialPreviewTemplateId) return;
-    if (!templates.find((row) => row.id === initialPreviewTemplateId)) return;
+    if (!templateRows.find((row) => row.id === initialPreviewTemplateId)) return;
     void openPreview(initialPreviewTemplateId);
-  }, [initialPreviewTemplateId, openPreview, templates]);
+  }, [initialPreviewTemplateId, openPreview, templateRows]);
 
   useEffect(() => {
-    if (!templates.length) return;
+    if (!templateRows.length) return;
     const timer = setTimeout(() => {
-      templates.forEach((template, index) => {
+      templateRows.forEach((template, index) => {
         setTimeout(() => {
           if (cacheRef.current.has(template.id)) return;
           void fetchPreview(template.id, { silent: true }).catch(() => {
@@ -137,12 +142,12 @@ export function EmployeeChecklistWorkspace({
     }, 120);
 
     return () => clearTimeout(timer);
-  }, [fetchPreview, templates]);
+  }, [fetchPreview, templateRows]);
 
   return (
     <>
       <section className="space-y-3">
-        {templates.map((template) => (
+        {templateRows.map((template) => (
           <article key={template.id} className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 transition-all duration-200 hover:-translate-y-[1px] hover:border-[var(--gbp-border2)] hover:shadow-[0_8px_24px_rgba(0,0,0,.05)]">
             <div className="flex items-center gap-3">
               <div className="flex min-w-0 flex-1 items-center gap-2 text-[var(--gbp-text)]">
@@ -157,7 +162,7 @@ export function EmployeeChecklistWorkspace({
                       <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold ${statusBadge.className}`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${statusBadge.dotClassName}`} />
                         <span>{statusBadge.label}</span>
-                        <span className={`hidden sm:inline ${statusBadge.dateClassName}`}>· {formatSubmittedAt(template.submittedAt)}</span>
+                        <span suppressHydrationWarning className={`hidden sm:inline ${statusBadge.dateClassName}`}>· {formatSubmittedAt(template.submittedAt)}</span>
                       </div>
                     );
                   })()
@@ -181,7 +186,7 @@ export function EmployeeChecklistWorkspace({
           </article>
         ))}
 
-        {!templates.length ? (
+        {!templateRows.length ? (
           <div className="rounded-xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-8 text-center text-sm text-[var(--gbp-text2)]">
             No tienes checklists asignados para tu perfil.
           </div>
@@ -195,6 +200,16 @@ export function EmployeeChecklistWorkspace({
             templateName={payload.template.name}
             sections={payload.sections}
             initialReport={payload.initialReport}
+            onSubmitted={({ templateId, submittedAt }) => {
+              setTemplateRows((prev) =>
+                prev.map((row) =>
+                  row.id === templateId
+                    ? { ...row, sent: true, submissionStatus: "submitted", submittedAt }
+                    : row,
+                ),
+              );
+              cacheRef.current.delete(templateId);
+            }}
             onClose={() => {
               setOpenTemplateId("");
               setPayload(null);

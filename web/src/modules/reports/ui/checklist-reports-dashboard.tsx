@@ -97,6 +97,8 @@ type ChecklistReportsDashboardProps = {
   deferredDataUrl?: string;
 };
 
+const REPORTS_POLL_MS = 3000;
+
 function toneClasses(tone: ReportStatCard["tone"]) {
   if (tone === "success") return "text-[var(--gbp-success)]";
   if (tone === "warning") return "text-[var(--gbp-accent)]";
@@ -172,7 +174,7 @@ export function ChecklistReportsDashboard({
     }
 
     const channel = supabase
-      .channel("checklist-reports-realtime")
+      .channel(`checklist-reports-realtime-${organizationId}`)
       .on(
         "postgres_changes",
         {
@@ -232,6 +234,32 @@ export function ChecklistReportsDashboard({
       supabase.removeChannel(channel);
     };
   }, [organizationId, router]);
+
+  useEffect(() => {
+    function triggerClientRefresh() {
+      setRefreshKey((prev) => prev + 1);
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        triggerClientRefresh();
+      }
+    }
+
+    const pollTimer = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      triggerClientRefresh();
+    }, REPORTS_POLL_MS);
+
+    window.addEventListener("focus", triggerClientRefresh);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      clearInterval(pollTimer);
+      window.removeEventListener("focus", triggerClientRefresh);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, []);
 
   const selectedReport = useMemo(
     () => effectiveReports.find((report) => report.id === selectedReportId) ?? null,

@@ -43,8 +43,13 @@ export function NewUserModal({ open, onClose, branches, roleOptions }: NewUserMo
 
       toast.success("Usuario creado correctamente");
       startTransition(() => {
+        if (onClose) {
+          onClose();
+        }
         router.refresh();
-        router.push("/app/users");
+        if (!onClose) {
+          router.push("/app/users");
+        }
       });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo crear usuario");

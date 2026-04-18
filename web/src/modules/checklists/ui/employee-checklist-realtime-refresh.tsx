@@ -10,6 +10,8 @@ type EmployeeChecklistRealtimeRefreshProps = {
   userId: string;
 };
 
+const CHECKLIST_REFRESH_POLL_MS = 3000;
+
 export function EmployeeChecklistRealtimeRefresh({
   organizationId,
   userId,
@@ -63,8 +65,29 @@ export function EmployeeChecklistRealtimeRefresh({
       )
       .subscribe();
 
+    function triggerRefresh() {
+      scheduleRefresh();
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        scheduleRefresh();
+      }
+    }
+
+    const pollTimer = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      scheduleRefresh();
+    }, CHECKLIST_REFRESH_POLL_MS);
+
+    window.addEventListener("focus", triggerRefresh);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
+      clearInterval(pollTimer);
+      window.removeEventListener("focus", triggerRefresh);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       supabase.removeChannel(channel);
     };
   }, [organizationId, router, userId]);
