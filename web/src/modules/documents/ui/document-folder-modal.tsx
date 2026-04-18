@@ -101,7 +101,7 @@ export function DocumentFolderModal({
                 <label>
                   <span className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Crear en</span>
                   <select name="parent_id" defaultValue="" className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]">
-                    <option value="">Raiz</option>
+                    <option value="">Sin carpeta</option>
                     {folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
                   </select>
                 </label>
