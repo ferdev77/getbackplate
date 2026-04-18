@@ -189,7 +189,7 @@ export function EmployeeDocumentsTree({ organizationId, viewerUserId, folders, d
                            </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <a href={`/api/documents/${doc.id}/download`} target="_blank" className="group/tooltip relative inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] transition-colors hover:bg-[var(--gbp-surface2)]">
+                          <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer" className="group/tooltip relative inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] transition-colors hover:bg-[var(--gbp-surface2)]">
                             <Eye className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Ver</span>
                             <TooltipLabel label="Vista preliminar" />
                           </a>
@@ -297,11 +297,11 @@ export function EmployeeDocumentsTree({ organizationId, viewerUserId, folders, d
                               </div>
                             </div>
                             <div className="flex gap-2">
-                              <a href={`/api/documents/${doc.id}/download`} target="_blank" className="group/tooltip relative inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] transition-colors hover:bg-[var(--gbp-surface2)]">
+                              <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer" className="group/tooltip relative inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] transition-colors hover:bg-[var(--gbp-surface2)]">
                                 <Eye className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Ver</span>
                                 <TooltipLabel label="Vista preliminar" />
                               </a>
-                              <a href={`/api/documents/${doc.id}/download`} className="group/tooltip relative inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white transition-colors hover:bg-[var(--gbp-accent)]">
+                              <a href={`/api/documents/${doc.id}/download`} download className="group/tooltip relative inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white transition-colors hover:bg-[var(--gbp-accent)]">
                                 <Download className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Descargar</span>
                                 <TooltipLabel label="Descargar" />
                               </a>
@@ -376,11 +376,11 @@ export function EmployeeDocumentsTree({ organizationId, viewerUserId, folders, d
                             <p className="mt-1 text-xs text-[var(--gbp-text2)]">{formatSize(selectedColumnDocument.file_size_bytes)} · {(selectedColumnDocument.mime_type ?? "archivo").toUpperCase()}</p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <a href={`/api/documents/${selectedColumnDocument.id}/download`} target="_blank" className="group/tooltip relative inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] transition-colors hover:bg-[var(--gbp-surface2)]">
+                            <a href={`/api/documents/${selectedColumnDocument.id}/download`} target="_blank" rel="noopener noreferrer" className="group/tooltip relative inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] transition-colors hover:bg-[var(--gbp-surface2)]">
                               <Eye className="h-3.5 w-3.5" /> <span>Ver</span>
                               <TooltipLabel label="Vista preliminar" />
                             </a>
-                            <a href={`/api/documents/${selectedColumnDocument.id}/download`} className="group/tooltip relative inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white transition-colors hover:bg-[var(--gbp-accent)]">
+                            <a href={`/api/documents/${selectedColumnDocument.id}/download`} download className="group/tooltip relative inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white transition-colors hover:bg-[var(--gbp-accent)]">
                               <Download className="h-3.5 w-3.5" /> <span>Descargar</span>
                               <TooltipLabel label="Descargar" />
                             </a>

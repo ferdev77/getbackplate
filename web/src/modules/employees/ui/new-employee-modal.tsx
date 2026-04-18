@@ -1499,8 +1499,7 @@ export function NewEmployeeModal({
                         </a>
                         <a
                           href={`/api/documents/${row?.documentId}/download`}
-                          target="_blank"
-                          rel="noreferrer"
+                          download
                           onClick={(event) => event.stopPropagation()}
                           className="rounded-md border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-surface)] px-2.5 py-1 text-[10px] font-semibold text-[var(--gbp-success)] hover:bg-[var(--gbp-success-soft)]"
                         >
