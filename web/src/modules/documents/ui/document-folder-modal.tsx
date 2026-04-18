@@ -69,7 +69,11 @@ export function DocumentFolderModal({
 
       toast.success("Carpeta creada");
       startTransition(() => {
-        router.push("/app/documents");
+        if (onClose) {
+          onClose();
+        } else {
+          router.push("/app/documents");
+        }
         router.refresh();
       });
     } catch (error) {

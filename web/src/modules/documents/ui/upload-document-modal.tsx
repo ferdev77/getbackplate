@@ -121,7 +121,7 @@ export function UploadDocumentModal({
     }, 550);
 
     completeTimerRef.current = setTimeout(() => {
-      onClose?.();
+      closeModal();
       startTransition(() => {
         router.refresh();
       });

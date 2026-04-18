@@ -41,6 +41,7 @@ type EmployeeChecklistPreviewModalProps = {
   sections: PreviewSection[];
   initialReport: InitialReport;
   onClose?: () => void;
+  onSubmitted?: (payload: { templateId: string; submittedAt: string }) => void;
 };
 
 function sectionIcon(name: string) {
@@ -71,6 +72,7 @@ export function EmployeeChecklistPreviewModal({
   sections,
   initialReport,
   onClose,
+  onSubmitted,
 }: EmployeeChecklistPreviewModalProps) {
   const router = useRouter();
   const checklistBodyRef = useRef<HTMLDivElement | null>(null);
@@ -250,6 +252,9 @@ export function EmployeeChecklistPreviewModal({
       return;
     }
 
+    const submittedAt = new Date().toISOString();
+    onSubmitted?.({ templateId, submittedAt });
+    router.refresh();
     setSuccessOpen(true);
     requestAnimationFrame(() => setSuccessVisible(true));
   }

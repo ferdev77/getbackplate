@@ -67,14 +67,18 @@ export function ChecklistUpsertModal({
       if (state.success) {
         toast.success(state.message);
         startTransition(() => {
-          router.push("/app/checklists");
+          if (onClose) {
+            onClose();
+          } else {
+            router.push("/app/checklists");
+          }
           router.refresh();
         });
       } else {
         toast.error(state.message);
       }
     }
-  }, [state, router]);
+  }, [state, router, onClose]);
 
   const handleClose = () => {
     if (onClose) {
