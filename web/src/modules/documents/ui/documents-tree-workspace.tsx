@@ -657,7 +657,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
               </button>
               {/* Fecha de carga */}
               <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{formatDate(folder.created_at)}</p>
-              {/* Locacion */}
+              {/* Locación */}
               <div className="hidden lg:flex flex-wrap items-center gap-1">
                 <ScopePillsOverflow
                   pills={locNames.map((n) => ({ name: n, type: "location" as const }))}
@@ -701,7 +701,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                           </div>
                           {/* Fecha de carga */}
                           <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{formatDate(doc.created_at)}</p>
-                          {/* Locacion */}
+                          {/* Locación */}
                           <div className="hidden lg:flex flex-wrap items-center gap-1">
                             <ScopePillsOverflow
                               pills={docLocNames.map((n) => ({ name: n, type: "location" as const }))}
@@ -845,7 +845,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
           <div className="grid grid-cols-[1fr_auto] gap-2 bg-[var(--gbp-bg)] px-4 py-3 text-[11px] font-bold tracking-[0.07em] text-[var(--gbp-muted)] uppercase md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px]">
             <p>Nombre</p>
             <p className="hidden md:block">Fecha de carga</p>
-            <p className="hidden lg:block">Locacion</p>
+            <p className="hidden lg:block">Locación</p>
             <p className="hidden lg:block">Deptos / Puestos</p>
             <p className="text-right">Acciones</p>
           </div>
@@ -875,7 +875,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                       <div className="min-w-0"><p className="truncate text-[12px] font-medium text-[var(--gbp-text)]">{doc.title}</p><p className="truncate text-[11px] text-[var(--gbp-muted)]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p></div>
                       {/* Fecha de carga */}
                       <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{formatDate(doc.created_at)}</p>
-                      {/* Locacion */}
+                      {/* Locación */}
                       <div className="hidden lg:flex flex-wrap items-center gap-1">
                         <ScopePillsOverflow
                           pills={rLocNames.map((n) => ({ name: n, type: "location" as const }))}

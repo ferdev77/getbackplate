@@ -50,7 +50,7 @@ export function assertSafeTenantStoragePath(
   options: StoragePathValidationOptions = {},
 ) {
   if (!isSafeTenantStoragePath(path, organizationId, options)) {
-    throw new Error("Ruta de almacenamiento invalida para esta organizacion");
+    throw new Error("Ruta de almacenamiento inválida para esta organización");
   }
 }
 

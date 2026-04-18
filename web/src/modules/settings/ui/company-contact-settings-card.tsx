@@ -116,7 +116,7 @@ export function CompanyContactSettingsCard({
         <Settings2 className="h-3.5 w-3.5" /> Datos de la empresa
       </p>
       <p className="mb-1 text-base font-semibold text-[var(--gbp-text)]">{organizationName}</p>
-      <p className="text-sm text-[var(--gbp-text2)]">Canales de contacto visibles para la operacion diaria.</p>
+      <p className="text-sm text-[var(--gbp-text2)]">Canales de contacto visibles para la operación diaria.</p>
 
       {customBrandingEnabled ? (
         <div className="mt-4 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
@@ -202,7 +202,7 @@ export function CompanyContactSettingsCard({
         </div>
       ) : (
         <div className="mt-4 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3 text-xs text-[var(--gbp-text2)]">
-          El modulo <strong>Custom Branding</strong> esta desactivado para esta empresa. Un superadmin puede activarlo desde el panel de modulos.
+          El módulo <strong>Custom Branding</strong> está desactivado para esta empresa. Un superadmin puede activarlo desde el panel de módulos.
         </div>
       )}
 
@@ -220,7 +220,7 @@ export function CompanyContactSettingsCard({
           />
         </label>
         <label className="grid gap-1 text-xs font-semibold text-[var(--gbp-text2)]">
-          Telefono
+          Teléfono
           <input
             name="support_phone"
             value={phoneValue}

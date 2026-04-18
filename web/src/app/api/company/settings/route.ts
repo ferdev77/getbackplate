@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   const rawBody = await request.json().catch(() => null);
   const parsed = requestSchema.safeParse(rawBody);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Payload invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Payload inválido" }, { status: 400 });
   }
 
   const body = parsed.data;
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
       },
     });
     return NextResponse.json(
-      { error: "impersonation_blocked", message: "Operacion bloqueada en modo impersonacion." },
+      { error: "impersonation_blocked", message: "Operación bloqueada en modo impersonación." },
       { status: 403 },
     );
   }

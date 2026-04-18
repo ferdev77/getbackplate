@@ -62,14 +62,14 @@ export async function GET() {
 
   const header = [
     "ID",
-    "Titulo",
+    "Título",
     "Carpeta",
-    "Locacion",
+    "Locación",
     "Departamento",
     "Puesto",
     "UsuariosScope",
     "TipoMime",
-    "TamanoBytes",
+    "TamañoBytes",
     "Creado",
   ];
 

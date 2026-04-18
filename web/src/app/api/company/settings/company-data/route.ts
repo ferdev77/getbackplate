@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   const rawBody = await request.json().catch(() => null);
   const parsed = requestSchema.safeParse(rawBody);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Payload invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Payload inválido" }, { status: 400 });
   }
 
   const payload = parsed.data;
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   const websiteUrl = normalizeWebsiteUrl((payload.websiteUrl ?? "").trim() || null);
 
   if (supportEmail && !/^\S+@\S+\.\S+$/.test(supportEmail)) {
-    return NextResponse.json({ error: "Email invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Email inválido" }, { status: 400 });
   }
 
   const supabase = await createSupabaseServerClient();

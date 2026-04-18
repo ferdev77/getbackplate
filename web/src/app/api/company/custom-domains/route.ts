@@ -72,7 +72,7 @@ export async function POST(request: Request) {
   const customBrandingEnabled = await assertCustomBrandingModuleEnabled(moduleAccess.tenant.organizationId);
   if (!customBrandingEnabled) {
     return NextResponse.json(
-      { error: "El modulo Custom Branding debe estar activo para configurar dominios personalizados." },
+      { error: "El módulo Custom Branding debe estar activo para configurar dominios personalizados." },
       { status: 403 },
     );
   }
@@ -80,12 +80,12 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Dominio invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Dominio inválido" }, { status: 400 });
   }
 
   const domain = normalizeCustomDomainInput(parsed.data.domain);
   if (!domain) {
-    return NextResponse.json({ error: "Dominio invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Dominio inválido" }, { status: 400 });
   }
 
   if (!domain.startsWith("app.")) {
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "Tu empresa ya tiene un dominio personalizado configurado. Eliminalo primero para cargar uno nuevo.",
+          "Tu empresa ya tiene un dominio personalizado configurado. Elimínalo primero para cargar uno nuevo.",
       },
       { status: 409 },
     );
@@ -216,7 +216,7 @@ export async function DELETE(request: Request) {
   const { searchParams } = new URL(request.url);
   const domain = normalizeCustomDomainInput(searchParams.get("domain"));
   if (!domain) {
-    return NextResponse.json({ error: "Dominio invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Dominio inválido" }, { status: 400 });
   }
 
   const supabase = await createSupabaseServerClient();

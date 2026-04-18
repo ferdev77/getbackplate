@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "GetBackplate",
-  description: "Plataforma SaaS multi-tenant para operacion interna",
+  description: "Plataforma SaaS multi-tenant para operación interna",
 };
 
 export default function RootLayout({

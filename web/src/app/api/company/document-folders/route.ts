@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (!parent) {
-      return NextResponse.json({ error: "Carpeta padre invalida" }, { status: 400 });
+      return NextResponse.json({ error: "Carpeta padre inválida" }, { status: 400 });
     }
   }
 
@@ -83,10 +83,10 @@ export async function POST(request: Request) {
   });
   if (!scopeValidation.ok) {
     const messageByField = {
-      locations: "Locaciones invalidas",
-      departments: "Departamentos invalidos",
-      positions: "Puestos invalidos",
-      users: "Usuarios invalidos",
+      locations: "Locaciones inválidas",
+      departments: "Departamentos inválidos",
+      positions: "Puestos inválidos",
+      users: "Usuarios inválidos",
     } as const;
     return NextResponse.json({ error: messageByField[scopeValidation.field] }, { status: 400 });
   }
@@ -178,7 +178,7 @@ export async function PATCH(request: Request) {
     : undefined;
 
   if (!folderId) {
-    return NextResponse.json({ error: "Carpeta invalida" }, { status: 400 });
+    return NextResponse.json({ error: "Carpeta inválida" }, { status: 400 });
   }
 
   if (parentId !== undefined && parentId === folderId) {
@@ -193,7 +193,7 @@ export async function PATCH(request: Request) {
       .eq("id", parentId)
       .maybeSingle();
     if (!parent) {
-      return NextResponse.json({ error: "Carpeta padre invalida" }, { status: 400 });
+      return NextResponse.json({ error: "Carpeta padre inválida" }, { status: 400 });
     }
 
     const { data: allFolders } = await supabase
@@ -223,10 +223,10 @@ export async function PATCH(request: Request) {
     });
     if (!scopeValidation.ok) {
       const messageByField = {
-        locations: "Locaciones invalidas",
-        departments: "Departamentos invalidos",
-        positions: "Puestos invalidos",
-        users: "Usuarios invalidos",
+        locations: "Locaciones inválidas",
+        departments: "Departamentos inválidos",
+        positions: "Puestos inválidos",
+        users: "Usuarios inválidos",
       } as const;
       return NextResponse.json({ error: messageByField[scopeValidation.field] }, { status: 400 });
     }
@@ -326,7 +326,7 @@ export async function DELETE(request: Request) {
   const folderId = String(body?.folderId ?? "").trim();
 
   if (!folderId) {
-    return NextResponse.json({ error: "Carpeta invalida" }, { status: 400 });
+    return NextResponse.json({ error: "Carpeta inválida" }, { status: 400 });
   }
 
   const [{ data: childFolders }, { data: childDocs }] = await Promise.all([

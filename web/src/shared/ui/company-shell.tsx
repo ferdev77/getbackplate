@@ -1703,7 +1703,7 @@ export function CompanyShell({
           <header className={`sticky top-0 z-30 border-b-[1.5px] ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`} style={{ background: palette.headerBg }}>
             {impersonationMode ? (
               <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900 sm:px-8">
-                <p className="font-semibold">Modo superadmin activo: estas operando dentro de una organizacion en modo impersonacion.</p>
+                <p className="font-semibold">Modo superadmin activo: estás operando dentro de una organización en modo impersonación.</p>
                 <button
                   type="button"
                   disabled={stoppingImpersonation}
@@ -1715,7 +1715,7 @@ export function CompanyShell({
                   className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-white px-2.5 py-1 text-[11px] font-bold text-amber-800 transition hover:bg-amber-100 disabled:cursor-wait disabled:opacity-90"
                 >
                   {stoppingImpersonation ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogOut className="h-3.5 w-3.5" />}
-                  {stoppingImpersonation ? "Saliendo..." : "Salir de impersonacion"}
+                  {stoppingImpersonation ? "Saliendo..." : "Salir de impersonación"}
                 </button>
               </div>
             ) : null}
@@ -2265,7 +2265,7 @@ export function CompanyShell({
               {planChangeDirection === "downgrade" ? (
                 <div className="rounded-xl border border-amber-300/25 bg-amber-500/[0.08] p-4">
                   <p className="mb-2 text-xs font-bold uppercase tracking-[0.1em] text-amber-300">Impacto del downgrade</p>
-                  <p className={`mb-3 text-sm ${isDarkTheme ? "text-white/80" : "text-[var(--gbp-text2)]"}`}>Si confirmas, estos modulos pueden quedar desactivados en tu empresa:</p>
+                  <p className={`mb-3 text-sm ${isDarkTheme ? "text-white/80" : "text-[var(--gbp-text2)]"}`}>Si confirmas, estos módulos pueden quedar desactivados en tu empresa:</p>
                   {planModuleDiff.toDisable.length ? (
                     <div className="flex flex-wrap gap-2">
                       {planModuleDiff.toDisable.map((name) => (
@@ -2275,13 +2275,13 @@ export function CompanyShell({
                       ))}
                     </div>
                   ) : (
-                      <p className={`text-xs ${isDarkTheme ? "text-white/75" : "text-[var(--gbp-text2)]"}`}>No se detectaron desactivaciones de modulos para este cambio.</p>
+                      <p className={`text-xs ${isDarkTheme ? "text-white/75" : "text-[var(--gbp-text2)]"}`}>No se detectaron desactivaciones de módulos para este cambio.</p>
                     )}
                   </div>
               ) : (
                 <div className="rounded-xl border border-emerald-300/25 bg-emerald-500/[0.08] p-4">
                   <p className="mb-2 text-xs font-bold uppercase tracking-[0.1em] text-emerald-300">Impacto del upgrade</p>
-                  <p className={`mb-3 text-sm ${isDarkTheme ? "text-white/80" : "text-[var(--gbp-text2)]"}`}>¡Felicidades! Al confirmar, tu equipo ganara estas capacidades:</p>
+                  <p className={`mb-3 text-sm ${isDarkTheme ? "text-white/80" : "text-[var(--gbp-text2)]"}`}>¡Felicidades! Al confirmar, tu equipo ganará estas capacidades:</p>
                   {planModuleDiff.toEnable.length ? (
                     <div className="flex flex-wrap gap-2">
                       {planModuleDiff.toEnable.map((name) => (
@@ -2291,7 +2291,7 @@ export function CompanyShell({
                       ))}
                     </div>
                   ) : (
-                      <p className={`text-xs ${isDarkTheme ? "text-white/75" : "text-[var(--gbp-text2)]"}`}>Este cambio mejora limites del plan aunque no agregue nuevos modulos visibles.</p>
+                      <p className={`text-xs ${isDarkTheme ? "text-white/75" : "text-[var(--gbp-text2)]"}`}>Este cambio mejora límites del plan aunque no agregue nuevos módulos visibles.</p>
                   )}
                 </div>
               )}

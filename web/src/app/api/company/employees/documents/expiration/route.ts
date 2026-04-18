@@ -35,11 +35,11 @@ export async function POST(request: Request) {
   const noExpiration = payload?.noExpiration === true;
 
   if (!employeeId || !documentId) {
-    return NextResponse.json({ error: "Solicitud invalida" }, { status: 400 });
+    return NextResponse.json({ error: "Solicitud inválida" }, { status: 400 });
   }
 
   if (expiresAt && !/^\d{4}-\d{2}-\d{2}$/.test(expiresAt)) {
-    return NextResponse.json({ error: "Fecha de vencimiento invalida" }, { status: 400 });
+    return NextResponse.json({ error: "Fecha de vencimiento inválida" }, { status: 400 });
   }
 
   if (!noExpiration && !expiresAt && reminderDays) {
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
   }
 
   if (reminderDays !== null && !ALLOWED_REMINDER_DAYS.has(reminderDays)) {
-    return NextResponse.json({ error: "Recordatorio invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Recordatorio inválido" }, { status: 400 });
   }
 
   const { data: existingLink } = await supabase

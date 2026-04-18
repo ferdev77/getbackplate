@@ -19,12 +19,12 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Dominio invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Dominio inválido" }, { status: 400 });
   }
 
   const domain = normalizeCustomDomainInput(parsed.data.domain);
   if (!domain) {
-    return NextResponse.json({ error: "Dominio invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Dominio inválido" }, { status: 400 });
   }
 
   const supabase = await createSupabaseServerClient();

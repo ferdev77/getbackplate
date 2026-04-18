@@ -272,7 +272,7 @@ export async function toggleAnnouncementFeaturedAction(arg1: FormData | unknown,
   const nextFeatured = String(formData.get("next_featured") ?? "") === "true";
 
   if (!announcementId) {
-    redirect("/app/announcements?status=error&message=" + qs("Anuncio invalido"));
+    redirect("/app/announcements?status=error&message=" + qs("Anuncio inválido"));
   }
 
   const supabase = await createSupabaseServerClient();
@@ -315,7 +315,7 @@ export async function deleteAnnouncementAction(arg1: FormData | unknown, arg2?: 
   const announcementId = String(formData.get("announcement_id") ?? "").trim();
 
   if (!announcementId) {
-    redirect("/app/announcements?status=error&message=" + qs("Anuncio invalido"));
+    redirect("/app/announcements?status=error&message=" + qs("Anuncio inválido"));
   }
 
   const supabase = await createSupabaseServerClient();

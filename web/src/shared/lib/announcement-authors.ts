@@ -13,7 +13,7 @@ function resolveDisplayName(value: { first_name?: string | null; last_name?: str
   if (value.email && value.email.includes("@")) {
     return value.email.split("@")[0] ?? value.email;
   }
-  return "Direccion";
+  return "Dirección";
 }
 
 export async function resolveAnnouncementAuthorNames(params: {

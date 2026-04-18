@@ -164,7 +164,7 @@ export async function POST(request: Request) {
   const formData = await request.formData().catch(() => null);
 
   if (!formData) {
-    return NextResponse.json({ error: "Solicitud invalida" }, { status: 400 });
+    return NextResponse.json({ error: "Solicitud inválida" }, { status: 400 });
   }
 
   const titleInput = String(formData.get("title") ?? "").trim();
@@ -191,7 +191,7 @@ export async function POST(request: Request) {
     analysis = await analyzeUploadedFile(file);
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Archivo invalido" },
+      { error: error instanceof Error ? error.message : "Archivo inválido" },
       { status: 400 },
     );
   }
@@ -207,7 +207,7 @@ export async function POST(request: Request) {
       .eq("id", folderId)
       .maybeSingle();
     if (!folder) {
-      return NextResponse.json({ error: "Carpeta invalida para esta empresa" }, { status: 400 });
+      return NextResponse.json({ error: "Carpeta inválida para esta empresa" }, { status: 400 });
     }
     folderScope = parseDocumentScope(folder.access_scope);
   }
@@ -231,10 +231,10 @@ export async function POST(request: Request) {
 
   if (!scopeValidation.ok) {
     const messageByField = {
-      locations: "Hay locaciones invalidas en el alcance",
-      departments: "Hay departamentos invalidos en el alcance",
-      positions: "Hay puestos invalidos en el alcance",
-      users: "Hay usuarios invalidos en el alcance",
+      locations: "Hay locaciones inválidas en el alcance",
+      departments: "Hay departamentos inválidos en el alcance",
+      positions: "Hay puestos inválidos en el alcance",
+      users: "Hay usuarios inválidos en el alcance",
     } as const;
     return NextResponse.json({ error: messageByField[scopeValidation.field] }, { status: 400 });
   }
@@ -251,7 +251,7 @@ export async function POST(request: Request) {
   const path = existingDuplicate?.file_path ?? `${tenant.organizationId}/${Date.now()}-${analysis.safeName}`;
 
   if (!isSafeTenantStoragePath(path, tenant.organizationId)) {
-    return NextResponse.json({ error: "Ruta de archivo invalida para esta empresa" }, { status: 400 });
+    return NextResponse.json({ error: "Ruta de archivo inválida para esta empresa" }, { status: 400 });
   }
 
   try {
@@ -367,7 +367,7 @@ export async function PATCH(request: Request) {
     : undefined;
 
   if (!documentId) {
-    return NextResponse.json({ error: "Documento invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Documento inválido" }, { status: 400 });
   }
 
   const { data: currentDocument } = await supabase
@@ -398,7 +398,7 @@ export async function PATCH(request: Request) {
       .maybeSingle();
 
     if (!folder) {
-      return NextResponse.json({ error: "Carpeta invalida" }, { status: 400 });
+      return NextResponse.json({ error: "Carpeta inválida" }, { status: 400 });
     }
 
     targetFolderScope = parseDocumentScope(folder.access_scope);
@@ -416,10 +416,10 @@ export async function PATCH(request: Request) {
     });
     if (!scopeValidation.ok) {
       const messageByField = {
-        locations: "Locaciones invalidas",
-        departments: "Departamentos invalidos",
-        positions: "Puestos invalidos",
-        users: "Usuarios invalidos",
+        locations: "Locaciones inválidas",
+        departments: "Departamentos inválidos",
+        positions: "Puestos inválidos",
+        users: "Usuarios inválidos",
       } as const;
       return NextResponse.json({ error: messageByField[scopeValidation.field] }, { status: 400 });
     }
@@ -509,7 +509,7 @@ export async function DELETE(request: Request) {
   const documentId = String(body?.documentId ?? "").trim();
 
   if (!documentId) {
-    return NextResponse.json({ error: "Documento invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Documento inválido" }, { status: 400 });
   }
 
   const { data: document } = await supabase

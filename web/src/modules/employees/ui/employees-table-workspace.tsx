@@ -546,7 +546,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
       {deleteTarget ? (
         <ConfirmDeleteDialog
           title={`Eliminar ${deleteTarget.recordType === "employee" ? "empleado" : "usuario"}`}
-          description={`Vas a eliminar a ${deleteTarget.firstName} ${deleteTarget.lastName}. Esta accion no se puede deshacer.`}
+          description={`Vas a eliminar a ${deleteTarget.firstName} ${deleteTarget.lastName}. Esta acción no se puede deshacer.`}
           busy={busyDelete}
           onCancel={() => setDeleteTargetId(null)}
           onConfirm={deleteEmployee}

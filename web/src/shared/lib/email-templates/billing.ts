@@ -89,10 +89,10 @@ export function planChangeDecisionTemplate({
   branding,
 }: PlanChangeDecisionProps) {
   const isDowngrade = direction === "downgrade";
-  const title = isDowngrade ? "Se solicito un downgrade de plan" : "Se solicito un upgrade de plan";
+  const title = isDowngrade ? "Se solicitó un downgrade de plan" : "Se solicitó un upgrade de plan";
   const subtitle = isDowngrade
-    ? "Revisa los modulos que pueden quedar desactivados con el nuevo plan."
-    : "Tu organizacion desbloquea nuevas capacidades con el nuevo plan.";
+    ? "Revisa los módulos que pueden quedar desactivados con el nuevo plan."
+    : "Tu organización desbloquea nuevas capacidades con el nuevo plan.";
   const accent = isDowngrade ? "#d97706" : "#059669";
   const accentSoft = isDowngrade ? "#fff7ed" : "#ecfdf5";
 
@@ -138,17 +138,17 @@ export function planChangeDecisionTemplate({
 
         <div style="padding:16px 24px 0 24px;">
           <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;background:${accentSoft};">
-            <p style="margin:0 0 10px 0;font-size:12px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Modulos que se activan</p>
-            ${renderModuleList(modulesToEnable, "No se detectaron nuevos modulos para este cambio.", "#047857", "#d1fae5")}
+            <p style="margin:0 0 10px 0;font-size:12px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Módulos que se activan</p>
+            ${renderModuleList(modulesToEnable, "No se detectaron nuevos módulos para este cambio.", "#047857", "#d1fae5")}
             <div style="height:12px;"></div>
-            <p style="margin:0 0 10px 0;font-size:12px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Modulos que se desactivan</p>
-            ${renderModuleList(modulesToDisable, "No se detectaron modulos a desactivar.", "#b45309", "#ffedd5")}
+            <p style="margin:0 0 10px 0;font-size:12px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Módulos que se desactivan</p>
+            ${renderModuleList(modulesToDisable, "No se detectaron módulos a desactivar.", "#b45309", "#ffedd5")}
           </div>
         </div>
 
         <div style="padding:16px 24px 8px 24px;">
           <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;">
-            <p style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Limites del nuevo plan</p>
+            <p style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Límites del nuevo plan</p>
             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
               <tbody>
                 ${limitsHtml}
@@ -159,8 +159,8 @@ export function planChangeDecisionTemplate({
 
         <div style="padding:12px 24px 24px 24px;">
           <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">
-            Esta notificacion confirma que el cambio de plan fue solicitado desde la cuenta administradora de <strong>${orgName}</strong>.
-            Si no reconoces esta accion, revisa de inmediato los accesos en tu panel.
+            Esta notificación confirma que el cambio de plan fue solicitado desde la cuenta administradora de <strong>${orgName}</strong>.
+            Si no reconoces esta acción, revisa de inmediato los accesos en tu panel.
           </p>
           <p style="margin:10px 0 0 0;color:#9ca3af;font-size:11px;">${brandName} Billing</p>
         </div>
@@ -224,7 +224,7 @@ export function planChangeAppliedTemplate({
         <div style="padding:24px 24px 8px 24px;">
           ${renderBrandingHeader(branding)}
           <h2 style="margin:0;font-size:24px;line-height:1.2;color:#111827;">${title}</h2>
-          <p style="margin:10px 0 0 0;color:#4b5563;font-size:14px;line-height:1.5;">El cambio fue confirmado por Stripe y ya esta activo para ${orgName}.</p>
+          <p style="margin:10px 0 0 0;color:#4b5563;font-size:14px;line-height:1.5;">El cambio fue confirmado por Stripe y ya está activo para ${orgName}.</p>
         </div>
 
         <div style="padding:16px 24px 0 24px;">
@@ -245,17 +245,17 @@ export function planChangeAppliedTemplate({
 
         <div style="padding:16px 24px 0 24px;">
           <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;background:${accentSoft};">
-            <p style="margin:0 0 10px 0;font-size:12px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Modulos activados</p>
-            ${renderModuleList(modulesToEnable, "Sin nuevas activaciones de modulos.", "#047857", "#d1fae5")}
+            <p style="margin:0 0 10px 0;font-size:12px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Módulos activados</p>
+            ${renderModuleList(modulesToEnable, "Sin nuevas activaciones de módulos.", "#047857", "#d1fae5")}
             <div style="height:12px;"></div>
-            <p style="margin:0 0 10px 0;font-size:12px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Modulos desactivados</p>
-            ${renderModuleList(modulesToDisable, "Sin desactivaciones de modulos.", "#b45309", "#ffedd5")}
+            <p style="margin:0 0 10px 0;font-size:12px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Módulos desactivados</p>
+            ${renderModuleList(modulesToDisable, "Sin desactivaciones de módulos.", "#b45309", "#ffedd5")}
           </div>
         </div>
 
         <div style="padding:16px 24px 8px 24px;">
           <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;">
-            <p style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Limites vigentes del plan</p>
+            <p style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Límites vigentes del plan</p>
             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
               <tbody>
                 ${limitsHtml}

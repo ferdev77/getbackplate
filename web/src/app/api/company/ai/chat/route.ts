@@ -141,7 +141,7 @@ function detectComplexity(question: string): Complexity {
     "compar",
     "tendencia",
     "analiza",
-    "analisis",
+    "análisis",
     "estrateg",
     "recomend",
     "impacto",
@@ -155,15 +155,15 @@ function detectComplexity(question: string): Complexity {
 
 function buildDomainPrompt(intent: AssistantIntent) {
   const shared = [
-    "Responde siempre en espanol simple, concreto y corto.",
+    "Responde siempre en español simple, concreto y corto.",
     "No inventes datos. Solo usa los facts entregados.",
-    "Formato obligatorio: Resumen / Dato clave / Siguiente accion.",
+    "Formato obligatorio: Resumen / Dato clave / Siguiente acción.",
   ];
 
   if (intent === "employees") return ["Enfoca en fuerza laboral y personal.", ...shared].join(" ");
   if (intent === "checklists") return ["Enfoca en pendientes operativos y cumplimiento.", ...shared].join(" ");
   if (intent === "documents") return ["Enfoca en estado de documentos y riesgo operativo.", ...shared].join(" ");
-  if (intent === "modules") return ["Enfoca en modulos activos y alcance funcional.", ...shared].join(" ");
+  if (intent === "modules") return ["Enfoca en módulos activos y alcance funcional.", ...shared].join(" ");
   if (intent === "executive") return ["Responde como resumen ejecutivo accionable.", ...shared].join(" ");
   return ["Responde con resumen operativo general.", ...shared].join(" ");
 }
@@ -174,10 +174,10 @@ function buildSystemPrompt(params: {
   intent: AssistantIntent;
 }) {
   return [
-    "Eres el asistente operativo de GetBackplate para empresas gastronomicas.",
+    "Eres el asistente operativo de GetBackplate para empresas gastronómicas.",
     `Rol de quien pregunta: ${params.roleCode}.`,
-    `Modulo origen: ${params.originModule}.`,
-    `Intencion detectada: ${params.intent}.`,
+    `Módulo origen: ${params.originModule}.`,
+    `Intención detectada: ${params.intent}.`,
     buildDomainPrompt(params.intent),
     "Si la pregunta no se puede responder con facts, dilo claramente.",
   ].join(" ");
@@ -191,7 +191,7 @@ function hasLowQualityAnswer(answer: string, intent: AssistantIntent) {
   const normalized = answer.trim().toLowerCase();
   if (!normalized) return true;
   if (normalized.length < 40) return true;
-  if (!normalized.includes("resumen") || !normalized.includes("dato clave") || !normalized.includes("siguiente accion")) {
+  if (!normalized.includes("resumen") || !normalized.includes("dato clave") || !normalized.includes("siguiente acción")) {
     return true;
   }
   if (intent !== "general" && normalized.includes("no tengo informacion")) {
@@ -474,70 +474,70 @@ function answerWithRules(question: string, facts: Facts) {
     return [
       `Resumen: empleados activos ${facts.employeesActive}/${facts.employeesTotal}, usuarios activos ${facts.usersActive}, checklists pendientes ${facts.checklistPending}, documentos pendientes ${facts.documentsPending}, avisos ${facts.announcementsActive}.`,
       `Dato clave: sucursales ${facts.branchesActive}, departamentos ${facts.departmentsActive}, puestos ${facts.positionsActive}, plantillas checklist ${facts.checklistTemplatesTotal}, ejecuciones checklist ${facts.checklistRunsTotal}.`,
-      `Siguiente accion: pide detalle por modulo (empleados, documentos, checklists, avisos, modulos, plan) para bajar a nivel operativo.${facts.latestAnnouncementTitle ? ` Ultimo aviso: ${facts.latestAnnouncementTitle}.` : ""}`,
+      `Siguiente acción: pide detalle por módulo (empleados, documentos, checklists, avisos, módulos, plan) para bajar a nivel operativo.${facts.latestAnnouncementTitle ? ` Último aviso: ${facts.latestAnnouncementTitle}.` : ""}`,
     ].join("\n");
   }
   if (q.includes("emplead") || q.includes("usuario")) {
     return [
       `Resumen: hoy tienes ${facts.employeesActive} empleados activos y ${facts.usersActive} usuarios activos en total.`,
       `Dato clave: total de empleados registrados = ${facts.employeesTotal}.`,
-      "Siguiente accion: revisa altas pendientes o ausencias del dia para ajustar operacion.",
+      "Siguiente acción: revisa altas pendientes o ausencias del día para ajustar operación.",
     ].join("\n");
   }
   if (q.includes("checklist") || q.includes("pendient")) {
     return [
-      `Resumen: hay ${facts.checklistPending} checklists pendientes de revision.`,
+      `Resumen: hay ${facts.checklistPending} checklists pendientes de revisión.`,
       `Dato clave: pendientes actuales = ${facts.checklistPending}.`,
-      "Siguiente accion: prioriza sucursales con mayor atraso y cierra incidencias primero.",
+      "Siguiente acción: prioriza sucursales con mayor atraso y cierra incidencias primero.",
     ].join("\n");
   }
   if (q.includes("document") || q.includes("firma")) {
     return [
       `Resumen: tienes ${facts.documentsPending} documentos pendientes (pendientes o rechazados).`,
       `Dato clave: documentos en riesgo = ${facts.documentsPending}.`,
-      "Siguiente accion: contacta responsables y completa firmas criticas hoy.",
+      "Siguiente acción: contacta responsables y completa firmas críticas hoy.",
     ].join("\n");
   }
   if (q.includes("modulo") || q.includes("módulo") || q.includes("habilitado")) {
     const modulesLabel = facts.enabledModules.length ? facts.enabledModules.join(", ") : "ninguno";
     return [
-      `Resumen: modulos habilitados = ${modulesLabel}.`,
-      `Dato clave: total modulos activos = ${facts.enabledModules.length}.`,
-      "Siguiente accion: valida que los equipos usen solo modulos habilitados para tu plan.",
+      `Resumen: módulos habilitados = ${modulesLabel}.`,
+      `Dato clave: total módulos activos = ${facts.enabledModules.length}.`,
+      "Siguiente acción: valida que los equipos usen solo módulos habilitados para tu plan.",
     ].join("\n");
   }
   if (q.includes("sucursal") || q.includes("departamento") || q.includes("puesto")) {
     return [
       `Resumen: tienes ${facts.branchesActive} sucursales activas, ${facts.departmentsActive} departamentos activos y ${facts.positionsActive} puestos activos.`,
       `Dato clave: estructura operativa actual = ${facts.branchesActive}/${facts.departmentsActive}/${facts.positionsActive}.`,
-      "Siguiente accion: valida cobertura por sucursal y departamentos con mayor carga.",
+      "Siguiente acción: valida cobertura por sucursal y departamentos con mayor carga.",
     ].join("\n");
   }
   if (q.includes("plan") || q.includes("pricing") || q.includes("facturacion") || q.includes("facturación")) {
     return [
       `Resumen: plan actual = ${facts.planName ?? facts.planCode ?? "sin plan"}.`,
-      `Dato clave: modulos habilitados = ${facts.enabledModules.length}.`,
-      "Siguiente accion: evalua upgrade si necesitas mas automatizacion o mas capacidad.",
+      `Dato clave: módulos habilitados = ${facts.enabledModules.length}.`,
+      "Siguiente acción: evalúa upgrade si necesitas más automatización o más capacidad.",
     ].join("\n");
   }
   if (q.includes("reporte") || q.includes("resumen")) {
     return [
       `Resumen: empleados activos ${facts.employeesActive}, checklists pendientes ${facts.checklistPending}, documentos pendientes ${facts.documentsPending}, avisos ${facts.announcementsActive}.`,
       `Dato clave: checklists corridos ${facts.checklistRunsTotal}, plantillas ${facts.checklistTemplatesTotal}, documentos ${facts.documentsTotal}, carpetas ${facts.foldersTotal}.`,
-      "Siguiente accion: pide un analisis puntual por area para priorizar accion operativa.",
+      "Siguiente acción: pide un análisis puntual por área para priorizar acción operativa.",
     ].join("\n");
   }
   if (q.includes("aviso") || q.includes("anuncio") || q.includes("publicacion") || q.includes("publicación")) {
     return [
       `Resumen: tienes ${facts.announcementsActive} avisos creados en total.`,
-      `Dato clave: fijados = ${facts.announcementsFeatured}, por vencer en 7 dias = ${facts.announcementsExpiringSoon}${facts.latestAnnouncementTitle ? `, ultimo aviso = ${facts.latestAnnouncementTitle}` : ""}.`,
-      "Siguiente accion: revisa avisos por vencer y prioriza los que impactan operacion diaria.",
+      `Dato clave: fijados = ${facts.announcementsFeatured}, por vencer en 7 días = ${facts.announcementsExpiringSoon}${facts.latestAnnouncementTitle ? `, último aviso = ${facts.latestAnnouncementTitle}` : ""}.`,
+      "Siguiente acción: revisa avisos por vencer y prioriza los que impactan operación diaria.",
     ].join("\n");
   }
   return [
     `Resumen: ${facts.employeesActive} empleados activos, ${facts.checklistPending} checklists pendientes, ${facts.documentsPending} documentos pendientes y ${facts.announcementsActive} avisos creados.`,
     `Dato clave: plan actual = ${facts.planName ?? facts.planCode ?? "sin plan"}.`,
-    `Siguiente accion: decide si quieres profundizar en empleados, checklists, documentos, modulos, sucursales o reportes${facts.latestDocumentName ? ` (ultimo documento: ${facts.latestDocumentName})` : ""}.`,
+    `Siguiente acción: decide si quieres profundizar en empleados, checklists, documentos, módulos, sucursales o reportes${facts.latestDocumentName ? ` (último documento: ${facts.latestDocumentName})` : ""}.`,
   ].join("\n");
 }
 
@@ -575,7 +575,7 @@ async function callAnthropic(params: {
   });
 
   const qualityPrompt = params.forceQualityPrompt
-    ? "Mejora la claridad y respeta exactamente el formato Resumen / Dato clave / Siguiente accion."
+    ? "Mejora la claridad y respeta exactamente el formato Resumen / Dato clave / Siguiente acción."
     : "";
 
   const factsPrompt = JSON.stringify(params.facts, null, 2);
@@ -583,7 +583,7 @@ async function callAnthropic(params: {
     ...params.history.map((m) => ({ role: m.role, content: m.content } as Anthropic.MessageParam)),
     {
       role: "user",
-      content: `Facts actuales de la organizacion: ${factsPrompt}. Pregunta: ${params.question}. ${qualityPrompt}`,
+      content: `Facts actuales de la organización: ${factsPrompt}. Pregunta: ${params.question}. ${qualityPrompt}`,
     },
   ];
 
@@ -648,7 +648,7 @@ async function callOpenRouter(params: {
   });
 
   const qualityPrompt = params.forceQualityPrompt
-    ? "Mejora la claridad y respeta exactamente el formato Resumen / Dato clave / Siguiente accion."
+    ? "Mejora la claridad y respeta exactamente el formato Resumen / Dato clave / Siguiente acción."
     : "";
 
   const factsPrompt = JSON.stringify(params.facts);
@@ -657,7 +657,7 @@ async function callOpenRouter(params: {
     ...params.history,
     {
       role: "user",
-      content: `Facts actuales de la organizacion: ${factsPrompt}. Pregunta: ${params.question}. ${qualityPrompt}`,
+      content: `Facts actuales de la organización: ${factsPrompt}. Pregunta: ${params.question}. ${qualityPrompt}`,
     },
   ];
 
@@ -725,13 +725,13 @@ export async function POST(request: Request) {
   const originModule = String(payload?.originModule ?? "company_panel").trim().slice(0, 60) || "company_panel";
 
   if (!question) {
-    return NextResponse.json({ error: "Pregunta invalida" }, { status: 400 });
+    return NextResponse.json({ error: "Pregunta inválida" }, { status: 400 });
   }
 
   if (isSensitiveQuestion(question)) {
     return NextResponse.json({
       answer:
-        "Resumen: no puedo responder esa consulta por seguridad.\nDato clave: la pregunta incluye datos sensibles o fuera de alcance.\nSiguiente accion: formula una consulta operativa (empleados, checklists, documentos o modulos).\n\n(Modo estructurado)\nConfianza: alto",
+        "Resumen: no puedo responder esa consulta por seguridad.\nDato clave: la pregunta incluye datos sensibles o fuera de alcance.\nSiguiente acción: formula una consulta operativa (empleados, checklists, documentos o módulos).\n\n(Modo estructurado)\nConfianza: alto",
       mode: "basic",
       confidence: "alto",
       hasRealAi: false,

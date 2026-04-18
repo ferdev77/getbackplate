@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   const reviewComment = String(payload?.comment ?? "").trim() || null;
 
   if (!employeeId || !documentId || !ALLOWED_DECISIONS.has(decision)) {
-    return NextResponse.json({ error: "Solicitud invalida" }, { status: 400 });
+    return NextResponse.json({ error: "Solicitud inválida" }, { status: 400 });
   }
 
   const [{ data: employee }, { data: document }] = await Promise.all([

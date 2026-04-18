@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   const customTitle = String((body as Record<string, unknown>)?.title ?? "").trim();
 
   if (!employeeId || !customTitle) {
-    return NextResponse.json({ error: "Solicitud invalida" }, { status: 400 });
+    return NextResponse.json({ error: "Solicitud inválida" }, { status: 400 });
   }
 
   const admin = createSupabaseAdminClient();
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
 
   const path = `${tenant.organizationId}/employees/${employee.id}/company/request/${Date.now()}-placeholder.txt`;
   if (!isSafeTenantStoragePath(path, tenant.organizationId)) {
-    return NextResponse.json({ error: "Ruta de almacenamiento invalida" }, { status: 400 });
+    return NextResponse.json({ error: "Ruta de almacenamiento inválida" }, { status: 400 });
   }
 
   const placeholderText = `Documento solicitado por la empresa: ${customTitle}`;

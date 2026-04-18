@@ -78,7 +78,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </div>
           )}
 
-          <h1 className="mb-1 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Iniciar sesion</h1>
+          <h1 className="mb-1 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Iniciar sesión</h1>
           <p className="mb-6 text-sm text-[var(--gbp-text2)]">
             Ingresa con tus credenciales para acceder al panel.
           </p>
@@ -109,7 +109,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 htmlFor="password"
                 className="mb-1 block text-sm font-medium text-[var(--gbp-text)]"
               >
-                Contrasena
+                Contraseña
               </label>
               <PasswordInput
                 id="password"
@@ -123,14 +123,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                   href={`/auth/forgot-password${orgQuery}`}
                   className="text-xs font-medium text-[var(--gbp-accent)] hover:text-[var(--gbp-accent-hover)]"
                 >
-                  Olvide mi contrasena
+                  Olvidé mi contraseña
                 </Link>
               </div>
             </div>
 
             <SubmitButton
               label="Entrar"
-              pendingLabel="Iniciando sesion..."
+              pendingLabel="Iniciando sesión..."
               className="w-full"
             />
           </form>

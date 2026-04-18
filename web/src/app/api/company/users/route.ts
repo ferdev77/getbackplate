@@ -337,7 +337,7 @@ export async function POST(request: Request) {
   const { supabase, tenant, userId } = context;
   const formData = await request.formData().catch(() => null);
   if (!formData) {
-    return NextResponse.json({ error: "Solicitud invalida" }, { status: 400 });
+    return NextResponse.json({ error: "Solicitud inválida" }, { status: 400 });
   }
 
   const fullName = String(formData.get("full_name") ?? "").trim();
@@ -353,7 +353,7 @@ export async function POST(request: Request) {
   }
 
   if (password.length < 8) {
-    return NextResponse.json({ error: "La contrasena debe tener al menos 8 caracteres" }, { status: 400 });
+    return NextResponse.json({ error: "La contraseña debe tener al menos 8 caracteres" }, { status: 400 });
   }
 
   const roleCode = ALLOWED_ROLE_CODES.has(roleCodeInput) ? roleCodeInput : "employee";
@@ -408,7 +408,7 @@ export async function POST(request: Request) {
       await assertPlanLimitForUsers(tenant.organizationId, 1);
     } catch (error) {
       return NextResponse.json(
-        { error: getPlanLimitErrorMessage(error, "No puedes crear mas usuarios con tu plan actual") },
+        { error: getPlanLimitErrorMessage(error, "No puedes crear más usuarios con tu plan actual") },
         { status: 400 },
       );
     }

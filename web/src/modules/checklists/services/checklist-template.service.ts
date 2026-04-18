@@ -103,7 +103,7 @@ export async function upsertChecklistTemplate(
       .maybeSingle();
 
     if (branchError || !branch) {
-      return { ok: false, message: "Locacion base invalida para esta empresa" };
+      return { ok: false, message: "Locación base inválida para esta empresa" };
     }
   }
 
@@ -118,7 +118,7 @@ export async function upsertChecklistTemplate(
       .maybeSingle();
 
     if (departmentError || !departmentRow) {
-      return { ok: false, message: "Departamento base invalido para esta empresa" };
+      return { ok: false, message: "Departamento base inválido para esta empresa" };
     }
 
     department = departmentRow.name;

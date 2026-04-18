@@ -42,7 +42,7 @@ export function calculateNextRunAt(
       break;
     case 'custom_days':
       if (customDays && customDays.length > 0) {
-        // Encontrar siguiente dia en customDays (0 = Domingo, 1 = Lunes ...)
+        // Encontrar siguiente día en customDays (0 = Domingo, 1 = Lunes ...)
         let added = 0;
         do {
           next.setDate(next.getDate() + 1);

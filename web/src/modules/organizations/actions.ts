@@ -53,7 +53,7 @@ export async function createOrganizationAction(formData: FormData) {
   if (adminPassword.length < 8) {
     redirect(
       "/superadmin/organizations?action=create&status=error&message=" +
-        qs("La contrasena del admin inicial debe tener al menos 8 caracteres"),
+        qs("La contraseña del admin inicial debe tener al menos 8 caracteres"),
     );
   }
 
@@ -78,7 +78,7 @@ export async function createOrganizationAction(formData: FormData) {
   if (orgError || !org) {
     redirect(
       "/superadmin/organizations?action=create&status=error&message=" +
-        qs(`No se pudo crear la organizacion: ${orgError?.message ?? "error"}`),
+        qs(`No se pudo crear la organización: ${orgError?.message ?? "error"}`),
     );
   }
 
@@ -150,7 +150,7 @@ export async function toggleOrganizationModuleAction(formData: FormData) {
   if (!moduleRow) {
     redirect(
       "/superadmin/organizations?status=error&message=" +
-        qs("No se encontro el modulo seleccionado"),
+        qs("No se encontró el módulo seleccionado"),
     );
   }
 
@@ -174,7 +174,7 @@ export async function toggleOrganizationModuleAction(formData: FormData) {
 
     redirect(
       `/superadmin/organizations?action=edit&org=${organizationId}&status=error&message=` +
-        qs(`El modulo core '${moduleRow.name}' no se puede desactivar`),
+        qs(`El módulo core '${moduleRow.name}' no se puede desactivar`),
     );
   }
 
@@ -308,7 +308,7 @@ export async function deleteOrganizationAction(formData: FormData) {
   if (!organization) {
     redirect(
       "/superadmin/organizations?status=error&message=" +
-        qs("No se encontro la organizacion a eliminar"),
+        qs("No se encontró la organización a eliminar"),
     );
   }
 
@@ -329,7 +329,7 @@ export async function deleteOrganizationAction(formData: FormData) {
   if (deleteError) {
     redirect(
       "/superadmin/organizations?status=error&message=" +
-        qs(`No se pudo eliminar organizacion: ${deleteError.message}`),
+        qs(`No se pudo eliminar organización: ${deleteError.message}`),
     );
   }
 
@@ -370,7 +370,7 @@ export async function startOrganizationImpersonationAction(formData: FormData) {
   if (!organizationId) {
     redirect(
       "/superadmin/organizations?status=error&message=" +
-        qs("No se pudo iniciar impersonacion: organizacion invalida"),
+        qs("No se pudo iniciar impersonación: organización inválida"),
     );
   }
 
@@ -382,7 +382,7 @@ export async function startOrganizationImpersonationAction(formData: FormData) {
   if (!user) {
     redirect(
       "/auth/login?error=" +
-        qs("Tu sesion expiro. Vuelve a iniciar sesion para impersonar una organizacion"),
+        qs("Tu sesión expiró. Vuelve a iniciar sesión para impersonar una organización"),
     );
   }
 
@@ -396,7 +396,7 @@ export async function startOrganizationImpersonationAction(formData: FormData) {
   if (!organization) {
     redirect(
       "/superadmin/organizations?status=error&message=" +
-        qs("No se encontro la organizacion seleccionada"),
+        qs("No se encontró la organización seleccionada"),
     );
   }
 
@@ -409,7 +409,7 @@ export async function startOrganizationImpersonationAction(formData: FormData) {
   if (!session.ok) {
     redirect(
       "/superadmin/organizations?status=error&message=" +
-        qs(`No se pudo iniciar impersonacion: ${session.error}`),
+        qs(`No se pudo iniciar impersonación: ${session.error}`),
     );
   }
 
@@ -494,14 +494,14 @@ export async function assignCompanyAdminAction(formData: FormData) {
     if (!organizationId || !email || !fullName || !password) {
       redirect(
         "/superadmin/organizations?status=error&message=" +
-          qs("Completa organizacion, email, nombre y contrasena"),
+          qs("Completa organización, email, nombre y contraseña"),
       );
     }
 
     if (password.length < 8) {
       redirect(
         "/superadmin/organizations?status=error&message=" +
-          qs("La contrasena debe tener al menos 8 caracteres"),
+          qs("La contraseña debe tener al menos 8 caracteres"),
       );
     }
 
@@ -716,4 +716,3 @@ export async function reorderDepartmentPositionsAction(params: {
   await Promise.all(updates);
   return { ok: true };
 }
-
