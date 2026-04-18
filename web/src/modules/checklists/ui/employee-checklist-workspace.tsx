@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Eye, ClipboardCheck, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -177,12 +176,6 @@ export function EmployeeChecklistWorkspace({
                   <Eye className="h-4 w-4" />
                   <TooltipLabel label={loadingTemplateId === template.id ? "Cargando..." : "Ver checklist"} />
                 </button>
-                <Link
-                  href={`/portal/checklist?preview=${template.id}`}
-                  className="inline-flex h-9 items-center rounded-lg border border-[var(--gbp-border)] px-2 text-[11px] font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]"
-                >
-                  URL
-                </Link>
               </div>
             </div>
           </article>

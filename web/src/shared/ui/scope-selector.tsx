@@ -259,12 +259,12 @@ export function ScopeSelector({
                   disabled={disabled}
                   className="mt-[2px] h-[13px] w-[13px] accent-[var(--gbp-accent)]"
                 />
-                <div className="min-w-0">
+                <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2">
                   <p className="truncate text-[12px] font-medium text-[var(--gbp-text)]">{user.first_name} {user.last_name}</p>
-                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                    {user.department_label ? <span className={departmentBadgeClass}>Departamento: {user.department_label}</span> : null}
-                    {user.position_label ? <span className={positionBadgeClass}>Puesto: {user.position_label}</span> : null}
-                    {disabled ? <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0 text-[10px] text-[var(--gbp-muted)]">Sin acceso</span> : null}
+                  <div className="flex items-center justify-end gap-1.5">
+                    {user.department_label ? <span className={`${departmentBadgeClass} max-w-[180px] truncate whitespace-nowrap`}>Departamento: {user.department_label}</span> : null}
+                    {user.position_label ? <span className={`${positionBadgeClass} max-w-[180px] truncate whitespace-nowrap`}>Puesto: {user.position_label}</span> : null}
+                    {disabled ? <span className="whitespace-nowrap rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0 text-[10px] text-[var(--gbp-muted)]">Sin acceso</span> : null}
                   </div>
                 </div>
               </label>
