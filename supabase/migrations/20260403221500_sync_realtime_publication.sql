@@ -38,6 +38,7 @@ declare
     'plans',
     'role_permissions',
     'roles',
+    'scheduled_jobs',
     'stripe_customers',
     'subscriptions',
     'superadmin_impersonation_sessions',
