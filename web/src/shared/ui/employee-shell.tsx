@@ -67,6 +67,7 @@ export function EmployeeShell({
   const pathname = usePathname();
   const router = useRouter();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastRefreshAtRef = useRef(0);
   const prefetchedRoutesRef = useRef<Set<string>>(new Set());
 
   const [collapsed, setCollapsed] = useState(false);
@@ -127,6 +128,9 @@ export function EmployeeShell({
     function scheduleRefresh() {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
+        const now = Date.now();
+        if (now - lastRefreshAtRef.current < 1200) return;
+        lastRefreshAtRef.current = now;
         router.refresh();
       }, refreshDelayMs);
     }

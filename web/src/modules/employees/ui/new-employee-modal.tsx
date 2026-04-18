@@ -466,9 +466,11 @@ export function NewEmployeeModal({
       }));
 
       toast.success(isEmployeeSelfMode ? "Documento enviado para revision" : "Documento cargado y guardado");
-      startTransition(() => {
-        router.refresh();
-      });
+      if (!isEmployeeSelfMode) {
+        startTransition(() => {
+          router.refresh();
+        });
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "No se pudo cargar documento";
       setUploadUiBySlot((prev) => ({
