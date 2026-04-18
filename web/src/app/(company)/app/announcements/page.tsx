@@ -237,7 +237,7 @@ const employeesQuery = supabase
           <article className={`h-full rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Por vencer</p><p className={`mt-1 text-2xl font-bold ${TEXT_STRONG}`}>{porVencer}</p><p className={`text-[11px] ${TEXT_MUTED}`}>Esta semana</p></article>
         </div>
         <div className="h-full">
-          <article className={`h-full rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Ultima publicacion</p><p className={`mt-1 text-2xl font-bold ${TEXT_STRONG}`}>{latestDate ? new Date(latestDate).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }) : "-"}</p><p className={`text-[11px] ${TEXT_MUTED}`}>{latestAnnouncement ? authorNameMap.get(latestAnnouncement.created_by ?? "") || "Direccion General" : "Sin avisos"}</p></article>
+          <article className={`h-full rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Última publicación</p><p className={`mt-1 text-2xl font-bold ${TEXT_STRONG}`}>{latestDate ? new Date(latestDate).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }) : "-"}</p><p className={`text-[11px] ${TEXT_MUTED}`}>{latestAnnouncement ? authorNameMap.get(latestAnnouncement.created_by ?? "") || "Dirección General" : "Sin avisos"}</p></article>
         </div>
       </div>
 
@@ -264,7 +264,7 @@ const employeesQuery = supabase
                       <div>
                         <p className={`text-[14px] font-bold ${TEXT_STRONG}`}>{ann.title}</p>
                         <div className={`mt-0.5 flex flex-wrap items-center gap-2 text-[11px] ${TEXT_MUTED}`}>
-                          <span>📅 {ann.publish_at ? new Date(ann.publish_at).toLocaleDateString("es-AR") : "-"} · {authorNameMap.get(ann.created_by ?? "") || "Direccion General"}</span>
+                          <span>📅 {ann.publish_at ? new Date(ann.publish_at).toLocaleDateString("es-AR") : "-"} · {authorNameMap.get(ann.created_by ?? "") || "Dirección General"}</span>
                           {ann.expires_at ? (
                             (() => {
                               const datePart = ann.expires_at.slice(0, 10);
@@ -274,7 +274,7 @@ const employeesQuery = supabase
                                   : datePart === today
                                     ? "border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
                                     : "border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]";
-                              const prefix = datePart < today ? "Vencio" : datePart === today ? "Vence hoy" : "Por vencer";
+                              const prefix = datePart < today ? "Venció" : datePart === today ? "Vence hoy" : "Por vencer";
                               return <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${badgeClass}`}><CalendarClock className="h-3 w-3" /> {prefix}: {new Date(ann.expires_at).toLocaleDateString("es-AR")}</span>;
                             })()
                           ) : null}
@@ -330,7 +330,7 @@ const employeesQuery = supabase
                           <ConfirmSubmitButton
                             label="🗑"
                             confirmTitle="Eliminar anuncio"
-                            confirmDescription="Se eliminara el anuncio y su audiencia. Esta accion no se puede deshacer."
+                            confirmDescription="Se eliminará el anuncio y su audiencia. Esta acción no se puede deshacer."
                             confirmLabel="Eliminar"
                             className={ACTION_BTN_DANGER}
                             data-testid="delete-announcement-btn"
@@ -345,7 +345,7 @@ const employeesQuery = supabase
           </div>
         ) : (
           <SlideUp delay={0.2}>
-            <EmptyState title="Aun no hay anuncios" description="Publica tu primer aviso para que llegue a tu equipo." />
+            <EmptyState title="Aún no hay anuncios" description="Publica tu primer aviso para que llegue a tu equipo." />
           </SlideUp>
         )}
       </section>

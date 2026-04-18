@@ -209,7 +209,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreat
       ["Email", user.email],
       ["Rol", roleLabel(user.roleCode)],
       ["Acceso a plataforma", statusLabel(user.status)],
-      ["Locacion", user.branchName],
+      ["Locación", user.branchName],
       ["Alta", new Date(user.createdAt).toLocaleDateString("es-AR")],
     ];
     doc.setFontSize(11);
@@ -244,7 +244,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreat
         <div className="grid grid-cols-[1fr_100px] gap-x-3 border-b-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-5 py-2.5 text-[11px] font-bold tracking-[0.07em] text-[var(--gbp-muted)] uppercase md:grid-cols-[2fr_1fr_120px] lg:grid-cols-[minmax(190px,2fr)_minmax(170px,1.4fr)_minmax(120px,1fr)_minmax(100px,.8fr)_136px]">
           <p>Nombre</p>
           <p className="hidden lg:block">Email</p>
-          <p className="hidden md:block">Locacion</p>
+          <p className="hidden md:block">Locación</p>
           <p className="hidden lg:block">Acceso</p>
           <p>Acciones</p>
         </div>
@@ -288,7 +288,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreat
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Rol</p><p className="text-sm text-[var(--gbp-text)]">{roleLabel(selected.roleCode)}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Acceso a plataforma</p><p className="text-sm text-[var(--gbp-text)]">{statusLabel(selected.status)}</p></div>
               <div className="sm:col-span-2">
-                <p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Locacion</p>
+                <p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Locación</p>
                 <div className="mt-1">
                   <span className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] font-medium text-[var(--gbp-accent)]">
                     {selected.branchName}
@@ -317,7 +317,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreat
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Email</p><p className="text-sm text-[var(--gbp-text)]">{editing.email}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Rol</p><select value={editRole} onChange={(event) => setEditRole(event.target.value)} className="mt-1 h-9 w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-sm text-[var(--gbp-text)]">{roleOptions.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}</select></div>
                <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Acceso a plataforma</p><select value={editStatus} onChange={(event) => setEditStatus(event.target.value)} className="mt-1 h-9 w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-sm text-[var(--gbp-text)]"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></div>
-              <div className="sm:col-span-2"><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Locacion</p><select value={editBranchId} onChange={(event) => setEditBranchId(event.target.value)} className="mt-1 h-9 w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-sm text-[var(--gbp-text)]"><option value="">Todas</option>{branchOptions.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></div>
+              <div className="sm:col-span-2"><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Locación</p><select value={editBranchId} onChange={(event) => setEditBranchId(event.target.value)} className="mt-1 h-9 w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-sm text-[var(--gbp-text)]"><option value="">Todas</option>{branchOptions.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></div>
             </div>
             <div className="flex items-center justify-between gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
               <button type="button" disabled={busyResend} onClick={() => void resendInvitation(editing)} className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm font-semibold text-[var(--gbp-text2)] transition-all hover:border-[var(--gbp-accent)] hover:bg-[var(--gbp-accent-glow)] hover:text-[var(--gbp-accent)] disabled:opacity-50">{busyResend ? "Enviando..." : "Reenviar Invitación"}</button>
@@ -333,7 +333,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreat
       {deleteTarget ? (
         <ConfirmDeleteDialog
           title="Eliminar administrador"
-          description="Se removera el acceso administrativo de esta persona en tu empresa."
+          description="Se removerá el acceso administrativo de esta persona en tu empresa."
           busy={busyDelete}
           onCancel={() => setDeleteTargetId(null)}
           onConfirm={deleteUser}

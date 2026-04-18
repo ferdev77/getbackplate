@@ -262,7 +262,7 @@ export function EmployeeDocumentsTree({ organizationId, viewerUserId, folders, d
       </section>
 
       {!documents.length && !folders.length ? (
-        <EmptyState title="Sin documentos" description="Aun no tienes documentos visibles o asignados." />
+        <EmptyState title="Sin documentos" description="Aún no tienes documentos visibles o asignados." />
       ) : (
         <SlideUp delay={0.1}>
           <AnimatePresence mode="wait">

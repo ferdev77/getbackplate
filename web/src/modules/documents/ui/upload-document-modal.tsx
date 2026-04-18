@@ -146,8 +146,8 @@ export function UploadDocumentModal({
                   <input name="file" type="file" required className="sr-only" onChange={(event) => setSelectedFileName(event.target.files?.[0]?.name ?? "")} />
                 </label>
 
-                <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Titulo (opcional)</label>
-                <input name="title" placeholder="Se usa el nombre del archivo si lo dejas vacio" className="mb-3 w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]" />
+                <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Título (opcional)</label>
+                <input name="title" placeholder="Se usa el nombre del archivo si lo dejas vacío" className="mb-3 w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]" />
 
                 <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Guardar en carpeta</label>
                 <select name="folder_id" value={selectedFolderId} onChange={(event) => setSelectedFolderId(event.target.value)} className="mb-3 w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]"><option value="">Sin carpeta</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select>
@@ -156,11 +156,11 @@ export function UploadDocumentModal({
                   <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Quienes pueden ver este archivo</p>
                   {selectedFolderId ? (
                     <p className="mt-1 text-xs text-[var(--gbp-text2)]">
-                      Este archivo heredara automaticamente los permisos de la carpeta seleccionada.
+                      Este archivo heredará automáticamente los permisos de la carpeta seleccionada.
                     </p>
                   ) : (
                     <>
-                      <p className="mt-1 text-xs text-[var(--gbp-text2)]">Define acceso por locacion, departamento, puesto o usuario. Esta configuracion aplica cuando el archivo esta en raiz.</p>
+                      <p className="mt-1 text-xs text-[var(--gbp-text2)]">Define acceso por locación, departamento, puesto o usuario. Esta configuración aplica cuando el archivo está en raíz.</p>
                       <ScopeSelector
                         namespace="upload-modal"
                         branches={branches}
@@ -176,7 +176,7 @@ export function UploadDocumentModal({
                   )}
                 </div>
 
-                <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Descripcion (opcional)</label>
+                <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Descripción (opcional)</label>
                 <textarea className="mb-2 h-24 w-full resize-none rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]" placeholder="Describe brevemente el contenido del documento..." />
 
                 {isUploading ? (
@@ -191,7 +191,7 @@ export function UploadDocumentModal({
                 <p className="mb-3 text-[12px] font-bold text-[var(--gbp-text)]">Subidos recientemente</p>
                 <div className="space-y-2.5">
                   {recentDocuments.slice(0, 4).map((document) => {
-                    const branchName = document.branch_id ? branchMap.get(document.branch_id) ?? "Locacion" : "Global";
+                    const branchName = document.branch_id ? branchMap.get(document.branch_id) ?? "Locación" : "Global";
                     return (
                       <div key={document.id} className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2">
                         <p className="truncate text-[12px] font-semibold text-[var(--gbp-text)]">{document.title}</p>
@@ -223,7 +223,7 @@ export function UploadDocumentModal({
           <div className="pointer-events-none absolute inset-0 grid place-items-center bg-white/78 backdrop-blur-[1px]">
             <div className="rounded-2xl border border-emerald-200 bg-white px-6 py-5 text-center shadow-[0_16px_40px_rgba(16,185,129,.15)]">
               <CheckCircle2 className="mx-auto h-10 w-10 animate-pulse text-emerald-600" />
-              <p className="mt-2 text-sm font-bold text-emerald-700">Archivo subido con exito</p>
+              <p className="mt-2 text-sm font-bold text-emerald-700">Archivo subido con éxito</p>
               <p className="mt-1 text-xs text-emerald-700/90">Actualizando vista en tiempo real...</p>
             </div>
           </div>

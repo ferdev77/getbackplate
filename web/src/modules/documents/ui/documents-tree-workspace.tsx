@@ -1095,7 +1095,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
       {deleteDocument ? (
         <ConfirmDeleteDialog
           title="Eliminar documento"
-          description={`Se eliminara \"${deleteDocument.title}\". Esta accion no se puede deshacer.`}
+          description={`Se eliminará \"${deleteDocument.title}\". Esta acción no se puede deshacer.`}
           busy={busy}
           onCancel={() => setDeleteDocId(null)}
           onConfirm={() => void removeDocument(deleteDocument.id)}
@@ -1105,7 +1105,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
       {deleteFolder ? (
         <ConfirmDeleteDialog
           title="Eliminar carpeta"
-          description={`Se eliminara la carpeta \"${deleteFolder.name}\" si esta vacia.`}
+          description={`Se eliminará la carpeta \"${deleteFolder.name}\" si está vacía.`}
           busy={busy}
           onCancel={() => setDeleteFolderId(null)}
           onConfirm={() => void removeFolder(deleteFolder.id)}
