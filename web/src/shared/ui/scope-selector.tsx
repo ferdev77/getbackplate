@@ -42,8 +42,6 @@ export function ScopeSelector({
   initialPositions = [],
   initialUsers = [],
 }: ScopeSelectorProps) {
-  const roleBadgeClass = "rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-1.5 py-0 text-[10px] text-[var(--gbp-text2)]";
-  const locationBadgeClass = "rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-1.5 py-0 text-[10px] font-medium text-[var(--gbp-accent)]";
   const departmentBadgeClass = "rounded-full border border-blue-500/30 bg-blue-500/10 px-1.5 py-0 text-[10px] font-medium text-blue-600 dark:text-blue-400";
   const positionBadgeClass = "rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0 text-[10px] font-medium text-emerald-700 dark:text-emerald-400";
 
@@ -241,13 +239,16 @@ export function ScopeSelector({
         className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]"
         placeholder="Buscar usuario..."
       />
-      <div className="mt-2 max-h-36 overflow-y-auto rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3">
-        <div className="grid gap-2 text-xs text-[var(--gbp-text2)]">
+      <div className="mt-2 max-h-44 overflow-y-auto rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3">
+        <div className="grid gap-2.5 text-xs text-[var(--gbp-text2)]">
           {filteredUsers.map((user) => {
             const value = user.user_id;
             const disabled = !value;
             return (
-            <label key={`${namespace}-usr-${user.id}`} className={`flex flex-wrap items-center gap-2 ${disabled ? "opacity-60" : ""}`}>
+            <label
+              key={`${namespace}-usr-${user.id}`}
+              className={`grid grid-cols-[14px_minmax(0,1fr)] items-start gap-x-2.5 gap-y-1 rounded-md border border-transparent px-1 py-1.5 hover:border-[var(--gbp-border)] hover:bg-[var(--gbp-bg)] ${disabled ? "opacity-60" : ""}`}
+            >
                 <input
                   type="checkbox"
                   checked={value ? selectedUsers.has(value) : false}
@@ -256,14 +257,16 @@ export function ScopeSelector({
                     toggleUser(value, event.target.checked);
                   }}
                   disabled={disabled}
-                  className="h-[13px] w-[13px] accent-[var(--gbp-accent)]"
+                  className="mt-[2px] h-[13px] w-[13px] accent-[var(--gbp-accent)]"
                 />
-                <span className="max-w-full text-[12px] text-[var(--gbp-text)]">{user.first_name} {user.last_name}</span>
-                {user.role_label ? <span className={roleBadgeClass}>Rol: {user.role_label}</span> : null}
-                {user.role_label === "Empleado" && user.location_label ? <span className={locationBadgeClass}>Locacion: {user.location_label}</span> : null}
-                {user.role_label === "Empleado" && user.department_label ? <span className={departmentBadgeClass}>Departamento: {user.department_label}</span> : null}
-                {user.role_label === "Empleado" && user.position_label ? <span className={positionBadgeClass}>Puesto: {user.position_label}</span> : null}
-                {disabled ? <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0 text-[10px] text-[var(--gbp-muted)]">Sin acceso</span> : null}
+                <div className="min-w-0">
+                  <p className="truncate text-[12px] font-medium text-[var(--gbp-text)]">{user.first_name} {user.last_name}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    {user.department_label ? <span className={departmentBadgeClass}>Departamento: {user.department_label}</span> : null}
+                    {user.position_label ? <span className={positionBadgeClass}>Puesto: {user.position_label}</span> : null}
+                    {disabled ? <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0 text-[10px] text-[var(--gbp-muted)]">Sin acceso</span> : null}
+                  </div>
+                </div>
               </label>
             );
           })}

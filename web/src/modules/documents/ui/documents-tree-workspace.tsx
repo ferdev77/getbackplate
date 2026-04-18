@@ -1189,7 +1189,7 @@ function EditDocumentModal({
 
   return (
     <div className="fixed inset-0 z-[1020] flex items-center justify-center bg-black/45 p-5">
-      <div className={`w-[560px] max-w-[95vw] ${MODAL_PANEL}`}>
+      <div className={`w-[700px] max-w-[95vw] ${MODAL_PANEL}`}>
         <div className={MODAL_HEADER}><p className={MODAL_TITLE}>Editar Documento</p><button type="button" className={MODAL_CLOSE} onClick={onCancel}>✕</button></div>
         <form
           onSubmit={(event) => {
@@ -1208,14 +1208,35 @@ function EditDocumentModal({
             onSave({ documentId: document.id, title: title.trim(), folderId: folderId || null, scope });
           }}
         >
-          <div className="max-h-[70vh] overflow-y-auto px-6 py-5 space-y-4">
-            <label className="grid gap-1.5"><span className={MODAL_LABEL}>Titulo</span><input value={title} onChange={(event) => setTitle(event.target.value)} className={MODAL_INPUT} required /></label>
-            <label className="grid gap-1.5"><span className={MODAL_LABEL}>Carpeta</span><select value={folderId} onChange={(event) => setFolderId(event.target.value)} className={MODAL_INPUT}><option value="">Sin carpeta</option>{folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select></label>
-            
-            {!folderId && (
-              <div className="space-y-2 pt-2 border-t-[1.5px] border-[var(--gbp-border2)]">
-                <p className="text-xs font-semibold text-[var(--gbp-text)]">Permisos de acceso</p>
-                <div className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)]">
+          <div className="max-h-[70vh] space-y-4 overflow-y-auto px-6 py-5">
+            <section className={MODAL_SOFT_BOX}>
+              <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">Datos del documento</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="grid gap-1.5">
+                  <span className={MODAL_LABEL}>Titulo</span>
+                  <input value={title} onChange={(event) => setTitle(event.target.value)} className={MODAL_INPUT} required />
+                </label>
+                <label className="grid gap-1.5">
+                  <span className={MODAL_LABEL}>Carpeta</span>
+                  <select value={folderId} onChange={(event) => setFolderId(event.target.value)} className={MODAL_INPUT}>
+                    <option value="">Sin carpeta</option>
+                    {folders.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            {!folderId ? (
+              <section className={MODAL_SOFT_BOX}>
+                <div className="mb-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">Permisos de acceso</p>
+                  <p className="mt-1 text-xs text-[var(--gbp-text2)]">Define alcance por locacion, departamento, puesto o usuario.</p>
+                </div>
+                <div className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 pb-3">
                   <ScopeSelector
                     namespace="edit-document"
                     branches={branches}
@@ -1223,23 +1244,20 @@ function EditDocumentModal({
                     positions={positions}
                     users={users}
                     locationInputName="_scope_location"
-                      departmentInputName="_scope_department"
-                      positionInputName="_scope_position"
-                      userInputName="_scope_user"
-                      initialLocations={parseScope(document.access_scope).locations}
-                      initialDepartments={parseScope(document.access_scope).departments}
-                      initialPositions={parseScope(document.access_scope).positions}
-                      initialUsers={parseScope(document.access_scope).users}
-                    />
-                  </div>
-
-              </div>
-            )}
-            
-            {folderId && (
-              <div className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface2)] p-3 text-xs text-[var(--gbp-muted)]">
+                    departmentInputName="_scope_department"
+                    positionInputName="_scope_position"
+                    userInputName="_scope_user"
+                    initialLocations={parseScope(document.access_scope).locations}
+                    initialDepartments={parseScope(document.access_scope).departments}
+                    initialPositions={parseScope(document.access_scope).positions}
+                    initialUsers={parseScope(document.access_scope).users}
+                  />
+                </div>
+              </section>
+            ) : (
+              <section className="rounded-lg border border-amber-300/50 bg-amber-50 px-4 py-3 text-xs text-amber-900">
                 El documento hereda permisos de su carpeta. Edita la carpeta para cambiar acceso.
-              </div>
+              </section>
             )}
           </div>
           <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button><button type="submit" disabled={busy || !title.trim()} className={MODAL_PRIMARY}>{busy ? "Guardando..." : "Guardar"}</button></div>
@@ -1276,7 +1294,7 @@ function EditFolderModal({
 
   return (
     <div className="fixed inset-0 z-[1020] flex items-center justify-center bg-black/45 p-5">
-      <div className={`w-[560px] max-w-[95vw] ${MODAL_PANEL}`}>
+      <div className={`w-[700px] max-w-[95vw] ${MODAL_PANEL}`}>
         <div className={MODAL_HEADER}><p className={MODAL_TITLE}>Editar Carpeta</p><button type="button" className={MODAL_CLOSE} onClick={onCancel}>✕</button></div>
         <form
           onSubmit={(event) => {
@@ -1292,13 +1310,36 @@ function EditFolderModal({
             onSave({ folderId: folder.id, name: name.trim(), parentId: parentId || null, scope });
           }}
         >
-          <div className="max-h-[70vh] overflow-y-auto px-6 py-5 space-y-4">
-            <label className="grid gap-1.5"><span className={MODAL_LABEL}>Nombre</span><input value={name} onChange={(event) => setName(event.target.value)} className={MODAL_INPUT} required /></label>
-            <label className="grid gap-1.5"><span className={MODAL_LABEL}>Carpeta padre</span><select value={parentId} onChange={(event) => setParentId(event.target.value)} className={MODAL_INPUT}><option value="">Sin carpeta padre</option>{folders.filter((f) => f.id !== folder.id).map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select></label>
-            
-            <div className="space-y-2 pt-2 border-t-[1.5px] border-[var(--gbp-border2)]">
-              <p className="text-xs font-semibold text-[var(--gbp-text)]">Permisos de acceso</p>
-              <div className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)]">
+          <div className="max-h-[70vh] space-y-4 overflow-y-auto px-6 py-5">
+            <section className={MODAL_SOFT_BOX}>
+              <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">Datos de la carpeta</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="grid gap-1.5">
+                  <span className={MODAL_LABEL}>Nombre</span>
+                  <input value={name} onChange={(event) => setName(event.target.value)} className={MODAL_INPUT} required />
+                </label>
+                <label className="grid gap-1.5">
+                  <span className={MODAL_LABEL}>Carpeta padre</span>
+                  <select value={parentId} onChange={(event) => setParentId(event.target.value)} className={MODAL_INPUT}>
+                    <option value="">Sin carpeta padre</option>
+                    {folders
+                      .filter((f) => f.id !== folder.id)
+                      .map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <section className={MODAL_SOFT_BOX}>
+              <div className="mb-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">Permisos de acceso</p>
+                <p className="mt-1 text-xs text-[var(--gbp-text2)]">Este alcance aplica a los archivos dentro de esta carpeta.</p>
+              </div>
+              <div className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 pb-3">
                 <ScopeSelector
                   namespace="edit-folder"
                   branches={branches}
@@ -1306,16 +1347,16 @@ function EditFolderModal({
                   positions={positions}
                   users={users}
                   locationInputName="_scope_location"
-                    departmentInputName="_scope_department"
-                    positionInputName="_scope_position"
-                    userInputName="_scope_user"
-                    initialLocations={parseScope(folder.access_scope).locations}
-                    initialDepartments={parseScope(folder.access_scope).departments}
-                    initialPositions={parseScope(folder.access_scope).positions}
-                    initialUsers={parseScope(folder.access_scope).users}
-                  />
-                </div>
-            </div>
+                  departmentInputName="_scope_department"
+                  positionInputName="_scope_position"
+                  userInputName="_scope_user"
+                  initialLocations={parseScope(folder.access_scope).locations}
+                  initialDepartments={parseScope(folder.access_scope).departments}
+                  initialPositions={parseScope(folder.access_scope).positions}
+                  initialUsers={parseScope(folder.access_scope).users}
+                />
+              </div>
+            </section>
           </div>
           <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button><button type="submit" disabled={busy || !name.trim()} className={MODAL_PRIMARY}>{busy ? "Guardando..." : "Guardar"}</button></div>
         </form>

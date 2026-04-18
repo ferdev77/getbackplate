@@ -150,7 +150,7 @@ export function UploadDocumentModal({
                 <input name="title" placeholder="Se usa el nombre del archivo si lo dejas vacio" className="mb-3 w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]" />
 
                 <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Guardar en carpeta</label>
-                <select name="folder_id" value={selectedFolderId} onChange={(event) => setSelectedFolderId(event.target.value)} className="mb-3 w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]"><option value="">Raiz</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select>
+                <select name="folder_id" value={selectedFolderId} onChange={(event) => setSelectedFolderId(event.target.value)} className="mb-3 w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]"><option value="">Sin carpeta</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select>
 
                 <div className="mb-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
                   <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Quienes pueden ver este archivo</p>
