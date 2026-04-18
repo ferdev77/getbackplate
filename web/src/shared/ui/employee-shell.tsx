@@ -12,6 +12,9 @@ import { GetBackplateMark } from "@/shared/ui/getbackplate-mark";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 
+const CHECKLIST_PREVIEW_GUARD_KEY = "portal-checklist-preview-guard";
+const CHECKLIST_PREVIEW_GUARD_TTL_MS = 15000;
+
 type EmployeeShellProps = {
   organizationId: string;
   userId: string;
@@ -83,6 +86,7 @@ export function EmployeeShell({
     const employeeUploadCooldownKey = "gbp.employee.docs.upload.cooldown";
     const employeeUploadInflightKey = "gbp.employee.docs.upload.inflight";
     const ownSubmissionFilter = `organization_id=eq.${organizationId},submitted_by=eq.${userId}`;
+    const checklistJobsFilter = `organization_id=eq.${organizationId},job_type=eq.checklist_generator`;
     const ownEmployeeFilter = `organization_id=eq.${organizationId},user_id=eq.${userId}`;
     const ownEmployeeByIdFilter = employeeId ? `organization_id=eq.${organizationId},id=eq.${employeeId}` : "";
     const ownPreferencesFilter = `organization_id=eq.${organizationId},user_id=eq.${userId}`;
@@ -101,7 +105,7 @@ export function EmployeeShell({
         { table: "documents", filter: orgFilter },
         { table: "document_folders", filter: orgFilter },
         { table: "checklist_templates", filter: orgFilter },
-        { table: "scheduled_jobs", filter: orgFilter },
+        { table: "scheduled_jobs", filter: checklistJobsFilter },
         { table: "checklist_submissions", filter: ownSubmissionFilter },
       );
     } else if (pathname.startsWith("/portal/announcements")) {
@@ -111,7 +115,7 @@ export function EmployeeShell({
         { table: "checklist_templates", filter: orgFilter },
         { table: "checklist_template_sections", filter: orgFilter },
         { table: "checklist_template_items", filter: orgFilter },
-        { table: "scheduled_jobs", filter: orgFilter },
+        { table: "scheduled_jobs", filter: checklistJobsFilter },
         { table: "checklist_submissions", filter: ownSubmissionFilter },
       );
     } else if (pathname.startsWith("/portal/documents")) {
@@ -149,6 +153,22 @@ export function EmployeeShell({
     }
 
     function scheduleRefresh(sourceTable?: string) {
+      if (pathname.startsWith("/portal/checklist")) {
+        if (typeof window !== "undefined") {
+          try {
+            const raw = window.sessionStorage.getItem(CHECKLIST_PREVIEW_GUARD_KEY);
+            if (raw) {
+              const parsed = JSON.parse(raw) as { at?: number };
+              if (typeof parsed?.at === "number" && Date.now() - parsed.at < CHECKLIST_PREVIEW_GUARD_TTL_MS) {
+                return;
+              }
+            }
+          } catch {
+            // ignore guard parsing errors
+          }
+        }
+      }
+
       if (isEmployeeUploadInflight()) {
         return;
       }

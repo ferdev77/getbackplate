@@ -2,10 +2,14 @@
 
 import { Eye, ClipboardCheck, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { EmployeeChecklistPreviewModal } from "@/modules/checklists/ui/employee-checklist-preview-modal";
 import { TooltipLabel } from "@/shared/ui/tooltip";
+
+const PREVIEW_GUARD_KEY = "portal-checklist-preview-guard";
+const PREVIEW_GUARD_TTL_MS = 15000;
 
 type TemplateRow = {
   id: string;
@@ -63,23 +67,31 @@ export function EmployeeChecklistWorkspace({
   templates: TemplateRow[];
   initialPreviewTemplateId?: string;
 }) {
+  const router = useRouter();
   const [templateRows, setTemplateRows] = useState<TemplateRow[]>(templates);
   const [openTemplateId, setOpenTemplateId] = useState<string>("");
   const [loadingTemplateId, setLoadingTemplateId] = useState<string>("");
   const [payload, setPayload] = useState<PreviewPayload | null>(null);
   const cacheRef = useRef<Map<string, { fetchedAt: number; payload: PreviewPayload }>>(new Map());
+  const consumedInitialPreviewRef = useRef<string>("");
   const ttlMs = 60_000;
 
   useEffect(() => {
     setTemplateRows(templates);
   }, [templates]);
 
-  const fetchPreview = useCallback(async (templateId: string, options?: { force?: boolean; silent?: boolean }) => {
+  const fetchPreview = useCallback(async (
+    templateId: string,
+    options?: { force?: boolean; silent?: boolean; updateActivePayload?: boolean },
+  ) => {
     const force = Boolean(options?.force);
     const silent = Boolean(options?.silent);
+    const updateActivePayload = options?.updateActivePayload ?? true;
     const cached = cacheRef.current.get(templateId);
     if (!force && cached && Date.now() - cached.fetchedAt <= ttlMs) {
-      setPayload(cached.payload);
+      if (updateActivePayload) {
+        setPayload(cached.payload);
+      }
       return cached.payload;
     }
 
@@ -94,7 +106,9 @@ export function EmployeeChecklistWorkspace({
         throw new Error((data && "error" in data ? data.error : null) ?? "No se pudo cargar el checklist");
       }
       cacheRef.current.set(templateId, { fetchedAt: Date.now(), payload: data });
-      setPayload(data);
+      if (updateActivePayload) {
+        setPayload(data);
+      }
       return data;
     } finally {
       if (!silent) setLoadingTemplateId("");
@@ -124,17 +138,45 @@ export function EmployeeChecklistWorkspace({
 
   useEffect(() => {
     if (!initialPreviewTemplateId) return;
+    if (consumedInitialPreviewRef.current === initialPreviewTemplateId) return;
+    if (openTemplateId) return;
     if (!templateRows.find((row) => row.id === initialPreviewTemplateId)) return;
+
+    if (typeof window !== "undefined") {
+      try {
+        const raw = window.sessionStorage.getItem(PREVIEW_GUARD_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as { id?: string; at?: number };
+          if (
+            parsed?.id === initialPreviewTemplateId &&
+            typeof parsed.at === "number" &&
+            Date.now() - parsed.at < PREVIEW_GUARD_TTL_MS
+          ) {
+            return;
+          }
+        }
+        window.sessionStorage.setItem(
+          PREVIEW_GUARD_KEY,
+          JSON.stringify({ id: initialPreviewTemplateId, at: Date.now() }),
+        );
+      } catch {
+        // ignore storage guard errors
+      }
+    }
+
+    consumedInitialPreviewRef.current = initialPreviewTemplateId;
     void openPreview(initialPreviewTemplateId);
-  }, [initialPreviewTemplateId, openPreview, templateRows]);
+    router.replace("/portal/checklist", { scroll: false });
+  }, [initialPreviewTemplateId, openPreview, openTemplateId, router, templateRows]);
 
   useEffect(() => {
     if (!templateRows.length) return;
+    if (openTemplateId) return;
     const timer = setTimeout(() => {
       templateRows.forEach((template, index) => {
         setTimeout(() => {
           if (cacheRef.current.has(template.id)) return;
-          void fetchPreview(template.id, { silent: true }).catch(() => {
+          void fetchPreview(template.id, { silent: true, updateActivePayload: false }).catch(() => {
             // ignore silent prefetch failure
           });
         }, index * 120);
@@ -142,7 +184,7 @@ export function EmployeeChecklistWorkspace({
     }, 120);
 
     return () => clearTimeout(timer);
-  }, [fetchPreview, templateRows]);
+  }, [fetchPreview, openTemplateId, templateRows]);
 
   return (
     <>

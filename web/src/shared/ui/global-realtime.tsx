@@ -1,14 +1,19 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 
 export function GlobalRealtimeListener() {
   const router = useRouter();
+  const pathname = usePathname();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    if (pathname.startsWith("/portal")) {
+      return;
+    }
+
     const supabase = createSupabaseBrowserClient();
     
     const channel = supabase
@@ -34,7 +39,7 @@ export function GlobalRealtimeListener() {
       supabase.removeChannel(channel);
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [router]);
+  }, [pathname, router]);
 
   return null;
 }
