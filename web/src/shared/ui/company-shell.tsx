@@ -576,6 +576,8 @@ export function CompanyShell({
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
     const orgFilter = `organization_id=eq.${tenantId}`;
+    const fastRealtimePaths = ["/app/checklists", "/app/reports", "/app/dashboard/location"];
+    const refreshDelayMs = fastRealtimePaths.some((prefix) => pathname.startsWith(prefix)) ? 450 : 2000;
 
     const subscriptions: Array<{ table: string; filter: string }> = [
       { table: "organization_modules", filter: orgFilter },
@@ -649,7 +651,7 @@ export function CompanyShell({
       }
       refreshTimerRef.current = setTimeout(() => {
         router.refresh();
-      }, 2000);
+      }, refreshDelayMs);
     }
 
     const uniqueSubscriptions = new Map<string, { table: string; filter: string }>();

@@ -77,6 +77,8 @@ export function EmployeeShell({
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
     const orgFilter = `organization_id=eq.${organizationId}`;
+    const fastRealtimePaths = ["/portal/checklist", "/portal/home"];
+    const refreshDelayMs = fastRealtimePaths.some((prefix) => pathname.startsWith(prefix)) ? 450 : 2000;
     const ownSubmissionFilter = `organization_id=eq.${organizationId},submitted_by=eq.${userId}`;
     const ownEmployeeFilter = `organization_id=eq.${organizationId},user_id=eq.${userId}`;
     const ownEmployeeByIdFilter = employeeId ? `organization_id=eq.${organizationId},id=eq.${employeeId}` : "";
@@ -126,7 +128,7 @@ export function EmployeeShell({
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         router.refresh();
-      }, 2000);
+      }, refreshDelayMs);
     }
 
     const uniqueSubscriptions = new Map<string, { table: string; filter: string }>();
