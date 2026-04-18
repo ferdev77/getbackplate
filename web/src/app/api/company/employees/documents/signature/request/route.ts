@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   const documentId = String(payload?.documentId ?? "").trim();
   const force = Boolean(payload?.force ?? false); // Permite re-crear una submission fallida
   if (!employeeId || !documentId) {
-    return NextResponse.json({ error: "Solicitud invalida" }, { status: 400 });
+    return NextResponse.json({ error: "Solicitud inválida" }, { status: 400 });
   }
 
   const admin = createSupabaseAdminClient();
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
 
   const linkedDocument = Array.isArray(link.linked_document) ? link.linked_document[0] : link.linked_document;
   if (!linkedDocument?.file_path) {
-    return NextResponse.json({ error: "No se encontro archivo del documento" }, { status: 404 });
+    return NextResponse.json({ error: "No se encontró archivo del documento" }, { status: 404 });
   }
 
   const { data: employee } = await admin

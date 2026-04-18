@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   const rawBody = await request.json().catch(() => null);
   const parsed = feedbackSchema.safeParse(rawBody);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Payload invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Payload inválido" }, { status: 400 });
   }
 
   const normalizedType = parsed.data.feedbackType;

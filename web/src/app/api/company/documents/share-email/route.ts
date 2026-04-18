@@ -34,7 +34,7 @@ export async function POST(request: Request) {
 
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail);
   if (!emailOk) {
-    return NextResponse.json({ error: "Email invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Email inválido" }, { status: 400 });
   }
 
   const admin = createSupabaseAdminClient();
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
   }
 
   if (!isSafeTenantStoragePath(document.file_path, tenant.organizationId, { allowLegacySeedPrefix: true })) {
-    return NextResponse.json({ error: "Ruta de documento invalida" }, { status: 400 });
+    return NextResponse.json({ error: "Ruta de documento inválida" }, { status: 400 });
   }
 
   const { data: signed, error: signedError } = await admin.storage

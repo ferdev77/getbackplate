@@ -24,12 +24,12 @@ export function FloatingAiAssistant({ currentPlanCode, userName }: FloatingAiAss
   const [loading, setLoading] = useState(false);
   const displayName = userName.trim().split(/\s+/)[0] || "";
   const planIntro = currentPlanCode === "pro"
-    ? "Puedo ayudarte con analisis y consultas avanzadas de tu operacion."
+    ? "Puedo ayudarte con análisis y consultas avanzadas de tu operación."
     : "Puedo ayudarte con consultas operativas de tu cuenta.";
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: `Hola${displayName ? ` ${displayName}` : ""}, soy tu asistente IA. ${planIntro} ¿En que puedo ayudarte hoy?`,
+      content: `Hola${displayName ? ` ${displayName}` : ""}, soy tu asistente IA. ${planIntro} ¿En qué puedo ayudarte hoy?`,
     },
   ]);
 
@@ -130,7 +130,7 @@ export function FloatingAiAssistant({ currentPlanCode, userName }: FloatingAiAss
                     void sendQuestion();
                   }
                 }}
-                placeholder="Preguntame algo sobre tu operacion"
+                placeholder="Pregúntame algo sobre tu operación"
                 className="h-10 flex-1 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-sm text-[var(--gbp-text)] outline-none focus:border-[var(--gbp-violet)]"
               />
               <button

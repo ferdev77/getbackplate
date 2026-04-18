@@ -65,16 +65,16 @@ export default async function RecoveryLinkPage({ searchParams }: RecoveryLinkPag
                   <span className="text-sm font-bold tracking-[0.08em] text-[var(--gbp-text)] uppercase">{tenantBranding.companyName}</span>
                 )}
               </div>
-              <p className="mt-2 text-xs text-[var(--gbp-text2)]">Recuperacion de empresa</p>
+              <p className="mt-2 text-xs text-[var(--gbp-text2)]">Recuperación de empresa</p>
             </div>
           ) : (
             <div className="mb-5 flex justify-center">
               <ThemeAwareGetBackplateLogo width={230} height={42} className={`${BRAND_SCALE.authHeight} w-auto`} priority />
             </div>
           )}
-          <h1 className="mb-2 text-2xl font-bold tracking-tight">Enlace invalido</h1>
+          <h1 className="mb-2 text-2xl font-bold tracking-tight">Enlace inválido</h1>
           <p className="mb-6 text-sm text-[var(--gbp-text2)]">
-            Este enlace de recuperacion no es valido. Solicita uno nuevo para continuar.
+            Este enlace de recuperación no es válido. Solicita uno nuevo para continuar.
           </p>
           <Link
             href={forgotPasswordHref}
@@ -104,7 +104,7 @@ export default async function RecoveryLinkPage({ searchParams }: RecoveryLinkPag
                 <span className="text-sm font-bold tracking-[0.08em] text-[var(--gbp-text)] uppercase">{tenantBranding.companyName}</span>
               )}
             </div>
-            <p className="mt-2 text-xs text-[var(--gbp-text2)]">Recuperacion de empresa</p>
+            <p className="mt-2 text-xs text-[var(--gbp-text2)]">Recuperación de empresa</p>
           </div>
         ) : (
           <div className="mb-5 flex justify-center">
@@ -112,9 +112,9 @@ export default async function RecoveryLinkPage({ searchParams }: RecoveryLinkPag
           </div>
         )}
 
-        <h1 className="mb-2 text-2xl font-bold tracking-tight">Restablecer contrasena</h1>
+        <h1 className="mb-2 text-2xl font-bold tracking-tight">Restablecer contraseña</h1>
         <p className="mb-6 text-sm text-[var(--gbp-text2)]">
-          Para proteger tu acceso, confirma manualmente y te llevamos al cambio de contrasena.
+          Para proteger tu acceso, confirma manualmente y te llevamos al cambio de contraseña.
         </p>
 
         {error ? (
@@ -135,7 +135,7 @@ export default async function RecoveryLinkPage({ searchParams }: RecoveryLinkPag
         </form>
 
         <p className="mt-4 text-xs text-[var(--gbp-text2)]">
-          Si este enlace no funciona, solicita uno nuevo desde la pantalla de recuperacion.
+          Si este enlace no funciona, solicita uno nuevo desde la pantalla de recuperación.
         </p>
       </section>
     </main>

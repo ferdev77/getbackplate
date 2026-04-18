@@ -62,7 +62,7 @@ export async function POST(request: Request) {
   const file = formData.get("file");
 
   if (!isValidSlot(slotRaw)) {
-    return NextResponse.json({ error: "Slot documental invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Slot documental inválido" }, { status: 400 });
   }
 
   if (!(file instanceof File) || file.size <= 0) {
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     analysis = await analyzeUploadedFile(file);
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Archivo invalido" },
+      { error: error instanceof Error ? error.message : "Archivo inválido" },
       { status: 400 },
     );
   }
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     await assertPlanLimitForStorage(tenant.organizationId, file.size);
   } catch (error) {
     return NextResponse.json(
-      { error: getPlanLimitErrorMessage(error, `Limite de almacenamiento alcanzado para ${getSlotLabel(slot, customTitle)}.`) },
+      { error: getPlanLimitErrorMessage(error, `Límite de almacenamiento alcanzado para ${getSlotLabel(slot, customTitle)}.`) },
       { status: 400 },
     );
   }
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
   const safeName = analysis.safeName || "archivo";
   const path = `${tenant.organizationId}/employees/${employee.id}/self/${slot}/${Date.now()}-${safeName}`;
   if (!isSafeTenantStoragePath(path, tenant.organizationId)) {
-    return NextResponse.json({ error: "Ruta de almacenamiento invalida" }, { status: 400 });
+    return NextResponse.json({ error: "Ruta de almacenamiento inválida" }, { status: 400 });
   }
 
   const slotLabel = getSlotLabel(slot, customTitle);

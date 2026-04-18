@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   const employeeId = String(payload?.employeeId ?? "").trim();
   const documentId = String(payload?.documentId ?? "").trim();
   if (!employeeId || !documentId) {
-    return NextResponse.json({ error: "Solicitud invalida" }, { status: 400 });
+    return NextResponse.json({ error: "Solicitud inválida" }, { status: 400 });
   }
 
   const admin = createSupabaseAdminClient();

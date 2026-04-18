@@ -97,7 +97,7 @@ export function UploadDocumentModal({
           }
           resolve({ ok: false, message: data.error ?? "No se pudo subir el archivo" });
         } catch {
-          resolve({ ok: false, message: "Respuesta invalida del servidor" });
+          resolve({ ok: false, message: "Respuesta inválida del servidor" });
         }
       };
 

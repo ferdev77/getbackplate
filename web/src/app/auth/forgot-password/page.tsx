@@ -22,12 +22,12 @@ export async function generateMetadata({ searchParams }: ForgotPasswordPageProps
 
   if (!tenantBranding) {
     return {
-      title: "Recuperar contrasena | GetBackplate",
+      title: "Recuperar contraseña | GetBackplate",
     };
   }
 
   return {
-    title: `Recuperar contrasena | ${tenantBranding.companyName}`,
+    title: `Recuperar contraseña | ${tenantBranding.companyName}`,
     icons: tenantBranding.faviconUrl
       ? {
           icon: [{ url: tenantBranding.faviconUrl }],
@@ -49,7 +49,7 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
       <SlideUp className="w-full max-w-md">
         <section className="rounded-[var(--gbp-radius-3xl)] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-8 text-[var(--gbp-text)] shadow-[var(--gbp-shadow-lg)]">
           <div className="mb-4 flex items-center">
-            <TagPill>Recuperacion</TagPill>
+            <TagPill>Recuperación</TagPill>
           </div>
 
           {tenantBranding ? (
@@ -66,7 +66,7 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
                   <span className="text-sm font-bold tracking-[0.08em] text-[var(--gbp-text)] uppercase">{tenantBranding.companyName}</span>
                 )}
               </div>
-              <p className="mt-2 text-xs text-[var(--gbp-text2)]">Recuperacion de empresa</p>
+              <p className="mt-2 text-xs text-[var(--gbp-text2)]">Recuperación de empresa</p>
             </div>
           ) : (
             <div className="mb-5 flex justify-center">
@@ -74,9 +74,9 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
             </div>
           )}
 
-          <h1 className="mb-1 text-2xl font-bold tracking-tight">Recuperar contrasena</h1>
+          <h1 className="mb-1 text-2xl font-bold tracking-tight">Recuperar contraseña</h1>
           <p className="mb-6 text-sm text-[var(--gbp-text2)]">
-            Te enviaremos un enlace para definir una nueva contrasena.
+            Te enviaremos un enlace para definir una nueva contraseña.
           </p>
 
           {params.message ? (

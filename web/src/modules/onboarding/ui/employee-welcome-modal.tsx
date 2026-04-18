@@ -55,11 +55,11 @@ const BASE_SECTIONS: Section[] = [
     iconColor: "text-[var(--gbp-accent)]",
     title: "Vista general del portal",
     description:
-      "Cuando ingresas, el Dashboard te muestra un resumen rapido de lo mas importante de tu jornada.",
+      "Cuando ingresas, el Dashboard te muestra un resumen rápido de lo más importante de tu jornada.",
     points: [
       "Revisa tu bienvenida, sucursal y datos de tu perfil.",
       "Consulta accesos directos a checklists, avisos y documentos.",
-      "Usalo como punto de inicio antes de navegar a otras secciones.",
+      "Úsalo como punto de inicio antes de navegar a otras secciones.",
     ],
   },
   {
@@ -70,11 +70,11 @@ const BASE_SECTIONS: Section[] = [
     iconColor: "text-[var(--gbp-accent)]",
     title: "Checklists pendientes",
     description:
-      "En esta pagina completas tareas operativas de tu turno y registras evidencias cuando se solicite.",
+      "En esta página completas tareas operativas de tu turno y registras evidencias cuando se solicite.",
     points: [
-      "Abre cada checklist asignado y completa todos sus items.",
+      "Abre cada checklist asignado y completa todos sus ítems.",
       "Si una tarea pide evidencia, carga el archivo o dato requerido.",
-      "Guarda y envia para que tu responsable pueda revisarlo.",
+      "Guarda y envía para que tu responsable pueda revisarlo.",
     ],
   },
   {
@@ -89,7 +89,7 @@ const BASE_SECTIONS: Section[] = [
     points: [
       "Prioriza avisos urgentes o con fecha de vencimiento.",
       "Lee el detalle completo para entender responsables y plazos.",
-      "Vuelve a esta seccion al inicio de cada turno.",
+      "Vuelve a esta sección al inicio de cada turno.",
     ],
   },
   {
@@ -100,11 +100,11 @@ const BASE_SECTIONS: Section[] = [
     iconColor: "text-[var(--gbp-success)]",
     title: "Biblioteca de documentos",
     description:
-      "Aqui tienes los documentos que te corresponden por puesto, sucursal o asignacion directa.",
+      "Aquí tienes los documentos que te corresponden por puesto, sucursal o asignación directa.",
     points: [
       "Descarga y revisa archivos operativos cuando lo necesites.",
-      "Mantente al dia con versiones y documentos nuevos.",
-      "Usa esta seccion como referencia oficial de tu operacion.",
+      "Mantente al día con versiones y documentos nuevos.",
+      "Usa esta sección como referencia oficial de tu operación.",
     ],
   },
   {
@@ -115,10 +115,10 @@ const BASE_SECTIONS: Section[] = [
     iconColor: "text-[var(--gbp-success)]",
     title: "Instrucciones y seguimiento",
     description:
-      "La seccion Instrucciones concentra guias de uso para ayudarte a trabajar con orden dentro de la plataforma.",
+      "La sección Instrucciones concentra guías de uso para ayudarte a trabajar con orden dentro de la plataforma.",
     points: [
       "Consulta pasos sugeridos para completar tus tareas del portal.",
-      "Si tienes dudas, valida primero esta seccion antes de escalar.",
+      "Si tienes dudas, valida primero esta sección antes de escalar.",
       "Canal de soporte: encargado directo o equipo de RRHH.",
     ],
   },
@@ -137,7 +137,7 @@ export function EmployeeWelcomeModal({
             ...section,
             points: [
               "Descarga y revisa archivos operativos cuando lo necesites.",
-              "Mantente al dia con versiones y documentos nuevos.",
+              "Mantente al día con versiones y documentos nuevos.",
               `Documentos aprobados: ${approvedDocs}`,
               `Documentos pendientes: ${pendingDocs}`,
               `Estado de contrato: ${contractSigned ? "completado" : "pendiente"}`,
@@ -177,7 +177,7 @@ export function EmployeeWelcomeModal({
             <div>
               <p className="text-[11px] font-semibold tracking-[0.12em] text-white/65 uppercase">Portal Interno - Empleados</p>
               <h2 className="mt-1 font-serif text-[30px] font-bold leading-tight">Recorrido del portal</h2>
-               <p className="mt-1 text-sm text-white/70">Revisa estas secciones para entender donde encontrar cada herramienta de trabajo.</p>
+               <p className="mt-1 text-sm text-white/70">Revisa estas secciones para entender dónde encontrar cada herramienta de trabajo.</p>
             </div>
             <div className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85">
               Paso {step + 1}/{sections.length}
@@ -245,7 +245,7 @@ export function EmployeeWelcomeModal({
                 }}
                 className="h-4 w-4 accent-[var(--gbp-accent)]"
               />
-              He leido y comprendido esta seccion
+              He leído y comprendido esta sección
             </label>
           </article>
         </div>

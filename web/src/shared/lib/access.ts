@@ -20,7 +20,7 @@ import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impers
 import { markInvitedAdminFirstLoginIfNeeded } from "@/shared/lib/invited-admin-first-login";
 import { getBillingGateForOrganization } from "@/modules/billing/services/billing-gate.service";
 
-export const MODULE_DISABLED_COPY = "Este modulo no esta incluido en tu plan actual.";
+export const MODULE_DISABLED_COPY = "Este módulo no está incluido en tu plan actual.";
 
 function userMustChangePassword(user: { user_metadata?: unknown } | null | undefined) {
   if (!user || typeof user.user_metadata !== "object" || !user.user_metadata) return false;

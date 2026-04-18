@@ -98,14 +98,14 @@ export async function POST(request: Request) {
 
   const formData = await request.formData().catch(() => null);
   if (!formData) {
-    return fail("Solicitud invalida", 400);
+    return fail("Solicitud inválida", 400);
   }
 
   const templateId = String(formData.get("template_id") ?? "").trim();
   const rawItems = String(formData.get("items") ?? "").trim();
 
   if (!templateId || !rawItems) {
-    return fail("Checklist invalido", 400, { template_id: templateId || null });
+    return fail("Checklist inválido", 400, { template_id: templateId || null });
   }
 
   let items: IncomingItem[] = [];
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
       comment: String(item.comment ?? "").trim(),
     }));
   } catch {
-    return fail("Payload de items invalido", 400, { template_id: templateId });
+    return fail("Payload de ítems inválido", 400, { template_id: templateId });
   }
 
   if (!items.length) {
@@ -202,12 +202,12 @@ export async function POST(request: Request) {
 
   const validSet = new Set((validItems ?? []).map((row) => row.id));
   if (itemIds.some((id) => !validSet.has(id))) {
-    return fail("Items invalidos para esta plantilla", 400, { template_id: templateId });
+    return fail("Ítems inválidos para esta plantilla", 400, { template_id: templateId });
   }
 
   const unresolvedFlags = items.filter((item) => item.flagged && !item.comment.trim());
   if (unresolvedFlags.length) {
-    return fail("Los items marcados para atencion requieren comentario", 400, {
+    return fail("Los ítems marcados para atención requieren comentario", 400, {
       template_id: templateId,
       unresolved_flags: unresolvedFlags.length,
     });

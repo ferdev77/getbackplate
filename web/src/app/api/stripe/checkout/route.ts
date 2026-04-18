@@ -82,7 +82,7 @@ export async function POST(request: Request) {
         severity: 'high',
       });
       return NextResponse.json(
-        { error: 'impersonation_blocked', message: 'No puedes gestionar billing en modo impersonacion.' },
+        { error: 'impersonation_blocked', message: 'No puedes gestionar billing en modo impersonación.' },
         { status: 403 },
       );
     }

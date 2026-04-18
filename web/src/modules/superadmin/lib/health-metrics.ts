@@ -143,7 +143,7 @@ function computeScore(
     score -= SCORE_PENALTIES.noAdmin;
   }
   if (enabledModules === 0) {
-    issues.push("sin modulos");
+    issues.push("sin módulos");
     score -= SCORE_PENALTIES.noModules;
   }
   if (activeEmployees === 0) {
@@ -263,7 +263,7 @@ export function buildTenantOperationalAlerts(tenantRows: TenantHealthRow[]) {
         organizationName: row.name,
         severity: "high",
         code: "no_enabled_modules",
-        message: "Sin modulos habilitados",
+        message: "Sin módulos habilitados",
       });
     }
 

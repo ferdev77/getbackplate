@@ -98,7 +98,7 @@ export async function updateModuleAction(formData: FormData) {
   if (!currentModule) {
     redirect(
       "/superadmin/modules?status=error&message=" +
-        qs("No se encontro el modulo seleccionado"),
+        qs("No se encontró el módulo seleccionado"),
     );
   }
 
@@ -123,7 +123,7 @@ export async function updateModuleAction(formData: FormData) {
 
     redirect(
       "/superadmin/modules?status=error&message=" +
-        qs(`El modulo core '${currentModule.name}' no puede pasar a opcional`),
+        qs(`El módulo core '${currentModule.name}' no puede pasar a opcional`),
     );
   }
 
@@ -163,6 +163,6 @@ export async function updateModuleAction(formData: FormData) {
 
   redirect(
     "/superadmin/modules?status=success&message=" +
-      qs(`Modulo '${name}' actualizado correctamente`),
+      qs(`Módulo '${name}' actualizado correctamente`),
   );
 }

@@ -35,11 +35,11 @@ export default async function DashboardByLocationPage({ searchParams }: Dashboar
     <>
       <section className="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-6">
         <div className="mb-4 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-4 py-3">
-          <p className="text-xs font-semibold tracking-[0.1em] text-[var(--gbp-text2)] uppercase">Vista por locacion</p>
-          <p className="mt-1 text-sm text-[var(--gbp-text2)]">Esta vista comparte metricas del dashboard, filtradas por la locacion seleccionada.</p>
+          <p className="text-xs font-semibold tracking-[0.1em] text-[var(--gbp-text2)] uppercase">Vista por locación</p>
+          <p className="mt-1 text-sm text-[var(--gbp-text2)]">Esta vista comparte métricas del dashboard, filtradas por la locación seleccionada.</p>
           {selectedBranchName ? (
             <p className="mt-2 inline-flex rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-xs font-semibold text-[var(--gbp-accent)]">
-              Locacion activa: {selectedBranchName}
+              Locación activa: {selectedBranchName}
             </p>
           ) : null}
           <div className="mt-3 flex flex-wrap gap-2">

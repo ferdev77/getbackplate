@@ -25,12 +25,12 @@ export async function generateMetadata({ searchParams }: ChangePasswordPageProps
 
   if (!tenantBranding) {
     return {
-      title: "Cambiar contrasena | GetBackplate",
+      title: "Cambiar contraseña | GetBackplate",
     };
   }
 
   return {
-    title: `Cambiar contrasena | ${tenantBranding.companyName}`,
+    title: `Cambiar contraseña | ${tenantBranding.companyName}`,
     icons: tenantBranding.faviconUrl
       ? {
           icon: [{ url: tenantBranding.faviconUrl }],
@@ -98,11 +98,11 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
               <ThemeAwareGetBackplateLogo width={230} height={42} className={`${BRAND_SCALE.authHeight} w-auto`} priority />
             </div>
           )}
-          <h1 className="mb-1 text-2xl font-bold tracking-tight">Cambiar contrasena</h1>
+          <h1 className="mb-1 text-2xl font-bold tracking-tight">Cambiar contraseña</h1>
           <p className="mb-6 text-sm text-[var(--gbp-text2)]">
             {reason === "first_login"
-              ? "Por seguridad, debes cambiar la contrasena temporal antes de continuar."
-              : "Define tu nueva contrasena para recuperar acceso a la plataforma."}
+              ? "Por seguridad, debes cambiar la contraseña temporal antes de continuar."
+              : "Define tu nueva contraseña para recuperar acceso a la plataforma."}
           </p>
 
           {params.error ? (
@@ -115,7 +115,7 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
             <input type="hidden" name="next" value={nextPath} />
             <div>
               <label htmlFor="password" className="mb-1 block text-sm font-medium text-[var(--gbp-text)]">
-                Nueva contrasena
+                Nueva contraseña
               </label>
               <PasswordInput
                 id="password"
@@ -123,13 +123,13 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
                 minLength={8}
                 required
                 className="auth-input w-full rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none ring-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] placeholder:text-[var(--gbp-muted)] transition focus:ring-2"
-                placeholder="Minimo 8 caracteres"
+                placeholder="Mínimo 8 caracteres"
               />
             </div>
 
             <div>
               <label htmlFor="confirm_password" className="mb-1 block text-sm font-medium text-[var(--gbp-text)]">
-                Confirmar contrasena
+                Confirmar contraseña
               </label>
               <PasswordInput
                 id="confirm_password"
@@ -137,12 +137,12 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
                 minLength={8}
                 required
                 className="auth-input w-full rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none ring-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] placeholder:text-[var(--gbp-muted)] transition focus:ring-2"
-                placeholder="Repite la contrasena"
+                placeholder="Repite la contraseña"
               />
             </div>
 
             <SubmitButton
-              label="Actualizar contrasena"
+              label="Actualizar contraseña"
               pendingLabel="Actualizando..."
               className="w-full"
             />

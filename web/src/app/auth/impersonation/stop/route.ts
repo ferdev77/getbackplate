@@ -46,7 +46,7 @@ export async function GET(request: Request) {
   return NextResponse.redirect(
     new URL(
       "/superadmin/organizations?status=success&message=" +
-        encodeURIComponent("Sesion de impersonacion finalizada"),
+        encodeURIComponent("Sesión de impersonación finalizada"),
       requestUrl.origin,
     ),
   );

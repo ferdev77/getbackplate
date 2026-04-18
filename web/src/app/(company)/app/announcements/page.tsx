@@ -84,25 +84,7 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
     (a, b) => announcementTimestamp(b) - announcementTimestamp(a),
   )[0] ?? null;
 
-  // Optimize payload: Only fetch what we need for the listed announcements, unless opening the form modal
-  const uniqueBranchIds = new Set<string>();
-  const uniqueDepartmentIds = new Set<string>();
-  const uniquePositionIds = new Set<string>();
-  const uniqueUserIds = new Set<string>();
   const authorIds = Array.from(new Set((announcements ?? []).map((ann) => ann.created_by).filter(Boolean)));
-
-  for (const ann of announcements || []) {
-    const scope = parseAnnouncementScope(ann.target_scope);
-    scope.locations.forEach(id => uniqueBranchIds.add(id));
-    scope.department_ids.forEach(id => uniqueDepartmentIds.add(id));
-    scope.position_ids.forEach(id => uniquePositionIds.add(id));
-    scope.users.forEach(id => uniqueUserIds.add(id));
-  }
-
-  const branchIdsArr = Array.from(uniqueBranchIds);
-  const deptIdsArr = Array.from(uniqueDepartmentIds);
-  const posIdsArr = Array.from(uniquePositionIds);
-  const userIdsArr = Array.from(uniqueUserIds);
 
   const branchesQuery = supabase
     .from("branches")
@@ -132,15 +114,6 @@ const employeesQuery = supabase
   .select("id, user_id, first_name, last_name")
   .eq("organization_id", tenant.organizationId)
   .eq("is_employee", false);
-
-  if (!openCreateModal) {
-    // Only fetch needed references for performance
-    if (branchIdsArr.length > 0) branchesQuery.in("id", branchIdsArr); else branchesQuery.in("id", ["00000000-0000-0000-0000-000000000000"]);
-    if (userIdsArr.length > 0) employeesQuery.in("user_id", userIdsArr); else employeesQuery.in("user_id", ["00000000-0000-0000-0000-000000000000"]);
-    if (userIdsArr.length > 0) userProfilesQuery.in("user_id", userIdsArr); else userProfilesQuery.in("user_id", ["00000000-0000-0000-0000-000000000000"]);
-    if (deptIdsArr.length > 0) departmentsQuery.in("id", deptIdsArr); else departmentsQuery.in("id", ["00000000-0000-0000-0000-000000000000"]);
-    if (posIdsArr.length > 0) positionsQuery.in("id", posIdsArr); else positionsQuery.in("id", ["00000000-0000-0000-0000-000000000000"]);
-  }
 
   const [
     { data: branches },

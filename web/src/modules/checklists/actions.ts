@@ -99,7 +99,7 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
           .slice(0, 20);
       }
     } catch {
-      return { success: false, message: "Formato de secciones (JSON) invalido" };
+      return { success: false, message: "Formato de secciones (JSON) inválido" };
     }
   } else if (itemsInput) {
     const fallbackItems = itemsInput
@@ -270,7 +270,7 @@ export async function reviewChecklistSubmissionAction(_prevState: unknown, formD
 
   const submissionId = String(formData.get("submission_id") ?? "").trim();
   if (!submissionId) {
-    return { success: false, message: "Ejecucion invalida" };
+    return { success: false, message: "Ejecución inválida" };
   }
 
   const { error } = await supabase
@@ -312,7 +312,7 @@ export async function deleteChecklistTemplateAction(_prevState: unknown, formDat
 
   const templateId = String(formData.get("template_id") ?? "").trim();
   if (!templateId) {
-    return { success: false, message: "Checklist invalido" };
+    return { success: false, message: "Checklist inválido" };
   }
 
   // --- Delegate to service ---

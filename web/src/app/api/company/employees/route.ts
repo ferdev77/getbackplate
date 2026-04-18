@@ -618,7 +618,7 @@ async function upsertEmployeeContractDocument(input: UpsertEmployeeContractDocum
   const path = `${input.organizationId}/employees/${input.employeeId}/contract-current.pdf`;
 
   if (!isSafeTenantStoragePath(path, input.organizationId)) {
-    throw new Error("Ruta invalida para documento de contrato");
+    throw new Error("Ruta inválida para documento de contrato");
   }
 
   const { error: uploadError } = await admin.storage
@@ -804,7 +804,7 @@ export async function POST(request: Request) {
         uploadFiles.push({ slotKey, slotLabel, file, analysis });
       } catch (error) {
         return NextResponse.json(
-          { error: `${slotLabel}: ${error instanceof Error ? error.message : "archivo invalido"}` },
+          { error: `${slotLabel}: ${error instanceof Error ? error.message : "archivo inválido"}` },
           { status: 400 },
         );
       }
@@ -833,7 +833,7 @@ export async function POST(request: Request) {
       });
     } catch (error) {
       return NextResponse.json(
-        { error: `${slotLabel}: ${error instanceof Error ? error.message : "archivo invalido"}` },
+        { error: `${slotLabel}: ${error instanceof Error ? error.message : "archivo inválido"}` },
         { status: 400 },
       );
     }
@@ -847,34 +847,34 @@ export async function POST(request: Request) {
   }
 
   if (!isEditMode && !ALLOWED_CREATE_MODES.has(createMode)) {
-    return NextResponse.json({ error: "Modo de creacion invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Modo de creación inválido" }, { status: 400 });
   }
 
   if (email && !emailSchema.safeParse(email).success) {
-    return NextResponse.json({ error: "Email de empleado invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Email de empleado inválido" }, { status: 400 });
   }
 
   if (accountEmailInput && !emailSchema.safeParse(accountEmailInput).success) {
-    return NextResponse.json({ error: "Email de acceso invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Email de acceso inválido" }, { status: 400 });
   }
 
   for (const dateValue of [hiredAt, birthDate, contractStart, contractEnd, contractSignedAt]) {
     if (dateValue && !dateOnlySchema.safeParse(dateValue).success) {
-      return NextResponse.json({ error: "Formato de fecha invalido (usa YYYY-MM-DD)" }, { status: 400 });
+      return NextResponse.json({ error: "Formato de fecha inválido (usa YYYY-MM-DD)" }, { status: 400 });
     }
   }
 
   if (!ALLOWED_CONTRACT_STATUSES.has(contractStatus)) {
-    return NextResponse.json({ error: "Estado de contrato invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Estado de contrato inválido" }, { status: 400 });
   }
 
   const normalizedEmploymentStatus = employmentStatusInput || "active";
   if (employmentStatusInput && !ALLOWED_EMPLOYMENT_STATUSES.has(normalizedEmploymentStatus)) {
-    return NextResponse.json({ error: "Estado laboral invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Estado laboral inválido" }, { status: 400 });
   }
 
   if (documentType && !ALLOWED_DOCUMENT_TYPES.has(documentType)) {
-    return NextResponse.json({ error: "Tipo de documento invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Tipo de documento inválido" }, { status: 400 });
   }
 
   if (!isEditMode && isEmployeeProfile) {
@@ -902,7 +902,7 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (branchError || !branch) {
-      return NextResponse.json({ error: "Locacion no valida para esta empresa" }, { status: 400 });
+      return NextResponse.json({ error: "Locación no válida para esta empresa" }, { status: 400 });
     }
 
     branchName = branch.name;
@@ -1121,7 +1121,7 @@ export async function POST(request: Request) {
 
         const path = `${tenant.organizationId}/users/${profileId ?? linkedUserId}/${Date.now()}-${upload.slotKey}-${upload.analysis.safeName}`;
         if (!isSafeTenantStoragePath(path, tenant.organizationId)) {
-          return NextResponse.json({ error: `Ruta invalida para ${upload.slotLabel}` }, { status: 400 });
+          return NextResponse.json({ error: `Ruta inválida para ${upload.slotLabel}` }, { status: 400 });
         }
 
         const { error: uploadError } = await admin.storage
@@ -1374,7 +1374,7 @@ export async function POST(request: Request) {
         const path = existingDuplicate?.file_path || `${tenant.organizationId}/employees/${employeeId}/${Date.now()}-${upload.slotKey}-${upload.analysis.safeName}`;
 
         if (!isSafeTenantStoragePath(path, tenant.organizationId)) {
-          return NextResponse.json({ error: `Ruta invalida para ${upload.slotLabel}` }, { status: 400 });
+          return NextResponse.json({ error: `Ruta inválida para ${upload.slotLabel}` }, { status: 400 });
         }
 
         try {
@@ -1599,7 +1599,7 @@ export async function POST(request: Request) {
 
   if (uniqueDocIds.length) {
     return NextResponse.json(
-      { error: "No se permite vincular documentos del modulo Documentos al legajo del empleado" },
+      { error: "No se permite vincular documentos del módulo Documentos al legajo del empleado" },
       { status: 400 },
     );
   }
@@ -1771,7 +1771,7 @@ export async function POST(request: Request) {
           createdMembershipForLinkedUser,
           createdAuthUserId,
         });
-        return NextResponse.json({ error: `Ruta invalida para ${upload.slotLabel}` }, { status: 400 });
+        return NextResponse.json({ error: `Ruta inválida para ${upload.slotLabel}` }, { status: 400 });
       }
 
       try {
@@ -2040,18 +2040,18 @@ export async function PATCH(request: Request) {
   const status = String(body?.status ?? "").trim();
 
   if (!employeeId && !organizationUserProfileId) {
-    return NextResponse.json({ error: "Registro invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Registro inválido" }, { status: 400 });
   }
 
   const isEmployeeStatus = ALLOWED_EMPLOYMENT_STATUSES.has(status);
   const isUserStatus = status === "active" || status === "inactive";
   if (!isEmployeeStatus && !isUserStatus) {
-    return NextResponse.json({ error: "Estado invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Estado inválido" }, { status: 400 });
   }
 
   if (organizationUserProfileId) {
     if (!isUserStatus) {
-      return NextResponse.json({ error: "Estado invalido para usuario" }, { status: 400 });
+      return NextResponse.json({ error: "Estado inválido para usuario" }, { status: 400 });
     }
 
     const { data: previousProfile } = await supabase
@@ -2121,7 +2121,7 @@ export async function PATCH(request: Request) {
   }
 
   if (!isEmployeeStatus) {
-    return NextResponse.json({ error: "Estado invalido para empleado" }, { status: 400 });
+    return NextResponse.json({ error: "Estado inválido para empleado" }, { status: 400 });
   }
 
   const { data: previousEmployee } = await supabase
@@ -2200,7 +2200,7 @@ export async function DELETE(request: Request) {
   const membershipId = String(body?.membershipId ?? "").trim();
 
   if (!employeeId && !organizationUserProfileId) {
-    return NextResponse.json({ error: "Registro invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Registro inválido" }, { status: 400 });
   }
 
   if (organizationUserProfileId) {
