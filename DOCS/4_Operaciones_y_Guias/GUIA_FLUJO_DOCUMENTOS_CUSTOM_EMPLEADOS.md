@@ -4,6 +4,8 @@
 
 Definir el comportamiento oficial de los documentos `custom_*` para que sean equivalentes al flujo de los 6 slots fijos (`photo`, `id`, `ssn`, `rec1`, `rec2`, `other`) en interfaz, estados y reglas de negocio.
 
+> Alcance de esta guia: **solo dominio laboral (RRHH)**. Para frontera RRHH vs Documentos operativos leer `DOCS/4_Operaciones_y_Guias/GUIA_SEPARACION_DOCUMENTOS_LABORALES_OPERATIVOS.md`.
+
 ## Comportamiento esperado
 
 ### 1) Creacion de slot custom (sin archivo)

@@ -55,6 +55,19 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
       .limit(300),
   ]);
 
+  const visibleDocumentIds = (documents ?? []).map((doc) => doc.id);
+  let employeeDomainDocumentIds = new Set<string>();
+
+  if (visibleDocumentIds.length > 0) {
+    const { data: employeeDomainLinks } = await supabase
+      .from("employee_documents")
+      .select("document_id")
+      .eq("organization_id", tenant.organizationId)
+      .in("document_id", visibleDocumentIds);
+
+    employeeDomainDocumentIds = new Set((employeeDomainLinks ?? []).map((row) => row.document_id));
+  }
+
   const assignedDocumentIds = new Set<string>();
   if (employeeRow?.id) {
     const { data: links } = await supabase
@@ -71,6 +84,10 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
   const folderById = new Map((folders ?? []).map((f) => [f.id, f]));
 
   const visibleDocuments = (documents ?? []).filter((doc) => {
+    if (employeeDomainDocumentIds.has(doc.id)) {
+      return false;
+    }
+
     if (isEmployeePrivateDocument(doc.access_scope, doc.title)) {
       return false;
     }

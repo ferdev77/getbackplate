@@ -169,3 +169,4 @@ Nota: en algunos pedidos aparece `-all`, pero la forma valida en Git es `--all`.
 
 - Tenant lifecycle (alta/baja): `DOCS/4_Operaciones_y_Guias/TENANT_OPS_GUIDE.md`
 - Custom Domains (estado actual + runbook + checklists): `DOCS/4_Operaciones_y_Guias/GUIA_CUSTOM_DOMAINS.md`
+- Separacion de documentos laborales vs operativos: `DOCS/4_Operaciones_y_Guias/GUIA_SEPARACION_DOCUMENTOS_LABORALES_OPERATIVOS.md`

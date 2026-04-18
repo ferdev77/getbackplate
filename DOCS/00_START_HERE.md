@@ -26,6 +26,7 @@ Leer:
 
 Leer:
 - `DOCS/4_Operaciones_y_Guias/GUIA_FLUJO_DOCUMENTOS_CUSTOM_EMPLEADOS.md`
+- `DOCS/4_Operaciones_y_Guias/GUIA_SEPARACION_DOCUMENTOS_LABORALES_OPERATIVOS.md`
 
 ## 5) Si la pregunta es validar flujos DB (anuncios, documentos, checklists) en local/prod
 
