@@ -1,6 +1,5 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { EmployeeChecklistRealtimeRefresh } from "@/modules/checklists/ui/employee-checklist-realtime-refresh";
 import { EmployeeChecklistWorkspace } from "@/modules/checklists/ui/employee-checklist-workspace";
 import { RestoreChecklistScroll } from "@/modules/checklists/ui/restore-checklist-scroll";
 import { requireEmployeeModule } from "@/shared/lib/access";
@@ -138,7 +137,6 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
 
   return (
     <main>
-      <EmployeeChecklistRealtimeRefresh organizationId={tenant.organizationId} userId={userId} />
       <RestoreChecklistScroll />
       <section className="mb-5 rounded-2xl border border-[var(--gbp-border)] bg-gradient-to-r from-[var(--gbp-surface)] to-[var(--gbp-bg)] p-6">
         <p className="text-[11px] font-semibold tracking-[0.14em] text-[var(--gbp-text2)] uppercase">Checklist asignado</p>
