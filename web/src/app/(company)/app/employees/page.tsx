@@ -205,7 +205,8 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
 
   let editEmployeeDocuments = { data: [] as unknown[] };
   if (editEmployee) {
-    const withComment = await supabase
+    const admin = createSupabaseAdminClient();
+    const withComment = await admin
       .from("employee_documents")
       .select("document_id, status, requested_without_file, reviewed_by, review_comment, expires_at, reminder_days, has_no_expiration, signature_status, signature_embed_src, signature_requested_at, signature_completed_at, created_at, linked_document:documents(id, title, owner_user_id, mime_type, original_file_name, file_path)")
       .eq("organization_id", tenant.organizationId)
@@ -216,7 +217,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       withComment.error &&
       ["review_comment", "expires_at", "reminder_days", "has_no_expiration", "signature_status", "signature_embed_src", "signature_requested_at", "signature_completed_at", "requested_without_file"].some((field) => String(withComment.error?.message ?? "").includes(field))
     ) {
-      const fallback = await supabase
+      const fallback = await admin
         .from("employee_documents")
         .select("document_id, status, reviewed_by, created_at, linked_document:documents(id, title, owner_user_id, mime_type, original_file_name, file_path)")
         .eq("organization_id", tenant.organizationId)
@@ -246,7 +247,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   );
 
   const { data: uploaderProfiles } = uploaderUserIds.length > 0
-    ? await supabase
+    ? await createSupabaseAdminClient()
         .from("organization_user_profiles")
         .select("user_id, first_name, last_name, email")
         .eq("organization_id", tenant.organizationId)

@@ -87,6 +87,7 @@ Si responde `ok: true`, la app ya esta conectada.
 
 - La base SQL y RLS esta en `../supabase/migrations/`.
 - El seed inicial esta en `../supabase/seed.sql`.
+- La separacion funcional entre documentos laborales (modal empleado) y operativos (pagina documentos) esta en `../DOCS/4_Operaciones_y_Guias/GUIA_SEPARACION_DOCUMENTOS_LABORALES_OPERATIVOS.md`.
 
 ## Entornos Supabase
 

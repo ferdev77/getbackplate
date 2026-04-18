@@ -205,6 +205,13 @@ export function NewEmployeeModal({
   const [docusealReady, setDocusealReady] = useState(false);
   const [docusealLoadFailed, setDocusealLoadFailed] = useState(false);
 
+  useEffect(() => {
+    if (!isEmployeeSelfMode || typeof window === "undefined") return;
+    return () => {
+      window.sessionStorage.removeItem("gbp.employee.docs.upload.inflight");
+    };
+  }, [isEmployeeSelfMode]);
+
   const openSignatureInNewTab = () => {
     if (!signatureModal.src) return;
     window.open(signatureModal.src, "_blank", "noopener,noreferrer");
@@ -392,6 +399,7 @@ export function NewEmployeeModal({
     }
 
     const endpoint = isEmployeeSelfMode ? selfProfileUploadEndpoint : "/api/company/employees/documents/upload";
+    const employeeUploadInflightKey = "gbp.employee.docs.upload.inflight";
     const formData = new FormData();
     formData.set("slot", slot);
     formData.set("file", file);
@@ -411,6 +419,9 @@ export function NewEmployeeModal({
         message: "Subiendo...",
       },
     }));
+    if (isEmployeeSelfMode && typeof window !== "undefined") {
+      window.sessionStorage.setItem(employeeUploadInflightKey, "1");
+    }
 
     try {
       const { status, data } = await postFormDataWithProgress(endpoint, formData, (percent) => {
@@ -466,6 +477,9 @@ export function NewEmployeeModal({
       }));
 
       toast.success(isEmployeeSelfMode ? "Documento enviado para revision" : "Documento cargado y guardado");
+      if (isEmployeeSelfMode && typeof window !== "undefined") {
+        window.sessionStorage.setItem("gbp.employee.docs.upload.cooldown", String(Date.now()));
+      }
       if (!isEmployeeSelfMode) {
         startTransition(() => {
           router.refresh();
@@ -483,6 +497,10 @@ export function NewEmployeeModal({
         },
       }));
       toast.error(message);
+    } finally {
+      if (isEmployeeSelfMode && typeof window !== "undefined") {
+        window.sessionStorage.removeItem(employeeUploadInflightKey);
+      }
     }
   }
 

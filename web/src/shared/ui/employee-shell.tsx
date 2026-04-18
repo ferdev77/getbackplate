@@ -80,6 +80,8 @@ export function EmployeeShell({
     const orgFilter = `organization_id=eq.${organizationId}`;
     const fastRealtimePaths = ["/portal/checklist", "/portal/home"];
     const refreshDelayMs = fastRealtimePaths.some((prefix) => pathname.startsWith(prefix)) ? 450 : 2000;
+    const employeeUploadCooldownKey = "gbp.employee.docs.upload.cooldown";
+    const employeeUploadInflightKey = "gbp.employee.docs.upload.inflight";
     const ownSubmissionFilter = `organization_id=eq.${organizationId},submitted_by=eq.${userId}`;
     const ownEmployeeFilter = `organization_id=eq.${organizationId},user_id=eq.${userId}`;
     const ownEmployeeByIdFilter = employeeId ? `organization_id=eq.${organizationId},id=eq.${employeeId}` : "";
@@ -125,7 +127,34 @@ export function EmployeeShell({
       }
     }
 
-    function scheduleRefresh() {
+    function isEmployeeUploadCooldownActive() {
+      if (typeof window === "undefined") return false;
+      const raw = window.sessionStorage.getItem(employeeUploadCooldownKey);
+      if (!raw) return false;
+      const timestamp = Number(raw);
+      if (!Number.isFinite(timestamp)) {
+        window.sessionStorage.removeItem(employeeUploadCooldownKey);
+        return false;
+      }
+      const active = Date.now() - timestamp < 8000;
+      if (!active) {
+        window.sessionStorage.removeItem(employeeUploadCooldownKey);
+      }
+      return active;
+    }
+
+    function isEmployeeUploadInflight() {
+      if (typeof window === "undefined") return false;
+      return window.sessionStorage.getItem(employeeUploadInflightKey) === "1";
+    }
+
+    function scheduleRefresh(sourceTable?: string) {
+      if (isEmployeeUploadInflight()) {
+        return;
+      }
+      if ((sourceTable === "documents" || sourceTable === "employee_documents") && isEmployeeUploadCooldownActive()) {
+        return;
+      }
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         const now = Date.now();
@@ -150,7 +179,7 @@ export function EmployeeShell({
           table: item.table,
           filter: item.filter,
         },
-        scheduleRefresh,
+        () => scheduleRefresh(item.table),
       );
     }
 

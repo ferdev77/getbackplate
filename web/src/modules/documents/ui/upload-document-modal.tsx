@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState, startTransition } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState, startTransition } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -41,6 +41,15 @@ export function UploadDocumentModal({
   const [selectedFolderId, setSelectedFolderId] = useState("");
   const [isClosing, setIsClosing] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+      if (completeTimerRef.current) clearTimeout(completeTimerRef.current);
+    };
+  }, []);
 
   const closeModal = () => {
     if (onClose) {
@@ -107,20 +116,20 @@ export function UploadDocumentModal({
     setShowSuccessOverlay(true);
     setIsUploading(false);
 
-    setTimeout(() => {
+    closeTimerRef.current = setTimeout(() => {
       setIsClosing(true);
     }, 550);
 
-    setTimeout(() => {
+    completeTimerRef.current = setTimeout(() => {
+      onClose?.();
       startTransition(() => {
-        router.push("/app/documents");
         router.refresh();
       });
     }, 900);
   }
 
   return (
-    <div className={`fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5 transition-opacity duration-300 ${isClosing ? "opacity-0" : "opacity-100"}`}>
+    <div className={`fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5 transition-opacity duration-300 ${isClosing ? "pointer-events-none opacity-0" : "opacity-100"}`}>
       <div className={`relative max-h-[90vh] w-[980px] max-w-[96vw] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)] transition duration-300 ${isClosing ? "scale-[0.985] opacity-0" : "scale-100 opacity-100"}`}>
         <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5"><p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Subir Archivo</p><button type="button" onClick={closeModal} className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</button></div>
         <form onSubmit={handleSubmit}>
