@@ -723,13 +723,13 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                           </div>
                           
                           <div className="flex flex-wrap items-center justify-end gap-1">
-                            <a href={`/api/documents/${doc.id}/download`} className={ACTION_BTN_NEUTRAL} ><Eye className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Ver/Descargar" /></a>
+                            <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer" className={ACTION_BTN_NEUTRAL} ><Eye className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Ver/Descargar" /></a>
                             <button type="button" onClick={() => setEditDocId(doc.id)} className={ACTION_BTN_NEUTRAL} ><Pencil className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Editar" /></button>
                             {doc.folder_id ? null : (
                               <button type="button" onClick={() => setShareDocId(doc.id)} className={ACTION_BTN_NEUTRAL} ><Share2 className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Compartir" /></button>
                             )}
                             <button type="button" onClick={() => setEmailShareDocId(doc.id)} className={ACTION_BTN_MAIL} ><Mail className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Compartir por email" /></button>
-                            <a href={`/api/documents/${doc.id}/download`} className={ACTION_BTN_NEUTRAL} ><Download className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Descargar" /></a>
+                            <a href={`/api/documents/${doc.id}/download`} download className={ACTION_BTN_NEUTRAL} ><Download className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Descargar" /></a>
                             <button type="button" onClick={() => setDeleteDocId(doc.id)} className={ACTION_BTN_DANGER} ><Trash2 className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Eliminar" /></button>
                           </div>
                         </div>
@@ -897,13 +897,13 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                       </div>
                       {/* Acciones */}
                       <div className="flex flex-wrap items-center justify-end gap-1">
-                        <a href={`/api/documents/${doc.id}/download`} className={ACTION_BTN_NEUTRAL} ><Eye className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Ver" /></a>
+                        <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer" className={ACTION_BTN_NEUTRAL} ><Eye className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Ver" /></a>
                         <button type="button" onClick={() => setEditDocId(doc.id)} className={ACTION_BTN_NEUTRAL} ><Pencil className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Editar" /></button>
                          {doc.folder_id ? null : (
                            <button type="button" onClick={() => setShareDocId(doc.id)} className={ACTION_BTN_NEUTRAL} ><Share2 className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Compartir" /></button>
                          )}
                           <button type="button" onClick={() => setEmailShareDocId(doc.id)} className={ACTION_BTN_MAIL} ><Mail className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Compartir por email" /></button>
-                         <a href={`/api/documents/${doc.id}/download`} className={ACTION_BTN_NEUTRAL} ><Download className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Descargar" /></a>
+                         <a href={`/api/documents/${doc.id}/download`} download className={ACTION_BTN_NEUTRAL} ><Download className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Descargar" /></a>
                         <button type="button" onClick={() => setDeleteDocId(doc.id)} className={ACTION_BTN_DANGER} ><Trash2 className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Eliminar" /></button>
                       </div>
                     </div>
@@ -983,13 +983,13 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                         <p className="mt-1 text-xs text-[var(--gbp-text2)]">{formatDate(selectedColumnDocument.created_at)} · {formatSize(selectedColumnDocument.file_size_bytes)} · {selectedColumnDocument.mime_type ?? "archivo"}</p>
                       </div>
                       <div className="flex flex-wrap gap-1.5">
-                        <a href={`/api/documents/${selectedColumnDocument.id}/download`} className={ACTION_BTN_NEUTRAL}><Eye className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Ver" /></a>
+                        <a href={`/api/documents/${selectedColumnDocument.id}/download`} target="_blank" rel="noopener noreferrer" className={ACTION_BTN_NEUTRAL}><Eye className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Ver" /></a>
                         <button type="button" onClick={() => setEditDocId(selectedColumnDocument.id)} className={ACTION_BTN_NEUTRAL}><Pencil className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Editar" /></button>
                         {selectedColumnDocument.folder_id ? null : (
                           <button type="button" onClick={() => setShareDocId(selectedColumnDocument.id)} className={ACTION_BTN_NEUTRAL}><Share2 className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Compartir" /></button>
                         )}
                         <button type="button" onClick={() => setEmailShareDocId(selectedColumnDocument.id)} className={ACTION_BTN_MAIL}><Mail className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Compartir por email" /></button>
-                        <a href={`/api/documents/${selectedColumnDocument.id}/download`} className={ACTION_BTN_NEUTRAL}><Download className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Descargar" /></a>
+                        <a href={`/api/documents/${selectedColumnDocument.id}/download`} download className={ACTION_BTN_NEUTRAL}><Download className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Descargar" /></a>
                         <button type="button" onClick={() => setDeleteDocId(selectedColumnDocument.id)} className={ACTION_BTN_DANGER}><Trash2 className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Eliminar" /></button>
                       </div>
                       <div className="relative overflow-hidden rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
