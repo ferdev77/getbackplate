@@ -31,7 +31,27 @@ type AnnouncementModalTriggerProps = {
   initial?: AnnouncementInitial;
   submitEndpoint?: string;
   basePath?: string;
-  onSubmitted?: () => void;
+  onSubmitted?: (payload?: {
+    mode: "create" | "edit";
+    announcement: {
+      id: string;
+      title: string;
+      body: string;
+      kind: string | null;
+      is_featured: boolean;
+      publish_at: string | null;
+      created_at: string;
+      expires_at: string | null;
+      target_scope: {
+        locations: string[];
+        department_ids: string[];
+        position_ids: string[];
+        users: string[];
+      };
+      created_by: string | null;
+      created_by_name?: string;
+    };
+  }) => void;
 };
 
 export function AnnouncementModalTrigger({

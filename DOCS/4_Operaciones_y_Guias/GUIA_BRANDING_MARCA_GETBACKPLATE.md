@@ -138,3 +138,28 @@ Antes de mergear componentes nuevos:
 - respetar `brand-scale.ts`,
 - validar light/dark,
 - validar fallback custom branding vs default branding.
+
+---
+
+## 9) Regla permanente de locaciones (Panel Empresa + Panel Empleado)
+
+Cuando el tenant tiene modulo `custom_branding` habilitado, la locacion se debe mostrar por `city`.
+Si `city` no existe, se usa fallback a `name`.
+
+Esta regla aplica en ambos paneles (empresa y empleado), tanto en listas como en filtros, badges, pills y selectores.
+
+Implementacion base reusable:
+
+- `web/src/shared/lib/branch-display.ts`
+  - `getBranchDisplayName(branch, customBrandingEnabled, fallback?)`
+
+Archivos del portal empleado ajustados para cumplir esta regla:
+
+- `web/src/app/(employee)/portal/announcements/page.tsx`
+- `web/src/app/(employee)/portal/checklist/page.tsx`
+- `web/src/app/(employee)/portal/documents/page.tsx`
+
+Regla de mantenimiento:
+
+- Si se agrega una nueva vista en portal empleado o empresa que muestre locaciones, no usar `branch.name` directo.
+- Usar siempre `getBranchDisplayName(...)` o una capa equivalente centralizada.

@@ -5,21 +5,11 @@ import { requireEmployeeModule } from "@/shared/lib/access";
 import { EmployeeDocumentsTree } from "@/modules/documents/ui/employee-documents-tree";
 import { getEmployeeDelegatedPermissionsByMembership } from "@/shared/lib/employee-module-permissions";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
+import { getEnabledModulesCached } from "@/modules/organizations/cached-queries";
+import { getBranchDisplayName } from "@/shared/lib/branch-display";
 
 type EmployeeDocumentsPageProps = {
   searchParams: Promise<{ view?: string }>;
-};
-
-type VisibleDocument = {
-  id: string;
-  title: string;
-  mime_type: string | null;
-  file_size_bytes: number | null;
-  folder_id: string | null;
-  created_at: string;
-  branch_id: string | null;
-  access_scope: string | null;
-  owner_user_id: string | null;
 };
 
 export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDocumentsPageProps) {
@@ -36,6 +26,8 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
     tenant.organizationId,
     tenant.membershipId,
   );
+  const enabledModulesSet = new Set(await getEnabledModulesCached(tenant.organizationId));
+  const customBrandingEnabled = enabledModulesSet.has("custom_branding");
 
   const { data: employeeRow } = await supabase
     .from("employees")
@@ -74,7 +66,7 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
       .limit(300),
     supabase
       .from("branches")
-      .select("id, name")
+      .select("id, name, city")
       .eq("organization_id", tenant.organizationId)
       .eq("is_active", true)
       .order("name"),
@@ -193,7 +185,10 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
         canCreate={delegatedPermissions.documents.create}
         canEdit={delegatedPermissions.documents.edit}
         canDelete={delegatedPermissions.documents.delete}
-        branches={branches ?? []}
+        branches={(branches ?? []).map((branch) => ({
+          ...branch,
+          name: getBranchDisplayName(branch, customBrandingEnabled),
+        }))}
         departments={departments ?? []}
         positions={positions ?? []}
         users={scopeUsers}

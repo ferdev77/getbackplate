@@ -8,6 +8,7 @@ import { PasswordInput } from "@/shared/ui/password-input";
 import { DelegatedPermissionsSection } from "@/modules/employees/ui/delegated-permissions-section";
 import { EmployeeDocumentReviewDialog, type ReviewDecision } from "@/modules/employees/ui/employee-document-review-dialog";
 import { EmployeeSignatureModal } from "@/modules/employees/ui/employee-signature-modal";
+import { useEmployeeSignatureModal } from "@/modules/employees/hooks/use-employee-signature-modal";
 
 export type ModalBranch = { id: string; name: string };
 type ModalDocument = { id: string; title: string; created_at: string };
@@ -218,9 +219,18 @@ export function NewEmployeeModal({
     comment: string;
   }>({ open: false, slot: null, decision: "approved", comment: "" });
   const [isReviewDialogSubmitting, setIsReviewDialogSubmitting] = useState(false);
-  const [signatureModal, setSignatureModal] = useState<{ open: boolean; slot: string | null; src: string | null }>({ open: false, slot: null, src: null });
-  const [docusealReady, setDocusealReady] = useState(false);
-  const [docusealLoadFailed, setDocusealLoadFailed] = useState(false);
+  const {
+    signatureModal,
+    setSignatureModal,
+    docusealReady,
+    setDocusealReady,
+    docusealLoadFailed,
+    setDocusealLoadFailed,
+    openSignatureInNewTab,
+  } = useEmployeeSignatureModal((slotToRefresh) => {
+    toast.success("¡Documento firmado exitosamente!");
+    void handleRefreshSignatureStatus(slotToRefresh);
+  });
 
   useEffect(() => {
     if (!isEmployeeSelfMode || typeof window === "undefined") return;
@@ -228,104 +238,6 @@ export function NewEmployeeModal({
       window.sessionStorage.removeItem("gbp.employee.docs.upload.inflight");
     };
   }, [isEmployeeSelfMode]);
-
-  const openSignatureInNewTab = () => {
-    if (!signatureModal.src) return;
-    window.open(signatureModal.src, "_blank", "noopener,noreferrer");
-  };
-
-  useEffect(() => {
-    if (!signatureModal.open || !signatureModal.src) return;
-    if (typeof window === "undefined") return;
-
-    setDocusealReady(false);
-    setDocusealLoadFailed(false);
-
-    const timeout = window.setTimeout(() => {
-      setDocusealLoadFailed(true);
-    }, 8000);
-
-    const customElementReady = typeof window.customElements !== "undefined" && window.customElements.get("docuseal-form");
-    if (customElementReady) {
-      setDocusealReady(true);
-      setDocusealLoadFailed(false);
-      window.clearTimeout(timeout);
-      return;
-    }
-
-    const existingScript = document.getElementById("docuseal-form-script") as HTMLScriptElement | null;
-    if (existingScript) {
-      existingScript.addEventListener("load", () => {
-        setDocusealReady(true);
-        setDocusealLoadFailed(false);
-        window.clearTimeout(timeout);
-      }, { once: true });
-      existingScript.addEventListener("error", () => {
-        setDocusealLoadFailed(true);
-        window.clearTimeout(timeout);
-      }, { once: true });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.id = "docuseal-form-script";
-    script.src = "https://cdn.docuseal.com/js/form.js";
-    script.async = true;
-    script.onload = () => {
-      setDocusealReady(true);
-      setDocusealLoadFailed(false);
-      window.clearTimeout(timeout);
-    };
-    script.onerror = () => {
-      setDocusealLoadFailed(true);
-      window.clearTimeout(timeout);
-    };
-    document.body.appendChild(script);
-
-    return () => {
-      window.clearTimeout(timeout);
-    };
-  }, [signatureModal.open, signatureModal.src]);
-
-  // Auto-cierre del modal de firma cuando DocuSeal notifica completion via postMessage
-  useEffect(() => {
-    if (!signatureModal.open) return;
-
-    const expectedOrigin = (() => {
-      if (!signatureModal.src) return null;
-      try {
-        return new URL(signatureModal.src).origin;
-      } catch {
-        return null;
-      }
-    })();
-
-    const handler = (event: MessageEvent) => {
-      if (expectedOrigin && event.origin !== expectedOrigin) return;
-
-      // DocuSeal puede emitir el evento en distintos formatos según versión del embed
-      const isCompleted =
-        event.data?.type === "docuseal:completed" ||
-        event.data?.event === "completed" ||
-        event.data?.completed === true;
-
-      if (!isCompleted) return;
-
-      const slotToRefresh = signatureModal.slot;
-      setSignatureModal({ open: false, slot: null, src: null });
-      setDocusealReady(false);
-      setDocusealLoadFailed(false);
-
-      if (slotToRefresh) {
-        toast.success("¡Documento firmado exitosamente!");
-        void handleRefreshSignatureStatus(slotToRefresh);
-      }
-    };
-
-    window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signatureModal.open, signatureModal.slot, signatureModal.src]);
 
   const [customDocumentRows, setCustomDocumentRows] = useState<Array<{ id: string; title: string; fileName: string }>>([]);
   const [showAddDocumentTitleBox, setShowAddDocumentTitleBox] = useState(false);

@@ -41,8 +41,6 @@ test.describe('Sidebar Branch Reordering', () => {
     const firstBranch = branchLinks.first();
     const secondBranch = branchLinks.nth(1);
     
-    const firstBranchText = (await firstBranch.textContent())?.trim();
-    
     // 2. Simulate Long Press (400ms based on code)
     const box = await firstBranch.boundingBox();
     if (!box) throw new Error('Could not find bounding box for first branch');
