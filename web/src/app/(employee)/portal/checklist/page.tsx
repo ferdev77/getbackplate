@@ -6,6 +6,8 @@ import { requireEmployeeModule } from "@/shared/lib/access";
 import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
 import { getEmployeeDelegatedPermissionsByMembership } from "@/shared/lib/employee-module-permissions";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
+import { getEnabledModulesCached } from "@/modules/organizations/cached-queries";
+import { getBranchDisplayName } from "@/shared/lib/branch-display";
 
 type EmployeeChecklistPageProps = {
   searchParams: Promise<{ preview?: string | string[] }>;
@@ -36,6 +38,8 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
   const canCreate = delegatedPermissions.checklists.create;
   const canEdit = delegatedPermissions.checklists.edit;
   const canDelete = delegatedPermissions.checklists.delete;
+  const enabledModulesSet = new Set(await getEnabledModulesCached(tenant.organizationId));
+  const customBrandingEnabled = enabledModulesSet.has("custom_branding");
 
   const { data: employeeRow } = await supabase
     .from("employees")
@@ -191,7 +195,7 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
   const [{ data: branches }, { data: departments }, { data: positions }, scopeUsers] = await Promise.all([
     supabase
       .from("branches")
-      .select("id, name")
+      .select("id, name, city")
       .eq("organization_id", tenant.organizationId)
       .eq("is_active", true)
       .order("name"),
@@ -230,7 +234,10 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
         canCreate={canCreate}
         canEdit={canEdit}
         canDelete={canDelete}
-        branches={branches ?? []}
+        branches={(branches ?? []).map((branch) => ({
+          ...branch,
+          name: getBranchDisplayName(branch, customBrandingEnabled),
+        }))}
         departments={departments ?? []}
         positions={positions ?? []}
         users={scopeUsers}

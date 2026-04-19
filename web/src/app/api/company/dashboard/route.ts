@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { getEnabledModules } from "@/modules/organizations/queries";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
+import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
 import { getEmployeeDocumentIdSet } from "@/shared/lib/document-domain";
 
 async function getOpenFlagsCountByBranch(
@@ -181,7 +182,7 @@ export async function GET(request: Request) {
       ? (() => {
           const query = supabase
             .from("announcements")
-            .select("id, title, kind, is_featured, publish_at, expires_at, branch_id")
+            .select("id, title, kind, is_featured, publish_at, expires_at, branch_id, created_by")
             .eq("organization_id", organizationId)
             .order("publish_at", { ascending: false })
             .limit(6);
@@ -207,6 +208,24 @@ export async function GET(request: Request) {
 
   const companyRecentDocuments = (recentDocuments ?? []).filter((doc) => !employeeDocumentIds.has(doc.id)).slice(0, 6);
 
+  const announcementRows = announcements ?? [];
+  const announcementAuthorIds = Array.from(
+    new Set(
+      announcementRows
+        .map((row) => row.created_by)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+  const announcementAuthorNameMap = await resolveAnnouncementAuthorNames({
+    organizationId,
+    authorIds: announcementAuthorIds,
+  });
+
+  const announcementsWithAuthor = announcementRows.map((row) => ({
+    ...row,
+    created_by_name: row.created_by ? announcementAuthorNameMap.get(row.created_by) ?? "Dirección General" : "Dirección General",
+  }));
+
   return NextResponse.json({
     employeesCount: (employeesCount ?? 0) + (usersCount ?? 0),
     employeesOnlyCount: employeesCount ?? 0,
@@ -216,7 +235,7 @@ export async function GET(request: Request) {
     checklistWeekCount: weekChecklistCount ?? 0,
     pendingReviewCount: pendingReviewCount ?? 0,
     openFlagsCount: openFlagsCount ?? 0,
-    announcements: announcements ?? [],
+    announcements: announcementsWithAuthor,
     recentDocuments: companyRecentDocuments,
   });
 }

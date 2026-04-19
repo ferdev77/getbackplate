@@ -23,6 +23,7 @@ type DashboardAnnouncement = {
   publish_at: string | null;
   expires_at: string | null;
   branch_id: string | null;
+  created_by_name?: string;
 };
 
 type DashboardDocument = {
@@ -365,6 +366,7 @@ export function CompanyDashboardWorkspace({
                           {notice.publish_at
                             ? `Publicado ${new Date(notice.publish_at).toLocaleDateString("es-AR")}`
                             : "Sin fecha de publicación"}
+                          {` · ${notice.created_by_name ?? "Dirección General"}`}
                         </p>
                       </div>
                     </AnimatedItem>

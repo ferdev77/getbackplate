@@ -6,6 +6,8 @@ import { getEmployeeDelegatedPermissionsByMembership } from "@/shared/lib/employ
 import { EmployeeAnnouncementsWorkspace } from "@/modules/announcements/ui/employee-announcements-workspace";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { extractDisplayName } from "@/shared/lib/user";
+import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
+import { getBranchDisplayName } from "@/shared/lib/branch-display";
 
 type AnnouncementRow = {
   id: string;
@@ -18,6 +20,7 @@ type AnnouncementRow = {
   expires_at: string | null;
   target_scope: unknown;
   created_by: string | null;
+  created_by_name?: string;
 };
 
 export default async function EmployeeAnnouncementsPage() {
@@ -51,7 +54,9 @@ export default async function EmployeeAnnouncementsPage() {
   }
 
   const enabledModules = await getEnabledModulesCached(tenant.organizationId);
-  const hasAnnouncementsModule = new Set(enabledModules).has("announcements");
+  const enabledModulesSet = new Set(enabledModules);
+  const hasAnnouncementsModule = enabledModulesSet.has("announcements");
+  const customBrandingEnabled = enabledModulesSet.has("custom_branding");
   const publisherName = extractDisplayName(authData.user);
   const delegatedPermissions = await getEmployeeDelegatedPermissionsByMembership(
     tenant.organizationId,
@@ -62,6 +67,7 @@ export default async function EmployeeAnnouncementsPage() {
   const canDelete = delegatedPermissions.announcements.delete;
 
   let announcements: AnnouncementRow[] = [];
+  let myAnnouncements: AnnouncementRow[] = [];
 
   if (hasAnnouncementsModule) {
     const now = new Date();
@@ -79,6 +85,10 @@ export default async function EmployeeAnnouncementsPage() {
     };
 
     announcements = (data ?? []).filter((item) => {
+      if (item.created_by === userId) {
+        return true;
+      }
+
       const publishAt = item.publish_at ? new Date(item.publish_at) : null;
       const expiresAt = item.expires_at ? new Date(item.expires_at) : null;
       const published = !publishAt || publishAt <= now;
@@ -99,9 +109,45 @@ export default async function EmployeeAnnouncementsPage() {
       }
       return announcementTimestamp(b) - announcementTimestamp(a);
     });
-  }
 
-  const myAnnouncements = announcements.filter((row) => row.created_by === userId);
+    const { data: createdByMeData } = await supabase
+      .from("announcements")
+      .select("id, title, body, kind, is_featured, publish_at, created_at, expires_at, target_scope, created_by")
+      .eq("organization_id", tenant.organizationId)
+      .eq("created_by", userId)
+      .order("created_at", { ascending: false })
+      .limit(60);
+
+    myAnnouncements = (createdByMeData ?? []).sort((a, b) => {
+      if (Boolean(a.is_featured) !== Boolean(b.is_featured)) {
+        return a.is_featured ? -1 : 1;
+      }
+      return announcementTimestamp(b) - announcementTimestamp(a);
+    });
+
+    const authorIds = Array.from(
+      new Set(
+        [...announcements, ...myAnnouncements]
+          .map((row) => row.created_by)
+          .filter((value): value is string => Boolean(value)),
+      ),
+    );
+
+    const authorNameMap = await resolveAnnouncementAuthorNames({
+      organizationId: tenant.organizationId,
+      authorIds,
+    });
+
+    announcements = announcements.map((row) => ({
+      ...row,
+      created_by_name: row.created_by ? authorNameMap.get(row.created_by) ?? "Dirección" : "Dirección",
+    }));
+
+    myAnnouncements = myAnnouncements.map((row) => ({
+      ...row,
+      created_by_name: row.created_by ? authorNameMap.get(row.created_by) ?? "Dirección" : "Dirección",
+    }));
+  }
 
   const [{ data: branches }, { data: departments }, { data: positions }, scopeUsers] = await Promise.all([
     supabase
@@ -127,7 +173,7 @@ export default async function EmployeeAnnouncementsPage() {
 
   const mappedBranches = (branches ?? []).map((branch) => ({
     id: branch.id,
-    name: branch.name,
+    name: getBranchDisplayName(branch, customBrandingEnabled),
   }));
 
   return (
@@ -143,6 +189,7 @@ export default async function EmployeeAnnouncementsPage() {
         canCreate={canCreate}
         canEdit={canEdit}
         canDelete={canDelete}
+        viewerUserId={userId}
         publisherName={publisherName}
         branches={mappedBranches}
         departments={departments ?? []}

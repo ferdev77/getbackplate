@@ -14,6 +14,7 @@ import { DocumentEditModal } from "@/modules/documents/ui/document-edit-modal";
 import { FolderEditModal } from "@/modules/documents/ui/folder-edit-modal";
 import { DocumentShareByEmailModal } from "@/modules/documents/ui/document-share-by-email-modal";
 import { DocumentShareAccessModal } from "@/modules/documents/ui/document-share-access-modal";
+import { DocumentPreviewPanel } from "@/modules/documents/ui/document-preview-panel";
 
 type FolderRow = {
   id: string;
@@ -995,48 +996,12 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                         <a href={`/api/documents/${selectedColumnDocument.id}/download`} download className={ACTION_BTN_NEUTRAL}><Download className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Descargar" /></a>
                         <button type="button" onClick={() => setDeleteDocId(selectedColumnDocument.id)} className={ACTION_BTN_DANGER}><Trash2 className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Eliminar" /></button>
                       </div>
-                      <div className="relative overflow-hidden rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
-                        <AnimatePresence mode="wait">
-                          <motion.div
-                            key={selectedColumnDocument.id}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.12 }}
-                          >
-                            {selectedColumnDocument.mime_type?.startsWith("image/") ? (
-                              <img
-                                src={`/api/documents/preview?documentId=${encodeURIComponent(selectedColumnDocument.id)}`}
-                                alt={`Vista previa ${selectedColumnDocument.title}`}
-                                className="h-[clamp(260px,42vh,420px)] w-full object-contain bg-white"
-                                onLoad={() => setPreviewState({ docId: selectedColumnDocument.id, status: "ready" })}
-                                onError={() => setPreviewState({ docId: selectedColumnDocument.id, status: "error" })}
-                              />
-                            ) : isPreviewableMime(selectedColumnDocument.mime_type) ? (
-                              <iframe
-                                src={`/api/documents/preview?documentId=${encodeURIComponent(selectedColumnDocument.id)}`}
-                                title={`Vista previa ${selectedColumnDocument.title}`}
-                                className="h-[clamp(260px,42vh,420px)] w-full bg-white"
-                                onLoad={() => setPreviewState({ docId: selectedColumnDocument.id, status: "ready" })}
-                              />
-                            ) : (
-                              <div className="grid h-[240px] place-items-center p-4 text-center text-sm text-[var(--gbp-text2)]">
-                                Este formato no tiene previsualizacion embebida. Usa Ver o Descargar.
-                              </div>
-                            )}
-                          </motion.div>
-                        </AnimatePresence>
-                        {previewState.docId !== selectedColumnDocument.id || previewState.status === "loading" ? (
-                          <div className="pointer-events-none absolute inset-0 grid place-items-center bg-[color:color-mix(in_oklab,var(--gbp-surface)_82%,transparent)]">
-                            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--gbp-border2)] border-t-[var(--gbp-accent)]" />
-                          </div>
-                        ) : null}
-                        {previewState.docId === selectedColumnDocument.id && previewState.status === "error" ? (
-                          <div className="absolute inset-0 grid place-items-center bg-[color:color-mix(in_oklab,var(--gbp-surface)_90%,transparent)] p-3 text-center text-xs text-[var(--gbp-text2)]">
-                            No se pudo cargar la vista previa. Usa Ver o Descargar.
-                          </div>
-                        ) : null}
-                      </div>
+                      <DocumentPreviewPanel
+                        document={selectedColumnDocument}
+                        previewState={previewState}
+                        setPreviewState={setPreviewState}
+                        isPreviewableMime={isPreviewableMime}
+                      />
                       <div className="space-y-2">
                         {(() => {
                           const scope = getEffectiveDocumentScope(selectedColumnDocument);

@@ -263,32 +263,32 @@ export function EmployeeChecklistPreviewModal({
     <>
       <div className={`fixed inset-0 z-[1050] flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-[1px] transition-opacity duration-200 sm:p-6 ${visible ? "opacity-100" : "opacity-0"}`} onClick={closeModal}>
         <div className={`w-full max-w-[760px] overflow-hidden rounded-[20px] bg-[var(--gbp-surface)] shadow-[0_32px_80px_rgba(0,0,0,.4)] transition-all duration-300 ${visible ? "translate-y-0 scale-100 opacity-100" : "translate-y-8 scale-[0.99] opacity-0"}`} onClick={(event) => event.stopPropagation()}>
-          <div className="relative overflow-hidden bg-[linear-gradient(145deg,var(--gbp-text)_0%,color-mix(in_oklab,var(--gbp-text)_88%,black)_100%)] px-8 pb-6 pt-7 text-white">
-            <div className="pointer-events-none absolute -right-12 -top-12 h-[210px] w-[210px] rounded-full bg-[radial-gradient(circle,rgba(192,57,43,.26)_0%,transparent_70%)]" />
+          <div className="relative overflow-hidden border-b-[1.5px] border-[var(--gbp-border)] bg-[linear-gradient(145deg,var(--gbp-bg)_0%,color-mix(in_oklab,var(--gbp-surface2)_75%,var(--gbp-bg))_100%)] px-8 pb-6 pt-7">
+            <div className="pointer-events-none absolute -right-12 -top-12 h-[210px] w-[210px] rounded-full bg-[radial-gradient(circle,color-mix(in_oklab,var(--gbp-accent)_16%,transparent)_0%,transparent_70%)]" />
             <div className="relative z-10 mb-5 flex items-start justify-between gap-3">
               <div>
                 <span className="mb-2 inline-flex items-center gap-1 rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_45%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_16%,transparent)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">📋 Apertura</span>
-                <h2 className="font-serif text-[26px] leading-tight">{templateName}</h2>
-                <p className="mt-1 text-[13px] text-white/45">{readOnly ? "Reporte enviado" : "Vista de ejecucion para empleado"}</p>
+                <h2 className="font-serif text-[26px] leading-tight text-[var(--gbp-text)]">{templateName}</h2>
+                <p className="mt-1 text-[13px] text-[var(--gbp-text2)]">{readOnly ? "Reporte enviado" : "Vista de ejecucion para empleado"}</p>
               </div>
-               <button type="button" onClick={closeModal} className="grid h-[34px] w-[34px] cursor-pointer place-items-center rounded-lg border border-white/10 bg-white/10 text-[18px] text-white/60 hover:border-[var(--gbp-accent)] hover:bg-[var(--gbp-accent)] hover:text-white">✕</button>
+               <button type="button" onClick={closeModal} className="grid h-[34px] w-[34px] cursor-pointer place-items-center rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[18px] text-[var(--gbp-text2)] hover:border-[var(--gbp-accent)] hover:bg-[var(--gbp-accent)] hover:text-white">✕</button>
             </div>
 
             {!readOnly ? (
-              <div className={`mb-4 overflow-hidden rounded-[10px] border border-white/10 bg-white/5 transition-all duration-300 ${instructionsVisible ? "max-h-[320px] opacity-100" : "max-h-0 opacity-0"}`}>
+              <div className={`mb-4 overflow-hidden rounded-[10px] border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] transition-all duration-300 ${instructionsVisible ? "max-h-[320px] opacity-100" : "max-h-0 opacity-0"}`}>
                 <div className="px-4 py-3">
                   <div className="mb-2 flex items-center justify-between">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-white/45">Instrucciones</p>
-                    <button type="button" onClick={() => setInstructionsVisible((prev) => !prev)} className="text-[11px] text-white/35 hover:text-white/70">{instructionsVisible ? "Ocultar ▲" : "Ver instrucciones ▼"}</button>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Instrucciones</p>
+                    <button type="button" onClick={() => setInstructionsVisible((prev) => !prev)} className="text-[11px] text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]">{instructionsVisible ? "Ocultar ▲" : "Ver instrucciones ▼"}</button>
                   </div>
-                  <p className="text-[12px] leading-7 text-white/70">Marca cada tarea al completarla. Si no puedes terminar alguna, usa <span className="mx-1 inline-flex items-center gap-1 rounded-md border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gbp-accent)]">⚑ Marcar para atencion</span> y deja comentario obligatorio. Usa <span className="mx-1 inline-flex items-center gap-1 rounded-md border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gbp-accent)]">💬 Comentario</span> y <span className="mx-1 inline-flex items-center gap-1 rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gbp-text2)]">📷 Foto</span> para evidencia.</p>
+                  <p className="text-[12px] leading-7 text-[var(--gbp-text2)]">Marca cada tarea al completarla. Si no puedes terminar alguna, usa <span className="mx-1 inline-flex items-center gap-1 rounded-md border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gbp-accent)]">⚑ Marcar para atencion</span> y deja comentario obligatorio. Usa <span className="mx-1 inline-flex items-center gap-1 rounded-md border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gbp-accent)]">💬 Comentario</span> y <span className="mx-1 inline-flex items-center gap-1 rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gbp-text2)]">📷 Foto</span> para evidencia.</p>
                 </div>
               </div>
             ) : null}
 
             <div>
-              <div className="mb-2 flex items-center justify-between text-xs text-white/55"><span>Progreso del turno</span><span className="font-semibold text-white">{doneCount} ✓ {flaggedWithComment.length ? `· ⚑ ${flaggedWithComment.length}` : ""}</span></div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[linear-gradient(90deg,var(--gbp-accent),var(--gbp-accent-hover))] transition-all duration-500" style={{ width: `${progressPct}%` }} /></div>
+              <div className="mb-2 flex items-center justify-between text-xs text-[var(--gbp-text2)]"><span>Progreso del turno</span><span className="font-semibold text-[var(--gbp-text)]">{doneCount} ✓ {flaggedWithComment.length ? `· ⚑ ${flaggedWithComment.length}` : ""}</span></div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-[var(--gbp-border)]"><div className="h-full rounded-full bg-[linear-gradient(90deg,var(--gbp-accent),var(--gbp-accent-hover))] transition-all duration-500" style={{ width: `${progressPct}%` }} /></div>
             </div>
           </div>
 

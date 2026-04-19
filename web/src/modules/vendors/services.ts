@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { cache } from "react";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { type VendorRow, VENDOR_CATEGORIES } from "./types";
+import { type VendorRow } from "./types";
 
 export const getVendorDirectoryView = cache(async (
   organizationId: string,

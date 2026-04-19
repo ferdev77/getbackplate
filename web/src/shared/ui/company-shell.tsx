@@ -6,12 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
-  Bell,
   ChevronDown,
-  ClipboardList,
-  FilePlus2,
-  FolderPlus,
-  LayoutGrid,
   Loader2,
   LogOut,
   MessageSquarePlus,
@@ -19,14 +14,9 @@ import {
   PanelsLeftRight,
   Settings,
   Sparkles,
-  Truck,
-  Upload,
-  UserPlus,
-  Users,
   User,
   X,
-  Trash2,
-  GripVertical
+  GripVertical,
 } from "lucide-react";
 import { Reorder } from "framer-motion";
 import { reorderBranchesAction } from "@/modules/organizations/actions";
@@ -64,6 +54,26 @@ import { TooltipLabel } from "@/shared/ui/tooltip";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 import { toast } from "sonner";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
+import {
+  ANNOUNCEMENT_CATALOG_TTL_MS,
+  CHECKLIST_CATALOG_TTL_MS,
+  DOCUMENTS_CATALOG_TTL_MS,
+  EMPLOYEES_CATALOG_TTL_MS,
+  SECTIONS,
+  THEMES,
+  THEME_DARK_PRO,
+  THEME_DEFAULT,
+  THEME_NAMES,
+  THEME_PALETTES,
+  THEME_SWATCH_STYLE,
+  USERS_CATALOG_TTL_MS,
+  type AnnouncementModalCatalog,
+  type ChecklistModalCatalog,
+  type DocumentsModalCatalog,
+  type EmployeesModalCatalog,
+  type SidebarItem,
+  type UsersModalCatalog,
+} from "@/shared/ui/company-shell.config";
 
 type SettingsSnapshot = {
   billingPlan: string;
@@ -127,250 +137,7 @@ type CompanyShellProps = {
   children: React.ReactNode;
 };
 
-type SidebarItem = {
-  href: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  sub?: boolean;
-  moduleCode?: string;
-  isBranch?: boolean;
-  branchId?: string;
-  actionKey?:
-    | "openAnnouncementModal"
-    | "openChecklistModal"
-    | "openDocumentFolderModal"
-    | "openDocumentUploadModal"
-    | "openEmployeeModal"
-    | "openUserModal";
-};
-
-type SidebarSection = {
-  label: string;
-  items: SidebarItem[];
-};
-
 type BillingCycle = "monthly" | "yearly";
-
-type AnnouncementModalCatalog = {
-  publisherName: string;
-  branches: Array<{ id: string; name: string }>;
-  departments: Array<{ id: string; name: string }>;
-  positions: Array<{ id: string; department_id: string; name: string }>;
-  users: Array<{
-    id: string;
-    user_id: string | null;
-    first_name: string;
-    last_name: string;
-    role_label?: string;
-    location_label?: string;
-    department_label?: string;
-    position_label?: string;
-  }>;
-};
-
-const ANNOUNCEMENT_CATALOG_TTL_MS = 60_000;
-const CHECKLIST_CATALOG_TTL_MS = 60_000;
-const DOCUMENTS_CATALOG_TTL_MS = 60_000;
-const EMPLOYEES_CATALOG_TTL_MS = 60_000;
-const USERS_CATALOG_TTL_MS = 30_000;
-
-type ScopeUserOption = {
-  id: string;
-  user_id: string | null;
-  first_name: string;
-  last_name: string;
-  role_label?: string;
-  location_label?: string;
-  department_label?: string;
-  position_label?: string;
-};
-
-type ScopeBranchOption = { id: string; name: string };
-type ScopeDepartmentOption = { id: string; name: string };
-type ScopePositionOption = { id: string; department_id: string; name: string };
-
-type ChecklistModalCatalog = {
-  branches: ScopeBranchOption[];
-  departments: ScopeDepartmentOption[];
-  positions: ScopePositionOption[];
-  users: ScopeUserOption[];
-};
-
-type DocumentsModalCatalog = {
-  folders: Array<{ id: string; name: string }>;
-  branches: ScopeBranchOption[];
-  departments: ScopeDepartmentOption[];
-  positions: ScopePositionOption[];
-  users: ScopeUserOption[];
-  recentDocuments: Array<{ id: string; title: string; branch_id: string | null; created_at: string }>;
-};
-
-type EmployeesModalCatalog = {
-  branches: ScopeBranchOption[];
-  departments: Array<{ id: string; name: string }>;
-  positions: Array<{ id: string; department_id: string; name: string; is_active: boolean }>;
-  publisherName: string;
-  companyName: string;
-};
-
-type UsersModalCatalog = {
-  branches: ScopeBranchOption[];
-  roleOptions: Array<{ value: string; label: string }>;
-};
-
-const SECTIONS: SidebarSection[] = [
-  {
-    label: "Operaciones",
-    items: [
-      { href: "/app/dashboard", label: "Dashboard", icon: LayoutGrid },
-      { href: "/app/settings", label: "Ajustes Empresa", icon: Settings, moduleCode: "settings" },
-    ],
-  },
-  {
-    label: "Checklist",
-    items: [
-      { href: "/app/reports", label: "Reportes Checklists", icon: ClipboardList, moduleCode: "reports" },
-      { href: "/app/checklists", label: "Mis Checklists", icon: ClipboardList, moduleCode: "checklists" },
-      {
-        href: "/app/checklists/new",
-        label: "Nuevo Checklist",
-        icon: FilePlus2,
-        sub: true,
-        moduleCode: "checklists",
-        actionKey: "openChecklistModal",
-      },
-    ],
-  },
-  {
-    label: "Comunicacion",
-    items: [
-      { href: "/app/announcements", label: "Avisos", icon: Bell, moduleCode: "announcements" },
-      {
-        href: "/app/announcements?action=create",
-        label: "Nuevo Aviso",
-        icon: MessageSquarePlus,
-        sub: true,
-        moduleCode: "announcements",
-        actionKey: "openAnnouncementModal",
-      },
-    ],
-  },
-  {
-    label: "File Manager",
-    items: [
-      { href: "/app/documents", label: "Documentos", icon: LayoutGrid, moduleCode: "documents" },
-      {
-        href: "/app/documents?action=create-folder",
-        label: "Crear Carpeta",
-        icon: FolderPlus,
-        sub: true,
-        moduleCode: "documents",
-        actionKey: "openDocumentFolderModal",
-      },
-      {
-        href: "/app/documents?action=upload",
-        label: "Subir Archivo",
-        icon: Upload,
-        sub: true,
-        moduleCode: "documents",
-        actionKey: "openDocumentUploadModal",
-      },
-      { href: "/app/trash", label: "Papelera", icon: Trash2, sub: true, moduleCode: "documents" },
-    ],
-  },
-  {
-    label: "Recursos Humanos",
-    items: [
-      { href: "/app/employees", label: "Usuarios / Empleados", icon: Users, moduleCode: "employees" },
-      {
-        href: "/app/employees?action=create",
-        label: "Nuevo Usuario / Empleado",
-        icon: UserPlus,
-        sub: true,
-        moduleCode: "employees",
-        actionKey: "openEmployeeModal",
-      },
-      { href: "/app/users", label: "Administradores", icon: User, moduleCode: "employees" },
-      {
-        href: "/app/users?action=create-user",
-        label: "Nuevo Administrador",
-        icon: UserPlus,
-        sub: true,
-        moduleCode: "employees",
-        actionKey: "openUserModal",
-      },
-    ],
-  },
-  {
-    label: "Proveedores",
-    items: [
-      { href: "/app/vendors", label: "Proveedores", icon: Truck, moduleCode: "vendors" },
-    ],
-  },
-];
-
-const THEMES = [
-  "dark-pro",
-  "default",
-  "sky",
-  "turquoise",
-  "teal",
-  "matcha",
-  "sunshine",
-  "peach",
-  "lilac",
-  "ebony",
-  "navy",
-  "gray",
-] as const;
-
-const THEME_DEFAULT = "default";
-const THEME_DARK_PRO = "dark-pro";
-
-const THEME_NAMES: Record<string, string> = {
-  "dark-pro": "Dark Pro",
-  default: "Default",
-  sky: "Sky",
-  turquoise: "Turquoise",
-  teal: "Teal",
-  matcha: "Matcha",
-  sunshine: "Sunshine",
-  peach: "Peach",
-  lilac: "Lilac",
-  ebony: "Ebony",
-  navy: "Navy",
-  gray: "Gray",
-};
-
-const THEME_PALETTES: Record<string, { accent: string; sidebarGradient: string; pageGradient: string; pageBg: string; headerBg: string }> = {
-  "dark-pro": { accent: "var(--gbp-violet)", sidebarGradient: "linear-gradient(170deg, var(--gbp-bg2) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, color-mix(in oklab, var(--gbp-bg) 82%, black) 55%, color-mix(in oklab, var(--gbp-bg) 72%, black) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  default: { accent: "var(--gbp-accent)", sidebarGradient: "linear-gradient(170deg, var(--gbp-bg) 0%, var(--gbp-bg2) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-bg2) 55%, color-mix(in oklab, var(--gbp-bg2) 86%, white) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  sky: { accent: "var(--gbp-violet)", sidebarGradient: "linear-gradient(170deg, var(--gbp-violet-soft) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-violet-soft) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  turquoise: { accent: "var(--gbp-success)", sidebarGradient: "linear-gradient(170deg, var(--gbp-success-soft) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-success-soft) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  teal: { accent: "var(--gbp-success)", sidebarGradient: "linear-gradient(170deg, var(--gbp-success-soft) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-success-soft) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  matcha: { accent: "var(--gbp-success)", sidebarGradient: "linear-gradient(170deg, var(--gbp-success-soft) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-success-soft) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  sunshine: { accent: "var(--gbp-accent)", sidebarGradient: "linear-gradient(170deg, var(--gbp-accent-glow) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-accent-glow) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  peach: { accent: "var(--gbp-accent)", sidebarGradient: "linear-gradient(170deg, var(--gbp-accent-glow) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-accent-glow) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  lilac: { accent: "var(--gbp-violet)", sidebarGradient: "linear-gradient(170deg, var(--gbp-violet-soft) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-violet-soft) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  ebony: { accent: "var(--gbp-text)", sidebarGradient: "linear-gradient(170deg, var(--gbp-bg2) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-bg2) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  navy: { accent: "var(--gbp-violet)", sidebarGradient: "linear-gradient(170deg, var(--gbp-violet-soft) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-violet-soft) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-  gray: { accent: "var(--gbp-text2)", sidebarGradient: "linear-gradient(170deg, var(--gbp-bg2) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-bg2) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
-};
-
-const THEME_SWATCH_STYLE: Record<string, string> = {
-  "dark-pro": "linear-gradient(145deg, #1f2533, #0d0f14)",
-  default: "linear-gradient(145deg, #f2f3f9, #e5e7f0)",
-  sky: "linear-gradient(145deg, #6c47ff, #9b82ff)",
-  turquoise: "linear-gradient(145deg, #22c55e, #0f9a47)",
-  teal: "linear-gradient(145deg, #1fbf6b, #0e8748)",
-  matcha: "linear-gradient(145deg, #2bb85f, #157b3f)",
-  sunshine: "linear-gradient(145deg, #e06030, #d4531a)",
-  peach: "linear-gradient(145deg, #d86131, #a84316)",
-  lilac: "linear-gradient(145deg, #7b5cff, #5a3ce6)",
-  ebony: "linear-gradient(145deg, #4b5563, #111827)",
-  navy: "linear-gradient(145deg, #5d4ce6, #313f54)",
-  gray: "linear-gradient(145deg, #475569, #1f2937)",
-};
 
 const MODULE_LABELS: Record<string, string> = {
   announcements: "Avisos",
@@ -493,7 +260,7 @@ export function CompanyShell({
     } else {
       toast.error("Error al sincronizar el orden");
     }
-  }, [tenantId]);
+  }, []);
 
   const onReorder = (newOrder: typeof localBranches) => {
     setLocalBranches(newOrder);
@@ -539,7 +306,7 @@ export function CompanyShell({
         };
       })
       .filter((section) => section.items.length > 0);
-  }, [enabledModuleSet, localBranches, customBrandingEnabled]);
+  }, [enabledModuleSet, localBranches, customBrandingEnabled, branchOptions.length]);
 
   const [theme, setTheme] = useState(() => normalizeTheme(settingsSnapshot.theme || THEME_DEFAULT));
   const [profileName] = useState(sessionUserName);
@@ -1531,7 +1298,7 @@ export function CompanyShell({
                                 <Link
                                   href={isReordering ? "#" : hrefWithBranch(href)}
                                   draggable={false}
-                                  onPointerDown={(e) => {
+                                  onPointerDown={() => {
                                     // Prevent default to prevent native drag text selection on touch
                                     if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
                                     longPressTimerRef.current = setTimeout(() => {

@@ -36,7 +36,27 @@ type AnnouncementCreateModalProps = {
   };
   submitEndpoint?: string;
   redirectPath?: string;
-  onSubmitted?: () => void;
+  onSubmitted?: (payload?: {
+    mode: "create" | "edit";
+    announcement: {
+      id: string;
+      title: string;
+      body: string;
+      kind: string | null;
+      is_featured: boolean;
+      publish_at: string | null;
+      created_at: string;
+      expires_at: string | null;
+      target_scope: {
+        locations: string[];
+        department_ids: string[];
+        position_ids: string[];
+        users: string[];
+      };
+      created_by: string | null;
+      created_by_name?: string;
+    };
+  }) => void;
 };
 
 export function AnnouncementCreateModal({ onClose, branches, departments, positions, users, publisherName, mode = "create", initial, submitEndpoint, redirectPath = "/app/announcements", onSubmitted }: AnnouncementCreateModalProps) {
@@ -82,15 +102,15 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
     const title = String(formData.get("title") ?? "").trim();
     const body = String(formData.get("body") ?? "").trim();
     const kind = String(formData.get("kind") ?? "general").trim();
-    const announcementId = String(formData.get("announcement_id") ?? "").trim();
+    const formAnnouncementId = String(formData.get("announcement_id") ?? "").trim();
 
     if (!title || !body) {
       toast.error("Titulo y contenido son obligatorios");
       return;
     }
 
-    const payload = {
-      announcementId: announcementId || undefined,
+      const payload = {
+      announcementId: formAnnouncementId || undefined,
       title,
       body,
       kind,
@@ -120,10 +140,29 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
 
       toast.success(mode === "edit" ? "Aviso actualizado correctamente" : "Aviso creado correctamente");
       startTransition(() => {
-        router.refresh();
-        onSubmitted?.();
+        const announcementId = String(data.announcementId ?? formAnnouncementId).trim();
+        onSubmitted?.({
+          mode,
+          announcement: {
+            id: announcementId,
+            title,
+            body,
+            kind,
+            is_featured: payload.is_featured,
+            publish_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            expires_at: payload.expires_at,
+            target_scope: {
+              locations: payload.location_scope,
+              department_ids: payload.department_scope,
+              position_ids: payload.position_scope,
+              users: payload.user_scope,
+            },
+            created_by: typeof data.created_by === "string" ? data.created_by : null,
+            created_by_name: publisherName,
+          },
+        });
         if (onClose) onClose();
-        router.push(redirectPath);
       });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo guardar el aviso");

@@ -12,6 +12,8 @@ import { EmployeeDocumentActions } from "@/modules/documents/ui/employee-documen
 import { useEmployeeDocumentMutations } from "@/modules/documents/hooks/use-employee-document-mutations";
 import { useEmployeeDocumentsPreferences } from "@/modules/documents/hooks/use-employee-documents-preferences";
 import type { BranchOption, DepartmentOption, PositionOption, ScopedUserOption } from "@/shared/contracts/scope-options";
+import { DocumentPreviewPanel } from "@/modules/documents/ui/document-preview-panel";
+import { AssignedCreatedToggle } from "@/shared/ui/assigned-created-toggle";
 
 type FolderRow = {
   id: string;
@@ -75,6 +77,7 @@ export function EmployeeDocumentsTree({
   recentDocuments = [],
 }: Props) {
   const [documentsState, setDocumentsState] = useState<DocumentRow[]>(documents);
+  const [ownershipView, setOwnershipView] = useState<"assigned" | "created">("assigned");
   const [query, setQuery] = useState("");
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set());
   const [selectedColumnDocId, setSelectedColumnDocId] = useState<string | null>(null);
@@ -111,13 +114,16 @@ export function EmployeeDocumentsTree({
 
   const docsByFolder = useMemo(() => {
     const map = new Map<string | null, DocumentRow[]>();
-    for (const doc of documentsState) {
+    for (const doc of documentsState.filter((row) => {
+      const own = row.owner_user_id === viewerUserId;
+      return ownershipView === "created" ? own : !own;
+    })) {
       const list = map.get(doc.folder_id) ?? [];
       list.push(doc);
       map.set(doc.folder_id, list);
     }
     return map;
-  }, [documentsState]);
+  }, [documentsState, ownershipView, viewerUserId]);
 
   const childrenByFolder = useMemo(() => {
     const map = new Map<string | null, FolderRow[]>();
@@ -129,34 +135,68 @@ export function EmployeeDocumentsTree({
     return map;
   }, [folders]);
 
+  const folderParentById = useMemo(
+    () => new Map(folders.map((folder) => [folder.id, folder.parent_id])),
+    [folders],
+  );
+
   const orderedFolderRows = useMemo(
     () => [...folders].sort((a, b) => a.name.localeCompare(b.name, "es")),
     [folders],
   );
 
-  const effectiveSelectedColumnFolderId = selectedColumnFolderId && folders.some((folder) => folder.id === selectedColumnFolderId)
-    ? selectedColumnFolderId
-    : null;
-
-  function includeDocument(doc: DocumentRow) {
-    const q = query.trim().toLowerCase();
-    if (q && !doc.title.toLowerCase().includes(q)) return false;
-    return true;
-  }
-
   function sortDocuments(rows: DocumentRow[]) {
     return [...rows].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
   }
 
+  const filteredDocsByFolder = useMemo(() => {
+    const map = new Map<string | null, DocumentRow[]>();
+    const q = query.trim().toLowerCase();
+    for (const [folderId, rows] of docsByFolder.entries()) {
+      map.set(folderId, sortDocuments(rows.filter((doc) => (q ? doc.title.toLowerCase().includes(q) : true))));
+    }
+    return map;
+  }, [docsByFolder, query]);
+
+  const ownershipDocumentsCount = useMemo(() => {
+    let total = 0;
+    for (const rows of docsByFolder.values()) total += rows.length;
+    return total;
+  }, [docsByFolder]);
+
+  const totalVisibleDocuments = useMemo(() => {
+    let total = 0;
+    for (const rows of filteredDocsByFolder.values()) total += rows.length;
+    return total;
+  }, [filteredDocsByFolder]);
+
+  const visibleFolderIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const [folderId, rows] of filteredDocsByFolder.entries()) {
+      if (!folderId || rows.length === 0) continue;
+      let currentId: string | null = folderId;
+      while (currentId) {
+        ids.add(currentId);
+        currentId = folderParentById.get(currentId) ?? null;
+      }
+    }
+    return ids;
+  }, [filteredDocsByFolder, folderParentById]);
+
+  const visibleFolderRows = useMemo(
+    () => orderedFolderRows.filter((folder) => visibleFolderIds.has(folder.id)),
+    [orderedFolderRows, visibleFolderIds],
+  );
+
+  const effectiveSelectedColumnFolderId = selectedColumnFolderId && visibleFolderRows.some((folder) => folder.id === selectedColumnFolderId)
+    ? selectedColumnFolderId
+    : null;
+
   function renderFolderTree(parentId: string | null, depth = 0) {
     const folderList = childrenByFolder.get(parentId) ?? [];
     return folderList.flatMap((folder) => {
-      const docList = sortDocuments((docsByFolder.get(folder.id) ?? []).filter(includeDocument));
-      const hasChildren = (childrenByFolder.get(folder.id) ?? []).length > 0;
-      
-      // Si la carpeta está vacía y no tiene subcarpetas, y hay búsqueda, podríamos ocultarla
-      // Pero para simplificar, la mostramos.
-      if (query.trim() && docList.length === 0 && !hasChildren) return [];
+      if (!visibleFolderIds.has(folder.id)) return [];
+      const docList = filteredDocsByFolder.get(folder.id) ?? [];
 
       const isOpen = openFolders.has(folder.id);
 
@@ -226,13 +266,11 @@ export function EmployeeDocumentsTree({
     });
   }
 
-  const rootDocuments = sortDocuments((docsByFolder.get(null) ?? []).filter(includeDocument));
+  const rootDocuments = filteredDocsByFolder.get(null) ?? [];
 
   const columnDocuments = useMemo(() => {
-    const rows = docsByFolder.get(effectiveSelectedColumnFolderId) ?? [];
-    const q = query.trim().toLowerCase();
-    return sortDocuments(rows.filter((doc) => (q ? doc.title.toLowerCase().includes(q) : true)));
-  }, [docsByFolder, effectiveSelectedColumnFolderId, query]);
+    return filteredDocsByFolder.get(effectiveSelectedColumnFolderId) ?? [];
+  }, [effectiveSelectedColumnFolderId, filteredDocsByFolder]);
 
   const effectiveSelectedColumnDocId = selectedColumnDocId && columnDocuments.some((doc) => doc.id === selectedColumnDocId)
     ? selectedColumnDocId
@@ -241,6 +279,13 @@ export function EmployeeDocumentsTree({
   const selectedColumnDocument = columnDocuments.find((doc) => doc.id === effectiveSelectedColumnDocId) ?? null;
 
   const isOwner = (doc: DocumentRow) => doc.owner_user_id === viewerUserId;
+
+  const noDocumentsTitle = ownershipView === "created" ? "Aun no creaste documentos" : "Sin documentos asignados";
+  const noDocumentsDescription = ownershipView === "created"
+    ? "Todavia no subiste documentos en este modulo."
+    : "No hay documentos visibles para tu perfil en este momento.";
+
+  const noResultsLabel = `No se encontraron resultados para \"${query}\" en ${ownershipView === "created" ? "Creados por mi" : "Asignados a mi"}.`;
 
   return (
     <>
@@ -289,8 +334,15 @@ export function EmployeeDocumentsTree({
         ) : null}
       </section>
 
-      {!documentsState.length && !folders.length ? (
-        <EmptyState title="Sin documentos" description="Aún no tienes documentos visibles o asignados." />
+      <AssignedCreatedToggle
+        viewMode={ownershipView}
+        onChange={setOwnershipView}
+        assignedLabel="Asignados a mi"
+        createdLabel="Creados por mi"
+      />
+
+      {ownershipDocumentsCount === 0 ? (
+        <EmptyState title={noDocumentsTitle} description={noDocumentsDescription} />
       ) : (
         <SlideUp delay={0.1}>
           <AnimatePresence mode="wait">
@@ -307,41 +359,41 @@ export function EmployeeDocumentsTree({
                     Explorador de Archivos
                   </div>
                   <div>
-                    {renderFolderTree(null)}
-                    <AnimatePresence>
-                      {rootDocuments.map((doc) => (
-                        <AnimatedItem key={doc.id}>
-                          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]">
-                            <div className="min-w-0 flex-1 flex items-center gap-3">
-                              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-lg">📄</div>
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-bold text-[var(--gbp-text)]">
-                                  {doc.title}
-                                  {doc.is_new ? <span className="ml-2 rounded-full border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--gbp-success)]">NUEVO</span> : null}
-                                </p>
-                                <p className="truncate text-xs text-[var(--gbp-muted)]">
-                                  {formatSize(doc.file_size_bytes)} · {(doc.mime_type ?? "archivo").toUpperCase()}
-                                </p>
+                    {totalVisibleDocuments === 0 && query.trim() ? (
+                      <div className="p-8 text-center text-sm text-[var(--gbp-text2)]">{noResultsLabel}</div>
+                    ) : (
+                      <>
+                        {renderFolderTree(null)}
+                        <AnimatePresence>
+                          {rootDocuments.map((doc) => (
+                            <AnimatedItem key={doc.id}>
+                              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]">
+                                <div className="min-w-0 flex-1 flex items-center gap-3">
+                                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-lg">📄</div>
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-bold text-[var(--gbp-text)]">
+                                      {doc.title}
+                                      {doc.is_new ? <span className="ml-2 rounded-full border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--gbp-success)]">NUEVO</span> : null}
+                                    </p>
+                                    <p className="truncate text-xs text-[var(--gbp-muted)]">
+                                      {formatSize(doc.file_size_bytes)} · {(doc.mime_type ?? "archivo").toUpperCase()}
+                                    </p>
+                                  </div>
+                                </div>
+                                <EmployeeDocumentActions
+                                  documentId={doc.id}
+                                  canEdit={canEdit}
+                                  canDelete={canDelete}
+                                  isOwner={isOwner(doc)}
+                                  onEdit={() => setEditingDocument(doc)}
+                                  onDelete={() => setDeleteDocument(doc)}
+                                  labelMode="responsive"
+                                />
                               </div>
-                            </div>
-                            <EmployeeDocumentActions
-                              documentId={doc.id}
-                              canEdit={canEdit}
-                              canDelete={canDelete}
-                              isOwner={isOwner(doc)}
-                              onEdit={() => setEditingDocument(doc)}
-                              onDelete={() => setDeleteDocument(doc)}
-                              labelMode="responsive"
-                            />
-                          </div>
-                        </AnimatedItem>
-                      ))}
-                    </AnimatePresence>
-
-                    {!rootDocuments.length && !folders.length && query && (
-                      <div className="p-8 text-center text-sm text-[var(--gbp-text2)]">
-                        No se encontraron resultados para &quot;{query}&quot;
-                      </div>
+                            </AnimatedItem>
+                          ))}
+                        </AnimatePresence>
+                      </>
                     )}
                   </div>
                 </section>
@@ -357,9 +409,9 @@ export function EmployeeDocumentsTree({
                           className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm ${effectiveSelectedColumnFolderId === null ? "bg-[var(--gbp-surface)] font-semibold text-[var(--gbp-text)]" : "text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface)]"}`}
                         >
                           <span>Raiz</span>
-                          <span className="text-[11px] text-[var(--gbp-muted)]">{docsByFolder.get(null)?.length ?? 0}</span>
+                          <span className="text-[11px] text-[var(--gbp-muted)]">{filteredDocsByFolder.get(null)?.length ?? 0}</span>
                         </button>
-                        {orderedFolderRows.map((folder) => (
+                        {visibleFolderRows.map((folder) => (
                           <button
                             key={folder.id}
                             type="button"
@@ -367,7 +419,7 @@ export function EmployeeDocumentsTree({
                             className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm ${effectiveSelectedColumnFolderId === folder.id ? "bg-[var(--gbp-surface)] font-semibold text-[var(--gbp-text)]" : "text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface)]"}`}
                           >
                             <span className="truncate">{folder.name}</span>
-                            <span className="text-[11px] text-[var(--gbp-muted)]">{docsByFolder.get(folder.id)?.length ?? 0}</span>
+                            <span className="text-[11px] text-[var(--gbp-muted)]">{filteredDocsByFolder.get(folder.id)?.length ?? 0}</span>
                           </button>
                         ))}
                       </div>
@@ -377,13 +429,15 @@ export function EmployeeDocumentsTree({
                       <p className="mb-2 px-1 text-[11px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Documentos</p>
                       <div className="space-y-1">
                         {columnDocuments.length === 0 ? (
-                          <p className="rounded-lg border border-dashed border-[var(--gbp-border2)] px-3 py-8 text-center text-sm text-[var(--gbp-muted)]">No hay documentos para los filtros actuales.</p>
+                          <p className="rounded-lg border border-dashed border-[var(--gbp-border2)] px-3 py-8 text-center text-sm text-[var(--gbp-muted)]">
+                            {query.trim() ? noResultsLabel : "No hay documentos para esta carpeta en la vista actual."}
+                          </p>
                         ) : columnDocuments.map((doc) => (
                           <button
                             key={doc.id}
                             type="button"
                             onClick={() => setSelectedColumnDocId(doc.id)}
-                            className={`w-full rounded-lg border px-3 py-2 text-left ${selectedColumnDocId === doc.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] hover:bg-[var(--gbp-bg)]"}`}
+                            className={`w-full rounded-lg border px-3 py-2 text-left ${effectiveSelectedColumnDocId === doc.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] hover:bg-[var(--gbp-bg)]"}`}
                           >
                             <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{doc.title}</p>
                             <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">{formatSize(doc.file_size_bytes)} · {(doc.mime_type ?? "archivo").toUpperCase()}</p>
@@ -411,48 +465,12 @@ export function EmployeeDocumentsTree({
                             onDelete={() => setDeleteDocument(selectedColumnDocument)}
                             labelMode="full"
                           />
-                          <div className="relative overflow-hidden rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
-                            <AnimatePresence mode="wait">
-                              <motion.div
-                                key={selectedColumnDocument.id}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ duration: 0.12 }}
-                              >
-                                {selectedColumnDocument.mime_type?.startsWith("image/") ? (
-                                  <img
-                                    src={`/api/documents/preview?documentId=${encodeURIComponent(selectedColumnDocument.id)}`}
-                                    alt={`Vista previa ${selectedColumnDocument.title}`}
-                                    className="h-[clamp(260px,42vh,420px)] w-full object-contain bg-white"
-                                    onLoad={() => setPreviewState({ docId: selectedColumnDocument.id, status: "ready" })}
-                                    onError={() => setPreviewState({ docId: selectedColumnDocument.id, status: "error" })}
-                                  />
-                                ) : isPreviewableMime(selectedColumnDocument.mime_type) ? (
-                                  <iframe
-                                    src={`/api/documents/preview?documentId=${encodeURIComponent(selectedColumnDocument.id)}`}
-                                    title={`Vista previa ${selectedColumnDocument.title}`}
-                                    className="h-[clamp(260px,42vh,420px)] w-full bg-white"
-                                    onLoad={() => setPreviewState({ docId: selectedColumnDocument.id, status: "ready" })}
-                                  />
-                                ) : (
-                                  <div className="grid h-[240px] place-items-center p-4 text-center text-sm text-[var(--gbp-text2)]">
-                                    Este formato no tiene previsualizacion embebida. Usa Ver o Descargar.
-                                  </div>
-                                )}
-                              </motion.div>
-                            </AnimatePresence>
-                            {previewState.docId !== selectedColumnDocument.id || previewState.status === "loading" ? (
-                              <div className="pointer-events-none absolute inset-0 grid place-items-center bg-[color:color-mix(in_oklab,var(--gbp-surface)_82%,transparent)]">
-                                <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--gbp-border2)] border-t-[var(--gbp-accent)]" />
-                              </div>
-                            ) : null}
-                            {previewState.docId === selectedColumnDocument.id && previewState.status === "error" ? (
-                              <div className="absolute inset-0 grid place-items-center bg-[color:color-mix(in_oklab,var(--gbp-surface)_90%,transparent)] p-3 text-center text-xs text-[var(--gbp-text2)]">
-                                No se pudo cargar la vista previa. Usa Ver o Descargar.
-                              </div>
-                            ) : null}
-                          </div>
+                          <DocumentPreviewPanel
+                            document={selectedColumnDocument}
+                            previewState={previewState}
+                            setPreviewState={setPreviewState}
+                            isPreviewableMime={isPreviewableMime}
+                          />
                         </div>
                       )}
                     </div>

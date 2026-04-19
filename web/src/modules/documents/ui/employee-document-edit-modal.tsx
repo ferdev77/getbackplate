@@ -27,7 +27,7 @@ export function EmployeeDocumentEditModal({
       >
         <div className="border-b border-[var(--gbp-border)] px-6 py-4">
           <p className="font-serif text-[18px] font-bold text-[var(--gbp-text)]">Editar documento</p>
-          <p className="mt-1 text-sm text-[var(--gbp-text2)]">Actualiza el título de "{title}".</p>
+          <p className="mt-1 text-sm text-[var(--gbp-text2)]">Actualiza el título de &quot;{title}&quot;.</p>
         </div>
         <div className="px-6 py-4">
           <label className="grid gap-1.5">

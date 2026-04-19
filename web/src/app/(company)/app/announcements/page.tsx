@@ -1,7 +1,6 @@
-import { Bell, BellPlus, CalendarClock, Pencil, Pin } from "lucide-react";
+import { Bell, BellPlus, Pencil, Pin } from "lucide-react";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { TooltipLabel } from "@/shared/ui/tooltip";
-import { ScopePillsOverflow } from "@/shared/ui/scope-pills-overflow";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { parseAnnouncementScope } from "@/modules/announcements/lib/scope";
@@ -10,6 +9,7 @@ import {
   deleteAnnouncementAction,
   toggleAnnouncementFeaturedAction,
 } from "@/modules/announcements/actions";
+import { AnnouncementCard } from "@/modules/announcements/ui/announcement-card";
 import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
 import { requireTenantModule } from "@/shared/lib/access";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
@@ -33,20 +33,6 @@ const TEXT_MUTED = "text-[var(--gbp-text2)]";
 const CARD = "border-[var(--gbp-border)] bg-[var(--gbp-surface)]";
 const ACTION_BTN_NEUTRAL = "group/tooltip relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
 const ACTION_BTN_DANGER = "group/tooltip relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] text-[var(--gbp-error)] hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_16%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-error)_45%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-error-soft)] [.theme-dark-pro_&]:text-[var(--gbp-error)]";
-
-function kindLabel(kind: string) {
-  if (kind === "urgent") return "Urgente";
-  if (kind === "reminder") return "Recordatorio";
-  if (kind === "celebration") return "Celebracion";
-  return "General";
-}
-
-function kindClass(kind: string) {
-  if (kind === "urgent") return "border-rose-200 bg-rose-50 text-rose-700";
-  if (kind === "reminder") return "border-amber-200 bg-amber-50 text-amber-700";
-  if (kind === "celebration") return "border-blue-200 bg-blue-50 text-blue-700";
-  return "border-emerald-200 bg-emerald-50 text-emerald-700";
-}
 
 export default async function CompanyAnnouncementsPage({ searchParams }: CompanyAnnouncementsPageProps) {
   const tenant = await requireTenantModule("announcements");
@@ -222,53 +208,18 @@ const employeesQuery = supabase
         {announcements && announcements.length > 0 ? (
           <div className="space-y-3">
             {orderedAnnouncements.map((ann) => {
-              const target = parseAnnouncementScope(ann.target_scope);
-              const scopedLocations = target.locations;
-              const scopedDepartments = target.department_ids;
-              const scopedPositions = target.position_ids;
-              const scopedUsers = target.users;
-              const hasAudience =
-                scopedLocations.length > 0 || scopedDepartments.length > 0 || scopedPositions.length > 0 || scopedUsers.length > 0;
-
+              const targetForEdit = parseAnnouncementScope(ann.target_scope);
               return (
                 <div key={ann.id}>
-                  <article className={`rounded-xl border-[1.5px] px-5 py-4 ${CARD} ${ann.is_featured ? "border-[var(--gbp-border)] border-l-[3.5px] border-l-[var(--gbp-accent)]" : "border-[var(--gbp-border)]"}`}>
-                    <div className="mb-2 flex items-start justify-between gap-3">
-                      <div>
-                        <p className={`text-[14px] font-bold ${TEXT_STRONG}`}>{ann.title}</p>
-                        <div className={`mt-0.5 flex flex-wrap items-center gap-2 text-[11px] ${TEXT_MUTED}`}>
-                          <span>📅 {ann.publish_at ? new Date(ann.publish_at).toLocaleDateString("es-AR") : "-"} · {authorNameMap.get(ann.created_by ?? "") || "Dirección General"}</span>
-                          {ann.expires_at ? (
-                            (() => {
-                              const datePart = ann.expires_at.slice(0, 10);
-                              const badgeClass =
-                                datePart < today
-                                  ? "border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] text-[var(--gbp-error)]"
-                                  : datePart === today
-                                    ? "border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
-                                    : "border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]";
-                              const prefix = datePart < today ? "Venció" : datePart === today ? "Vence hoy" : "Por vencer";
-                              return <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${badgeClass}`}><CalendarClock className="h-3 w-3" /> {prefix}: {new Date(ann.expires_at).toLocaleDateString("es-AR")}</span>;
-                            })()
-                          ) : null}
-                        </div>
-                      </div>
-                      {ann.is_featured ? <span className="inline-flex items-center gap-1 rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-semibold text-[var(--gbp-accent)]"><Pin className="h-3 w-3" /> FIJADO</span> : null}
-                    </div>
-
-                    <p className={`text-[13px] leading-6 ${TEXT_MUTED}`}>{ann.body}</p>
-
-                    <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                      <span className={`text-[11px] font-semibold ${TEXT_MUTED}`}>Para:</span>
-                      {!hasAudience ? <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2 py-0.5 text-[11px] text-[var(--gbp-text2)]">Todos los empleados</span> : null}
-                      {scopedLocations.length > 0 && <ScopePillsOverflow pills={scopedLocations.map(id => ({ name: branchNameMap.get(id) ?? "Sucursal", type: "location" as const }))} max={4} />}
-                      {scopedDepartments.length > 0 && <ScopePillsOverflow pills={scopedDepartments.map(id => ({ name: departmentNameMap.get(id) ?? "Departamento", type: "department" as const }))} max={4} />}
-                      {scopedPositions.length > 0 && <ScopePillsOverflow pills={scopedPositions.map(id => ({ name: positionNameMap.get(id) ?? "Puesto", type: "position" as const }))} max={4} />}
-                    </div>
-
-                    <div className="mt-3 flex items-center justify-between">
-                      <span className={`rounded-full border px-2 py-0.5 text-[11px] ${kindClass(ann.kind)}`}>{kindLabel(ann.kind)}</span>
-                      <div className="flex items-center gap-1">
+                  <AnnouncementCard
+                    announcement={ann}
+                    authorName={authorNameMap.get(ann.created_by ?? "") || "Dirección General"}
+                    todayIso={today}
+                    branchNameMap={branchNameMap}
+                    departmentNameMap={departmentNameMap}
+                    positionNameMap={positionNameMap}
+                    actions={(
+                      <>
                         <form action={toggleAnnouncementFeaturedAction}>
                           <input type="hidden" name="announcement_id" value={ann.id} />
                           <input type="hidden" name="next_featured" value={String(!ann.is_featured)} />
@@ -281,21 +232,21 @@ const employeesQuery = supabase
                           branches={mappedBranches}
                           departments={departments ?? []}
                           positions={positions ?? []}
-                          users={scopeUsers}
-                          initial={{
-                            id: ann.id,
-                            kind: ann.kind,
-                            title: ann.title,
-                            body: ann.body,
-                            expires_at: ann.expires_at,
-                            is_featured: ann.is_featured,
-                            location_scope: target.locations,
-                            department_scope: target.department_ids,
-                            position_scope: target.position_ids,
-                            user_scope: target.users,
-                          }}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
+                            users={scopeUsers}
+                            initial={{
+                              id: ann.id,
+                              kind: ann.kind,
+                              title: ann.title,
+                              body: ann.body,
+                              expires_at: ann.expires_at,
+                              is_featured: ann.is_featured,
+                              location_scope: targetForEdit.locations,
+                              department_scope: targetForEdit.department_ids,
+                              position_scope: targetForEdit.position_ids,
+                              user_scope: targetForEdit.users,
+                            }}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
                           <TooltipLabel label="Editar" />
                         </AnnouncementModalTrigger>
                         <form action={deleteAnnouncementAction}>
@@ -309,9 +260,9 @@ const employeesQuery = supabase
                             data-testid="delete-announcement-btn"
                           />
                         </form>
-                      </div>
-                    </div>
-                  </article>
+                      </>
+                    )}
+                  />
                 </div>
               );
             })}
