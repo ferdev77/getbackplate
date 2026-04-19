@@ -87,14 +87,14 @@ export function EmployeeShell({
     const refreshDelayMs = fastRealtimePaths.some((prefix) => pathname.startsWith(prefix)) ? 450 : 2000;
     const employeeUploadCooldownKey = "gbp.employee.docs.upload.cooldown";
     const employeeUploadInflightKey = "gbp.employee.docs.upload.inflight";
-    const ownSubmissionFilter = `organization_id=eq.${organizationId},submitted_by=eq.${userId}`;
-    const checklistJobsFilter = `organization_id=eq.${organizationId},job_type=eq.checklist_generator`;
-    const ownEmployeeFilter = `organization_id=eq.${organizationId},user_id=eq.${userId}`;
-    const ownEmployeeByIdFilter = employeeId ? `organization_id=eq.${organizationId},id=eq.${employeeId}` : "";
-    const ownPreferencesFilter = `organization_id=eq.${organizationId},user_id=eq.${userId}`;
-    const ownProfileFilter = `organization_id=eq.${organizationId},user_id=eq.${userId}`;
-    const ownMembershipFilter = `organization_id=eq.${organizationId},id=eq.${membershipId}`;
-    const ownDelegatedPermissionsFilter = `organization_id=eq.${organizationId},membership_id=eq.${membershipId}`;
+    const ownSubmissionFilter = `submitted_by=eq.${userId}`;
+    const checklistJobsFilter = orgFilter;
+    const ownEmployeeFilter = `user_id=eq.${userId}`;
+    const ownEmployeeByIdFilter = employeeId ? `id=eq.${employeeId}` : "";
+    const ownPreferencesFilter = `user_id=eq.${userId}`;
+    const ownProfileFilter = `user_id=eq.${userId}`;
+    const ownMembershipFilter = `id=eq.${membershipId}`;
+    const ownDelegatedPermissionsFilter = `membership_id=eq.${membershipId}`;
 
     const subscriptions: Array<{ table: string; filter: string }> = [
       { table: "organization_modules", filter: orgFilter },
@@ -118,7 +118,7 @@ export function EmployeeShell({
       if (employeeId) {
         subscriptions.push({
           table: "employee_documents",
-          filter: `organization_id=eq.${organizationId},employee_id=eq.${employeeId}`,
+          filter: `employee_id=eq.${employeeId}`,
         });
       }
     } else if (pathname.startsWith("/portal/announcements")) {
@@ -142,7 +142,7 @@ export function EmployeeShell({
       if (employeeId) {
         subscriptions.push({
           table: "employee_documents",
-          filter: `organization_id=eq.${organizationId},employee_id=eq.${employeeId}`,
+          filter: `employee_id=eq.${employeeId}`,
         });
       }
     }
