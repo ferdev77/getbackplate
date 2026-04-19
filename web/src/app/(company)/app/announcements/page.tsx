@@ -1,4 +1,5 @@
 import { Bell, BellPlus, Pencil, Pin } from "lucide-react";
+import Link from "next/link";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 
@@ -25,6 +26,7 @@ type CompanyAnnouncementsPageProps = {
     message?: string;
     action?: string;
     announcementId?: string;
+    creator?: string;
   }>;
 };
 
@@ -38,6 +40,7 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
   const tenant = await requireTenantModule("announcements");
   const params = await searchParams;
   const action = String(params.action ?? "").trim().toLowerCase();
+  const creatorFilter = String(params.creator ?? "all").trim().toLowerCase();
   const openCreateModal = action === "create" || action === "edit";
   const supabase = await createSupabaseServerClient();
   const { data: authData } = await supabase.auth.getUser();
@@ -101,18 +104,32 @@ const employeesQuery = supabase
   .eq("organization_id", tenant.organizationId)
   .eq("is_employee", false);
 
+  const membershipsQuery = supabase
+    .from("memberships")
+    .select("user_id, role_id, status")
+    .eq("organization_id", tenant.organizationId)
+    .eq("status", "active");
+
+  const rolesQuery = supabase
+    .from("roles")
+    .select("id, code");
+
   const [
     { data: branches },
     { data: employees },
     { data: userProfiles },
     { data: departments },
     { data: positions },
+    { data: memberships },
+    { data: roles },
   ] = await Promise.all([
     branchesQuery,
     employeesQuery,
     userProfilesQuery,
     departmentsQuery,
     positionsQuery,
+    membershipsQuery,
+    rolesQuery,
   ]);
 
   const enabledModulesArr = await getEnabledModulesCached(tenant.organizationId);
@@ -145,6 +162,28 @@ const employeesQuery = supabase
   const scopeUsers = await buildScopeUsersCatalog(tenant.organizationId);
   const positionNameMap = new Map((positions ?? []).map((row) => [row.id, row.name]));
 
+  const roleCodeById = new Map((roles ?? []).map((row) => [row.id, row.code]));
+  const adminUserIds = new Set(
+    (memberships ?? [])
+      .filter((row) => roleCodeById.get(row.role_id) === "company_admin")
+      .map((row) => row.user_id)
+      .filter((value): value is string => typeof value === "string" && value.length > 0),
+  );
+
+  const announcementsWithCreatorKind = orderedAnnouncements.map((ann) => ({
+    ...ann,
+    creator_kind: adminUserIds.has(ann.created_by ?? "") ? "admin" : "employee",
+  }));
+
+  const adminAnnouncementsCount = announcementsWithCreatorKind.filter((ann) => ann.creator_kind === "admin").length;
+  const employeeAnnouncementsCount = announcementsWithCreatorKind.filter((ann) => ann.creator_kind === "employee").length;
+
+  const filteredAnnouncements = announcementsWithCreatorKind.filter((ann) => {
+    if (creatorFilter === "admin") return ann.creator_kind === "admin";
+    if (creatorFilter === "employee") return ann.creator_kind === "employee";
+    return true;
+  });
+
   const now = new Date();
   const in7Days = new Date(now);
   in7Days.setDate(in7Days.getDate() + 7);
@@ -162,6 +201,15 @@ const employeesQuery = supabase
     : null;
 
   const publisherName = extractDisplayName(authData.user);
+
+  const filterHref = (value: "all" | "admin" | "employee") => {
+    const q = new URLSearchParams();
+    if (params.status) q.set("status", params.status);
+    if (params.message) q.set("message", params.message);
+    if (value !== "all") q.set("creator", value);
+    const query = q.toString();
+    return query ? `/app/announcements?${query}` : "/app/announcements";
+  };
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
@@ -204,10 +252,31 @@ const employeesQuery = supabase
         <p className={`mb-2 text-[11px] font-bold tracking-[0.11em] uppercase ${TEXT_MUTED}`}>Avisos publicados</p>
       </SlideUp>
 
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <Link
+          href={filterHref("all")}
+          className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${creatorFilter === "all" ? "border-[color:color-mix(in_oklab,var(--gbp-accent)_40%,transparent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]"}`}
+        >
+          Todos ({announcementsWithCreatorKind.length})
+        </Link>
+        <Link
+          href={filterHref("admin")}
+          className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${creatorFilter === "admin" ? "border-[color:color-mix(in_oklab,var(--gbp-accent)_40%,transparent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]"}`}
+        >
+          Creados por Admin ({adminAnnouncementsCount})
+        </Link>
+        <Link
+          href={filterHref("employee")}
+          className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${creatorFilter === "employee" ? "border-[color:color-mix(in_oklab,var(--gbp-accent)_40%,transparent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]"}`}
+        >
+          Creados por Empleados ({employeeAnnouncementsCount})
+        </Link>
+      </div>
+
       <section className="space-y-3">
-        {announcements && announcements.length > 0 ? (
+        {filteredAnnouncements.length > 0 ? (
           <div className="space-y-3">
-            {orderedAnnouncements.map((ann) => {
+            {filteredAnnouncements.map((ann) => {
               const targetForEdit = parseAnnouncementScope(ann.target_scope);
               return (
                 <div key={ann.id}>
@@ -269,7 +338,7 @@ const employeesQuery = supabase
           </div>
         ) : (
           <SlideUp delay={0.2}>
-            <EmptyState title="Aún no hay anuncios" description="Publica tu primer aviso para que llegue a tu equipo." />
+            <EmptyState title="Sin resultados para este filtro" description="Cambia el filtro para ver más avisos o publica uno nuevo." />
           </SlideUp>
         )}
       </section>

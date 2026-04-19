@@ -83,7 +83,7 @@ export function EmployeeShell({
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
     const orgFilter = `organization_id=eq.${organizationId}`;
-    const fastRealtimePaths = ["/portal/checklist", "/portal/home"];
+    const fastRealtimePaths = ["/portal/checklist", "/portal/home", "/portal/announcements", "/portal/documents"];
     const refreshDelayMs = fastRealtimePaths.some((prefix) => pathname.startsWith(prefix)) ? 450 : 2000;
     const employeeUploadCooldownKey = "gbp.employee.docs.upload.cooldown";
     const employeeUploadInflightKey = "gbp.employee.docs.upload.inflight";
@@ -108,14 +108,24 @@ export function EmployeeShell({
     if (pathname.startsWith("/portal/home")) {
       subscriptions.push(
         { table: "announcements", filter: orgFilter },
+        { table: "announcement_audiences", filter: orgFilter },
         { table: "documents", filter: orgFilter },
         { table: "document_folders", filter: orgFilter },
         { table: "checklist_templates", filter: orgFilter },
         { table: "scheduled_jobs", filter: checklistJobsFilter },
         { table: "checklist_submissions", filter: ownSubmissionFilter },
       );
+      if (employeeId) {
+        subscriptions.push({
+          table: "employee_documents",
+          filter: `organization_id=eq.${organizationId},employee_id=eq.${employeeId}`,
+        });
+      }
     } else if (pathname.startsWith("/portal/announcements")) {
-      subscriptions.push({ table: "announcements", filter: orgFilter });
+      subscriptions.push(
+        { table: "announcements", filter: orgFilter },
+        { table: "announcement_audiences", filter: orgFilter },
+      );
     } else if (pathname.startsWith("/portal/checklist")) {
       subscriptions.push(
         { table: "checklist_templates", filter: orgFilter },
