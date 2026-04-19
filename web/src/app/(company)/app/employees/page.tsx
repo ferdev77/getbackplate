@@ -4,6 +4,12 @@ import { EmployeesPageWorkspace } from "@/modules/employees/ui/employees-page-wo
 import { getEmployeeDirectoryView } from "@/modules/employees/services";
 import { requireTenantModule } from "@/shared/lib/access";
 import { extractDisplayName } from "@/shared/lib/user";
+import {
+  EMPLOYEE_PERMISSION_MODULES,
+  type EmployeePermissionModuleCode,
+  getEmptyEmployeeDelegatedPermissions,
+  normalizeEmployeeDelegatedPermissions,
+} from "@/shared/lib/employee-module-permissions";
 
 
 type CompanyEmployeesPageProps = {
@@ -56,6 +62,10 @@ const EMPLOYEE_DOCUMENT_SLOT_RULES: Array<{ slot: string; prefix: string }> = [
 function resolveDocumentSlotFromTitle(title: string | null | undefined) {
   if (!title) return null;
   return EMPLOYEE_DOCUMENT_SLOT_RULES.find((rule) => title.startsWith(rule.prefix))?.slot ?? null;
+}
+
+function isEmployeePermissionModuleCode(value: unknown): value is EmployeePermissionModuleCode {
+  return typeof value === "string" && EMPLOYEE_PERMISSION_MODULES.includes(value as EmployeePermissionModuleCode);
 }
 
 export const revalidate = 0;
@@ -128,7 +138,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
 
   const { data: organizationMemberships } = await supabase
     .from("memberships")
-    .select("user_id, status")
+    .select("id, user_id, status")
     .eq("organization_id", tenant.organizationId);
 
   const activeMembershipUserIds = new Set(
@@ -136,6 +146,41 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       .filter((membership) => membership.status === "active")
       .map((membership) => membership.user_id),
   );
+
+  const membershipIdByUserId = new Map(
+    (organizationMemberships ?? [])
+      .filter((membership) => membership.user_id)
+      .map((membership) => [membership.user_id as string, membership.id as string]),
+  );
+
+  const membershipIds = Array.from(
+    new Set(
+      (organizationMemberships ?? [])
+        .map((membership) => membership.id)
+        .filter((value): value is string => typeof value === "string" && value.length > 0),
+    ),
+  );
+
+  const { data: delegatedPermissionRows } = membershipIds.length
+    ? await createSupabaseAdminClient()
+        .from("employee_module_permissions")
+        .select("membership_id, module_code, can_create, can_edit, can_delete")
+        .eq("organization_id", tenant.organizationId)
+        .in("membership_id", membershipIds)
+    : { data: [] as Array<{ membership_id: string; module_code: string; can_create: boolean; can_edit: boolean; can_delete: boolean }> };
+
+  const delegatedPermissionsByMembershipId = new Map<string, ReturnType<typeof getEmptyEmployeeDelegatedPermissions>>();
+  for (const row of delegatedPermissionRows ?? []) {
+    const current = delegatedPermissionsByMembershipId.get(row.membership_id) ?? getEmptyEmployeeDelegatedPermissions();
+    const moduleCode = row.module_code;
+    if (!isEmployeePermissionModuleCode(moduleCode)) continue;
+    current[moduleCode] = {
+      create: row.can_create === true,
+      edit: row.can_edit === true,
+      delete: row.can_delete === true,
+    };
+    delegatedPermissionsByMembershipId.set(row.membership_id, current);
+  }
 
   const profileUserIds = Array.from(
     new Set((organizationUserProfiles ?? []).map((profile) => profile.user_id).filter(Boolean)),
@@ -418,6 +463,10 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
         payment_frequency: editContract?.payment_frequency ?? null,
         salary_currency: editContract?.salary_currency ?? null,
         has_dashboard_access: Boolean(editEmployee.userId && activeMembershipUserIds.has(editEmployee.userId)),
+        delegated_permissions: normalizeEmployeeDelegatedPermissions(
+          (editEmployee.userId ? delegatedPermissionsByMembershipId.get(membershipIdByUserId.get(editEmployee.userId) ?? "") : null) ??
+            getEmptyEmployeeDelegatedPermissions(),
+        ),
         documents_by_slot: editEmployeeDocumentsBySlot,
       }
     : editUserProfile
@@ -453,6 +502,11 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
           payment_frequency: null,
           salary_currency: null,
           has_dashboard_access: Boolean(editUserProfile.user_id && activeMembershipUserIds.has(editUserProfile.user_id)),
+          delegated_permissions: normalizeEmployeeDelegatedPermissions(
+            (editUserProfile.user_id
+              ? delegatedPermissionsByMembershipId.get(membershipIdByUserId.get(editUserProfile.user_id) ?? "")
+              : null) ?? getEmptyEmployeeDelegatedPermissions(),
+          ),
           documents_by_slot: editUserDocumentsBySlot,
         }
     : undefined;

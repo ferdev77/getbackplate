@@ -17,6 +17,11 @@ import {
 } from "@/shared/lib/plan-limits";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
 import { provisionOrganizationUserAccount } from "@/shared/lib/user-provisioning.service";
+import {
+  clearDelegatedEmployeePermissionsByMembership,
+  parseDelegatedPermissionsFromFormData,
+  syncDelegatedEmployeePermissions,
+} from "@/shared/lib/employee-delegation-persistence";
 
 const ALLOWED_CREATE_MODES = new Set(["without_account", "with_account"]);
 const ALLOWED_CONTRACT_STATUSES = new Set(["draft", "active", "ended", "cancelled"]);
@@ -746,6 +751,7 @@ export async function POST(request: Request) {
   const organizationUserProfileId = String(formData.get("organization_user_profile_id") ?? "").trim() || null;
   const existingDashboardAccess =
     String(formData.get("existing_dashboard_access") ?? "no").trim().toLowerCase() === "yes";
+  const delegatedPermissions = parseDelegatedPermissionsFromFormData(formData);
   const employeeId = String(formData.get("employee_id") ?? "").trim() || null;
   const isEditMode = Boolean(employeeId);
   const accountEmailInput = String(formData.get("account_email") ?? "").trim().toLowerCase();
@@ -1031,22 +1037,47 @@ export async function POST(request: Request) {
         }
       }
 
-      const { error: membershipError } = await admin.from("memberships").upsert(
-        {
-          organization_id: tenant.organizationId,
-          user_id: linkedUserId,
-          role_id: role.id,
-          branch_id: branchId,
-          status: "active",
-        },
-        { onConflict: "organization_id,user_id" },
-      );
+      const { data: membershipRow, error: membershipError } = await admin
+        .from("memberships")
+        .upsert(
+          {
+            organization_id: tenant.organizationId,
+            user_id: linkedUserId,
+            role_id: role.id,
+            branch_id: branchId,
+            status: "active",
+          },
+          { onConflict: "organization_id,user_id" },
+        )
+        .select("id")
+        .single();
 
-      if (membershipError) {
-        return NextResponse.json({ error: `No se pudo asignar acceso al usuario: ${membershipError.message}` }, { status: 400 });
+      if (membershipError || !membershipRow) {
+        return NextResponse.json({ error: `No se pudo asignar acceso al usuario: ${membershipError?.message ?? "error"}` }, { status: 400 });
       }
 
-
+      const delegatedSync = await syncDelegatedEmployeePermissions({
+        organizationId: tenant.organizationId,
+        membershipId: membershipRow.id,
+        actorId,
+        permissions: delegatedPermissions,
+      });
+      if (delegatedSync.error) {
+        return NextResponse.json({ error: delegatedSync.error }, { status: 400 });
+      }
+    } else if (linkedUserId) {
+      const { data: membershipRow } = await admin
+        .from("memberships")
+        .select("id")
+        .eq("organization_id", tenant.organizationId)
+        .eq("user_id", linkedUserId)
+        .maybeSingle();
+      if (membershipRow?.id) {
+        const clearDelegated = await clearDelegatedEmployeePermissionsByMembership(tenant.organizationId, membershipRow.id);
+        if (clearDelegated.error) {
+          return NextResponse.json({ error: clearDelegated.error }, { status: 400 });
+        }
+      }
     }
 
     const profilePayload = {
@@ -1287,19 +1318,47 @@ export async function POST(request: Request) {
         }
       }
 
-      const { error: membershipError } = await admin.from("memberships").upsert(
-        {
-          organization_id: tenant.organizationId,
-          user_id: linkedUserId,
-          role_id: role.id,
-          branch_id: branchId,
-          status: "active",
-        },
-        { onConflict: "organization_id,user_id" },
-      );
+      const { data: membershipRow, error: membershipError } = await admin
+        .from("memberships")
+        .upsert(
+          {
+            organization_id: tenant.organizationId,
+            user_id: linkedUserId,
+            role_id: role.id,
+            branch_id: branchId,
+            status: "active",
+          },
+          { onConflict: "organization_id,user_id" },
+        )
+        .select("id")
+        .single();
 
-      if (membershipError) {
-        return NextResponse.json({ error: `No se pudo asignar acceso al empleado: ${membershipError.message}` }, { status: 400 });
+      if (membershipError || !membershipRow) {
+        return NextResponse.json({ error: `No se pudo asignar acceso al empleado: ${membershipError?.message ?? "error"}` }, { status: 400 });
+      }
+
+      const delegatedSync = await syncDelegatedEmployeePermissions({
+        organizationId: tenant.organizationId,
+        membershipId: membershipRow.id,
+        actorId,
+        permissions: delegatedPermissions,
+      });
+      if (delegatedSync.error) {
+        return NextResponse.json({ error: delegatedSync.error }, { status: 400 });
+      }
+    } else if (linkedUserId) {
+      const admin = createSupabaseAdminClient();
+      const { data: membershipRow } = await admin
+        .from("memberships")
+        .select("id")
+        .eq("organization_id", tenant.organizationId)
+        .eq("user_id", linkedUserId)
+        .maybeSingle();
+      if (membershipRow?.id) {
+        const clearDelegated = await clearDelegatedEmployeePermissionsByMembership(tenant.organizationId, membershipRow.id);
+        if (clearDelegated.error) {
+          return NextResponse.json({ error: clearDelegated.error }, { status: 400 });
+        }
       }
     }
 
@@ -1673,22 +1732,34 @@ export async function POST(request: Request) {
       }
     }
 
-    const { error: membershipError } = await admin.from("memberships").upsert(
-      {
-        organization_id: tenant.organizationId,
-        user_id: linkedUserId,
-        role_id: role.id,
-        branch_id: branchId,
-        status: "active",
-      },
-      { onConflict: "organization_id,user_id" },
-    );
+    const { data: membershipRow, error: membershipError } = await admin
+      .from("memberships")
+      .upsert(
+        {
+          organization_id: tenant.organizationId,
+          user_id: linkedUserId,
+          role_id: role.id,
+          branch_id: branchId,
+          status: "active",
+        },
+        { onConflict: "organization_id,user_id" },
+      )
+      .select("id")
+      .single();
 
-    if (membershipError) {
-      return NextResponse.json({ error: membershipError.message }, { status: 400 });
+    if (membershipError || !membershipRow) {
+      return NextResponse.json({ error: membershipError?.message ?? "No se pudo crear membership" }, { status: 400 });
     }
 
-
+    const delegatedSync = await syncDelegatedEmployeePermissions({
+      organizationId: tenant.organizationId,
+      membershipId: membershipRow.id,
+      actorId,
+      permissions: delegatedPermissions,
+    });
+    if (delegatedSync.error) {
+      return NextResponse.json({ error: delegatedSync.error }, { status: 400 });
+    }
   }
 
   const { data: employee, error: employeeError } = await supabase

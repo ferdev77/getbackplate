@@ -1,11 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Download, Eye, Search, ChevronRight, Folder, ListTree, Columns3 } from "lucide-react";
+import { Search, ChevronRight, Folder, ListTree, Columns3, UploadCloud } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FadeIn, SlideUp, AnimatedItem } from "@/shared/ui/animations";
 import { EmptyState } from "@/shared/ui/empty-state";
-import { TooltipLabel } from "@/shared/ui/tooltip";
+import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
+import { UploadDocumentModal } from "@/modules/documents/ui/upload-document-modal";
+import { EmployeeDocumentEditModal } from "@/modules/documents/ui/employee-document-edit-modal";
+import { EmployeeDocumentActions } from "@/modules/documents/ui/employee-document-actions";
+import { useEmployeeDocumentMutations } from "@/modules/documents/hooks/use-employee-document-mutations";
+import { useEmployeeDocumentsPreferences } from "@/modules/documents/hooks/use-employee-documents-preferences";
+import type { BranchOption, DepartmentOption, PositionOption, ScopedUserOption } from "@/shared/contracts/scope-options";
 
 type FolderRow = {
   id: string;
@@ -21,6 +27,7 @@ type DocumentRow = {
   mime_type: string | null;
   folder_id: string | null;
   created_at: string;
+  owner_user_id?: string | null;
   is_new?: boolean;
 };
 
@@ -30,6 +37,14 @@ type Props = {
   folders: FolderRow[];
   documents: DocumentRow[];
   initialViewMode?: "tree" | "columns";
+  canCreate?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  branches?: BranchOption[];
+  departments?: DepartmentOption[];
+  positions?: PositionOption[];
+  users?: ScopedUserOption[];
+  recentDocuments?: Array<{ id: string; title: string; branch_id: string | null; created_at: string }>;
 };
 
 function formatSize(bytes: number | null) {
@@ -44,66 +59,65 @@ function isPreviewableMime(mimeType: string | null) {
   return mimeType.startsWith("image/") || mimeType === "application/pdf" || mimeType.startsWith("text/");
 }
 
-export function EmployeeDocumentsTree({ organizationId, viewerUserId, folders, documents, initialViewMode = "tree" }: Props) {
+export function EmployeeDocumentsTree({
+  organizationId,
+  viewerUserId,
+  folders,
+  documents,
+  initialViewMode = "tree",
+  canCreate = false,
+  canEdit = false,
+  canDelete = false,
+  branches = [],
+  departments = [],
+  positions = [],
+  users = [],
+  recentDocuments = [],
+}: Props) {
+  const [documentsState, setDocumentsState] = useState<DocumentRow[]>(documents);
   const [query, setQuery] = useState("");
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = useState<"tree" | "columns">(initialViewMode);
-  const [selectedColumnFolderId, setSelectedColumnFolderId] = useState<string | null>(null);
   const [selectedColumnDocId, setSelectedColumnDocId] = useState<string | null>(null);
   const [previewState, setPreviewState] = useState<{ docId: string | null; status: "idle" | "loading" | "ready" | "error" }>({
     docId: null,
     status: "idle",
   });
+  const {
+    viewMode,
+    setViewMode,
+    selectedColumnFolderId,
+    setSelectedColumnFolderId,
+  } = useEmployeeDocumentsPreferences({
+    organizationId,
+    viewerUserId,
+    initialViewMode,
+  });
+
+  const {
+    busy,
+    isUploadModalOpen,
+    setIsUploadModalOpen,
+    editingDocument,
+    setEditingDocument,
+    deleteDocument,
+    setDeleteDocument,
+    renameDocument,
+    deleteDocumentById,
+  } = useEmployeeDocumentMutations<DocumentRow>(setDocumentsState);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const key = `gbp.portal.documents.view:${organizationId}:${viewerUserId}`;
-    window.localStorage.setItem(key, viewMode);
-  }, [organizationId, viewerUserId, viewMode]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const key = `gbp.portal.documents.view:${organizationId}:${viewerUserId}`;
-    const stored = window.localStorage.getItem(key);
-    if (stored !== "tree" && stored !== "columns") return;
-
-    const frame = window.requestAnimationFrame(() => {
-      setViewMode((prev) => (prev === stored ? prev : stored));
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [organizationId, viewerUserId]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const key = `gbp.portal.documents.columns.folder:${organizationId}:${viewerUserId}`;
-    if (selectedColumnFolderId) {
-      window.localStorage.setItem(key, selectedColumnFolderId);
-    } else {
-      window.localStorage.removeItem(key);
-    }
-  }, [organizationId, selectedColumnFolderId, viewerUserId]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const key = `gbp.portal.documents.columns.folder:${organizationId}:${viewerUserId}`;
-    const stored = window.localStorage.getItem(key);
-    if (!stored) return;
-
-    const frame = window.requestAnimationFrame(() => {
-      setSelectedColumnFolderId((prev) => (prev === stored ? prev : stored));
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [organizationId, viewerUserId]);
+    setDocumentsState(documents);
+  }, [documents]);
 
   const docsByFolder = useMemo(() => {
     const map = new Map<string | null, DocumentRow[]>();
-    for (const doc of documents) {
+    for (const doc of documentsState) {
       const list = map.get(doc.folder_id) ?? [];
       list.push(doc);
       map.set(doc.folder_id, list);
     }
     return map;
-  }, [documents]);
+  }, [documentsState]);
 
   const childrenByFolder = useMemo(() => {
     const map = new Map<string | null, FolderRow[]>();
@@ -188,16 +202,15 @@ export function EmployeeDocumentsTree({ organizationId, viewerUserId, folders, d
                              </p>
                            </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer" className="group/tooltip relative inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] transition-colors hover:bg-[var(--gbp-surface2)]">
-                            <Eye className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Ver</span>
-                            <TooltipLabel label="Vista preliminar" />
-                          </a>
-                          <a href={`/api/documents/${doc.id}/download`} download className="group/tooltip relative inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white transition-colors hover:bg-[var(--gbp-accent)]">
-                            <Download className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Descargar</span>
-                            <TooltipLabel label="Descargar" />
-                          </a>
-                        </div>
+                        <EmployeeDocumentActions
+                          documentId={doc.id}
+                          canEdit={canEdit}
+                          canDelete={canDelete}
+                          isOwner={isOwner(doc)}
+                          onEdit={() => setEditingDocument(doc)}
+                          onDelete={() => setDeleteDocument(doc)}
+                          labelMode="responsive"
+                        />
                       </div>
                     ))}
                     {renderFolderTree(folder.id, depth + 1)}
@@ -226,6 +239,8 @@ export function EmployeeDocumentsTree({ organizationId, viewerUserId, folders, d
     : (columnDocuments[0]?.id ?? null);
 
   const selectedColumnDocument = columnDocuments.find((doc) => doc.id === effectiveSelectedColumnDocId) ?? null;
+
+  const isOwner = (doc: DocumentRow) => doc.owner_user_id === viewerUserId;
 
   return (
     <>
@@ -259,9 +274,22 @@ export function EmployeeDocumentsTree({ organizationId, viewerUserId, folders, d
             <Columns3 className="h-4.5 w-4.5" />
           </button>
         </div>
+        {canCreate ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setIsUploadModalOpen(true)}
+              disabled={busy}
+              className="inline-flex h-10 items-center gap-1 rounded-lg bg-[var(--gbp-accent)] px-3 text-xs font-bold text-white disabled:opacity-70"
+            >
+              <UploadCloud className="h-3.5 w-3.5" />
+              Subir
+            </button>
+          </>
+        ) : null}
       </section>
 
-      {!documents.length && !folders.length ? (
+      {!documentsState.length && !folders.length ? (
         <EmptyState title="Sin documentos" description="Aún no tienes documentos visibles o asignados." />
       ) : (
         <SlideUp delay={0.1}>
@@ -296,16 +324,15 @@ export function EmployeeDocumentsTree({ organizationId, viewerUserId, folders, d
                                 </p>
                               </div>
                             </div>
-                            <div className="flex gap-2">
-                              <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer" className="group/tooltip relative inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] transition-colors hover:bg-[var(--gbp-surface2)]">
-                                <Eye className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Ver</span>
-                                <TooltipLabel label="Vista preliminar" />
-                              </a>
-                              <a href={`/api/documents/${doc.id}/download`} download className="group/tooltip relative inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white transition-colors hover:bg-[var(--gbp-accent)]">
-                                <Download className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Descargar</span>
-                                <TooltipLabel label="Descargar" />
-                              </a>
-                            </div>
+                            <EmployeeDocumentActions
+                              documentId={doc.id}
+                              canEdit={canEdit}
+                              canDelete={canDelete}
+                              isOwner={isOwner(doc)}
+                              onEdit={() => setEditingDocument(doc)}
+                              onDelete={() => setDeleteDocument(doc)}
+                              labelMode="responsive"
+                            />
                           </div>
                         </AnimatedItem>
                       ))}
@@ -375,16 +402,15 @@ export function EmployeeDocumentsTree({ organizationId, viewerUserId, folders, d
                             <p className="text-sm font-semibold text-[var(--gbp-text)]">{selectedColumnDocument.title}</p>
                             <p className="mt-1 text-xs text-[var(--gbp-text2)]">{formatSize(selectedColumnDocument.file_size_bytes)} · {(selectedColumnDocument.mime_type ?? "archivo").toUpperCase()}</p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <a href={`/api/documents/${selectedColumnDocument.id}/download`} target="_blank" rel="noopener noreferrer" className="group/tooltip relative inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] transition-colors hover:bg-[var(--gbp-surface2)]">
-                              <Eye className="h-3.5 w-3.5" /> <span>Ver</span>
-                              <TooltipLabel label="Vista preliminar" />
-                            </a>
-                            <a href={`/api/documents/${selectedColumnDocument.id}/download`} download className="group/tooltip relative inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white transition-colors hover:bg-[var(--gbp-accent)]">
-                              <Download className="h-3.5 w-3.5" /> <span>Descargar</span>
-                              <TooltipLabel label="Descargar" />
-                            </a>
-                          </div>
+                          <EmployeeDocumentActions
+                            documentId={selectedColumnDocument.id}
+                            canEdit={canEdit}
+                            canDelete={canDelete}
+                            isOwner={isOwner(selectedColumnDocument)}
+                            onEdit={() => setEditingDocument(selectedColumnDocument)}
+                            onDelete={() => setDeleteDocument(selectedColumnDocument)}
+                            labelMode="full"
+                          />
                           <div className="relative overflow-hidden rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
                             <AnimatePresence mode="wait">
                               <motion.div
@@ -437,6 +463,42 @@ export function EmployeeDocumentsTree({ organizationId, viewerUserId, folders, d
           </AnimatePresence>
         </SlideUp>
       )}
+
+      {isUploadModalOpen ? (
+        <UploadDocumentModal
+          onClose={() => setIsUploadModalOpen(false)}
+          folders={folders.map((folder) => ({ id: folder.id, name: folder.name }))}
+          branches={branches}
+          departments={departments}
+          positions={positions}
+          employees={users}
+          recentDocuments={recentDocuments}
+          submitEndpoint="/api/employee/documents/manage"
+          redirectPath="/portal/documents"
+          hideScopeSelector
+        />
+      ) : null}
+
+      {editingDocument ? (
+        <EmployeeDocumentEditModal
+          title={editingDocument.title}
+          initialValue={editingDocument.title}
+          busy={busy}
+          onCancel={() => setEditingDocument(null)}
+          onSave={(nextTitle) => void renameDocument(editingDocument, nextTitle)}
+        />
+      ) : null}
+
+      {deleteDocument ? (
+        <ConfirmDeleteDialog
+          title="Eliminar documento"
+          description={`Se eliminará \"${deleteDocument.title}\". Esta acción no se puede deshacer.`}
+          busy={busy}
+          onCancel={() => setDeleteDocument(null)}
+          onConfirm={() => void deleteDocumentById(deleteDocument)}
+          confirmLabel="Eliminar"
+        />
+      ) : null}
     </>
   );
 }

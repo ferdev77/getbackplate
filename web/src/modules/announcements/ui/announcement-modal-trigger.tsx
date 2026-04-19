@@ -4,20 +4,7 @@ import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import { AnnouncementCreateModal } from "@/shared/ui/announcement-create-modal";
-
-type BranchOption = { id: string; name: string };
-type DepartmentOption = { id: string; name: string };
-type PositionOption = { id: string; department_id: string; name: string };
-type UserOption = {
-  id: string;
-  user_id: string | null;
-  first_name: string;
-  last_name: string;
-  role_label?: string;
-  location_label?: string;
-  department_label?: string;
-  position_label?: string;
-};
+import type { BranchOption, DepartmentOption, PositionOption, ScopedUserOption } from "@/shared/contracts/scope-options";
 
 type AnnouncementInitial = {
   id: string;
@@ -40,8 +27,11 @@ type AnnouncementModalTriggerProps = {
   branches: BranchOption[];
   departments: DepartmentOption[];
   positions: PositionOption[];
-  users: UserOption[];
+  users: ScopedUserOption[];
   initial?: AnnouncementInitial;
+  submitEndpoint?: string;
+  basePath?: string;
+  onSubmitted?: () => void;
 };
 
 export function AnnouncementModalTrigger({
@@ -54,13 +44,16 @@ export function AnnouncementModalTrigger({
   positions,
   users,
   initial,
+  submitEndpoint,
+  basePath = "/app/announcements",
+  onSubmitted,
 }: AnnouncementModalTriggerProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
 
   const closeModal = () => {
     setIsOpen(false);
-    router.replace("/app/announcements");
+    router.replace(basePath);
   };
 
   return (
@@ -79,6 +72,9 @@ export function AnnouncementModalTrigger({
           positions={positions}
           users={users}
           publisherName={publisherName}
+          submitEndpoint={submitEndpoint}
+          redirectPath={basePath}
+          onSubmitted={onSubmitted}
         />
       ) : null}
     </>

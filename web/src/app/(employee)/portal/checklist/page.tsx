@@ -4,6 +4,8 @@ import { EmployeeChecklistWorkspace } from "@/modules/checklists/ui/employee-che
 import { RestoreChecklistScroll } from "@/modules/checklists/ui/restore-checklist-scroll";
 import { requireEmployeeModule } from "@/shared/lib/access";
 import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
+import { getEmployeeDelegatedPermissionsByMembership } from "@/shared/lib/employee-module-permissions";
+import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 
 type EmployeeChecklistPageProps = {
   searchParams: Promise<{ preview?: string | string[] }>;
@@ -26,6 +28,14 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
   if (!userId) {
     return null;
   }
+
+  const delegatedPermissions = await getEmployeeDelegatedPermissionsByMembership(
+    tenant.organizationId,
+    tenant.membershipId,
+  );
+  const canCreate = delegatedPermissions.checklists.create;
+  const canEdit = delegatedPermissions.checklists.edit;
+  const canDelete = delegatedPermissions.checklists.delete;
 
   const { data: employeeRow } = await supabase
     .from("employees")
@@ -135,6 +145,71 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
     };
   });
 
+  const { data: myCreatedTemplates } = await supabase
+    .from("checklist_templates")
+    .select("id, name, created_at")
+    .eq("organization_id", tenant.organizationId)
+    .eq("created_by", userId)
+    .order("created_at", { ascending: false })
+    .limit(40);
+
+  const myCreatedTemplateIds = (myCreatedTemplates ?? []).map((row) => row.id);
+  const { data: mySections } = myCreatedTemplateIds.length
+    ? await supabase
+        .from("checklist_template_sections")
+        .select("id, template_id")
+        .eq("organization_id", tenant.organizationId)
+        .in("template_id", myCreatedTemplateIds)
+    : { data: [] as Array<{ id: string; template_id: string }> };
+
+  const mySectionIds = (mySections ?? []).map((row) => row.id);
+  const { data: myItems } = mySectionIds.length
+    ? await supabase
+        .from("checklist_template_items")
+        .select("id, section_id, label")
+        .eq("organization_id", tenant.organizationId)
+        .in("section_id", mySectionIds)
+        .order("sort_order", { ascending: true })
+    : { data: [] as Array<{ id: string; section_id: string; label: string }> };
+
+  const sectionByTemplate = new Map<string, string[]>();
+  for (const section of mySections ?? []) {
+    const labels = (myItems ?? [])
+      .filter((item) => item.section_id === section.id)
+      .map((item) => item.label)
+      .filter(Boolean);
+    const current = sectionByTemplate.get(section.template_id) ?? [];
+    sectionByTemplate.set(section.template_id, [...current, ...labels]);
+  }
+
+  const myCreatedWorkspaceData = (myCreatedTemplates ?? []).map((template) => ({
+    id: template.id,
+    name: template.name,
+    items: sectionByTemplate.get(template.id) ?? [],
+  }));
+
+  const [{ data: branches }, { data: departments }, { data: positions }, scopeUsers] = await Promise.all([
+    supabase
+      .from("branches")
+      .select("id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("name"),
+    supabase
+      .from("organization_departments")
+      .select("id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("name"),
+    supabase
+      .from("department_positions")
+      .select("id, department_id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("name"),
+    buildScopeUsersCatalog(tenant.organizationId),
+  ]);
+
   return (
     <main>
       <RestoreChecklistScroll />
@@ -151,6 +226,14 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
       <EmployeeChecklistWorkspace
         templates={templatesWorkspaceData}
         initialPreviewTemplateId={previewTemplateId}
+        createdTemplates={myCreatedWorkspaceData}
+        canCreate={canCreate}
+        canEdit={canEdit}
+        canDelete={canDelete}
+        branches={branches ?? []}
+        departments={departments ?? []}
+        positions={positions ?? []}
+        users={scopeUsers}
       />
     </main>
   );

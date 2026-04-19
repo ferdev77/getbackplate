@@ -19,6 +19,12 @@ import { resolveOrganizationIdFromActiveDomain } from "@/shared/lib/custom-domai
 import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impersonation";
 import { markInvitedAdminFirstLoginIfNeeded } from "@/shared/lib/invited-admin-first-login";
 import { getBillingGateForOrganization } from "@/modules/billing/services/billing-gate.service";
+import {
+  getEmployeeDelegatedPermissionsByMembership,
+  hasEmployeeDelegatedCapability,
+  type EmployeePermissionCapability,
+  type EmployeePermissionModuleCode,
+} from "@/shared/lib/employee-module-permissions";
 
 export const MODULE_DISABLED_COPY = "Este módulo no está incluido en tu plan actual.";
 
@@ -496,6 +502,58 @@ export async function assertCompanyAdminModuleApi(
       ok: false as const,
       status: 403 as const,
       error: "Sin permisos de gestion",
+      reasonCode: AUDIT_REASON_CODES.MISSING_COMPANY_ROLE,
+    };
+  }
+
+  return moduleAccess;
+}
+
+export async function assertEmployeeCapabilityApi(
+  moduleCode: EmployeePermissionModuleCode,
+  capability: EmployeePermissionCapability,
+  options?: { allowBillingBypass?: boolean },
+) {
+  const moduleAccess = await assertTenantModuleApi(moduleCode, {
+    allowBillingBypass: options?.allowBillingBypass,
+  });
+
+  if (!moduleAccess.ok) {
+    return moduleAccess;
+  }
+
+  if (moduleAccess.tenant.roleCode === "company_admin") {
+    return moduleAccess;
+  }
+
+  if (moduleAccess.tenant.roleCode !== "employee") {
+    return {
+      ok: false as const,
+      status: 403 as const,
+      error: "Sin permisos",
+      reasonCode: AUDIT_REASON_CODES.MISSING_EMPLOYEE_ROLE,
+    };
+  }
+
+  const permissions = await getEmployeeDelegatedPermissionsByMembership(
+    moduleAccess.tenant.organizationId,
+    moduleAccess.tenant.membershipId,
+  );
+
+  if (!hasEmployeeDelegatedCapability(permissions, moduleCode, capability)) {
+    await logAccessDeniedEvent({
+      area: "employee",
+      reasonCode: AUDIT_REASON_CODES.MISSING_COMPANY_ROLE,
+      organizationId: moduleAccess.tenant.organizationId,
+      branchId: moduleAccess.tenant.branchId,
+      requiredRole: `employee:${moduleCode}.${capability}`,
+      pathHint: "/api/employee/*",
+    });
+
+    return {
+      ok: false as const,
+      status: 403 as const,
+      error: "Sin permisos delegados",
       reasonCode: AUDIT_REASON_CODES.MISSING_COMPANY_ROLE,
     };
   }
