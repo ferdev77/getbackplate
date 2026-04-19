@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BellPlus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -76,6 +76,14 @@ export function EmployeeAnnouncementsWorkspace({
   const [deleteTarget, setDeleteTarget] = useState<AnnouncementRow | null>(null);
   const [busyDelete, setBusyDelete] = useState(false);
   const [viewMode, setViewMode] = useState<"assigned" | "created">("assigned");
+
+  useEffect(() => {
+    setFeed(visibleAnnouncements);
+  }, [visibleAnnouncements]);
+
+  useEffect(() => {
+    setMine(myAnnouncements);
+  }, [myAnnouncements]);
 
   const branchNameMap = useMemo(() => new Map(branches.map((row) => [row.id, row.name])), [branches]);
   const departmentNameMap = useMemo(() => new Map(departments.map((row) => [row.id, row.name])), [departments]);
