@@ -4,20 +4,7 @@ import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import { ChecklistUpsertModal } from "@/modules/checklists/ui/checklist-upsert-modal";
-
-type BranchOption = { id: string; name: string };
-type DepartmentOption = { id: string; name: string };
-type PositionOption = { id: string; department_id: string; name: string };
-type UserOption = {
-  id: string;
-  user_id: string | null;
-  first_name: string;
-  last_name: string;
-  role_label?: string;
-  location_label?: string;
-  department_label?: string;
-  position_label?: string;
-};
+import type { BranchOption, DepartmentOption, PositionOption, ScopedUserOption } from "@/shared/contracts/scope-options";
 
 type ChecklistCreateTriggerProps = {
   className: string;
@@ -25,7 +12,10 @@ type ChecklistCreateTriggerProps = {
   branches: BranchOption[];
   departments: DepartmentOption[];
   positions: PositionOption[];
-  users: UserOption[];
+  users: ScopedUserOption[];
+  submitEndpoint?: string;
+  basePath?: string;
+  onSubmitted?: () => void;
 };
 
 export function ChecklistCreateTrigger({
@@ -35,13 +25,16 @@ export function ChecklistCreateTrigger({
   departments,
   positions,
   users,
+  submitEndpoint,
+  basePath = "/app/checklists",
+  onSubmitted,
 }: ChecklistCreateTriggerProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
 
   const closeModal = () => {
     setIsOpen(false);
-    router.replace("/app/checklists");
+    router.replace(basePath);
   };
 
   return (
@@ -59,6 +52,9 @@ export function ChecklistCreateTrigger({
           users={users}
           action="create"
           editingTemplate={null}
+          submitEndpoint={submitEndpoint}
+          redirectPath={basePath}
+          onSubmitted={onSubmitted}
         />
       ) : null}
     </>

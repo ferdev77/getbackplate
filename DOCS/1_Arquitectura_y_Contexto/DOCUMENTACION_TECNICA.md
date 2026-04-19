@@ -1615,3 +1615,18 @@ Se modernizó el Dashboard de Reportes de Checklists (`web/src/modules/reports/u
 
 ### Tiempo Real (Supabase Realtime)
 - El Dashboard general se beneficia de canal suscrito permanentemente a PostgreSQL (`auth`/`public`). Escucha inserciones o ediciones en la tabla `checklist_submissions`; cuando sucede alguna para la empresa logueada, dispara de manera autónoma un `router.refresh()` en su contexto que repuebla la tabla principal sin forzar al usuario a refrescar, habilitando control de área sincronizado global.
+
+## 33. Modulo Core Permissions - Delegacion a Employee (2026-04-18)
+
+- Se incorporo el modulo core `permissions` en catalogo (`module_catalog`) y la tabla `employee_module_permissions` para delegacion por membership.
+- Capabilities soportadas en MVP: `create`, `edit`, `delete` sobre `announcements`, `checklists` y `documents` operativos.
+- Regla de ownership aplicada en backend para employee:
+  - `edit/delete` solo sobre recursos creados por el propio `auth.uid()`.
+  - `company_admin` mantiene full access sin restricciones por ownership.
+- UI company integrada en modal de alta/edicion (`new-employee-modal.tsx`): nueva pestana `Permisos` visible solo con dashboard access activo.
+- En portal employee se habilito operativa delegada:
+  - avisos: create/edit/delete por endpoint `api/employee/announcements/manage`.
+  - checklists: create/edit/delete de plantillas propias por endpoint `api/employee/checklists/templates`.
+  - documentos operativos: create/edit/delete por endpoint `api/employee/documents/manage`.
+- Diferenciacion operativa incorporada en checklist:
+  - `Asignados a mi` vs `Creados por mi`.

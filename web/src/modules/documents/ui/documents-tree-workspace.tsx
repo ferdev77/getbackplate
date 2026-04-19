@@ -9,8 +9,11 @@ import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 import { ScopePillsOverflow } from "@/shared/ui/scope-pills-overflow";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
-import { ScopeSelector } from "@/shared/ui/scope-selector";
 import { FadeIn, SlideUp, AnimatedList, AnimatedItem } from "@/shared/ui/animations";
+import { DocumentEditModal } from "@/modules/documents/ui/document-edit-modal";
+import { FolderEditModal } from "@/modules/documents/ui/folder-edit-modal";
+import { DocumentShareByEmailModal } from "@/modules/documents/ui/document-share-by-email-modal";
+import { DocumentShareAccessModal } from "@/modules/documents/ui/document-share-access-modal";
 
 type FolderRow = {
   id: string;
@@ -1065,7 +1068,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
       </SlideUp>
 
       {editDocument ? (
-        <EditDocumentModal
+        <DocumentEditModal
           document={editDocument}
           folders={folderRows}
           branches={mappedBranches}
@@ -1073,13 +1076,14 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
           positions={positions}
           users={users}
           busy={busy}
+          initialScope={parseScope(editDocument.access_scope)}
           onCancel={() => setEditDocId(null)}
           onSave={saveDocument}
         />
       ) : null}
 
       {editFolder ? (
-        <EditFolderModal
+        <FolderEditModal
           folder={editFolder}
           folders={folderRows}
           branches={mappedBranches}
@@ -1087,6 +1091,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
           positions={positions}
           users={users}
           busy={busy}
+          initialScope={parseScope(editFolder.access_scope)}
           onCancel={() => setEditFolderId(null)}
           onSave={saveFolder}
         />
@@ -1113,7 +1118,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
       ) : null}
 
       {shareDocument ? (
-        <ShareAccessModal
+        <DocumentShareAccessModal
           title="Compartir documento"
           itemName={shareDocument.title}
           busy={busy}
@@ -1128,7 +1133,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
       ) : null}
 
       {shareFolder ? (
-        <ShareAccessModal
+        <DocumentShareAccessModal
           title="Compartir carpeta"
           itemName={shareFolder.name}
           busy={busy}
@@ -1143,7 +1148,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
       ) : null}
 
       {emailShareDocument ? (
-        <ShareByEmailModal
+        <DocumentShareByEmailModal
           document={emailShareDocument}
           busy={busy}
           onCancel={() => setEmailShareDocId(null)}
@@ -1158,346 +1163,4 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
 const ACTION_BTN_NEUTRAL = "group/tooltip relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] transition-opacity hover:bg-[var(--gbp-surface2)] [.theme-dark-pro_&]:border-[var(--gbp-border2)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)] [.theme-dark-pro_&]:text-[var(--gbp-text2)] [.theme-dark-pro_&]:hover:bg-[var(--gbp-surface2)]";
 const ACTION_BTN_MAIL = "group/tooltip relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)] transition-opacity hover:bg-[color:color-mix(in_oklab,var(--gbp-accent)_16%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-accent)_40%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-accent-glow)] [.theme-dark-pro_&]:text-[var(--gbp-accent)]";
 const ACTION_BTN_DANGER = "group/tooltip relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] text-[var(--gbp-error)] transition-opacity hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_16%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-error)_45%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-error-soft)] [.theme-dark-pro_&]:text-[var(--gbp-error)]";
-const MODAL_PANEL = "overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]";
-const MODAL_HEADER = "flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5";
-const MODAL_TITLE = "font-serif text-[15px] font-bold text-[var(--gbp-text)]";
-const MODAL_CLOSE = "grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-bg)]";
-const MODAL_SOFT_BOX = "rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3";
-const MODAL_LABEL = "text-[11px] font-bold tracking-[0.1em] text-[var(--gbp-text2)] uppercase";
-const MODAL_INPUT = "rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]";
-const MODAL_FOOTER = "flex justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4";
-const MODAL_CANCEL = "rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
-const MODAL_PRIMARY = "rounded-lg bg-[var(--gbp-text)] px-5 py-2 text-sm font-bold text-white hover:bg-[var(--gbp-accent)] disabled:opacity-60";
-function ShareByEmailModal({
-  document,
-  busy,
-  onCancel,
-  onSubmit,
-}: {
-  document: DocumentRow;
-  busy: boolean;
-  onCancel: () => void;
-  onSubmit: (payload: { documentId: string; email: string; message: string }) => void;
-}) {
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-
-  return (
-    <div className="fixed inset-0 z-[1060] flex items-center justify-center bg-black/45 p-5" onClick={() => !busy && onCancel()}>
-      <div className={`w-[460px] max-w-[95vw] ${MODAL_PANEL}`} onClick={(event) => event.stopPropagation()}>
-        <div className={MODAL_HEADER}><p className={MODAL_TITLE}>Compartir por email</p><button type="button" className={MODAL_CLOSE} onClick={onCancel}>✕</button></div>
-        <div className="space-y-3 px-6 py-5">
-          <div className={MODAL_SOFT_BOX}>
-            <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[var(--gbp-text2)] uppercase">Documento</p>
-            <p className="text-sm font-semibold text-[var(--gbp-text)]">{document.title}</p>
-          </div>
-          <label className="grid gap-1.5"><span className={MODAL_LABEL}>Email destino</span><input value={email} onChange={(event) => setEmail(event.target.value)} type="email" placeholder="usuario@empresa.com" className={MODAL_INPUT} /></label>
-          <label className="grid gap-1.5"><span className={MODAL_LABEL}>Mensaje (opcional)</span><textarea value={message} onChange={(event) => setMessage(event.target.value)} rows={3} className={MODAL_INPUT} placeholder="Te comparto este archivo." /></label>
-        </div>
-        <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button><button type="button" disabled={busy || !email.trim()} onClick={() => onSubmit({ documentId: document.id, email: email.trim(), message: message.trim() })} className={MODAL_PRIMARY}>{busy ? "Enviando..." : "Enviar"}</button></div>
-      </div>
-    </div>
-  );
-}
-
-function EditDocumentModal({
-  document,
-  folders,
-  branches,
-  departments,
-  positions,
-  users,
-  busy,
-  onCancel,
-  onSave,
-}: {
-  document: DocumentRow;
-  folders: FolderRow[];
-  branches: Branch[];
-  departments: Department[];
-  positions: Position[];
-  users: User[];
-  busy: boolean;
-  onCancel: () => void;
-  onSave: (payload: { documentId: string; title: string; folderId: string | null; scope?: { locations: string[]; departments: string[]; positions: string[]; users: string[] } }) => void;
-}) {
-  const [title, setTitle] = useState(document.title);
-  const [folderId, setFolderId] = useState(document.folder_id ?? "");
-
-
-  return (
-    <div className="fixed inset-0 z-[1020] flex items-center justify-center bg-black/45 p-5">
-      <div className={`w-[700px] max-w-[95vw] ${MODAL_PANEL}`}>
-        <div className={MODAL_HEADER}><p className={MODAL_TITLE}>Editar Documento</p><button type="button" className={MODAL_CLOSE} onClick={onCancel}>✕</button></div>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            const form = new FormData(event.currentTarget);
-            let scope = undefined;
-            if (!folderId) {
-              const toList = (key: string) => [...new Set(form.getAll(key).map((value) => String(value).trim()).filter(Boolean))];
-              scope = {
-                locations: toList("_scope_location"),
-                departments: toList("_scope_department"),
-                positions: toList("_scope_position"),
-                users: toList("_scope_user"),
-              };
-            }
-            onSave({ documentId: document.id, title: title.trim(), folderId: folderId || null, scope });
-          }}
-        >
-          <div className="max-h-[70vh] space-y-4 overflow-y-auto px-6 py-5">
-            <section className={MODAL_SOFT_BOX}>
-              <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">Datos del documento</p>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <label className="grid gap-1.5">
-                  <span className={MODAL_LABEL}>Titulo</span>
-                  <input value={title} onChange={(event) => setTitle(event.target.value)} className={MODAL_INPUT} required />
-                </label>
-                <label className="grid gap-1.5">
-                  <span className={MODAL_LABEL}>Carpeta</span>
-                  <select value={folderId} onChange={(event) => setFolderId(event.target.value)} className={MODAL_INPUT}>
-                    <option value="">Sin carpeta</option>
-                    {folders.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </section>
-
-            {!folderId ? (
-              <section className={MODAL_SOFT_BOX}>
-                <div className="mb-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">Permisos de acceso</p>
-                  <p className="mt-1 text-xs text-[var(--gbp-text2)]">Define alcance por locacion, departamento, puesto o usuario.</p>
-                </div>
-                <div className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 pb-3">
-                  <ScopeSelector
-                    namespace="edit-document"
-                    branches={branches}
-                    departments={departments}
-                    positions={positions}
-                    users={users}
-                    locationInputName="_scope_location"
-                    departmentInputName="_scope_department"
-                    positionInputName="_scope_position"
-                    userInputName="_scope_user"
-                    initialLocations={parseScope(document.access_scope).locations}
-                    initialDepartments={parseScope(document.access_scope).departments}
-                    initialPositions={parseScope(document.access_scope).positions}
-                    initialUsers={parseScope(document.access_scope).users}
-                  />
-                </div>
-              </section>
-            ) : (
-              <section className="rounded-lg border border-amber-300/50 bg-amber-50 px-4 py-3 text-xs text-amber-900">
-                El documento hereda permisos de su carpeta. Edita la carpeta para cambiar acceso.
-              </section>
-            )}
-          </div>
-          <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button><button type="submit" disabled={busy || !title.trim()} className={MODAL_PRIMARY}>{busy ? "Guardando..." : "Guardar"}</button></div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function EditFolderModal({
-  folder,
-  folders,
-  branches,
-  departments,
-  positions,
-  users,
-  busy,
-  onCancel,
-  onSave,
-}: {
-  folder: FolderRow;
-  folders: FolderRow[];
-  branches: Branch[];
-  departments: Department[];
-  positions: Position[];
-  users: User[];
-  busy: boolean;
-  onCancel: () => void;
-  onSave: (payload: { folderId: string; name: string; parentId: string | null; scope?: { locations: string[]; departments: string[]; positions: string[]; users: string[] } }) => void;
-}) {
-  const [name, setName] = useState(folder.name);
-  const [parentId, setParentId] = useState(folder.parent_id ?? "");
-
-
-  return (
-    <div className="fixed inset-0 z-[1020] flex items-center justify-center bg-black/45 p-5">
-      <div className={`w-[700px] max-w-[95vw] ${MODAL_PANEL}`}>
-        <div className={MODAL_HEADER}><p className={MODAL_TITLE}>Editar Carpeta</p><button type="button" className={MODAL_CLOSE} onClick={onCancel}>✕</button></div>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            const form = new FormData(event.currentTarget);
-            const toList = (key: string) => [...new Set(form.getAll(key).map((value) => String(value).trim()).filter(Boolean))];
-            const scope = {
-              locations: toList("_scope_location"),
-              departments: toList("_scope_department"),
-              positions: toList("_scope_position"),
-              users: toList("_scope_user"),
-            };
-            onSave({ folderId: folder.id, name: name.trim(), parentId: parentId || null, scope });
-          }}
-        >
-          <div className="max-h-[70vh] space-y-4 overflow-y-auto px-6 py-5">
-            <section className={MODAL_SOFT_BOX}>
-              <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">Datos de la carpeta</p>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <label className="grid gap-1.5">
-                  <span className={MODAL_LABEL}>Nombre</span>
-                  <input value={name} onChange={(event) => setName(event.target.value)} className={MODAL_INPUT} required />
-                </label>
-                <label className="grid gap-1.5">
-                  <span className={MODAL_LABEL}>Carpeta padre</span>
-                  <select value={parentId} onChange={(event) => setParentId(event.target.value)} className={MODAL_INPUT}>
-                    <option value="">Sin carpeta padre</option>
-                    {folders
-                      .filter((f) => f.id !== folder.id)
-                      .map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {f.name}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-              </div>
-            </section>
-
-            <section className={MODAL_SOFT_BOX}>
-              <div className="mb-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">Permisos de acceso</p>
-                <p className="mt-1 text-xs text-[var(--gbp-text2)]">Este alcance aplica a los archivos dentro de esta carpeta.</p>
-              </div>
-              <div className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 pb-3">
-                <ScopeSelector
-                  namespace="edit-folder"
-                  branches={branches}
-                  departments={departments}
-                  positions={positions}
-                  users={users}
-                  locationInputName="_scope_location"
-                  departmentInputName="_scope_department"
-                  positionInputName="_scope_position"
-                  userInputName="_scope_user"
-                  initialLocations={parseScope(folder.access_scope).locations}
-                  initialDepartments={parseScope(folder.access_scope).departments}
-                  initialPositions={parseScope(folder.access_scope).positions}
-                  initialUsers={parseScope(folder.access_scope).users}
-                />
-              </div>
-            </section>
-          </div>
-          <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button><button type="submit" disabled={busy || !name.trim()} className={MODAL_PRIMARY}>{busy ? "Guardando..." : "Guardar"}</button></div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function ShareAccessModal({
-  title,
-  itemName,
-  branches,
-  departments,
-  positions,
-  users,
-  initialScope,
-  busy,
-  onCancel,
-  onSave,
-}: {
-  title: string;
-  itemName: string;
-  branches: Branch[];
-  departments: Department[];
-  positions: Position[];
-  users: User[];
-  initialScope: { locations: string[]; departments: string[]; positions: string[]; users: string[] };
-  busy: boolean;
-  onCancel: () => void;
-  onSave: (scope: { locations: string[]; departments: string[]; positions: string[]; users: string[] }) => void;
-}) {
-  const scopeFormId = `share-scope-form-${title.toLowerCase().replace(/\s+/g, "-")}`;
-  const [dynamicUsers, setDynamicUsers] = useState<User[]>(users);
-  const [dynamicPositions, setDynamicPositions] = useState<Position[]>(positions);
-  const [loading, setLoading] = useState(users.length === 0 || positions.length === 0);
-
-  useEffect(() => {
-    if (users.length === 0 || positions.length === 0) {
-      fetch("/api/company/documents?catalog=share_scopes")
-        .then(async (response) => {
-          const data = await response.json().catch(() => ({}));
-          if (!response.ok) {
-            throw new Error(typeof data.error === "string" ? data.error : "No se pudieron cargar los permisos");
-          }
-
-          setDynamicUsers(Array.isArray(data.employees) ? data.employees : []);
-          setDynamicPositions(Array.isArray(data.positions) ? data.positions : []);
-          setLoading(false);
-        })
-        .catch(() => setLoading(false));
-    }
-  }, [users.length, positions.length]);
-
-  return (
-    <div className="fixed inset-0 z-[1060] flex items-center justify-center bg-black/45 p-5">
-      <div className={`w-[460px] max-w-[95vw] ${MODAL_PANEL}`}>
-        <div className={MODAL_HEADER}><p className={MODAL_TITLE}>{title}</p><button type="button" className={MODAL_CLOSE} onClick={onCancel}>✕</button></div>
-        <form
-          id={scopeFormId}
-          onSubmit={(event) => {
-            event.preventDefault();
-            const form = new FormData(event.currentTarget);
-            const toList = (key: string) => [...new Set(form.getAll(key).map((value) => String(value).trim()).filter(Boolean))];
-            onSave({
-              locations: toList("_scope_location"),
-              departments: toList("_scope_department"),
-              positions: toList("_scope_position"),
-              users: toList("_scope_user"),
-            });
-          }}
-        >
-          <div className="max-h-[68vh] overflow-y-auto px-6 py-4">
-            <div className={MODAL_SOFT_BOX}>
-              <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[var(--gbp-text2)] uppercase">Elemento</p>
-              <p className="text-sm font-semibold text-[var(--gbp-text)]">{itemName}</p>
-            </div>
-
-            {loading ? (
-              <div className="flex items-center justify-center p-12">
-                <span className="animate-pulse text-xs font-semibold text-[var(--gbp-text2)]">Cargando permisos...</span>
-              </div>
-            ) : (
-              <ScopeSelector
-                namespace={`share-${title.toLowerCase().replace(/\s+/g, "-")}`}
-                branches={branches}
-                departments={departments}
-                positions={dynamicPositions}
-                users={dynamicUsers}
-                locationInputName="_scope_location"
-                departmentInputName="_scope_department"
-                positionInputName="_scope_position"
-                userInputName="_scope_user"
-                initialLocations={initialScope.locations}
-                initialDepartments={initialScope.departments}
-                initialPositions={initialScope.positions}
-                initialUsers={initialScope.users}
-              />
-            )}
-          </div>
-          <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button><button type="submit" disabled={busy} className={MODAL_PRIMARY}>{busy ? "Guardando..." : "Guardar permisos"}</button></div>
-        </form>
-      </div>
-    </div>
-  );
-}
 

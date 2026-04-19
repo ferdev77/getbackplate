@@ -3,9 +3,23 @@ import { canReadDocumentInTenant } from "@/shared/lib/document-access";
 import { isEmployeePrivateDocument } from "@/shared/lib/employee-private-documents";
 import { requireEmployeeModule } from "@/shared/lib/access";
 import { EmployeeDocumentsTree } from "@/modules/documents/ui/employee-documents-tree";
+import { getEmployeeDelegatedPermissionsByMembership } from "@/shared/lib/employee-module-permissions";
+import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 
 type EmployeeDocumentsPageProps = {
   searchParams: Promise<{ view?: string }>;
+};
+
+type VisibleDocument = {
+  id: string;
+  title: string;
+  mime_type: string | null;
+  file_size_bytes: number | null;
+  folder_id: string | null;
+  created_at: string;
+  branch_id: string | null;
+  access_scope: string | null;
+  owner_user_id: string | null;
 };
 
 export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDocumentsPageProps) {
@@ -17,6 +31,11 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
   const userId = authData.user?.id;
 
   if (!userId) return null;
+
+  const delegatedPermissions = await getEmployeeDelegatedPermissionsByMembership(
+    tenant.organizationId,
+    tenant.membershipId,
+  );
 
   const { data: employeeRow } = await supabase
     .from("employees")
@@ -40,7 +59,7 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
     employeePositionIds = (positionRows ?? []).map((row) => row.id);
   }
 
-  const [{ data: folders }, { data: documents }] = await Promise.all([
+  const [{ data: folders }, { data: documents }, { data: branches }, { data: departments }, { data: positions }, scopeUsers] = await Promise.all([
     supabase
       .from("document_folders")
       .select("id, name, parent_id, access_scope, created_at")
@@ -48,11 +67,30 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
       .order("created_at", { ascending: false }),
     supabase
       .from("documents")
-      .select("id, title, mime_type, file_size_bytes, folder_id, created_at, access_scope")
+      .select("id, title, mime_type, file_size_bytes, folder_id, created_at, branch_id, access_scope, owner_user_id")
 .is('deleted_at', null)
       .eq("organization_id", tenant.organizationId)
       .order("created_at", { ascending: false })
       .limit(300),
+    supabase
+      .from("branches")
+      .select("id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("name"),
+    supabase
+      .from("organization_departments")
+      .select("id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("name"),
+    supabase
+      .from("department_positions")
+      .select("id, department_id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("name"),
+    buildScopeUsersCatalog(tenant.organizationId),
   ]);
 
   const visibleDocumentIds = (documents ?? []).map((doc) => doc.id);
@@ -152,6 +190,19 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
           is_new: i < 2, 
         }))}
         initialViewMode={initialViewMode}
+        canCreate={delegatedPermissions.documents.create}
+        canEdit={delegatedPermissions.documents.edit}
+        canDelete={delegatedPermissions.documents.delete}
+        branches={branches ?? []}
+        departments={departments ?? []}
+        positions={positions ?? []}
+        users={scopeUsers}
+        recentDocuments={visibleDocuments.slice(0, 6).map((doc) => ({
+          id: doc.id,
+          title: doc.title,
+          branch_id: doc.branch_id,
+          created_at: doc.created_at,
+        }))}
       />
     </>
   );

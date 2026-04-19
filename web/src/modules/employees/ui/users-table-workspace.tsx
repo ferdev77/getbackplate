@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 import { EmptyState } from "@/shared/ui/empty-state";
+import type { BranchOption } from "@/shared/contracts/scope-options";
 
 type UserRow = {
   membershipId: string;
@@ -21,7 +22,6 @@ type UserRow = {
 };
 
 type Option = { value: string; label: string };
-type BranchOption = { id: string; name: string };
 
 type UsersTableWorkspaceProps = {
   users: UserRow[];

@@ -23,6 +23,10 @@ type Props = {
   positions: Position[];
   employees: Employee[];
   recentDocuments: RecentDocument[];
+  submitEndpoint?: string;
+  redirectPath?: string;
+  hideScopeSelector?: boolean;
+  scopeLockedMessage?: string;
 };
 
 export function UploadDocumentModal({
@@ -33,6 +37,10 @@ export function UploadDocumentModal({
   positions,
   employees,
   recentDocuments,
+  submitEndpoint = "/api/company/documents",
+  redirectPath = "/app/documents",
+  hideScopeSelector = false,
+  scopeLockedMessage = "Este archivo heredará automáticamente el alcance permitido para tu perfil.",
 }: Props) {
   const router = useRouter();
   const [isUploading, setIsUploading] = useState(false);
@@ -56,7 +64,7 @@ export function UploadDocumentModal({
       onClose();
       return;
     }
-    router.push("/app/documents");
+    router.push(redirectPath);
   };
 
   const branchMap = useMemo(() => new Map(branches.map((branch) => [branch.id, branch.name])), [branches]);
@@ -75,7 +83,7 @@ export function UploadDocumentModal({
 
     const result = await new Promise<{ ok: boolean; message: string }>((resolve) => {
       const xhr = new XMLHttpRequest();
-      xhr.open("POST", "/api/company/documents");
+      xhr.open("POST", submitEndpoint);
 
       xhr.upload.onprogress = (progressEvent) => {
         if (!progressEvent.lengthComputable) return;
@@ -154,7 +162,9 @@ export function UploadDocumentModal({
 
                 <div className="mb-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
                   <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Quienes pueden ver este archivo</p>
-                  {selectedFolderId ? (
+                  {hideScopeSelector ? (
+                    <p className="mt-1 text-xs text-[var(--gbp-text2)]">{scopeLockedMessage}</p>
+                  ) : selectedFolderId ? (
                     <p className="mt-1 text-xs text-[var(--gbp-text2)]">
                       Este archivo heredará automáticamente los permisos de la carpeta seleccionada.
                     </p>

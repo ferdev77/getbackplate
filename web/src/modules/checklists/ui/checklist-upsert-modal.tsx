@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState, startTransition } from "react";
+import { useActionState, useEffect, useState, startTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Mail, MessageSquare, Smartphone } from "lucide-react";
@@ -9,20 +9,7 @@ import { SubmitButton } from "@/shared/ui/submit-button";
 import { RecurrenceSelector } from "@/shared/ui/recurrence-selector";
 import { ChecklistItemsBuilder } from "@/modules/checklists/ui/checklist-items-builder";
 import { createChecklistTemplateAction } from "@/modules/checklists/actions";
-
-type BranchOption = { id: string; name: string };
-type DepartmentOption = { id: string; name: string };
-type PositionOption = { id: string; department_id: string; name: string };
-type UserOption = {
-  id: string;
-  user_id: string | null;
-  first_name: string;
-  last_name: string;
-  role_label?: string;
-  location_label?: string;
-  department_label?: string;
-  position_label?: string;
-};
+import type { BranchOption, DepartmentOption, PositionOption, ScopedUserOption } from "@/shared/contracts/scope-options";
 
 type EditingTemplate = {
   id: string;
@@ -42,9 +29,12 @@ type ChecklistUpsertModalProps = {
   branches: BranchOption[];
   departments: DepartmentOption[];
   positions: PositionOption[];
-  users: UserOption[];
+  users: ScopedUserOption[];
   action?: string;
   editingTemplate?: EditingTemplate | null;
+  submitEndpoint?: string;
+  redirectPath?: string;
+  onSubmitted?: () => void;
 };
 
 export function ChecklistUpsertModal({
@@ -55,22 +45,28 @@ export function ChecklistUpsertModal({
   users,
   action,
   editingTemplate,
+  submitEndpoint,
+  redirectPath = "/app/checklists",
+  onSubmitted,
 }: ChecklistUpsertModalProps) {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(createChecklistTemplateAction, { success: false, message: "" });
+  const [isApiPending, setIsApiPending] = useState(false);
   const [notifyWhatsapp, setNotifyWhatsapp] = useState(false);
   const [notifySms, setNotifySms] = useState(false);
   const [notifyEmail, setNotifyEmail] = useState(false);
 
   useEffect(() => {
+    if (submitEndpoint) return;
     if (state.message) {
       if (state.success) {
         toast.success(state.message);
         startTransition(() => {
+          onSubmitted?.();
           if (onClose) {
             onClose();
           } else {
-            router.push("/app/checklists");
+            router.push(redirectPath);
           }
           router.refresh();
         });
@@ -78,15 +74,96 @@ export function ChecklistUpsertModal({
         toast.error(state.message);
       }
     }
-  }, [state, router, onClose]);
+  }, [onClose, onSubmitted, redirectPath, router, state, submitEndpoint]);
 
   const handleClose = () => {
     if (onClose) {
       onClose();
       return;
     }
-    router.push("/app/checklists");
+    router.push(redirectPath);
   };
+
+  async function handleApiSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!submitEndpoint || isApiPending) return;
+
+    const formData = new FormData(event.currentTarget);
+    const templateId = String(formData.get("template_id") ?? "").trim();
+    const name = String(formData.get("name") ?? "").trim();
+    const sectionsPayload = String(formData.get("sections_payload") ?? "").trim();
+    const legacyItems = String(formData.get("items") ?? "").trim();
+
+    if (!name) {
+      toast.error("Nombre de plantilla obligatorio");
+      return;
+    }
+
+    let items = "";
+    if (sectionsPayload) {
+      try {
+        const parsed = JSON.parse(sectionsPayload) as Array<{ items?: unknown[] }>;
+        const flatItems = (parsed ?? [])
+          .flatMap((section) => (Array.isArray(section?.items) ? section.items : []))
+          .map((item) => String(item).trim())
+          .filter(Boolean);
+        items = flatItems.join("\n");
+      } catch {
+        toast.error("Formato de secciones invalido");
+        return;
+      }
+    } else {
+      items = legacyItems;
+    }
+
+    if (!items.trim()) {
+      toast.error("Agrega al menos un item");
+      return;
+    }
+
+    setIsApiPending(true);
+    try {
+      const method = templateId ? "PATCH" : "POST";
+      const response = await fetch(submitEndpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateId: templateId || undefined,
+          name,
+          items,
+          checklist_type: String(formData.get("checklist_type") ?? "custom").trim() || "custom",
+          shift: String(formData.get("shift") ?? "1er Shift").trim() || "1er Shift",
+          repeat_every: String(formData.get("recurrence_type") ?? formData.get("repeat_every") ?? "daily").trim() || "daily",
+          template_status: String(formData.get("template_status") ?? "active").trim() || "active",
+          location_scope: formData.getAll("location_scope").map(String).filter(Boolean),
+          department_scope: formData.getAll("department_scope").map(String).filter(Boolean),
+          position_scope: formData.getAll("position_scope").map(String).filter(Boolean),
+          user_scope: formData.getAll("user_scope").map(String).filter(Boolean),
+          sections_payload: sectionsPayload || undefined,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(typeof data.error === "string" ? data.error : "No se pudo guardar checklist");
+      }
+      toast.success(templateId ? "Checklist actualizado correctamente" : "Checklist creado correctamente");
+      startTransition(() => {
+        onSubmitted?.();
+        if (onClose) {
+          onClose();
+        } else {
+          router.push(redirectPath);
+        }
+        router.refresh();
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo guardar checklist");
+    } finally {
+      setIsApiPending(false);
+    }
+  }
+
+  const pending = submitEndpoint ? isApiPending : isPending;
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
@@ -95,7 +172,7 @@ export function ChecklistUpsertModal({
           <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">{action === "edit" ? "Editar Checklist" : "Nuevo Checklist"}</p>
           <button type="button" onClick={handleClose} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</button>
         </div>
-        <form action={formAction}>
+        <form action={submitEndpoint ? undefined : formAction} onSubmit={submitEndpoint ? handleApiSubmit : undefined}>
           {editingTemplate ? <input type="hidden" name="template_id" value={editingTemplate.id} /> : null}
           <div className="max-h-[68vh] overflow-y-auto px-6 py-5">
             <h3 className="mb-3 border-b-[1.5px] border-[var(--gbp-border)] pb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Informacion general</h3>
@@ -208,9 +285,9 @@ export function ChecklistUpsertModal({
           <div className="flex justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
             <button type="button" onClick={handleClose} className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">Cancelar</button>
             <SubmitButton 
-              label={editingTemplate ? "Actualizar Checklist" : "Guardar Checklist"} 
-              pendingLabel={editingTemplate ? "Actualizando..." : "Guardando..."} 
-              pending={isPending}
+              label={editingTemplate ? "Actualizar Checklist" : "Guardar Checklist"}
+              pendingLabel={editingTemplate ? "Actualizando..." : "Guardando..."}
+              pending={pending}
               className="px-5 py-2 text-sm font-bold" 
             />
           </div>

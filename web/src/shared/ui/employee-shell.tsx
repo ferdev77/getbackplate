@@ -17,6 +17,7 @@ const CHECKLIST_PREVIEW_GUARD_TTL_MS = 15000;
 
 type EmployeeShellProps = {
   organizationId: string;
+  membershipId: string;
   userId: string;
   employeeId: string | null;
   organizationName: string;
@@ -49,6 +50,7 @@ function initials(value: string) {
 
 export function EmployeeShell({
   organizationId,
+  membershipId,
   userId,
   employeeId,
   organizationName,
@@ -91,9 +93,13 @@ export function EmployeeShell({
     const ownEmployeeByIdFilter = employeeId ? `organization_id=eq.${organizationId},id=eq.${employeeId}` : "";
     const ownPreferencesFilter = `organization_id=eq.${organizationId},user_id=eq.${userId}`;
     const ownProfileFilter = `organization_id=eq.${organizationId},user_id=eq.${userId}`;
+    const ownMembershipFilter = `organization_id=eq.${organizationId},id=eq.${membershipId}`;
+    const ownDelegatedPermissionsFilter = `organization_id=eq.${organizationId},membership_id=eq.${membershipId}`;
 
     const subscriptions: Array<{ table: string; filter: string }> = [
       { table: "organization_modules", filter: orgFilter },
+      { table: "memberships", filter: ownMembershipFilter },
+      { table: "employee_module_permissions", filter: ownDelegatedPermissionsFilter },
       { table: "employees", filter: ownEmployeeByIdFilter || ownEmployeeFilter },
       { table: "organization_user_profiles", filter: ownProfileFilter },
       { table: "user_preferences", filter: ownPreferencesFilter },
@@ -209,7 +215,7 @@ export function EmployeeShell({
       if (debounceRef.current) clearTimeout(debounceRef.current);
       supabase.removeChannel(channel);
     };
-  }, [employeeId, organizationId, pathname, router, userId]);
+  }, [employeeId, membershipId, organizationId, pathname, router, userId]);
 
   const items = useMemo(() => {
     const result = [

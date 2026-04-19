@@ -1,7 +1,7 @@
 "use client";
 
 import { MessageSquare, Pin, Smartphone, Clock3, Mail } from "lucide-react";
-import { useActionState, useEffect, useState, startTransition } from "react";
+import { useActionState, useEffect, useState, startTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -9,40 +9,14 @@ import { createAnnouncementAction } from "@/modules/announcements/actions";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import { RecurrenceSelector } from "@/shared/ui/recurrence-selector";
-
-type BranchOption = {
-  id: string;
-  name: string;
-};
-
-type DepartmentOption = {
-  id: string;
-  name: string;
-};
-
-type PositionOption = {
-  id: string;
-  department_id: string;
-  name: string;
-};
-
-type UserOption = {
-  id: string;
-  user_id: string | null;
-  first_name: string;
-  last_name: string;
-  role_label?: string;
-  location_label?: string;
-  department_label?: string;
-  position_label?: string;
-};
+import type { BranchOption, DepartmentOption, PositionOption, ScopedUserOption } from "@/shared/contracts/scope-options";
 
 type AnnouncementCreateModalProps = {
   onClose?: () => void;
   branches: BranchOption[];
   departments: DepartmentOption[];
   positions: PositionOption[];
-  users: UserOption[];
+  users: ScopedUserOption[];
   publisherName: string;
   mode?: "create" | "edit";
   initial?: {
@@ -60,11 +34,15 @@ type AnnouncementCreateModalProps = {
     recurrence_type?: string;
     custom_days?: number[];
   };
+  submitEndpoint?: string;
+  redirectPath?: string;
+  onSubmitted?: () => void;
 };
 
-export function AnnouncementCreateModal({ onClose, branches, departments, positions, users, publisherName, mode = "create", initial }: AnnouncementCreateModalProps) {
+export function AnnouncementCreateModal({ onClose, branches, departments, positions, users, publisherName, mode = "create", initial, submitEndpoint, redirectPath = "/app/announcements", onSubmitted }: AnnouncementCreateModalProps) {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(createAnnouncementAction, { success: false, message: "" });
+  const [isApiPending, setIsApiPending] = useState(false);
   const [notifyWhatsapp, setNotifyWhatsapp] = useState(false);
   const [notifySms, setNotifySms] = useState(false);
   const [notifyEmail, setNotifyEmail] = useState(false);
@@ -72,27 +50,89 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
   const [isRecurring, setIsRecurring] = useState(Boolean(initial?.is_recurring));
 
   useEffect(() => {
+    if (submitEndpoint) return;
     if (state.message) {
       if (state.success) {
         toast.success(state.message);
         startTransition(() => {
           router.refresh();
+          onSubmitted?.();
           if (onClose) onClose();
-          router.push("/app/announcements");
+          router.push(redirectPath);
         });
       } else {
         toast.error(state.message);
       }
     }
-  }, [state, router]);
+  }, [onClose, onSubmitted, redirectPath, router, state, submitEndpoint]);
 
   const handleClose = () => {
     if (onClose) {
       onClose();
       return;
     }
-    router.push("/app/announcements");
+    router.push(redirectPath);
   };
+
+  async function handleApiSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!submitEndpoint || isApiPending) return;
+
+    const formData = new FormData(event.currentTarget);
+    const title = String(formData.get("title") ?? "").trim();
+    const body = String(formData.get("body") ?? "").trim();
+    const kind = String(formData.get("kind") ?? "general").trim();
+    const announcementId = String(formData.get("announcement_id") ?? "").trim();
+
+    if (!title || !body) {
+      toast.error("Titulo y contenido son obligatorios");
+      return;
+    }
+
+    const payload = {
+      announcementId: announcementId || undefined,
+      title,
+      body,
+      kind,
+      is_featured: String(formData.get("is_featured") ?? "") === "on",
+      expires_at: String(formData.get("expires_at") ?? "").trim() || null,
+      location_scope: formData.getAll("location_scope").map(String).filter(Boolean),
+      department_scope: formData.getAll("department_scope").map(String).filter(Boolean),
+      position_scope: formData.getAll("position_scope").map(String).filter(Boolean),
+      user_scope: formData.getAll("user_scope").map(String).filter(Boolean),
+      is_recurring: String(formData.get("is_recurring") ?? "") === "on",
+      recurrence_type: String(formData.get("recurrence_type") ?? "daily").trim() || "daily",
+      custom_days: String(formData.get("custom_days") ?? "[]"),
+    };
+
+    setIsApiPending(true);
+    try {
+      const method = mode === "edit" ? "PATCH" : "POST";
+      const response = await fetch(submitEndpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(typeof data.error === "string" ? data.error : "No se pudo guardar el aviso");
+      }
+
+      toast.success(mode === "edit" ? "Aviso actualizado correctamente" : "Aviso creado correctamente");
+      startTransition(() => {
+        router.refresh();
+        onSubmitted?.();
+        if (onClose) onClose();
+        router.push(redirectPath);
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo guardar el aviso");
+    } finally {
+      setIsApiPending(false);
+    }
+  }
+
+  const pending = submitEndpoint ? isApiPending : isPending;
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
@@ -108,7 +148,7 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
           </button>
         </div>
 
-        <form action={formAction}>
+        <form action={submitEndpoint ? undefined : formAction} onSubmit={submitEndpoint ? handleApiSubmit : undefined}>
           {mode === "edit" && initial ? <input type="hidden" name="announcement_id" value={initial.id} /> : null}
           <div className="max-h-[68vh] overflow-y-auto px-6 py-5">
             <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Tipo de aviso</label>
@@ -284,7 +324,7 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
             <SubmitButton
               label={mode === "edit" ? "Guardar cambios" : "Publicar Aviso"}
               pendingLabel={mode === "edit" ? "Guardando..." : "Publicando..."}
-              pending={isPending}
+              pending={pending}
               className="px-5 py-2 text-sm font-bold"
               data-testid="announcement-submit-btn"
             />

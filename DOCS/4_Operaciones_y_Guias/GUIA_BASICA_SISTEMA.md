@@ -243,3 +243,44 @@ Esta fase trajo mejoras y comodidades clave para todos los actores:
 3. **Estado de Documentación de Empleados**: Los managers pueden saber fácilmente en la vista de personal si un empleado tiene toda su documentación obligatoria ("Completo") o si le falta algo ("Incompleto").
 4. **Mails Automáticos**: Se enviará un correo automáticamente para invitar al personal al sistema, al igual que al dueño de la empresa cuando le facturen o cambie de plan.
 5. **Carpetas para el empleado**: Los empleados ahora también tienen su panel ordenado visualmente por carpetas y no con archivos sueltos.
+
+## Modulo Permisos Delegados (2026-04-18)
+
+Que cambia para el admin de empresa:
+
+- En el modal de crear/editar empleado ahora existe una pestana `Permisos`.
+- Esa pestana solo aparece cuando el empleado tiene acceso al dashboard.
+- Desde ahi se puede delegar por modulo: `Crear`, `Editar`, `Eliminar`.
+
+Modulos incluidos en esta primera version:
+
+- Avisos
+- Checklists
+- Documentos operativos (no legajo laboral privado del empleado)
+
+Regla importante de seguridad:
+
+- Si el permiso es `Editar` o `Eliminar`, el empleado solo puede hacerlo sobre contenido creado por el mismo.
+- El `company_admin` sigue teniendo acceso total y no se limita por este modulo.
+
+En el portal empleado:
+
+- Checklist ahora se ve separado en `Asignados a mi` y `Creados por mi`.
+- Si el empleado tiene permisos delegados, puede crear/editar/eliminar en los modulos habilitados.
+
+## Politica operativa de CLIs (obligatoria)
+
+Para cualquier tarea tecnica de plataforma, la regla oficial es usar siempre CLIs.
+
+- Base de datos y migraciones: `Supabase CLI`.
+- Deploy y entornos: `Vercel CLI`.
+- Repositorio/PR/checks: `GitHub CLI (gh)`.
+
+Documento canonico de esta politica:
+
+- `DOCS/4_Operaciones_y_Guias/GUIA_OPERATIVA_CLI_OBLIGATORIA.md`
+
+Regla de ejecucion:
+
+- no delegar al usuario final la ejecucion de comandos cuando el agente/operador puede ejecutarlos,
+- registrar siempre comando ejecutado y resultado.

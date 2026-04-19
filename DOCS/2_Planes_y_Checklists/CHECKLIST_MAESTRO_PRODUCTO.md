@@ -99,6 +99,17 @@ Cada paso se marca con check cuando queda terminado y validado.
 - [x] H2. Submit de checklist con evidencias endurecido a comportamiento "todo o nada" con rollback best-effort.
 - [-] H3. Definir set minimo de operaciones criticas que deben ejecutarse en RPC transaccional (Migrado a ACTUALIZACION_2.2_SAAS.md).
 
+## Bloque I - Modulo core permissions (delegacion a employees)
+
+- [x] I0. Definir plan canonico y checklist de implementacion en `DOCS/2_Planes_y_Checklists/TECH_REMEDIATION_TRACK_MODULO_CORE_PERMISOS_PLAN_CHECKLIST.md`.
+- [x] I1. Implementar modelo de datos de permisos delegados por membership (tenant-safe).
+- [x] I2. Implementar enforcement backend por capability (`create/edit/delete`) para employee.
+- [x] I3. Aplicar regla de ownership en employee (`edit/delete` solo sobre recursos creados por el mismo).
+- [x] I4. Integrar pestana `Permisos` en modal crear/editar empleado, visible solo con dashboard access.
+- [x] I5. Habilitar operaciones delegadas en portal empleado para `announcements`, `checklists` y `documents` operativos.
+- [x] I6. Diferenciar vista operativa en checklist: `Asignados a mi` vs `Creados por mi`.
+- [x] I7. Ejecutar validacion final y sincronizar documentacion tecnica/funcional.
+
 ## Bloque F - Datos y performance
 
 - [-] F1. Revisar indices de tablas criticas por `organization_id`, `branch_id` y fechas de consulta (Migrado a ACTUALIZACION_2.2_SAAS.md).
