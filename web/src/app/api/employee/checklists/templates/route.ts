@@ -141,7 +141,7 @@ export async function POST(request: Request) {
         .delete()
         .eq("organization_id", access.tenant.organizationId)
         .eq("id", createdTemplate.id);
-      return NextResponse.json({ error: sectionError?.message ?? "No se pudo crear seccion" }, { status: 400 });
+      return NextResponse.json({ error: sectionError?.message ?? "No se pudo crear sección" }, { status: 400 });
     }
 
     const rows = currentSection.items.map((item, itemIndex) => ({
@@ -216,7 +216,7 @@ export async function PATCH(request: Request) {
   const userScope = Array.isArray(body?.user_scope) ? body.user_scope.map(String).filter(Boolean) : [];
 
   if (!templateId || !name || items.length === 0) {
-    return NextResponse.json({ error: "Datos invalidos" }, { status: 400 });
+    return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
   const admin = createSupabaseAdminClient();
@@ -291,7 +291,7 @@ export async function PATCH(request: Request) {
       .single();
 
     if (!section?.id) {
-      return NextResponse.json({ error: "No se pudo actualizar secciones" }, { status: 400 });
+      return NextResponse.json({ error: "No se pudieron actualizar las secciones" }, { status: 400 });
     }
 
     const rows = currentSection.items.map((item, itemIndex) => ({
@@ -331,7 +331,7 @@ export async function DELETE(request: Request) {
   const body = (await request.json().catch(() => null)) as { templateId?: string } | null;
   const templateId = String(body?.templateId ?? "").trim();
   if (!templateId) {
-    return NextResponse.json({ error: "Checklist invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Checklist inválido" }, { status: 400 });
   }
 
   const admin = createSupabaseAdminClient();

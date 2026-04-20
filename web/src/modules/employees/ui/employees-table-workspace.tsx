@@ -350,7 +350,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
           onChange={(event) => setLocation(event.target.value)}
           className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"
         >
-          <option value="">Todas las locaciones</option>
+          <option value="">Todas las ubicaciones</option>
           {locationOptions.map((item) => (
             <option key={item} value={item}>{item}</option>
           ))}

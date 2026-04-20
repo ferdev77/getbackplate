@@ -668,7 +668,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                   max={4}
                   emptyLabel={
                     <span className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-muted)]">
-                      <MapPin className="mr-1 h-3 w-3" />Sin locacion
+                      <MapPin className="mr-1 h-3 w-3" />Sin ubicación
                     </span>
                   }
                 />
@@ -712,7 +712,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                               max={4}
                               emptyLabel={
                                 <span className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-muted)]">
-                                  <MapPin className="mr-1 h-3 w-3" />Sin locacion
+                                  <MapPin className="mr-1 h-3 w-3" />Sin ubicación
                                 </span>
                               }
                             />
@@ -727,7 +727,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                           </div>
                           
                           <div className="flex flex-wrap items-center justify-end gap-1">
-                            <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer" className={ACTION_BTN_NEUTRAL} ><Eye className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Ver/Descargar" /></a>
+                            <a href={`/api/documents/${doc.id}/download?inline=1`} target="_blank" rel="noopener noreferrer" className={ACTION_BTN_NEUTRAL} ><Eye className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Ver/Descargar" /></a>
                             <button type="button" onClick={() => setEditDocId(doc.id)} className={ACTION_BTN_NEUTRAL} ><Pencil className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Editar" /></button>
                             {doc.folder_id ? null : (
                               <button type="button" onClick={() => setShareDocId(doc.id)} className={ACTION_BTN_NEUTRAL} ><Share2 className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Compartir" /></button>
@@ -819,7 +819,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
         <AnimatedItem><article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4"><p className="text-xs text-[var(--gbp-text2)]">Carpetas</p><p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{folderRows.length}</p><p className="text-[11px] text-[var(--gbp-muted)]">Con permisos activos</p></article></AnimatedItem>
         <AnimatedItem><article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4"><p className="text-xs text-[var(--gbp-text2)]">Total Documentos</p><p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{totalDocuments}</p><p className="text-[11px] text-[var(--gbp-muted)]"><span className="text-[var(--gbp-success)]">+{Math.max(0, docsThisMonth - docsPrevMonth)}</span> este mes</p></article></AnimatedItem>
         <AnimatedItem><article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4"><p className="text-xs text-[var(--gbp-text2)]">Descargas (mes)</p><p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{downloadsMonth}</p><p className="text-[11px] text-[var(--gbp-muted)]"><span className="text-[var(--gbp-success)]">↑ {downloadsTrend}%</span> vs anterior</p></article></AnimatedItem>
-        <AnimatedItem><article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4"><p className="text-xs text-[var(--gbp-text2)]">Usuarios Activos</p><p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{activeUsers}</p><p className="text-[11px] text-[var(--gbp-muted)]">{branches.length} locaciones</p></article></AnimatedItem>
+        <AnimatedItem><article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4"><p className="text-xs text-[var(--gbp-text2)]">Usuarios activos</p><p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{activeUsers}</p><p className="text-[11px] text-[var(--gbp-muted)]">{branches.length} ubicaciones</p></article></AnimatedItem>
       </AnimatedList>
 
       <section className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3">
@@ -830,9 +830,9 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
         {viewMode === "tree" ? (
           <select value={folderFilter} onChange={(event) => setFolderFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las carpetas</option>{folderOptions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
         ) : null}
-        <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las locaciones</option>{branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
+        <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las ubicaciones</option>{branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
         <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todos los departamentos</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
-        <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="date-desc">Mas recientes primero</option><option value="date-asc">Mas antiguos primero</option><option value="name-asc">Nombre A-Z</option><option value="name-desc">Nombre Z-A</option><option value="size-desc">Mayor tamano</option><option value="size-asc">Menor tamano</option></select>
+        <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="date-desc">Más recientes primero</option><option value="date-asc">Más antiguos primero</option><option value="name-asc">Nombre A-Z</option><option value="name-desc">Nombre Z-A</option><option value="size-desc">Mayor tamaño</option><option value="size-asc">Menor tamaño</option></select>
       </section>
 
       <SlideUp delay={0.2}>
@@ -886,7 +886,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                           max={4}
                           emptyLabel={
                             <span className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-muted)]">
-                              <MapPin className="mr-1 h-3 w-3" />Sin locacion
+                              <MapPin className="mr-1 h-3 w-3" />Sin ubicación
                             </span>
                           }
                         />
@@ -901,7 +901,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                       </div>
                       {/* Acciones */}
                       <div className="flex flex-wrap items-center justify-end gap-1">
-                        <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer" className={ACTION_BTN_NEUTRAL} ><Eye className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Ver" /></a>
+                        <a href={`/api/documents/${doc.id}/download?inline=1`} target="_blank" rel="noopener noreferrer" className={ACTION_BTN_NEUTRAL} ><Eye className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Ver" /></a>
                         <button type="button" onClick={() => setEditDocId(doc.id)} className={ACTION_BTN_NEUTRAL} ><Pencil className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Editar" /></button>
                          {doc.folder_id ? null : (
                            <button type="button" onClick={() => setShareDocId(doc.id)} className={ACTION_BTN_NEUTRAL} ><Share2 className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Compartir" /></button>
@@ -987,7 +987,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                         <p className="mt-1 text-xs text-[var(--gbp-text2)]">{formatDate(selectedColumnDocument.created_at)} · {formatSize(selectedColumnDocument.file_size_bytes)} · {selectedColumnDocument.mime_type ?? "archivo"}</p>
                       </div>
                       <div className="flex flex-wrap gap-1.5">
-                        <a href={`/api/documents/${selectedColumnDocument.id}/download`} target="_blank" rel="noopener noreferrer" className={ACTION_BTN_NEUTRAL}><Eye className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Ver" /></a>
+                        <a href={`/api/documents/${selectedColumnDocument.id}/download?inline=1`} target="_blank" rel="noopener noreferrer" className={ACTION_BTN_NEUTRAL}><Eye className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Ver" /></a>
                         <button type="button" onClick={() => setEditDocId(selectedColumnDocument.id)} className={ACTION_BTN_NEUTRAL}><Pencil className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Editar" /></button>
                         {selectedColumnDocument.folder_id ? null : (
                           <button type="button" onClick={() => setShareDocId(selectedColumnDocument.id)} className={ACTION_BTN_NEUTRAL}><Share2 className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Compartir" /></button>

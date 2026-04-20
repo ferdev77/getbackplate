@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FolderPlus, LayoutGrid, UploadCloud, ListTree, Columns3 } from "lucide-react";
+import { FolderPlus, UploadCloud, ListTree, Columns3 } from "lucide-react";
 
 import { DocumentsTreeWorkspace } from "@/modules/documents/ui/documents-tree-workspace";
 import { DocumentFolderModal } from "@/modules/documents/ui/document-folder-modal";
 import { UploadDocumentModal } from "@/modules/documents/ui/upload-document-modal";
 import { SlideUp } from "@/shared/ui/animations";
+import { OperationHeaderCard } from "@/shared/ui/operation-header-card";
 
 type Folder = { id: string; name: string; parent_id: string | null; access_scope: unknown; created_at: string };
 type Document = {
@@ -97,36 +98,37 @@ export function DocumentsPageWorkspace({
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
       <SlideUp>
-        <section className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div className="inline-flex items-center gap-2 text-[var(--gbp-text)]">
-            <LayoutGrid className="h-4 w-4" />
-            <h1 className="text-[18px] font-bold">Documentos</h1>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <div className="inline-flex h-[33px] items-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] p-0.5">
-              <button
-                type="button"
-                onClick={() => setViewMode("tree")}
-                data-testid="documents-view-tree"
-                className={`rounded-md p-1.5 transition-colors ${viewMode === "tree" ? "bg-[var(--gbp-bg)] text-[var(--gbp-text)] shadow-sm" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}
-                title="Vista de Arbol"
-              >
-                <ListTree className="h-4.5 w-4.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("columns")}
-                data-testid="documents-view-columns"
-                className={`rounded-md p-1.5 transition-colors ${viewMode === "columns" ? "bg-[var(--gbp-bg)] text-[var(--gbp-text)] shadow-sm" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}
-                title="Vista de Columnas"
-              >
-                <Columns3 className="h-4.5 w-4.5" />
-              </button>
+        <OperationHeaderCard
+          eyebrow="Operación diaria"
+          title="Mis Documentos"
+          description="Gestiona carpetas y archivos operativos, define su alcance y administra cargas y estructura documental."
+          action={(
+            <div className="flex flex-wrap gap-2">
+              <div className="inline-flex h-[33px] items-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("tree")}
+                  data-testid="documents-view-tree"
+                  className={`rounded-md p-1.5 transition-colors ${viewMode === "tree" ? "bg-[var(--gbp-bg)] text-[var(--gbp-text)] shadow-sm" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}
+                  title="Vista de Árbol"
+                >
+                  <ListTree className="h-4.5 w-4.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("columns")}
+                  data-testid="documents-view-columns"
+                  className={`rounded-md p-1.5 transition-colors ${viewMode === "columns" ? "bg-[var(--gbp-bg)] text-[var(--gbp-text)] shadow-sm" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}
+                  title="Vista de Columnas"
+                >
+                  <Columns3 className="h-4.5 w-4.5" />
+                </button>
+              </div>
+              <button type="button" onClick={() => setIsFolderModalOpen(true)} className="inline-flex h-[33px] items-center gap-1 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"><FolderPlus className="h-3.5 w-3.5" /> Nueva Carpeta</button>
+              <button type="button" onClick={() => setIsUploadModalOpen(true)} className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[var(--gbp-accent)] px-3 text-xs font-bold text-white hover:bg-[var(--gbp-accent-hover)]"><UploadCloud className="h-3.5 w-3.5" /> Subir Archivo</button>
             </div>
-            <button type="button" onClick={() => setIsFolderModalOpen(true)} className="inline-flex h-[33px] items-center gap-1 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"><FolderPlus className="h-3.5 w-3.5" /> Nueva Carpeta</button>
-            <button type="button" onClick={() => setIsUploadModalOpen(true)} className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[var(--gbp-accent)] px-3 text-xs font-bold text-white hover:bg-[var(--gbp-accent-hover)]"><UploadCloud className="h-3.5 w-3.5" /> Subir Archivo</button>
-          </div>
-        </section>
+          )}
+        />
       </SlideUp>
 
       <SlideUp delay={0.1}>

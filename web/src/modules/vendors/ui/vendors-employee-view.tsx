@@ -331,7 +331,7 @@ export default function VendorsEmployeeView({ initialVendors, branches }: Props)
             onChange={(e) => setFilterBranch(e.target.value)}
             style={selectStyle}
           >
-            <option value="">Todas las locaciones</option>
+            <option value="">Todas las ubicaciones</option>
             {branches.map((b) => (
               <option key={b.id} value={b.id}>{b.name}</option>
             ))}
@@ -364,7 +364,7 @@ export default function VendorsEmployeeView({ initialVendors, branches }: Props)
           <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted, #94a3b8)", textAlign: "center" }}>
             {search || filterCategory || filterBranch
               ? "Probá ajustando los filtros."
-              : "No hay proveedores asignados a tu locación aún."}
+              : "Aún no hay proveedores asignados a tu ubicación."}
           </p>
         </div>
       ) : (

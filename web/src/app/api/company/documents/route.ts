@@ -231,7 +231,7 @@ export async function POST(request: Request) {
 
   if (!scopeValidation.ok) {
     const messageByField = {
-      locations: "Hay locaciones inválidas en el alcance",
+      locations: "Hay ubicaciones inválidas en el alcance",
       departments: "Hay departamentos inválidos en el alcance",
       positions: "Hay puestos inválidos en el alcance",
       users: "Hay usuarios inválidos en el alcance",

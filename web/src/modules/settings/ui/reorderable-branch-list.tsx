@@ -41,7 +41,7 @@ export function ReorderableBranchList({
     const ids = newOrder.map((item) => item.id);
     const result = await reorderBranchesAction(ids);
     if (result.ok) {
-      toast.success("Orden de locaciones actualizado");
+      toast.success("Orden de ubicaciones actualizado");
     } else {
       toast.error("Error al sincronizar el orden");
       setItems(initialBranches); // Revert on error
@@ -49,7 +49,7 @@ export function ReorderableBranchList({
   }, [initialBranches]);
 
   if (!items?.length) {
-    return <p className="text-center py-8 rounded-xl border border-dashed border-[var(--gbp-border2)] text-sm text-[var(--gbp-text2)]">Aún no hay locaciones.</p>;
+    return <p className="text-center py-8 rounded-xl border border-dashed border-[var(--gbp-border2)] text-sm text-[var(--gbp-text2)]">Aún no hay ubicaciones.</p>;
   }
 
   return (

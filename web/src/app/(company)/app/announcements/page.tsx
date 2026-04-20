@@ -1,4 +1,4 @@
-import { Bell, BellPlus, Pencil, Pin } from "lucide-react";
+import { BellPlus, Pencil, Pin } from "lucide-react";
 import Link from "next/link";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { TooltipLabel } from "@/shared/ui/tooltip";
@@ -19,6 +19,7 @@ import { getEnabledModulesCached } from "@/modules/organizations/cached-queries"
 import { ConfirmSubmitButton } from "@/shared/ui/confirm-submit-button";
 import { SlideUp } from "@/shared/ui/animations";
 import { extractDisplayName } from "@/shared/lib/user";
+import { OperationHeaderCard } from "@/shared/ui/operation-header-card";
 
 type CompanyAnnouncementsPageProps = {
   searchParams: Promise<{
@@ -214,28 +215,32 @@ const employeesQuery = supabase
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
       <SlideUp>
-        <section className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div className={`inline-flex items-center gap-2 ${TEXT_STRONG}`}>
-            <Bell className="h-4 w-4" />
-            <h1 className="text-[18px] font-bold">Avisos</h1>
-          </div>
-          <AnnouncementModalTrigger
-            className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white hover:bg-[var(--gbp-accent)]"
-            mode="create"
-            publisherName={publisherName}
-            branches={mappedBranches}
-            departments={departments ?? []}
-            positions={positions ?? []}
-            users={scopeUsers}
-          >
-            <BellPlus className="h-3.5 w-3.5" /> Nuevo Aviso
-          </AnnouncementModalTrigger>
-        </section>
+        <OperationHeaderCard
+          eyebrow="Operación diaria"
+          title="Mis Avisos"
+          description="Publica comunicados internos, gestiona su alcance y administra fijados, edición y eliminación."
+          eyebrowClassName={`text-[11px] font-semibold tracking-[0.14em] uppercase ${TEXT_MUTED}`}
+          titleClassName={`mt-1 text-2xl font-bold tracking-tight ${TEXT_STRONG}`}
+          descriptionClassName={`mt-1 text-sm ${TEXT_MUTED}`}
+          action={(
+            <AnnouncementModalTrigger
+              className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white hover:bg-[var(--gbp-accent)]"
+              mode="create"
+              publisherName={publisherName}
+              branches={mappedBranches}
+              departments={departments ?? []}
+              positions={positions ?? []}
+              users={scopeUsers}
+            >
+              <BellPlus className="h-3.5 w-3.5" /> Nuevo Aviso
+            </AnnouncementModalTrigger>
+          )}
+        />
       </SlideUp>
 
       <div className="mb-5 grid gap-3 sm:grid-cols-4">
         <div className="h-full">
-          <article className={`h-full rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Avisos activos</p><p className={`mt-1 text-2xl font-bold ${TEXT_STRONG}`}>{announcements?.length ?? 0}</p><p className={`text-[11px] ${TEXT_MUTED}`}>En todas las locaciones</p></article>
+          <article className={`h-full rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Avisos activos</p><p className={`mt-1 text-2xl font-bold ${TEXT_STRONG}`}>{announcements?.length ?? 0}</p><p className={`text-[11px] ${TEXT_MUTED}`}>En todas las ubicaciones</p></article>
         </div>
         <div className="h-full">
           <article className={`h-full rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Fijados</p><p className={`mt-1 text-2xl font-bold ${TEXT_STRONG}`}>{(announcements ?? []).filter((row) => row.is_featured).length}</p><p className={`text-[11px] ${TEXT_MUTED}`}>Visible al top</p></article>

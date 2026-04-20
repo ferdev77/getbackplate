@@ -12,7 +12,7 @@ function SubmitButton() {
       disabled={pending}
       className="rounded-lg bg-[var(--gbp-text)] px-4 py-2 text-xs font-bold text-white hover:bg-[var(--gbp-accent)] disabled:opacity-50"
     >
-      {pending ? "Guardando..." : "Guardar locación"}
+      {pending ? "Guardando..." : "Guardar ubicación"}
     </button>
   );
 }
@@ -56,7 +56,7 @@ export function InlineBranchForm({
         }}
         className="grid gap-3 sm:grid-cols-2"
       >
-        <input name="name" required placeholder="Nombre de locación" className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none transition-all placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:ring-1 focus:ring-[var(--gbp-accent)]" />
+        <input name="name" required placeholder="Nombre de ubicación" className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none transition-all placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:ring-1 focus:ring-[var(--gbp-accent)]" />
         <input name="city" placeholder="Ciudad (opcional)" className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none transition-all placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:ring-1 focus:ring-[var(--gbp-accent)]" />
         <input name="state" placeholder="Provincia / Estado (opcional)" className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none transition-all placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:ring-1 focus:ring-[var(--gbp-accent)]" />
         <input name="country" placeholder="País (opcional)" className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none transition-all placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:ring-1 focus:ring-[var(--gbp-accent)]" />

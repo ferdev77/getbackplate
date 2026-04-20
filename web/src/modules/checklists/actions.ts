@@ -77,7 +77,7 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   });
 
   if (!parsed.success) {
-    return { success: false, message: parsed.error.issues[0]?.message || "Datos invalidos" };
+    return { success: false, message: parsed.error.issues[0]?.message || "Datos inválidos" };
   }
 
   // --- Normalize sections ---
@@ -284,7 +284,7 @@ export async function reviewChecklistSubmissionAction(_prevState: unknown, formD
     .eq("organization_id", tenant.organizationId);
 
   if (error) {
-    return { success: false, message: `No se pudo revisar ejecucion: ${error.message}` };
+    return { success: false, message: `No se pudo revisar la ejecución: ${error.message}` };
   }
 
   await logAuditEvent({

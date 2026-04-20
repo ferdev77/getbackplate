@@ -395,7 +395,7 @@ export default async function EmployeeHomePage() {
             {hasDocumentsModule && visibleDocuments.length > 0 ? (
               <div className="flex-1 space-y-3">
                 {visibleDocuments.map((doc) => (
-                  <a href={`/api/documents/${doc.id}/download`} target="_blank" key={doc.id} className="block group">
+                  <a href={`/api/documents/${doc.id}/download?inline=1`} target="_blank" key={doc.id} className="block group">
                     <article className="flex items-center gap-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4 transition-all hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] hover:shadow-lg hover:shadow-black/5">
                       <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-100"><FileText className="h-5 w-5" /></div>
                       <div className="min-w-0 flex-1">

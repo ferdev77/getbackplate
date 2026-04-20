@@ -127,7 +127,7 @@ function getChangesSummary(metadata: Record<string, unknown> | null): string[] |
   }
   
   if (metadata.branch_ids) {
-    changesList.push("Actualizó las locaciones asignadas");
+    changesList.push("Actualizó las ubicaciones asignadas");
   }
   
   if (changesList.length > 0) return changesList;
@@ -303,7 +303,7 @@ function VendorDetailPanel({ vendor, onClose, onEdit, onDelete }: {
               <div className="pb-4 border-b border-[var(--gbp-border)]">
                 <p className={`text-[11px] font-bold uppercase tracking-widest mb-2 ${TEXT_MUTED}`}>Locaciones asignadas</p>
                 {vendor.branchNames.length === 0 ? (
-                  <span className={`text-xs italic ${TEXT_MUTED}`}>Todas las locaciones</span>
+                  <span className={`text-xs italic ${TEXT_MUTED}`}>Todas las ubicaciones</span>
                 ) : (
                   <div className="flex flex-wrap gap-1.5">
                     {vendor.branchNames.map((name) => (
@@ -673,7 +673,7 @@ export default function VendorsTableWorkspace({ initialVendors, branches, organi
 
           {branches.length > 0 && (
             <select value={filterBranch} onChange={(e) => setFilterBranch(e.target.value)} className={selectCls}>
-              <option value="">Todas las locaciones</option>
+              <option value="">Todas las ubicaciones</option>
               {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           )}

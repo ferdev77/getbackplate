@@ -102,7 +102,7 @@ export function DocumentEditModal({ document, folders, branches, departments, po
               <section className={MODAL_SOFT_BOX}>
                 <div className="mb-3">
                   <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">Permisos de acceso</p>
-                  <p className="mt-1 text-xs text-[var(--gbp-text2)]">Define alcance por locacion, departamento, puesto o usuario.</p>
+                  <p className="mt-1 text-xs text-[var(--gbp-text2)]">Define alcance por ubicación, departamento, puesto o usuario.</p>
                 </div>
                 <div className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 pb-3">
                   <ScopeSelector

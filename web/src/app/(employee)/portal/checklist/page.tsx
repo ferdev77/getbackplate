@@ -10,6 +10,7 @@ import { getEmployeeDelegatedPermissionsByMembership } from "@/shared/lib/employ
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { getEnabledModulesCached } from "@/modules/organizations/cached-queries";
 import { getBranchDisplayName } from "@/shared/lib/branch-display";
+import { OperationHeaderCard } from "@/shared/ui/operation-header-card";
 
 type EmployeeChecklistPageProps = {
   searchParams: Promise<{ preview?: string | string[] }>;
@@ -239,31 +240,27 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
   return (
     <main>
       <RestoreChecklistScroll />
-      <section className="mb-5 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6">
-        <p className="text-[11px] font-semibold tracking-[0.14em] text-[var(--gbp-text2)] uppercase">Operacion diaria</p>
-        <div className="mt-1 flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Mis Checklists</h1>
-            <p className="mt-1 text-sm text-[var(--gbp-text2)]">Completa tus checklists asignados y gestiona los que creaste con vista previa, edicion y eliminacion.</p>
-          </div>
-          {canCreate ? (
-            <ChecklistCreateTrigger
-              className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white hover:bg-[var(--gbp-accent)]"
-              branches={(branches ?? []).map((branch) => ({
-                ...branch,
-                name: getBranchDisplayName(branch, customBrandingEnabled),
-              }))}
-              departments={departments ?? []}
-              positions={positions ?? []}
-              users={scopeUsers}
-              submitEndpoint="/api/employee/checklists/templates"
-              basePath="/portal/checklist"
-            >
-              <ClipboardPlus className="h-4 w-4" /> Nuevo Checklist
-            </ChecklistCreateTrigger>
-          ) : null}
-        </div>
-      </section>
+      <OperationHeaderCard
+        eyebrow="Operación diaria"
+        title="Mis Checklists"
+        description="Completa tus checklists asignados y gestiona los que creaste con vista previa, edición y eliminación."
+        action={canCreate ? (
+          <ChecklistCreateTrigger
+            className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white hover:bg-[var(--gbp-accent)]"
+            branches={(branches ?? []).map((branch) => ({
+              ...branch,
+              name: getBranchDisplayName(branch, customBrandingEnabled),
+            }))}
+            departments={departments ?? []}
+            positions={positions ?? []}
+            users={scopeUsers}
+            submitEndpoint="/api/employee/checklists/templates"
+            basePath="/portal/checklist"
+          >
+            <ClipboardPlus className="h-4 w-4" /> Nuevo Checklist
+          </ChecklistCreateTrigger>
+        ) : null}
+      />
 
       <EmployeeChecklistWorkspace
         templates={templatesWorkspaceData}

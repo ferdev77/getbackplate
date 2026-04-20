@@ -232,7 +232,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreat
 
       <section className="mt-2 flex flex-wrap items-center gap-2">
         <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-[34px] w-[210px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs text-[var(--gbp-text)]" placeholder="Buscar administrador..." />
-        <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs text-[var(--gbp-text)]"><option value="">Todas las locaciones</option>{[...new Set(rows.map((item) => item.branchName))].map((item) => <option key={item} value={item}>{item}</option>)}</select>
+        <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs text-[var(--gbp-text)]"><option value="">Todas las ubicaciones</option>{[...new Set(rows.map((item) => item.branchName))].map((item) => <option key={item} value={item}>{item}</option>)}</select>
         <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs text-[var(--gbp-text)]"><option value="">Todos los accesos</option><option value="active">Activo</option><option value="inactive">Inactivo</option></select>
       </section>
 

@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     analysis = await analyzeUploadedFile(file);
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Archivo invalido" },
+      { error: error instanceof Error ? error.message : "Archivo inválido" },
       { status: 400 },
     );
   }
@@ -218,7 +218,7 @@ export async function DELETE(request: Request) {
   const body = (await request.json().catch(() => null)) as { documentId?: string } | null;
   const documentId = String(body?.documentId ?? "").trim();
   if (!documentId) {
-    return NextResponse.json({ error: "Documento invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Documento inválido" }, { status: 400 });
   }
 
   const admin = createSupabaseAdminClient();

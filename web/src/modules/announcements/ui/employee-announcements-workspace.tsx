@@ -285,7 +285,7 @@ export function EmployeeAnnouncementsWorkspace({
         <section className="space-y-3">
           <p className="text-[11px] font-bold tracking-[0.12em] text-[var(--gbp-muted)] uppercase">Creados por mi</p>
           <p className="rounded-2xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-10 text-center text-sm text-[var(--gbp-text2)]">
-            Aun no creaste avisos.
+            Aún no creaste avisos.
           </p>
         </section>
       ) : null}

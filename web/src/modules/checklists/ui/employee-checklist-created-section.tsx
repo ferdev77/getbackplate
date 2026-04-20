@@ -148,7 +148,7 @@ export function EmployeeChecklistCreatedSection({
             ))}
           </div>
         ) : (
-          <div className="px-4 py-8 text-center text-sm text-[var(--gbp-text2)]">Aun no creaste checklists.</div>
+          <div className="px-4 py-8 text-center text-sm text-[var(--gbp-text2)]">Aún no creaste checklists.</div>
         )}
       </section>
 

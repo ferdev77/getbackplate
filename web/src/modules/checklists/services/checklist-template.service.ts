@@ -137,7 +137,7 @@ export async function upsertChecklistTemplate(
 
   if (!scopeValidation.ok) {
     const messageByField = {
-      locations: "Algunas locaciones de alcance no son validas",
+      locations: "Algunas ubicaciones de alcance no son válidas",
       departments: "Algunos departamentos de alcance no son validos",
       positions: "Algunos puestos de alcance no son validos",
       users: "Algunos usuarios seleccionados no son validos",
@@ -284,7 +284,7 @@ export async function upsertChecklistTemplate(
     if (sectionError || !sectionRow) {
       return {
         ok: false,
-        message: `Plantilla ${templateId ? "actualizada" : "creada"} pero seccion fallo: ${sectionError?.message ?? "error"}`
+        message: `Plantilla ${templateId ? "actualizada" : "creada"}, pero falló la sección: ${sectionError?.message ?? "error"}`
       };
     }
 

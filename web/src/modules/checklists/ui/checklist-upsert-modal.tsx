@@ -109,7 +109,7 @@ export function ChecklistUpsertModal({
           .filter(Boolean);
         items = flatItems.join("\n");
       } catch {
-        toast.error("Formato de secciones invalido");
+        toast.error("Formato de secciones inválido");
         return;
       }
     } else {
