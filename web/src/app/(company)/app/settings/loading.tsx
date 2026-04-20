@@ -1,6 +1,8 @@
+import { PageContent } from "@/shared/ui/page-content";
+
 export default function SettingsLoading() {
   return (
-    <main className="mx-auto w-full max-w-7xl animate-pulse px-4 py-6 sm:px-6">
+    <PageContent className="animate-pulse">
       <section className="mb-5 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-6">
         <div className="h-3 w-24 rounded bg-[var(--gbp-surface2)]" />
         <div className="mt-2 h-7 w-48 rounded bg-[var(--gbp-surface2)]" />
@@ -18,6 +20,6 @@ export default function SettingsLoading() {
           </article>
         ))}
       </section>
-    </main>
+    </PageContent>
   );
 }

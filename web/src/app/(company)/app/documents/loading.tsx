@@ -1,6 +1,8 @@
+import { PageContent } from "@/shared/ui/page-content";
+
 export default function DocumentsLoading() {
   return (
-    <main className="mx-auto w-full max-w-7xl animate-pulse px-4 py-6 sm:px-6">
+    <PageContent className="animate-pulse">
       <section className="mb-5 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-2">
@@ -32,6 +34,6 @@ export default function DocumentsLoading() {
           </article>
         ))}
       </section>
-    </main>
+    </PageContent>
   );
 }

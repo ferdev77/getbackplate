@@ -1,6 +1,8 @@
+import { PageContent } from "@/shared/ui/page-content";
+
 export default function UsersLoading() {
   return (
-    <main className="mx-auto flex w-full max-w-7xl animate-pulse flex-col gap-6 px-6 py-8">
+    <PageContent spacing="roomy" className="flex animate-pulse flex-col gap-6">
       <section className="rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-2">
@@ -31,6 +33,6 @@ export default function UsersLoading() {
           </div>
         ))}
       </section>
-    </main>
+    </PageContent>
   );
 }

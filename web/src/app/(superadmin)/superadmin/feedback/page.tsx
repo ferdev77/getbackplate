@@ -3,6 +3,7 @@ import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { PageContent } from "@/shared/ui/page-content";
 import { FeedbackStatusButton } from "./feedback-status-button";
 
 export const dynamic = "force-dynamic";
@@ -62,7 +63,7 @@ export default async function SuperadminFeedbackPage() {
   const resolvedCount = (messages ?? []).filter(m => m.status === 'resolved').length;
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
+    <PageContent spacing="roomy" className="flex flex-col gap-6">
       <section className="relative overflow-hidden rounded-[2.5rem] border border-[var(--gbp-border)] bg-[linear-gradient(145deg,var(--gbp-text)_0%,color-mix(in_oklab,var(--gbp-text)_88%,black)_100%)] p-8 text-white shadow-xl">
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand/20 blur-3xl" />
         <div className="relative z-10">
@@ -150,6 +151,6 @@ export default async function SuperadminFeedbackPage() {
           )}
         </div>
       </section>
-    </main>
+    </PageContent>
   );
 }

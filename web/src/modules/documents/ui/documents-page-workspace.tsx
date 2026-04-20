@@ -9,6 +9,7 @@ import { DocumentFolderModal } from "@/modules/documents/ui/document-folder-moda
 import { UploadDocumentModal } from "@/modules/documents/ui/upload-document-modal";
 import { SlideUp } from "@/shared/ui/animations";
 import { OperationHeaderCard } from "@/shared/ui/operation-header-card";
+import { PageContent } from "@/shared/ui/page-content";
 
 type Folder = { id: string; name: string; parent_id: string | null; access_scope: unknown; created_at: string };
 type Document = {
@@ -96,7 +97,7 @@ export function DocumentsPageWorkspace({
   };
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
+    <PageContent>
       <SlideUp>
         <OperationHeaderCard
           eyebrow="Operación diaria"
@@ -168,6 +169,6 @@ export function DocumentsPageWorkspace({
           recentDocuments={recentDocuments}
         />
       ) : null}
-    </main>
+    </PageContent>
   );
 }

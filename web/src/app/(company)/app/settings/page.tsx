@@ -23,6 +23,7 @@ import { ReorderableBranchList } from "@/modules/settings/ui/reorderable-branch-
 import { ReorderableDepartmentList } from "@/modules/settings/ui/reorderable-department-list";
 import { isModuleEnabledForOrganization, requireTenantModule } from "@/shared/lib/access";
 import { DEFAULT_CUSTOM_DOMAIN_CNAME_TARGET } from "@/shared/lib/custom-domains";
+import { PageContent } from "@/shared/ui/page-content";
 
 type CompanySettingsPageProps = {
   searchParams: Promise<{ status?: string; message?: string; action?: string; departmentId?: string }>;
@@ -200,7 +201,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
+    <PageContent className="flex flex-col gap-5 lg:px-[var(--gbp-content-pad-x-lg)]">
       <section className="mb-1 flex flex-wrap items-center justify-between gap-3">
         <div className={`inline-flex items-center gap-2 ${TEXT_STRONG}`}>
           <Settings2 className="h-4 w-4" />
@@ -316,6 +317,6 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
         </article>
       </section>
 
-    </main>
+    </PageContent>
   );
 }
