@@ -150,7 +150,7 @@ export async function PATCH(request: Request) {
   const isFeatured = body?.is_featured === true;
 
   if (!announcementId || !title || !message) {
-    return NextResponse.json({ error: "Datos invalidos" }, { status: 400 });
+    return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
   const admin = createSupabaseAdminClient();
@@ -240,7 +240,7 @@ export async function DELETE(request: Request) {
   const body = (await request.json().catch(() => null)) as { announcementId?: string } | null;
   const announcementId = String(body?.announcementId ?? "").trim();
   if (!announcementId) {
-    return NextResponse.json({ error: "Aviso invalido" }, { status: 400 });
+    return NextResponse.json({ error: "Aviso inválido" }, { status: 400 });
   }
 
   const admin = createSupabaseAdminClient();

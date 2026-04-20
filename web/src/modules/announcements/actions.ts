@@ -89,10 +89,10 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
 
   if (!scopeValidation.ok) {
     const messageByField = {
-      locations: "Hay locaciones invalidas en la audiencia",
-      departments: "Hay departamentos invalidos en la audiencia",
-      positions: "Hay puestos invalidos en la audiencia",
-      users: "Hay usuarios invalidos en la audiencia",
+      locations: "Hay ubicaciones inválidas en la audiencia",
+      departments: "Hay departamentos inválidos en la audiencia",
+      positions: "Hay puestos inválidos en la audiencia",
+      users: "Hay usuarios inválidos en la audiencia",
     } as const;
     return { success: false, message: messageByField[scopeValidation.field] };
   }

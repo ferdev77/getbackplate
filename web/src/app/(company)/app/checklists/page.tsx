@@ -16,6 +16,7 @@ import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { getEnabledModulesCached } from "@/modules/organizations/cached-queries";
 import { SlideUp } from "@/shared/ui/animations";
 import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
+import { OperationHeaderCard } from "@/shared/ui/operation-header-card";
 
 type CompanyChecklistsPageProps = {
   searchParams: Promise<{
@@ -304,13 +305,15 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
       <EmployeeChecklistRealtimeRefresh organizationId={tenant.organizationId} userId={userId} />
       <SlideUp>
-        <section className={`mb-5 rounded-2xl border p-6 ${CARD_SOFT}`}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className={`text-[11px] font-semibold tracking-[0.14em] uppercase ${TEXT_MUTED}`}>Operación diaria</p>
-              <h1 className={`mt-1 text-2xl font-bold tracking-tight ${TEXT_STRONG}`}>Mis Checklists</h1>
-              <p className={`mt-1 text-sm ${TEXT_MUTED}`}>Gestiona plantillas de checklist, revisa su estado operativo y administra acciones de edicion, vista previa y eliminacion.</p>
-            </div>
+        <OperationHeaderCard
+          eyebrow="Operación diaria"
+          title="Mis Checklists"
+          description="Gestiona plantillas de checklist, revisa su estado operativo y administra acciones de edición, vista previa y eliminación."
+          className={CARD_SOFT}
+          eyebrowClassName={`text-[11px] font-semibold tracking-[0.14em] uppercase ${TEXT_MUTED}`}
+          titleClassName={`mt-1 text-2xl font-bold tracking-tight ${TEXT_STRONG}`}
+          descriptionClassName={`mt-1 text-sm ${TEXT_MUTED}`}
+          action={(
             <ChecklistCreateTrigger
               className="inline-flex items-center gap-1 rounded-lg bg-[var(--gbp-text)] px-3 py-2 text-sm font-semibold text-white hover:bg-[var(--gbp-accent)]"
               branches={mappedBranches}
@@ -320,8 +323,8 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
             >
               <ClipboardPlus className="h-4 w-4" /> Nuevo Checklist
             </ChecklistCreateTrigger>
-          </div>
-        </section>
+          )}
+        />
       </SlideUp>
 
       <div className="mb-5 grid gap-3 sm:grid-cols-4">
@@ -343,7 +346,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
         <form className={`mb-4 flex flex-wrap items-center gap-2 rounded-xl border p-3 ${CARD}`} method="get">
           <input name="q" defaultValue={q} className={`h-[34px] w-full sm:w-[240px] rounded-lg border-[1.5px] px-3 text-xs ${BTN_GHOST}`} placeholder="Buscar checklist..." />
           <select name="type" defaultValue={typeFilter} className={`h-[34px] w-full sm:w-auto rounded-lg border-[1.5px] px-3 text-xs ${BTN_GHOST}`}><option value="">Todos los tipos</option><option value="opening">Apertura</option><option value="closing">Cierre</option><option value="prep">Prep</option><option value="custom">Custom</option></select>
-          <select name="loc" defaultValue={locFilter} className={`h-[34px] w-full sm:w-auto rounded-lg border-[1.5px] px-3 text-xs ${BTN_GHOST}`}><option value="">Todas las locaciones</option>{mappedBranches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select>
+          <select name="loc" defaultValue={locFilter} className={`h-[34px] w-full sm:w-auto rounded-lg border-[1.5px] px-3 text-xs ${BTN_GHOST}`}><option value="">Todas las ubicaciones</option>{mappedBranches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select>
           <button type="submit" className="h-[34px] w-full sm:w-auto rounded-lg bg-[var(--gbp-text)] px-4 text-xs font-semibold text-white hover:bg-[var(--gbp-accent)]">Filtrar</button>
         </form>
       </SlideUp>
@@ -463,7 +466,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
                         <div>
                           <p className="mb-1 font-semibold text-[var(--gbp-text)]">Locaciones</p>
                           <div className="flex flex-wrap gap-1">
-                            {locations.length ? locations.map((name) => <span key={`loc-${name}`} className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-medium text-[var(--gbp-accent)]">{name}</span>) : <span>{hasScopedRules ? "No restringe por locación" : "Todas"}</span>}
+                            {locations.length ? locations.map((name) => <span key={`loc-${name}`} className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-medium text-[var(--gbp-accent)]">{name}</span>) : <span>{hasScopedRules ? "No restringe por ubicación" : "Todas"}</span>}
                           </div>
                         </div>
                         <div>

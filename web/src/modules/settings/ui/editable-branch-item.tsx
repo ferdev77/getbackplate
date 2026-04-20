@@ -119,7 +119,7 @@ export function EditableBranchItem({
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Nombre de locación"
+            placeholder="Nombre de ubicación"
             className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none focus:border-[var(--gbp-accent)]"
             disabled={busy}
           />
@@ -239,8 +239,8 @@ export function EditableBranchItem({
 
       {isDeleting && (
         <ConfirmDeleteDialog
-          title={`Eliminar locación: ${branch.name}`}
-          description="¿Estás seguro de que deseas eliminar esta locación permanentemente? Solo se podrá eliminar si no tiene personal asignado."
+          title={`Eliminar ubicación: ${branch.name}`}
+          description="¿Seguro que deseas eliminar esta ubicación de forma permanente? Solo se podrá eliminar si no tiene personal asignado."
           busy={busy}
           onCancel={() => setIsDeleting(false)}
           onConfirm={handleDelete}

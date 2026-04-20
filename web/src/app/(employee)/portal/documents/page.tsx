@@ -166,13 +166,6 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
 
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-[18px] font-bold text-[var(--gbp-text)]">Tus Documentos</h1>
-        <p className="mt-1 text-sm text-[var(--gbp-text2)]">
-          Explora los archivos y carpetas a los que tienes acceso segun tu perfil.
-        </p>
-      </div>
-
       <EmployeeDocumentsTree
         organizationId={tenant.organizationId}
         viewerUserId={userId}

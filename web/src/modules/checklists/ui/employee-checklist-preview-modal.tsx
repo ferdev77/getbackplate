@@ -257,7 +257,7 @@ export function EmployeeChecklistPreviewModal({
               <div>
                 <span className="mb-2 inline-flex items-center gap-1 rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_45%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_16%,transparent)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">📋 Apertura</span>
                 <h2 className="font-serif text-[26px] leading-tight text-[var(--gbp-text)]">{templateName}</h2>
-                <p className="mt-1 text-[13px] text-[var(--gbp-text2)]">{readOnly ? "Reporte enviado" : "Vista de ejecucion para empleado"}</p>
+                <p className="mt-1 text-[13px] text-[var(--gbp-text2)]">{readOnly ? "Reporte enviado" : "Vista de ejecución para empleado"}</p>
               </div>
                <button type="button" onClick={closeModal} className="grid h-[34px] w-[34px] cursor-pointer place-items-center rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[18px] text-[var(--gbp-text2)] hover:border-[var(--gbp-accent)] hover:bg-[var(--gbp-accent)] hover:text-white">✕</button>
             </div>

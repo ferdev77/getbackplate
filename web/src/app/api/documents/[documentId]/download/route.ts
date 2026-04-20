@@ -179,25 +179,23 @@ export async function GET(request: Request, { params }: Context) {
     return NextResponse.json({ error: "No se pudo generar enlace" }, { status: 500 });
   }
 
-  const inlineMode = new URL(request.url).searchParams.get("inline") === "1";
-  if (inlineMode) {
-    const storageResponse = await fetch(signed.signedUrl);
-    if (!storageResponse.ok || !storageResponse.body) {
-      return NextResponse.json({ error: "No se pudo generar vista previa" }, { status: 500 });
-    }
-
-    const safeFileName = `${document.title || "documento"}`.replace(/[\r\n"]/g, "").slice(0, 120);
-    return new NextResponse(storageResponse.body, {
-      status: 200,
-      headers: {
-        "Content-Type": document.mime_type || storageResponse.headers.get("content-type") || "application/octet-stream",
-        "Content-Disposition": `inline; filename="${safeFileName}"`,
-        "Cache-Control": "private, max-age=30",
-        "X-Frame-Options": "SAMEORIGIN",
-        "Content-Security-Policy": "frame-ancestors 'self'",
-      },
-    });
+  const storageResponse = await fetch(signed.signedUrl);
+  if (!storageResponse.ok || !storageResponse.body) {
+    return NextResponse.json({ error: "No se pudo generar descarga" }, { status: 500 });
   }
 
-  return NextResponse.redirect(signed.signedUrl);
+  const inlineMode = new URL(request.url).searchParams.get("inline") === "1";
+  const safeFileName = `${document.title || "documento"}`.replace(/[\r\n"]/g, "").slice(0, 120);
+  const contentType = document.mime_type || storageResponse.headers.get("content-type") || "application/octet-stream";
+
+  return new NextResponse(storageResponse.body, {
+    status: 200,
+    headers: {
+      "Content-Type": contentType,
+      "Content-Disposition": `${inlineMode ? "inline" : "attachment"}; filename="${safeFileName}"`,
+      "Cache-Control": "private, max-age=30",
+      "X-Frame-Options": "SAMEORIGIN",
+      "Content-Security-Policy": "frame-ancestors 'self'",
+    },
+  });
 }

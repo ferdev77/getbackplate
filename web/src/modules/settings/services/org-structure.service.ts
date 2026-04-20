@@ -41,7 +41,7 @@ export async function createBranch(params: {
   const { supabase, organizationId, name, city, state, country, address, phone } = params;
 
   if (!name) {
-    return { ok: false, message: "Nombre de locación obligatorio" };
+    return { ok: false, message: "Nombre de ubicación obligatorio" };
   }
 
   const code = toCode(name);
@@ -63,7 +63,7 @@ export async function createBranch(params: {
     .maybeSingle();
 
   if (existing) {
-    return { ok: false, message: "Ya existe una locación con ese nombre" };
+    return { ok: false, message: "Ya existe una ubicación con ese nombre" };
   }
 
   const { data: maxOrderData } = await supabase
@@ -93,7 +93,7 @@ export async function createBranch(params: {
     .single();
 
   if (error) {
-    return { ok: false, message: `No se pudo crear locación: ${error.message}` };
+    return { ok: false, message: `No se pudo crear la ubicación: ${error.message}` };
   }
 
   return { ok: true, id: created?.id };
@@ -127,7 +127,7 @@ export async function updateBranch(params: {
     .maybeSingle();
 
   if (duplicate) {
-    return { ok: false, message: "Ya existe otra locación con ese nombre" };
+    return { ok: false, message: "Ya existe otra ubicación con ese nombre" };
   }
 
   const { error } = await supabase
@@ -137,7 +137,7 @@ export async function updateBranch(params: {
     .eq("id", branchId);
 
   if (error) {
-    return { ok: false, message: `No se pudo actualizar locación: ${error.message}` };
+    return { ok: false, message: `No se pudo actualizar la ubicación: ${error.message}` };
   }
 
   return { ok: true, id: branchId };
@@ -162,7 +162,7 @@ export async function toggleBranchStatus(params: {
     .eq("id", branchId);
 
   if (error) {
-    return { ok: false, message: `No se pudo actualizar locación: ${error.message}` };
+    return { ok: false, message: `No se pudo actualizar la ubicación: ${error.message}` };
   }
 
   return { ok: true, id: branchId };
@@ -187,11 +187,11 @@ export async function deleteBranch(params: {
     .eq("branch_id", branchId);
 
   if (countError) {
-    return { ok: false, message: `No se pudo verificar uso de la locación: ${countError.message}` };
+    return { ok: false, message: `No se pudo verificar el uso de la ubicación: ${countError.message}` };
   }
 
   if (count && count > 0) {
-    return { ok: false, message: "No se puede eliminar la locación porque tiene personal asignado. Desactívala en su lugar." };
+    return { ok: false, message: "No se puede eliminar la ubicación porque tiene personal asignado. Desactívala en su lugar." };
   }
 
   const { error } = await supabase
@@ -201,7 +201,7 @@ export async function deleteBranch(params: {
     .eq("id", branchId);
 
   if (error) {
-    return { ok: false, message: `No se pudo eliminar locación: ${error.message}` };
+    return { ok: false, message: `No se pudo eliminar la ubicación: ${error.message}` };
   }
 
   return { ok: true };

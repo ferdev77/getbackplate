@@ -144,7 +144,7 @@ export function ScopeSelector({
 
   return (
     <>
-      <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Acceso por locacion</label>
+      <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Acceso por ubicación</label>
       <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
         <label className="mb-2 inline-flex items-center gap-2 border-b border-[var(--gbp-border)] pb-2 text-xs font-semibold text-[var(--gbp-text)]">
           <input
@@ -156,7 +156,7 @@ export function ScopeSelector({
             }}
             className="h-[14px] w-[14px] accent-[var(--gbp-accent)]"
           />
-          Todas las locaciones
+          Todas las ubicaciones
         </label>
         <div className="grid grid-cols-2 gap-2 text-xs text-[var(--gbp-text2)]">
           {branches.map((branch) => (

@@ -468,7 +468,7 @@ export function EmployeeShell({
                 </span>
               ) : null}
               <span className="hidden rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-2.5 py-1 text-xs text-[var(--gbp-accent)] sm:inline shadow-sm">
-                Soy Empleado
+                Empleado
               </span>
             </div>
           </header>

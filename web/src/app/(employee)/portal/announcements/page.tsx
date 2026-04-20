@@ -10,6 +10,7 @@ import { extractDisplayName } from "@/shared/lib/user";
 import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
 import { getBranchDisplayName } from "@/shared/lib/branch-display";
 import { AnnouncementModalTrigger } from "@/modules/announcements/ui/announcement-modal-trigger";
+import { OperationHeaderCard } from "@/shared/ui/operation-header-card";
 
 type AnnouncementRow = {
   id: string;
@@ -180,12 +181,11 @@ export default async function EmployeeAnnouncementsPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--gbp-text)]">Avisos</h1>
-          <p className="mt-1 text-sm text-[var(--gbp-text2)]">Directivas y comunicaciones de la empresa.</p>
-        </div>
-        {canCreate ? (
+      <OperationHeaderCard
+        eyebrow="Operación diaria"
+        title="Mis Avisos"
+        description="Revisa comunicados internos y gestiona los avisos que creaste con alcance, fijados y edición."
+        action={canCreate ? (
           <AnnouncementModalTrigger
             className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white hover:bg-[var(--gbp-accent)]"
             mode="create"
@@ -200,7 +200,7 @@ export default async function EmployeeAnnouncementsPage() {
             <BellPlus className="h-3.5 w-3.5" /> Nuevo Aviso
           </AnnouncementModalTrigger>
         ) : null}
-      </header>
+      />
 
       <EmployeeAnnouncementsWorkspace
         visibleAnnouncements={announcements}

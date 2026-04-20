@@ -807,7 +807,7 @@ export function NewEmployeeModal({
   const positionNameById = useMemo(() => new Map(positions.map((row) => [row.id, row.name])), [positions]);
 
   const employeeFullName = `${firstName} ${lastName}`.trim() || "[Nombre del empleado]";
-  const previewBranch = selectedBranch ? (branchNameById.get(selectedBranch) ?? "Sin locación") : "Sin locación";
+  const previewBranch = selectedBranch ? (branchNameById.get(selectedBranch) ?? "Sin ubicación") : "Sin ubicación";
   const previewDepartment = selectedDept ? (departmentNameById.get(selectedDept) ?? "Sin departamento") : "Sin departamento";
   const previewPosition = selectedPosition ? (positionNameById.get(selectedPosition) ?? "Puesto no definido") : "Puesto no definido";
   const previewHireDate = hireDate
@@ -1305,7 +1305,7 @@ export function NewEmployeeModal({
                     className={`${FIELD_INPUT} appearance-none`}
                     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: 'right 1rem center', backgroundRepeat: 'no-repeat' }}
                   >
-                    <option value="">— Selecciona locación —</option>
+                    <option value="">— Selecciona ubicación —</option>
                     {branches.map((b) => (
                       <option key={b.id} value={b.id}>
                         {b.name}
@@ -1426,7 +1426,7 @@ export function NewEmployeeModal({
                     {hasUploadedFile ? (
                       <div className="mt-2 flex items-center gap-2">
                         <a
-                          href={`/api/documents/${row?.documentId}/download`}
+                          href={`/api/documents/${row?.documentId}/download?inline=1`}
                           target="_blank"
                           rel="noreferrer"
                           onClick={(event) => event.stopPropagation()}

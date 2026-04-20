@@ -588,7 +588,7 @@ export async function reorderBranchesAction(branchIds: string[]) {
   const filteredIds = branchIds.filter((id) => validIds.includes(id));
 
   if (filteredIds.length === 0) {
-    return { ok: false, error: "No se encontraron locaciones validas para reordenar" };
+    return { ok: false, error: "No se encontraron ubicaciones válidas para reordenar" };
   }
 
   // Perform sequential updates for sort_order

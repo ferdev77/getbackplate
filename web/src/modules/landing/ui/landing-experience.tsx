@@ -227,7 +227,7 @@ export function LandingExperience({ plans }: Props) {
         ? [
             ["01", "Operaciones y Cumplimiento", "Checklist digitales, incidentes, controles y trazabilidad de ejecución por turno."],
             ["02", "People & RRHH", "Onboarding, documentos, estado laboral, evaluaciones y seguimiento por rol."],
-            ["03", "Cocina y Menú", "Estandarización operativa de recetas, seguridad alimentaria y control por locación."],
+            ["03", "Cocina y Menú", "Estandarización operativa de recetas, seguridad alimentaria y control por ubicación."],
             ["04", "Comunicación", "Anuncios, alertas y coordinación interna sin depender de chats externos."],
             ["05", "Reportes", "Visión operativa por sucursal, fechas y estado con métricas accionables."],
             ["06", "Permisos", "Jerarquía clara por rol: owners, managers y staff con acceso controlado."],
@@ -249,7 +249,7 @@ export function LandingExperience({ plans }: Props) {
         ? [
             ["Fluidez", "La operación tiene que sentirse natural. Menos fricción, más ejecución real."],
             ["Empatía", "Diseñamos para equipos de turno, no para demos de escritorio."],
-            ["Claridad", "Cada pantalla debe ser entendible en segundos, sin capacitación eterna."],
+            ["Claridad", "Cada pantalla debe ser fácil de entender en segundos, sin capacitación eterna."],
             ["Responsabilidad", "Cada acción queda trazada por persona, turno y ubicación."],
           ]
         : [
@@ -571,7 +571,7 @@ export function LandingExperience({ plans }: Props) {
         <section className="bg-[var(--gbp-surface)] px-6 py-24 md:py-28">
           <div className="mx-auto mb-4 max-w-[1200px]">
             <p className="inline-flex rounded-full border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[var(--gbp-muted)]">
-              {lang === "es" ? "Multi-locación" : "Multi-location"}
+              {lang === "es" ? "Multi-ubicación" : "Multi-location"}
             </p>
           </div>
           <div className="mx-auto grid max-w-[1200px] gap-10 md:grid-cols-2 md:items-end">
@@ -714,7 +714,7 @@ export function LandingExperience({ plans }: Props) {
                   : "Our full leadership team instantly saw how much time and operational chaos we were losing without a real operations layer."}
               </p>
               <p className="mt-3 text-sm text-[var(--gbp-text2)]">
-                {lang === "es" ? "Restaurant Owner · Grupo multi-locación" : "Restaurant Owner · Multi-location group"}
+                {lang === "es" ? "Restaurant Owner · Grupo multi-ubicación" : "Restaurant Owner · Multi-location group"}
               </p>
             </div>
           </div>

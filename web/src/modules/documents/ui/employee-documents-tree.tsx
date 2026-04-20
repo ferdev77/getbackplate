@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Search, ChevronRight, Folder, ListTree, Columns3, UploadCloud } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FadeIn, SlideUp, AnimatedItem } from "@/shared/ui/animations";
@@ -14,11 +14,13 @@ import { useEmployeeDocumentsPreferences } from "@/modules/documents/hooks/use-e
 import type { BranchOption, DepartmentOption, PositionOption, ScopedUserOption } from "@/shared/contracts/scope-options";
 import { DocumentPreviewPanel } from "@/modules/documents/ui/document-preview-panel";
 import { AssignedCreatedToggle } from "@/shared/ui/assigned-created-toggle";
+import { OperationHeaderCard } from "@/shared/ui/operation-header-card";
 
 type FolderRow = {
   id: string;
   name: string;
   parent_id: string | null;
+  access_scope?: unknown;
   created_at: string;
 };
 
@@ -31,7 +33,21 @@ type DocumentRow = {
   created_at: string;
   owner_user_id?: string | null;
   is_new?: boolean;
+  branch_id?: string | null;
+  access_scope?: unknown;
 };
+
+function parseScope(scope: unknown) {
+  if (!scope || typeof scope !== "object") {
+    return { departments: [] as string[] };
+  }
+  const value = scope as Record<string, unknown>;
+  return {
+    departments: Array.isArray(value.department_ids)
+      ? value.department_ids.filter((x): x is string => typeof x === "string")
+      : [],
+  };
+}
 
 type Props = {
   organizationId: string;
@@ -79,6 +95,10 @@ export function EmployeeDocumentsTree({
   const [documentsState, setDocumentsState] = useState<DocumentRow[]>(documents);
   const [ownershipView, setOwnershipView] = useState<"assigned" | "created">("assigned");
   const [query, setQuery] = useState("");
+  const [folderFilter, setFolderFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("");
+  const [sortBy, setSortBy] = useState("date-desc");
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set());
   const [selectedColumnDocId, setSelectedColumnDocId] = useState<string | null>(null);
   const [previewState, setPreviewState] = useState<{ docId: string | null; status: "idle" | "loading" | "ready" | "error" }>({
@@ -112,18 +132,35 @@ export function EmployeeDocumentsTree({
     setDocumentsState(documents);
   }, [documents]);
 
+  const folderById = useMemo(() => new Map(folders.map((folder) => [folder.id, folder])), [folders]);
+  const folderOptions = useMemo(() => folders.map((folder) => ({ id: folder.id, name: folder.name })), [folders]);
+
+  const getEffectiveDocumentScope = useCallback((doc: DocumentRow) => {
+    if (!doc.folder_id) return parseScope(doc.access_scope);
+    return parseScope(folderById.get(doc.folder_id)?.access_scope ?? doc.access_scope);
+  }, [folderById]);
+
   const docsByFolder = useMemo(() => {
+    const q = query.trim().toLowerCase();
     const map = new Map<string | null, DocumentRow[]>();
     for (const doc of documentsState.filter((row) => {
       const own = row.owner_user_id === viewerUserId;
-      return ownershipView === "created" ? own : !own;
+      if (ownershipView === "created" ? !own : own) return false;
+      if (folderFilter && row.folder_id !== folderFilter) return false;
+      if (locationFilter && row.branch_id !== locationFilter) return false;
+      if (departmentFilter) {
+        const scope = getEffectiveDocumentScope(row);
+        if (!scope.departments.includes(departmentFilter)) return false;
+      }
+      if (q && !row.title.toLowerCase().includes(q)) return false;
+      return true;
     })) {
       const list = map.get(doc.folder_id) ?? [];
       list.push(doc);
       map.set(doc.folder_id, list);
     }
     return map;
-  }, [documentsState, ownershipView, viewerUserId]);
+  }, [departmentFilter, documentsState, folderFilter, getEffectiveDocumentScope, locationFilter, ownershipView, query, viewerUserId]);
 
   const childrenByFolder = useMemo(() => {
     const map = new Map<string | null, FolderRow[]>();
@@ -145,18 +182,24 @@ export function EmployeeDocumentsTree({
     [folders],
   );
 
-  function sortDocuments(rows: DocumentRow[]) {
-    return [...rows].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
-  }
+  const sortDocuments = useCallback((rows: DocumentRow[]) => {
+    return [...rows].sort((a, b) => {
+      if (sortBy === "date-asc") return +new Date(a.created_at) - +new Date(b.created_at);
+      if (sortBy === "name-asc") return a.title.localeCompare(b.title, "es");
+      if (sortBy === "name-desc") return b.title.localeCompare(a.title, "es");
+      if (sortBy === "size-desc") return (b.file_size_bytes ?? 0) - (a.file_size_bytes ?? 0);
+      if (sortBy === "size-asc") return (a.file_size_bytes ?? 0) - (b.file_size_bytes ?? 0);
+      return +new Date(b.created_at) - +new Date(a.created_at);
+    });
+  }, [sortBy]);
 
   const filteredDocsByFolder = useMemo(() => {
     const map = new Map<string | null, DocumentRow[]>();
-    const q = query.trim().toLowerCase();
     for (const [folderId, rows] of docsByFolder.entries()) {
-      map.set(folderId, sortDocuments(rows.filter((doc) => (q ? doc.title.toLowerCase().includes(q) : true))));
+      map.set(folderId, sortDocuments(rows));
     }
     return map;
-  }, [docsByFolder, query]);
+  }, [docsByFolder, sortDocuments]);
 
   const ownershipDocumentsCount = useMemo(() => {
     let total = 0;
@@ -280,65 +323,75 @@ export function EmployeeDocumentsTree({
 
   const isOwner = (doc: DocumentRow) => doc.owner_user_id === viewerUserId;
 
-  const noDocumentsTitle = ownershipView === "created" ? "Aun no creaste documentos" : "Sin documentos asignados";
+  const noDocumentsTitle = ownershipView === "created" ? "Aún no subiste documentos" : "Sin documentos asignados";
   const noDocumentsDescription = ownershipView === "created"
-    ? "Todavia no subiste documentos en este modulo."
+    ? "Todavía no subiste documentos en este módulo."
     : "No hay documentos visibles para tu perfil en este momento.";
 
-  const noResultsLabel = `No se encontraron resultados para \"${query}\" en ${ownershipView === "created" ? "Creados por mi" : "Asignados a mi"}.`;
+  const noResultsLabel = `No se encontraron resultados para \"${query}\" en ${ownershipView === "created" ? "Subidos" : "Asignados"}.`;
 
   return (
     <>
+      <OperationHeaderCard
+        eyebrow="Operación diaria"
+        title="Mis Documentos"
+        description="Explora y gestiona los documentos operativos que tienes asignados o subidos según tu perfil."
+        action={(
+          <div className="flex flex-wrap gap-2">
+            <div className="inline-flex h-[33px] items-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode("tree")}
+                data-testid="portal-documents-view-tree"
+                className={`rounded-md p-1.5 transition-colors ${viewMode === "tree" ? "bg-[var(--gbp-bg)] text-[var(--gbp-text)] shadow-sm" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}
+                title="Vista de Árbol"
+              >
+                <ListTree className="h-4.5 w-4.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("columns")}
+                data-testid="portal-documents-view-columns"
+                className={`rounded-md p-1.5 transition-colors ${viewMode === "columns" ? "bg-[var(--gbp-bg)] text-[var(--gbp-text)] shadow-sm" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}
+                title="Vista de Columnas"
+              >
+                <Columns3 className="h-4.5 w-4.5" />
+              </button>
+            </div>
+            {canCreate ? (
+              <button
+                type="button"
+                onClick={() => setIsUploadModalOpen(true)}
+                disabled={busy}
+                className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[var(--gbp-accent)] px-3 text-xs font-bold text-white disabled:opacity-70"
+              >
+                <UploadCloud className="h-3.5 w-3.5" />
+                Subir Archivo
+              </button>
+            ) : null}
+          </div>
+        )}
+      />
+
       <section className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--gbp-muted)]" />
-          <input 
-            value={query} 
-            onChange={(event) => setQuery(event.target.value)} 
-            className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] pl-10 pr-3 text-sm text-[var(--gbp-text)] transition-colors focus:border-[var(--gbp-accent)] focus:outline-none" 
-            placeholder="Buscar documentos..." 
-          />
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--gbp-muted)]" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-[34px] w-[220px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] pl-9 pr-3 text-xs" placeholder="Buscar documentos..." />
         </div>
-        <div className="inline-flex h-10 items-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] p-0.5">
-          <button
-            type="button"
-            onClick={() => setViewMode("tree")}
-            data-testid="portal-documents-view-tree"
-            className={`rounded-md p-1.5 transition-colors ${viewMode === "tree" ? "bg-[var(--gbp-bg)] text-[var(--gbp-text)] shadow-sm" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}
-            title="Vista de Árbol"
-          >
-            <ListTree className="h-4.5 w-4.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode("columns")}
-            data-testid="portal-documents-view-columns"
-            className={`rounded-md p-1.5 transition-colors ${viewMode === "columns" ? "bg-[var(--gbp-bg)] text-[var(--gbp-text)] shadow-sm" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}
-            title="Vista de Columnas"
-          >
-            <Columns3 className="h-4.5 w-4.5" />
-          </button>
-        </div>
-        {canCreate ? (
-          <>
-            <button
-              type="button"
-              onClick={() => setIsUploadModalOpen(true)}
-              disabled={busy}
-              className="inline-flex h-10 items-center gap-1 rounded-lg bg-[var(--gbp-accent)] px-3 text-xs font-bold text-white disabled:opacity-70"
-            >
-              <UploadCloud className="h-3.5 w-3.5" />
-              Subir
-            </button>
-          </>
+        {viewMode === "tree" ? (
+          <select value={folderFilter} onChange={(event) => setFolderFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las carpetas</option>{folderOptions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
         ) : null}
+        <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las ubicaciones</option>{branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
+        <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todos los departamentos</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
+        <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="date-desc">Más recientes primero</option><option value="date-asc">Más antiguos primero</option><option value="name-asc">Nombre A-Z</option><option value="name-desc">Nombre Z-A</option><option value="size-desc">Mayor tamaño</option><option value="size-asc">Menor tamaño</option></select>
       </section>
 
       <AssignedCreatedToggle
         viewMode={ownershipView}
         onChange={setOwnershipView}
-        assignedLabel="Asignados a mi"
-        createdLabel="Creados por mi"
+        assignedLabel="Asignados"
+        createdLabel="Subidos"
+        variant="header"
       />
 
       {ownershipDocumentsCount === 0 ? (

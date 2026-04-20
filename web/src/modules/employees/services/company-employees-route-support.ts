@@ -315,7 +315,7 @@ export async function upsertEmployeeContractDocument(input: UpsertEmployeeContra
   const pdfBytes = await buildContractPdfBytes({
     companyName: input.companyName,
     fullName,
-    branchName: input.branchName ?? "Sin locación",
+    branchName: input.branchName ?? "Sin ubicación",
     departmentName: input.departmentName ?? "Sin departamento",
     positionName: input.positionName,
     hiredAtLabel,

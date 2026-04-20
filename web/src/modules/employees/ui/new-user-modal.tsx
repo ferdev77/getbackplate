@@ -135,7 +135,7 @@ export function NewUserModal({ open, onClose, branches, roleOptions }: NewUserMo
               Locación
             </label>
             <select name="branch_id" defaultValue="" className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]">
-              <option value="">Sin locación asignada</option>
+              <option value="">Sin ubicación asignada</option>
               {branches.map((branch) => (
                 <option key={branch.id} value={branch.id}>
                   {branch.name}

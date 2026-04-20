@@ -125,7 +125,7 @@ export function ChecklistItemsBuilder({ initialSections }: ChecklistItemsBuilder
               value={section.name}
               onChange={(event) => updateSectionName(section.id, event.target.value)}
               className="h-8 flex-1 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)]"
-              placeholder="Nombre de seccion"
+              placeholder="Nombre de sección"
             />
             <button
               type="button"
@@ -133,7 +133,7 @@ export function ChecklistItemsBuilder({ initialSections }: ChecklistItemsBuilder
               className="group/tooltip relative inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
             >
               <X className="h-4 w-4" />
-              <TooltipLabel label="Eliminar seccion" />
+              <TooltipLabel label="Eliminar sección" />
             </button>
           </div>
 
@@ -175,7 +175,7 @@ export function ChecklistItemsBuilder({ initialSections }: ChecklistItemsBuilder
         onClick={addSection}
         className="inline-flex items-center gap-1 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
       >
-        <Plus className="h-3.5 w-3.5" /> Agregar seccion
+        <Plus className="h-3.5 w-3.5" /> Agregar sección
       </button>
 
       <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs text-[var(--gbp-text2)]">

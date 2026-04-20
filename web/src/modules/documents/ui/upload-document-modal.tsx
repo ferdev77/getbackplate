@@ -170,7 +170,7 @@ export function UploadDocumentModal({
                     </p>
                   ) : (
                     <>
-                      <p className="mt-1 text-xs text-[var(--gbp-text2)]">Define acceso por locación, departamento, puesto o usuario. Esta configuración aplica cuando el archivo está en raíz.</p>
+                      <p className="mt-1 text-xs text-[var(--gbp-text2)]">Define acceso por ubicación, departamento, puesto o usuario. Esta configuración aplica cuando el archivo está en raíz.</p>
                       <ScopeSelector
                         namespace="upload-modal"
                         branches={branches}
