@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
 import { assertTenantModuleApi } from "@/shared/lib/access";
+import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 
 export async function GET(request: Request) {
   const moduleAccess = await assertTenantModuleApi("checklists", { allowBillingBypass: true });
@@ -46,7 +47,7 @@ export async function GET(request: Request) {
 
   const { data: template } = await supabase
     .from("checklist_templates")
-    .select("id, name, branch_id, department_id, target_scope")
+    .select("id, name, branch_id, department_id, checklist_type, shift, repeat_every, is_active, target_scope")
     .eq("organization_id", tenant.organizationId)
     .eq("id", previewTemplateId)
     .eq("is_active", true)
@@ -70,6 +71,67 @@ export async function GET(request: Request) {
   if (!canAccess) {
     return NextResponse.json({ error: "Checklist no disponible para tu perfil" }, { status: 403 });
   }
+
+  const scope =
+    typeof template.target_scope === "object" && template.target_scope !== null
+      ? (template.target_scope as Record<string, unknown>)
+      : {};
+
+  const locationIds = Array.isArray(scope.locations) ? scope.locations.map(String).filter(Boolean) : [];
+  const departmentIds = Array.isArray(scope.department_ids) ? scope.department_ids.map(String).filter(Boolean) : [];
+  const positionIds = Array.isArray(scope.position_ids) ? scope.position_ids.map(String).filter(Boolean) : [];
+  const userScopeIds = Array.isArray(scope.users) ? scope.users.map(String).filter(Boolean) : [];
+
+  const [
+    { data: customBrandingEnabled },
+    { data: scopeBranches },
+    { data: scopeDepartments },
+    { data: scopePositions },
+    scopeUsers,
+  ] = await Promise.all([
+    admin.rpc("is_module_enabled", { org_id: tenant.organizationId, module_code: "custom_branding" }),
+    locationIds.length > 0
+      ? admin
+          .from("branches")
+          .select("id, name, city")
+          .eq("organization_id", tenant.organizationId)
+          .in("id", locationIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; name: string; city: string | null }> }),
+    departmentIds.length > 0
+      ? admin
+          .from("organization_departments")
+          .select("id, name")
+          .eq("organization_id", tenant.organizationId)
+          .in("id", departmentIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
+    positionIds.length > 0
+      ? admin
+          .from("department_positions")
+          .select("id, name")
+          .eq("organization_id", tenant.organizationId)
+          .in("id", positionIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
+    userScopeIds.length > 0
+      ? buildScopeUsersCatalog(tenant.organizationId)
+      : Promise.resolve([]),
+  ]);
+  const branchNameById = new Map(
+    (scopeBranches ?? []).map((row) => [row.id, customBrandingEnabled && row.city ? row.city : row.name]),
+  );
+  const departmentNameById = new Map((scopeDepartments ?? []).map((row) => [row.id, row.name]));
+  const positionNameById = new Map((scopePositions ?? []).map((row) => [row.id, row.name]));
+  const userNameById = new Map(
+    scopeUsers
+      .filter((row) => row.user_id)
+      .map((row) => [row.user_id as string, `${row.first_name} ${row.last_name}`.trim() || "Usuario"]),
+  );
+
+  const scopeLabels = {
+    locations: locationIds.map((id) => branchNameById.get(id) ?? id),
+    departments: departmentIds.map((id) => departmentNameById.get(id) ?? id),
+    positions: positionIds.map((id) => positionNameById.get(id) ?? id),
+    users: userScopeIds.map((id) => userNameById.get(id) ?? id),
+  };
 
   const { data: previewSections } = await supabase
     .from("checklist_template_sections")
@@ -194,7 +256,16 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({
-    template: { id: template.id, name: template.name },
+    template: {
+      id: template.id,
+      name: template.name,
+      checklist_type: template.checklist_type,
+      shift: template.shift,
+      repeat_every: template.repeat_every,
+      is_active: template.is_active,
+      target_scope: template.target_scope,
+      scope_labels: scopeLabels,
+    },
     sections,
     initialReport: latestSubmission
       ? {

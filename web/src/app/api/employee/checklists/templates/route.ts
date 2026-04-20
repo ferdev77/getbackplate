@@ -136,6 +136,11 @@ export async function POST(request: Request) {
       .single();
 
     if (sectionError || !section) {
+      await admin
+        .from("checklist_templates")
+        .delete()
+        .eq("organization_id", access.tenant.organizationId)
+        .eq("id", createdTemplate.id);
       return NextResponse.json({ error: sectionError?.message ?? "No se pudo crear seccion" }, { status: 400 });
     }
 
@@ -143,12 +148,17 @@ export async function POST(request: Request) {
       organization_id: access.tenant.organizationId,
       section_id: section.id,
       label: item,
-      priority: "normal",
+      priority: "medium",
       sort_order: itemIndex + 1,
     }));
 
     const { error: itemError } = await admin.from("checklist_template_items").insert(rows);
     if (itemError) {
+      await admin
+        .from("checklist_templates")
+        .delete()
+        .eq("organization_id", access.tenant.organizationId)
+        .eq("id", createdTemplate.id);
       return NextResponse.json({ error: itemError.message }, { status: 400 });
     }
   }
@@ -288,7 +298,7 @@ export async function PATCH(request: Request) {
       organization_id: access.tenant.organizationId,
       section_id: section.id,
       label: item,
-      priority: "normal",
+      priority: "medium",
       sort_order: itemIndex + 1,
     }));
     const { error: itemsError } = await admin.from("checklist_template_items").insert(rows);

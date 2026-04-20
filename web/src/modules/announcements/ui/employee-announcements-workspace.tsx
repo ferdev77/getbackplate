@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BellPlus, Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AnnouncementModalTrigger } from "@/modules/announcements/ui/announcement-modal-trigger";
@@ -29,7 +29,6 @@ type AnnouncementRow = {
 type Props = {
   visibleAnnouncements: AnnouncementRow[];
   myAnnouncements: AnnouncementRow[];
-  canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
   viewerUserId: string;
@@ -61,7 +60,6 @@ function sortAnnouncements(rows: AnnouncementRow[]) {
 export function EmployeeAnnouncementsWorkspace({
   visibleAnnouncements,
   myAnnouncements,
-  canCreate,
   canEdit,
   canDelete,
   viewerUserId,
@@ -189,28 +187,15 @@ export function EmployeeAnnouncementsWorkspace({
 
   return (
     <div className="space-y-6">
-      {canCreate ? (
-        <section className="flex justify-end">
-          <AnnouncementModalTrigger
-            className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white hover:bg-[var(--gbp-accent)]"
-            mode="create"
-            publisherName={publisherName}
-            branches={branches}
-            departments={departments}
-            positions={positions}
-            users={users}
-            submitEndpoint="/api/employee/announcements/manage"
-            basePath="/portal/announcements"
-            onSubmitted={(payload) => {
-              if (payload) upsertAnnouncement(payload);
-            }}
-          >
-            <BellPlus className="h-3.5 w-3.5" /> Nuevo Aviso
-          </AnnouncementModalTrigger>
-        </section>
-      ) : null}
-
-      <AssignedCreatedToggle viewMode={viewMode} onChange={setViewMode} />
+      <AssignedCreatedToggle
+        viewMode={viewMode}
+        onChange={setViewMode}
+        assignedLabel="Asignados"
+        createdLabel="Creados"
+        assignedCount={assignedFeed.length}
+        createdCount={mineResolved.length}
+        variant="header"
+      />
 
       {viewMode === "created" && mineResolved.length > 0 ? (
         <section className="space-y-3">
@@ -279,7 +264,6 @@ export function EmployeeAnnouncementsWorkspace({
 
       {viewMode === "assigned" ? (
       <section className="space-y-3">
-        <p className="text-[11px] font-bold tracking-[0.12em] text-[var(--gbp-muted)] uppercase">Asignados / visibles para mi</p>
         {assignedFeed.map((item) => (
           <AnnouncementCard
             key={item.id}
