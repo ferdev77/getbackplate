@@ -31,7 +31,7 @@ async function ensureBucketExists() {
   bucketExistsChecked = true;
 }
 
-async function resolveEmployeeScope(organizationId: string, userId: string) {
+async function resolveEmployeeScope(organizationId: string, userId: string): Promise<AccessScope> {
   const admin = createSupabaseAdminClient();
   const { data: employeeRow } = await admin
     .from("employees")
@@ -43,8 +43,26 @@ async function resolveEmployeeScope(organizationId: string, userId: string) {
   return {
     locations: employeeRow?.branch_id ? [employeeRow.branch_id] : [],
     department_ids: employeeRow?.department_id ? [employeeRow.department_id] : [],
-    position_ids: [],
-    users: [],
+    position_ids: [] as string[],
+    users: [] as string[],
+  };
+}
+
+type AccessScope = {
+  locations: string[];
+  department_ids: string[];
+  position_ids: string[];
+  users: string[];
+};
+
+function normalizeAccessScope(value: unknown, fallback: AccessScope): AccessScope {
+  if (!value || typeof value !== "object") return fallback;
+  const raw = value as Record<string, unknown>;
+  return {
+    locations: Array.isArray(raw.locations) ? raw.locations.filter((item): item is string => typeof item === "string") : fallback.locations,
+    department_ids: Array.isArray(raw.department_ids) ? raw.department_ids.filter((item): item is string => typeof item === "string") : fallback.department_ids,
+    position_ids: Array.isArray(raw.position_ids) ? raw.position_ids.filter((item): item is string => typeof item === "string") : fallback.position_ids,
+    users: Array.isArray(raw.users) ? raw.users.filter((item): item is string => typeof item === "string") : fallback.users,
   };
 }
 
@@ -60,6 +78,7 @@ export async function POST(request: Request) {
   }
 
   const titleInput = String(formData.get("title") ?? "").trim();
+  const folderIdInput = String(formData.get("folder_id") ?? "").trim();
   const file = formData.get("file");
   if (!(file instanceof File) || file.size <= 0) {
     return NextResponse.json({ error: "Selecciona un archivo" }, { status: 400 });
@@ -89,7 +108,29 @@ export async function POST(request: Request) {
   }
 
   const title = titleInput || file.name;
-  const scope = await resolveEmployeeScope(access.tenant.organizationId, access.userId);
+
+  const admin = createSupabaseAdminClient();
+
+  let folderId: string | null = null;
+  let scope = await resolveEmployeeScope(access.tenant.organizationId, access.userId);
+  if (folderIdInput) {
+    const { data: folder } = await admin
+      .from("document_folders")
+      .select("id, created_by, access_scope")
+      .eq("organization_id", access.tenant.organizationId)
+      .eq("id", folderIdInput)
+      .maybeSingle();
+
+    if (!folder) {
+      return NextResponse.json({ error: "Carpeta inválida" }, { status: 400 });
+    }
+    if (folder.created_by !== access.userId) {
+      return NextResponse.json({ error: "Solo puedes subir archivos a carpetas creadas por ti" }, { status: 403 });
+    }
+
+    folderId = folder.id;
+    scope = normalizeAccessScope(folder.access_scope, scope);
+  }
 
   await ensureBucketExists();
   const path = `${access.tenant.organizationId}/employee-owned/${access.userId}/${Date.now()}-${analysis.safeName}`;
@@ -97,7 +138,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Ruta invalida" }, { status: 400 });
   }
 
-  const admin = createSupabaseAdminClient();
   const { error: uploadError } = await admin.storage.from(BUCKET_NAME).upload(path, file, {
     contentType: analysis.normalizedMime,
     upsert: false,
@@ -120,6 +160,7 @@ export async function POST(request: Request) {
       checksum_sha256: analysis.checksumSha256,
       file_size_bytes: file.size,
       access_scope: scope,
+      folder_id: folderId,
     })
     .select("id")
     .single();
@@ -145,22 +186,26 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const access = await assertEmployeeCapabilityApi("documents", "edit", { allowBillingBypass: true });
-  if (!access.ok) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
-  }
-
   const body = (await request.json().catch(() => null)) as
     | {
         documentId?: string;
         title?: string;
+        folderId?: string | null;
       }
     | null;
 
   const documentId = String(body?.documentId ?? "").trim();
-  const title = String(body?.title ?? "").trim();
-  if (!documentId || !title) {
-    return NextResponse.json({ error: "Documento y titulo son obligatorios" }, { status: 400 });
+  const title = typeof body?.title === "string" ? String(body.title).trim() : null;
+  const folderId = body?.folderId === null ? null : typeof body?.folderId === "string" ? body.folderId.trim() : undefined;
+
+  const requiredCapability = title !== null ? "edit" : "create";
+  const access = await assertEmployeeCapabilityApi("documents", requiredCapability, { allowBillingBypass: true });
+  if (!access.ok) {
+    return NextResponse.json({ error: access.error }, { status: access.status });
+  }
+
+  if (!documentId || (title === null && folderId === undefined)) {
+    return NextResponse.json({ error: "No hay cambios para aplicar" }, { status: 400 });
   }
 
   const admin = createSupabaseAdminClient();
@@ -184,9 +229,28 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Documento de legajo de empleado no editable" }, { status: 403 });
   }
 
+  if (folderId !== undefined && folderId) {
+    const { data: targetFolder } = await admin
+      .from("document_folders")
+      .select("id, created_by")
+      .eq("organization_id", access.tenant.organizationId)
+      .eq("id", folderId)
+      .maybeSingle();
+    if (!targetFolder) {
+      return NextResponse.json({ error: "Carpeta inválida" }, { status: 400 });
+    }
+    if (targetFolder.created_by !== access.userId) {
+      return NextResponse.json({ error: "Solo puedes mover archivos a carpetas creadas por ti" }, { status: 403 });
+    }
+  }
+
+  const updatePayload: { title?: string; folder_id?: string | null } = {};
+  if (title !== null && title.length > 0) updatePayload.title = title;
+  if (folderId !== undefined) updatePayload.folder_id = folderId;
+
   const { error } = await admin
     .from("documents")
-    .update({ title })
+    .update(updatePayload)
     .eq("organization_id", access.tenant.organizationId)
     .eq("id", documentId);
 

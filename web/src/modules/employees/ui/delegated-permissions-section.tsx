@@ -29,6 +29,15 @@ const CAPABILITY_LABELS: Record<DelegatedPermissionCapability, string> = {
   delete: "Eliminar",
 };
 
+function capabilityLabel(moduleCode: DelegatedPermissionModuleCode, capability: DelegatedPermissionCapability) {
+  if (moduleCode === "documents") {
+    if (capability === "create") return "Subir";
+    if (capability === "edit") return "Editar propios";
+    if (capability === "delete") return "Eliminar propios";
+  }
+  return CAPABILITY_LABELS[capability];
+}
+
 export function DelegatedPermissionsSection({ delegatedPermissions, setDelegatedPermissions }: Props) {
   return (
     <>
@@ -38,6 +47,7 @@ export function DelegatedPermissionsSection({ delegatedPermissions, setDelegated
 
       <p className="mb-5 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3 text-xs text-[var(--gbp-text2)]">
         Estos permisos aplican al portal de empleado. Editar y eliminar solo se permitirá sobre contenido creado por este usuario.
+        En Documentos, <strong>Subir</strong> habilita carga de archivos y organización visual (filtros/orden) de sus propios documentos.
       </p>
 
       <div className="space-y-4">
@@ -68,7 +78,7 @@ export function DelegatedPermissionsSection({ delegatedPermissions, setDelegated
                           : "border-[var(--gbp-border2)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
                       }`}
                     >
-                      {CAPABILITY_LABELS[capability]}
+                      {capabilityLabel(moduleItem.code, capability)}
                     </button>
                   );
                 })}
