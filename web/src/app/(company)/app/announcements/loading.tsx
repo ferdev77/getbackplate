@@ -1,6 +1,8 @@
+import { PageContent } from "@/shared/ui/page-content";
+
 export default function AnnouncementsLoading() {
   return (
-    <main className="mx-auto w-full max-w-7xl animate-pulse px-4 py-6 sm:px-6">
+    <PageContent className="animate-pulse">
       <section className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="h-8 w-44 rounded bg-[var(--gbp-surface2)]" />
         <div className="h-8 w-36 rounded-lg bg-[var(--gbp-surface2)]" />
@@ -28,6 +30,6 @@ export default function AnnouncementsLoading() {
           </article>
         ))}
       </section>
-    </main>
+    </PageContent>
   );
 }

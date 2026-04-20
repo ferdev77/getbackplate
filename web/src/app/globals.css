@@ -44,6 +44,18 @@
   --gbp-shadow-xl: 0 20px 60px rgba(17, 24, 39, 0.12), 0 4px 16px rgba(17, 24, 39, 0.06);
   --gbp-shadow-accent: 0 4px 14px rgba(212, 83, 26, 0.25);
   --gbp-shadow-violet: 0 4px 14px rgba(108, 71, 255, 0.25);
+
+  --gbp-content-max: 80rem;
+  --gbp-content-pad-x: 1rem;
+  --gbp-content-pad-x-sm: 1.5rem;
+  --gbp-content-pad-x-roomy: 1.5rem;
+  --gbp-content-pad-y: 1.5rem;
+  --gbp-content-pad-y-roomy: 2rem;
+  --gbp-content-pad-x-lg: 2rem;
+  --gbp-content-shell-pad-x: 1rem;
+  --gbp-content-shell-pad-x-sm: 1.5rem;
+  --gbp-content-shell-pad-y: 1rem;
+  --gbp-content-shell-pad-y-sm: 1.5rem;
 }
 
 [data-theme="dark"],

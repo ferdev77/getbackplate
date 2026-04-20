@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { UsersTableWorkspace } from "@/modules/employees/ui/users-table-workspace";
 import { NewUserModal } from "@/modules/employees/ui/new-user-modal";
+import { PageContent } from "@/shared/ui/page-content";
 
 type UserRow = {
   membershipId: string;
@@ -75,7 +76,7 @@ export function UsersPageWorkspace({
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8">
+    <PageContent spacing="roomy" className="flex flex-col gap-6">
       <section className="rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -114,6 +115,6 @@ export function UsersPageWorkspace({
         branches={effectiveBranches}
         roleOptions={roleOptions}
       />
-    </main>
+    </PageContent>
   );
 }

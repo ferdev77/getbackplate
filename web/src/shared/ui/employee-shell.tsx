@@ -10,6 +10,7 @@ import { NewEmployeeModal, type EmployeeModalInitialData, type ModalBranch, type
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
 import { GetBackplateMark } from "@/shared/ui/getbackplate-mark";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
+import { PageContent } from "@/shared/ui/page-content";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 
 const CHECKLIST_PREVIEW_GUARD_KEY = "portal-checklist-preview-guard";
@@ -473,8 +474,8 @@ export function EmployeeShell({
             </div>
           </header>
           
-          <main className="flex-1 w-full p-4 sm:p-6">
-            <div className="mx-auto w-full max-w-7xl">{children}</div>
+          <main className="flex-1 w-full">
+            <PageContent as="div" spacing="shell">{children}</PageContent>
           </main>
           
           <footer className="mt-auto flex justify-between border-t border-[var(--gbp-border)] px-6 py-4 text-[11px] text-[var(--gbp-muted)] sm:px-9" style={{ background: palette.sidebarGradient }}>

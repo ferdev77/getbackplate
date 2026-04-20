@@ -1,6 +1,8 @@
+import { PageContent } from "@/shared/ui/page-content";
+
 export default function DashboardLocationLoading() {
   return (
-    <main className="mx-auto w-full max-w-7xl animate-pulse px-4 py-6 sm:px-6">
+    <PageContent className="animate-pulse">
       <section className="mb-4 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-4 py-3">
         <div className="h-3 w-28 rounded bg-[var(--gbp-surface2)]" />
         <div className="mt-2 h-4 w-80 rounded bg-[var(--gbp-surface2)]" />
@@ -21,6 +23,6 @@ export default function DashboardLocationLoading() {
         <article className="h-64 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)]" />
         <article className="h-64 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)]" />
       </section>
-    </main>
+    </PageContent>
   );
 }

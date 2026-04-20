@@ -17,6 +17,7 @@ import { getEnabledModulesCached } from "@/modules/organizations/cached-queries"
 import { SlideUp } from "@/shared/ui/animations";
 import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
 import { OperationHeaderCard } from "@/shared/ui/operation-header-card";
+import { PageContent } from "@/shared/ui/page-content";
 
 type CompanyChecklistsPageProps = {
   searchParams: Promise<{
@@ -302,7 +303,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
   const userId = authData.user?.id ?? "";
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
+    <PageContent>
       <EmployeeChecklistRealtimeRefresh organizationId={tenant.organizationId} userId={userId} />
       <SlideUp>
         <OperationHeaderCard
@@ -526,6 +527,6 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
           editingTemplate={editingTemplate}
         />
       ) : null}
-    </main>
+    </PageContent>
   );
 }

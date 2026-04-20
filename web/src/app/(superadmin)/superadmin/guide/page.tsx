@@ -10,10 +10,11 @@ import {
   Zap
 } from "lucide-react";
 import * as motion from "framer-motion/client";
+import { PageContent } from "@/shared/ui/page-content";
 
 export default function SuperadminGuidePage() {
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-12 sm:px-6">
+    <PageContent spacing="roomy" className="flex flex-col gap-10 py-12">
       {/* Header Section */}
       <section className="text-center">
         <motion.div
@@ -183,6 +184,6 @@ export default function SuperadminGuidePage() {
           </a>
         </motion.div>
       </section>
-    </main>
+    </PageContent>
   );
 }

@@ -20,6 +20,7 @@ import { ConfirmSubmitButton } from "@/shared/ui/confirm-submit-button";
 import { SlideUp } from "@/shared/ui/animations";
 import { extractDisplayName } from "@/shared/lib/user";
 import { OperationHeaderCard } from "@/shared/ui/operation-header-card";
+import { PageContent } from "@/shared/ui/page-content";
 
 type CompanyAnnouncementsPageProps = {
   searchParams: Promise<{
@@ -213,7 +214,7 @@ const employeesQuery = supabase
   };
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
+    <PageContent>
       <SlideUp>
         <OperationHeaderCard
           eyebrow="Operación diaria"
@@ -377,6 +378,6 @@ const employeesQuery = supabase
           }
         />
       ) : null}
-    </main>
+    </PageContent>
   );
 }

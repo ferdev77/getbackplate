@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { requireSuperadmin } from "@/shared/lib/access";
 import { SuperadminDocumentTrashList } from "@/modules/trash/ui/superadmin-document-trash-list";
 import { SlideUp } from "@/shared/ui/animations";
+import { PageContent } from "@/shared/ui/page-content";
 
 type TrashedDocumentRow = {
   id: string;
@@ -26,7 +27,7 @@ export default async function SuperadminTrashPage() {
     .limit(300);
 
   return (
-    <main className="w-full space-y-6">
+    <PageContent spacing="roomy" className="space-y-6">
       <SlideUp>
         <section className="mb-8 flex flex-col gap-1">
           <div className="inline-flex items-center gap-2 text-[var(--gbp-text)]">
@@ -42,6 +43,6 @@ export default async function SuperadminTrashPage() {
       <SlideUp delay={0.1}>
         <SuperadminDocumentTrashList documents={(documents as TrashedDocumentRow[] | null) ?? []} />
       </SlideUp>
-    </main>
+    </PageContent>
   );
 }

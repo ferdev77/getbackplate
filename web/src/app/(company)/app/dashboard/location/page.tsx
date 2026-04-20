@@ -3,6 +3,7 @@ import CompanyDashboardPage from "../page";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { requireTenantModule } from "@/shared/lib/access";
 import { getEnabledModules } from "@/modules/organizations/queries";
+import { PageContent } from "@/shared/ui/page-content";
 
 type DashboardByLocationPageProps = {
   searchParams: Promise<{ branch?: string; q?: string; selectPlanId?: string }>;
@@ -33,7 +34,7 @@ export default async function DashboardByLocationPage({ searchParams }: Dashboar
 
   return (
     <>
-      <section className="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-6">
+      <PageContent as="section" spacing="none" className="pt-6">
         <div className="mb-4 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-4 py-3">
           <p className="text-xs font-semibold tracking-[0.1em] text-[var(--gbp-text2)] uppercase">Vista por ubicación</p>
           <p className="mt-1 text-sm text-[var(--gbp-text2)]">Esta vista comparte métricas del dashboard, filtradas por la ubicación seleccionada.</p>
@@ -51,7 +52,7 @@ export default async function DashboardByLocationPage({ searchParams }: Dashboar
             ))}
           </div>
         </div>
-      </section>
+      </PageContent>
       <CompanyDashboardPage searchParams={Promise.resolve(params)} />
     </>
   );

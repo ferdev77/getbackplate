@@ -1,6 +1,8 @@
+import { PageContent } from "@/shared/ui/page-content";
+
 export default function TrashLoading() {
   return (
-    <main className="mx-auto w-full max-w-7xl animate-pulse px-4 py-6 sm:px-6">
+    <PageContent className="animate-pulse">
       {/* Header */}
       <section className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -37,6 +39,6 @@ export default function TrashLoading() {
           </article>
         ))}
       </section>
-    </main>
+    </PageContent>
   );
 }

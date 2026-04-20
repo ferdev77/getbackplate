@@ -1,6 +1,8 @@
+import { PageContent } from "@/shared/ui/page-content";
+
 export default function ReportsLoading() {
   return (
-    <main className="mx-auto w-full max-w-7xl animate-pulse px-4 py-6 sm:px-6">
+    <PageContent className="animate-pulse">
       <section className="mb-5 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-6">
         <div className="h-3 w-28 rounded bg-[var(--gbp-surface2)]" />
         <div className="mt-2 h-7 w-52 rounded bg-[var(--gbp-surface2)]" />
@@ -19,6 +21,6 @@ export default function ReportsLoading() {
         <article className="h-72 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)]" />
         <article className="h-72 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)]" />
       </section>
-    </main>
+    </PageContent>
   );
 }

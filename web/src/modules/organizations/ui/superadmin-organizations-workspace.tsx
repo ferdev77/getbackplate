@@ -26,6 +26,7 @@ import {
 } from "@/modules/organizations/actions";
 import { ImpersonationSubmitButton } from "@/modules/organizations/ui/impersonation-submit-button";
 import { ResendInvitationButton } from "@/modules/organizations/ui/resend-invitation-button";
+import { PageContent } from "@/shared/ui/page-content";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 import { SuperadminInputField, SuperadminSelectField } from "@/shared/ui/superadmin-form-fields";
 import { SubmitButton } from "@/shared/ui/submit-button";
@@ -166,7 +167,7 @@ export function SuperadminOrganizationsWorkspace({
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
+    <PageContent spacing="roomy" className="flex flex-col gap-6">
       <section className="relative overflow-hidden rounded-[2.5rem] border border-[var(--gbp-border)] bg-[linear-gradient(145deg,var(--gbp-text)_0%,color-mix(in_oklab,var(--gbp-text)_88%,black)_100%)] p-8 text-white shadow-xl">
         <div className="relative z-10">
           <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-light/60">Superadmin Control</p>
@@ -327,6 +328,6 @@ export function SuperadminOrganizationsWorkspace({
           </motion.div>
         ) : null}
       </AnimatePresence>
-    </main>
+    </PageContent>
   );
 }
