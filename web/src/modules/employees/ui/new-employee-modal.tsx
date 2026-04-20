@@ -97,7 +97,7 @@ const DARK_PANEL = "[.theme-dark-pro_&]:border [.theme-dark-pro_&]:border-[var(-
 const DARK_TEXT = "[.theme-dark-pro_&]:text-[var(--gbp-text)]";
 const DARK_MUTED = "[.theme-dark-pro_&]:text-[var(--gbp-text2)]";
 const DARK_GHOST = "[.theme-dark-pro_&]:border-[var(--gbp-border2)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)] [.theme-dark-pro_&]:text-[var(--gbp-text2)] [.theme-dark-pro_&]:hover:bg-[var(--gbp-surface2)]";
-const FIELD_LABEL = "text-[12px] font-bold text-[var(--gbp-text2)]";
+const FIELD_LABEL = "text-xs font-bold text-[var(--gbp-text2)]";
 const FIELD_INPUT = "w-full rounded-xl border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-4 py-3 text-sm text-[var(--gbp-text)] outline-none transition-all focus:border-[var(--gbp-accent)]";
 const APPROVAL_COMMENT_TEMPLATES = [
   "Documento validado y legible.",
@@ -1065,7 +1065,7 @@ export function NewEmployeeModal({
                   </>
                 ) : (
                   <>
-                    <span className="text-[12px] leading-none">+</span>
+                    <span className="text-xs leading-none">+</span>
                     Agregar documento
                   </>
                 )}
@@ -1422,7 +1422,7 @@ export function NewEmployeeModal({
                       }}
                     />
                     <span className="mb-3 text-4xl transition-transform group-hover:scale-110">{doc.icon}</span>
-                    <span className="text-center text-[13px] font-bold text-[var(--gbp-text2)]">{doc.label}</span>
+                    <span className="text-center text-sm font-bold text-[var(--gbp-text2)]">{doc.label}</span>
                     {hasUploadedFile ? (
                       <div className="mt-2 flex items-center gap-2">
                         <a
@@ -1710,7 +1710,7 @@ export function NewEmployeeModal({
                       </div>
                     ) : uploadUiBySlot[doc.slot]?.phase === "success" ? (
                       <>
-                        <div className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--gbp-success)] text-[13px] text-white shadow-lg shadow-[color:color-mix(in_oklab,var(--gbp-success)_45%,transparent)] transition-transform duration-300 animate-[pulse_900ms_ease-out_1]">
+                        <div className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--gbp-success)] text-sm text-white shadow-lg shadow-[color:color-mix(in_oklab,var(--gbp-success)_45%,transparent)] transition-transform duration-300 animate-[pulse_900ms_ease-out_1]">
                           ✓
                         </div>
                         <p className="mt-2 line-clamp-1 max-w-[220px] text-center text-[11px] font-semibold text-[var(--gbp-success)]">
@@ -1723,7 +1723,7 @@ export function NewEmployeeModal({
                       </p>
                     ) : selectedDocumentFiles[doc.name] ? (
                       <>
-                        <div className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-[12px] text-white">
+                        <div className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-xs text-white">
                           ✓
                         </div>
                         <p className="mt-2 line-clamp-1 max-w-[220px] text-center text-[11px] font-semibold text-[var(--gbp-success)]">
@@ -1765,11 +1765,11 @@ export function NewEmployeeModal({
                     />
 
                     <span className="mb-3 text-4xl transition-transform group-hover:scale-110">📄</span>
-                    <span className="text-center text-[13px] font-bold text-[var(--gbp-text2)]">{row.title}</span>
+                    <span className="text-center text-sm font-bold text-[var(--gbp-text2)]">{row.title}</span>
 
                     {row.fileName ? (
                       <>
-                        <div className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-[12px] text-white">
+                        <div className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-xs text-white">
                           ✓
                         </div>
                         <p className="mt-2 line-clamp-1 max-w-[220px] text-center text-[11px] font-semibold text-[var(--gbp-success)]">
@@ -1854,7 +1854,7 @@ export function NewEmployeeModal({
               <h4 className="mb-3 border-b border-[var(--gbp-border)] pb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--gbp-muted)]">
                 Vista previa del contrato
               </h4>
-              <article className="mb-6 rounded-2xl border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-5 text-[13px] leading-6 text-[var(--gbp-text2)]">
+              <article className="mb-6 rounded-2xl border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-5 text-sm leading-6 text-[var(--gbp-text2)]">
                 <p className="mb-3">
                   El presente contrato se celebra entre <span className="font-semibold text-[var(--gbp-text)]">{employeeFullName}</span> y la empresa
                   <span className="font-semibold text-[var(--gbp-text)]"> {companyName}</span>, para desempeñar funciones como
@@ -1946,7 +1946,7 @@ export function NewEmployeeModal({
                   <span className="text-sm font-bold text-[var(--gbp-text)]">
                     Habilitar acceso al Dashboard
                   </span>
-                  <span className="text-[12px] text-[var(--gbp-text2)]">
+                  <span className="text-xs text-[var(--gbp-text2)]">
                     {isEmployeeProfile
                       ? "Opcional: habilita acceso para que pueda iniciar sesión en la app."
                       : "Opcional: habilita acceso para crear tambien sus credenciales de ingreso."}

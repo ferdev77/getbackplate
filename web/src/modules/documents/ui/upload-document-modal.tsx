@@ -139,14 +139,14 @@ export function UploadDocumentModal({
   return (
     <div className={`fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5 transition-opacity duration-300 ${isClosing ? "pointer-events-none opacity-0" : "opacity-100"}`}>
       <div className={`relative max-h-[90vh] w-[980px] max-w-[96vw] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)] transition duration-300 ${isClosing ? "scale-[0.985] opacity-0" : "scale-100 opacity-100"}`}>
-        <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5"><p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Subir Archivo</p><button type="button" onClick={closeModal} className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</button></div>
+        <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5"><p className="font-serif text-sm font-bold text-[var(--gbp-text)]">Subir Archivo</p><button type="button" onClick={closeModal} className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</button></div>
         <form onSubmit={handleSubmit}>
           <div className="max-h-[68vh] overflow-y-auto px-6 py-5">
             <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
               <div>
                 <label className="mb-4 block cursor-pointer rounded-2xl border-2 border-dashed border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-5 py-8 text-center transition hover:border-[var(--gbp-border)]">
                   <p className="text-3xl">📂</p>
-                  <p className="mt-2 text-[15px] font-bold text-[var(--gbp-text)]">Arrastra tu archivo aquí</p>
+                  <p className="mt-2 text-sm font-bold text-[var(--gbp-text)]">Arrastra tu archivo aquí</p>
                   <p className="mt-1 text-xs text-[var(--gbp-text2)]">o haz clic para seleccionar desde tu computadora</p>
                   <span className="mt-4 inline-flex rounded-lg bg-[var(--gbp-accent)] px-3 py-2 text-xs font-bold text-white">Seleccionar archivo</span>
                   <p className="mt-3 text-[11px] text-[var(--gbp-muted)]">PDF, DOCX, XLSX · Máx. 10 MB</p>
@@ -198,13 +198,13 @@ export function UploadDocumentModal({
               </div>
 
               <aside className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4">
-                <p className="mb-3 text-[12px] font-bold text-[var(--gbp-text)]">Subidos recientemente</p>
+                <p className="mb-3 text-xs font-bold text-[var(--gbp-text)]">Subidos recientemente</p>
                 <div className="space-y-2.5">
                   {recentDocuments.slice(0, 4).map((document) => {
                     const branchName = document.branch_id ? branchMap.get(document.branch_id) ?? "Locación" : "Global";
                     return (
                       <div key={document.id} className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2">
-                        <p className="truncate text-[12px] font-semibold text-[var(--gbp-text)]">{document.title}</p>
+                        <p className="truncate text-xs font-semibold text-[var(--gbp-text)]">{document.title}</p>
                         <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">{branchName} · {new Date(document.created_at).toLocaleDateString("es-AR")}</p>
                         <p className="mt-1 text-[11px] font-semibold text-[var(--gbp-success)]">Activo</p>
                       </div>

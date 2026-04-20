@@ -177,7 +177,7 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
       <div className="max-h-[90vh] w-[675px] max-w-[95vw] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
         <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
-          <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">{mode === "edit" ? "Editar Aviso" : "Nuevo Aviso"}</p>
+          <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">{mode === "edit" ? "Editar Aviso" : "Nuevo Aviso"}</p>
           <button
             type="button"
             onClick={handleClose}
@@ -291,7 +291,7 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
             <div className="my-4 h-px bg-[var(--gbp-border)]" />
 
             <div className="mb-2 flex items-center justify-between rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2.5">
-              <div className="inline-flex items-center gap-2 text-[13px] text-[var(--gbp-text)]">
+              <div className="inline-flex items-center gap-2 text-sm text-[var(--gbp-text)]">
                 <Pin className="h-3.5 w-3.5 text-[var(--gbp-text2)]" /> Fijar aviso arriba de la lista
               </div>
               <label className="relative inline-flex h-[22px] w-[38px] cursor-pointer items-center">
@@ -302,7 +302,7 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
             </div>
 
             <div className="mb-0 flex items-center justify-between rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2.5">
-              <div className="inline-flex items-center gap-2 text-[13px] text-[var(--gbp-text)]">
+              <div className="inline-flex items-center gap-2 text-sm text-[var(--gbp-text)]">
                 <Clock3 className="h-3.5 w-3.5 text-[var(--gbp-text2)]" /> Este aviso tiene caducidad
               </div>
               <label className="relative inline-flex h-[22px] w-[38px] cursor-pointer items-center">
@@ -328,7 +328,7 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
             ) : null}
 
             <div className="mb-0 mt-3 flex items-center justify-between rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2.5">
-              <div className="inline-flex items-center gap-2 text-[13px] text-[var(--gbp-text)]">
+              <div className="inline-flex items-center gap-2 text-sm text-[var(--gbp-text)]">
                 <Clock3 className="h-3.5 w-3.5 text-[var(--gbp-text2)]" /> Enviar periódicamente
               </div>
               <label className="relative inline-flex h-[22px] w-[38px] cursor-pointer items-center">

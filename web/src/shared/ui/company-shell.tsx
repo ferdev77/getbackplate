@@ -1165,7 +1165,7 @@ export function CompanyShell({
     return (
       <div className="fixed inset-0 z-[1200] grid place-items-center bg-black/45 p-4">
         <div className="w-full max-w-[420px] rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-          <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">{title}</p>
+          <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">{title}</p>
           <div className="mt-3 flex items-center gap-2 text-sm text-[var(--gbp-text2)]">
             <Loader2 className="h-4 w-4 animate-spin" />
             <span>Cargando formulario...</span>
@@ -1254,7 +1254,7 @@ export function CompanyShell({
                             <Link
                               key={item.href}
                               href={hrefWithBranch(item.href)}
-                              className={`flex items-center gap-2.5 border-l-[2.5px] text-[13px] transition ${
+                              className={`flex items-center gap-2.5 border-l-[2.5px] text-sm transition ${
                                 collapsed ? "justify-center px-0 py-2.5" : "px-5 py-2"
                               } ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-[var(--gbp-surface2)] font-semibold text-[var(--gbp-text)]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-[var(--gbp-text2)] hover:border-l-[var(--gbp-border2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]")}`}
                               style={active ? { borderLeftColor: palette.accent } : undefined}
@@ -1320,7 +1320,7 @@ export function CompanyShell({
                                     }
                                     handleSidebarItemClick({ href, label, icon: MapPin });
                                   }}
-                                  className={`group flex items-center gap-2.5 border-l-[2.5px] text-[13px] transition-all select-none ${
+                                  className={`group flex items-center gap-2.5 border-l-[2.5px] text-sm transition-all select-none ${
                                     collapsed ? "justify-center px-0 py-2.5" : "px-5 py-1.5 pl-7"
                                   } ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-[var(--gbp-surface2)] font-semibold text-[var(--gbp-text)]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-[var(--gbp-text2)] hover:border-l-[var(--gbp-border2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]")} ${isDraggingThis ? "!bg-[var(--gbp-surface2)] !border-l-[var(--gbp-accent)] shadow-xl ring-1 ring-[var(--gbp-accent)]/20 scale-[1.04] z-50 rounded-md" : ""}`}
                                   style={active && !isDraggingThis ? { borderLeftColor: palette.accent } : undefined}
@@ -1345,7 +1345,7 @@ export function CompanyShell({
                             <Link
                               key={item.href}
                               href={hrefWithBranch(item.href)}
-                              className={`flex items-center gap-2.5 border-l-[2.5px] text-[13px] transition ${
+                              className={`flex items-center gap-2.5 border-l-[2.5px] text-sm transition ${
                                 collapsed ? "justify-center px-0 py-2.5" : "px-5 py-2"
                               } ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-[var(--gbp-surface2)] font-semibold text-[var(--gbp-text)]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-[var(--gbp-text2)] hover:border-l-[var(--gbp-border2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]")}`}
                               style={active ? { borderLeftColor: palette.accent } : undefined}
@@ -1361,7 +1361,7 @@ export function CompanyShell({
                       section.items.map((item) => {
                         const active = isActive(pathname, searchParams, item.href);
                         const isQuickAction = Boolean(item.actionKey);
-                        const itemClassName = `flex items-center gap-2.5 border-l-[2.5px] text-[13px] transition ${
+                        const itemClassName = `flex items-center gap-2.5 border-l-[2.5px] text-sm transition ${
                           collapsed ? "justify-center px-0 py-2.5" : item.sub ? "px-5 py-1.5 pl-7" : "px-5 py-2"
                         } ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-[var(--gbp-surface2)] font-semibold text-[var(--gbp-text)]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-[var(--gbp-text2)] hover:border-l-[var(--gbp-border2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]")}`;
 
@@ -1442,7 +1442,7 @@ export function CompanyShell({
                   )}
                 </span>
                 <div className="min-w-0">
-                   <p className="truncate text-[13px] font-semibold text-[var(--gbp-text)]">{profileName}</p>
+                   <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{profileName}</p>
                    <p className="truncate text-[11px] text-[var(--gbp-text2)]">{sessionRoleLabel}</p>
                    <p className="truncate text-[10px] text-[var(--gbp-muted)]">{sessionUserEmail || "Sin email"}</p>
                 </div>
@@ -1489,7 +1489,7 @@ export function CompanyShell({
             <div className="flex h-[60px] items-center justify-between gap-3 px-4 sm:px-8">
             <div className="flex items-center gap-3">
               <button type="button" className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border lg:hidden ${isDarkTheme ? "border-white/15 bg-white/5 text-white/80" : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"}`} onClick={() => setMenuOpen((prev) => !prev)} aria-label="Abrir menu">☰</button>
-              <p className="font-serif text-[19px] font-bold text-[var(--gbp-text)]">{currentLabel}</p>
+              <p className="font-serif text-lg font-bold text-[var(--gbp-text)]">{currentLabel}</p>
             </div>
             <div className="flex items-center gap-2">
               {organizationLabel ? <span className={`hidden rounded-full border px-2.5 py-1 text-xs sm:inline ${isDarkTheme ? "border-white/15 bg-white/5 text-white/80" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"}`}>{organizationLabel}</span> : null}
@@ -1599,9 +1599,9 @@ export function CompanyShell({
               <>
                 <div className={`flex items-center justify-between border-b px-3.5 py-2.5 ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`}><span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--gbp-muted)]">Settings</span><button type="button" onClick={() => setSettingsOpen(false)} className={`grid h-5.5 w-5.5 place-items-center rounded-full text-sm ${isDarkTheme ? "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"}`}><X className="h-3.5 w-3.5" /></button></div>
                 <div className="px-0 py-1">
-                  <button type="button" onClick={() => setSettingsView("profile")} className={`flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[13px] ${isDarkTheme ? "text-white/70 hover:bg-white/10 hover:text-white" : "text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"}`}><User className="h-4 w-4 opacity-70" /><span className="flex-1">Profile</span><span className="opacity-40">›</span></button>
+                  <button type="button" onClick={() => setSettingsView("profile")} className={`flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm ${isDarkTheme ? "text-white/70 hover:bg-white/10 hover:text-white" : "text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"}`}><User className="h-4 w-4 opacity-70" /><span className="flex-1">Profile</span><span className="opacity-40">›</span></button>
                   <div className={`my-1 h-px ${isDarkTheme ? "bg-white/10" : "bg-[var(--gbp-border)]"}`} />
-                  <p className="px-3.5 pb-1 pt-2 text-[9px] font-bold uppercase tracking-[0.09em] text-[var(--gbp-text2)]">Tema</p>
+                  <p className="px-3.5 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.09em] text-[var(--gbp-text2)]">Tema</p>
                   <div className="grid grid-cols-4 gap-1.5 px-3.5">
                     {THEME_PICKER_ORDER.map((item) => (
                       <button
@@ -1624,7 +1624,7 @@ export function CompanyShell({
                             </svg>
                           </span>
                         </span>
-                        <span className={`text-[9px] ${theme === item ? "font-semibold text-[var(--gbp-text)]" : "text-[var(--gbp-text2)]"}`}>{THEME_NAMES[item]}</span>
+                        <span className={`text-[10px] ${theme === item ? "font-semibold text-[var(--gbp-text)]" : "text-[var(--gbp-text2)]"}`}>{THEME_NAMES[item]}</span>
                       </button>
                     ))}
                   </div>
@@ -1924,7 +1924,7 @@ export function CompanyShell({
             </div>
 
             <div className="px-3.5 pb-2 pt-2">
-              <p className="mb-1 text-[9px] font-extrabold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">Actual <span className="ml-2 rounded-full bg-[var(--gbp-accent-glow)] px-2 py-[2px] text-[9px] text-[var(--gbp-accent)]">{currentPlanName}</span></p>
+              <p className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">Actual <span className="ml-2 rounded-full bg-[var(--gbp-accent-glow)] px-2 py-[2px] text-[10px] text-[var(--gbp-accent)]">{currentPlanName}</span></p>
               <p className={`text-xs ${isDarkTheme ? "text-white/75" : "text-[var(--gbp-text2)]"}`}>{billedTo || "-"} · {billingEmail || "-"}</p>
               <div className={`mt-2 inline-flex rounded-lg border p-1 text-[10px] font-semibold ${isDarkTheme ? "border-white/15 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                 <button
@@ -2133,7 +2133,7 @@ export function CompanyShell({
                       {section.items.map((item) => {
                         const active = isActive(pathname, searchParams, item.href);
                         const isQuickAction = Boolean(item.actionKey);
-                        const itemClassName = `flex items-center gap-2.5 border-l-[2.5px] px-4 text-[13px] transition ${item.sub ? "py-1.5 pl-6" : "py-2"} ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-black/5 font-semibold text-[var(--gbp-text)]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-black/60 hover:border-l-black/20 hover:bg-black/5 hover:text-black/85")}`;
+                        const itemClassName = `flex items-center gap-2.5 border-l-[2.5px] px-4 text-sm transition ${item.sub ? "py-1.5 pl-6" : "py-2"} ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-black/5 font-semibold text-[var(--gbp-text)]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-black/60 hover:border-l-black/20 hover:bg-black/5 hover:text-black/85")}`;
 
                         if (isQuickAction) {
                           return (
@@ -2186,7 +2186,7 @@ export function CompanyShell({
                   )}
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate text-[13px] font-semibold text-[var(--gbp-text)]">{profileName}</p>
+                  <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{profileName}</p>
                   <p className="truncate text-[11px] text-[var(--gbp-text2)]">{sessionRoleLabel}</p>
                   <p className="truncate text-[10px] text-[var(--gbp-muted)]">{sessionUserEmail || "Sin email"}</p>
                 </div>

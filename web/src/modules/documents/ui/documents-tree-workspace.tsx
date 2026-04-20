@@ -656,7 +656,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
               >
                 <ChevronRight className={`h-4 w-4 shrink-0 text-[var(--gbp-text2)] transition ${isOpen ? "rotate-90" : ""}`} />
                 <Folder className="h-4 w-4 shrink-0 text-[var(--gbp-text2)]" />
-                <span className="truncate text-[13px] font-semibold text-[var(--gbp-text)]">{folder.name}</span>
+                <span className="truncate text-sm font-semibold text-[var(--gbp-text)]">{folder.name}</span>
                 <span className="shrink-0 text-[11px] text-[var(--gbp-muted)]">({docList.length})</span>
               </button>
               {/* Fecha de carga */}
@@ -700,7 +700,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                       return (
                         <div key={doc.id} className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px] items-center gap-2 border-t border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]" draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; }}>
                           <div className="min-w-0 pl-8">
-                            <p className="truncate text-[12px] font-medium text-[var(--gbp-text)]">{doc.title}</p>
+                            <p className="truncate text-xs font-medium text-[var(--gbp-text)]">{doc.title}</p>
                             <p className="truncate text-[11px] text-[var(--gbp-muted)]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p>
                           </div>
                           {/* Fecha de carga */}
@@ -876,7 +876,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                 return (
                   <AnimatedItem key={doc.id}>
                     <div className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px] items-center gap-2 border-t border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]" draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; }}>
-                      <div className="min-w-0"><p className="truncate text-[12px] font-medium text-[var(--gbp-text)]">{doc.title}</p><p className="truncate text-[11px] text-[var(--gbp-muted)]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p></div>
+                      <div className="min-w-0"><p className="truncate text-xs font-medium text-[var(--gbp-text)]">{doc.title}</p><p className="truncate text-[11px] text-[var(--gbp-muted)]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p></div>
                       {/* Fecha de carga */}
                       <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{formatDate(doc.created_at)}</p>
                       {/* Locación */}

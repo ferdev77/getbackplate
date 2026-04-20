@@ -205,7 +205,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
       <section className="mb-1 flex flex-wrap items-center justify-between gap-3">
         <div className={`inline-flex items-center gap-2 ${TEXT_STRONG}`}>
           <Settings2 className="h-4 w-4" />
-          <h1 className="text-[18px] font-bold">Ajustes de Empresa</h1>
+          <h1 className="text-lg font-bold">Ajustes de Empresa</h1>
         </div>
         <div className="flex flex-wrap gap-2">
           {/* Header buttons removed; actions are now closely placed inline to their respective sections */}

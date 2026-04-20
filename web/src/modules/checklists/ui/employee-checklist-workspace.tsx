@@ -181,7 +181,7 @@ export function EmployeeChecklistWorkspace({
         ) : (
           <div className="fixed inset-0 z-[1050] grid place-items-center bg-black/55 p-4">
             <div className="w-full max-w-[420px] rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-[0_24px_70px_rgba(0,0,0,.22)]">
-              <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Checklist</p>
+              <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">Checklist</p>
               <div className="mt-3 flex items-center gap-2 text-sm text-[var(--gbp-text2)]">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span>{previewMode === "readonly" ? "Cargando vista previa..." : "Cargando formulario..."}</span>

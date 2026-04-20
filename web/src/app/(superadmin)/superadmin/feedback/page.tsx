@@ -68,7 +68,7 @@ export default async function SuperadminFeedbackPage() {
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand/20 blur-3xl" />
         <div className="relative z-10">
           <p className="gbp-page-eyebrow mb-2 text-brand-light/60">Superadmin Control</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">Feedback Inbox</h1>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">Feedback Inbox</h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/70">
              Bandeja de entrada centralizada. Administra los reportes de errores e ideas enviados por los usuarios de las distintas empresas.
           </p>

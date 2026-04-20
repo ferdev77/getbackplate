@@ -117,7 +117,7 @@ export function SuperadminTopbar() {
                         : "text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"
                     }`}
                   >
-                    <span className="text-[15px]">{item.label}</span>
+                    <span className="text-sm">{item.label}</span>
                     {active && <ChevronRight className="h-4 w-4" />}
                   </Link>
                 );
@@ -127,7 +127,7 @@ export function SuperadminTopbar() {
                 <form action={logoutAction}>
                   <button
                     type="submit"
-                    className="flex w-full items-center gap-3 rounded-xl bg-[var(--gbp-error-soft)] px-4 py-3.5 text-[15px] font-bold text-[var(--gbp-error)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_16%,transparent)]"
+                    className="flex w-full items-center gap-3 rounded-xl bg-[var(--gbp-error-soft)] px-4 py-3.5 text-sm font-bold text-[var(--gbp-error)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_16%,transparent)]"
                   >
                     <LogOut className="h-5 w-5" />
                     Cerrar sesión

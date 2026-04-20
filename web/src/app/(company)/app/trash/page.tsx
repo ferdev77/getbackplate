@@ -33,7 +33,7 @@ export default async function CompanyTrashPage() {
         <section className="mb-5 flex flex-col gap-1">
           <div className="inline-flex items-center gap-2 text-[var(--gbp-text)]">
             <Trash2 className="h-4 w-4" />
-            <h1 className="text-[18px] font-bold">Papelera</h1>
+            <h1 className="text-lg font-bold">Papelera</h1>
           </div>
           <p className="text-sm text-muted-foreground">
             Los documentos eliminados se conservarán aquí por 15 días antes de ser eliminados definitivamente.

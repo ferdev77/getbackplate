@@ -27,7 +27,7 @@ export default function SuperadminGuidePage() {
         <motion.h1 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
+          className="text-2xl font-bold tracking-tight text-foreground"
         >
           Centro de <span className="text-brand italic">Conocimiento</span>
         </motion.h1>
@@ -35,7 +35,7 @@ export default function SuperadminGuidePage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground leading-relaxed"
+          className="mx-auto mt-6 max-w-2xl text-sm text-muted-foreground leading-relaxed"
         >
           Bienvenido al centro de mando de GetBackplate. Aquí aprenderás a dominar las herramientas que mantienen el ecosistema en funcionamiento.
         </motion.p>
@@ -77,7 +77,7 @@ export default function SuperadminGuidePage() {
             className={`group rounded-[2.5rem] border ${item.color} p-8 transition-all hover:shadow-xl hover:shadow-black/5 hover:-translate-y-1`}
           >
             <item.icon className="mb-6 h-8 w-8 transition-transform group-hover:scale-110" />
-            <h3 className="mb-3 text-xl font-bold text-foreground">{item.title}</h3>
+            <h3 className="mb-3 text-lg font-bold text-foreground">{item.title}</h3>
             <p className="text-sm leading-relaxed text-muted-foreground">{item.desc}</p>
           </motion.div>
         ))}
@@ -95,7 +95,7 @@ export default function SuperadminGuidePage() {
             <h2 className="mb-6 text-2xl font-bold leading-tight text-foreground md:text-3xl">
               Entiende el <span className="text-brand">Score</span> de tus organizaciones.
             </h2>
-            <p className="mb-8 text-lg text-muted-foreground leading-relaxed">
+            <p className="mb-8 text-sm text-muted-foreground leading-relaxed">
               El score es un indicador dinámico (0-100) que mide qué tan bien está operando una organización. No es solo un número, es la seguridad de que el cliente está usando la plataforma correctamente.
             </p>
             
@@ -174,7 +174,7 @@ export default function SuperadminGuidePage() {
       {/* CTA Section */}
       <section className="relative overflow-hidden rounded-[2.5rem] bg-[linear-gradient(145deg,var(--gbp-text)_0%,color-mix(in_oklab,var(--gbp-text)_88%,black)_100%)] p-10 text-center text-white shadow-2xl">
         <div className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full bg-brand/20 blur-3xl" />
-        <h2 className="mb-6 text-xl font-bold md:text-2xl">¿Listo para empezar la auditoría?</h2>
+        <h2 className="mb-6 text-lg font-bold">¿Listo para empezar la auditoría?</h2>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="inline-block">
           <a
             href="/superadmin/dashboard"

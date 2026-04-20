@@ -51,7 +51,7 @@ export function LandingHero() {
                 <Link href="/auth/login" className="flex items-center gap-2 text-lg font-bold text-foreground hover:text-brand transition-colors group">
                   Ver demo en vivo <MoveRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
-                <span className="absolute -right-12 -top-6 block rounded-full border border-brand/20 bg-brand/5 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-brand backdrop-blur-sm">
+                <span className="absolute -right-12 -top-6 block rounded-full border border-brand/20 bg-brand/5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-brand backdrop-blur-sm">
                   Próximamente
                 </span>
               </div>

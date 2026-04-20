@@ -87,7 +87,7 @@ export function AnnouncementCard({
     <article className={`rounded-xl border-[1.5px] px-5 py-4 border-[var(--gbp-border)] bg-[var(--gbp-surface)] ${announcement.is_featured ? "border-l-[3.5px] border-l-[var(--gbp-accent)]" : ""}`}>
       <div className="mb-2 flex items-start justify-between gap-3">
         <div>
-          <p className="truncate text-[14px] font-bold text-[var(--gbp-text)]">{announcement.title}</p>
+          <p className="truncate text-sm font-bold text-[var(--gbp-text)]">{announcement.title}</p>
           <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-[var(--gbp-text2)]">
             <span>📅 {publishLabel} · {authorName}</span>
           </div>
@@ -110,7 +110,7 @@ export function AnnouncementCard({
       <div className={`grid transition-[grid-template-rows,opacity,margin] duration-300 ${expanded ? "mt-3 grid-rows-[1fr] opacity-100" : "mt-0 grid-rows-[0fr] opacity-0"}`}>
         <div className="overflow-hidden">
           {expirationBadge ? <div className="mb-2 text-[11px]">{expirationBadge}</div> : null}
-          <p className="text-[13px] leading-6 text-[var(--gbp-text2)]">{announcement.body}</p>
+          <p className="text-sm leading-6 text-[var(--gbp-text2)]">{announcement.body}</p>
 
           {showAudience ? (
             <div className="mt-3 flex flex-wrap items-center gap-1.5">

@@ -171,7 +171,7 @@ export function SuperadminOrganizationsWorkspace({
       <section className="relative overflow-hidden rounded-[2.5rem] border border-[var(--gbp-border)] bg-[linear-gradient(145deg,var(--gbp-text)_0%,color-mix(in_oklab,var(--gbp-text)_88%,black)_100%)] p-8 text-white shadow-xl">
         <div className="relative z-10">
           <p className="gbp-page-eyebrow mb-2 text-brand-light/60">Superadmin Control</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">Organizaciones</h1>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">Organizaciones</h1>
         </div>
       </section>
 
@@ -304,7 +304,7 @@ export function SuperadminOrganizationsWorkspace({
                             <input type="hidden" name="organization_id" value={selectedOrg.id} />
                             <input type="hidden" name="module_id" value={module.id} />
                             <input type="hidden" name="next_enabled" value={String(isCoreLocked ? true : !isEnabled)} />
-                            <span className="text-[13px] font-bold text-foreground">{module.name}</span>
+                            <span className="text-sm font-bold text-foreground">{module.name}</span>
                             <button type="submit" disabled={isCoreLocked} className={`relative h-6 w-11 rounded-full ${isEnabled ? "bg-[var(--gbp-accent)]" : "bg-slate-300"}`}><span className={`absolute top-1 h-4 w-4 rounded-full bg-white ${isEnabled ? "left-[24px]" : "left-1"}`} /></button>
                           </form>
                         );
@@ -316,7 +316,7 @@ export function SuperadminOrganizationsWorkspace({
 
               {modalAction === "delete" && selectedOrg ? (
                 <div className="space-y-6">
-                  <div className="rounded-[2rem] border border-red-200 bg-red-50 p-6 text-center"><AlertTriangle className="mx-auto h-8 w-8 text-red-600" /><h4 className="mt-2 text-xl font-bold text-red-900">Advertencia Crítica</h4></div>
+                  <div className="rounded-[2rem] border border-red-200 bg-red-50 p-6 text-center"><AlertTriangle className="mx-auto h-8 w-8 text-red-600" /><h4 className="mt-2 text-lg font-bold text-red-900">Advertencia Crítica</h4></div>
                   <form action={deleteOrganizationAction} className="space-y-4">
                     <input type="hidden" name="organization_id" value={selectedOrg.id} />
                     <SuperadminInputField label="Confirmar slug" name="confirm_slug" required placeholder={selectedOrg.slug} className="text-center" />

@@ -176,7 +176,7 @@ export function EmployeeWelcomeModal({
           <div className="relative flex items-center justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold tracking-[0.12em] text-white/65 uppercase">Portal Interno - Empleados</p>
-              <h2 className="mt-1 font-serif text-[30px] font-bold leading-tight">Recorrido del portal</h2>
+              <h2 className="mt-1 font-serif text-3xl font-bold leading-tight">Recorrido del portal</h2>
                <p className="mt-1 text-sm text-white/70">Revisa estas secciones para entender dónde encontrar cada herramienta de trabajo.</p>
             </div>
             <div className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85">
@@ -217,15 +217,15 @@ export function EmployeeWelcomeModal({
                 <CurrentIcon className={`h-5 w-5 ${current.iconColor}`} />
               </div>
               <div>
-                <h3 className="font-serif text-[24px] font-bold text-[var(--gbp-text)]">{current.title}</h3>
+                <h3 className="font-serif text-2xl font-bold text-[var(--gbp-text)]">{current.title}</h3>
                 <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">{current.tab}</p>
               </div>
             </div>
-            <p className="mt-2 text-[14px] leading-8 text-[var(--gbp-text2)]">{current.description}</p>
+            <p className="mt-2 text-sm leading-8 text-[var(--gbp-text2)]">{current.description}</p>
 
             <div className="mt-5 space-y-2">
               {current.points.map((point) => (
-                <div key={point} className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-[13px] text-[var(--gbp-text)] transition-colors hover:border-[var(--gbp-border2)] hover:bg-[var(--gbp-surface)]">
+                <div key={point} className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] transition-colors hover:border-[var(--gbp-border2)] hover:bg-[var(--gbp-surface)]">
                   {point}
                 </div>
               ))}

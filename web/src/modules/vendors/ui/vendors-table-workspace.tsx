@@ -645,7 +645,7 @@ export default function VendorsTableWorkspace({ initialVendors, branches, organi
         <section className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div className={`inline-flex items-center gap-2 ${TEXT_STRONG}`}>
             <Truck className="h-4 w-4" />
-            <h1 className="text-[18px] font-bold">Proveedores</h1>
+            <h1 className="text-lg font-bold">Proveedores</h1>
           </div>
           <button
             onClick={() => { setEditingVendor(null); setModalOpen(true); }}

@@ -205,13 +205,13 @@ export function ScopeSelector({
                     onChange={(event) => toggleDepartment(department.id, event.target.checked)}
                     className="h-[14px] w-[14px] accent-[var(--gbp-accent)]"
                   />
-                  <span className="text-[12px] font-bold text-[var(--gbp-text)]">{department.name}</span>
+                  <span className="text-xs font-bold text-[var(--gbp-text)]">{department.name}</span>
                 </label>
 
                 {departmentPositions.length ? (
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 border-l border-[var(--gbp-border)] pl-5 py-1">
                     {departmentPositions.map((position) => (
-                      <label key={`${namespace}-pos-${position.id}`} className="inline-flex items-center gap-2 text-[12px]">
+                      <label key={`${namespace}-pos-${position.id}`} className="inline-flex items-center gap-2 text-xs">
                         <input
                           type="checkbox"
                           checked={selectedPositions.has(position.id)}
@@ -260,7 +260,7 @@ export function ScopeSelector({
                   className="mt-[2px] h-[13px] w-[13px] accent-[var(--gbp-accent)]"
                 />
                 <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2">
-                  <p className="truncate text-[12px] font-medium text-[var(--gbp-text)]">{user.first_name} {user.last_name}</p>
+                  <p className="truncate text-xs font-medium text-[var(--gbp-text)]">{user.first_name} {user.last_name}</p>
                   <div className="flex items-center justify-end gap-1.5">
                     {user.department_label ? <span className={`${departmentBadgeClass} max-w-[180px] truncate whitespace-nowrap`}>Departamento: {user.department_label}</span> : null}
                     {user.position_label ? <span className={`${positionBadgeClass} max-w-[180px] truncate whitespace-nowrap`}>Puesto: {user.position_label}</span> : null}

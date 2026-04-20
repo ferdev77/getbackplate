@@ -85,7 +85,7 @@ export function EmployeeChecklistCreatedSection({
                 <div className="min-w-0">
                   <div className="flex min-w-0 items-center gap-2 text-[var(--gbp-text)]">
                     <ClipboardCheck className="h-4 w-4 shrink-0 text-[var(--gbp-accent)]" />
-                    <p className="truncate text-[13px] font-semibold">{row.name}</p>
+                    <p className="truncate text-sm font-semibold">{row.name}</p>
                   </div>
                   <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">{row.items.length} item(s)</p>
                 </div>

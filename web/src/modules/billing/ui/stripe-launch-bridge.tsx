@@ -105,7 +105,7 @@ export function StripeLaunchBridge({
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4b7b64]">Pago seguro</p>
-                  <h1 className="text-[22px] font-bold text-[#143126]">{title}</h1>
+                  <h1 className="text-2xl font-bold text-[#143126]">{title}</h1>
                 </div>
               </div>
 

@@ -89,7 +89,7 @@ export default async function SuperadminDashboardPage() {
               <span className="rounded-full bg-brand/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-light ring-1 ring-brand/30">Control Central</span>
               <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
             </div>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">Panel de Control</h1>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">Panel de Control</h1>
             <p className="mt-2 text-sm leading-relaxed text-white/70">
               Visibilidad operativa en tiempo real del ecosistema. Monitorea riesgos, actividad y cobertura de servicios por organización.
             </p>
@@ -102,7 +102,7 @@ export default async function SuperadminDashboardPage() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.11em] text-white/65">Salud del Ecosistema</p>
               <div className="flex items-baseline gap-2">
-                <p className="text-3xl font-bold tracking-tight">{healthyOrgs}</p>
+                <p className="text-2xl font-bold tracking-tight">{healthyOrgs}</p>
                 <p className="text-xs text-white/65">sanos de {orgCount}</p>
               </div>
             </div>
@@ -177,7 +177,7 @@ export default async function SuperadminDashboardPage() {
                   />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-[13px] text-muted-foreground sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-sm text-muted-foreground sm:grid-cols-4">
                   <div className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30" />
                     <span>Admins: <strong className="text-foreground font-semibold">{row.activeAdmins}</strong></span>
@@ -244,8 +244,8 @@ export default async function SuperadminDashboardPage() {
                 { label: "Avisos Activos", val: announcementsTotal, icon: Megaphone },
               ].map((item) => (
                 <div key={item.label} className="flex items-center justify-between rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3">
-                  <span className="text-[13px] font-medium text-muted-foreground">{item.label}</span>
-                  <strong className="text-[15px] font-bold text-foreground">{item.val}</strong>
+                  <span className="text-sm font-medium text-muted-foreground">{item.label}</span>
+                  <strong className="text-lg font-bold text-foreground">{item.val}</strong>
                 </div>
               ))}
             </div>

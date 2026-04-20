@@ -64,7 +64,7 @@ export function NewUserModal({ open, onClose, branches, roleOptions }: NewUserMo
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
       <div className="max-h-[90vh] w-[480px] max-w-[95vw] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
         <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
-          <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Nuevo Administrador</p>
+          <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">Nuevo Administrador</p>
           <button
             type="button"
             id="close-user-modal-link"

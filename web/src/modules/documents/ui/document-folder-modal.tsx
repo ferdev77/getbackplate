@@ -98,7 +98,7 @@ export function DocumentFolderModal({
       <div className="max-h-[92vh] w-[1040px] max-w-[97vw] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
         <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
           <div>
-            <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Nueva Carpeta</p>
+            <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">Nueva Carpeta</p>
             <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">Organiza documentos y define el alcance de acceso.</p>
           </div>
           <button type="button" onClick={closeModal} className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</button>
