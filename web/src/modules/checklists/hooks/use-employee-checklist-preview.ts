@@ -20,6 +20,8 @@ export type ChecklistPreviewPayload = {
     repeat_every: string | null;
     is_active: boolean;
     target_scope: unknown;
+    created_by: string | null;
+    created_by_name: string;
     scope_labels: {
       locations: string[];
       departments: string[];

@@ -269,7 +269,6 @@ export async function upsertChecklistTemplate(
   }
 
   // Insert new sections & items
-  let globalItemIndex = 0;
   for (const [sectionIndex, section] of normalizedSections.entries()) {
     const { data: sectionRow, error: sectionError } = await supabase
       .from("checklist_template_sections")
@@ -293,10 +292,9 @@ export async function upsertChecklistTemplate(
       organization_id: organizationId,
       section_id: sectionRow.id,
       label,
-      priority: normalizePriority(globalItemIndex < 2 ? "high" : "medium"),
+      priority: normalizePriority("medium"),
       sort_order: index,
     }));
-    globalItemIndex += section.items.length;
 
     const { error: itemsError } = await supabase
       .from("checklist_template_items")
