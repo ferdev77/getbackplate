@@ -54,18 +54,6 @@ function sectionIcon(name: string) {
   return "📋";
 }
 
-function priorityLabel(priority: string) {
-  if (priority === "high") return "CRITICO";
-  if (priority === "low") return "RUTINA";
-  return "IMPORTANTE";
-}
-
-function priorityClass(priority: string) {
-  if (priority === "high") return "bg-[var(--gbp-error-soft)] text-[var(--gbp-error)]";
-  if (priority === "low") return "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]";
-  return "bg-[color:color-mix(in_oklab,var(--gbp-accent)_16%,transparent)] text-[var(--gbp-accent)]";
-}
-
 export function EmployeeChecklistPreviewModal({
   templateId,
   templateName,
@@ -314,7 +302,6 @@ export function EmployeeChecklistPreviewModal({
                             <button type="button" disabled={readOnly} onClick={() => toggleCheck(item.id)} className="min-w-0 flex-1 text-left">
                               <p className={`text-[14px] font-medium leading-6 ${s.checked ? "text-[var(--gbp-text2)] line-through decoration-[var(--gbp-success-soft)]" : "text-[var(--gbp-text)]"}`}>{item.label}</p>
                               <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                                <span className={`rounded-full px-2 py-[1px] text-[10px] font-extrabold uppercase tracking-[0.08em] ${priorityClass(item.priority)}`}>{priorityLabel(item.priority)}</span>
                                 {s.flagged ? <span className="h-2 w-2 rounded-full bg-[var(--gbp-accent)]" /> : null}
                                 {s.comment.trim() ? <span className="h-2 w-2 rounded-full bg-[var(--gbp-accent)]" /> : null}
                                 {s.photos.length ? <span className="h-2 w-2 rounded-full bg-[var(--gbp-text2)]" /> : null}

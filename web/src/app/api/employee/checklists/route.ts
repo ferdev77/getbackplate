@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
 import { assertTenantModuleApi } from "@/shared/lib/access";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
+import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
 
 export async function GET(request: Request) {
   const moduleAccess = await assertTenantModuleApi("checklists", { allowBillingBypass: true });
@@ -47,7 +48,7 @@ export async function GET(request: Request) {
 
   const { data: template } = await supabase
     .from("checklist_templates")
-    .select("id, name, branch_id, department_id, checklist_type, shift, repeat_every, is_active, target_scope")
+    .select("id, name, branch_id, department_id, checklist_type, shift, repeat_every, is_active, target_scope, created_by")
     .eq("organization_id", tenant.organizationId)
     .eq("id", previewTemplateId)
     .eq("is_active", true)
@@ -111,9 +112,7 @@ export async function GET(request: Request) {
           .eq("organization_id", tenant.organizationId)
           .in("id", positionIds)
       : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
-    userScopeIds.length > 0
-      ? buildScopeUsersCatalog(tenant.organizationId)
-      : Promise.resolve([]),
+    buildScopeUsersCatalog(tenant.organizationId),
   ]);
   const branchNameById = new Map(
     (scopeBranches ?? []).map((row) => [row.id, customBrandingEnabled && row.city ? row.city : row.name]),
@@ -132,6 +131,17 @@ export async function GET(request: Request) {
     positions: positionIds.map((id) => positionNameById.get(id) ?? id),
     users: userScopeIds.map((id) => userNameById.get(id) ?? id),
   };
+
+  const checklistAuthorNameMap = template.created_by
+    ? await resolveAnnouncementAuthorNames({
+        organizationId: tenant.organizationId,
+        authorIds: [template.created_by],
+      })
+    : new Map<string, string>();
+
+  const createdByName = template.created_by
+    ? checklistAuthorNameMap.get(template.created_by) ?? userNameById.get(template.created_by) ?? "Usuario"
+    : "Sin autor";
 
   const { data: previewSections } = await supabase
     .from("checklist_template_sections")
@@ -265,6 +275,8 @@ export async function GET(request: Request) {
       is_active: template.is_active,
       target_scope: template.target_scope,
       scope_labels: scopeLabels,
+      created_by: template.created_by,
+      created_by_name: createdByName,
     },
     sections,
     initialReport: latestSubmission

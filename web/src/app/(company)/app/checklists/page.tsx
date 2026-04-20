@@ -15,6 +15,7 @@ import { requireTenantModule } from "@/shared/lib/access";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { getEnabledModulesCached } from "@/modules/organizations/cached-queries";
 import { SlideUp } from "@/shared/ui/animations";
+import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
 
 type CompanyChecklistsPageProps = {
   searchParams: Promise<{
@@ -91,7 +92,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
       .order("name"),
     supabase
       .from("checklist_templates")
-      .select("id, name, checklist_type, is_active, branch_id, shift, department, department_id, repeat_every, target_scope, created_at")
+      .select("id, name, checklist_type, is_active, branch_id, shift, department, department_id, repeat_every, target_scope, created_at, created_by")
       .eq("organization_id", tenant.organizationId)
       .order("created_at", { ascending: false })
       .limit(80),
@@ -183,6 +184,24 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
   const enabledModules = new Set(enabledModulesArr);
   const customBrandingEnabled = enabledModules.has("custom_branding");
 
+  const checklistAuthorIds = Array.from(
+    new Set(
+      (templates ?? [])
+        .map((template) => template.created_by)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+  const checklistAuthorNameMap = await resolveAnnouncementAuthorNames({
+    organizationId: tenant.organizationId,
+    authorIds: checklistAuthorIds,
+  });
+
+  const userNameById = new Map(
+    scopedUsers
+      .filter((row) => row.user_id)
+      .map((row) => [row.user_id as string, `${row.first_name} ${row.last_name}`.trim()]),
+  );
+
   const mappedBranches = (branches ?? []).map((b) => ({
     ...b,
     name: customBrandingEnabled && b.city ? b.city : b.name,
@@ -259,6 +278,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
       scopeLocationNames,
       scopeRoles,
       branchName: template.branch_id ? branchNameMap.get(template.branch_id) ?? "Sucursal" : "Global",
+      created_by_name: template.created_by ? checklistAuthorNameMap.get(template.created_by) ?? "Usuario" : "Sin autor",
     };
   });
 
@@ -272,12 +292,6 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
   const editingTemplate = action === "edit" ? templateRows.find((row) => row.id === templateId) ?? null : null;
   const previewTemplate = previewTemplateId ? templateRows.find((row) => row.id === previewTemplateId) ?? null : null;
   const deletingTemplate = deleteTemplateId ? templateRows.find((row) => row.id === deleteTemplateId) ?? null : null;
-
-  const userNameById = new Map(
-    scopedUsers
-      .filter((row) => row.user_id)
-      .map((row) => [row.user_id as string, `${row.first_name} ${row.last_name}`.trim()]),
-  );
 
   const totalTemplates = templates?.length ?? 0;
   const activeTemplates = (templates ?? []).filter((row) => row.is_active).length;
@@ -415,6 +429,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
                   <p><span className="font-semibold text-[var(--gbp-text)]">Shift:</span> {previewTemplate.shift || "-"}</p>
                   <p><span className="font-semibold text-[var(--gbp-text)]">Frecuencia:</span> {previewTemplate.repeat_every || "-"}</p>
                   <p><span className="font-semibold text-[var(--gbp-text)]">Estado:</span> {previewTemplate.is_active ? "Activo" : "Inactivo"}</p>
+                  <p className="sm:col-span-2"><span className="font-semibold text-[var(--gbp-text)]">Creado por:</span> {previewTemplate.created_by_name ?? "Dirección"}</p>
                 </div>
 
                 <div className="mt-3 border-t border-[var(--gbp-border)] pt-3">

@@ -13,6 +13,7 @@ type Props = {
   shift?: string | null;
   repeatEvery?: string | null;
   isActive?: boolean;
+  createdByName?: string;
   scopeLabels?: {
     locations: string[];
     departments: string[];
@@ -29,18 +30,6 @@ function typeLabel(value: string | null | undefined) {
   return "Custom";
 }
 
-function priorityLabel(priority: string) {
-  if (priority === "high") return "CRITICO";
-  if (priority === "low") return "RUTINA";
-  return "IMPORTANTE";
-}
-
-function priorityClass(priority: string) {
-  if (priority === "high") return "border-rose-200 bg-rose-50 text-rose-700";
-  if (priority === "low") return "border-neutral-200 bg-neutral-100 text-neutral-600";
-  return "border-amber-200 bg-amber-50 text-amber-700";
-}
-
 export function ChecklistTemplatePreviewModal({
   templateName,
   sections,
@@ -48,6 +37,7 @@ export function ChecklistTemplatePreviewModal({
   shift,
   repeatEvery,
   isActive,
+  createdByName,
   scopeLabels,
   onClose,
 }: Props) {
@@ -79,6 +69,7 @@ export function ChecklistTemplatePreviewModal({
               <p><span className="font-semibold text-[var(--gbp-text)]">Shift:</span> {shift || "-"}</p>
               <p><span className="font-semibold text-[var(--gbp-text)]">Frecuencia:</span> {repeatEvery || "-"}</p>
               <p><span className="font-semibold text-[var(--gbp-text)]">Estado:</span> {isActive ? "Activo" : "Inactivo"}</p>
+              <p className="sm:col-span-2"><span className="font-semibold text-[var(--gbp-text)]">Creado por:</span> {createdByName ?? "Dirección"}</p>
             </div>
 
             <div className="mt-3 border-t border-[var(--gbp-border)] pt-3">
@@ -134,11 +125,8 @@ export function ChecklistTemplatePreviewModal({
               {section.items.length > 0 ? (
                 <ul className="mt-2 space-y-1.5">
                   {section.items.map((item) => (
-                    <li key={item.id} className="flex items-center justify-between gap-3 rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-xs text-[var(--gbp-text2)]">
-                      <span>{item.label}</span>
-                      <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${priorityClass(item.priority)}`}>
-                        {priorityLabel(item.priority)}
-                      </span>
+                    <li key={item.id} className="rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-xs text-[var(--gbp-text2)]">
+                      {item.label}
                     </li>
                   ))}
                 </ul>
