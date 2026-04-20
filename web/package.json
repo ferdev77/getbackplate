@@ -7,7 +7,7 @@
     "dev:tunnel": "ngrok http --url=earmuff-sulphate-splatter.ngrok-free.dev 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint && npm run verify:layout-guardrails",
     "e2e:install": "playwright install chromium",
     "e2e:setup-documents": "node --env-file=.env.local scripts/setup-e2e-documents.mjs",
     "e2e:documents": "playwright test e2e/documents-*.spec.ts",
@@ -46,7 +46,8 @@
     "perf:routes": "node --env-file=.env.local scripts/measure-route-latency.mjs",
     "report:tenant-usage": "node --env-file=.env.local scripts/generate-tenant-usage-report.mjs --format=table",
     "report:tenant-usage:json": "node --env-file=.env.local scripts/generate-tenant-usage-report.mjs --format=json",
-    "report:tenant-usage:csv": "node --env-file=.env.local scripts/generate-tenant-usage-report.mjs --format=csv"
+    "report:tenant-usage:csv": "node --env-file=.env.local scripts/generate-tenant-usage-report.mjs --format=csv",
+    "verify:layout-guardrails": "node scripts/verify-layout-guardrails.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.89.0",

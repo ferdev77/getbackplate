@@ -170,8 +170,8 @@ export function SuperadminOrganizationsWorkspace({
     <PageContent spacing="roomy" className="flex flex-col gap-6">
       <section className="relative overflow-hidden rounded-[2.5rem] border border-[var(--gbp-border)] bg-[linear-gradient(145deg,var(--gbp-text)_0%,color-mix(in_oklab,var(--gbp-text)_88%,black)_100%)] p-8 text-white shadow-xl">
         <div className="relative z-10">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-light/60">Superadmin Control</p>
-          <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Organizaciones</h1>
+          <p className="gbp-page-eyebrow mb-2 text-brand-light/60">Superadmin Control</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">Organizaciones</h1>
         </div>
       </section>
 
@@ -184,8 +184,8 @@ export function SuperadminOrganizationsWorkspace({
       <section className="grid gap-4 sm:grid-cols-3">
         {[{ label: "Total Empresas", val: totalOrgs, icon: Building2 }, { label: "Operacionales", val: activeOrgs, icon: BadgeCheck }, { label: "Pausas / Alertas", val: pausedOrSuspended, icon: Settings2 }].map((stat) => (
           <article key={stat.label} className="rounded-3xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-5 shadow-sm">
-            <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground"><stat.icon className="h-3.5 w-3.5" /> {stat.label}</p>
-            <p className="mt-2 font-serif text-3xl font-medium text-[var(--gbp-text)]">{stat.val}</p>
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.11em] text-muted-foreground"><stat.icon className="h-3.5 w-3.5" /> {stat.label}</p>
+            <p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{stat.val}</p>
           </article>
         ))}
       </section>
@@ -207,13 +207,13 @@ export function SuperadminOrganizationsWorkspace({
               <article key={org.id} className="relative grid items-center gap-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-5 py-4 sm:grid-cols-[2fr_1.5fr_1fr_1fr_auto]">
                 <div className="min-w-0">
                   <p className="truncate text-base font-bold text-foreground">{org.name}</p>
-                  <p className="truncate text-[11px] font-medium tracking-wide uppercase text-muted-foreground/60">{org.slug}</p>
+                  <p className="truncate text-[11px] font-semibold uppercase tracking-[0.11em] text-muted-foreground/60">{org.slug}</p>
                 </div>
                 <div><p className="text-sm font-bold text-foreground/80">{selectedPlan ? selectedPlan.name : "Sin plan"}</p></div>
                 <div><p className="text-sm font-bold text-foreground/80">{enabledCount} activos</p></div>
                 <div className="flex flex-col items-start gap-1">
-                  <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-tighter ${statusTone(org.status)}`}>{org.status}</span>
-                  <p className="text-[11px] font-medium text-muted-foreground/60">{adminCount} administrador(es)</p>
+                  <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.11em] ${statusTone(org.status)}`}>{org.status}</span>
+                  <p className="text-[11px] font-semibold text-muted-foreground/60">{adminCount} administrador(es)</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <form action={startOrganizationImpersonationAction} className="relative group/tooltip inline-flex">

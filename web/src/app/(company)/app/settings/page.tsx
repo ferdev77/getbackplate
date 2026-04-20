@@ -201,7 +201,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
   }
 
   return (
-    <PageContent className="flex flex-col gap-5 lg:px-[var(--gbp-content-pad-x-lg)]">
+    <PageContent className="flex flex-col gap-5">
       <section className="mb-1 flex flex-wrap items-center justify-between gap-3">
         <div className={`inline-flex items-center gap-2 ${TEXT_STRONG}`}>
           <Settings2 className="h-4 w-4" />

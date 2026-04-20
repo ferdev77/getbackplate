@@ -27,7 +27,7 @@ export default function SuperadminGuidePage() {
         <motion.h1 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="font-serif text-4xl font-light tracking-tight text-foreground sm:text-6xl"
+          className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
         >
           Centro de <span className="text-brand italic">Conocimiento</span>
         </motion.h1>
@@ -92,7 +92,7 @@ export default function SuperadminGuidePage() {
              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-xs font-bold text-emerald-700">
                <ShieldCheck className="h-4 w-4" /> Algoritmo de Salud Operativa
             </div>
-            <h2 className="mb-6 text-3xl font-serif font-light text-foreground md:text-5xl leading-tight">
+            <h2 className="mb-6 text-2xl font-bold leading-tight text-foreground md:text-3xl">
               Entiende el <span className="text-brand">Score</span> de tus organizaciones.
             </h2>
             <p className="mb-8 text-lg text-muted-foreground leading-relaxed">
@@ -157,8 +157,8 @@ export default function SuperadminGuidePage() {
                         <motion.div initial={{ width: 0 }} animate={{ width: "42%" }} className="h-full bg-rose-500" />
                      </div>
                      <div className="flex flex-wrap gap-2 mt-2">
-                        <span className="rounded-md bg-rose-50 border border-rose-100 px-2 py-0.5 text-[9px] font-bold text-rose-700 uppercase">Sin admin</span>
-                        <span className="rounded-md bg-rose-50 border border-rose-100 px-2 py-0.5 text-[9px] font-bold text-rose-700 uppercase">Inactividad</span>
+                        <span className="rounded-md border border-rose-100 bg-rose-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-rose-700">Sin admin</span>
+                        <span className="rounded-md border border-rose-100 bg-rose-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-rose-700">Inactividad</span>
                      </div>
                    </div>
                 </div>
@@ -174,7 +174,7 @@ export default function SuperadminGuidePage() {
       {/* CTA Section */}
       <section className="relative overflow-hidden rounded-[2.5rem] bg-[linear-gradient(145deg,var(--gbp-text)_0%,color-mix(in_oklab,var(--gbp-text)_88%,black)_100%)] p-10 text-center text-white shadow-2xl">
         <div className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full bg-brand/20 blur-3xl" />
-        <h2 className="mb-6 text-2xl font-serif font-light md:text-3xl">¿Listo para empezar la auditoría?</h2>
+        <h2 className="mb-6 text-xl font-bold md:text-2xl">¿Listo para empezar la auditoría?</h2>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="inline-block">
           <a
             href="/superadmin/dashboard"

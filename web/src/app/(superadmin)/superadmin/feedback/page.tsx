@@ -67,9 +67,9 @@ export default async function SuperadminFeedbackPage() {
       <section className="relative overflow-hidden rounded-[2.5rem] border border-[var(--gbp-border)] bg-[linear-gradient(145deg,var(--gbp-text)_0%,color-mix(in_oklab,var(--gbp-text)_88%,black)_100%)] p-8 text-white shadow-xl">
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand/20 blur-3xl" />
         <div className="relative z-10">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-light/60">Superadmin Control</p>
-          <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Feedback Inbox</h1>
-          <p className="mt-4 max-w-2xl text-base text-white/70 leading-relaxed">
+          <p className="gbp-page-eyebrow mb-2 text-brand-light/60">Superadmin Control</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">Feedback Inbox</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/70">
              Bandeja de entrada centralizada. Administra los reportes de errores e ideas enviados por los usuarios de las distintas empresas.
           </p>
         </div>
@@ -85,10 +85,10 @@ export default async function SuperadminFeedbackPage() {
             key={stat.label}
             className={`rounded-3xl border border-[var(--gbp-border)] ${stat.bg} p-5 shadow-sm`}
           >
-            <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.11em] text-muted-foreground">
               <stat.icon className="h-3.5 w-3.5" /> {stat.label}
             </p>
-            <p className={`mt-2 font-serif text-3xl font-medium ${stat.color}`}>{stat.val}</p>
+            <p className={`mt-1 text-2xl font-bold ${stat.color}`}>{stat.val}</p>
           </article>
         ))}
       </section>
@@ -119,11 +119,11 @@ export default async function SuperadminFeedbackPage() {
                 >
                   <div className="flex-1 min-w-0">
                      <div className="mb-3 flex flex-wrap items-center gap-2">
-                       <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-tighter ${typeColor}`}>
+                        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.11em] ${typeColor}`}>
                          <TypeIcon className="h-3 w-3" /> {typeLabel}
                        </span>
                        
-                       <div className="flex items-center gap-1.5 rounded-full border border-line/40 bg-muted/20 px-2.5 py-0.5 text-[10px] uppercase font-bold text-muted-foreground">
+                        <div className="flex items-center gap-1.5 rounded-full border border-line/40 bg-muted/20 px-2.5 py-0.5 text-[11px] uppercase font-semibold tracking-[0.11em] text-muted-foreground">
                            {getOrganizationName(msg.organizations as { name?: string } | Array<{ name?: string }> | null)}
                        </div>
 
@@ -132,7 +132,7 @@ export default async function SuperadminFeedbackPage() {
                        </div>
 
                        {isResolved && (
-                         <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold uppercase text-emerald-700">
+                        <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.11em] text-emerald-700">
                            <CheckCircle2 className="h-3.5 w-3.5" /> Resuelto
                          </span>
                        )}

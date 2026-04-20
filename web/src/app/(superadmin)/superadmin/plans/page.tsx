@@ -88,9 +88,9 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
       <section className="relative overflow-hidden rounded-[2.5rem] border border-[var(--gbp-border)] bg-[linear-gradient(145deg,var(--gbp-text)_0%,color-mix(in_oklab,var(--gbp-text)_88%,black)_100%)] p-8 text-white shadow-xl">
         <div className="pointer-events-none absolute -right-20 -bottom-20 h-64 w-64 rounded-full bg-brand/20 blur-3xl" />
         <div className="relative z-10">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-light/60">Monetización & Escala</p>
-          <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Planes Maestros</h1>
-          <p className="mt-4 max-w-2xl text-base text-white/70 leading-relaxed">
+          <p className="gbp-page-eyebrow mb-2 text-brand-light/60">Monetización & Escala</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">Planes Maestros</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/70">
             Estructura tu propuesta comercial. Define límites técnicos, precios y capacidades modulares para cada segmento de clientes.
           </p>
         </div>
@@ -123,10 +123,10 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
             transition={{ delay: idx * 0.1 }}
             className={`rounded-3xl border border-[var(--gbp-border)] ${stat.bg} p-5 shadow-sm`}
           >
-            <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.11em] text-muted-foreground">
               <stat.icon className="h-3.5 w-3.5" /> {stat.label}
             </p>
-            <p className={`mt-2 font-serif text-3xl font-medium ${stat.color}`}>{stat.val}</p>
+            <p className={`mt-1 text-2xl font-bold ${stat.color}`}>{stat.val}</p>
           </motion.article>
         ))}
       </section>
@@ -165,7 +165,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                       <SuperadminInputField label="Stripe Price ID" name="stripe_price_id" placeholder="Opcional. ej: price_1Pxxxxxxxx" className="md:col-span-6" />
 
                       <div className="md:col-span-6 bg-muted/20 rounded-2xl p-6 border border-line/20">
-                         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand mb-6">Restricciones Técnicas (0 = Ilimitado)</p>
+                         <p className="mb-6 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand">Restricciones Técnicas (0 = Ilimitado)</p>
                          <div className="grid gap-4 sm:grid-cols-4">
                            <SuperadminInputField label="Sucursales" name="max_branches" type="number" min="0" defaultValue="0" />
                            <SuperadminInputField label="Cant. Usuarios" name="max_users" type="number" min="0" defaultValue="0" />
@@ -181,7 +181,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                             <label key={module.id} className="group flex cursor-pointer items-center justify-between rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3 transition-all hover:bg-[var(--gbp-surface)] hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)]">
                               <span className="text-sm font-bold text-foreground/80">
                                 {module.name}
-                                {module.is_core && <span className="ml-2 text-[9px] uppercase tracking-tighter text-brand">Core</span>}
+                                {module.is_core && <span className="ml-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-brand">Core</span>}
                               </span>
                               <input
                                 type="checkbox"
@@ -238,10 +238,10 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                           </div>
                           <div>
                              <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
-                             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">{plan.code}</p>
+                             <p className="text-[11px] font-semibold uppercase tracking-[0.11em] text-muted-foreground/60">{plan.code}</p>
                           </div>
                        </div>
-                       <span className={`rounded-xl border px-3 py-1 text-[11px] font-black uppercase tracking-tighter ${plan.is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-line bg-muted/20 text-muted-foreground'}`}>
+                       <span className={`rounded-xl border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.11em] ${plan.is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-line bg-muted/20 text-muted-foreground'}`}>
                           {plan.is_active ? 'Status: Publicado' : 'Status: Borrador'}
                        </span>
                     </div>
@@ -251,19 +251,19 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                        <div className="flex items-center gap-2 text-sm font-bold text-foreground">
                           <BadgeDollarSign className="h-5 w-5 text-brand" />
                           <span>{money(plan.price_amount, plan.currency_code ?? "USD")}</span>
-                          <span className="text-[10px] uppercase text-muted-foreground font-normal">/ {plan.billing_period}</span>
+                          <span className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">/ {plan.billing_period}</span>
                        </div>
                        <div className="flex items-center gap-2 text-sm font-bold text-foreground">
                           <Building2 className="h-5 w-5 text-muted-foreground" />
-                          <span>{usedCount} <span className="text-[10px] font-normal uppercase opacity-60">Clientes</span></span>
+                          <span>{usedCount} <span className="text-[11px] uppercase tracking-[0.08em] opacity-60">Clientes</span></span>
                        </div>
                        {plan.stripe_price_id ? (
-                         <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-600" title={`ID: ${plan.stripe_price_id}`}>
+                         <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600" title={`ID: ${plan.stripe_price_id}`}>
                            <BadgeDollarSign className="h-4 w-4" />
                            <span className="font-bold">Enlazado a Stripe</span>
                          </div>
                        ) : (
-                         <div className="flex items-center gap-1.5 text-[11px] font-medium text-amber-500">
+                         <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-500">
                            <AlertCircle className="h-4 w-4" />
                            <span>Sin vincular a Stripe</span>
                          </div>
@@ -280,7 +280,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                      ].map(limit => (
                         <div key={limit.label} className="rounded-2xl border border-line/20 bg-muted/10 p-4 text-center">
                            <limit.icon className="mx-auto mb-2 h-4 w-4 text-muted-foreground opacity-40" />
-                           <p className="text-[10px] font-bold uppercase tracking-tight text-muted-foreground/60">{limit.label}</p>
+                           <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/60">{limit.label}</p>
                            <p className="mt-1 text-lg font-black text-foreground">{limit.val || '∞'}</p>
                         </div>
                      ))}
@@ -293,10 +293,10 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                           <ChevronDown className="h-4 w-4 transition-transform group-open/details:rotate-180" />
                        </summary>
                         <div className="absolute right-6 top-full mt-2 z-50 w-64 rounded-[1.5rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 shadow-2xl backdrop-blur-xl">
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-brand mb-3">Capacidades del Plan</p>
+                          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.11em] text-brand">Capacidades del Plan</p>
                           <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-hide">
                             {activeModules.map(m => (
-                               <div key={m.id} className="flex items-center gap-2 text-[11px] font-medium text-foreground/80">
+                               <div key={m.id} className="flex items-center gap-2 text-[11px] font-semibold text-foreground/80">
                                   <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                                   {m.name}
                                </div>
@@ -349,7 +349,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                                          <label key={module.id} className="group flex cursor-pointer items-center justify-between rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-4 py-3 hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)]">
                                           <span className="text-sm font-bold text-foreground/80">
                                             {module.name}
-                                            {module.is_core && <span className="ml-2 text-[9px] uppercase tracking-tighter text-brand">Core</span>}
+                                            {module.is_core && <span className="ml-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-brand">Core</span>}
                                           </span>
                                           <input
                                             type="checkbox"

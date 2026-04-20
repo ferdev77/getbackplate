@@ -214,6 +214,44 @@ body {
   font-family: var(--font-plus-jakarta-sans), sans-serif;
 }
 
+.gbp-page-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gbp-muted);
+}
+
+.gbp-page-title {
+  margin-top: 0.25rem;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--gbp-text);
+}
+
+.gbp-page-description {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--gbp-text2);
+}
+
+.gbp-stat-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--gbp-muted);
+}
+
+.gbp-stat-value {
+  margin-top: 0.25rem;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  font-weight: 700;
+  color: var(--gbp-text);
+}
+
 .auth-input:-webkit-autofill,
 .auth-input:-webkit-autofill:hover,
 .auth-input:-webkit-autofill:focus,
