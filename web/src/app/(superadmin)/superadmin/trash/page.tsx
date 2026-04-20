@@ -32,7 +32,7 @@ export default async function SuperadminTrashPage() {
         <section className="mb-8 flex flex-col gap-1">
           <div className="inline-flex items-center gap-2 text-[var(--gbp-text)]">
             <Trash2 className="h-5 w-5 text-[var(--gbp-accent)]" />
-            <h1 className="text-xl font-bold">Papelera Global</h1>
+            <h1 className="text-lg font-bold">Papelera Global</h1>
           </div>
           <p className="text-sm text-muted-foreground">
             Gestión de documentos eliminados de todas las empresas. Retención máxima: 30 días.

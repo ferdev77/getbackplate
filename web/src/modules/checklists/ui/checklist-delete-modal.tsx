@@ -66,7 +66,7 @@ export function ChecklistDeleteModal({ template, submitEndpoint, redirectPath = 
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
       <div className="w-[520px] max-w-[95vw] rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-xl)]">
         <div className="border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
-          <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Eliminar checklist</p>
+          <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">Eliminar checklist</p>
           <p className="mt-1 text-sm text-[var(--gbp-text2)]">Esta acción elimina la plantilla. Si tiene historial, se archivará automáticamente.</p>
         </div>
         <div className="px-6 py-4 text-sm text-[var(--gbp-text)]">Checklist: <strong>{template.name}</strong></div>

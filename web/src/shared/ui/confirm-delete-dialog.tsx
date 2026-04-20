@@ -36,7 +36,7 @@ export function ConfirmDeleteDialog({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="border-b border-[var(--gbp-border)] px-6 py-4">
-          <p className="font-serif text-[18px] font-bold text-[var(--gbp-text)]">
+          <p className="font-serif text-lg font-bold text-[var(--gbp-text)]">
             {title}
           </p>
           <p className="mt-1 text-sm text-[var(--gbp-text2)]">

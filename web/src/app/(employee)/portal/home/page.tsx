@@ -349,7 +349,7 @@ export default async function EmployeeHomePage() {
         <div className="space-y-8">
           <section className="flex min-h-[280px] flex-col space-y-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 sm:p-5 lg:min-h-[320px]">
             <div className="flex items-center justify-between">
-              <h3 className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.15em] text-[var(--gbp-text2)]">
+              <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-[var(--gbp-text2)]">
                 <ClipboardCheck className="w-4 h-4 text-brand" /> Checklists Pendientes
               </h3>
               {hasChecklistsModule && (
@@ -366,7 +366,7 @@ export default async function EmployeeHomePage() {
                     <article className="flex items-center gap-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4 transition-all hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_40%,transparent)] hover:shadow-lg hover:shadow-black/5">
                       <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-600 transition-colors group-hover:bg-amber-100"><ClipboardCheck className="h-5 w-5" /></div>
                       <div>
-                        <h4 className="text-[14px] font-bold text-[var(--gbp-text)] transition-colors group-hover:text-[var(--gbp-accent)]">{template.name}</h4>
+                        <h4 className="text-sm font-bold text-[var(--gbp-text)] transition-colors group-hover:text-[var(--gbp-accent)]">{template.name}</h4>
                         <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">Pendiente de completar</p>
                       </div>
                     </article>
@@ -382,7 +382,7 @@ export default async function EmployeeHomePage() {
 
           <section className="flex min-h-[280px] flex-col space-y-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 sm:p-5 lg:min-h-[320px]">
             <div className="flex items-center justify-between">
-              <h3 className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.15em] text-[var(--gbp-text2)]">
+              <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-[var(--gbp-text2)]">
                 <FileText className="w-4 h-4 text-blue-500" /> Documentos Recientes
               </h3>
               {hasDocumentsModule && (
@@ -399,7 +399,7 @@ export default async function EmployeeHomePage() {
                     <article className="flex items-center gap-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4 transition-all hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] hover:shadow-lg hover:shadow-black/5">
                       <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-100"><FileText className="h-5 w-5" /></div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="truncate text-[14px] font-bold text-[var(--gbp-text)] transition-colors group-hover:text-[var(--gbp-accent)]">{doc.title}</h4>
+                        <h4 className="truncate text-sm font-bold text-[var(--gbp-text)] transition-colors group-hover:text-[var(--gbp-accent)]">{doc.title}</h4>
                         <p className="mt-1 mt-0.5 flex gap-2 text-[11px] text-[var(--gbp-text2)]">
                            <span className="uppercase">{doc.mime_type}</span>
                            <span>{new Date(doc.created_at).toLocaleDateString("es-AR")}</span>
@@ -419,7 +419,7 @@ export default async function EmployeeHomePage() {
 
         <section className="flex min-h-[280px] flex-col space-y-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 sm:p-5 lg:min-h-[320px]">
           <div className="flex items-center justify-between">
-            <h3 className="text-[12px] font-bold uppercase tracking-[0.15em] text-[var(--gbp-text2)]">
+            <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--gbp-text2)]">
               {hasAnnouncementsModule ? "Avisos Recientes" : "Comunicación Externa"}
             </h3>
             {hasAnnouncementsModule && (
@@ -445,13 +445,13 @@ export default async function EmployeeHomePage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="pr-2 text-[14px] font-bold text-[var(--gbp-text)]">{item.title}</h3>
+                    <h3 className="pr-2 text-sm font-bold text-[var(--gbp-text)]">{item.title}</h3>
                   </div>
-                  <p className="mt-1 text-[13px] leading-6 text-[var(--gbp-text2)]">{item.body}</p>
+                  <p className="mt-1 text-sm leading-6 text-[var(--gbp-text2)]">{item.body}</p>
                   
                   <div className="mt-3 flex items-center gap-3 border-t border-[var(--gbp-border)] pt-3">
                     <span className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--gbp-text2)]">
-                      <div className="grid h-4 w-4 place-items-center rounded-full bg-[var(--gbp-surface2)] text-[8px] font-bold text-[var(--gbp-text)]">
+                      <div className="grid h-4 w-4 place-items-center rounded-full bg-[var(--gbp-surface2)] text-xs font-bold text-[var(--gbp-text)]">
                         {(authorNameMap.get(item.created_by ?? "") || "DG").substring(0, 1).toUpperCase()}
                       </div>
                       {authorNameMap.get(item.created_by ?? "") || "Dirección General"}

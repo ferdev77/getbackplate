@@ -434,7 +434,7 @@ export function LandingExperience({ plans }: Props) {
             >
               <div className="mb-6 inline-flex items-center rounded-full border border-[var(--gbp-violet)]/30 bg-[var(--gbp-violet-soft)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-violet)]">{copy.hero.badge}</div>
               <h1 className="hero-title font-bold leading-[1.03] tracking-[-0.03em]">{copy.hero.titleA}<br />{copy.hero.titleB}<br /><span className="bg-[linear-gradient(90deg,#D4531A_0%,#FF8A50_55%,#D4531A_100%)] bg-clip-text text-transparent">{copy.hero.titleC}</span></h1>
-              <p className="mt-5 max-w-xl text-[16px] leading-7 text-[var(--gbp-text2)]">{copy.hero.sub}</p>
+              <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--gbp-text2)]">{copy.hero.sub}</p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <button type="button" onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })} className="rounded-md bg-[var(--gbp-accent)] px-6 py-3 text-sm font-bold text-white hover:bg-[var(--gbp-accent-hover)]">{copy.hero.primary}</button>
                 <a href="#modules" className="rounded-md border border-[var(--gbp-border2)] px-6 py-3 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">{copy.hero.secondary}</a>
@@ -463,7 +463,7 @@ export function LandingExperience({ plans }: Props) {
             >
               <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-[var(--gbp-accent)]/12 blur-2xl" />
 
-              <div className="mb-3 flex items-center gap-1 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg2)] px-3 py-2 text-[13px] font-semibold text-[var(--gbp-text2)]">
+              <div className="mb-3 flex items-center gap-1 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg2)] px-3 py-2 text-sm font-semibold text-[var(--gbp-text2)]">
                 <span className="h-2 w-2 rounded-full bg-[var(--gbp-accent)]" />
                 <span className="h-2 w-2 rounded-full bg-amber-400" />
                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
@@ -544,7 +544,7 @@ export function LandingExperience({ plans }: Props) {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, ease: "easeOut", delay: 0.06 }}
             viewport={{ once: true, amount: 0.45 }}
-            className="mt-5 max-w-4xl text-[16px] leading-8 text-[var(--gbp-text2)]"
+            className="mt-5 max-w-4xl text-sm leading-8 text-[var(--gbp-text2)]"
           >
             {copy.sections.realityBody}
           </motion.p>
@@ -582,7 +582,7 @@ export function LandingExperience({ plans }: Props) {
                 {lang === "es" ? "en una sola vista" : "in one single view"}
               </span>
             </h2>
-            <p className="text-[15px] leading-8 text-[var(--gbp-text2)]">
+            <p className="text-sm leading-8 text-[var(--gbp-text2)]">
               {lang === "es"
                 ? "Sin cambiar pestañas. Sin paneles separados por local. Estado operativo unificado para managers y dirección."
                 : "No tab switching. No separate dashboards by branch. Unified operational status for managers and leadership."}
@@ -741,7 +741,7 @@ export function LandingExperience({ plans }: Props) {
               {lang === "es" ? "Precios" : "Pricing"}
             </p>
             <h2 className="text-4xl font-bold tracking-tight">{copy.sections.pricingTitle}</h2>
-            <p className="mx-auto mt-3 max-w-3xl text-[15px] leading-7 text-[var(--gbp-text2)]">{copy.sections.pricingSub}</p>
+            <p className="mx-auto mt-3 max-w-3xl text-sm leading-7 text-[var(--gbp-text2)]">{copy.sections.pricingSub}</p>
           </div>
 
           <div className="mt-7 flex items-center justify-center gap-3">
@@ -776,7 +776,7 @@ export function LandingExperience({ plans }: Props) {
                   className={`relative rounded-xl border p-5 ${featured ? "border-[var(--gbp-violet)] shadow-[0_0_0_1px_var(--gbp-violet),0_18px_50px_rgba(108,71,255,0.18)]" : "border-[var(--gbp-border)]"} bg-[var(--gbp-surface)]`}
                 >
                   {featured ? (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-violet)] px-3 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white">
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-violet)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white">
                       {lang === "es" ? "Más popular" : "Most popular"}
                     </span>
                   ) : null}
@@ -858,7 +858,7 @@ export function LandingExperience({ plans }: Props) {
                 ? "Porque los restaurantes necesitan una plataforma que conecte todo"
                 : "Because restaurants need one platform where everything connects"}
             </h2>
-            <p className="text-[15px] leading-8 text-[var(--gbp-text2)]">
+            <p className="text-sm leading-8 text-[var(--gbp-text2)]">
               {lang === "es"
                 ? "No construimos una colección de funciones sueltas. Construimos un sistema operativo para operar mejor cada turno."
                 : "We are not building disconnected features. We are building an operating system for better shift execution."}

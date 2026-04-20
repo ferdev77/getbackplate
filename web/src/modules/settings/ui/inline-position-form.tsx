@@ -43,7 +43,7 @@ export function InlinePositionForm({
   return (
     <div className="mt-3 w-full animate-in overflow-hidden rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3 shadow-sm fade-in slide-in-from-top-2">
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-[12px] font-bold text-[var(--gbp-text)]">Nuevo puesto en {departmentName}</p>
+        <p className="text-xs font-bold text-[var(--gbp-text)]">Nuevo puesto en {departmentName}</p>
         <button
           onClick={() => setOpen(false)}
           className="grid h-6 w-6 place-items-center rounded-md text-[var(--gbp-muted)] transition-colors hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"

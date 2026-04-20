@@ -39,7 +39,7 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
         <div className="pointer-events-none absolute -right-20 -bottom-20 h-64 w-64 rounded-full bg-brand/20 blur-3xl" />
         <div className="relative z-10">
           <p className="gbp-page-eyebrow mb-2 text-brand-light/60">Infraestructura & Capacidades</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">Catálogo de Módulos</h1>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">Catálogo de Módulos</h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/70">
             Gestione la arquitectura funcional del sistema. Defina qué componentes son piezas fundamentales del núcleo y cuáles son extensiones comerciales.
           </p>
@@ -82,7 +82,7 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
 
       <section className="rounded-[2.5rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-sm overflow-hidden">
         <div className="mb-8 px-2">
-           <h2 className="text-xl font-bold tracking-tight text-foreground">Inventario de Componentes</h2>
+           <h2 className="text-lg font-bold tracking-tight text-foreground">Inventario de Componentes</h2>
            <p className="text-xs text-muted-foreground mt-1">Configure las propiedades de cada módulo en el ecosistema.</p>
         </div>
 

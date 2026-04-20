@@ -141,7 +141,7 @@ export function EditablePositionItem({
         )}
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-[14px] font-medium text-[var(--gbp-text)]">{position.name}</span>
+            <span className="text-sm font-medium text-[var(--gbp-text)]">{position.name}</span>
           {!position.is_active && (
             <span className="rounded bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--gbp-muted)]">
               Inactivo
@@ -149,7 +149,7 @@ export function EditablePositionItem({
           )}
         </div>
         {position.description && (
-          <p className="line-clamp-1 text-[12px] text-[var(--gbp-text2)]">{position.description}</p>
+          <p className="line-clamp-1 text-xs text-[var(--gbp-text2)]">{position.description}</p>
         )}
         </div>
       </div>

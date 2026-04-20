@@ -38,15 +38,15 @@ export function EmployeeSignatureModal({
               </svg>
             </div>
             <div>
-              <h3 className="text-[15px] font-bold tracking-tight text-[var(--gbp-text)]">Firma del documento</h3>
-              <p className="text-[12px] font-medium text-[var(--gbp-text2)]">Firma criptográficamente segura</p>
+              <h3 className="text-sm font-bold tracking-tight text-[var(--gbp-text)]">Firma del documento</h3>
+              <p className="text-xs font-medium text-[var(--gbp-text2)]">Firma criptográficamente segura</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={onRefresh}
-              className="group relative inline-flex items-center gap-1.5 overflow-hidden rounded-lg bg-[var(--gbp-bg)] px-3.5 py-2 text-[12px] font-bold text-[var(--gbp-text2)] ring-1 ring-inset ring-[var(--gbp-border2)] transition-all hover:bg-[var(--gbp-surface)] hover:text-[var(--gbp-text)] hover:shadow-sm"
+              className="group relative inline-flex items-center gap-1.5 overflow-hidden rounded-lg bg-[var(--gbp-bg)] px-3.5 py-2 text-xs font-bold text-[var(--gbp-text2)] ring-1 ring-inset ring-[var(--gbp-border2)] transition-all hover:bg-[var(--gbp-surface)] hover:text-[var(--gbp-text)] hover:shadow-sm"
             >
               <svg className="h-3.5 w-3.5 transition-transform group-hover:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -56,7 +56,7 @@ export function EmployeeSignatureModal({
             <button
               type="button"
               onClick={onOpenInNewTab}
-              className="group relative inline-flex items-center gap-1.5 overflow-hidden rounded-lg bg-[var(--gbp-accent)] px-3.5 py-2 text-[12px] font-bold text-white ring-1 ring-inset ring-[color:color-mix(in_oklab,var(--gbp-accent)_70%,black)] transition-all hover:bg-[var(--gbp-accent-hover)] hover:shadow-sm"
+              className="group relative inline-flex items-center gap-1.5 overflow-hidden rounded-lg bg-[var(--gbp-accent)] px-3.5 py-2 text-xs font-bold text-white ring-1 ring-inset ring-[color:color-mix(in_oklab,var(--gbp-accent)_70%,black)] transition-all hover:bg-[var(--gbp-accent-hover)] hover:shadow-sm"
             >
               <span>Abrir en pestaña</span>
             </button>
@@ -94,7 +94,7 @@ export function EmployeeSignatureModal({
                   </div>
                   <div className="max-w-md space-y-3">
                     <h4 className="text-2xl font-bold tracking-tight text-[var(--gbp-text)] text-balance">Protección de Navegador</h4>
-                    <p className="text-[14px] leading-relaxed text-[var(--gbp-text2)] text-balance">
+                    <p className="text-sm leading-relaxed text-[var(--gbp-text2)] text-balance">
                       Parece que tu navegador o bloqueador de anuncios no permite incrustar de forma iframe este módulo seguro. <span className="font-semibold text-[var(--gbp-text)]">No hay problema.</span> Accede a nuestra pestaña cifrada certificada para firmarlo en una nueva ventana.
                     </p>
                   </div>
@@ -111,7 +111,7 @@ export function EmployeeSignatureModal({
                         <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                       </svg>
                     </a>
-                    <p className="text-[12px] font-medium text-[var(--gbp-muted)]">Una vez firmado con éxito, regresa y cierra esta ventana.</p>
+                    <p className="text-xs font-medium text-[var(--gbp-muted)]">Una vez firmado con éxito, regresa y cierra esta ventana.</p>
                   </div>
                 </div>
               ) : (
@@ -127,8 +127,8 @@ export function EmployeeSignatureModal({
                     </div>
                   </div>
                   <div className="space-y-1.5 animate-in slide-in-from-bottom-2 duration-700">
-                    <h4 className="text-[17px] font-bold tracking-tight text-[var(--gbp-text)]">Creando entorno de firma</h4>
-                    <p className="mx-auto max-w-[280px] text-[13px] font-medium leading-relaxed text-[var(--gbp-text2)]">Estableciendo túnel encriptado con la plataforma certificada de firmas. Esto tomará un instante.</p>
+                    <h4 className="text-lg font-bold tracking-tight text-[var(--gbp-text)]">Creando entorno de firma</h4>
+                    <p className="mx-auto max-w-[280px] text-sm font-medium leading-relaxed text-[var(--gbp-text2)]">Estableciendo túnel encriptado con la plataforma certificada de firmas. Esto tomará un instante.</p>
                   </div>
                   <button
                     type="button"

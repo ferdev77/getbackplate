@@ -405,7 +405,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                 <div className="flex items-center gap-2.5 overflow-hidden">
                   <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[var(--gbp-accent)] text-[11px] font-bold text-white">{initials(fullName)}</span>
                   <div className="min-w-0">
-                    <p className="truncate text-[13px] font-semibold text-[var(--gbp-text)]">{fullName}</p>
+                    <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{fullName}</p>
                     <p className="truncate text-[11px] text-[var(--gbp-muted)]">{row.position || "Sin puesto"}</p>
                   </div>
                 </div>
@@ -472,7 +472,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
           <div className="flex max-h-[90vh] w-[680px] max-w-[95vw] flex-col overflow-hidden rounded-2xl bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
             <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
-              <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Perfil de {selected.recordType === "employee" ? "Empleado" : "Usuario"}</p>
+              <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">Perfil de {selected.recordType === "employee" ? "Empleado" : "Usuario"}</p>
               <button type="button" className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-bg)] hover:text-[var(--gbp-text)]" onClick={() => setSelectedEmployeeId(null)}>✕</button>
             </div>
             <div className="flex items-center gap-4 border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">

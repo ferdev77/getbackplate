@@ -364,7 +364,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
                   <div key={template.id}>
                     <div className="grid grid-cols-[1fr_120px] md:grid-cols-[2fr_100px_90px_120px] lg:grid-cols-[minmax(160px,2fr)_80px_80px_100px_120px_230px_80px_110px] items-center gap-x-3 border-b border-[var(--gbp-border)] px-4 py-3">
                       <div>
-                        <p className={`text-[13px] font-semibold ${TEXT_STRONG}`}>{template.name}</p>
+                        <p className={`text-sm font-semibold ${TEXT_STRONG}`}>{template.name}</p>
                         {template.itemsCount !== null && (
                           <p className={`text-[11px] ${TEXT_MUTED}`}>{template.itemsCount} items</p>
                         )}
@@ -422,7 +422,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
           <SlideUp className="flex max-h-[88vh] w-[720px] max-w-[95vw] flex-col overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
             <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
-              <p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Vista previa · {previewTemplate.name}</p>
+              <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">Vista previa · {previewTemplate.name}</p>
               <Link href="/app/checklists" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</Link>
             </div>
             <div className="max-h-[68vh] space-y-3 overflow-y-auto px-6 py-5">

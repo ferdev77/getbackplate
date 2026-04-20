@@ -156,17 +156,17 @@ function VendorCard({ vendor }: { vendor: VendorRow }) {
           }}
         >
           {vendor.contactName && (
-            <span style={{ fontSize: 13, color: "var(--text-secondary, #475569)", fontWeight: 600 }}>
+            <span style={{ fontSize: 14, color: "var(--text-secondary, #475569)", fontWeight: 600 }}>
               👤 {vendor.contactName}
             </span>
           )}
           {vendor.contactPhone && (
-            <span style={{ fontSize: 13, color: "var(--text-secondary, #475569)" }}>
+            <span style={{ fontSize: 14, color: "var(--text-secondary, #475569)" }}>
               {vendor.contactPhone}
             </span>
           )}
           {vendor.contactEmail && (
-            <span style={{ fontSize: 13, color: "var(--text-secondary, #475569)" }}>
+            <span style={{ fontSize: 14, color: "var(--text-secondary, #475569)" }}>
               {vendor.contactEmail}
             </span>
           )}
@@ -201,7 +201,7 @@ function VendorCard({ vendor }: { vendor: VendorRow }) {
             <div
               style={{
                 padding: "10px 18px 14px",
-                fontSize: 13,
+                fontSize: 14,
                 color: "var(--text-secondary, #475569)",
                 lineHeight: 1.6,
                 whiteSpace: "pre-wrap",
@@ -245,7 +245,7 @@ export default function VendorsEmployeeView({ initialVendors, branches }: Props)
     border: "1px solid var(--border, #e2e8f0)",
     background: "var(--input-bg, #f8fafc)",
     color: "var(--text-secondary, #475569)",
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 500,
     outline: "none",
     cursor: "pointer",
@@ -259,7 +259,7 @@ export default function VendorsEmployeeView({ initialVendors, branches }: Props)
         <h1
           style={{
             margin: 0,
-            fontSize: 22,
+            fontSize: 24,
             fontWeight: 800,
             color: "var(--text-primary, #1e293b)",
             letterSpacing: "-0.02em",
@@ -289,7 +289,7 @@ export default function VendorsEmployeeView({ initialVendors, branches }: Props)
               left: 10,
               top: "50%",
               transform: "translateY(-50%)",
-              fontSize: 13,
+              fontSize: 12,
               color: "var(--text-muted, #94a3b8)",
               pointerEvents: "none",
             }}
@@ -307,7 +307,7 @@ export default function VendorsEmployeeView({ initialVendors, branches }: Props)
               border: "1px solid var(--border, #e2e8f0)",
               background: "var(--input-bg, #f8fafc)",
               color: "var(--text-primary, #1e293b)",
-              fontSize: 13,
+              fontSize: 14,
               outline: "none",
               boxSizing: "border-box",
             }}
@@ -358,10 +358,10 @@ export default function VendorsEmployeeView({ initialVendors, branches }: Props)
           }}
         >
           <span style={{ fontSize: 40 }}>🏪</span>
-          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--text-primary, #1e293b)" }}>
+          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--text-primary, #1e293b)" }}>
             Sin proveedores disponibles
           </h3>
-          <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted, #94a3b8)", textAlign: "center" }}>
+          <p style={{ margin: 0, fontSize: 14, color: "var(--text-muted, #94a3b8)", textAlign: "center" }}>
             {search || filterCategory || filterBranch
               ? "Probá ajustando los filtros."
               : "Aún no hay proveedores asignados a tu ubicación."}

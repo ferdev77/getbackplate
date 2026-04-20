@@ -256,10 +256,10 @@ export function EmployeeChecklistPreviewModal({
             <div className="relative z-10 mb-5 flex items-start justify-between gap-3">
               <div>
                 <span className="mb-2 inline-flex items-center gap-1 rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_45%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_16%,transparent)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">📋 Apertura</span>
-                <h2 className="font-serif text-[26px] leading-tight text-[var(--gbp-text)]">{templateName}</h2>
-                <p className="mt-1 text-[13px] text-[var(--gbp-text2)]">{readOnly ? "Reporte enviado" : "Vista de ejecución para empleado"}</p>
+                <h2 className="font-serif text-2xl leading-tight text-[var(--gbp-text)]">{templateName}</h2>
+                <p className="mt-1 text-sm text-[var(--gbp-text2)]">{readOnly ? "Reporte enviado" : "Vista de ejecución para empleado"}</p>
               </div>
-               <button type="button" onClick={closeModal} className="grid h-[34px] w-[34px] cursor-pointer place-items-center rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[18px] text-[var(--gbp-text2)] hover:border-[var(--gbp-accent)] hover:bg-[var(--gbp-accent)] hover:text-white">✕</button>
+               <button type="button" onClick={closeModal} className="grid h-[34px] w-[34px] cursor-pointer place-items-center rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-lg text-[var(--gbp-text2)] hover:border-[var(--gbp-accent)] hover:bg-[var(--gbp-accent)] hover:text-white">✕</button>
             </div>
 
             {!readOnly ? (
@@ -269,7 +269,7 @@ export function EmployeeChecklistPreviewModal({
                     <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Instrucciones</p>
                     <button type="button" onClick={() => setInstructionsVisible((prev) => !prev)} className="text-[11px] text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]">{instructionsVisible ? "Ocultar ▲" : "Ver instrucciones ▼"}</button>
                   </div>
-                  <p className="text-[12px] leading-7 text-[var(--gbp-text2)]">Marca cada tarea al completarla. Si no puedes terminar alguna, usa <span className="mx-1 inline-flex items-center gap-1 rounded-md border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gbp-accent)]">⚑ Marcar para atencion</span> y deja comentario obligatorio. Usa <span className="mx-1 inline-flex items-center gap-1 rounded-md border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gbp-accent)]">💬 Comentario</span> y <span className="mx-1 inline-flex items-center gap-1 rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gbp-text2)]">📷 Foto</span> para evidencia.</p>
+                  <p className="text-xs leading-7 text-[var(--gbp-text2)]">Marca cada tarea al completarla. Si no puedes terminar alguna, usa <span className="mx-1 inline-flex items-center gap-1 rounded-md border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gbp-accent)]">⚑ Marcar para atencion</span> y deja comentario obligatorio. Usa <span className="mx-1 inline-flex items-center gap-1 rounded-md border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gbp-accent)]">💬 Comentario</span> y <span className="mx-1 inline-flex items-center gap-1 rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gbp-text2)]">📷 Foto</span> para evidencia.</p>
                 </div>
               </div>
             ) : null}
@@ -287,7 +287,7 @@ export function EmployeeChecklistPreviewModal({
                 <section key={section.id} className="mb-7">
                   <div className="mb-3 flex items-center gap-2 border-b-[1.5px] border-[var(--gbp-border)] pb-2.5">
                     <span className="text-lg">{sectionIcon(section.name)}</span>
-                    <p className="flex-1 font-serif text-[17px] text-[var(--gbp-text)]">{section.name}</p>
+                    <p className="flex-1 font-serif text-lg text-[var(--gbp-text)]">{section.name}</p>
                     <span className="rounded-full bg-[var(--gbp-surface2)] px-2 py-0.5 text-[11px] font-semibold text-[var(--gbp-text2)]">{sectionDone}/{section.items.length}</span>
                   </div>
 
@@ -298,9 +298,9 @@ export function EmployeeChecklistPreviewModal({
                       return (
                         <article key={item.id} className={`overflow-hidden rounded-xl border-[1.5px] transition-all duration-200 ${s.checked ? "border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-success)_8%,var(--gbp-surface))]" : s.flagged ? "border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_8%,var(--gbp-surface))]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)]"}`}>
                           <div className="flex items-center gap-3 px-4 py-3">
-                            <button type="button" disabled={readOnly} onClick={() => toggleCheck(item.id)} className={`grid h-[26px] w-[26px] place-items-center rounded-[7px] border-2 text-[12px] font-black ${s.checked ? "border-[var(--gbp-success)] bg-[var(--gbp-success)] text-white" : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-transparent"}`}>✓</button>
+                            <button type="button" disabled={readOnly} onClick={() => toggleCheck(item.id)} className={`grid h-[26px] w-[26px] place-items-center rounded-[7px] border-2 text-xs font-black ${s.checked ? "border-[var(--gbp-success)] bg-[var(--gbp-success)] text-white" : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-transparent"}`}>✓</button>
                             <button type="button" disabled={readOnly} onClick={() => toggleCheck(item.id)} className="min-w-0 flex-1 text-left">
-                              <p className={`text-[14px] font-medium leading-6 ${s.checked ? "text-[var(--gbp-text2)] line-through decoration-[var(--gbp-success-soft)]" : "text-[var(--gbp-text)]"}`}>{item.label}</p>
+                              <p className={`text-sm font-medium leading-6 ${s.checked ? "text-[var(--gbp-text2)] line-through decoration-[var(--gbp-success-soft)]" : "text-[var(--gbp-text)]"}`}>{item.label}</p>
                               <div className="mt-1 flex flex-wrap items-center gap-1.5">
                                 {s.flagged ? <span className="h-2 w-2 rounded-full bg-[var(--gbp-accent)]" /> : null}
                                 {s.comment.trim() ? <span className="h-2 w-2 rounded-full bg-[var(--gbp-accent)]" /> : null}
@@ -316,7 +316,7 @@ export function EmployeeChecklistPreviewModal({
 
                           {panelType === "comment" ? (
                             <div className="border-t border-[color:color-mix(in_oklab,var(--gbp-accent)_28%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_8%,var(--gbp-surface))] px-4 pb-3 pt-2">
-                              <textarea rows={2} value={s.comment} onChange={(event) => updateComment(item.id, event.target.value)} readOnly={readOnly} placeholder={s.flagged ? "⚑ Obligatorio: explica por que no pudiste completar esta tarea..." : "Agrega un comentario o nota (opcional)..."} className={`mt-1 w-full resize-none rounded-lg border-[1.5px] px-3 py-2 text-[13px] ${s.flagged && !s.comment.trim() ? "border-[color:color-mix(in_oklab,var(--gbp-accent)_40%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_8%,var(--gbp-surface))]" : "border-[var(--gbp-border2)] bg-[var(--gbp-bg)]"}`} />
+                              <textarea rows={2} value={s.comment} onChange={(event) => updateComment(item.id, event.target.value)} readOnly={readOnly} placeholder={s.flagged ? "⚑ Obligatorio: explica por que no pudiste completar esta tarea..." : "Agrega un comentario o nota (opcional)..."} className={`mt-1 w-full resize-none rounded-lg border-[1.5px] px-3 py-2 text-sm ${s.flagged && !s.comment.trim() ? "border-[color:color-mix(in_oklab,var(--gbp-accent)_40%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_8%,var(--gbp-surface))]" : "border-[var(--gbp-border2)] bg-[var(--gbp-bg)]"}`} />
                               {s.flagged && !s.comment.trim() ? <p className="mt-1 text-[11px] font-semibold text-[var(--gbp-accent)]">⚠ El comentario es obligatorio cuando se marca para atencion</p> : null}
                             </div>
                           ) : null}
@@ -353,7 +353,7 @@ export function EmployeeChecklistPreviewModal({
           </div>
 
           <div className="flex items-center justify-between gap-3 border-t-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-8 pb-7 pt-5">
-            <p className="text-[13px] text-[var(--gbp-text2)]"><strong className="text-[var(--gbp-text)]">Resumen:</strong> {summaryText}</p>
+            <p className="text-sm text-[var(--gbp-text2)]"><strong className="text-[var(--gbp-text)]">Resumen:</strong> {summaryText}</p>
             {readOnly ? (
               <button type="button" onClick={closeModal} className="rounded-[10px] bg-[var(--gbp-text)] px-6 py-3 text-sm font-bold text-white hover:bg-[var(--gbp-accent)]">Cerrar</button>
             ) : (
@@ -368,10 +368,10 @@ export function EmployeeChecklistPreviewModal({
       {successOpen ? (
         <div className={`fixed inset-0 z-[1120] flex items-center justify-center bg-black/70 p-4 transition-opacity duration-200 ${successVisible ? "opacity-100" : "opacity-0"}`}>
           <div className={`w-full max-w-[420px] rounded-[20px] bg-[var(--gbp-surface)] px-8 py-10 text-center shadow-[0_32px_80px_rgba(0,0,0,.4)] transition-all duration-200 ${successVisible ? "scale-100 opacity-100" : "scale-95 opacity-0"}`}>
-            <div className="mx-auto mb-5 grid h-[72px] w-[72px] place-items-center rounded-full border-2 border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[32px]">✅</div>
-            <h3 className="font-serif text-[26px] text-[var(--gbp-text)]">Apertura Completada</h3>
-            <p className="mt-2 text-[14px] leading-6 text-[var(--gbp-text2)]">El reporte fue registrado exitosamente y esta listo para revision.</p>
-            <div className="mt-5 rounded-[10px] bg-[var(--gbp-bg)] px-4 py-3 text-left text-[12px] leading-7 text-[var(--gbp-text2)]">
+            <div className="mx-auto mb-5 grid h-[72px] w-[72px] place-items-center rounded-full border-2 border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-3xl">✅</div>
+            <h3 className="font-serif text-2xl text-[var(--gbp-text)]">Apertura Completada</h3>
+            <p className="mt-2 text-sm leading-6 text-[var(--gbp-text2)]">El reporte fue registrado exitosamente y esta listo para revision.</p>
+            <div className="mt-5 rounded-[10px] bg-[var(--gbp-bg)] px-4 py-3 text-left text-xs leading-7 text-[var(--gbp-text2)]">
               <p><strong className="text-[var(--gbp-text)]">Fecha:</strong> {new Date().toLocaleDateString("es-AR")}</p>
               <p><strong className="text-[var(--gbp-text)]">Hora:</strong> {new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</p>
               <p><strong className="text-[var(--gbp-text)]">Items resueltos:</strong> {resolvedCount}/{totalItems}</p>

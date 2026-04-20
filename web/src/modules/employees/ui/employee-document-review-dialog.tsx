@@ -46,10 +46,10 @@ export function EmployeeDocumentReviewDialog({
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--gbp-muted)]">Revisión de documento</p>
-            <h4 className="mt-1 text-[17px] font-bold text-[var(--gbp-text)]">
+            <h4 className="mt-1 text-lg font-bold text-[var(--gbp-text)]">
               {reviewDialog.decision === "approved" ? "Aprobar documento" : "Rechazar documento"}
             </h4>
-            <p className="mt-1 text-[12px] text-[var(--gbp-text2)]">
+            <p className="mt-1 text-xs text-[var(--gbp-text2)]">
               {reviewDialog.decision === "approved"
                 ? "Deja un comentario de validación para trazabilidad del equipo."
                 : "Explica claramente el motivo para que el empleado pueda corregirlo rápido."}
@@ -98,7 +98,7 @@ export function EmployeeDocumentReviewDialog({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="rounded-md px-3 py-1.5 text-[12px] font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)] disabled:opacity-60"
+              className="rounded-md px-3 py-1.5 text-xs font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)] disabled:opacity-60"
             >
               Cancelar
             </button>
@@ -106,7 +106,7 @@ export function EmployeeDocumentReviewDialog({
               type="button"
               onClick={onSubmit}
               disabled={isSubmitting || (reviewDialog.decision === "rejected" && reviewDialog.comment.trim().length === 0)}
-              className="inline-flex items-center gap-1.5 rounded-md bg-[var(--gbp-accent)] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[var(--gbp-accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-1.5 rounded-md bg-[var(--gbp-accent)] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[var(--gbp-accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? (
                 <>

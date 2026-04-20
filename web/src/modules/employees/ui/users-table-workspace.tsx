@@ -254,7 +254,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreat
               <div className="flex items-center gap-2.5 overflow-hidden">
                 <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[var(--gbp-accent)] text-[11px] font-bold text-white">{initials(row.fullName)}</span>
                 <div className="min-w-0">
-                  <p className="truncate text-[13px] font-semibold text-[var(--gbp-text)]">{row.fullName}</p>
+                  <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{row.fullName}</p>
                   <p className="truncate text-[11px] text-[var(--gbp-muted)]">{roleLabel(row.roleCode)}</p>
                 </div>
               </div>
@@ -281,7 +281,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreat
       {selected ? (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
           <div className="flex max-h-[90vh] w-[640px] max-w-[95vw] flex-col overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-            <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5"><p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Perfil de Administrador</p><button type="button" className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]" onClick={() => setSelectedMembershipId(null)}>✕</button></div>
+            <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5"><p className="font-serif text-sm font-bold text-[var(--gbp-text)]">Perfil de Administrador</p><button type="button" className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]" onClick={() => setSelectedMembershipId(null)}>✕</button></div>
             <div className="grid gap-3 px-6 py-5 sm:grid-cols-2">
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Nombre</p><p className="text-sm text-[var(--gbp-text)]">{selected.fullName}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Email</p><p className="text-sm text-[var(--gbp-text)]">{selected.email}</p></div>
@@ -311,7 +311,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreat
       {editing ? (
         <div className="fixed inset-0 z-[1020] flex items-center justify-center bg-black/45 p-5">
           <div className="flex max-h-[90vh] w-[560px] max-w-[95vw] flex-col overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-            <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5"><p className="font-serif text-[15px] font-bold text-[var(--gbp-text)]">Editar Administrador</p><button type="button" className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]" onClick={() => setEditMembershipId(null)}>✕</button></div>
+            <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5"><p className="font-serif text-sm font-bold text-[var(--gbp-text)]">Editar Administrador</p><button type="button" className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]" onClick={() => setEditMembershipId(null)}>✕</button></div>
             <div className="grid gap-3 px-6 py-5 sm:grid-cols-2">
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Nombre</p><p className="text-sm text-[var(--gbp-text)]">{editing.fullName}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Email</p><p className="text-sm text-[var(--gbp-text)]">{editing.email}</p></div>

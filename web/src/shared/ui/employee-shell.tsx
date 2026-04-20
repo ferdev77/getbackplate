@@ -365,7 +365,7 @@ export function EmployeeShell({
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center gap-2.5 border-l-[2.5px] text-[13px] transition ${
+                    className={`flex items-center gap-2.5 border-l-[2.5px] text-sm transition ${
                       collapsed ? "justify-center px-0 py-2.5" : "px-5 py-2"
                     } ${
                       active
@@ -407,7 +407,7 @@ export function EmployeeShell({
                     {initials(employeeName)}
                   </span>
                   <div className="min-w-0">
-                    <p className="truncate text-[13px] font-semibold text-[var(--gbp-text)]">{employeeName}</p>
+                    <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{employeeName}</p>
                     <p className="truncate text-[11px] text-[var(--gbp-text2)]">{employeePosition || "Empleado"}</p>
                   </div>
                 </button>
@@ -457,7 +457,7 @@ export function EmployeeShell({
               >
                 <Menu className="h-5 w-5" />
               </button>
-              <p className="font-serif text-[19px] font-bold text-[var(--gbp-text)]">{currentLabel}</p>
+              <p className="font-serif text-lg font-bold text-[var(--gbp-text)]">{currentLabel}</p>
             </div>
             <div className="flex items-center gap-2">
               <span className="hidden rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2.5 py-1 text-xs font-medium text-[var(--gbp-accent)] sm:inline shadow-sm">
