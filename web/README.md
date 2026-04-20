@@ -48,6 +48,46 @@ Guia completa:
 - `src/infrastructure/supabase/` clientes y repositorios
 - `src/shared/` utilidades, tipos, UI comun
 
+## Layout de contenido unificado (obligatorio)
+
+Para cualquier pagina nueva de `company`, `employee` o `superadmin`, usar `PageContent`:
+
+- Componente base: `src/shared/ui/page-content.tsx`
+- Tokens globales de layout: `src/app/globals.css` (`--gbp-content-*`)
+
+Regla de uso:
+
+- `default`: vistas operativas estandar (tablas, listados, dashboard)
+- `roomy`: vistas con bloques grandes o formularios extensos
+- `shell`: contenedores de shell/layout (wrappers superiores)
+- `none`: cuando solo necesitas centrado horizontal sin padding vertical
+
+Ejemplos canonicos:
+
+```tsx
+<PageContent>
+  ...contenido...
+</PageContent>
+
+<PageContent spacing="roomy" className="flex flex-col gap-6">
+  ...contenido...
+</PageContent>
+
+<PageContent as="section" spacing="none" className="pt-6">
+  ...contenido...
+</PageContent>
+```
+
+No permitido en paginas nuevas:
+
+- repetir clases manuales de layout como `mx-auto w-full max-w-7xl px-... py-...`
+- hardcodear anchos/paddings de contenedor si ya los cubre `PageContent`
+
+Si hay que cambiar el layout global del producto, modificar solo:
+
+- `src/shared/ui/page-content.tsx`
+- `src/app/globals.css`
+
 ## Estandar UI actual (obligatorio)
 
 Tomar como referencia interna el estilo aplicado en:
