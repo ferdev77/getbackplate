@@ -78,6 +78,9 @@ export default async function EmployeeLayout({
   const user = await requireAuthenticatedUser();
   const tenant = await requireEmployeeAccess();
   const supabase = await createSupabaseServerClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
   const organizationPromise = getOrganizationByIdCached(tenant.organizationId);
   const settingsPromise = getOrganizationSettingsCached(tenant.organizationId);
@@ -662,6 +665,7 @@ export default async function EmployeeLayout({
       profileBranches={profileBranches}
       profileDepartments={profileDepartments}
       profilePositions={profilePositions}
+      realtimeAccessToken={session?.access_token ?? null}
     >
       {children}
     </EmployeeShell>

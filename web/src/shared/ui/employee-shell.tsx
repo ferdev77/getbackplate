@@ -40,6 +40,7 @@ type EmployeeShellProps = {
   profileBranches: ModalBranch[];
   profileDepartments: ModalDepartment[];
   profilePositions: ModalPosition[];
+  realtimeAccessToken?: string | null;
 };
 
 function initials(value: string) {
@@ -68,6 +69,7 @@ export function EmployeeShell({
   profileBranches,
   profileDepartments,
   profilePositions,
+  realtimeAccessToken,
 }: EmployeeShellProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -82,6 +84,9 @@ export function EmployeeShell({
   // Realtime: auto-refresh when employee portal scoped data changes
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
+    if (realtimeAccessToken) {
+      supabase.realtime.setAuth(realtimeAccessToken);
+    }
     const orgFilter = `organization_id=eq.${organizationId}`;
     const fastRealtimePaths = ["/portal/checklist", "/portal/home", "/portal/announcements", "/portal/documents"];
     const refreshDelayMs = fastRealtimePaths.some((prefix) => pathname.startsWith(prefix)) ? 450 : 2000;
@@ -219,13 +224,25 @@ export function EmployeeShell({
       );
     }
 
+    let pollingRef: ReturnType<typeof setInterval> | null = null;
+
     const channel = channelBuilder.subscribe();
+
+    if (pathname.startsWith("/portal/home") || pathname.startsWith("/portal/announcements") || pathname.startsWith("/portal/checklist") || pathname.startsWith("/portal/documents")) {
+      pollingRef = setInterval(() => {
+        const now = Date.now();
+        if (now - lastRefreshAtRef.current < 7000) return;
+        lastRefreshAtRef.current = now;
+        router.refresh();
+      }, 8000);
+    }
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (pollingRef) clearInterval(pollingRef);
       supabase.removeChannel(channel);
     };
-  }, [employeeId, membershipId, organizationId, pathname, router, userId]);
+  }, [employeeId, membershipId, organizationId, pathname, realtimeAccessToken, router, userId]);
 
   const items = useMemo(() => {
     const result = [
