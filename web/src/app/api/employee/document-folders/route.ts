@@ -1,0 +1,166 @@
+import { NextResponse } from "next/server";
+
+import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
+import { logAuditEvent } from "@/shared/lib/audit";
+
+async function resolveEmployeeScope(organizationId: string, userId: string) {
+  const admin = createSupabaseAdminClient();
+  const { data: employeeRow } = await admin
+    .from("employees")
+    .select("branch_id, department_id")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  return {
+    locations: employeeRow?.branch_id ? [employeeRow.branch_id] : [],
+    department_ids: employeeRow?.department_id ? [employeeRow.department_id] : [],
+    position_ids: [],
+    users: [],
+  };
+}
+
+export async function POST(request: Request) {
+  const access = await assertEmployeeCapabilityApi("documents", "create", { allowBillingBypass: true });
+  if (!access.ok) {
+    return NextResponse.json({ error: access.error }, { status: access.status });
+  }
+
+  const body = (await request.json().catch(() => null)) as { name?: string; parentId?: string | null } | null;
+  const name = String(body?.name ?? "").trim();
+  const parentId = body?.parentId === null ? null : typeof body?.parentId === "string" ? body.parentId.trim() : null;
+
+  if (!name) {
+    return NextResponse.json({ error: "Nombre de carpeta requerido" }, { status: 400 });
+  }
+
+  const admin = createSupabaseAdminClient();
+
+  if (parentId) {
+    const { data: parent } = await admin
+      .from("document_folders")
+      .select("id, created_by")
+      .eq("organization_id", access.tenant.organizationId)
+      .eq("id", parentId)
+      .maybeSingle();
+    if (!parent) return NextResponse.json({ error: "Carpeta padre inválida" }, { status: 400 });
+    if (parent.created_by !== access.userId) {
+      return NextResponse.json({ error: "Solo puedes crear carpetas dentro de tus propias carpetas" }, { status: 403 });
+    }
+  }
+
+  const scope = await resolveEmployeeScope(access.tenant.organizationId, access.userId);
+
+  const { data, error } = await admin
+    .from("document_folders")
+    .insert({
+      organization_id: access.tenant.organizationId,
+      parent_id: parentId,
+      name,
+      created_by: access.userId,
+      access_scope: scope,
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    return NextResponse.json({ error: error?.message ?? "No se pudo crear carpeta" }, { status: 400 });
+  }
+
+  await logAuditEvent({
+    action: "employee.documents.folder.create",
+    entityType: "document_folder",
+    entityId: data.id,
+    organizationId: access.tenant.organizationId,
+    actorId: access.userId,
+    eventDomain: "documents",
+    outcome: "success",
+    severity: "medium",
+    metadata: { name, parent_id: parentId },
+  });
+
+  return NextResponse.json({ ok: true, folderId: data.id });
+}
+
+export async function PATCH(request: Request) {
+  const access = await assertEmployeeCapabilityApi("documents", "create", { allowBillingBypass: true });
+  if (!access.ok) {
+    return NextResponse.json({ error: access.error }, { status: access.status });
+  }
+
+  const body = (await request.json().catch(() => null)) as { folderId?: string; parentId?: string | null } | null;
+  const folderId = String(body?.folderId ?? "").trim();
+  const parentId = body?.parentId === null ? null : typeof body?.parentId === "string" ? body.parentId.trim() : undefined;
+
+  if (!folderId || parentId === undefined) {
+    return NextResponse.json({ error: "Carpeta inválida" }, { status: 400 });
+  }
+  if (parentId === folderId) {
+    return NextResponse.json({ error: "Una carpeta no puede ser su propio padre" }, { status: 400 });
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data: folder } = await admin
+    .from("document_folders")
+    .select("id, created_by")
+    .eq("organization_id", access.tenant.organizationId)
+    .eq("id", folderId)
+    .maybeSingle();
+
+  if (!folder) return NextResponse.json({ error: "Carpeta no encontrada" }, { status: 404 });
+  if (folder.created_by !== access.userId) {
+    return NextResponse.json({ error: "Solo puedes mover carpetas creadas por ti" }, { status: 403 });
+  }
+
+  if (parentId) {
+    const { data: parent } = await admin
+      .from("document_folders")
+      .select("id, created_by")
+      .eq("organization_id", access.tenant.organizationId)
+      .eq("id", parentId)
+      .maybeSingle();
+    if (!parent) return NextResponse.json({ error: "Carpeta padre inválida" }, { status: 400 });
+    if (parent.created_by !== access.userId) {
+      return NextResponse.json({ error: "Solo puedes mover carpetas dentro de tus propias carpetas" }, { status: 403 });
+    }
+
+    const { data: allFolders } = await admin
+      .from("document_folders")
+      .select("id, parent_id")
+      .eq("organization_id", access.tenant.organizationId)
+      .eq("created_by", access.userId);
+    const parentMap = new Map((allFolders ?? []).map((row) => [row.id, row.parent_id]));
+    let cursor: string | null = parentId;
+    while (cursor) {
+      if (cursor === folderId) {
+        return NextResponse.json({ error: "No se puede mover una carpeta dentro de su propia jerarquía" }, { status: 400 });
+      }
+      cursor = parentMap.get(cursor) ?? null;
+    }
+  }
+
+  const { error } = await admin
+    .from("document_folders")
+    .update({ parent_id: parentId })
+    .eq("organization_id", access.tenant.organizationId)
+    .eq("id", folderId);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  await logAuditEvent({
+    action: "employee.documents.folder.reorder",
+    entityType: "document_folder",
+    entityId: folderId,
+    organizationId: access.tenant.organizationId,
+    actorId: access.userId,
+    eventDomain: "documents",
+    outcome: "success",
+    severity: "low",
+    metadata: { parent_id: parentId },
+  });
+
+  return NextResponse.json({ ok: true });
+}

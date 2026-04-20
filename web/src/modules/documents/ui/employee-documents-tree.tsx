@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Search, ChevronRight, Folder, ListTree, Columns3, UploadCloud } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Search, ChevronRight, Folder, ListTree, Columns3, UploadCloud, FolderPlus } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FadeIn, SlideUp, AnimatedItem } from "@/shared/ui/animations";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
 import { UploadDocumentModal } from "@/modules/documents/ui/upload-document-modal";
+import { DocumentFolderModal } from "@/modules/documents/ui/document-folder-modal";
 import { EmployeeDocumentEditModal } from "@/modules/documents/ui/employee-document-edit-modal";
 import { EmployeeDocumentActions } from "@/modules/documents/ui/employee-document-actions";
 import { useEmployeeDocumentMutations } from "@/modules/documents/hooks/use-employee-document-mutations";
@@ -22,6 +24,7 @@ type FolderRow = {
   parent_id: string | null;
   access_scope?: unknown;
   created_at: string;
+  created_by?: string | null;
 };
 
 type DocumentRow = {
@@ -92,6 +95,7 @@ export function EmployeeDocumentsTree({
   users = [],
   recentDocuments = [],
 }: Props) {
+  const router = useRouter();
   const [documentsState, setDocumentsState] = useState<DocumentRow[]>(documents);
   const [ownershipView, setOwnershipView] = useState<"assigned" | "created">("assigned");
   const [query, setQuery] = useState("");
@@ -101,6 +105,8 @@ export function EmployeeDocumentsTree({
   const [sortBy, setSortBy] = useState("date-desc");
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set());
   const [selectedColumnDocId, setSelectedColumnDocId] = useState<string | null>(null);
+  const [columnPath, setColumnPath] = useState<string[]>([]);
+  const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
   const [previewState, setPreviewState] = useState<{ docId: string | null; status: "idle" | "loading" | "ready" | "error" }>({
     docId: null,
     status: "idle",
@@ -115,6 +121,8 @@ export function EmployeeDocumentsTree({
     viewerUserId,
     initialViewMode,
   });
+  const columnsScrollRef = useRef<HTMLDivElement | null>(null);
+  const previousColumnCountRef = useRef(1);
 
   const {
     busy,
@@ -131,6 +139,15 @@ export function EmployeeDocumentsTree({
   useEffect(() => {
     setDocumentsState(documents);
   }, [documents]);
+
+  useEffect(() => {
+    setColumnPath((prev) => {
+      const last = prev[prev.length - 1] ?? null;
+      if (last === selectedColumnFolderId) return prev;
+      if (!selectedColumnFolderId) return [];
+      return [selectedColumnFolderId];
+    });
+  }, [selectedColumnFolderId]);
 
   const folderById = useMemo(() => new Map(folders.map((folder) => [folder.id, folder])), [folders]);
   const folderOptions = useMemo(() => folders.map((folder) => ({ id: folder.id, name: folder.name })), [folders]);
@@ -175,6 +192,11 @@ export function EmployeeDocumentsTree({
   const folderParentById = useMemo(
     () => new Map(folders.map((folder) => [folder.id, folder.parent_id])),
     [folders],
+  );
+
+  const ownedFolderIds = useMemo(
+    () => new Set(folders.filter((folder) => folder.created_by === viewerUserId).map((folder) => folder.id)),
+    [folders, viewerUserId],
   );
 
   const orderedFolderRows = useMemo(
@@ -223,17 +245,32 @@ export function EmployeeDocumentsTree({
         currentId = folderParentById.get(currentId) ?? null;
       }
     }
+
+    if (ownershipView === "created") {
+      for (const folderId of ownedFolderIds) {
+        let currentId: string | null = folderId;
+        while (currentId) {
+          ids.add(currentId);
+          currentId = folderParentById.get(currentId) ?? null;
+        }
+      }
+    }
+
+    if (folderFilter) {
+      let currentId: string | null = folderFilter;
+      while (currentId) {
+        ids.add(currentId);
+        currentId = folderParentById.get(currentId) ?? null;
+      }
+    }
+
     return ids;
-  }, [filteredDocsByFolder, folderParentById]);
+  }, [filteredDocsByFolder, folderFilter, folderParentById, ownedFolderIds, ownershipView]);
 
   const visibleFolderRows = useMemo(
     () => orderedFolderRows.filter((folder) => visibleFolderIds.has(folder.id)),
     [orderedFolderRows, visibleFolderIds],
   );
-
-  const effectiveSelectedColumnFolderId = selectedColumnFolderId && visibleFolderRows.some((folder) => folder.id === selectedColumnFolderId)
-    ? selectedColumnFolderId
-    : null;
 
   function renderFolderTree(parentId: string | null, depth = 0) {
     const folderList = childrenByFolder.get(parentId) ?? [];
@@ -246,7 +283,21 @@ export function EmployeeDocumentsTree({
       const row = (
         <AnimatedItem key={folder.id}>
           <div className="border-b border-[var(--gbp-border)]">
-            <div className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]">
+            <div
+              className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]"
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                const draggedDocId = event.dataTransfer.getData("application/x-document-id");
+                const draggedFolderId = event.dataTransfer.getData("application/x-folder-id");
+                if (draggedDocId) {
+                  void moveDocumentToFolder(draggedDocId, folder.id);
+                  return;
+                }
+                if (draggedFolderId) {
+                  void moveFolderToFolder(draggedFolderId, folder.id);
+                }
+              }}
+            >
               <button
                 type="button"
                 onClick={() =>
@@ -259,6 +310,11 @@ export function EmployeeDocumentsTree({
                 }
                 className="flex min-w-0 flex-1 items-center gap-2 text-left"
                 style={{ paddingLeft: `${depth * 20}px` }}
+                draggable={isFolderOwner(folder)}
+                onDragStart={(event) => {
+                  event.dataTransfer.setData("application/x-folder-id", folder.id);
+                  event.dataTransfer.effectAllowed = "move";
+                }}
               >
                 <ChevronRight className={`h-4 w-4 text-[var(--gbp-text2)] transition ${isOpen ? "rotate-90" : ""}`} />
                 <Folder className="h-5 w-5 text-[var(--gbp-text2)]" />
@@ -272,7 +328,7 @@ export function EmployeeDocumentsTree({
                 <FadeIn delay={0.05}>
                   <div className="border-l-[3px] border-[var(--gbp-border)]">
                     {docList.map((doc) => (
-                      <div key={doc.id} className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]">
+                      <div key={doc.id} className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]" draggable={isOwner(doc)} onDragStart={(event) => { event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; }}>
                         <div className="min-w-0 flex-1 flex items-center gap-3" style={{ paddingLeft: `${(depth + 1) * 20}px` }}>
                            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-lg">📄</div>
                            <div className="min-w-0">
@@ -311,17 +367,102 @@ export function EmployeeDocumentsTree({
 
   const rootDocuments = filteredDocsByFolder.get(null) ?? [];
 
-  const columnDocuments = useMemo(() => {
-    return filteredDocsByFolder.get(effectiveSelectedColumnFolderId) ?? [];
-  }, [effectiveSelectedColumnFolderId, filteredDocsByFolder]);
+  const folderColumns = useMemo(() => {
+    const levels: Array<{ parentId: string | null; folders: FolderRow[]; documents: DocumentRow[]; selectedFolderId: string | null }> = [];
+    const depth = columnPath.length;
+    for (let index = 0; index <= depth; index += 1) {
+      const parentId = index === 0 ? null : columnPath[index - 1] ?? null;
+      const selectedFolderId = columnPath[index] ?? null;
+      const foldersAtLevel = [...(childrenByFolder.get(parentId) ?? [])]
+        .filter((folder) => visibleFolderIds.has(folder.id))
+        .sort((a, b) => a.name.localeCompare(b.name, "es"));
+      const documentsAtLevel = filteredDocsByFolder.get(parentId) ?? [];
+      levels.push({ parentId, folders: foldersAtLevel, documents: documentsAtLevel, selectedFolderId });
+    }
+    return levels;
+  }, [childrenByFolder, columnPath, filteredDocsByFolder, visibleFolderIds]);
 
-  const effectiveSelectedColumnDocId = selectedColumnDocId && columnDocuments.some((doc) => doc.id === selectedColumnDocId)
-    ? selectedColumnDocId
-    : (columnDocuments[0]?.id ?? null);
+  const selectedColumnDocument = useMemo(
+    () => documentsState.find((doc) => doc.id === selectedColumnDocId) ?? null,
+    [documentsState, selectedColumnDocId],
+  );
 
-  const selectedColumnDocument = columnDocuments.find((doc) => doc.id === effectiveSelectedColumnDocId) ?? null;
+  useEffect(() => {
+    const validFolderIds = new Set(visibleFolderRows.map((folder) => folder.id));
+    setColumnPath((prev) => prev.filter((folderId) => validFolderIds.has(folderId)));
+  }, [visibleFolderRows]);
+
+  useEffect(() => {
+    const last = columnPath[columnPath.length - 1] ?? null;
+    setSelectedColumnFolderId((prev) => (prev === last ? prev : last));
+  }, [columnPath, setSelectedColumnFolderId]);
+
+  useEffect(() => {
+    if (viewMode !== "columns") return;
+    const totalColumns = folderColumns.length + (selectedColumnDocument ? 1 : 0);
+    const grew = totalColumns > previousColumnCountRef.current;
+    previousColumnCountRef.current = totalColumns;
+    if (!grew) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const container = columnsScrollRef.current;
+      if (!container) return;
+      container.scrollTo({ left: container.scrollWidth, behavior: "smooth" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [folderColumns.length, selectedColumnDocument, viewMode]);
+
+  useEffect(() => {
+    if (viewMode !== "columns") return;
+    if (!selectedColumnDocId) return;
+    const existsInVisibleColumns = folderColumns.some((column) => column.documents.some((doc) => doc.id === selectedColumnDocId));
+    if (!existsInVisibleColumns) {
+      setSelectedColumnDocId(null);
+    }
+  }, [folderColumns, selectedColumnDocId, viewMode]);
 
   const isOwner = (doc: DocumentRow) => doc.owner_user_id === viewerUserId;
+  const isFolderOwner = (folder: FolderRow) => folder.created_by === viewerUserId;
+
+  async function moveDocumentToFolder(documentId: string, targetFolderId: string | null) {
+    const doc = documentsState.find((row) => row.id === documentId);
+    if (!doc || !isOwner(doc)) {
+      return;
+    }
+    try {
+      setPreviewState((prev) => (prev.docId === documentId ? { ...prev, status: "idle" } : prev));
+      const response = await fetch("/api/employee/documents/manage", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentId, folderId: targetFolderId }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "No se pudo mover el documento");
+      setDocumentsState((prev) => prev.map((row) => (row.id === documentId ? { ...row, folder_id: targetFolderId } : row)));
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function moveFolderToFolder(folderId: string, targetFolderId: string | null) {
+    const folder = folders.find((row) => row.id === folderId);
+    if (!folder || !isFolderOwner(folder)) {
+      return;
+    }
+    try {
+      const response = await fetch("/api/employee/document-folders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folderId, parentId: targetFolderId }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "No se pudo mover la carpeta");
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+    }
+  }
 
   const noDocumentsTitle = ownershipView === "created" ? "Aún no subiste documentos" : "Sin documentos asignados";
   const noDocumentsDescription = ownershipView === "created"
@@ -329,6 +470,7 @@ export function EmployeeDocumentsTree({
     : "No hay documentos visibles para tu perfil en este momento.";
 
   const noResultsLabel = `No se encontraron resultados para \"${query}\" en ${ownershipView === "created" ? "Subidos" : "Asignados"}.`;
+  const hasOwnershipContent = ownershipDocumentsCount > 0 || (ownershipView === "created" && ownedFolderIds.size > 0);
 
   return (
     <>
@@ -343,7 +485,8 @@ export function EmployeeDocumentsTree({
                 type="button"
                 onClick={() => setViewMode("tree")}
                 data-testid="portal-documents-view-tree"
-                className={`rounded-md p-1.5 transition-colors ${viewMode === "tree" ? "bg-[var(--gbp-bg)] text-[var(--gbp-text)] shadow-sm" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}
+                aria-pressed={viewMode === "tree"}
+                className={`inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-semibold transition-colors ${viewMode === "tree" ? "border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)] shadow-sm" : "text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)] hover:text-[var(--gbp-text)]"}`}
                 title="Vista de Árbol"
               >
                 <ListTree className="h-4.5 w-4.5" />
@@ -352,22 +495,34 @@ export function EmployeeDocumentsTree({
                 type="button"
                 onClick={() => setViewMode("columns")}
                 data-testid="portal-documents-view-columns"
-                className={`rounded-md p-1.5 transition-colors ${viewMode === "columns" ? "bg-[var(--gbp-bg)] text-[var(--gbp-text)] shadow-sm" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}
+                aria-pressed={viewMode === "columns"}
+                className={`inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-semibold transition-colors ${viewMode === "columns" ? "border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)] shadow-sm" : "text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)] hover:text-[var(--gbp-text)]"}`}
                 title="Vista de Columnas"
               >
                 <Columns3 className="h-4.5 w-4.5" />
               </button>
             </div>
             {canCreate ? (
-              <button
-                type="button"
-                onClick={() => setIsUploadModalOpen(true)}
-                disabled={busy}
-                className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[var(--gbp-accent)] px-3 text-xs font-bold text-white disabled:opacity-70"
-              >
-                <UploadCloud className="h-3.5 w-3.5" />
-                Subir Archivo
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsFolderModalOpen(true)}
+                  disabled={busy}
+                  className="inline-flex h-[33px] items-center gap-1 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] disabled:opacity-70"
+                >
+                  <FolderPlus className="h-3.5 w-3.5" />
+                  Nueva Carpeta
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsUploadModalOpen(true)}
+                  disabled={busy}
+                  className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[var(--gbp-accent)] px-3 text-xs font-bold text-white disabled:opacity-70"
+                >
+                  <UploadCloud className="h-3.5 w-3.5" />
+                  Subir Archivo
+                </button>
+              </>
             ) : null}
           </div>
         )}
@@ -394,24 +549,38 @@ export function EmployeeDocumentsTree({
         variant="header"
       />
 
-      {ownershipDocumentsCount === 0 ? (
+      {!hasOwnershipContent ? (
         <EmptyState title={noDocumentsTitle} description={noDocumentsDescription} />
       ) : (
         <SlideUp delay={0.1}>
-          <AnimatePresence mode="wait">
+          <AnimatePresence initial={false} mode="sync">
             <motion.div
               key={viewMode}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.18 }}
+              initial={{ opacity: 0, y: 10, scale: 0.995 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.995 }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              className="will-change-transform"
             >
               {viewMode === "tree" ? (
                 <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
                   <div className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3 text-xs font-bold uppercase tracking-[0.07em] text-[var(--gbp-muted)]">
                     Explorador de Archivos
                   </div>
-                  <div>
+                  <div
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={(event) => {
+                      const draggedDocId = event.dataTransfer.getData("application/x-document-id");
+                      const draggedFolderId = event.dataTransfer.getData("application/x-folder-id");
+                      if (draggedDocId) {
+                        void moveDocumentToFolder(draggedDocId, null);
+                        return;
+                      }
+                      if (draggedFolderId) {
+                        void moveFolderToFolder(draggedFolderId, null);
+                      }
+                    }}
+                  >
                     {totalVisibleDocuments === 0 && query.trim() ? (
                       <div className="p-8 text-center text-sm text-[var(--gbp-text2)]">{noResultsLabel}</div>
                     ) : (
@@ -452,80 +621,89 @@ export function EmployeeDocumentsTree({
                 </section>
               ) : (
                 <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
-                  <div className="grid min-h-[520px] grid-cols-1 divide-y divide-[var(--gbp-border)] lg:grid-cols-[260px_minmax(260px,1fr)_minmax(260px,1fr)] lg:divide-x lg:divide-y-0">
-                    <div className="bg-[var(--gbp-bg)] p-3">
-                      <p className="mb-2 px-1 text-[11px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Carpetas</p>
-                      <div className="space-y-1">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedColumnFolderId(null)}
-                          className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm ${effectiveSelectedColumnFolderId === null ? "bg-[var(--gbp-surface)] font-semibold text-[var(--gbp-text)]" : "text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface)]"}`}
-                        >
-                          <span>Raiz</span>
-                          <span className="text-[11px] text-[var(--gbp-muted)]">{filteredDocsByFolder.get(null)?.length ?? 0}</span>
-                        </button>
-                        {visibleFolderRows.map((folder) => (
-                          <button
-                            key={folder.id}
-                            type="button"
-                            onClick={() => setSelectedColumnFolderId(folder.id)}
-                            className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm ${effectiveSelectedColumnFolderId === folder.id ? "bg-[var(--gbp-surface)] font-semibold text-[var(--gbp-text)]" : "text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface)]"}`}
-                          >
-                            <span className="truncate">{folder.name}</span>
-                            <span className="text-[11px] text-[var(--gbp-muted)]">{filteredDocsByFolder.get(folder.id)?.length ?? 0}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                  <div ref={columnsScrollRef} className="overflow-x-auto">
+                    <div className="flex min-h-[560px] divide-x divide-[var(--gbp-border)]">
+                      {folderColumns.map((column, index) => {
+                        const parentFolder = column.parentId ? (folderById.get(column.parentId) ?? null) : null;
+                        const isRootColumn = index === 0;
+                        return (
+                          <div key={`col-${index}-${column.parentId ?? "root"}`} className="w-[300px] shrink-0 bg-[var(--gbp-bg)] p-3">
+                            <p className="mb-2 px-1 text-[11px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">
+                              {isRootColumn ? "Principal" : parentFolder?.name ?? "Carpeta"}
+                            </p>
+                            <div className="space-y-1">
+                              {column.folders.map((folder) => (
+                                <button
+                                  key={folder.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setColumnPath((prev) => {
+                                      const next = prev.slice(0, index);
+                                      next[index] = folder.id;
+                                      return next;
+                                    });
+                                    setSelectedColumnDocId(null);
+                                  }}
+                                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left ${column.selectedFolderId === folder.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] hover:bg-[var(--gbp-bg)]"}`}
+                                >
+                                  <span className="flex min-w-0 items-center gap-2">
+                                    <Folder className="h-3.5 w-3.5 shrink-0 text-[var(--gbp-text2)]" />
+                                    <span className="truncate text-sm font-medium text-[var(--gbp-text)]">{folder.name}</span>
+                                  </span>
+                                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[var(--gbp-muted)]" />
+                                </button>
+                              ))}
 
-                    <div className="self-start p-3 lg:sticky lg:top-3">
-                      <p className="mb-2 px-1 text-[11px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Documentos</p>
-                      <div className="space-y-1">
-                        {columnDocuments.length === 0 ? (
-                          <p className="rounded-lg border border-dashed border-[var(--gbp-border2)] px-3 py-8 text-center text-sm text-[var(--gbp-muted)]">
-                            {query.trim() ? noResultsLabel : "No hay documentos para esta carpeta en la vista actual."}
-                          </p>
-                        ) : columnDocuments.map((doc) => (
-                          <button
-                            key={doc.id}
-                            type="button"
-                            onClick={() => setSelectedColumnDocId(doc.id)}
-                            className={`w-full rounded-lg border px-3 py-2 text-left ${effectiveSelectedColumnDocId === doc.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] hover:bg-[var(--gbp-bg)]"}`}
-                          >
-                            <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{doc.title}</p>
-                            <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">{formatSize(doc.file_size_bytes)} · {(doc.mime_type ?? "archivo").toUpperCase()}</p>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                              {column.documents.map((doc) => (
+                                <button
+                                  key={doc.id}
+                                  type="button"
+                                  onClick={() => setSelectedColumnDocId(doc.id)}
+                                  className={`w-full rounded-lg border px-3 py-2 text-left ${selectedColumnDocId === doc.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] hover:bg-[var(--gbp-bg)]"}`}
+                                >
+                                  <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{doc.title}</p>
+                                  <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">
+                                    {formatSize(doc.file_size_bytes)} · {(doc.mime_type ?? "archivo").toUpperCase()}
+                                  </p>
+                                </button>
+                              ))}
 
-                    <div className="p-3">
-                      <p className="mb-2 px-1 text-[11px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Detalle</p>
-                      {!selectedColumnDocument ? (
-                        <p className="rounded-lg border border-dashed border-[var(--gbp-border2)] px-3 py-8 text-center text-sm text-[var(--gbp-muted)]">Selecciona un documento para visualizarlo.</p>
-                      ) : (
-                        <div className="space-y-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
-                          <div>
-                            <p className="text-sm font-semibold text-[var(--gbp-text)]">{selectedColumnDocument.title}</p>
-                            <p className="mt-1 text-xs text-[var(--gbp-text2)]">{formatSize(selectedColumnDocument.file_size_bytes)} · {(selectedColumnDocument.mime_type ?? "archivo").toUpperCase()}</p>
+                              {column.folders.length === 0 && column.documents.length === 0 ? (
+                                <p className="rounded-lg border border-dashed border-[var(--gbp-border2)] px-3 py-8 text-center text-sm text-[var(--gbp-muted)]">
+                                  Sin resultados en esta columna.
+                                </p>
+                              ) : null}
+                            </div>
                           </div>
-                          <EmployeeDocumentActions
-                            documentId={selectedColumnDocument.id}
-                            canEdit={canEdit}
-                            canDelete={canDelete}
-                            isOwner={isOwner(selectedColumnDocument)}
-                            onEdit={() => setEditingDocument(selectedColumnDocument)}
-                            onDelete={() => setDeleteDocument(selectedColumnDocument)}
-                            labelMode="full"
-                          />
-                          <DocumentPreviewPanel
-                            document={selectedColumnDocument}
-                            previewState={previewState}
-                            setPreviewState={setPreviewState}
-                            isPreviewableMime={isPreviewableMime}
-                          />
+                        );
+                      })}
+
+                      {selectedColumnDocument ? (
+                        <div className="w-[360px] shrink-0 bg-[var(--gbp-surface)] p-3">
+                          <p className="mb-2 px-1 text-[11px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Detalle</p>
+                          <div className="space-y-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
+                            <div>
+                              <p className="text-sm font-semibold text-[var(--gbp-text)]">{selectedColumnDocument.title}</p>
+                              <p className="mt-1 text-xs text-[var(--gbp-text2)]">{formatSize(selectedColumnDocument.file_size_bytes)} · {(selectedColumnDocument.mime_type ?? "archivo").toUpperCase()}</p>
+                            </div>
+                            <EmployeeDocumentActions
+                              documentId={selectedColumnDocument.id}
+                              canEdit={canEdit}
+                              canDelete={canDelete}
+                              isOwner={isOwner(selectedColumnDocument)}
+                              onEdit={() => setEditingDocument(selectedColumnDocument)}
+                              onDelete={() => setDeleteDocument(selectedColumnDocument)}
+                              labelMode="full"
+                            />
+                            <DocumentPreviewPanel
+                              document={selectedColumnDocument}
+                              previewState={previewState}
+                              setPreviewState={setPreviewState}
+                              isPreviewableMime={isPreviewableMime}
+                            />
+                          </div>
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 </section>
@@ -538,13 +716,27 @@ export function EmployeeDocumentsTree({
       {isUploadModalOpen ? (
         <UploadDocumentModal
           onClose={() => setIsUploadModalOpen(false)}
-          folders={folders.map((folder) => ({ id: folder.id, name: folder.name }))}
+          folders={folders.filter((folder) => isFolderOwner(folder)).map((folder) => ({ id: folder.id, name: folder.name }))}
           branches={branches}
           departments={departments}
           positions={positions}
           employees={users}
           recentDocuments={recentDocuments}
           submitEndpoint="/api/employee/documents/manage"
+          redirectPath="/portal/documents"
+          hideScopeSelector
+        />
+      ) : null}
+
+      {isFolderModalOpen ? (
+        <DocumentFolderModal
+          onClose={() => setIsFolderModalOpen(false)}
+          folders={folders.filter((folder) => isFolderOwner(folder)).map((folder) => ({ id: folder.id, name: folder.name }))}
+          branches={branches}
+          departments={departments}
+          positions={positions}
+          employees={users}
+          submitEndpoint="/api/employee/document-folders"
           redirectPath="/portal/documents"
           hideScopeSelector
         />

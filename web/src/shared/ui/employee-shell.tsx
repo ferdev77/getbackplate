@@ -473,8 +473,8 @@ export function EmployeeShell({
             </div>
           </header>
           
-          <main className="flex-1 w-full p-4 sm:p-8">
-            <div className="mx-auto max-w-[1000px] w-full">{children}</div>
+          <main className="flex-1 w-full p-4 sm:p-6">
+            <div className="mx-auto w-full max-w-7xl">{children}</div>
           </main>
           
           <footer className="mt-auto flex justify-between border-t border-[var(--gbp-border)] px-6 py-4 text-[11px] text-[var(--gbp-muted)] sm:px-9" style={{ background: palette.sidebarGradient }}>

@@ -54,7 +54,7 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
   const [{ data: folders }, { data: documents }, { data: branches }, { data: departments }, { data: positions }, scopeUsers] = await Promise.all([
     supabase
       .from("document_folders")
-      .select("id, name, parent_id, access_scope, created_at")
+      .select("id, name, parent_id, access_scope, created_at, created_by")
       .eq("organization_id", tenant.organizationId)
       .order("created_at", { ascending: false }),
     supabase

@@ -19,6 +19,9 @@ type DocumentFolderModalProps = {
   departments: Department[];
   positions: Position[];
   employees: Employee[];
+  submitEndpoint?: string;
+  redirectPath?: string;
+  hideScopeSelector?: boolean;
 };
 
 export function DocumentFolderModal({
@@ -28,6 +31,9 @@ export function DocumentFolderModal({
   departments,
   positions,
   employees,
+  submitEndpoint = "/api/company/document-folders",
+  redirectPath = "/app/documents",
+  hideScopeSelector = false,
 }: DocumentFolderModalProps) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
@@ -37,7 +43,7 @@ export function DocumentFolderModal({
       onClose();
       return;
     }
-    router.push("/app/documents");
+    router.push(redirectPath);
   };
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -56,10 +62,14 @@ export function DocumentFolderModal({
         userScope: formData.getAll("user_scope").map(String).filter(Boolean),
       };
 
-      const response = await fetch("/api/company/document-folders", {
+      const body = hideScopeSelector
+        ? { name: payload.name, parentId: payload.parentId }
+        : payload;
+
+      const response = await fetch(submitEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(body),
       });
 
       const data = await response.json().catch(() => ({}));
@@ -72,7 +82,7 @@ export function DocumentFolderModal({
         if (onClose) {
           onClose();
         } else {
-          router.push("/app/documents");
+          router.push(redirectPath);
         }
         router.refresh();
       });
@@ -111,19 +121,21 @@ export function DocumentFolderModal({
                 </label>
               </div>
 
-              <div className="mt-4 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4">
-                <ScopeSelector
-                  namespace="folder"
-                  branches={branches}
-                  departments={departments}
-                  positions={positions}
-                  users={employees}
-                  locationInputName="location_scope"
-                  departmentInputName="department_scope"
-                  positionInputName="position_scope"
-                  userInputName="user_scope"
-                />
-              </div>
+              {!hideScopeSelector ? (
+                <div className="mt-4 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4">
+                  <ScopeSelector
+                    namespace="folder"
+                    branches={branches}
+                    departments={departments}
+                    positions={positions}
+                    users={employees}
+                    locationInputName="location_scope"
+                    departmentInputName="department_scope"
+                    positionInputName="position_scope"
+                    userInputName="user_scope"
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
           <div className="flex justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
