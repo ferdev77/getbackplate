@@ -38,9 +38,9 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
       <section className="relative overflow-hidden rounded-[2.5rem] border border-[var(--gbp-border)] bg-[linear-gradient(145deg,var(--gbp-text)_0%,color-mix(in_oklab,var(--gbp-text)_88%,black)_100%)] p-8 text-white shadow-xl">
         <div className="pointer-events-none absolute -right-20 -bottom-20 h-64 w-64 rounded-full bg-brand/20 blur-3xl" />
         <div className="relative z-10">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-light/60">Infraestructura & Capacidades</p>
-          <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Catálogo de Módulos</h1>
-          <p className="mt-4 max-w-2xl text-base text-white/70 leading-relaxed">
+          <p className="gbp-page-eyebrow mb-2 text-brand-light/60">Infraestructura & Capacidades</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">Catálogo de Módulos</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/70">
             Gestione la arquitectura funcional del sistema. Defina qué componentes son piezas fundamentales del núcleo y cuáles son extensiones comerciales.
           </p>
         </div>
@@ -72,10 +72,10 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
             transition={{ delay: idx * 0.1 }}
             className={`rounded-3xl border border-[var(--gbp-border)] ${stat.bg} p-5 shadow-sm`}
           >
-            <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.11em] text-muted-foreground">
               <stat.icon className="h-3.5 w-3.5" /> {stat.label}
             </p>
-            <p className={`mt-2 font-serif text-3xl font-medium ${stat.color}`}>{stat.val}</p>
+            <p className={`mt-1 text-2xl font-bold ${stat.color}`}>{stat.val}</p>
           </motion.article>
         ))}
       </section>
@@ -106,7 +106,7 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
                        </div>
                        <div>
                           <h3 className="text-lg font-bold text-foreground">{displayName}</h3>
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">{module.code}</p>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.11em] text-muted-foreground/60">{module.code}</p>
                        </div>
                     </div>
                     
@@ -115,7 +115,7 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
                           <Info className="h-4 w-4 shrink-0" />
                           <span>{module.description || "Sin descripción operativa."}</span>
                        </div>
-                       <span className={`rounded-xl border px-3 py-1 text-[11px] font-black uppercase tracking-tighter ${module.is_core ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-line bg-muted/20 text-muted-foreground'}`}>
+                       <span className={`rounded-xl border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.11em] ${module.is_core ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-line bg-muted/20 text-muted-foreground'}`}>
                           {module.is_core ? 'Estatus: Central (Core)' : 'Estatus: Opcional'}
                        </span>
                     </div>
@@ -141,7 +141,7 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
                           />
                           <div className="flex flex-col">
                              <span className="text-sm font-bold text-foreground">Marcar como Componente Core</span>
-                             {isCoreLocked && <p className="text-[10px] text-rose-500 font-bold uppercase">Restricción: Módulo vital del sistema</p>}
+                             {isCoreLocked && <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-rose-500">Restricción: Módulo vital del sistema</p>}
                           </div>
                        </label>
 

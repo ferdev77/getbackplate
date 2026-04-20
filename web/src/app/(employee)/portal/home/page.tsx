@@ -293,7 +293,7 @@ export default async function EmployeeHomePage() {
         <div>
           <p className="text-xs text-[var(--gbp-muted)]">Bienvenido de vuelta</p>
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] font-medium">
-            <h1 className="font-serif text-3xl font-bold leading-none text-[var(--gbp-text)]">{employeeName}</h1>
+            <h1 className="text-2xl font-bold leading-none text-[var(--gbp-text)]">{employeeName}</h1>
             {department?.name && <span className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-0.5 text-blue-600 dark:text-blue-400">{department.name}</span>}
             {employeeRow?.position && <span className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] px-2.5 py-0.5 text-[var(--gbp-success)]">{employeeRow.position}</span>}
           </div>
@@ -302,14 +302,14 @@ export default async function EmployeeHomePage() {
           </div>
         </div>
         <div className="min-w-[140px] rounded-xl bg-[var(--gbp-bg)] p-5 text-center">
-          <p className="font-serif text-5xl font-bold leading-none text-[var(--gbp-accent)]">{docsCount}</p>
-          <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-[var(--gbp-text2)]">Documentos</p>
+          <p className="text-4xl font-bold leading-none text-[var(--gbp-accent)]">{docsCount}</p>
+          <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.11em] text-[var(--gbp-text2)]">Documentos</p>
         </div>
       </section>
       <section className="relative overflow-hidden rounded-3xl border border-x-[3.5px] border-[var(--gbp-border)] border-x-[var(--gbp-accent)] bg-[var(--gbp-surface)] p-8 shadow-sm">
         <div className="relative z-10 flex flex-col items-start">
           <div className="mb-3 flex items-center gap-2">
-            <span className="inline-flex rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_12%,transparent)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--gbp-accent)]">
+            <span className="inline-flex rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[color:color-mix(in_oklab,var(--gbp-accent)_12%,transparent)] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.11em] text-[var(--gbp-accent)]">
               Mensaje Principal
             </span>
             {heroAnnouncement?.is_featured ? (
@@ -318,7 +318,7 @@ export default async function EmployeeHomePage() {
               </span>
             ) : null}
             {heroAnnouncement?.kind && (
-              <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-widest ${
+              <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.11em] ${
                 heroAnnouncement.kind === "urgent" ? "bg-rose-100 text-rose-700" :
                 heroAnnouncement.kind === "reminder" ? "bg-amber-100 text-amber-700" :
                 heroAnnouncement.kind === "celebration" ? "bg-blue-100 text-blue-700" :
@@ -331,10 +331,10 @@ export default async function EmployeeHomePage() {
               </span>
             )}
           </div>
-          <h2 className="max-w-3xl font-serif text-3xl font-bold leading-tight text-[var(--gbp-text)]">{heroAnnouncement?.title ?? "Bienvenido al Portal Interno"}</h2>
+          <h2 className="max-w-3xl text-2xl font-bold leading-tight text-[var(--gbp-text)]">{heroAnnouncement?.title ?? "Bienvenido al Portal Interno"}</h2>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--gbp-text2)]">{heroAnnouncement?.body ?? "Aquí encontrarás avisos, checklists pendientes y documentos recientes de tu puesto."}</p>
           <div className="mt-6 flex items-center gap-3">
-            <div className="grid h-8 w-8 place-items-center rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[10px] font-bold text-[var(--gbp-text)]">
+            <div className="grid h-8 w-8 place-items-center rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[11px] font-semibold text-[var(--gbp-text)]">
               {(authorNameMap.get(heroAnnouncement?.created_by ?? "") || "DG").substring(0, 2).toUpperCase()}
             </div>
             <div className="text-[11px] leading-tight">
@@ -456,7 +456,7 @@ export default async function EmployeeHomePage() {
                       </div>
                       {authorNameMap.get(item.created_by ?? "") || "Dirección General"}
                     </span>
-                    <span className="text-[10px] text-[var(--gbp-muted)]">•</span>
+                    <span className="text-[11px] text-[var(--gbp-muted)]">•</span>
                     <span className="text-[11px] font-medium text-[var(--gbp-muted)]">{item.publish_at ? new Date(item.publish_at).toLocaleDateString("es-AR") : "-"}</span>
                   </div>
                 </div>

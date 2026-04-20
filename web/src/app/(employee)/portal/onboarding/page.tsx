@@ -14,13 +14,13 @@ export default async function EmployeeOnboardingPage() {
       <article className="mb-5 rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-8 py-7">
         <div className="mb-5 flex items-center gap-3.5">
           <span className="text-[26px]">📖</span>
-          <h2 className="font-serif text-[18px] font-bold text-[var(--gbp-text)]">¿Cómo usar este portal?</h2>
+          <h2 className="text-[18px] font-bold text-[var(--gbp-text)]">¿Cómo usar este portal?</h2>
         </div>
         <p className="mb-6 border-b border-[var(--gbp-border)] pb-6 text-[14px] leading-7 text-[var(--gbp-text2)]">
           Este portal te permite consultar y descargar los documentos importantes para tu puesto. Es muy sencillo - no necesitas conocimientos técnicos. Sigue los pasos y en menos de un minuto tendrás acceso a todo lo que necesitas.
         </p>
 
-        <div className="mb-5 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--gbp-muted)]">
+        <div className="mb-5 flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gbp-muted)]">
           <span>Pasos para acceder a tus documentos</span>
           <span className="h-px flex-1 bg-[var(--gbp-border)]" />
         </div>
@@ -72,7 +72,7 @@ export default async function EmployeeOnboardingPage() {
       <article className="rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-8 py-7">
         <div className="mb-5 flex items-center gap-3.5">
           <span className="text-[26px]">📜</span>
-          <h2 className="font-serif text-[18px] font-bold text-[var(--gbp-text)]">Reglas de uso</h2>
+          <h2 className="text-[18px] font-bold text-[var(--gbp-text)]">Reglas de uso</h2>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">

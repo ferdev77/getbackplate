@@ -11,11 +11,13 @@ type PageContentProps = {
 
 const BASE_CLASS = "mx-auto w-full max-w-[var(--gbp-content-max)]";
 
+const HORIZONTAL_CLASS = "px-[var(--gbp-content-pad-x)] sm:px-[var(--gbp-content-pad-x-sm)]";
+
 const SPACING_CLASS: Record<PageContentSpacing, string> = {
-  default: "px-[var(--gbp-content-pad-x)] py-[var(--gbp-content-pad-y)] sm:px-[var(--gbp-content-pad-x-sm)]",
-  roomy: "px-[var(--gbp-content-pad-x-roomy)] py-[var(--gbp-content-pad-y-roomy)]",
-  shell: "px-[var(--gbp-content-shell-pad-x)] py-[var(--gbp-content-shell-pad-y)] sm:px-[var(--gbp-content-shell-pad-x-sm)] sm:py-[var(--gbp-content-shell-pad-y-sm)]",
-  none: "px-[var(--gbp-content-pad-x)] sm:px-[var(--gbp-content-pad-x-sm)]",
+  default: `${HORIZONTAL_CLASS} py-[var(--gbp-content-pad-y)]`,
+  roomy: `${HORIZONTAL_CLASS} py-[var(--gbp-content-pad-y-roomy)]`,
+  shell: `${HORIZONTAL_CLASS} py-[var(--gbp-content-shell-pad-y)] sm:py-[var(--gbp-content-shell-pad-y-sm)]`,
+  none: HORIZONTAL_CLASS,
 };
 
 export function PageContent({

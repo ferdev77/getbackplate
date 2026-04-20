@@ -86,11 +86,11 @@ export default async function SuperadminDashboardPage() {
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-8">
           <div className="max-w-xl">
             <div className="mb-4 flex items-center gap-2">
-              <span className="rounded-full bg-brand/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-light ring-1 ring-brand/30">Control Central</span>
+              <span className="rounded-full bg-brand/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-light ring-1 ring-brand/30">Control Central</span>
               <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
             </div>
-            <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Panel de Control</h1>
-            <p className="mt-4 text-base leading-relaxed text-white/70">
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">Panel de Control</h1>
+            <p className="mt-2 text-sm leading-relaxed text-white/70">
               Visibilidad operativa en tiempo real del ecosistema. Monitorea riesgos, actividad y cobertura de servicios por organización.
             </p>
           </div>
@@ -100,10 +100,10 @@ export default async function SuperadminDashboardPage() {
               <TrendingUp className="h-6 w-6 text-emerald-400" />
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-white/65">Salud del Ecosistema</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.11em] text-white/65">Salud del Ecosistema</p>
               <div className="flex items-baseline gap-2">
-                <p className="font-serif text-4xl font-medium tracking-tighter">{healthyOrgs}</p>
-                <p className="text-sm text-white/65">sanos de {orgCount}</p>
+                <p className="text-3xl font-bold tracking-tight">{healthyOrgs}</p>
+                <p className="text-xs text-white/65">sanos de {orgCount}</p>
               </div>
             </div>
           </div>
@@ -125,11 +125,11 @@ export default async function SuperadminDashboardPage() {
             className={`group rounded-3xl border ${stat.border} ${stat.bg} p-5 transition-all hover:shadow-lg hover:shadow-black/5`}
           >
             <div className="mb-2 flex items-center justify-between">
-              <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.11em] text-muted-foreground">
                 <stat.icon className="h-3.5 w-3.5" /> {stat.label}
               </p>
             </div>
-            <p className={`font-serif text-3xl font-medium ${stat.color}`}>{stat.val}</p>
+            <p className={`mt-1 text-2xl font-bold ${stat.color}`}>{stat.val}</p>
           </motion.article>
         ))}
       </section>
@@ -157,13 +157,13 @@ export default async function SuperadminDashboardPage() {
                     <div className="h-8 w-8 rounded-lg bg-brand/5 flex items-center justify-center border border-brand/10 text-brand font-bold text-sm">
                       {row.name.charAt(0)}
                     </div>
-                    <p className="text-[15px] font-bold text-foreground">{row.name}</p>
+                    <p className="text-sm font-bold text-foreground">{row.name}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-tighter ${statusTone(row.status)}`}>
+                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.11em] ${statusTone(row.status)}`}>
                       {row.status}
                     </span>
-                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-black ${scoreTone(row.score)}`}>
+                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold ${scoreTone(row.score)}`}>
                       SCORE {row.score}
                     </span>
                   </div>
@@ -200,16 +200,16 @@ export default async function SuperadminDashboardPage() {
                   <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><FileText className="h-4 w-4 text-brand/60" /> {row.docs30d} docs</span>
                   <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><ClipboardList className="h-4 w-4 text-brand/60" /> {row.checklist7d} checks</span>
                   <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Megaphone className="h-4 w-4 text-brand/60" /> {row.activeAnnouncements} avisos</span>
-                  <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${invitedFirstLoginTone(row.invitedAdminFirstLoginStatus)}`}>
+                  <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${invitedFirstLoginTone(row.invitedAdminFirstLoginStatus)}`}>
                     {invitedFirstLoginText(row.invitedAdminFirstLoginStatus)}
                   </span>
                   {row.invitedAdminFirstLoginStatus === "completed" && row.invitedAdminFirstLoginAt ? (
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-[11px] text-muted-foreground">
                       {new Date(row.invitedAdminFirstLoginAt).toLocaleString("es-ES")}
                     </span>
                   ) : null}
                   {row.invitedAdminEmail ? (
-                    <span className="text-[10px] text-muted-foreground">{row.invitedAdminEmail}</span>
+                    <span className="text-[11px] text-muted-foreground">{row.invitedAdminEmail}</span>
                   ) : null}
                   <div className="ml-auto text-xs font-medium text-muted-foreground bg-muted/40 px-3 py-1 rounded-lg border border-line/30">
                     Storage: <span className="text-foreground font-bold">{formatStorage(row.storageMb)}</span>
@@ -220,7 +220,7 @@ export default async function SuperadminDashboardPage() {
                 {row.issues.length > 0 && (
                   <div className="mt-4 flex flex-wrap gap-2">
                     {row.issues.map((issue) => (
-                      <span key={`${row.organizationId}-${issue}`} className="flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-700">
+                      <span key={`${row.organizationId}-${issue}`} className="flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700">
                         <AlertTriangle className="h-3 w-3" /> {issue}
                       </span>
                     ))}
