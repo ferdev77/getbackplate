@@ -12,7 +12,21 @@ export type ChecklistTemplateRow = {
 };
 
 export type ChecklistPreviewPayload = {
-  template: { id: string; name: string };
+  template: {
+    id: string;
+    name: string;
+    checklist_type: string | null;
+    shift: string | null;
+    repeat_every: string | null;
+    is_active: boolean;
+    target_scope: unknown;
+    scope_labels: {
+      locations: string[];
+      departments: string[];
+      positions: string[];
+      users: string[];
+    };
+  };
   sections: Array<{ id: string; name: string; items: Array<{ id: string; label: string; priority: string }> }>;
   initialReport:
     | {

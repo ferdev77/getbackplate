@@ -1,3 +1,4 @@
+import { BellPlus } from "lucide-react";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { requireEmployeeAccess } from "@/shared/lib/access";
 import { canReadAnnouncementInTenant } from "@/shared/lib/announcement-access";
@@ -8,6 +9,7 @@ import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { extractDisplayName } from "@/shared/lib/user";
 import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
 import { getBranchDisplayName } from "@/shared/lib/branch-display";
+import { AnnouncementModalTrigger } from "@/modules/announcements/ui/announcement-modal-trigger";
 
 type AnnouncementRow = {
   id: string;
@@ -178,15 +180,31 @@ export default async function EmployeeAnnouncementsPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold text-[var(--gbp-text)]">Avisos</h1>
-        <p className="mt-1 text-sm text-[var(--gbp-text2)]">Directivas y comunicaciones de la empresa.</p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--gbp-text)]">Avisos</h1>
+          <p className="mt-1 text-sm text-[var(--gbp-text2)]">Directivas y comunicaciones de la empresa.</p>
+        </div>
+        {canCreate ? (
+          <AnnouncementModalTrigger
+            className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white hover:bg-[var(--gbp-accent)]"
+            mode="create"
+            publisherName={publisherName}
+            branches={mappedBranches}
+            departments={departments ?? []}
+            positions={positions ?? []}
+            users={scopeUsers}
+            submitEndpoint="/api/employee/announcements/manage"
+            basePath="/portal/announcements"
+          >
+            <BellPlus className="h-3.5 w-3.5" /> Nuevo Aviso
+          </AnnouncementModalTrigger>
+        ) : null}
       </header>
 
       <EmployeeAnnouncementsWorkspace
         visibleAnnouncements={announcements}
         myAnnouncements={myAnnouncements}
-        canCreate={canCreate}
         canEdit={canEdit}
         canDelete={canDelete}
         viewerUserId={userId}

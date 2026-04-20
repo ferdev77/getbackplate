@@ -1,7 +1,9 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
+import { ClipboardPlus } from "lucide-react";
 import { EmployeeChecklistWorkspace } from "@/modules/checklists/ui/employee-checklist-workspace";
 import { RestoreChecklistScroll } from "@/modules/checklists/ui/restore-checklist-scroll";
+import { ChecklistCreateTrigger } from "@/modules/checklists/ui/checklist-create-trigger";
 import { requireEmployeeModule } from "@/shared/lib/access";
 import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
 import { getEmployeeDelegatedPermissionsByMembership } from "@/shared/lib/employee-module-permissions";
@@ -151,8 +153,9 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
 
   const { data: myCreatedTemplates } = await supabase
     .from("checklist_templates")
-    .select("id, name, created_at")
+    .select("id, name, created_at, checklist_type, shift, repeat_every, is_active, target_scope")
     .eq("organization_id", tenant.organizationId)
+    .eq("is_active", true)
     .eq("created_by", userId)
     .order("created_at", { ascending: false })
     .limit(40);
@@ -161,36 +164,55 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
   const { data: mySections } = myCreatedTemplateIds.length
     ? await supabase
         .from("checklist_template_sections")
-        .select("id, template_id")
+        .select("id, template_id, name, sort_order")
         .eq("organization_id", tenant.organizationId)
         .in("template_id", myCreatedTemplateIds)
-    : { data: [] as Array<{ id: string; template_id: string }> };
+        .order("sort_order", { ascending: true })
+    : { data: [] as Array<{ id: string; template_id: string; name: string; sort_order: number }> };
 
   const mySectionIds = (mySections ?? []).map((row) => row.id);
   const { data: myItems } = mySectionIds.length
     ? await supabase
         .from("checklist_template_items")
-        .select("id, section_id, label")
+        .select("id, section_id, label, sort_order")
         .eq("organization_id", tenant.organizationId)
         .in("section_id", mySectionIds)
         .order("sort_order", { ascending: true })
-    : { data: [] as Array<{ id: string; section_id: string; label: string }> };
+    : { data: [] as Array<{ id: string; section_id: string; label: string; sort_order: number }> };
 
-  const sectionByTemplate = new Map<string, string[]>();
-  for (const section of mySections ?? []) {
-    const labels = (myItems ?? [])
-      .filter((item) => item.section_id === section.id)
-      .map((item) => item.label)
-      .filter(Boolean);
-    const current = sectionByTemplate.get(section.template_id) ?? [];
-    sectionByTemplate.set(section.template_id, [...current, ...labels]);
+  const itemsBySectionId = new Map<string, string[]>();
+  for (const item of myItems ?? []) {
+    const current = itemsBySectionId.get(item.section_id) ?? [];
+    itemsBySectionId.set(item.section_id, [...current, item.label]);
   }
 
-  const myCreatedWorkspaceData = (myCreatedTemplates ?? []).map((template) => ({
-    id: template.id,
-    name: template.name,
-    items: sectionByTemplate.get(template.id) ?? [],
-  }));
+  const sectionsByTemplateId = new Map<string, Array<{ name: string; items: string[] }>>();
+  for (const section of mySections ?? []) {
+    const current = sectionsByTemplateId.get(section.template_id) ?? [];
+    current.push({
+      name: section.name,
+      items: itemsBySectionId.get(section.id) ?? [],
+    });
+    sectionsByTemplateId.set(section.template_id, current);
+  }
+
+  const myCreatedWorkspaceData = (myCreatedTemplates ?? []).map((template) => {
+    const templateSections = sectionsByTemplateId.get(template.id) ?? [];
+    return {
+      id: template.id,
+      name: template.name,
+      checklist_type: template.checklist_type,
+      shift: template.shift,
+      repeat_every: template.repeat_every,
+      is_active: template.is_active,
+      target_scope:
+        typeof template.target_scope === "object" && template.target_scope !== null
+          ? (template.target_scope as Record<string, string[]>)
+          : {},
+      templateSections,
+      items: templateSections.flatMap((section) => section.items),
+    };
+  });
 
   const [{ data: branches }, { data: departments }, { data: positions }, scopeUsers] = await Promise.all([
     supabase
@@ -217,13 +239,29 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
   return (
     <main>
       <RestoreChecklistScroll />
-      <section className="mb-5 rounded-2xl border border-[var(--gbp-border)] bg-gradient-to-r from-[var(--gbp-surface)] to-[var(--gbp-bg)] p-6">
-        <p className="text-[11px] font-semibold tracking-[0.14em] text-[var(--gbp-text2)] uppercase">Checklist asignado</p>
-        <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold tracking-tight">Tus checklists visibles</h1>
-          <span className="inline-flex rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-3 py-1 text-xs font-semibold text-[var(--gbp-accent)]">
-            {visibleTemplates.length} visible(s)
-          </span>
+      <section className="mb-5 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6">
+        <p className="text-[11px] font-semibold tracking-[0.14em] text-[var(--gbp-text2)] uppercase">Operacion diaria</p>
+        <div className="mt-1 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Mis Checklists</h1>
+            <p className="mt-1 text-sm text-[var(--gbp-text2)]">Completa tus checklists asignados y gestiona los que creaste con vista previa, edicion y eliminacion.</p>
+          </div>
+          {canCreate ? (
+            <ChecklistCreateTrigger
+              className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white hover:bg-[var(--gbp-accent)]"
+              branches={(branches ?? []).map((branch) => ({
+                ...branch,
+                name: getBranchDisplayName(branch, customBrandingEnabled),
+              }))}
+              departments={departments ?? []}
+              positions={positions ?? []}
+              users={scopeUsers}
+              submitEndpoint="/api/employee/checklists/templates"
+              basePath="/portal/checklist"
+            >
+              <ClipboardPlus className="h-4 w-4" /> Nuevo Checklist
+            </ChecklistCreateTrigger>
+          ) : null}
         </div>
       </section>
 
@@ -231,7 +269,6 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
         templates={templatesWorkspaceData}
         initialPreviewTemplateId={previewTemplateId}
         createdTemplates={myCreatedWorkspaceData}
-        canCreate={canCreate}
         canEdit={canEdit}
         canDelete={canDelete}
         branches={(branches ?? []).map((branch) => ({

@@ -295,7 +295,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
             <div>
               <p className={`text-[11px] font-semibold tracking-[0.14em] uppercase ${TEXT_MUTED}`}>Operación diaria</p>
               <h1 className={`mt-1 text-2xl font-bold tracking-tight ${TEXT_STRONG}`}>Mis Checklists</h1>
-              <p className={`mt-1 text-sm ${TEXT_MUTED}`}>Replica funcional del tablero final: plantillas, ejecuciones e incidencias.</p>
+              <p className={`mt-1 text-sm ${TEXT_MUTED}`}>Gestiona plantillas de checklist, revisa su estado operativo y administra acciones de edicion, vista previa y eliminacion.</p>
             </div>
             <ChecklistCreateTrigger
               className="inline-flex items-center gap-1 rounded-lg bg-[var(--gbp-text)] px-3 py-2 text-sm font-semibold text-white hover:bg-[var(--gbp-accent)]"
