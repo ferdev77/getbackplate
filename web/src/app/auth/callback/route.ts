@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
@@ -102,6 +103,8 @@ export async function GET(request: Request) {
   if (org && !redirectUrl.searchParams.has("org") && redirectUrl.pathname.startsWith("/app/")) {
     redirectUrl.searchParams.set("org", org);
   }
+
+  revalidatePath("/", "layout");
 
   return NextResponse.redirect(redirectUrl);
 }
