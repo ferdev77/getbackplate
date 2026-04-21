@@ -9,6 +9,7 @@ import {
   getOrganizationSettingsCached,
   getOrganizationByIdCached,
 } from "@/modules/organizations/cached-queries";
+import { getEmployeeDelegatedPermissionsByMembership } from "@/shared/lib/employee-module-permissions";
 
 function normalizeDateInput(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -411,6 +412,10 @@ export default async function EmployeeLayout({
   const enabledModulesArr = await getEnabledModulesCached(tenant.organizationId);
   const enabledModuleCodes = new Set(enabledModulesArr);
   const customBrandingEnabled = enabledModuleCodes.has("custom_branding");
+  const delegatedPermissions = await getEmployeeDelegatedPermissionsByMembership(
+    tenant.organizationId,
+    tenant.membershipId,
+  );
 
   const isDocumentsEnabled = enabledModuleCodes.has("documents");
   const isChecklistEnabled = enabledModuleCodes.has("checklists");
@@ -659,6 +664,7 @@ export default async function EmployeeLayout({
         announcements: isAnnouncementsEnabled,
         onboarding: isOnboardingEnabled,
       }}
+      canDeleteDocuments={delegatedPermissions.documents.delete}
       customBrandingEnabled={customBrandingEnabled}
       companyLogoUrl={brandingSettings?.company_logo_url ?? ""}
       employeeProfile={employeeProfile}
