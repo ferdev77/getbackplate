@@ -13,19 +13,25 @@ import { unstable_cache } from "next/cache";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { getBillingGateForOrganization } from "@/modules/billing/services/billing-gate.service";
 
+function ensureNoQueryError(context: string, error: { message?: string } | null) {
+  if (!error) return;
+  throw new Error(`[cached-queries] ${context}: ${error.message ?? "query failed"}`);
+}
+
 // ─── Global (non-org-specific) ─────────────────────────────────────────────
 
 /** Active plans — rarely change. 5 min TTL. */
 export const getActivePlansCached = unstable_cache(
   async () => {
     const supabase = createSupabaseAdminClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("plans")
       .select(
         "id, code, name, price_amount, billing_period, is_active, max_branches, max_users, max_employees, max_storage_mb, stripe_price_id",
       )
       .eq("is_active", true)
       .order("price_amount", { ascending: true, nullsFirst: false });
+    ensureNoQueryError("getActivePlansCached", error);
     return data ?? [];
   },
   ["active-plans-v1"],
@@ -36,10 +42,11 @@ export const getActivePlansCached = unstable_cache(
 export const getPlanModulesMapCached = unstable_cache(
   async () => {
     const supabase = createSupabaseAdminClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("plan_modules")
       .select("plan_id, module_catalog!inner(code, name), is_enabled")
       .eq("is_enabled", true);
+    ensureNoQueryError("getPlanModulesMapCached", error);
 
     const map: Record<string, Array<{ code: string; name: string }>> = {};
 
@@ -71,13 +78,14 @@ export const getPlanModulesMapCached = unstable_cache(
 export const getOrganizationByIdCached = unstable_cache(
   async (organizationId: string) => {
     const supabase = createSupabaseAdminClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("organizations")
       .select(
         "id, name, slug, status, plan_id, billing_activation_status, billing_activated_at, billing_onboarding_required",
       )
       .eq("id", organizationId)
       .maybeSingle();
+    ensureNoQueryError("getOrganizationByIdCached", error);
     return data;
   },
   ["org-by-id-v1"],
@@ -88,13 +96,14 @@ export const getOrganizationByIdCached = unstable_cache(
 export const getOrganizationSettingsCached = unstable_cache(
   async (organizationId: string) => {
     const supabase = createSupabaseAdminClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("organization_settings")
       .select(
         "billing_plan, billing_period, billed_to, billing_email, payment_last4, invoice_emails_enabled, dashboard_note, company_logo_url, company_logo_dark_url, company_favicon_url",
       )
       .eq("organization_id", organizationId)
       .maybeSingle();
+    ensureNoQueryError("getOrganizationSettingsCached", error);
     return data;
   },
   ["org-settings-v1"],
@@ -105,16 +114,17 @@ export const getOrganizationSettingsCached = unstable_cache(
 export const getEnabledModulesCached = unstable_cache(
   async (organizationId: string) => {
     const supabase = createSupabaseAdminClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("organization_modules")
       .select("module_catalog!inner(code)")
       .eq("organization_id", organizationId)
       .eq("is_enabled", true);
+    ensureNoQueryError("getEnabledModulesCached", error);
 
     return (data ?? []).map((row) => {
       const catalog = row.module_catalog as unknown as { code: string } | null;
       return catalog?.code ?? "";
-    });
+    }).filter((code) => code.length > 0);
   },
   ["enabled-modules-v1"],
   { revalidate: 60 },
@@ -124,13 +134,14 @@ export const getEnabledModulesCached = unstable_cache(
 export const getActiveBranchesCached = unstable_cache(
   async (organizationId: string) => {
     const supabase = createSupabaseAdminClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("branches")
       .select("id, name, city")
       .eq("organization_id", organizationId)
       .eq("is_active", true)
       .order("sort_order", { ascending: true })
       .order("name", { ascending: true });
+    ensureNoQueryError("getActiveBranchesCached", error);
     return data ?? [];
   },
   ["active-branches-v1"],
@@ -141,13 +152,14 @@ export const getActiveBranchesCached = unstable_cache(
 export const getLatestSubscriptionCached = unstable_cache(
   async (organizationId: string) => {
     const supabase = createSupabaseAdminClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("subscriptions")
       .select("status, current_period_end")
       .eq("organization_id", organizationId)
       .order("current_period_end", { ascending: false, nullsFirst: false })
       .limit(1)
       .maybeSingle();
+    ensureNoQueryError("getLatestSubscriptionCached", error);
     return data;
   },
   ["latest-subscription-v1"],
@@ -168,7 +180,7 @@ export const getOrganizationBillingGateCached = unstable_cache(
 export const getUserPreferencesCached = unstable_cache(
   async (userId: string, organizationId: string) => {
     const supabase = createSupabaseAdminClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("user_preferences")
       .select(
         "theme, language, date_format, timezone_mode, timezone_manual, analytics_enabled, two_factor_enabled, two_factor_method",
@@ -176,6 +188,7 @@ export const getUserPreferencesCached = unstable_cache(
       .eq("user_id", userId)
       .eq("organization_id", organizationId)
       .maybeSingle();
+    ensureNoQueryError("getUserPreferencesCached", error);
     return data;
   },
   ["user-preferences-v1"],

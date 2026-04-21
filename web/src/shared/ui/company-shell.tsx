@@ -595,6 +595,21 @@ export function CompanyShell({
     return "Panel";
   }, [pathname, searchParams, visibleSections]);
 
+  useEffect(() => {
+    const activeSection = visibleSections.find((section) =>
+      section.items.some((item) => isActive(pathname, searchParams, item.href)),
+    );
+    if (!activeSection) return;
+
+    setExpandedSections((prev) => {
+      if (prev[activeSection.label]) return prev;
+      return {
+        ...prev,
+        [activeSection.label]: true,
+      };
+    });
+  }, [pathname, searchParams, visibleSections]);
+
   const hrefWithBranch = useCallback((href: string) => {
     if (!selectedBranch || !href.startsWith("/app")) return href;
     const [path, query] = href.split("?");
