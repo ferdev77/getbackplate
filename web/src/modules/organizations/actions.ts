@@ -431,6 +431,7 @@ export async function startOrganizationImpersonationAction(formData: FormData) {
     },
   });
 
+  revalidatePath("/", "layout");
   redirect("/app/dashboard");
 }
 

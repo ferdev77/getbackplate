@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
@@ -42,6 +43,8 @@ export async function GET(request: Request) {
 
   await clearSuperadminImpersonationCookie();
   await clearActiveOrganizationIdCookie();
+
+  revalidatePath("/", "layout");
 
   return NextResponse.redirect(
     new URL(
