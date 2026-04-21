@@ -5,12 +5,12 @@ import {
   getPlanModulesMapCached,
   getOrganizationSettingsCached,
   getEnabledModulesCached,
-  getActiveBranchesCached,
   getLatestSubscriptionCached,
   getOrganizationBillingGateCached,
   getUserPreferencesCached,
   getOrganizationByIdCached,
 } from "@/modules/organizations/cached-queries";
+import { getActiveBranches } from "@/modules/organizations/queries";
 import { requireCompanyAccess } from "@/shared/lib/access";
 import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impersonation";
 import { CompanyShell } from "@/shared/ui/company-shell";
@@ -87,7 +87,7 @@ export default async function CompanyLayout({
     getActivePlansCached(),
     getPlanModulesMapCached(),
     getEnabledModulesCached(tenant.organizationId),
-    getActiveBranchesCached(tenant.organizationId),
+    getActiveBranches(tenant.organizationId),
     getLatestSubscriptionCached(tenant.organizationId),
     getOrganizationBillingGateCached(tenant.organizationId),
   ]);

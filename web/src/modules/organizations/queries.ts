@@ -99,7 +99,8 @@ export const getActiveBranches = cache(async function getActiveBranches(organiza
     .select("id, name, city")
     .eq("organization_id", organizationId)
     .eq("is_active", true)
-    .order("name");
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
   return data ?? [];
 });
 

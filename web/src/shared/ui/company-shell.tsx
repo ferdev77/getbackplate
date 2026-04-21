@@ -242,14 +242,34 @@ export function CompanyShell({
   const [busy, setBusy] = useState(false);
   const [localBranches, setLocalBranches] = useState(() => branchOptions);
   const [isReordering, setIsReordering] = useState(false);
+  const [isPersistingBranchOrder, setIsPersistingBranchOrder] = useState(false);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const localBranchesRef = useRef(branchOptions);
+  const isReorderingRef = useRef(false);
+  const isPersistingBranchOrderRef = useRef(false);
 
   useEffect(() => {
+    localBranchesRef.current = localBranches;
+  }, [localBranches]);
+
+  useEffect(() => {
+    isReorderingRef.current = isReordering;
+  }, [isReordering]);
+
+  useEffect(() => {
+    isPersistingBranchOrderRef.current = isPersistingBranchOrder;
+  }, [isPersistingBranchOrder]);
+
+  useEffect(() => {
+    if (isReorderingRef.current || isPersistingBranchOrderRef.current) return;
     setLocalBranches(branchOptions);
+    localBranchesRef.current = branchOptions;
   }, [branchOptions]);
 
   const handleReorderFinish = useCallback(async (newOrder: typeof branchOptions) => {
+    setIsPersistingBranchOrder(true);
+    isPersistingBranchOrderRef.current = true;
     const ids = newOrder.map(b => b.id);
     const result = await reorderBranchesAction(ids);
     if (result.ok) {
@@ -257,13 +277,19 @@ export function CompanyShell({
         description: "Los cambios se han guardado profesionalmente.",
         duration: 2000,
       });
+      router.refresh();
     } else {
       toast.error("Error al sincronizar el orden");
+      setLocalBranches(branchOptions);
+      localBranchesRef.current = branchOptions;
     }
-  }, []);
+    setIsPersistingBranchOrder(false);
+    isPersistingBranchOrderRef.current = false;
+  }, [branchOptions, router]);
 
   const onReorder = (newOrder: typeof localBranches) => {
     setLocalBranches(newOrder);
+    localBranchesRef.current = newOrder;
   };
   const selectedBranch = searchParams.get("branch") ?? "";
   const selectedPlanIdFromUrl = searchParams.get("selectPlanId");
@@ -413,6 +439,9 @@ export function CompanyShell({
     }
 
     function scheduleRefresh() {
+      if (isReorderingRef.current || isPersistingBranchOrderRef.current) {
+        return;
+      }
       if (refreshTimerRef.current) {
         clearTimeout(refreshTimerRef.current);
       }
@@ -1286,11 +1315,13 @@ export function CompanyShell({
                                 onDragStart={() => {
                                   setActiveDragId(branch.id);
                                   setIsReordering(true);
+                                  isReorderingRef.current = true;
                                 }}
                                 onDragEnd={() => {
                                   setActiveDragId(null);
                                   setIsReordering(false);
-                                  void handleReorderFinish(localBranches);
+                                  isReorderingRef.current = false;
+                                  void handleReorderFinish(localBranchesRef.current);
                                 }}
                                 initial={false}
                                 className="relative list-none"
