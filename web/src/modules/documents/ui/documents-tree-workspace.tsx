@@ -607,7 +607,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   function renderFolderTree(parentId: string | null, depth = 0) {
     const folderList = childrenByFolder.get(parentId) ?? [];
     return folderList.flatMap((folder) => {
-      const docList = sortDocuments((docsByFolder.get(folder.id) ?? []).filter(includeDocument));
+      const docList = visibleDocumentsByFolder.get(folder.id) ?? [];
       const isOpen = openFolders.has(folder.id);
       const scope = parseScope(folder.access_scope);
       const locNames = getScopeLocNames(scope, null);
@@ -657,7 +657,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                 <ChevronRight className={`h-4 w-4 shrink-0 text-[var(--gbp-text2)] transition ${isOpen ? "rotate-90" : ""}`} />
                 <Folder className="h-4 w-4 shrink-0 text-[var(--gbp-text2)]" />
                 <span className="truncate text-sm font-semibold text-[var(--gbp-text)]">{folder.name}</span>
-                <span className="shrink-0 text-[11px] text-[var(--gbp-muted)]">({docList.length})</span>
+                <span className="shrink-0 text-[11px] text-[var(--gbp-muted)]">({folderDocumentCountById.get(folder.id) ?? 0})</span>
               </button>
               {/* Fecha de carga */}
               <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{formatDate(folder.created_at)}</p>
@@ -752,8 +752,6 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
     });
   }
 
-  const rootDocuments = sortDocuments((docsByFolder.get(null) ?? []).filter(includeDocument));
-
   const visibleDocumentsByFolder = (() => {
     const map = new Map<string | null, DocumentRow[]>();
     for (const [parentId, rows] of docsByFolder.entries()) {
@@ -761,6 +759,37 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
     }
     return map;
   })();
+
+  const folderDocumentCountById = (() => {
+    const memo = new Map<string, number>();
+
+    const computeCount = (folderId: string, visiting: Set<string>): number => {
+      const cached = memo.get(folderId);
+      if (typeof cached === "number") return cached;
+
+      const ownDocumentsCount = (visibleDocumentsByFolder.get(folderId) ?? []).length;
+      if (visiting.has(folderId)) return ownDocumentsCount;
+
+      visiting.add(folderId);
+      let total = ownDocumentsCount;
+
+      for (const child of childrenByFolder.get(folderId) ?? []) {
+        total += computeCount(child.id, visiting);
+      }
+
+      visiting.delete(folderId);
+      memo.set(folderId, total);
+      return total;
+    };
+
+    for (const folder of folderRows) {
+      computeCount(folder.id, new Set<string>());
+    }
+
+    return memo;
+  })();
+
+  const rootDocuments = visibleDocumentsByFolder.get(null) ?? [];
 
   const folderColumns = (() => {
     const levels: Array<{ parentId: string | null; folders: FolderRow[]; documents: DocumentRow[]; selectedFolderId: string | null }> = [];

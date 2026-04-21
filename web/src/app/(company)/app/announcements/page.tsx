@@ -38,6 +38,11 @@ const CARD = "border-[var(--gbp-border)] bg-[var(--gbp-surface)]";
 const ACTION_BTN_NEUTRAL = "group/tooltip relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
 const ACTION_BTN_DANGER = "group/tooltip relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] text-[var(--gbp-error)] hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_16%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-error)_45%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-error-soft)] [.theme-dark-pro_&]:text-[var(--gbp-error)]";
 
+function hasMissingColumnError(error: { message?: string } | null, column: string) {
+  const message = error?.message?.toLowerCase() ?? "";
+  return message.includes("column") && message.includes(column.toLowerCase());
+}
+
 export default async function CompanyAnnouncementsPage({ searchParams }: CompanyAnnouncementsPageProps) {
   const tenant = await requireTenantModule("announcements");
   const params = await searchParams;
@@ -77,28 +82,69 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
 
   const authorIds = Array.from(new Set((announcements ?? []).map((ann) => ann.created_by).filter(Boolean)));
 
-  const branchesQuery = supabase
-    .from("branches")
-    .select("id, name, city")
-    .eq("organization_id", tenant.organizationId)
-    .eq("is_active", true);
+  const fetchOrderedBranches = async () => {
+    const primary = await supabase
+      .from("branches")
+      .select("id, name, city")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true });
 
-const employeesQuery = supabase
-  .from("employees")
-  .select("id, user_id, first_name, last_name, branch_id, department_id, position")
-  .eq("organization_id", tenant.organizationId);
+    if (!hasMissingColumnError(primary.error, "sort_order")) return { data: primary.data };
 
-  const departmentsQuery = supabase
-    .from("organization_departments")
-    .select("id, name")
-    .eq("organization_id", tenant.organizationId)
-    .eq("is_active", true);
+    return supabase
+      .from("branches")
+      .select("id, name, city")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("name", { ascending: true });
+  };
 
-  const positionsQuery = supabase
-    .from("department_positions")
-    .select("id, department_id, name")
-    .eq("organization_id", tenant.organizationId)
-    .eq("is_active", true);
+  const fetchOrderedDepartments = async () => {
+    const primary = await supabase
+      .from("organization_departments")
+      .select("id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true });
+
+    if (!hasMissingColumnError(primary.error, "sort_order")) return { data: primary.data };
+
+    return supabase
+      .from("organization_departments")
+      .select("id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("name", { ascending: true });
+  };
+
+  const fetchOrderedPositions = async () => {
+    const primary = await supabase
+      .from("department_positions")
+      .select("id, department_id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("department_id", { ascending: true })
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true });
+
+    if (!hasMissingColumnError(primary.error, "sort_order")) return { data: primary.data };
+
+    return supabase
+      .from("department_positions")
+      .select("id, department_id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("department_id", { ascending: true })
+      .order("name", { ascending: true });
+  };
+
+  const employeesQuery = supabase
+    .from("employees")
+    .select("id, user_id, first_name, last_name, branch_id, department_id, position")
+    .eq("organization_id", tenant.organizationId);
 
   const userProfilesQuery = supabase
     .from("organization_user_profiles")
@@ -125,11 +171,11 @@ const employeesQuery = supabase
     { data: memberships },
     { data: roles },
   ] = await Promise.all([
-    branchesQuery,
+    fetchOrderedBranches(),
     employeesQuery,
     userProfilesQuery,
-    departmentsQuery,
-    positionsQuery,
+    fetchOrderedDepartments(),
+    fetchOrderedPositions(),
     membershipsQuery,
     rolesQuery,
   ]);

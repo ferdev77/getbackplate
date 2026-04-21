@@ -272,6 +272,36 @@ export function EmployeeDocumentsTree({
     [orderedFolderRows, visibleFolderIds],
   );
 
+  const folderDocumentCountById = useMemo(() => {
+    const memo = new Map<string, number>();
+
+    const computeCount = (folderId: string, visiting: Set<string>): number => {
+      const cached = memo.get(folderId);
+      if (typeof cached === "number") return cached;
+
+      const ownDocumentsCount = (filteredDocsByFolder.get(folderId) ?? []).length;
+      if (visiting.has(folderId)) return ownDocumentsCount;
+
+      visiting.add(folderId);
+      let total = ownDocumentsCount;
+
+      for (const child of childrenByFolder.get(folderId) ?? []) {
+        if (!visibleFolderIds.has(child.id)) continue;
+        total += computeCount(child.id, visiting);
+      }
+
+      visiting.delete(folderId);
+      memo.set(folderId, total);
+      return total;
+    };
+
+    for (const folder of visibleFolderRows) {
+      computeCount(folder.id, new Set<string>());
+    }
+
+    return memo;
+  }, [childrenByFolder, filteredDocsByFolder, visibleFolderIds, visibleFolderRows]);
+
   function renderFolderTree(parentId: string | null, depth = 0) {
     const folderList = childrenByFolder.get(parentId) ?? [];
     return folderList.flatMap((folder) => {
@@ -319,7 +349,7 @@ export function EmployeeDocumentsTree({
                 <ChevronRight className={`h-4 w-4 text-[var(--gbp-text2)] transition ${isOpen ? "rotate-90" : ""}`} />
                 <Folder className="h-5 w-5 text-[var(--gbp-text2)]" />
                 <span className="truncate text-sm font-semibold text-[var(--gbp-text)]">{folder.name}</span>
-                <span className="text-xs text-[var(--gbp-muted)]">({docList.length})</span>
+                <span className="text-xs text-[var(--gbp-muted)]">({folderDocumentCountById.get(folder.id) ?? 0})</span>
               </button>
             </div>
             

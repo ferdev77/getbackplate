@@ -4,6 +4,11 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 
+function hasMissingColumnError(error: { message?: string } | null, column: string) {
+  const message = error?.message?.toLowerCase() ?? "";
+  return message.includes("column") && message.includes(column.toLowerCase());
+}
+
 export async function GET(request: Request) {
   const moduleAccess = await assertCompanyAdminModuleApi("checklists");
   if (!moduleAccess.ok) {
@@ -19,26 +24,61 @@ export async function GET(request: Request) {
   const supabase = await createSupabaseServerClient();
   const organizationId = moduleAccess.tenant.organizationId;
 
-  const [{ data: customBrandingEnabled }, { data: branches }, { data: departments }, { data: positions }, users] = await Promise.all([
-    supabase.rpc("is_module_enabled", { org_id: organizationId, module_code: "custom_branding" }),
+  const [branchesResult, departmentsResult, positionsResult] = await Promise.all([
     supabase
       .from("branches")
       .select("id, name, city")
       .eq("organization_id", organizationId)
       .eq("is_active", true)
-      .order("name"),
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true }),
     supabase
       .from("organization_departments")
       .select("id, name")
       .eq("organization_id", organizationId)
       .eq("is_active", true)
-      .order("name"),
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true }),
     supabase
       .from("department_positions")
       .select("id, department_id, name")
       .eq("organization_id", organizationId)
       .eq("is_active", true)
-      .order("name"),
+      .order("department_id", { ascending: true })
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true }),
+  ]);
+
+  const [{ data: branches }, { data: departments }, { data: positions }] = await Promise.all([
+    hasMissingColumnError(branchesResult.error, "sort_order")
+      ? supabase
+          .from("branches")
+          .select("id, name, city")
+          .eq("organization_id", organizationId)
+          .eq("is_active", true)
+          .order("name", { ascending: true })
+      : Promise.resolve({ data: branchesResult.data }),
+    hasMissingColumnError(departmentsResult.error, "sort_order")
+      ? supabase
+          .from("organization_departments")
+          .select("id, name")
+          .eq("organization_id", organizationId)
+          .eq("is_active", true)
+          .order("name", { ascending: true })
+      : Promise.resolve({ data: departmentsResult.data }),
+    hasMissingColumnError(positionsResult.error, "sort_order")
+      ? supabase
+          .from("department_positions")
+          .select("id, department_id, name")
+          .eq("organization_id", organizationId)
+          .eq("is_active", true)
+          .order("department_id", { ascending: true })
+          .order("name", { ascending: true })
+      : Promise.resolve({ data: positionsResult.data }),
+  ]);
+
+  const [{ data: customBrandingEnabled }, users] = await Promise.all([
+    supabase.rpc("is_module_enabled", { org_id: organizationId, module_code: "custom_branding" }),
     buildScopeUsersCatalog(organizationId),
   ]);
 

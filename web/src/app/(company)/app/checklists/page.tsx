@@ -55,6 +55,11 @@ function typeLabel(type: string) {
   return "Custom";
 }
 
+function hasMissingColumnError(error: { message?: string } | null, column: string) {
+  const message = error?.message?.toLowerCase() ?? "";
+  return message.includes("column") && message.includes(column.toLowerCase());
+}
+
 export default async function CompanyChecklistsPage({ searchParams }: CompanyChecklistsPageProps) {
   const tenant = await requireTenantModule("checklists");
   const params = await searchParams;
@@ -77,6 +82,65 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
 
   const supabase = await createSupabaseServerClient();
 
+  const fetchOrderedBranches = async () => {
+    const primary = await supabase
+      .from("branches")
+      .select("id, name, city")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true });
+
+    if (!hasMissingColumnError(primary.error, "sort_order")) return { data: primary.data };
+
+    return supabase
+      .from("branches")
+      .select("id, name, city")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("name", { ascending: true });
+  };
+
+  const fetchOrderedDepartments = async () => {
+    const primary = await supabase
+      .from("organization_departments")
+      .select("id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true });
+
+    if (!hasMissingColumnError(primary.error, "sort_order")) return { data: primary.data };
+
+    return supabase
+      .from("organization_departments")
+      .select("id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("name", { ascending: true });
+  };
+
+  const fetchOrderedPositions = async () => {
+    const primary = await supabase
+      .from("department_positions")
+      .select("id, department_id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("department_id", { ascending: true })
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true });
+
+    if (!hasMissingColumnError(primary.error, "sort_order")) return { data: primary.data };
+
+    return supabase
+      .from("department_positions")
+      .select("id, department_id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("department_id", { ascending: true })
+      .order("name", { ascending: true });
+  };
+
   const [
     { data: branches },
     { data: templates },
@@ -86,30 +150,15 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
     { count: pendingCount },
     { data: scheduledJobs },
   ] = await Promise.all([
-    supabase
-      .from("branches")
-      .select("id, name, city")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("name"),
+    fetchOrderedBranches(),
     supabase
       .from("checklist_templates")
       .select("id, name, checklist_type, is_active, branch_id, shift, department, department_id, repeat_every, target_scope, created_at, created_by")
       .eq("organization_id", tenant.organizationId)
       .order("created_at", { ascending: false })
       .limit(80),
-    supabase
-      .from("organization_departments")
-      .select("id, name")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("name"),
-    supabase
-      .from("department_positions")
-      .select("id, department_id, name")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("name"),
+    fetchOrderedDepartments(),
+    fetchOrderedPositions(),
     supabase
       .from("checklist_submissions")
       .select("id", { count: "exact", head: true })
