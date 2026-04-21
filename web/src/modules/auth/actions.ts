@@ -15,6 +15,7 @@ import {
 import { normalizeOrganizationId } from "@/shared/lib/tenant-selection-shared";
 import { resolveOrganizationIdFromAuthHint } from "@/shared/lib/tenant-auth-branding";
 import { getCanonicalAppUrl } from "@/shared/lib/app-url";
+import { resolveTenantAppUrlByOrganizationId } from "@/shared/lib/custom-domains";
 import { getDefaultEmailBranding, getTenantEmailBranding } from "@/shared/lib/email-branding";
 import { sendEmail } from "@/shared/lib/brevo";
 import { passwordRecoveryTemplate } from "@/shared/lib/email-templates/recovery";
@@ -355,7 +356,13 @@ export async function requestPasswordRecoveryAction(formData: FormData) {
   }
 
   const admin = createSupabaseAdminClient();
-  const appUrl = getCanonicalAppUrl();
+  const canonicalAppUrl = getCanonicalAppUrl();
+  const appUrl = resolvedOrganizationId
+    ? await resolveTenantAppUrlByOrganizationId({
+        organizationId: resolvedOrganizationId,
+        fallbackAppUrl: canonicalAppUrl,
+      })
+    : canonicalAppUrl;
   const nextPath = "/auth/change-password?reason=recovery";
   const callbackPath = `/auth/callback?next=${encodeURIComponent(nextPath)}${resolvedOrganizationId ? `&org=${encodeURIComponent(resolvedOrganizationId)}` : ""}`;
   const redirectTo = `${appUrl}${callbackPath}`;
@@ -396,7 +403,7 @@ export async function requestPasswordRecoveryAction(formData: FormData) {
 
   const mailResult = await sendEmail({
     to: [{ email }],
-    subject: `Restablece tu contraseña en ${branding.companyName || "GetBackplate"}`,
+    subject: `Restablece tu contraseña en ${branding.companyName}`,
     htmlContent: passwordRecoveryTemplate({
       recoveryUrl: recoveryBridgeUrl,
       branding,

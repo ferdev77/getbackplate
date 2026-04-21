@@ -22,6 +22,7 @@ import { Reorder } from "framer-motion";
 import { reorderBranchesAction } from "@/modules/organizations/actions";
 import dynamic from "next/dynamic";
 import { FloatingAiAssistant } from "@/shared/ui/floating-ai-assistant";
+import { CollapsibleSidebarNavItem } from "@/shared/ui/collapsible-sidebar-nav-item";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
 import { GetBackplateMark } from "@/shared/ui/getbackplate-mark";
 
@@ -1239,11 +1240,11 @@ export function CompanyShell({
   return (
     <div
       data-theme={isDarkTheme ? "dark-pro" : normalizedTheme}
-      className={`min-h-screen ${isDarkTheme ? "theme-dark-pro text-[var(--gbp-text)]" : "text-[var(--gbp-text)]"}`}
+      className={`min-h-screen overflow-x-clip ${isDarkTheme ? "theme-dark-pro text-[var(--gbp-text)]" : "text-[var(--gbp-text)]"}`}
       style={{ ["--gb-accent" as string]: palette.accent, background: palette.pageGradient } as CSSProperties}
     >
-      <div className={`flex min-h-screen ${shouldLockDashboard ? "pointer-events-none" : ""}`}>
-          <aside className={`hidden shrink-0 border-r transition-all duration-200 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"} ${sidebarWidth}`} style={{ background: palette.sidebarGradient }}>
+      <div className={`flex min-h-screen overflow-x-clip ${shouldLockDashboard ? "pointer-events-none" : ""}`}>
+          <aside className={`hidden shrink-0 border-r transition-all duration-200 lg:sticky lg:top-0 lg:z-40 lg:flex lg:h-screen lg:flex-col ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"} ${sidebarWidth}`} style={{ background: palette.sidebarGradient }}>
           <div className={`relative border-b py-3 ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"} ${sidebarPaddingX}`}>
             <button
               type="button"
@@ -1290,7 +1291,7 @@ export function CompanyShell({
             {!collapsed ? <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--gbp-muted)]">Administrador</p> : null}
           </div>
 
-          <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto py-2">
+          <nav className={`flex min-h-0 flex-1 flex-col py-2 ${collapsed ? "overflow-visible" : "overflow-y-auto overflow-x-hidden"}`}>
             <div>
             {visibleSections.map((section, idx) => (
               <div key={section.label}>
@@ -1312,22 +1313,23 @@ export function CompanyShell({
                         {section.items.filter(i => !i.isBranch && i.href === "/app/dashboard").map((item) => {
                           const active = isActive(pathname, searchParams, item.href);
                           return (
-                            <Link
+                            <CollapsibleSidebarNavItem
                               key={item.href}
                               href={hrefWithBranch(item.href)}
+                              icon={item.icon}
+                              label={item.label}
+                              collapsed={collapsed}
                               className={`flex items-center gap-2.5 border-l-[2.5px] text-sm transition ${
                                 collapsed ? "justify-center px-0 py-2.5" : "px-5 py-2"
                               } ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-[var(--gbp-surface2)] font-semibold text-[var(--gbp-text)]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-[var(--gbp-text2)] hover:border-l-[var(--gbp-border2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]")}`}
                               style={active ? { borderLeftColor: palette.accent } : undefined}
                               onClick={() => handleSidebarItemClick(item)}
-                            >
-                              <item.icon className="h-4 w-4" />
-                              {!collapsed ? <span>{item.label}</span> : null}
-                            </Link>
+                            />
                           );
                         })}
 
                         {/* Reorderable Branches List */}
+                        {!collapsed ? (
                         <Reorder.Group
                           axis="y"
                           values={localBranches}
@@ -1400,28 +1402,29 @@ export function CompanyShell({
                             );
                           })}
                         </Reorder.Group>
+                        ) : null}
 
                         {/* Render Remaining Links */}
-                        {section.items.filter(i => !i.isBranch && i.href !== "/app/dashboard").map((item) => {
+                        {section.items.filter(i => !i.isBranch && i.href !== "/app/dashboard" && (!collapsed || !i.sub)).map((item) => {
                           const active = isActive(pathname, searchParams, item.href);
                           return (
-                            <Link
+                            <CollapsibleSidebarNavItem
                               key={item.href}
                               href={hrefWithBranch(item.href)}
+                              icon={item.icon}
+                              label={item.label}
+                              collapsed={collapsed}
                               className={`flex items-center gap-2.5 border-l-[2.5px] text-sm transition ${
                                 collapsed ? "justify-center px-0 py-2.5" : "px-5 py-2"
                               } ${active ? (isDarkTheme ? "bg-white/10 font-semibold text-white" : "bg-[var(--gbp-surface2)] font-semibold text-[var(--gbp-text)]") : (isDarkTheme ? "border-l-transparent text-white/65 hover:border-l-white/30 hover:bg-white/5 hover:text-white" : "border-l-transparent text-[var(--gbp-text2)] hover:border-l-[var(--gbp-border2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]")}`}
                               style={active ? { borderLeftColor: palette.accent } : undefined}
                               onClick={() => handleSidebarItemClick(item)}
-                            >
-                              <item.icon className="h-4 w-4" />
-                              {!collapsed ? <span>{item.label}</span> : null}
-                            </Link>
+                            />
                           );
                         })}
                       </>
                     ) : (
-                      section.items.map((item) => {
+                      (collapsed ? section.items.filter((item) => !item.sub && !item.isBranch) : section.items).map((item) => {
                         const active = isActive(pathname, searchParams, item.href);
                         const isQuickAction = Boolean(item.actionKey);
                         const itemClassName = `flex items-center gap-2.5 border-l-[2.5px] text-sm transition ${
@@ -1430,31 +1433,31 @@ export function CompanyShell({
 
                         if (isQuickAction) {
                           return (
-                            <button
+                            <CollapsibleSidebarNavItem
                               key={item.href}
-                              type="button"
+                              kind="button"
+                              icon={item.icon}
+                              label={item.label}
+                              collapsed={collapsed}
                               className={itemClassName}
                               onClick={() => handleSidebarItemClick(item)}
                               onMouseEnter={() => prefetchQuickActionCatalog(item)}
-                            >
-                              <item.icon className="h-4 w-4" />
-                              {!collapsed ? <span>{item.label}</span> : null}
-                            </button>
+                            />
                           );
                         }
 
                         return (
-                          <Link
+                          <CollapsibleSidebarNavItem
                             key={item.href}
                             href={hrefWithBranch(item.href)}
+                            icon={item.icon}
+                            label={item.label}
+                            collapsed={collapsed}
                             className={itemClassName}
                             style={active ? { borderLeftColor: palette.accent } : undefined}
                             onClick={() => handleSidebarItemClick(item)}
                             onMouseEnter={() => router.prefetch(hrefWithBranch(item.href))}
-                          >
-                            <item.icon className="h-4 w-4" />
-                            {!collapsed ? <span>{item.label}</span> : null}
-                          </Link>
+                          />
                         );
                       })
                     )}

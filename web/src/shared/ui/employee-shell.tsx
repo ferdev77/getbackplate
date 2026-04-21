@@ -11,6 +11,7 @@ import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
 import { GetBackplateMark } from "@/shared/ui/getbackplate-mark";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 import { PageContent } from "@/shared/ui/page-content";
+import { CollapsibleSidebarNavItem } from "@/shared/ui/collapsible-sidebar-nav-item";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 
 const CHECKLIST_PREVIEW_GUARD_KEY = "portal-checklist-preview-guard";
@@ -319,7 +320,7 @@ export function EmployeeShell({
   }, [items, pathname, router]);
 
   return (
-    <div data-theme="default" className="min-h-screen text-[var(--gbp-text)]" style={{ background: palette.pageGradient }}>
+    <div data-theme="default" className="min-h-screen overflow-x-clip text-[var(--gbp-text)]" style={{ background: palette.pageGradient }}>
       <NewEmployeeModal
         open={profileModalOpen}
         onClose={() => setProfileModalOpen(false)}
@@ -331,7 +332,7 @@ export function EmployeeShell({
         publisherName={employeeName}
         initialEmployee={employeeProfile}
       />
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen overflow-x-clip">
         {/* Sidebar */}
         <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-[var(--gbp-border)] transition-all duration-200 lg:sticky lg:top-0 lg:h-screen ${menuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} ${sidebarWidth}`} style={{ background: palette.sidebarGradient }}>
           <div className={`relative border-b border-[var(--gbp-border)] py-3 ${sidebarPaddingX}`}>
@@ -380,7 +381,7 @@ export function EmployeeShell({
             </div>
           </div>
 
-          <nav className="min-h-0 flex-1 overflow-y-auto py-4">
+          <nav className={`min-h-0 flex-1 py-4 ${collapsed ? "overflow-visible" : "overflow-y-auto overflow-x-hidden"}`}>
             <p className={`mb-2 px-5 text-[10px] font-bold uppercase tracking-[0.13em] text-[var(--gbp-muted)] ${collapsed ? "text-center px-0" : ""}`}>
               {collapsed ? "..." : "Navegación"}
             </p>
@@ -393,8 +394,11 @@ export function EmployeeShell({
                 const isExpanded = isDocumentsGroup ? documentsMenuOpen : false;
                 return (
                   <div key={item.href}>
-                    <Link
+                    <CollapsibleSidebarNavItem
                       href={item.href}
+                      icon={item.icon}
+                      label={item.label}
+                      collapsed={collapsed}
                       className={`flex items-center gap-2.5 border-l-[2.5px] text-sm transition ${
                         collapsed ? "justify-center px-0 py-2.5" : "px-5 py-2"
                       } ${
@@ -405,36 +409,38 @@ export function EmployeeShell({
                       style={active ? { borderLeftColor: palette.accent } : undefined}
                       onClick={() => setMenuOpen(false)}
                       onMouseEnter={() => router.prefetch(item.href)}
-                    >
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      {!collapsed ? <span>{item.label}</span> : null}
-                      {!collapsed && active && item.href === "/portal/documents" && docsCount > 0 && (
-                        <span className="ml-auto rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
-                          {docsCount}
-                        </span>
-                      )}
-                      {!collapsed && active && item.href === "/portal/checklist" && checklistTemplateNames.length > 0 && (
-                        <span className="ml-auto rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
-                          {checklistTemplateNames.length}
-                        </span>
-                      )}
-                      {!collapsed && hasChildren ? (
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            if (isDocumentsGroup) {
-                              setDocumentsMenuOpen((prev) => !prev);
-                            }
-                          }}
-                          className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-md text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"
-                          aria-label={isExpanded ? "Ocultar submenu de documentos" : "Mostrar submenu de documentos"}
-                        >
-                          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : "rotate-0"}`} />
-                        </button>
-                      ) : null}
-                    </Link>
+                      iconClassName="h-4 w-4 shrink-0"
+                      rightSlot={
+                        <>
+                          {!collapsed && active && item.href === "/portal/documents" && docsCount > 0 ? (
+                            <span className="ml-auto rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                              {docsCount}
+                            </span>
+                          ) : null}
+                          {!collapsed && active && item.href === "/portal/checklist" && checklistTemplateNames.length > 0 ? (
+                            <span className="ml-auto rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                              {checklistTemplateNames.length}
+                            </span>
+                          ) : null}
+                          {!collapsed && hasChildren ? (
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                if (isDocumentsGroup) {
+                                  setDocumentsMenuOpen((prev) => !prev);
+                                }
+                              }}
+                              className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-md text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"
+                              aria-label={isExpanded ? "Ocultar submenu de documentos" : "Mostrar submenu de documentos"}
+                            >
+                              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : "rotate-0"}`} />
+                            </button>
+                          ) : null}
+                        </>
+                      }
+                    />
 
                     {!collapsed && hasChildren && isExpanded ? (
                       <div className="mt-0.5 space-y-0.5">
@@ -494,7 +500,7 @@ export function EmployeeShell({
                 aria-label="Abrir mi perfil"
               >
                 <User className="h-3.5 w-3.5" />
-                <TooltipLabel label="Mi perfil" />
+                <TooltipLabel label="Mi perfil" side="right" />
               </button>
             ) : null}
 
@@ -507,7 +513,7 @@ export function EmployeeShell({
             >
               <LogOut className="h-3.5 w-3.5" />
               {!collapsed ? <span>Cerrar Sesión</span> : null}
-              {collapsed && <TooltipLabel label="Cerrar Sesión" />}
+              {collapsed && <TooltipLabel label="Cerrar Sesión" side="right" />}
             </Link>
           </div>
         </aside>

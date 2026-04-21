@@ -174,7 +174,7 @@ function buildSystemPrompt(params: {
   intent: AssistantIntent;
 }) {
   return [
-    "Eres el asistente operativo de GetBackplate para empresas gastronómicas.",
+    "Eres el asistente operativo de la empresa para operaciones gastronómicas.",
     `Rol de quien pregunta: ${params.roleCode}.`,
     `Módulo origen: ${params.originModule}.`,
     `Intención detectada: ${params.intent}.`,
@@ -639,7 +639,7 @@ async function callOpenRouter(params: {
       : process.env.OPENROUTER_MODEL_FAST ?? process.env.OPENROUTER_MODEL ?? "openai/gpt-4o-mini";
 
   const siteUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const appName = "GetBackplate AI Assistant";
+  const appName = "Operations AI Assistant";
 
   const systemPrompt = buildSystemPrompt({
     roleCode: params.roleCode,
@@ -661,40 +661,44 @@ async function callOpenRouter(params: {
     },
   ];
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-      "HTTP-Referer": siteUrl,
-      "X-Title": appName,
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.2,
-      messages,
-    }),
-  });
+  try {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+        "HTTP-Referer": siteUrl,
+        "X-Title": appName,
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.2,
+        messages,
+      }),
+    });
 
-  if (!response.ok) return null;
-  const data = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string | null } }>;
-    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
-  };
-  const content = data.choices?.[0]?.message?.content?.trim();
-  if (!content) return null;
-  const usage = data.usage;
-  return {
-    content,
-    model,
-    provider: "openrouter",
-    inputTokens: usage?.prompt_tokens ?? estimateTokens(JSON.stringify(messages)),
-    outputTokens: usage?.completion_tokens ?? estimateTokens(content),
-    totalTokens:
-      usage?.total_tokens ??
-      (usage?.prompt_tokens ?? estimateTokens(JSON.stringify(messages))) +
-        (usage?.completion_tokens ?? estimateTokens(content)),
-  };
+    if (!response.ok) return null;
+    const data = (await response.json().catch(() => null)) as {
+      choices?: Array<{ message?: { content?: string | null } }>;
+      usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+    } | null;
+    const content = data?.choices?.[0]?.message?.content?.trim();
+    if (!content) return null;
+    const usage = data?.usage;
+    return {
+      content,
+      model,
+      provider: "openrouter",
+      inputTokens: usage?.prompt_tokens ?? estimateTokens(JSON.stringify(messages)),
+      outputTokens: usage?.completion_tokens ?? estimateTokens(content),
+      totalTokens:
+        usage?.total_tokens ??
+        (usage?.prompt_tokens ?? estimateTokens(JSON.stringify(messages))) +
+          (usage?.completion_tokens ?? estimateTokens(content)),
+    };
+  } catch {
+    return null;
+  }
 }
 
 async function withQualityRetry(call: () => Promise<AiResult | null>, retry: () => Promise<AiResult | null>, intent: AssistantIntent) {
@@ -807,73 +811,73 @@ export async function POST(request: Request) {
   let outputTokens = estimateTokens(answer);
   let totalTokens = inputTokens + outputTokens;
 
-  const anthropicResult = await withQualityRetry(
+  const openRouterResult = await withQualityRetry(
     () =>
-      callAnthropic({
+      callOpenRouter({
         question,
         history,
         facts,
         roleCode: access.tenant.roleCode,
         originModule,
         intent,
+        complexity,
       }),
     () =>
-      callAnthropic({
+      callOpenRouter({
         question,
         history,
         facts,
         roleCode: access.tenant.roleCode,
         originModule,
         intent,
+        complexity,
         forceQualityPrompt: true,
       }),
     intent,
   );
 
-  if (anthropicResult?.content) {
-    answer = anthropicResult.content;
-    mode = "pro_ai";
-    confidence = "alto";
-    provider = "anthropic";
-    modelUsed = anthropicResult.model;
-    inputTokens = anthropicResult.inputTokens;
-    outputTokens = anthropicResult.outputTokens;
-    totalTokens = anthropicResult.totalTokens;
+  if (openRouterResult?.content) {
+    answer = openRouterResult.content;
+    mode = "basic_ai";
+    confidence = intent === "general" ? "medio" : "alto";
+    provider = "openrouter";
+    modelUsed = openRouterResult.model;
+    inputTokens = openRouterResult.inputTokens;
+    outputTokens = openRouterResult.outputTokens;
+    totalTokens = openRouterResult.totalTokens;
   } else {
-    const openRouterResult = await withQualityRetry(
+    const anthropicResult = await withQualityRetry(
       () =>
-        callOpenRouter({
+        callAnthropic({
           question,
           history,
           facts,
           roleCode: access.tenant.roleCode,
           originModule,
           intent,
-          complexity,
         }),
       () =>
-        callOpenRouter({
+        callAnthropic({
           question,
           history,
           facts,
           roleCode: access.tenant.roleCode,
           originModule,
           intent,
-          complexity,
           forceQualityPrompt: true,
         }),
       intent,
     );
 
-    if (openRouterResult?.content) {
-      answer = openRouterResult.content;
-      mode = "basic_ai";
-      confidence = intent === "general" ? "medio" : "alto";
-      provider = "openrouter";
-      modelUsed = openRouterResult.model;
-      inputTokens = openRouterResult.inputTokens;
-      outputTokens = openRouterResult.outputTokens;
-      totalTokens = openRouterResult.totalTokens;
+    if (anthropicResult?.content) {
+      answer = anthropicResult.content;
+      mode = "pro_ai";
+      confidence = "alto";
+      provider = "anthropic";
+      modelUsed = anthropicResult.model;
+      inputTokens = anthropicResult.inputTokens;
+      outputTokens = anthropicResult.outputTokens;
+      totalTokens = anthropicResult.totalTokens;
     }
   }
 

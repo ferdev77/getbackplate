@@ -4,6 +4,7 @@ import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { resolveTenantAppUrlByOrganizationId } from "@/shared/lib/custom-domains";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
 import { isEmployeeLinkedDocument } from "@/shared/lib/document-domain";
 
@@ -67,7 +68,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No se pudo generar enlace de descarga" }, { status: 500 });
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "";
+  const appUrl = await resolveTenantAppUrlByOrganizationId({
+    organizationId: tenant.organizationId,
+    fallbackAppUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://getbackplate.com",
+  });
   const html = `
     <h2 style="margin:0 0 10px 0;">Documento compartido</h2>
     <p style="margin:0 0 10px 0;color:#444;">Te compartieron el documento <strong>${document.title}</strong>.</p>

@@ -112,6 +112,8 @@ export function StripeLaunchBridge({
               <div className="rounded-xl border border-[rgba(9,33,19,0.1)] bg-[#f9fcfa] px-3 py-2">
                 {customBrandingEnabled && logoUrl ? (
                   <Image src={logoUrl} alt={`Logo de ${brandName}`} width={160} height={36} className="h-7 w-auto object-contain" />
+                ) : customBrandingEnabled ? (
+                  <p className="text-sm font-bold tracking-[0.08em] text-[#2b4f3f] uppercase">{brandName}</p>
                 ) : (
                   <GetBackplateLogo variant="light" width={156} height={28} className="h-7 w-auto" />
                 )}

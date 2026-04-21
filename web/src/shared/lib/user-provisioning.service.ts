@@ -36,6 +36,7 @@ export async function provisionOrganizationUserAccount(input: {
     });
     const fullName = `${firstName} ${lastName}`.trim();
     const branding = await getTenantEmailBranding(organizationId);
+    const accessBrandName = branding.isCustom ? branding.companyName : "GetBackplate";
 
     const existingAuthUser = await findAuthUserByEmail(loginEmail);
     
@@ -51,7 +52,7 @@ export async function provisionOrganizationUserAccount(input: {
       if (!isMember) {
         await sendEmail({
           to: [{ email: loginEmail, name: fullName }],
-          subject: "Acceso habilitado para una nueva empresa en GetBackplate",
+          subject: `Acceso habilitado para una nueva empresa en ${accessBrandName}`,
           htmlContent: resendReminderTemplate({
             fullName,
             loginUrl,
@@ -81,7 +82,7 @@ export async function provisionOrganizationUserAccount(input: {
 
       await sendEmail({
         to: [{ email: loginEmail, name: fullName }],
-        subject: "Tus credenciales de acceso a GetBackplate",
+        subject: `Tus credenciales de acceso a ${accessBrandName}`,
         htmlContent: initialInviteTemplate({
           fullName,
           loginEmail,
@@ -115,7 +116,7 @@ export async function provisionOrganizationUserAccount(input: {
 
       await sendEmail({
         to: [{ email: loginEmail, name: fullName }],
-        subject: "Bienvenido(a) a GetBackplate - Tus credenciales",
+        subject: `Bienvenido(a) a ${accessBrandName} - Tus credenciales`,
         htmlContent: initialInviteTemplate({
           fullName,
           loginEmail,

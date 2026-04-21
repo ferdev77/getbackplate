@@ -6,6 +6,8 @@ import {
   planRenewalReminderTemplate,
   subscriptionActivatedTemplate,
 } from "@/shared/lib/email-templates/billing";
+import { resolveTenantAppUrlByOrganizationId } from "@/shared/lib/custom-domains";
+import { getTenantEmailBranding } from "@/shared/lib/email-branding";
 
 async function getOrganizationAdminEmail(organizationId: string): Promise<string | null> {
   const supabase = createSupabaseAdminClient();
@@ -86,8 +88,11 @@ async function sendBillingEmail(params: {
 }
 
 export async function sendRenewalReminderEmail(organizationId: string, renewalDate: string, amount: string) {
-  const orgName = await getOrganizationName(organizationId);
-  const html = planRenewalReminderTemplate({ orgName, renewalDate, amount });
+  const [orgName, branding] = await Promise.all([
+    getOrganizationName(organizationId),
+    getTenantEmailBranding(organizationId),
+  ]);
+  const html = planRenewalReminderTemplate({ orgName, renewalDate, amount, branding });
   await sendBillingEmail({
     organizationId,
     subject: "Tu plan se renueva pronto",
@@ -97,8 +102,11 @@ export async function sendRenewalReminderEmail(organizationId: string, renewalDa
 }
 
 export async function sendPlanChangedEmail(organizationId: string, planName: string) {
-  const orgName = await getOrganizationName(organizationId);
-  const html = planChangedTemplate({ orgName, planName });
+  const [orgName, branding] = await Promise.all([
+    getOrganizationName(organizationId),
+    getTenantEmailBranding(organizationId),
+  ]);
+  const html = planChangedTemplate({ orgName, planName, branding });
   await sendBillingEmail({
     organizationId,
     subject: "Tu plan ha sido actualizado",
@@ -108,8 +116,11 @@ export async function sendPlanChangedEmail(organizationId: string, planName: str
 }
 
 export async function sendPaymentFailedEmail(organizationId: string, retryLink: string) {
-  const orgName = await getOrganizationName(organizationId);
-  const html = paymentFailedTemplate({ orgName, retryLink });
+  const [orgName, branding] = await Promise.all([
+    getOrganizationName(organizationId),
+    getTenantEmailBranding(organizationId),
+  ]);
+  const html = paymentFailedTemplate({ orgName, retryLink, branding });
 
   await sendBillingEmail({
     organizationId,
@@ -124,11 +135,20 @@ export async function sendSubscriptionActivatedEmail(params: {
   planName: string;
   trialDays: number;
 }) {
-  const orgName = await getOrganizationName(params.organizationId);
+  const [orgName, branding, tenantAppUrl] = await Promise.all([
+    getOrganizationName(params.organizationId),
+    getTenantEmailBranding(params.organizationId),
+    resolveTenantAppUrlByOrganizationId({
+      organizationId: params.organizationId,
+      fallbackAppUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://getbackplate.com",
+    }),
+  ]);
   const html = subscriptionActivatedTemplate({
     orgName,
     planName: params.planName,
     trialDays: params.trialDays,
+    dashboardUrl: `${tenantAppUrl.replace(/\/$/, "")}/app/dashboard`,
+    branding,
   });
 
   await sendBillingEmail({

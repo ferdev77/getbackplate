@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { sendTwilioMessage } from "@/infrastructure/twilio/client";
 import { getAuthEmailByUserId } from "@/shared/lib/auth-users";
+import { resolveTenantAppUrlByOrganizationId } from "@/shared/lib/custom-domains";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -186,7 +187,10 @@ export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput &
   const contacts = await resolveChecklistAudienceContacts(input);
   if (!contacts.emails.length) return 0;
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "";
+  const appUrl = await resolveTenantAppUrlByOrganizationId({
+    organizationId: input.organizationId,
+    fallbackAppUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://getbackplate.com",
+  });
   const reportsUrl = appUrl ? `${appUrl}/app/reports` : "/app/reports";
   const subject =
     input.event === "created"
