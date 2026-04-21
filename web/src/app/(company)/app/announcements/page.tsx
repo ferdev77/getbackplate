@@ -328,8 +328,8 @@ const employeesQuery = supabase
                           <input type="hidden" name="announcement_id" value={ann.id} />
                           <ConfirmSubmitButton
                             label="🗑"
-                            confirmTitle="Eliminar anuncio"
-                            confirmDescription="Se eliminará el anuncio y su audiencia. Esta acción no se puede deshacer."
+                            confirmTitle="Eliminar aviso"
+                            confirmDescription="Se eliminará el aviso y su audiencia. Esta acción no se puede deshacer."
                             confirmLabel="Eliminar"
                             className={ACTION_BTN_DANGER}
                             data-testid="delete-announcement-btn"

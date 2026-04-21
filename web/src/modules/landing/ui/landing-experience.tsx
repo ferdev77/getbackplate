@@ -228,7 +228,7 @@ export function LandingExperience({ plans }: Props) {
             ["01", "Operaciones y Cumplimiento", "Checklist digitales, incidentes, controles y trazabilidad de ejecución por turno."],
             ["02", "People & RRHH", "Onboarding, documentos, estado laboral, evaluaciones y seguimiento por rol."],
             ["03", "Cocina y Menú", "Estandarización operativa de recetas, seguridad alimentaria y control por ubicación."],
-            ["04", "Comunicación", "Anuncios, alertas y coordinación interna sin depender de chats externos."],
+            ["04", "Comunicación", "Avisos, alertas y coordinación interna sin depender de chats externos."],
             ["05", "Reportes", "Visión operativa por sucursal, fechas y estado con métricas accionables."],
             ["06", "Permisos", "Jerarquía clara por rol: owners, managers y staff con acceso controlado."],
           ]
