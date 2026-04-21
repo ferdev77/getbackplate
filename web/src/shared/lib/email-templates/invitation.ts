@@ -29,11 +29,17 @@ type InitialInviteProps = {
 function renderEmailBrandingHeader(branding: TenantEmailBranding | undefined) {
   const safeCompany = escapeHtml(branding?.companyName || "GetBackplate");
   const defaultLogo = `${(process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://getbackplate.com").replace(/\/$/, "")}/getbackplate-logo-light.svg`;
-  const safeLogo = branding?.logoUrl ? escapeHtml(branding.logoUrl) : defaultLogo;
+  const safeLogo = branding?.logoUrl
+    ? escapeHtml(branding.logoUrl)
+    : (branding?.isCustom ? "" : defaultLogo);
+
+  const brandBlock = safeLogo
+    ? `<img src="${safeLogo}" alt="Logo ${safeCompany}" style="max-height:44px;width:auto;display:block;" />`
+    : `<p style="margin:0;font-size:12px;font-weight:700;color:#374151;">${safeCompany}</p>`;
 
   return `
     <div style="margin:0 0 18px 0;padding:12px 14px;border:1px solid #e8e8e8;border-radius:10px;background:#fafafa;">
-      <img src="${safeLogo}" alt="Logo ${safeCompany}" style="max-height:44px;width:auto;display:block;" />
+      ${brandBlock}
     </div>
   `;
 }

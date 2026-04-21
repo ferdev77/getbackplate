@@ -37,8 +37,10 @@ export async function getTenantEmailBranding(organizationId: string): Promise<Te
     ? (typeof orgData?.name === "string" && orgData.name.trim() ? orgData.name.trim() : "Empresa")
     : "GetBackplate";
   const logoUrl =
-    isCustom && typeof settingsData?.company_logo_url === "string" && settingsData.company_logo_url.trim()
-      ? settingsData.company_logo_url.trim()
+    isCustom
+      ? (typeof settingsData?.company_logo_url === "string" && settingsData.company_logo_url.trim()
+          ? settingsData.company_logo_url.trim()
+          : null)
       : resolveDefaultBrandLogoUrl();
 
   return {

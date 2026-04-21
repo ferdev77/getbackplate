@@ -35,6 +35,7 @@ async function resolveOrCreateAuthUser(params: {
     includeRecovery: true,
   });
   const branding = await getTenantEmailBranding(params.organizationId);
+  const accessBrandName = branding.isCustom ? branding.companyName : "GetBackplate";
 
   const userMeta = {
     full_name: params.fullName,
@@ -53,7 +54,7 @@ async function resolveOrCreateAuthUser(params: {
       try {
         await sendEmail({
           to: [{ email: params.email, name: params.fullName }],
-          subject: "Acceso activado para una nueva empresa en GetBackplate",
+          subject: `Acceso activado para una nueva empresa en ${accessBrandName}`,
           htmlContent: resendReminderTemplate({
             fullName: params.fullName,
             loginUrl,
@@ -84,7 +85,7 @@ async function resolveOrCreateAuthUser(params: {
     try {
       await sendEmail({
         to: [{ email: params.email, name: params.fullName }],
-        subject: "Tus credenciales de acceso a GetBackplate",
+        subject: `Tus credenciales de acceso a ${accessBrandName}`,
         htmlContent: initialInviteTemplate({
           fullName: params.fullName,
           loginEmail: params.email,
@@ -120,7 +121,7 @@ async function resolveOrCreateAuthUser(params: {
   try {
     await sendEmail({
       to: [{ email: params.email, name: params.fullName }],
-      subject: "Bienvenido(a) a GetBackplate - Tus credenciales",
+      subject: `Bienvenido(a) a ${accessBrandName} - Tus credenciales`,
         htmlContent: initialInviteTemplate({
           fullName: params.fullName,
           loginEmail: params.email,

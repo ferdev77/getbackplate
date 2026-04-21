@@ -53,3 +53,6 @@ debug-*.js
 errors-*.txt
 errors-*.json
 *.bundle
+
+# Local AI bridge files (do not commit)
+AI_BRIDGE_*

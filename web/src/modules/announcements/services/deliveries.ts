@@ -2,6 +2,7 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { sendTwilioMessage } from "@/infrastructure/twilio/client";
 import { getAuthEmailByUserId } from "@/shared/lib/auth-users";
+import { getTenantEmailBranding } from "@/shared/lib/email-branding";
 import { AnnouncementScope, parseAnnouncementScope } from "../lib/scope";
 
 type DeliveryRow = {
@@ -150,6 +151,7 @@ export async function processAnnouncementDeliveries() {
   let sentContactsCount = 0;
 
   const groups = Array.from(grouped.values());
+  const brandingByOrganizationId = new Map<string, Awaited<ReturnType<typeof getTenantEmailBranding>>>();
   await mapWithConcurrency(groups, sendConcurrency, async (rows) => {
     const primary = rows[0];
 
@@ -182,8 +184,13 @@ export async function processAnnouncementDeliveries() {
       const sendResults = await mapWithConcurrency(targetContacts, sendConcurrency, async (contact) => {
         return withRetries(async () => {
           if (primary.channel === "email") {
+            let branding = brandingByOrganizationId.get(primary.organization_id);
+            if (!branding) {
+              branding = await getTenantEmailBranding(primary.organization_id);
+              brandingByOrganizationId.set(primary.organization_id, branding);
+            }
             return withTimeout(
-              sendAnnouncementEmail(contact, announcement.title, announcement.body),
+              sendAnnouncementEmail(contact, announcement.title, announcement.body, branding.companyName),
               DELIVERY_SEND_TIMEOUT_MS,
               `announcement email to ${contact}`,
             );
@@ -230,16 +237,16 @@ export async function processAnnouncementDeliveries() {
   };
 }
 
-async function sendAnnouncementEmail(email: string, title: string, body: string) {
+async function sendAnnouncementEmail(email: string, title: string, body: string, brandName: string) {
   const result = await sendTransactionalEmail({
     to: email,
-    subject: `Nuevo aviso: ${title}`,
+    subject: `Nuevo aviso en ${brandName}: ${title}`,
     html: `
       <h2 style="margin:0 0 10px 0;">${title}</h2>
       <p style="margin:0 0 14px 0;color:#444;">${body.replace(/\n/g, "<br/>")}</p>
-      <p style="margin:14px 0 0 0;font-size:12px;color:#666;">Entra a GetBackplate para ver el aviso completo.</p>
+      <p style="margin:14px 0 0 0;font-size:12px;color:#666;">Entra a ${brandName} para ver el aviso completo.</p>
     `,
-    text: `${title}\n\n${body}\n\nIngresa a GetBackplate para ver el aviso completo.`,
+    text: `${title}\n\n${body}\n\nIngresa a ${brandName} para ver el aviso completo.`,
   });
 
   return result.ok

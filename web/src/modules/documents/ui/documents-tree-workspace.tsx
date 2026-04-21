@@ -106,6 +106,9 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   const [shareFolderId, setShareFolderId] = useState<string | null>(null);
   const [emailShareDocId, setEmailShareDocId] = useState<string | null>(null);
   const [dropFolderId, setDropFolderId] = useState<string | null>(null);
+  const [dropRootColumn, setDropRootColumn] = useState(false);
+  const [draggedDocumentId, setDraggedDocumentId] = useState<string | null>(null);
+  const [draggedFolderId, setDraggedFolderId] = useState<string | null>(null);
   const [columnPath, setColumnPath] = useState<string[]>([]);
   const [selectedColumnDocId, setSelectedColumnDocId] = useState<string | null>(null);
   const [previewState, setPreviewState] = useState<{ docId: string | null; status: "idle" | "loading" | "ready" | "error" }>({
@@ -488,6 +491,8 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
     } finally {
       setBusy(false);
       setDropFolderId(null);
+      setDropRootColumn(false);
+      setDraggedDocumentId(null);
     }
   }
 
@@ -511,6 +516,8 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
     } finally {
       setBusy(false);
       setDropFolderId(null);
+      setDropRootColumn(false);
+      setDraggedFolderId(null);
     }
   }
 
@@ -958,11 +965,50 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                       <p className="mb-2 px-1 text-[11px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">
                         {isRootColumn ? "Principal" : parentFolder?.name ?? "Carpeta"}
                       </p>
+                      {isRootColumn ? (
+                        <div
+                          onDragOver={(event) => {
+                            event.preventDefault();
+                            setDropRootColumn(true);
+                            setDropFolderId(null);
+                          }}
+                          onDragLeave={() => setDropRootColumn(false)}
+                          onDrop={(event) => {
+                            event.preventDefault();
+                            setDropRootColumn(false);
+                            const droppedDocId = event.dataTransfer.getData("application/x-document-id") || event.dataTransfer.getData("text/plain") || draggedDocumentId;
+                            const droppedFolderId = event.dataTransfer.getData("application/x-folder-id") || draggedFolderId;
+                            if (droppedFolderId) {
+                              void moveFolderToFolder(droppedFolderId, null);
+                              return;
+                            }
+                            const draggedDocId = droppedDocId;
+                            if (!draggedDocId) return;
+                            void moveDocumentToFolder(draggedDocId, null);
+                          }}
+                          className={`mb-2 rounded-lg border border-dashed px-3 py-2 text-xs transition-colors ${dropRootColumn ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]" : "border-[var(--gbp-border2)] text-[var(--gbp-muted)]"}`}
+                        >
+                          Soltar aqui para mover a Principal
+                        </div>
+                      ) : null}
                       <div className="space-y-1">
                         {column.folders.map((folder) => (
                           <button
                             key={folder.id}
                             type="button"
+                            draggable
+                            onDragStart={(event) => {
+                              event.dataTransfer.setData("application/x-folder-id", folder.id);
+                              event.dataTransfer.effectAllowed = "move";
+                              setDraggedFolderId(folder.id);
+                              setDraggedDocumentId(null);
+                              setDropRootColumn(false);
+                            }}
+                            onDragEnd={() => {
+                              setDraggedFolderId(null);
+                              setDropFolderId(null);
+                              setDropRootColumn(false);
+                            }}
                             onClick={() => {
                               setColumnPath((prev) => {
                                 const next = prev.slice(0, index);
@@ -971,7 +1017,26 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                               });
                               setSelectedColumnDocId(null);
                             }}
-                            className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left ${column.selectedFolderId === folder.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] hover:bg-[var(--gbp-bg)]"}`}
+                            onDragOver={(event) => {
+                              event.preventDefault();
+                              setDropFolderId(folder.id);
+                              setDropRootColumn(false);
+                            }}
+                            onDragLeave={() => setDropFolderId((prev) => (prev === folder.id ? null : prev))}
+                            onDrop={(event) => {
+                              event.preventDefault();
+                              setDropFolderId(null);
+                              const droppedDocId = event.dataTransfer.getData("application/x-document-id") || event.dataTransfer.getData("text/plain") || draggedDocumentId;
+                              const droppedFolderId = event.dataTransfer.getData("application/x-folder-id") || draggedFolderId;
+                              if (droppedFolderId && droppedFolderId !== folder.id) {
+                                void moveFolderToFolder(droppedFolderId, folder.id);
+                                return;
+                              }
+                              const draggedDocId = droppedDocId;
+                              if (!draggedDocId) return;
+                              void moveDocumentToFolder(draggedDocId, folder.id);
+                            }}
+                            className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left ${dropFolderId === folder.id || column.selectedFolderId === folder.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] hover:bg-[var(--gbp-bg)]"}`}
                           >
                             <span className="flex min-w-0 items-center gap-2">
                               <Folder className="h-3.5 w-3.5 shrink-0 text-[var(--gbp-text2)]" />
@@ -985,6 +1050,21 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                           <button
                             key={doc.id}
                             type="button"
+                            draggable
+                            onDragStart={(event) => {
+                              event.dataTransfer.setData("application/x-document-id", doc.id);
+                              event.dataTransfer.setData("text/plain", doc.id);
+                              event.dataTransfer.effectAllowed = "move";
+                              setDraggedDocumentId(doc.id);
+                              setDraggedFolderId(null);
+                              setDropRootColumn(false);
+                            }}
+                            onDragEnd={() => {
+                              setDraggedDocumentId(null);
+                              setDraggedFolderId(null);
+                              setDropFolderId(null);
+                              setDropRootColumn(false);
+                            }}
                             onClick={() => {
                               setSelectedColumnDocId(doc.id);
                               setPreviewState({

@@ -1,17 +1,19 @@
 import type { TenantEmailBranding } from "@/shared/lib/email-branding";
 
-type RenewalReminderProps = { orgName: string; renewalDate: string; amount: string };
-export function planRenewalReminderTemplate({ orgName, renewalDate, amount }: RenewalReminderProps) {
+type RenewalReminderProps = { orgName: string; renewalDate: string; amount: string; branding?: TenantEmailBranding };
+export function planRenewalReminderTemplate({ orgName, renewalDate, amount, branding }: RenewalReminderProps) {
+  const brandName = resolveBillingBrandName(branding);
   return `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #171311;">
+      ${renderBrandingHeader(branding)}
       <h2>Hola ${orgName},</h2>
       <p>Queríamos recordarte que tu plan actual se renovará pronto, el próximo <strong>${renewalDate}</strong>.</p>
       <p>El importe de la renovación será de <strong>${amount}</strong>.</p>
       <br />
       <p>Si deseas realizar algún cambio en tu suscripción, puedes hacerlo desde tu panel de administración.</p>
       <br />
-      <p>Gracias por confiar en GetBackplate.</p>
-      <p style="color: #666; font-size: 12px;">El equipo de GetBackplate</p>
+      <p>Gracias por confiar en ${brandName}.</p>
+      <p style="color: #666; font-size: 12px;">El equipo de ${brandName}</p>
     </div>
   `;
 }
@@ -274,25 +276,29 @@ export function planChangeAppliedTemplate({
 }
 
 type PlanChangedProps = { orgName: string; planName: string };
-export function planChangedTemplate({ orgName, planName }: PlanChangedProps) {
+export function planChangedTemplate({ orgName, planName, branding }: PlanChangedProps & { branding?: TenantEmailBranding }) {
+  const brandName = resolveBillingBrandName(branding);
   return `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #171311;">
+      ${renderBrandingHeader(branding)}
       <h2>Hola ${orgName},</h2>
       <p>Tu suscripción ha sido actualizada exitosamente.</p>
       <p>Ahora tienes activo el plan: <strong>${planName}</strong>.</p>
       <br />
       <p>Ya puedes disfrutar de todos los beneficios y nuevos límites de la plataforma de inmediato.</p>
       <br />
-      <p>Gracias por confiar en GetBackplate.</p>
-      <p style="color: #666; font-size: 12px;">El equipo de GetBackplate</p>
+      <p>Gracias por confiar en ${brandName}.</p>
+      <p style="color: #666; font-size: 12px;">El equipo de ${brandName}</p>
     </div>
   `;
 }
 
 type PaymentFailedProps = { orgName: string; retryLink: string };
-export function paymentFailedTemplate({ orgName, retryLink }: PaymentFailedProps) {
+export function paymentFailedTemplate({ orgName, retryLink, branding }: PaymentFailedProps & { branding?: TenantEmailBranding }) {
+  const brandName = resolveBillingBrandName(branding);
   return `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #171311;">
+      ${renderBrandingHeader(branding)}
       <h2>Hola ${orgName},</h2>
       <p style="color: #b91c1c;">Hemos detectado un inconveniente al procesar tu último pago de suscripción.</p>
       <p>Para evitar interrupciones en tu servicio, por favor actualiza tu método de pago correspondiente.</p>
@@ -303,7 +309,7 @@ export function paymentFailedTemplate({ orgName, retryLink }: PaymentFailedProps
       <br />
       <br />
       <p>Si ya solucionaste este problema, ignora este mensaje.</p>
-      <p style="color: #666; font-size: 12px;">El equipo de GetBackplate</p>
+      <p style="color: #666; font-size: 12px;">El equipo de ${brandName}</p>
     </div>
   `;
 }
@@ -312,11 +318,12 @@ type SubscriptionActivatedProps = {
   orgName: string;
   planName: string;
   trialDays: number;
+  dashboardUrl?: string;
 };
 
-export function subscriptionActivatedTemplate({ orgName, planName, trialDays }: SubscriptionActivatedProps) {
-  const defaultLogo = `${(process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://getbackplate.com").replace(/\/$/, "")}/getbackplate-logo-light.svg`;
-  const appUrl = `${(process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://getbackplate.com").replace(/\/$/, "")}/app/dashboard`;
+export function subscriptionActivatedTemplate({ orgName, planName, trialDays, dashboardUrl, branding }: SubscriptionActivatedProps & { branding?: TenantEmailBranding }) {
+  const brandName = resolveBillingBrandName(branding);
+  const appUrl = dashboardUrl ?? `${(process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://getbackplate.com").replace(/\/$/, "")}/app/dashboard`;
   const trialCopy =
     trialDays > 0
       ? `Tu prueba gratis de <strong>${trialDays} dias</strong> ya esta activa. Antes del primer cobro te enviaremos recordatorios para que gestiones tu plan con tranquilidad.`
@@ -328,9 +335,9 @@ export function subscriptionActivatedTemplate({ orgName, planName, trialDays }: 
         <div style="height:6px;background:#c74b1e;"></div>
 
         <div style="padding:24px 24px 8px 24px;">
-          <img src="${defaultLogo}" alt="GetBackplate" style="max-height:42px;width:auto;display:block;margin:0 0 10px 0;" />
+          ${renderBrandingHeader(branding)}
           <p style="margin:0;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#9ca3af;">Confirmacion de suscripcion</p>
-          <h2 style="margin:10px 0 0 0;font-size:24px;line-height:1.2;color:#111827;">Tu empresa ya quedo activada en GetBackplate</h2>
+          <h2 style="margin:10px 0 0 0;font-size:24px;line-height:1.2;color:#111827;">Tu empresa ya quedo activada en ${brandName}</h2>
           <p style="margin:10px 0 0 0;color:#4b5563;font-size:14px;line-height:1.6;">Hola <strong>${orgName}</strong>, validamos correctamente tu pago en Stripe y habilitamos tu entorno de trabajo.</p>
         </div>
 
@@ -348,7 +355,7 @@ export function subscriptionActivatedTemplate({ orgName, planName, trialDays }: 
 
         <div style="padding:18px 24px 24px 24px;">
           <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">Si no reconoces este movimiento, responde este correo para que el equipo de soporte te asista de inmediato.</p>
-          <p style="margin:10px 0 0 0;color:#9ca3af;font-size:11px;">GetBackplate Billing</p>
+          <p style="margin:10px 0 0 0;color:#9ca3af;font-size:11px;">${brandName} Billing</p>
         </div>
       </div>
     </div>
