@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
-import { LayoutDashboard, ClipboardList, Folder, Bell, FileText, PanelsLeftRight, LogOut, Menu, User } from "lucide-react";
+import { ChevronDown, LayoutDashboard, ClipboardList, Folder, Bell, FileText, PanelsLeftRight, LogOut, Menu, Trash2, User } from "lucide-react";
 import { NewEmployeeModal, type EmployeeModalInitialData, type ModalBranch, type ModalDepartment, type ModalPosition } from "@/modules/employees/ui/new-employee-modal";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
 import { GetBackplateMark } from "@/shared/ui/getbackplate-mark";
@@ -35,6 +35,7 @@ type EmployeeShellProps = {
     announcements: boolean;
     onboarding: boolean;
   };
+  canDeleteDocuments: boolean;
   customBrandingEnabled: boolean;
   companyLogoUrl: string;
   employeeProfile: EmployeeModalInitialData;
@@ -64,6 +65,7 @@ export function EmployeeShell({
   docsCount,
   checklistTemplateNames,
   enabledModules,
+  canDeleteDocuments,
   customBrandingEnabled,
   companyLogoUrl,
   employeeProfile,
@@ -81,6 +83,9 @@ export function EmployeeShell({
   const [collapsed, setCollapsed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [documentsMenuOpen, setDocumentsMenuOpen] = useState(
+    pathname.startsWith("/portal/documents") || pathname.startsWith("/portal/trash"),
+  );
 
   // Realtime: auto-refresh when employee portal scoped data changes
   useEffect(() => {
@@ -89,7 +94,7 @@ export function EmployeeShell({
       supabase.realtime.setAuth(realtimeAccessToken);
     }
     const orgFilter = `organization_id=eq.${organizationId}`;
-    const fastRealtimePaths = ["/portal/checklist", "/portal/home", "/portal/announcements", "/portal/documents"];
+    const fastRealtimePaths = ["/portal/checklist", "/portal/home", "/portal/announcements", "/portal/documents", "/portal/trash"];
     const refreshDelayMs = fastRealtimePaths.some((prefix) => pathname.startsWith(prefix)) ? 450 : 2000;
     const employeeUploadCooldownKey = "gbp.employee.docs.upload.cooldown";
     const employeeUploadInflightKey = "gbp.employee.docs.upload.inflight";
@@ -140,7 +145,7 @@ export function EmployeeShell({
         { table: "scheduled_jobs", filter: checklistJobsFilter },
         { table: "checklist_submissions", filter: ownSubmissionFilter },
       );
-    } else if (pathname.startsWith("/portal/documents")) {
+    } else if (pathname.startsWith("/portal/documents") || pathname.startsWith("/portal/trash")) {
       subscriptions.push(
         { table: "documents", filter: orgFilter },
         { table: "document_folders", filter: orgFilter },
@@ -229,7 +234,7 @@ export function EmployeeShell({
 
     const channel = channelBuilder.subscribe();
 
-    if (pathname.startsWith("/portal/home") || pathname.startsWith("/portal/announcements") || pathname.startsWith("/portal/checklist") || pathname.startsWith("/portal/documents")) {
+    if (pathname.startsWith("/portal/home") || pathname.startsWith("/portal/announcements") || pathname.startsWith("/portal/checklist") || pathname.startsWith("/portal/documents") || pathname.startsWith("/portal/trash")) {
       pollingRef = setInterval(() => {
         const now = Date.now();
         if (now - lastRefreshAtRef.current < 7000) return;
@@ -256,13 +261,18 @@ export function EmployeeShell({
       result.push({ href: "/portal/checklist", label: "Checklists", icon: ClipboardList });
     }
     if (enabledModules.documents) {
-      result.push({ href: "/portal/documents", label: "Documentos", icon: Folder });
+      result.push({
+        href: "/portal/documents",
+        label: "Documentos",
+        icon: Folder,
+        children: canDeleteDocuments ? [{ href: "/portal/trash", label: "Papelera", icon: Trash2 }] : [],
+      });
     }
     if (enabledModules.onboarding) {
       result.push({ href: "/portal/onboarding", label: "Instrucciones", icon: FileText });
     }
     return result;
-  }, [enabledModules.announcements, enabledModules.checklists, enabledModules.documents, enabledModules.onboarding]);
+  }, [canDeleteDocuments, enabledModules.announcements, enabledModules.checklists, enabledModules.documents, enabledModules.onboarding]);
 
   const sidebarWidth = collapsed ? "w-[56px]" : "w-[240px]";
   const sidebarPaddingX = collapsed ? "px-2" : "px-4";
@@ -275,7 +285,13 @@ export function EmployeeShell({
     headerBg: "var(--gbp-surface)",
   };
 
-  const currentLabel = items.find(item => pathname.startsWith(item.href))?.label || "Portal";
+  const currentLabel =
+    items.find((item) =>
+      pathname.startsWith(item.href) ||
+      item.children?.some((child) => pathname.startsWith(child.href)),
+    )?.children?.find((child) => pathname.startsWith(child.href))?.label ||
+    items.find((item) => pathname.startsWith(item.href))?.label ||
+    "Portal";
   const brandingName = customBrandingEnabled ? (organizationName || "Empresa") : "GetBackplate";
   const effectiveCompanyLogoUrl = customBrandingEnabled ? companyLogoUrl : "";
 
@@ -360,35 +376,81 @@ export function EmployeeShell({
             </p>
             <div className="space-y-0.5">
               {items.map((item) => {
-                const active = pathname.startsWith(item.href);
+                const childActive = item.children?.some((child) => pathname.startsWith(child.href)) ?? false;
+                const active = pathname.startsWith(item.href) || childActive;
+                const hasChildren = Boolean(item.children?.length);
+                const isDocumentsGroup = item.href === "/portal/documents";
+                const isExpanded = isDocumentsGroup ? documentsMenuOpen : false;
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-2.5 border-l-[2.5px] text-sm transition ${
-                      collapsed ? "justify-center px-0 py-2.5" : "px-5 py-2"
-                    } ${
-                      active
-                        ? "bg-[var(--gbp-surface2)] font-semibold text-[var(--gbp-text)]"
-                        : "border-l-transparent text-[var(--gbp-text2)] hover:border-l-[var(--gbp-border2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"
-                    }`}
-                    style={active ? { borderLeftColor: palette.accent } : undefined}
-                    onClick={() => setMenuOpen(false)}
-                    onMouseEnter={() => router.prefetch(item.href)}
-                  >
-                    <item.icon className="h-4 w-4 shrink-0" />
-                    {!collapsed ? <span>{item.label}</span> : null}
-                    {!collapsed && active && item.href === "/portal/documents" && docsCount > 0 && (
-                      <span className="ml-auto rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
-                        {docsCount}
-                      </span>
-                    )}
-                    {!collapsed && active && item.href === "/portal/checklist" && checklistTemplateNames.length > 0 && (
-                      <span className="ml-auto rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
-                        {checklistTemplateNames.length}
-                      </span>
-                    )}
-                  </Link>
+                  <div key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={`flex items-center gap-2.5 border-l-[2.5px] text-sm transition ${
+                        collapsed ? "justify-center px-0 py-2.5" : "px-5 py-2"
+                      } ${
+                        active
+                          ? "bg-[var(--gbp-surface2)] font-semibold text-[var(--gbp-text)]"
+                          : "border-l-transparent text-[var(--gbp-text2)] hover:border-l-[var(--gbp-border2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"
+                      }`}
+                      style={active ? { borderLeftColor: palette.accent } : undefined}
+                      onClick={() => setMenuOpen(false)}
+                      onMouseEnter={() => router.prefetch(item.href)}
+                    >
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      {!collapsed ? <span>{item.label}</span> : null}
+                      {!collapsed && active && item.href === "/portal/documents" && docsCount > 0 && (
+                        <span className="ml-auto rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                          {docsCount}
+                        </span>
+                      )}
+                      {!collapsed && active && item.href === "/portal/checklist" && checklistTemplateNames.length > 0 && (
+                        <span className="ml-auto rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                          {checklistTemplateNames.length}
+                        </span>
+                      )}
+                      {!collapsed && hasChildren ? (
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            if (isDocumentsGroup) {
+                              setDocumentsMenuOpen((prev) => !prev);
+                            }
+                          }}
+                          className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-md text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"
+                          aria-label={isExpanded ? "Ocultar submenu de documentos" : "Mostrar submenu de documentos"}
+                        >
+                          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : "rotate-0"}`} />
+                        </button>
+                      ) : null}
+                    </Link>
+
+                    {!collapsed && hasChildren && isExpanded ? (
+                      <div className="mt-0.5 space-y-0.5">
+                        {item.children?.map((child) => {
+                          const childIsActive = pathname.startsWith(child.href);
+                          return (
+                            <Link
+                              key={child.href}
+                              href={child.href}
+                              className={`flex items-center gap-2 border-l-[2.5px] py-1.5 pl-11 pr-5 text-xs transition ${
+                                childIsActive
+                                  ? "bg-[var(--gbp-surface2)] font-semibold text-[var(--gbp-text)]"
+                                  : "border-l-transparent text-[var(--gbp-text2)] hover:border-l-[var(--gbp-border2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"
+                              }`}
+                              style={childIsActive ? { borderLeftColor: palette.accent } : undefined}
+                              onClick={() => setMenuOpen(false)}
+                              onMouseEnter={() => router.prefetch(child.href)}
+                            >
+                              <child.icon className="h-3.5 w-3.5 shrink-0" />
+                              <span>{child.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                  </div>
                 );
               })}
             </div>

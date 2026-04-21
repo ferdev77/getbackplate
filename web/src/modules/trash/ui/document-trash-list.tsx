@@ -17,19 +17,29 @@ type TrashedDocument = {
 
 type DocumentTrashListProps = {
   documents: TrashedDocument[];
+  scope?: "employee" | "company" | "superadmin";
   isAdminView?: boolean;
 };
 
-export function DocumentTrashList({ documents, isAdminView = false }: DocumentTrashListProps) {
+export function DocumentTrashList({ documents, scope, isAdminView = false }: DocumentTrashListProps) {
   const router = useRouter();
   const [isRestoring, setIsRestoring] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [showConfirmDelete, setShowConfirmDelete] = useState<string | null>(null);
 
+  const resolvedScope = scope ?? (isAdminView ? "superadmin" : "company");
+  const endpoint =
+    resolvedScope === "superadmin"
+      ? "/api/superadmin/trash/documents"
+      : resolvedScope === "employee"
+        ? "/api/employee/trash/documents"
+        : "/api/company/trash/documents";
+  const retentionDays = resolvedScope === "superadmin" ? 30 : 15;
+
   const handleRestore = async (id: string) => {
     setIsRestoring(id);
     try {
-      const res = await fetch(isAdminView ? "/api/superadmin/trash/documents" : "/api/company/trash/documents", {
+      const res = await fetch(endpoint, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ documentId: id }),
@@ -49,7 +59,7 @@ export function DocumentTrashList({ documents, isAdminView = false }: DocumentTr
   const handlePermanentDelete = async (id: string) => {
     setIsDeleting(id);
     try {
-      const res = await fetch(isAdminView ? "/api/superadmin/trash/documents" : "/api/company/trash/documents", {
+      const res = await fetch(endpoint, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ documentId: id }),
@@ -75,7 +85,7 @@ export function DocumentTrashList({ documents, isAdminView = false }: DocumentTr
         </div>
         <h3 className="text-lg font-bold text-[var(--gbp-text)]">La papelera está vacía</h3>
         <p className="mt-1 text-sm text-[var(--gbp-text2)]">
-          Los documentos eliminados aparecerán aquí por {isAdminView ? "30" : "15"} días antes de borrarse definitivamente.
+          Los documentos eliminados aparecerán aquí por {retentionDays} días antes de borrarse definitivamente.
         </p>
       </div>
     );
@@ -87,8 +97,6 @@ export function DocumentTrashList({ documents, isAdminView = false }: DocumentTr
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
   }
-
-  const retentionDays = isAdminView ? 30 : 15;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-sm)]">
