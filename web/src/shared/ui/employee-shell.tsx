@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
-import { ChevronDown, LayoutDashboard, ClipboardList, Folder, Bell, FileText, PanelsLeftRight, LogOut, Menu, Trash2, User } from "lucide-react";
+import { ChevronDown, LayoutDashboard, ClipboardList, Folder, Bell, FileText, PanelsLeftRight, LogOut, Menu, Trash2, User, type LucideIcon } from "lucide-react";
 import { NewEmployeeModal, type EmployeeModalInitialData, type ModalBranch, type ModalDepartment, type ModalPosition } from "@/modules/employees/ui/new-employee-modal";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
 import { GetBackplateMark } from "@/shared/ui/getbackplate-mark";
@@ -43,6 +43,16 @@ type EmployeeShellProps = {
   profileDepartments: ModalDepartment[];
   profilePositions: ModalPosition[];
   realtimeAccessToken?: string | null;
+};
+
+type EmployeeSidebarChild = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+};
+
+type EmployeeSidebarItem = EmployeeSidebarChild & {
+  children?: EmployeeSidebarChild[];
 };
 
 function initials(value: string) {
@@ -251,7 +261,7 @@ export function EmployeeShell({
   }, [employeeId, membershipId, organizationId, pathname, realtimeAccessToken, router, userId]);
 
   const items = useMemo(() => {
-    const result = [
+    const result: EmployeeSidebarItem[] = [
       { href: "/portal/home", label: "Dashboard", icon: LayoutDashboard },
     ];
     if (enabledModules.announcements) {
