@@ -9,6 +9,11 @@ type CompanyDocumentsPageProps = {
   searchParams: Promise<{ status?: string; message?: string; action?: string; view?: string }>;
 };
 
+function hasMissingColumnError(error: { message?: string } | null, column: string) {
+  const message = error?.message?.toLowerCase() ?? "";
+  return message.includes("column") && message.includes(column.toLowerCase());
+}
+
 export default async function CompanyDocumentsPage({
   searchParams,
 }: CompanyDocumentsPageProps) {
@@ -18,6 +23,65 @@ export default async function CompanyDocumentsPage({
   const { data: authData } = await supabase.auth.getUser();
   const viewerUserId = authData.user?.id ?? "";
   const initialViewMode = String(params.view ?? "").trim().toLowerCase() === "columns" ? "columns" : "tree";
+
+  const fetchOrderedBranches = async () => {
+    const primary = await supabase
+      .from("branches")
+      .select("id, name, city")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true });
+
+    if (!hasMissingColumnError(primary.error, "sort_order")) return { data: primary.data };
+
+    return supabase
+      .from("branches")
+      .select("id, name, city")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("name", { ascending: true });
+  };
+
+  const fetchOrderedDepartments = async () => {
+    const primary = await supabase
+      .from("organization_departments")
+      .select("id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true });
+
+    if (!hasMissingColumnError(primary.error, "sort_order")) return { data: primary.data };
+
+    return supabase
+      .from("organization_departments")
+      .select("id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("name", { ascending: true });
+  };
+
+  const fetchOrderedPositions = async () => {
+    const primary = await supabase
+      .from("department_positions")
+      .select("id, department_id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("department_id", { ascending: true })
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true });
+
+    if (!hasMissingColumnError(primary.error, "sort_order")) return { data: primary.data };
+
+    return supabase
+      .from("department_positions")
+      .select("id, department_id, name")
+      .eq("organization_id", tenant.organizationId)
+      .eq("is_active", true)
+      .order("department_id", { ascending: true })
+      .order("name", { ascending: true });
+  };
 
   const [{ data: folders }, { data: documents }, { data: branches }, { data: departments }, { data: positions }, employeeDocumentIds] =
     await Promise.all([
@@ -33,24 +97,9 @@ export default async function CompanyDocumentsPage({
         .eq("organization_id", tenant.organizationId)
         .order("created_at", { ascending: false })
         .limit(150),
-      supabase
-        .from("branches")
-        .select("id, name, city")
-        .eq("organization_id", tenant.organizationId)
-        .eq("is_active", true)
-        .order("name"),
-      supabase
-        .from("organization_departments")
-        .select("id, name")
-        .eq("organization_id", tenant.organizationId)
-        .eq("is_active", true)
-        .order("name"),
-      supabase
-        .from("department_positions")
-        .select("id, department_id, name")
-        .eq("organization_id", tenant.organizationId)
-        .eq("is_active", true)
-        .order("name"),
+      fetchOrderedBranches(),
+      fetchOrderedDepartments(),
+      fetchOrderedPositions(),
       getEmployeeDocumentIdSet(supabase, tenant.organizationId),
     ]);
 

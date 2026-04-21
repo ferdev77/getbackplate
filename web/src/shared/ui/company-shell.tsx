@@ -438,7 +438,24 @@ export function CompanyShell({
       );
     }
 
-    function scheduleRefresh() {
+    function scheduleRefresh(payload?: { table?: string }) {
+      if (
+        payload?.table === "branches" ||
+        payload?.table === "organization_departments" ||
+        payload?.table === "department_positions"
+      ) {
+        setAnnouncementModalCatalog(null);
+        setChecklistModalCatalog(null);
+        setDocumentsModalCatalog(null);
+        setEmployeesModalCatalog(null);
+        setUsersModalCatalog(null);
+        announcementCatalogFetchedAtRef.current = null;
+        checklistCatalogFetchedAtRef.current = null;
+        documentsCatalogFetchedAtRef.current = null;
+        employeesCatalogFetchedAtRef.current = null;
+        usersCatalogFetchedAtRef.current = null;
+      }
+
       if (isReorderingRef.current || isPersistingBranchOrderRef.current) {
         return;
       }

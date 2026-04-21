@@ -36,6 +36,11 @@ function parseDocumentScope(scope: unknown): DocumentScope {
   };
 }
 
+function hasMissingColumnError(error: { message?: string } | null, column: string) {
+  const message = error?.message?.toLowerCase() ?? "";
+  return message.includes("column") && message.includes(column.toLowerCase());
+}
+
 let bucketExistsChecked = false;
 
 async function ensureBucketExists() {
@@ -79,31 +84,66 @@ export async function GET(request: Request) {
   const catalog = url.searchParams.get("catalog");
 
   if (catalog === "create_modals") {
-    const [{ data: customBrandingEnabled }, { data: folders }, { data: branches }, { data: departments }, { data: positions }, { data: recentDocuments }, users, employeeDocumentIds] = await Promise.all([
+    const [branchesResult, departmentsResult, positionsResult] = await Promise.all([
+      supabase
+        .from("branches")
+        .select("id, name, city")
+        .eq("organization_id", tenant.organizationId)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("name", { ascending: true }),
+      supabase
+        .from("organization_departments")
+        .select("id, name")
+        .eq("organization_id", tenant.organizationId)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("name", { ascending: true }),
+      supabase
+        .from("department_positions")
+        .select("id, department_id, name")
+        .eq("organization_id", tenant.organizationId)
+        .eq("is_active", true)
+        .order("department_id", { ascending: true })
+        .order("sort_order", { ascending: true })
+        .order("name", { ascending: true }),
+    ]);
+
+    const [{ data: branches }, { data: departments }, { data: positions }] = await Promise.all([
+      hasMissingColumnError(branchesResult.error, "sort_order")
+        ? supabase
+            .from("branches")
+            .select("id, name, city")
+            .eq("organization_id", tenant.organizationId)
+            .eq("is_active", true)
+            .order("name", { ascending: true })
+        : Promise.resolve({ data: branchesResult.data }),
+      hasMissingColumnError(departmentsResult.error, "sort_order")
+        ? supabase
+            .from("organization_departments")
+            .select("id, name")
+            .eq("organization_id", tenant.organizationId)
+            .eq("is_active", true)
+            .order("name", { ascending: true })
+        : Promise.resolve({ data: departmentsResult.data }),
+      hasMissingColumnError(positionsResult.error, "sort_order")
+        ? supabase
+            .from("department_positions")
+            .select("id, department_id, name")
+            .eq("organization_id", tenant.organizationId)
+            .eq("is_active", true)
+            .order("department_id", { ascending: true })
+            .order("name", { ascending: true })
+        : Promise.resolve({ data: positionsResult.data }),
+    ]);
+
+    const [{ data: customBrandingEnabled }, { data: folders }, { data: recentDocuments }, users, employeeDocumentIds] = await Promise.all([
       supabase.rpc("is_module_enabled", { org_id: tenant.organizationId, module_code: "custom_branding" }),
       supabase
         .from("document_folders")
         .select("id, name")
         .eq("organization_id", tenant.organizationId)
         .is("deleted_at", null)
-        .order("name"),
-      supabase
-        .from("branches")
-        .select("id, name, city")
-        .eq("organization_id", tenant.organizationId)
-        .eq("is_active", true)
-        .order("name"),
-      supabase
-        .from("organization_departments")
-        .select("id, name")
-        .eq("organization_id", tenant.organizationId)
-        .eq("is_active", true)
-        .order("name"),
-      supabase
-        .from("department_positions")
-        .select("id, department_id, name")
-        .eq("organization_id", tenant.organizationId)
-        .eq("is_active", true)
         .order("name"),
       supabase
         .from("documents")
@@ -142,12 +182,28 @@ export async function GET(request: Request) {
       .eq("organization_id", tenant.organizationId)
       .not("user_id", "is", null)
       .order("first_name"),
-    supabase
-      .from("department_positions")
-      .select("id, department_id, name")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("name"),
+    (async () => {
+      const primary = await supabase
+        .from("department_positions")
+        .select("id, department_id, name")
+        .eq("organization_id", tenant.organizationId)
+        .eq("is_active", true)
+        .order("department_id", { ascending: true })
+        .order("sort_order", { ascending: true })
+        .order("name", { ascending: true });
+
+      if (!hasMissingColumnError(primary.error, "sort_order")) {
+        return { data: primary.data };
+      }
+
+      return supabase
+        .from("department_positions")
+        .select("id, department_id, name")
+        .eq("organization_id", tenant.organizationId)
+        .eq("is_active", true)
+        .order("department_id", { ascending: true })
+        .order("name", { ascending: true });
+    })(),
   ]);
 
   return NextResponse.json({
