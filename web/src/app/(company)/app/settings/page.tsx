@@ -19,7 +19,7 @@ import { InlineBranchForm } from "@/modules/settings/ui/inline-branch-form";
 import { InlineDepartmentForm } from "@/modules/settings/ui/inline-department-form";
 import { CompanyContactSettingsCard } from "@/modules/settings/ui/company-contact-settings-card";
 import { CustomDomainSettingsCard } from "@/modules/settings/ui/custom-domain-settings-card";
-import { ReorderableBranchList } from "@/modules/settings/ui/reorderable-branch-list";
+import { BranchList } from "@/modules/settings/ui/branch-list";
 import { ReorderableDepartmentList } from "@/modules/settings/ui/reorderable-department-list";
 import { isModuleEnabledForOrganization, requireTenantModule } from "@/shared/lib/access";
 import { DEFAULT_CUSTOM_DOMAIN_CNAME_TARGET } from "@/shared/lib/custom-domains";
@@ -281,7 +281,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
           </div>
 
           <div className="space-y-3">
-            <ReorderableBranchList
+            <BranchList
               initialBranches={branchesData}
               updateAction={updateBranchAction}
               deleteAction={deleteBranchAction}

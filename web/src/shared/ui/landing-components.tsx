@@ -106,7 +106,7 @@ const features = [
   },
   {
     title: "Comunicación Instantánea",
-    description: "Anuncios que llegan a todo el equipo al instante con confirmación de lectura.",
+    description: "Avisos que llegan a todo el equipo al instante con confirmación de lectura.",
     icon: <Bell className="h-6 w-6" />,
     color: "bg-brand/10 text-brand"
   }

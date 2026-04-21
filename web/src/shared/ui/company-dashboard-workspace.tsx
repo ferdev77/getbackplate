@@ -375,7 +375,7 @@ export function CompanyDashboardWorkspace({
                 </AnimatedList>
               ) : (
                 <div className="rounded-lg border border-dashed border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-6 text-center text-sm text-[var(--gbp-text2)]">
-                  {showAnnouncementsPanel ? "Sin anuncios recientes." : "Módulo de avisos deshabilitado para esta empresa."}
+                  {showAnnouncementsPanel ? "Sin avisos recientes." : "Módulo de avisos deshabilitado para esta empresa."}
                 </div>
               )}
             </div>

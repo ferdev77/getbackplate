@@ -16,7 +16,7 @@ type Props = {
 };
 
 const MODULES: Array<{ code: DelegatedPermissionModuleCode; label: string }> = [
-  { code: "announcements", label: "Anuncios" },
+  { code: "announcements", label: "Avisos" },
   { code: "checklists", label: "Checklists" },
   { code: "documents", label: "Documentos Operativos" },
 ];

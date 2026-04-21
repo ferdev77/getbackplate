@@ -85,7 +85,7 @@ const BASE_SECTIONS: Section[] = [
     iconColor: "text-[var(--gbp-accent)]",
     title: "Comunicados del equipo",
     description:
-      "En Avisos encuentras anuncios oficiales, recordatorios y novedades que impactan tu trabajo diario.",
+      "En Avisos encuentras avisos oficiales, recordatorios y novedades que impactan tu trabajo diario.",
     points: [
       "Prioriza avisos urgentes o con fecha de vencimiento.",
       "Lee el detalle completo para entender responsables y plazos.",

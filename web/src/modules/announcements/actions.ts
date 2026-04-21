@@ -147,7 +147,7 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
   const { data: announcement, error } = announcementMutation;
 
   if (error || !announcement) {
-    return { success: false, message: `No se pudo crear anuncio: ${error?.message ?? "error"}` };
+    return { success: false, message: `No se pudo crear aviso: ${error?.message ?? "error"}` };
   }
 
   if (announcementId) {
@@ -163,7 +163,7 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
   const { error: audienceError } = await supabase.from("announcement_audiences").insert(audiencePayload);
 
   if (audienceError) {
-    return { success: false, message: `Anuncio creado pero audiencia fallo: ${audienceError.message}` };
+    return { success: false, message: `Aviso creado pero audiencia fallo: ${audienceError.message}` };
   }
 
   let sentContactsCount = 0;
@@ -256,11 +256,11 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
   revalidatePath("/app/announcements");
   revalidatePath("/portal/home");
   const creationMessage = channelsForDelivery.length
-    ? `Anuncio creado correctamente. Notificaciones enviadas: ${sentContactsCount}`
-    : "Anuncio creado correctamente";
+    ? `Aviso creado correctamente. Notificaciones enviadas: ${sentContactsCount}`
+    : "Aviso creado correctamente";
   return { 
     success: true, 
-    message: announcementId ? "Anuncio actualizado correctamente" : creationMessage
+    message: announcementId ? "Aviso actualizado correctamente" : creationMessage
   };
 }
 
@@ -272,7 +272,7 @@ export async function toggleAnnouncementFeaturedAction(arg1: FormData | unknown,
   const nextFeatured = String(formData.get("next_featured") ?? "") === "true";
 
   if (!announcementId) {
-    redirect("/app/announcements?status=error&message=" + qs("Anuncio inválido"));
+    redirect("/app/announcements?status=error&message=" + qs("Aviso inválido"));
   }
 
   const supabase = await createSupabaseServerClient();
@@ -285,7 +285,7 @@ export async function toggleAnnouncementFeaturedAction(arg1: FormData | unknown,
   if (error) {
     redirect(
       "/app/announcements?status=error&message=" +
-        qs(`No se pudo actualizar anuncio: ${error.message}`),
+        qs(`No se pudo actualizar aviso: ${error.message}`),
     );
   }
 
@@ -315,7 +315,7 @@ export async function deleteAnnouncementAction(arg1: FormData | unknown, arg2?: 
   const announcementId = String(formData.get("announcement_id") ?? "").trim();
 
   if (!announcementId) {
-    redirect("/app/announcements?status=error&message=" + qs("Anuncio inválido"));
+    redirect("/app/announcements?status=error&message=" + qs("Aviso inválido"));
   }
 
   const supabase = await createSupabaseServerClient();
@@ -335,7 +335,7 @@ export async function deleteAnnouncementAction(arg1: FormData | unknown, arg2?: 
   if (error) {
     redirect(
       "/app/announcements?status=error&message=" +
-        qs(`No se pudo eliminar anuncio: ${error.message}`),
+        qs(`No se pudo eliminar aviso: ${error.message}`),
     );
   }
 
@@ -353,6 +353,6 @@ export async function deleteAnnouncementAction(arg1: FormData | unknown, arg2?: 
   revalidatePath("/portal/home");
   redirect(
     "/app/announcements?status=success&message=" +
-      qs("Anuncio eliminado correctamente"),
+      qs("Aviso eliminado correctamente"),
   );
 }
