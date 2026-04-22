@@ -559,8 +559,8 @@ export function ChecklistReportsDashboard({
           <aside className="fixed inset-y-0 right-0 z-[151] flex w-full max-w-[560px] flex-col bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-lg)]">
             <header className="flex items-start justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
               <div>
-                <h3 className="font-serif text-2xl text-[var(--gbp-text)]">{selectedReport.locationName}</h3>
-                <p className="text-xs text-[var(--gbp-text2)]">{selectedReport.managerName} · {selectedReport.dateLabel} {selectedReport.timeLabel} · {selectedReport.cityLabel || "Sin ciudad"}</p>
+                <h3 className="font-serif text-2xl text-[var(--gbp-text)]">{selectedReport.templateName}</h3>
+                <p className="text-xs text-[var(--gbp-text2)]">{selectedReport.managerName} · {selectedReport.dateLabel} {selectedReport.timeLabel} · {selectedReport.locationName}{selectedReport.cityLabel ? ` - ${selectedReport.cityLabel}` : ""}</p>
               </div>
               <button type="button" onClick={() => setSelectedReportId(null)} className="grid h-8 w-8 place-items-center rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:bg-[var(--gbp-accent)] hover:text-white">
                 <X className="h-4 w-4" />
