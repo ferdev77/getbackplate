@@ -7,6 +7,7 @@ import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
 import { assertPlanLimitForStorage, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
 import { isEmployeeLinkedDocument } from "@/shared/lib/document-domain";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { ensureEmployeeDocumentsRootFolder } from "@/shared/lib/employee-documents-root-folder";
 
 const BUCKET_NAME = "tenant-documents";
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -130,6 +131,12 @@ export async function POST(request: Request) {
 
     folderId = folder.id;
     scope = normalizeAccessScope(folder.access_scope, scope);
+  } else {
+    const root = await ensureEmployeeDocumentsRootFolder({
+      organizationId: access.tenant.organizationId,
+      userId: access.userId,
+    });
+    folderId = root.folderId;
   }
 
   await ensureBucketExists();
@@ -196,7 +203,7 @@ export async function PATCH(request: Request) {
 
   const documentId = String(body?.documentId ?? "").trim();
   const title = typeof body?.title === "string" ? String(body.title).trim() : null;
-  const folderId = body?.folderId === null ? null : typeof body?.folderId === "string" ? body.folderId.trim() : undefined;
+  const incomingFolderId = body?.folderId === null ? null : typeof body?.folderId === "string" ? body.folderId.trim() : undefined;
 
   const requiredCapability = title !== null ? "edit" : "create";
   const access = await assertEmployeeCapabilityApi("documents", requiredCapability, { allowBillingBypass: true });
@@ -204,17 +211,24 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
-  if (!documentId || (title === null && folderId === undefined)) {
+  if (!documentId || (title === null && incomingFolderId === undefined)) {
     return NextResponse.json({ error: "No hay cambios para aplicar" }, { status: 400 });
   }
 
   const admin = createSupabaseAdminClient();
   const { data: existing } = await admin
     .from("documents")
-    .select("id, owner_user_id")
+    .select("id, owner_user_id, folder_id")
     .eq("organization_id", access.tenant.organizationId)
     .eq("id", documentId)
     .maybeSingle();
+
+  const root = await ensureEmployeeDocumentsRootFolder({
+    organizationId: access.tenant.organizationId,
+    userId: access.userId,
+  });
+
+  const folderId = incomingFolderId === null ? root.folderId : incomingFolderId;
 
   if (!existing) {
     return NextResponse.json({ error: "Documento no encontrado" }, { status: 404 });
@@ -270,7 +284,7 @@ export async function PATCH(request: Request) {
     metadata: { title },
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, folderId: folderId ?? existing.folder_id ?? null });
 }
 
 export async function DELETE(request: Request) {
