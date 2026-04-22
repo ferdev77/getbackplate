@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
+import { ensureEmployeeDocumentsRootFolder } from "@/shared/lib/employee-documents-root-folder";
 import { logAuditEvent } from "@/shared/lib/audit";
 
 async function resolveEmployeeScope(organizationId: string, userId: string) {
@@ -29,13 +30,22 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => null)) as { name?: string; parentId?: string | null } | null;
   const name = String(body?.name ?? "").trim();
-  const parentId = body?.parentId === null ? null : typeof body?.parentId === "string" ? body.parentId.trim() : null;
+  const incomingParentId = body?.parentId === null ? null : typeof body?.parentId === "string" ? body.parentId.trim() : null;
 
   if (!name) {
     return NextResponse.json({ error: "Nombre de carpeta requerido" }, { status: 400 });
   }
 
   const admin = createSupabaseAdminClient();
+
+  let parentId = incomingParentId;
+  if (!parentId) {
+    const root = await ensureEmployeeDocumentsRootFolder({
+      organizationId: access.tenant.organizationId,
+      userId: access.userId,
+    });
+    parentId = root.folderId;
+  }
 
   if (parentId) {
     const { data: parent } = await admin
@@ -80,7 +90,7 @@ export async function POST(request: Request) {
     metadata: { name, parent_id: parentId },
   });
 
-  return NextResponse.json({ ok: true, folderId: data.id });
+  return NextResponse.json({ ok: true, folderId: data.id, parentId });
 }
 
 export async function PATCH(request: Request) {
@@ -91,12 +101,12 @@ export async function PATCH(request: Request) {
 
   const body = (await request.json().catch(() => null)) as { folderId?: string; parentId?: string | null } | null;
   const folderId = String(body?.folderId ?? "").trim();
-  const parentId = body?.parentId === null ? null : typeof body?.parentId === "string" ? body.parentId.trim() : undefined;
+  const incomingParentId = body?.parentId === null ? null : typeof body?.parentId === "string" ? body.parentId.trim() : undefined;
 
-  if (!folderId || parentId === undefined) {
+  if (!folderId || incomingParentId === undefined) {
     return NextResponse.json({ error: "Carpeta inválida" }, { status: 400 });
   }
-  if (parentId === folderId) {
+  if (incomingParentId === folderId) {
     return NextResponse.json({ error: "Una carpeta no puede ser su propio padre" }, { status: 400 });
   }
 
@@ -107,6 +117,15 @@ export async function PATCH(request: Request) {
     .eq("organization_id", access.tenant.organizationId)
     .eq("id", folderId)
     .maybeSingle();
+
+  const root = await ensureEmployeeDocumentsRootFolder({
+    organizationId: access.tenant.organizationId,
+    userId: access.userId,
+  });
+
+  const parentId = incomingParentId === null
+    ? (folderId === root.folderId ? null : root.folderId)
+    : incomingParentId;
 
   if (!folder) return NextResponse.json({ error: "Carpeta no encontrada" }, { status: 404 });
   if (folder.created_by !== access.userId) {
@@ -162,5 +181,5 @@ export async function PATCH(request: Request) {
     metadata: { parent_id: parentId },
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, folderId, parentId });
 }

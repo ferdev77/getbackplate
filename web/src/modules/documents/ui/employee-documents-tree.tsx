@@ -518,10 +518,11 @@ export function EmployeeDocumentsTree({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ documentId, folderId: targetFolderId }),
       });
-      const data = await response.json().catch(() => ({}));
+      const data = (await response.json().catch(() => ({}))) as { error?: string; folderId?: string | null };
       if (!response.ok) throw new Error(data.error || "No se pudo mover el documento");
+      const resolvedFolderId = data.folderId === undefined ? targetFolderId : data.folderId;
       logDnd("move-document:ok", { documentId, targetFolderId });
-      setDocumentsState((prev) => prev.map((row) => (row.id === documentId ? { ...row, folder_id: targetFolderId } : row)));
+      setDocumentsState((prev) => prev.map((row) => (row.id === documentId ? { ...row, folder_id: resolvedFolderId } : row)));
       router.refresh();
     } catch (error) {
       logDnd("move-document:error", { documentId, targetFolderId, error: error instanceof Error ? error.message : String(error) });
@@ -563,11 +564,14 @@ export function EmployeeDocumentsTree({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ folderId, parentId: targetFolderId }),
       });
-      const data = await response.json().catch(() => ({}));
+      const data = (await response.json().catch(() => ({}))) as { error?: string; parentId?: string | null };
       if (!response.ok) {
         // Revert on error
         setFolderRows((prev) => prev.map((row) => (row.id === folderId ? { ...row, parent_id: folder.parent_id } : row)));
         throw new Error(data.error || "No se pudo mover la carpeta");
+      }
+      if (data.parentId !== undefined) {
+        setFolderRows((prev) => prev.map((row) => (row.id === folderId ? { ...row, parent_id: data.parentId } : row)));
       }
       logDnd("move-folder:ok", { folderId, targetFolderId });
       router.refresh();
