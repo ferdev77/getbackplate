@@ -403,7 +403,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
 
       <SlideUp delay={0.2}>
         <section className={`overflow-hidden rounded-xl border ${CARD}`}>
-          <div className={`grid grid-cols-[1fr_120px] md:grid-cols-[2fr_100px_90px_120px] lg:grid-cols-[minmax(160px,2fr)_80px_80px_100px_120px_230px_80px_110px] gap-x-3 border-b-[1.5px] px-4 py-2.5 text-[11px] font-bold tracking-[0.07em] uppercase ${CARD_SOFT} ${TEXT_MUTED}`}>
+          <div className={`grid grid-cols-[1fr_120px] md:grid-cols-[2fr_100px_90px_120px] lg:grid-cols-[minmax(220px,1.7fr)_80px_90px_110px_minmax(160px,1fr)_minmax(220px,1.35fr)_90px_120px] gap-x-4 border-b-[1.5px] px-4 py-2.5 text-[11px] font-bold tracking-[0.07em] uppercase ${CARD_SOFT} ${TEXT_MUTED}`}>
             <p>Checklist</p><p className="hidden md:block">Tipo</p><p className="hidden lg:block">Shift</p><p className="hidden lg:block">Frecuencia</p><p className="hidden lg:block">Locación</p><p className="hidden lg:block">Deptos / Puestos</p><p className="hidden md:block">Estado</p><p>Acciones</p>
           </div>
           <div>
@@ -411,7 +411,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
               <div>
                 {filteredTemplates.map((template) => (
                   <div key={template.id}>
-                    <div className="grid grid-cols-[1fr_120px] md:grid-cols-[2fr_100px_90px_120px] lg:grid-cols-[minmax(160px,2fr)_80px_80px_100px_120px_230px_80px_110px] items-center gap-x-3 border-b border-[var(--gbp-border)] px-4 py-3">
+                    <div className="grid grid-cols-[1fr_120px] md:grid-cols-[2fr_100px_90px_120px] lg:grid-cols-[minmax(220px,1.7fr)_80px_90px_110px_minmax(160px,1fr)_minmax(220px,1.35fr)_90px_120px] items-center gap-x-4 border-b border-[var(--gbp-border)] px-4 py-3">
                       <div>
                         <p className={`text-sm font-semibold ${TEXT_STRONG}`}>{template.name}</p>
                         {template.itemsCount !== null && (
@@ -424,7 +424,8 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
                       <div className="hidden lg:flex flex-wrap items-center gap-1">
                         <ScopePillsOverflow
                           pills={template.scopeLocationNames.map((n) => ({ name: n, type: "location" as const }))}
-                          max={4}
+                          max={5}
+                          variant="initials"
                           emptyLabel={
                             <span className={`inline-flex items-center gap-1 text-xs ${TEXT_MUTED}`}>
                               <MapPin className="h-3.5 w-3.5" />
@@ -436,7 +437,8 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
                       <div className="hidden lg:flex flex-wrap items-center gap-1">
                         <ScopePillsOverflow
                           pills={template.scopeRoles.map((r) => ({ name: r.name, type: r.type }))}
-                          max={4}
+                          max={5}
+                          variant="initials"
                           emptyLabel={<span className={`text-xs ${TEXT_MUTED}`}>-</span>}
                         />
                       </div>
