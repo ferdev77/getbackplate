@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { ClipboardPlus, Eye, MapPin, Pencil, Trash2 } from "lucide-react";
+import { ClipboardPlus } from "lucide-react";
 import { EmptyState } from "@/shared/ui/empty-state";
-import { TooltipLabel } from "@/shared/ui/tooltip";
-import { ScopePillsOverflow } from "@/shared/ui/scope-pills-overflow";
+import { ChecklistsListWorkspace } from "@/modules/checklists/ui/checklists-list-workspace";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
@@ -392,82 +391,16 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
         </div>
       </div>
 
-      <SlideUp delay={0.1}>
-        <form className={`mb-4 flex flex-wrap items-center gap-2 rounded-xl border p-3 ${CARD}`} method="get">
-          <input name="q" defaultValue={q} className={`h-[34px] w-full sm:w-[240px] rounded-lg border-[1.5px] px-3 text-xs ${BTN_GHOST}`} placeholder="Buscar checklist..." />
-          <select name="type" defaultValue={typeFilter} className={`h-[34px] w-full sm:w-auto rounded-lg border-[1.5px] px-3 text-xs ${BTN_GHOST}`}><option value="">Todos los tipos</option><option value="opening">Apertura</option><option value="closing">Cierre</option><option value="prep">Prep</option><option value="custom">Custom</option></select>
-          <select name="loc" defaultValue={locFilter} className={`h-[34px] w-full sm:w-auto rounded-lg border-[1.5px] px-3 text-xs ${BTN_GHOST}`}><option value="">Todas las ubicaciones</option>{mappedBranches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select>
-          <button type="submit" className="h-[34px] w-full sm:w-auto rounded-lg bg-[var(--gbp-text)] px-4 text-xs font-semibold text-white hover:bg-[var(--gbp-accent)]">Filtrar</button>
-        </form>
-      </SlideUp>
-
-      <SlideUp delay={0.2}>
-        <section className={`overflow-hidden rounded-xl border ${CARD}`}>
-          <div className={`grid grid-cols-[1fr_120px] md:grid-cols-[2fr_100px_90px_120px] lg:grid-cols-[minmax(220px,1.7fr)_80px_90px_110px_minmax(160px,1fr)_minmax(220px,1.35fr)_90px_120px] gap-x-4 border-b-[1.5px] px-4 py-2.5 text-[11px] font-bold tracking-[0.07em] uppercase ${CARD_SOFT} ${TEXT_MUTED}`}>
-            <p>Checklist</p><p className="hidden md:block">Tipo</p><p className="hidden lg:block">Shift</p><p className="hidden lg:block">Frecuencia</p><p className="hidden lg:block">Locación</p><p className="hidden lg:block">Deptos / Puestos</p><p className="hidden md:block">Estado</p><p>Acciones</p>
-          </div>
-          <div>
-            {filteredTemplates && filteredTemplates.length > 0 ? (
-              <div>
-                {filteredTemplates.map((template) => (
-                  <div key={template.id}>
-                    <div className="grid grid-cols-[1fr_120px] md:grid-cols-[2fr_100px_90px_120px] lg:grid-cols-[minmax(220px,1.7fr)_80px_90px_110px_minmax(160px,1fr)_minmax(220px,1.35fr)_90px_120px] items-center gap-x-4 border-b border-[var(--gbp-border)] px-4 py-3">
-                      <div>
-                        <p className={`text-sm font-semibold ${TEXT_STRONG}`}>{template.name}</p>
-                        {template.itemsCount !== null && (
-                          <p className={`text-[11px] ${TEXT_MUTED}`}>{template.itemsCount} items</p>
-                        )}
-                      </div>
-                      <p className={`hidden text-xs md:block ${TEXT_MUTED}`}>{typeLabel(template.checklist_type)}</p>
-                      <p className={`hidden text-xs lg:block ${TEXT_MUTED}`}>{template.shift || "-"}</p>
-                      <p className={`hidden text-[11px] lg:block ${TEXT_MUTED}`}>{template.repeat_every || "-"}</p>
-                      <div className="hidden lg:flex flex-wrap items-center gap-1">
-                        <ScopePillsOverflow
-                          pills={template.scopeLocationNames.map((n) => ({ name: n, type: "location" as const }))}
-                          max={5}
-                          variant="initials"
-                          emptyLabel={
-                            <span className={`inline-flex items-center gap-1 text-xs ${TEXT_MUTED}`}>
-                              <MapPin className="h-3.5 w-3.5" />
-                              Todas
-                            </span>
-                          }
-                        />
-                      </div>
-                      <div className="hidden lg:flex flex-wrap items-center gap-1">
-                        <ScopePillsOverflow
-                          pills={template.scopeRoles.map((r) => ({ name: r.name, type: r.type }))}
-                          max={5}
-                          variant="initials"
-                          emptyLabel={<span className={`text-xs ${TEXT_MUTED}`}>-</span>}
-                        />
-                      </div>
-                      <span className={`hidden md:inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] ${template.is_active ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-neutral-200 bg-neutral-100 text-neutral-600"}`}>{template.is_active ? "Activa" : "Inactiva"}</span>
-                      <div className="flex gap-1">
-                        <Link href={`/app/checklists?preview=${template.id}`} className={ACTION_BTN_PREVIEW}><Eye className="h-3.5 w-3.5" /><TooltipLabel label="Vista previa" /></Link>
-                        <ChecklistEditTrigger
-                          className={ACTION_BTN_NEUTRAL}
-                          template={template}
-                          branches={mappedBranches}
-                          departments={departments ?? []}
-                          positions={positions ?? []}
-                          users={scopedUsers}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                          <TooltipLabel label="Editar" />
-                        </ChecklistEditTrigger>
-                        <Link href={`/app/checklists?delete=${template.id}`} className={ACTION_BTN_DANGER} data-testid="delete-checklist-btn"><Trash2 className="h-3.5 w-3.5" /><TooltipLabel label="Eliminar" /></Link>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <EmptyState title="No hay checklists" description="No se encontraron checklists para los filtros seleccionados." />
-            )}
-          </div>
-        </section>
-      </SlideUp>
+      <ChecklistsListWorkspace
+        templates={templateRows}
+        branches={mappedBranches}
+        departments={departments ?? []}
+        positions={positions ?? []}
+        users={scopedUsers}
+        initialQuery={q}
+        initialType={typeFilter}
+        initialLocation={locFilter}
+      />
 
       {previewTemplate ? (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">

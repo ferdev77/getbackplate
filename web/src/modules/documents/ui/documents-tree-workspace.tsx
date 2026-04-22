@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, Eye, GripVertical, MapPin, Pencil, Search, Share2, Trash2, ChevronRight, Folder, Mail } from "lucide-react";
+import { Download, Eye, GripVertical, MapPin, Pencil, Share2, Trash2, ChevronRight, Folder, Mail } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
@@ -16,6 +16,7 @@ import { DocumentShareByEmailModal } from "@/modules/documents/ui/document-share
 import { DocumentShareAccessModal } from "@/modules/documents/ui/document-share-access-modal";
 import { DocumentPreviewPanel } from "@/modules/documents/ui/document-preview-panel";
 import { getSystemFolderType } from "@/shared/lib/employee-documents-folders-contract";
+import { FilterBar } from "@/shared/ui/filter-bar";
 
 type FolderRow = {
   id: string;
@@ -112,7 +113,6 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   const [folderFilter, setFolderFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
-  const [sortBy, setSortBy] = useState("date-desc");
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set());
   const [editDocId, setEditDocId] = useState<string | null>(null);
   const [editFolderId, setEditFolderId] = useState<string | null>(null);
@@ -273,14 +273,14 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
 
   const locationFilterOptions = useMemo(() => {
     const ids = new Set<string>();
-    for (const row of locationDocumentsSource) {
+    for (const row of documentRows) {
       const locationIds = getDocumentLocationIds(row);
       for (const locationId of locationIds) {
         ids.add(locationId);
       }
     }
 
-    for (const folder of locationFoldersSource) {
+    for (const folder of folderRows) {
       const scope = parseScope(folder.access_scope);
       for (const locationId of scope.locations) {
         ids.add(locationId);
@@ -290,20 +290,20 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
     return Array.from(ids)
       .map((id) => ({ id, name: branchMap.get(id) ?? "Sucursal" }))
       .sort((a, b) => a.name.localeCompare(b.name, "es"));
-  }, [branchMap, getDocumentLocationIds, locationDocumentsSource, locationFoldersSource]);
+  }, [branchMap, documentRows, folderRows, getDocumentLocationIds]);
 
   const normalizedQuery = useMemo(() => normalizeSearchText(query), [query]);
 
   const departmentFilterOptions = useMemo(() => {
     const ids = new Set<string>();
-    for (const row of locationDocumentsSource) {
+    for (const row of documentRows) {
       const scope = getEffectiveDocumentScope(row);
       for (const departmentId of scope.departments) {
         ids.add(departmentId);
       }
     }
 
-    for (const folder of locationFoldersSource) {
+    for (const folder of folderRows) {
       const scope = parseScope(folder.access_scope);
       for (const departmentId of scope.departments) {
         ids.add(departmentId);
@@ -313,7 +313,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
     return Array.from(ids)
       .map((id) => ({ id, name: deptMap.get(id) ?? "Departamento" }))
       .sort((a, b) => a.name.localeCompare(b.name, "es"));
-  }, [deptMap, getEffectiveDocumentScope, locationDocumentsSource, locationFoldersSource]);
+  }, [deptMap, documentRows, folderRows, getEffectiveDocumentScope]);
 
   useEffect(() => {
     setFolderRows(folders);
@@ -552,15 +552,8 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   ]);
 
   const sortDocuments = useCallback((rows: DocumentRow[]) => {
-    return [...rows].sort((a, b) => {
-      if (sortBy === "date-asc") return +new Date(a.created_at) - +new Date(b.created_at);
-      if (sortBy === "name-asc") return a.title.localeCompare(b.title, "es");
-      if (sortBy === "name-desc") return b.title.localeCompare(a.title, "es");
-      if (sortBy === "size-desc") return (b.file_size_bytes ?? 0) - (a.file_size_bytes ?? 0);
-      if (sortBy === "size-asc") return (a.file_size_bytes ?? 0) - (b.file_size_bytes ?? 0);
-      return +new Date(b.created_at) - +new Date(a.created_at);
-    });
-  }, [sortBy]);
+    return [...rows].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
+  }, []);
 
   async function saveDocument(payload: {
     documentId: string;
@@ -1225,22 +1218,49 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
         <AnimatedItem><article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4"><p className="text-xs text-[var(--gbp-text2)]">Usuarios activos</p><p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{activeUsers}</p><p className="text-[11px] text-[var(--gbp-muted)]">{locationFilterOptions.length} ubicaciones con documentos</p></article></AnimatedItem>
       </AnimatedList>
 
-      <section className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--gbp-muted)]" />
-          <input data-testid="documents-search-input" value={query} onChange={(event) => setQuery(event.target.value)} className="h-[34px] w-[220px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] pl-9 pr-3 text-xs" placeholder="Buscar documentos..." />
-        </div>
-        {viewMode === "tree" ? (
-          <select value={folderFilter} onChange={(event) => {
-            const nextFolderId = event.target.value || ROOT_TREE_CONTEXT;
-            setFolderFilter(event.target.value);
-            setSelectedTreeFolderId(nextFolderId);
-          }} data-testid="documents-filter-folder" className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las carpetas</option>{folderOptions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
-        ) : null}
-        <select data-testid="documents-filter-location" value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las ubicaciones</option>{locationFilterOptions.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
-        <select data-testid="documents-filter-department" value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todos los departamentos</option>{departmentFilterOptions.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
-        <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="date-desc">Más recientes primero</option><option value="date-asc">Más antiguos primero</option><option value="name-asc">Nombre A-Z</option><option value="name-desc">Nombre Z-A</option><option value="size-desc">Mayor tamaño</option><option value="size-asc">Menor tamaño</option></select>
-      </section>
+      <FilterBar
+        query={query}
+        onQueryChange={setQuery}
+        searchPlaceholder="Buscar documentos..."
+        searchTestId="documents-search-input"
+        filters={[
+          {
+            key: "folder",
+            options: folderOptions.map((f) => ({ id: f.id, label: f.name })),
+            value: folderFilter,
+            onChange: (value) => {
+              setFolderFilter(value);
+              setSelectedTreeFolderId(value || ROOT_TREE_CONTEXT);
+            },
+            allLabel: "Todas las carpetas",
+            testId: "documents-filter-folder",
+          },
+          {
+            key: "location",
+            options: locationFilterOptions.map((b) => ({ id: b.id, label: b.name })),
+            value: locationFilter,
+            onChange: setLocationFilter,
+            allLabel: "Todas las ubicaciones",
+            testId: "documents-filter-location",
+          },
+          {
+            key: "department",
+            options: departmentFilterOptions.map((d) => ({ id: d.id, label: d.name })),
+            value: departmentFilter,
+            onChange: setDepartmentFilter,
+            allLabel: "Todos los departamentos",
+            testId: "documents-filter-department",
+          },
+        ]}
+        onClearFilters={() => {
+          setQuery("");
+          setFolderFilter("");
+          setSelectedTreeFolderId(ROOT_TREE_CONTEXT);
+          setLocationFilter("");
+          setDepartmentFilter("");
+          setColumnPath([]);
+        }}
+      />
 
       <SlideUp delay={0.2}>
         <AnimatePresence mode="wait">
