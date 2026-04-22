@@ -37,6 +37,9 @@ type Props = {
   departments: DepartmentOption[];
   positions: PositionOption[];
   users: ScopedUserOption[];
+  allowedLocationIds?: string[];
+  lockLocationSelection?: boolean;
+  locationHelperText?: string;
 };
 
 const ACTION_BTN_NEUTRAL =
@@ -68,6 +71,9 @@ export function EmployeeAnnouncementsWorkspace({
   departments,
   positions,
   users,
+  allowedLocationIds,
+  lockLocationSelection,
+  locationHelperText,
 }: Props) {
   const [feed, setFeed] = useState<AnnouncementRow[]>(visibleAnnouncements);
   const [mine, setMine] = useState<AnnouncementRow[]>(myAnnouncements);
@@ -224,6 +230,9 @@ export function EmployeeAnnouncementsWorkspace({
                         users={users}
                         submitEndpoint="/api/employee/announcements/manage"
                         basePath="/portal/announcements"
+                        allowedLocationIds={allowedLocationIds}
+                        lockLocationSelection={lockLocationSelection}
+                        locationHelperText={locationHelperText}
                         onSubmitted={(payload) => {
                           if (payload) upsertAnnouncement(payload);
                         }}

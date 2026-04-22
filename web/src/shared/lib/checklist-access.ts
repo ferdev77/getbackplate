@@ -1,11 +1,4 @@
-type ScopeKey = "locations" | "users" | "department_ids" | "position_ids";
-
-type ChecklistScope = {
-  locations?: unknown;
-  users?: unknown;
-  department_ids?: unknown;
-  position_ids?: unknown;
-};
+import { canSubjectAccessScope } from "@/shared/lib/scope-policy";
 
 type ChecklistTemplateAccessInput = {
   roleCode: string;
@@ -17,17 +10,6 @@ type ChecklistTemplateAccessInput = {
   templateDepartmentId: string | null;
   targetScope: unknown;
 };
-
-function readScopeList(scope: ChecklistScope, key: ScopeKey): string[] {
-  const value = scope[key];
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .map((item) => (typeof item === "string" ? item.trim() : ""))
-    .filter(Boolean);
-}
 
 export function canUseChecklistTemplateInTenant(input: ChecklistTemplateAccessInput) {
   if (input.roleCode === "company_admin") {
@@ -45,42 +27,10 @@ export function canUseChecklistTemplateInTenant(input: ChecklistTemplateAccessIn
     return false;
   }
 
-  const scope =
-    typeof input.targetScope === "object" && input.targetScope !== null
-      ? (input.targetScope as ChecklistScope)
-      : {};
-
-  const scopedUsers = readScopeList(scope, "users");
-  const scopedLocations = readScopeList(scope, "locations");
-  const scopedDepartments = readScopeList(scope, "department_ids");
-  const scopedPositions = readScopeList(scope, "position_ids");
-
-  const hasAnyScope =
-    scopedUsers.length > 0 ||
-    scopedLocations.length > 0 ||
-    scopedDepartments.length > 0 ||
-    scopedPositions.length > 0;
-
-  if (!hasAnyScope) {
-    return true;
-  }
-
-  if (scopedUsers.includes(input.userId)) {
-    return true;
-  }
-
-  if (input.branchId && scopedLocations.includes(input.branchId)) {
-    return true;
-  }
-
-  if (input.departmentId && scopedDepartments.includes(input.departmentId)) {
-    return true;
-  }
-
-  const positionIds = input.positionIds ?? [];
-  if (positionIds.some((value) => scopedPositions.includes(value))) {
-    return true;
-  }
-
-  return false;
+  return canSubjectAccessScope(input.targetScope, {
+    userId: input.userId,
+    locationId: input.branchId,
+    departmentId: input.departmentId,
+    positionIds: input.positionIds ?? [],
+  });
 }

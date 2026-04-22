@@ -34,6 +34,9 @@ type ChecklistUpsertModalProps = {
   editingTemplate?: EditingTemplate | null;
   submitEndpoint?: string;
   redirectPath?: string;
+  allowedLocationIds?: string[];
+  lockLocationSelection?: boolean;
+  locationHelperText?: string;
   onSubmitted?: () => void;
 };
 
@@ -47,6 +50,9 @@ export function ChecklistUpsertModal({
   editingTemplate,
   submitEndpoint,
   redirectPath = "/app/checklists",
+  allowedLocationIds,
+  lockLocationSelection,
+  locationHelperText,
   onSubmitted,
 }: ChecklistUpsertModalProps) {
   const router = useRouter();
@@ -227,6 +233,9 @@ export function ChecklistUpsertModal({
               initialDepartments={Array.isArray((editingTemplate?.target_scope as Record<string, string[]> | undefined)?.department_ids) ? ((editingTemplate?.target_scope as Record<string, string[]>).department_ids ?? []) : []}
               initialPositions={Array.isArray((editingTemplate?.target_scope as Record<string, string[]> | undefined)?.position_ids) ? ((editingTemplate?.target_scope as Record<string, string[]>).position_ids ?? []) : []}
               initialUsers={Array.isArray((editingTemplate?.target_scope as Record<string, string[]> | undefined)?.users) ? ((editingTemplate?.target_scope as Record<string, string[]>).users ?? []) : []}
+              allowedLocationIds={allowedLocationIds}
+              lockLocationSelection={lockLocationSelection}
+              locationHelperText={locationHelperText}
             />
             <h3 className="mb-3 mt-6 border-b-[1.5px] border-[var(--gbp-border)] pb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Items del checklist</h3>
             <ChecklistItemsBuilder

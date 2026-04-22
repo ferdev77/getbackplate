@@ -15,6 +15,9 @@ type ChecklistCreateTriggerProps = {
   users: ScopedUserOption[];
   submitEndpoint?: string;
   basePath?: string;
+  allowedLocationIds?: string[];
+  lockLocationSelection?: boolean;
+  locationHelperText?: string;
   onSubmitted?: () => void;
 };
 
@@ -27,6 +30,9 @@ export function ChecklistCreateTrigger({
   users,
   submitEndpoint,
   basePath = "/app/checklists",
+  allowedLocationIds,
+  lockLocationSelection,
+  locationHelperText,
   onSubmitted,
 }: ChecklistCreateTriggerProps) {
   const router = useRouter();
@@ -54,6 +60,9 @@ export function ChecklistCreateTrigger({
           editingTemplate={null}
           submitEndpoint={submitEndpoint}
           redirectPath={basePath}
+          allowedLocationIds={allowedLocationIds}
+          lockLocationSelection={lockLocationSelection}
+          locationHelperText={locationHelperText}
           onSubmitted={onSubmitted}
         />
       ) : null}

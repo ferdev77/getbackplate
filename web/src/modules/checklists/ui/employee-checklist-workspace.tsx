@@ -45,6 +45,9 @@ export function EmployeeChecklistWorkspace({
   departments,
   positions,
   users,
+  allowedLocationIds,
+  lockLocationSelection,
+  locationHelperText,
 }: {
   templates: TemplateRow[];
   initialPreviewTemplateId?: string;
@@ -55,6 +58,9 @@ export function EmployeeChecklistWorkspace({
   departments: DepartmentOption[];
   positions: PositionOption[];
   users: ScopedUserOption[];
+  allowedLocationIds?: string[];
+  lockLocationSelection?: boolean;
+  locationHelperText?: string;
 }) {
   const router = useRouter();
   const [templateRows, setTemplateRows] = useState<TemplateRow[]>(templates);
@@ -120,6 +126,9 @@ export function EmployeeChecklistWorkspace({
           departments={departments}
           positions={positions}
           users={users}
+          allowedLocationIds={allowedLocationIds}
+          lockLocationSelection={lockLocationSelection}
+          locationHelperText={locationHelperText}
           onRefresh={() => router.refresh()}
           onMineChange={setMine}
           loadingTemplateId={loadingTemplateId}

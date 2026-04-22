@@ -31,6 +31,9 @@ type AnnouncementModalTriggerProps = {
   initial?: AnnouncementInitial;
   submitEndpoint?: string;
   basePath?: string;
+  allowedLocationIds?: string[];
+  lockLocationSelection?: boolean;
+  locationHelperText?: string;
   onSubmitted?: (payload?: {
     mode: "create" | "edit";
     announcement: {
@@ -66,6 +69,9 @@ export function AnnouncementModalTrigger({
   initial,
   submitEndpoint,
   basePath = "/app/announcements",
+  allowedLocationIds,
+  lockLocationSelection,
+  locationHelperText,
   onSubmitted,
 }: AnnouncementModalTriggerProps) {
   const router = useRouter();
@@ -94,6 +100,9 @@ export function AnnouncementModalTrigger({
           publisherName={publisherName}
           submitEndpoint={submitEndpoint}
           redirectPath={basePath}
+          allowedLocationIds={allowedLocationIds}
+          lockLocationSelection={lockLocationSelection}
+          locationHelperText={locationHelperText}
           onSubmitted={onSubmitted}
         />
       ) : null}

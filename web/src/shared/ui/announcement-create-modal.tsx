@@ -36,6 +36,9 @@ type AnnouncementCreateModalProps = {
   };
   submitEndpoint?: string;
   redirectPath?: string;
+  allowedLocationIds?: string[];
+  lockLocationSelection?: boolean;
+  locationHelperText?: string;
   onSubmitted?: (payload?: {
     mode: "create" | "edit";
     announcement: {
@@ -59,7 +62,7 @@ type AnnouncementCreateModalProps = {
   }) => void;
 };
 
-export function AnnouncementCreateModal({ onClose, branches, departments, positions, users, publisherName, mode = "create", initial, submitEndpoint, redirectPath = "/app/announcements", onSubmitted }: AnnouncementCreateModalProps) {
+export function AnnouncementCreateModal({ onClose, branches, departments, positions, users, publisherName, mode = "create", initial, submitEndpoint, redirectPath = "/app/announcements", allowedLocationIds, lockLocationSelection, locationHelperText, onSubmitted }: AnnouncementCreateModalProps) {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(createAnnouncementAction, { success: false, message: "" });
   const [isApiPending, setIsApiPending] = useState(false);
@@ -240,6 +243,9 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
               initialDepartments={initial?.department_scope ?? []}
               initialPositions={initial?.position_scope ?? []}
               initialUsers={initial?.user_scope ?? []}
+              allowedLocationIds={allowedLocationIds}
+              lockLocationSelection={lockLocationSelection}
+              locationHelperText={locationHelperText}
             />
 
             {mode === "create" ? (

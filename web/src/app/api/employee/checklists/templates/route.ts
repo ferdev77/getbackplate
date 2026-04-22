@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
+import { enforceLocationPolicy } from "@/shared/lib/scope-policy";
 
 function parseItems(input: string) {
   return input
@@ -83,10 +85,22 @@ export async function POST(request: Request) {
   const shift = String(body?.shift ?? "1er Shift").trim() || "1er Shift";
   const repeatEvery = String(body?.repeat_every ?? "daily").trim() || "daily";
   const isActive = String(body?.template_status ?? "active").trim() !== "draft";
-  const locationScope = Array.isArray(body?.location_scope) ? body.location_scope.map(String).filter(Boolean) : [];
-  const departmentScope = Array.isArray(body?.department_scope) ? body.department_scope.map(String).filter(Boolean) : [];
-  const positionScope = Array.isArray(body?.position_scope) ? body.position_scope.map(String).filter(Boolean) : [];
-  const userScope = Array.isArray(body?.user_scope) ? body.user_scope.map(String).filter(Boolean) : [];
+  const requestedLocationScope = normalizeScopeSelection(
+    Array.isArray(body?.location_scope) ? body.location_scope.map(String) : [],
+    { allowAllToken: true },
+  );
+  const departmentScope = normalizeScopeSelection(
+    Array.isArray(body?.department_scope) ? body.department_scope.map(String) : [],
+    { allowAllToken: true },
+  );
+  const positionScope = normalizeScopeSelection(
+    Array.isArray(body?.position_scope) ? body.position_scope.map(String) : [],
+    { allowAllToken: true },
+  );
+  const userScope = normalizeScopeSelection(
+    Array.isArray(body?.user_scope) ? body.user_scope.map(String) : [],
+    { allowAllToken: true },
+  );
 
   if (!name || items.length === 0) {
     return NextResponse.json({ error: "Nombre e items son obligatorios" }, { status: 400 });
@@ -94,6 +108,30 @@ export async function POST(request: Request) {
 
   const admin = createSupabaseAdminClient();
   const employeeCtx = await resolveEmployeeContext(access.tenant.organizationId, access.userId);
+
+  const locationPolicy = enforceLocationPolicy({
+    requestedLocations: requestedLocationScope,
+    allowedLocations: employeeCtx.branchId ? [employeeCtx.branchId] : [],
+    fallbackToAllowedWhenEmpty: true,
+  });
+
+  if (!locationPolicy.ok) {
+    return NextResponse.json({ error: "No puedes seleccionar locaciones fuera de tu alcance" }, { status: 403 });
+  }
+
+  const scopeValidation = await validateTenantScopeReferences({
+    supabase: admin,
+    organizationId: access.tenant.organizationId,
+    locationIds: locationPolicy.locations,
+    departmentIds: departmentScope,
+    positionIds: positionScope,
+    userIds: userScope,
+    userSource: "memberships",
+  });
+
+  if (!scopeValidation.ok) {
+    return NextResponse.json({ error: "El alcance seleccionado no es válido" }, { status: 400 });
+  }
 
   const { data: createdTemplate, error: createTemplateError } = await admin
     .from("checklist_templates")
@@ -108,8 +146,8 @@ export async function POST(request: Request) {
         is_active: isActive,
         created_by: access.userId,
         target_scope: {
-          locations: locationScope.length > 0 ? locationScope : employeeCtx.branchId ? [employeeCtx.branchId] : [],
-          department_ids: departmentScope.length > 0 ? departmentScope : employeeCtx.departmentId ? [employeeCtx.departmentId] : [],
+          locations: locationPolicy.locations,
+          department_ids: departmentScope,
           position_ids: positionScope,
           users: userScope,
         },
@@ -210,16 +248,53 @@ export async function PATCH(request: Request) {
   const shift = String(body?.shift ?? "1er Shift").trim() || "1er Shift";
   const repeatEvery = String(body?.repeat_every ?? "daily").trim() || "daily";
   const isActive = String(body?.template_status ?? "active").trim() !== "draft";
-  const locationScope = Array.isArray(body?.location_scope) ? body.location_scope.map(String).filter(Boolean) : [];
-  const departmentScope = Array.isArray(body?.department_scope) ? body.department_scope.map(String).filter(Boolean) : [];
-  const positionScope = Array.isArray(body?.position_scope) ? body.position_scope.map(String).filter(Boolean) : [];
-  const userScope = Array.isArray(body?.user_scope) ? body.user_scope.map(String).filter(Boolean) : [];
+  const requestedLocationScope = normalizeScopeSelection(
+    Array.isArray(body?.location_scope) ? body.location_scope.map(String) : [],
+    { allowAllToken: true },
+  );
+  const departmentScope = normalizeScopeSelection(
+    Array.isArray(body?.department_scope) ? body.department_scope.map(String) : [],
+    { allowAllToken: true },
+  );
+  const positionScope = normalizeScopeSelection(
+    Array.isArray(body?.position_scope) ? body.position_scope.map(String) : [],
+    { allowAllToken: true },
+  );
+  const userScope = normalizeScopeSelection(
+    Array.isArray(body?.user_scope) ? body.user_scope.map(String) : [],
+    { allowAllToken: true },
+  );
 
   if (!templateId || !name || items.length === 0) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
   const admin = createSupabaseAdminClient();
+  const employeeCtx = await resolveEmployeeContext(access.tenant.organizationId, access.userId);
+
+  const locationPolicy = enforceLocationPolicy({
+    requestedLocations: requestedLocationScope,
+    allowedLocations: employeeCtx.branchId ? [employeeCtx.branchId] : [],
+    fallbackToAllowedWhenEmpty: true,
+  });
+
+  if (!locationPolicy.ok) {
+    return NextResponse.json({ error: "No puedes seleccionar locaciones fuera de tu alcance" }, { status: 403 });
+  }
+
+  const scopeValidation = await validateTenantScopeReferences({
+    supabase: admin,
+    organizationId: access.tenant.organizationId,
+    locationIds: locationPolicy.locations,
+    departmentIds: departmentScope,
+    positionIds: positionScope,
+    userIds: userScope,
+    userSource: "memberships",
+  });
+
+  if (!scopeValidation.ok) {
+    return NextResponse.json({ error: "El alcance seleccionado no es válido" }, { status: 400 });
+  }
   const { data: existing } = await admin
     .from("checklist_templates")
     .select("id, created_by")
@@ -243,7 +318,7 @@ export async function PATCH(request: Request) {
       repeat_every: repeatEvery,
       is_active: isActive,
       target_scope: {
-        locations: locationScope,
+        locations: locationPolicy.locations,
         department_ids: departmentScope,
         position_ids: positionScope,
         users: userScope,

@@ -25,7 +25,14 @@ type ScopeSelectorProps = {
   initialDepartments?: string[];
   initialPositions?: string[];
   initialUsers?: string[];
+  allowedLocationIds?: string[];
+  lockLocationSelection?: boolean;
+  locationHelperText?: string;
 };
+
+function normalize(values: string[]) {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+}
 
 export function ScopeSelector({
   namespace,
@@ -41,17 +48,41 @@ export function ScopeSelector({
   initialDepartments = [],
   initialPositions = [],
   initialUsers = [],
+  allowedLocationIds,
+  lockLocationSelection = false,
+  locationHelperText,
 }: ScopeSelectorProps) {
-  const departmentBadgeClass = "rounded-full border border-blue-500/30 bg-blue-500/10 px-1.5 py-0 text-[10px] font-medium text-blue-600 dark:text-blue-400";
-  const positionBadgeClass = "rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0 text-[10px] font-medium text-emerald-700 dark:text-emerald-400";
+  const availableLocationIds = useMemo(() => {
+    if (!allowedLocationIds || allowedLocationIds.length === 0) {
+      return branches.map((branch) => branch.id);
+    }
+    const allowed = new Set(allowedLocationIds);
+    return branches.map((branch) => branch.id).filter((id) => allowed.has(id));
+  }, [allowedLocationIds, branches]);
 
-  const [selectedLocations, setSelectedLocations] = useState<Set<string>>(() => new Set(initialLocations));
-  const [selectedDepartments, setSelectedDepartments] = useState<Set<string>>(() => new Set(initialDepartments));
-  const [selectedPositions, setSelectedPositions] = useState<Set<string>>(() => new Set(initialPositions));
-  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(() => new Set(initialUsers));
+  const availableBranches = useMemo(() => {
+    const ids = new Set(availableLocationIds);
+    return branches.filter((branch) => ids.has(branch.id));
+  }, [availableLocationIds, branches]);
+
+  const branchNameById = useMemo(() => new Map(branches.map((branch) => [branch.id, branch.name])), [branches]);
+  const departmentNameById = useMemo(() => new Map(departments.map((department) => [department.id, department.name])), [departments]);
+  const positionNameById = useMemo(() => new Map(positions.map((position) => [position.id, position.name])), [positions]);
+
+  const fallbackLocations = useMemo(() => {
+    const initial = normalize(initialLocations);
+    if (initial.length > 0) return initial;
+    return lockLocationSelection ? availableLocationIds : [];
+  }, [availableLocationIds, initialLocations, lockLocationSelection]);
+
+  const [selectedLocations, setSelectedLocations] = useState<Set<string>>(() => new Set(fallbackLocations));
+  const [selectedDepartments, setSelectedDepartments] = useState<Set<string>>(() => new Set(normalize(initialDepartments)));
+  const [selectedPositions, setSelectedPositions] = useState<Set<string>>(() => new Set(normalize(initialPositions)));
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(() => new Set(normalize(initialUsers)));
   const [query, setQuery] = useState("");
 
   const allDepartments = useMemo(() => departments.map((department) => department.id), [departments]);
+
   const positionsByDepartment = useMemo(() => {
     const map = new Map<string, Array<{ id: string; department_id: string; name: string }>>();
     for (const position of positions) {
@@ -62,24 +93,81 @@ export function ScopeSelector({
     return map;
   }, [positions]);
 
-  const filteredUsers = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const base = q
-      ? users.filter((user) => `${user.first_name} ${user.last_name}`.toLowerCase().includes(q))
-      : users;
+  const selectedLocationNames = useMemo(
+    () => new Set(Array.from(selectedLocations).map((id) => branchNameById.get(id)).filter(Boolean)),
+    [branchNameById, selectedLocations],
+  );
+  const selectedDepartmentNames = useMemo(
+    () => new Set(Array.from(selectedDepartments).map((id) => departmentNameById.get(id)).filter(Boolean)),
+    [departmentNameById, selectedDepartments],
+  );
+  const selectedPositionNames = useMemo(
+    () => new Set(Array.from(selectedPositions).map((id) => positionNameById.get(id)).filter(Boolean)),
+    [positionNameById, selectedPositions],
+  );
 
-    return [...base].sort((a, b) => {
-      const aHasAccess = Boolean(a.user_id);
-      const bHasAccess = Boolean(b.user_id);
-      if (aHasAccess !== bHasAccess) return aHasAccess ? -1 : 1;
+  const usersWithAccess = useMemo(
+    () => users.filter((user) => Boolean(user.user_id)),
+    [users],
+  );
 
-      const aName = `${a.first_name} ${a.last_name}`.trim().toLowerCase();
-      const bName = `${b.first_name} ${b.last_name}`.trim().toLowerCase();
-      return aName.localeCompare(bName, "es");
+  const usersReachedByFilters = useMemo(() => {
+    return usersWithAccess.filter((user) => {
+      const locationOk = selectedLocations.size === 0
+        ? true
+        : Boolean(user.location_label && selectedLocationNames.has(user.location_label));
+      const departmentOk = selectedDepartments.size === 0
+        ? true
+        : Boolean(user.department_label && selectedDepartmentNames.has(user.department_label));
+      const positionOk = selectedPositions.size === 0
+        ? true
+        : Boolean(user.position_label && selectedPositionNames.has(user.position_label));
+
+      return locationOk && departmentOk && positionOk;
     });
-  }, [query, users]);
+  }, [selectedDepartments, selectedDepartmentNames, selectedLocations, selectedLocationNames, selectedPositions, selectedPositionNames, usersWithAccess]);
+
+  const reachedUserIds = useMemo(
+    () => new Set(usersReachedByFilters.map((user) => user.user_id).filter(Boolean) as string[]),
+    [usersReachedByFilters],
+  );
+
+  const usersAddedByOverride = useMemo(
+    () => usersWithAccess.filter((user) => user.user_id && selectedUsers.has(user.user_id)),
+    [selectedUsers, usersWithAccess],
+  );
+
+  const filteredCandidates = useMemo(() => {
+    const q = query.trim().toLowerCase();
+
+    return usersWithAccess
+      .filter((user) => {
+        if (!user.user_id) return false;
+        if (selectedUsers.has(user.user_id)) return false;
+
+        const searchable = [
+          `${user.first_name} ${user.last_name}`,
+          user.location_label ?? "",
+          user.department_label ?? "",
+          user.position_label ?? "",
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        return !q || searchable.includes(q);
+      })
+      .sort((a, b) => {
+        const aReached = Boolean(a.user_id && reachedUserIds.has(a.user_id));
+        const bReached = Boolean(b.user_id && reachedUserIds.has(b.user_id));
+        if (aReached !== bReached) return aReached ? 1 : -1;
+        const aName = `${a.first_name} ${a.last_name}`.trim().toLowerCase();
+        const bName = `${b.first_name} ${b.last_name}`.trim().toLowerCase();
+        return aName.localeCompare(bName, "es");
+      });
+  }, [query, reachedUserIds, selectedUsers, usersWithAccess]);
 
   function toggleLocation(value: string, checked: boolean) {
+    if (lockLocationSelection) return;
     setSelectedLocations((prev) => {
       const next = new Set(prev);
       if (checked) next.add(value);
@@ -109,20 +197,12 @@ export function ScopeSelector({
     });
   }
 
-  function toggleUser(value: string, checked: boolean) {
-    setSelectedUsers((prev) => {
-      const next = new Set(prev);
-      if (checked) next.add(value);
-      else next.delete(value);
-      return next;
-    });
-  }
-
   function togglePosition(value: string, checked: boolean) {
     const position = positions.find((item) => item.id === value);
     if (!position) return;
 
     const departmentPositions = positionsByDepartment.get(position.department_id) ?? [];
+
     setSelectedPositions((prev) => {
       const next = new Set(prev);
       if (checked) next.add(value);
@@ -131,7 +211,6 @@ export function ScopeSelector({
       setSelectedDepartments((prevDepartments) => {
         const nextDepartments = new Set(prevDepartments);
         if (!departmentPositions.length) return nextDepartments;
-
         const allChecked = departmentPositions.every((item) => next.has(item.id));
         if (allChecked) nextDepartments.add(position.department_id);
         else nextDepartments.delete(position.department_id);
@@ -142,29 +221,44 @@ export function ScopeSelector({
     });
   }
 
+  function toggleUser(value: string, checked: boolean) {
+    setSelectedUsers((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(value);
+      else next.delete(value);
+      return next;
+    });
+  }
+
   return (
     <>
-      <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Acceso por ubicación</label>
+      <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Alcance base por ubicación</label>
       <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
-        <label className="mb-2 inline-flex items-center gap-2 border-b border-[var(--gbp-border)] pb-2 text-xs font-semibold text-[var(--gbp-text)]">
-          <input
-            type="checkbox"
-            checked={selectedLocations.size === branches.length && branches.length > 0}
-            onChange={(event) => {
-              const checked = event.target.checked;
-              setSelectedLocations(checked ? new Set(branches.map((branch) => branch.id)) : new Set());
-            }}
-            className="h-[14px] w-[14px] accent-[var(--gbp-accent)]"
-          />
-          Todas las ubicaciones
-        </label>
+        {locationHelperText ? (
+          <p className="mb-2 text-[11px] text-[var(--gbp-text2)]">{locationHelperText}</p>
+        ) : null}
+        {!lockLocationSelection ? (
+          <label className="mb-2 inline-flex items-center gap-2 border-b border-[var(--gbp-border)] pb-2 text-xs font-semibold text-[var(--gbp-text)]">
+            <input
+              type="checkbox"
+              checked={selectedLocations.size === availableBranches.length && availableBranches.length > 0}
+              onChange={(event) => {
+                const checked = event.target.checked;
+                setSelectedLocations(checked ? new Set(availableBranches.map((branch) => branch.id)) : new Set());
+              }}
+              className="h-[14px] w-[14px] accent-[var(--gbp-accent)]"
+            />
+            Todas mis ubicaciones habilitadas
+          </label>
+        ) : null}
         <div className="grid grid-cols-2 gap-2 text-xs text-[var(--gbp-text2)]">
-          {branches.map((branch) => (
+          {availableBranches.map((branch) => (
             <label key={`${namespace}-loc-${branch.id}`} className="inline-flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={selectedLocations.has(branch.id)}
                 onChange={(event) => toggleLocation(branch.id, event.target.checked)}
+                disabled={lockLocationSelection}
                 className="h-[13px] w-[13px] accent-[var(--gbp-accent)]"
               />
               {branch.name}
@@ -173,8 +267,11 @@ export function ScopeSelector({
         </div>
       </div>
 
-      <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Acceso por departamento / puesto</label>
+      <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Filtros dentro del alcance (departamento / puesto)</label>
       <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3 text-xs text-[var(--gbp-text2)]">
+        <p className="mb-2 text-[11px] text-[var(--gbp-text2)]">
+          Estos filtros reducen la audiencia dentro de las ubicaciones elegidas.
+        </p>
         <label className="mb-2 inline-flex items-center gap-2 border-b border-[var(--gbp-border)] pb-2 text-xs font-semibold text-[var(--gbp-text)]">
           <input
             type="checkbox"
@@ -195,7 +292,6 @@ export function ScopeSelector({
         <div className="space-y-2">
           {departments.map((department) => {
             const departmentPositions = positionsByDepartment.get(department.id) ?? [];
-
             return (
               <div key={`${namespace}-dept-group-${department.id}`} className="rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2 py-2">
                 <label className="inline-flex items-center gap-2">
@@ -209,7 +305,7 @@ export function ScopeSelector({
                 </label>
 
                 {departmentPositions.length ? (
-                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 border-l border-[var(--gbp-border)] pl-5 py-1">
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 border-l border-[var(--gbp-border)] py-1 pl-5">
                     {departmentPositions.map((position) => (
                       <label key={`${namespace}-pos-${position.id}`} className="inline-flex items-center gap-2 text-xs">
                         <input
@@ -229,65 +325,70 @@ export function ScopeSelector({
             );
           })}
         </div>
-        {!departments.length ? <p className="text-[var(--gbp-text2)]">No hay departamentos activos.</p> : null}
       </div>
 
-      <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Acceso por usuario</label>
-      <input
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]"
-        placeholder="Buscar usuario..."
-      />
-      <div className="mt-2 max-h-44 overflow-y-auto rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3">
-        <div className="grid gap-2.5 text-xs text-[var(--gbp-text2)]">
-          {filteredUsers.map((user) => {
-            const value = user.user_id;
-            const disabled = !value;
-            return (
-            <label
-              key={`${namespace}-usr-${user.id}`}
-              className={`grid grid-cols-[14px_minmax(0,1fr)] items-start gap-x-2.5 gap-y-1 rounded-md border border-transparent px-1 py-1.5 hover:border-[var(--gbp-border)] hover:bg-[var(--gbp-bg)] ${disabled ? "opacity-60" : ""}`}
-            >
-                <input
-                  type="checkbox"
-                  checked={value ? selectedUsers.has(value) : false}
-                  onChange={(event) => {
-                    if (!value) return;
-                    toggleUser(value, event.target.checked);
-                  }}
-                  disabled={disabled}
-                  className="mt-[2px] h-[13px] w-[13px] accent-[var(--gbp-accent)]"
-                />
-                <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2">
-                  <p className="truncate text-xs font-medium text-[var(--gbp-text)]">{user.first_name} {user.last_name}</p>
-                  <div className="flex items-center justify-end gap-1.5">
-                    {user.department_label ? <span className={`${departmentBadgeClass} max-w-[180px] truncate whitespace-nowrap`}>Departamento: {user.department_label}</span> : null}
-                    {user.position_label ? <span className={`${positionBadgeClass} max-w-[180px] truncate whitespace-nowrap`}>Puesto: {user.position_label}</span> : null}
-                    {disabled ? <span className="whitespace-nowrap rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0 text-[10px] text-[var(--gbp-muted)]">Sin acceso</span> : null}
-                  </div>
-                </div>
-              </label>
-            );
-          })}
+      <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Usuarios agregados manualmente (suman alcance)</label>
+      <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-[var(--gbp-text2)]">
+          <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2 py-0.5">Por filtros: {usersReachedByFilters.length}</span>
+          <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2 py-0.5">Agregados: {usersAddedByOverride.length}</span>
+          <span className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[var(--gbp-accent)]">Total: {usersReachedByFilters.length + usersAddedByOverride.length}</span>
         </div>
-      </div>
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]"
+          placeholder="Agregar usuario (nombre, ubicación, departamento o puesto)"
+        />
+        <div className="mt-2 max-h-44 overflow-y-auto rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-2">
+          <div className="grid gap-1.5 text-xs text-[var(--gbp-text2)]">
+            {filteredCandidates.map((user) => {
+              if (!user.user_id) return null;
+              const reachedByFilter = reachedUserIds.has(user.user_id);
+              return (
+                <label
+                  key={`${namespace}-usr-${user.id}`}
+                  className="grid grid-cols-[14px_minmax(0,1fr)] items-start gap-x-2 gap-y-1 rounded-md border border-transparent px-1 py-1.5 hover:border-[var(--gbp-border)] hover:bg-[var(--gbp-bg)]"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedUsers.has(user.user_id)}
+                    onChange={(event) => toggleUser(user.user_id!, event.target.checked)}
+                    className="mt-[2px] h-[13px] w-[13px] accent-[var(--gbp-accent)]"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-medium text-[var(--gbp-text)]">{user.first_name} {user.last_name}</p>
+                    <p className="mt-0.5 truncate text-[11px] text-[var(--gbp-text2)]">
+                      {[user.location_label, user.department_label, user.position_label].filter(Boolean).join(" · ") || "Sin datos de perfil"}
+                    </p>
+                    {reachedByFilter ? <p className="text-[10px] text-[var(--gbp-muted)]">Ya está alcanzado por filtros</p> : null}
+                  </div>
+                </label>
+              );
+            })}
+            {filteredCandidates.length === 0 ? (
+              <p className="px-1 py-2 text-[11px] text-[var(--gbp-text2)]">No hay coincidencias para agregar.</p>
+            ) : null}
+          </div>
+        </div>
 
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {Array.from(selectedUsers).map((value) => {
-          const user = users.find((item) => item.user_id === value);
-          if (!user) return null;
-          return (
-            <button
-              key={`${namespace}-pill-${value}`}
-              type="button"
-              onClick={() => toggleUser(value, false)}
-              className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2 py-0.5 text-xs text-[var(--gbp-text2)]"
-            >
-              {user.first_name} {user.last_name} x
-            </button>
-          );
-        })}
+        {usersAddedByOverride.length > 0 ? (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {usersAddedByOverride.map((user) => {
+              if (!user.user_id) return null;
+              return (
+                <button
+                  key={`${namespace}-pill-${user.user_id}`}
+                  type="button"
+                  onClick={() => toggleUser(user.user_id!, false)}
+                  className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2 py-0.5 text-xs text-[var(--gbp-text2)]"
+                >
+                  {user.first_name} {user.last_name} x
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
 
       {Array.from(selectedLocations).map((value) => (
