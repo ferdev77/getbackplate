@@ -138,3 +138,10 @@ Regla operativa:
 
 - `.env.local` y pruebas locales deben apuntar a `Getbackplate Dev`.
 - Scripts de debug, seed y limpieza no deben ejecutarse contra `Produccion`.
+
+## Permisos delegados de empleado (incluye IA)
+
+- La tabla `employee_module_permissions` define permisos delegados por módulo para usuarios con rol `employee`.
+- Módulos soportados: `announcements`, `checklists`, `documents`, `ai_assistant`.
+- En `ai_assistant`, el permiso `create` se usa como habilitador funcional de acceso al asistente IA en el panel de empleado.
+- Si `ai_assistant` no está habilitado en el plan de la organización, el asistente no se muestra aunque exista permiso delegado.

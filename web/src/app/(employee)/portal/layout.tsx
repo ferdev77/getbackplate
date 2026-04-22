@@ -421,6 +421,7 @@ export default async function EmployeeLayout({
   const isChecklistEnabled = enabledModuleCodes.has("checklists");
   const isAnnouncementsEnabled = enabledModuleCodes.has("announcements");
   const isOnboardingEnabled = enabledModuleCodes.has("onboarding");
+  const isAiAssistantEnabled = enabledModuleCodes.has("ai_assistant") && delegatedPermissions.ai_assistant.create;
 
   const docsCount = 0;
 
@@ -663,6 +664,7 @@ export default async function EmployeeLayout({
         checklists: isChecklistEnabled,
         announcements: isAnnouncementsEnabled,
         onboarding: isOnboardingEnabled,
+        ai_assistant: isAiAssistantEnabled,
       }}
       canDeleteDocuments={delegatedPermissions.documents.delete}
       customBrandingEnabled={customBrandingEnabled}

@@ -1,6 +1,6 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 
-export const EMPLOYEE_PERMISSION_MODULES = ["announcements", "checklists", "documents"] as const;
+export const EMPLOYEE_PERMISSION_MODULES = ["announcements", "checklists", "documents", "ai_assistant"] as const;
 export type EmployeePermissionModuleCode = (typeof EMPLOYEE_PERMISSION_MODULES)[number];
 export type EmployeePermissionCapability = "create" | "edit" | "delete";
 
@@ -17,6 +17,7 @@ export function getEmptyEmployeeDelegatedPermissions(): EmployeeDelegatedPermiss
     announcements: { create: false, edit: false, delete: false },
     checklists: { create: false, edit: false, delete: false },
     documents: { create: false, edit: false, delete: false },
+    ai_assistant: { create: false, edit: false, delete: false },
   };
 }
 
