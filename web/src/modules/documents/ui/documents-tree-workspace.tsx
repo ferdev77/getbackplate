@@ -56,6 +56,8 @@ type Props = {
   viewMode?: "tree" | "columns";
 };
 
+const ROOT_TREE_CONTEXT = "__root_principal__";
+
 function formatDate(dateText: string) {
   return new Date(dateText).toLocaleDateString("es-AR");
 }
@@ -70,6 +72,14 @@ function formatSize(bytes: number | null) {
 function isPreviewableMime(mimeType: string | null) {
   if (!mimeType) return false;
   return mimeType.startsWith("image/") || mimeType === "application/pdf" || mimeType.startsWith("text/");
+}
+
+function normalizeSearchText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 }
 
 function parseScope(scope: unknown) {
@@ -113,6 +123,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   const [draggedDocumentId, setDraggedDocumentId] = useState<string | null>(null);
   const [draggedFolderId, setDraggedFolderId] = useState<string | null>(null);
   const [columnPath, setColumnPath] = useState<string[]>([]);
+  const [selectedTreeFolderId, setSelectedTreeFolderId] = useState<string>(ROOT_TREE_CONTEXT);
   const [selectedColumnDocId, setSelectedColumnDocId] = useState<string | null>(null);
   const [previewState, setPreviewState] = useState<{ docId: string | null; status: "idle" | "loading" | "ready" | "error" }>({
     docId: null,
@@ -184,14 +195,138 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   const branchMap = useMemo(() => new Map(mappedBranches.map((row) => [row.id, row.name])), [mappedBranches]);
   const deptMap = useMemo(() => new Map(departments.map((row) => [row.id, row.name])), [departments]);
   const positionMap = useMemo(() => new Map(positions.map((row) => [row.id, row])), [positions]);
+  const folderById = useMemo(() => new Map(folderRows.map((row) => [row.id, row])), [folderRows]);
+
+  const getEffectiveDocumentScope = useCallback((doc: DocumentRow) => {
+    if (!doc.folder_id) return parseScope(doc.access_scope);
+    return parseScope(folderById.get(doc.folder_id)?.access_scope ?? doc.access_scope);
+  }, [folderById]);
+
+  const getDocumentLocationIds = useCallback((doc: DocumentRow) => {
+    const ids = new Set<string>();
+    if (doc.branch_id) ids.add(doc.branch_id);
+    const scope = getEffectiveDocumentScope(doc);
+    for (const locationId of scope.locations) {
+      ids.add(locationId);
+    }
+    return ids;
+  }, [getEffectiveDocumentScope]);
+
+  const isDocumentInsideFolder = useCallback((doc: DocumentRow, targetFolderId: string) => {
+    let currentFolderId = doc.folder_id;
+    while (currentFolderId) {
+      if (currentFolderId === targetFolderId) {
+        return true;
+      }
+      currentFolderId = folderById.get(currentFolderId)?.parent_id ?? null;
+    }
+    return false;
+  }, [folderById]);
+
+  const isFolderInsideFolder = useCallback((folder: FolderRow, targetFolderId: string) => {
+    let currentFolderId: string | null = folder.id;
+    while (currentFolderId) {
+      if (currentFolderId === targetFolderId) {
+        return true;
+      }
+      currentFolderId = folderById.get(currentFolderId)?.parent_id ?? null;
+    }
+    return false;
+  }, [folderById]);
+
+  const contextualFolderId = useMemo(() => {
+    if (viewMode === "columns") {
+      return columnPath[columnPath.length - 1] ?? null;
+    }
+    if (selectedTreeFolderId !== ROOT_TREE_CONTEXT) return selectedTreeFolderId;
+    return folderFilter || null;
+  }, [columnPath, folderFilter, selectedTreeFolderId, viewMode]);
+
+  const locationDocumentsSource = useMemo(() => {
+    if (!contextualFolderId) return documentRows;
+    return documentRows.filter((doc) => isDocumentInsideFolder(doc, contextualFolderId));
+  }, [contextualFolderId, documentRows, isDocumentInsideFolder]);
+
+  const locationFoldersSource = useMemo(() => {
+    if (!contextualFolderId) return folderRows;
+    return folderRows.filter((folder) => isFolderInsideFolder(folder, contextualFolderId));
+  }, [contextualFolderId, folderRows, isFolderInsideFolder]);
+
+  const locationFilterOptions = useMemo(() => {
+    const ids = new Set<string>();
+    for (const row of locationDocumentsSource) {
+      const locationIds = getDocumentLocationIds(row);
+      for (const locationId of locationIds) {
+        ids.add(locationId);
+      }
+    }
+
+    for (const folder of locationFoldersSource) {
+      const scope = parseScope(folder.access_scope);
+      for (const locationId of scope.locations) {
+        ids.add(locationId);
+      }
+    }
+
+    return Array.from(ids)
+      .map((id) => ({ id, name: branchMap.get(id) ?? "Sucursal" }))
+      .sort((a, b) => a.name.localeCompare(b.name, "es"));
+  }, [branchMap, getDocumentLocationIds, locationDocumentsSource, locationFoldersSource]);
+
+  const normalizedQuery = useMemo(() => normalizeSearchText(query), [query]);
+
+  const departmentFilterOptions = useMemo(() => {
+    const ids = new Set<string>();
+    for (const row of locationDocumentsSource) {
+      const scope = getEffectiveDocumentScope(row);
+      for (const departmentId of scope.departments) {
+        ids.add(departmentId);
+      }
+    }
+
+    for (const folder of locationFoldersSource) {
+      const scope = parseScope(folder.access_scope);
+      for (const departmentId of scope.departments) {
+        ids.add(departmentId);
+      }
+    }
+
+    return Array.from(ids)
+      .map((id) => ({ id, name: deptMap.get(id) ?? "Departamento" }))
+      .sort((a, b) => a.name.localeCompare(b.name, "es"));
+  }, [deptMap, getEffectiveDocumentScope, locationDocumentsSource, locationFoldersSource]);
 
   useEffect(() => {
     setFolderRows(folders);
   }, [folders]);
 
   useEffect(() => {
+    if (folderFilter && !folderById.has(folderFilter)) {
+      setFolderFilter("");
+    }
+  }, [folderById, folderFilter]);
+
+  useEffect(() => {
+    if (selectedTreeFolderId !== ROOT_TREE_CONTEXT && !folderById.has(selectedTreeFolderId)) {
+      setSelectedTreeFolderId(ROOT_TREE_CONTEXT);
+    }
+  }, [folderById, selectedTreeFolderId]);
+
+  useEffect(() => {
     setDocumentRows(documents);
   }, [documents]);
+
+  useEffect(() => {
+    if (locationFilter && !locationFilterOptions.some((option) => option.id === locationFilter)) {
+      setLocationFilter("");
+    }
+  }, [locationFilter, locationFilterOptions]);
+
+  useEffect(() => {
+    if (departmentFilter && !departmentFilterOptions.some((option) => option.id === departmentFilter)) {
+      setDepartmentFilter("");
+    }
+  }, [departmentFilter, departmentFilterOptions]);
 
   useEffect(() => {
     if (!organizationId) return;
@@ -267,7 +402,6 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   }, [organizationId, viewerUserId, supabase]);
 
   const folderOptions = useMemo(() => folderRows.map((row) => ({ id: row.id, name: row.name })), [folderRows]);
-  const folderById = useMemo(() => new Map(folderRows.map((row) => [row.id, row])), [folderRows]);
   const employeesRootFolderId = useMemo(
     () => folderRows.find((row) => getSystemFolderType(row.access_scope) === "employees_root")?.id ?? null,
     [folderRows],
@@ -280,23 +414,18 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
     return Boolean(employeesRootFolderId && folder.parent_id === employeesRootFolderId);
   }, [employeesRootFolderId]);
 
-  function getEffectiveDocumentScope(doc: DocumentRow) {
-    if (!doc.folder_id) return parseScope(doc.access_scope);
-    return parseScope(folderById.get(doc.folder_id)?.access_scope ?? doc.access_scope);
-  }
-
   // Locaciones del scope → nombres. Si no hay, array vacío = "Todas"
-  function getScopeLocNames(scope: ReturnType<typeof parseScope>, branchId: string | null): string[] {
+  const getScopeLocNames = useCallback((scope: ReturnType<typeof parseScope>, branchId: string | null): string[] => {
     const fromScope = scope.locations.map((id) => branchMap.get(id) ?? "Sucursal").filter(Boolean);
     if (fromScope.length > 0) return fromScope;
     if (branchId) return [branchMap.get(branchId) ?? "Sucursal"];
     return [];
-  }
+  }, [branchMap]);
 
   // Deptos + Puestos combinados: igual que checklists scopeRoles
   // Departamento solo → "Cocina"
   // Puesto con depto → "Cocina: Chef"
-  function getScopeRoles(scope: ReturnType<typeof parseScope>): { name: string, type: "department" | "position" }[] {
+  const getScopeRoles = useCallback((scope: ReturnType<typeof parseScope>): { name: string, type: "department" | "position" }[] => {
     const roles: { name: string, type: "department" | "position" }[] = [];
     for (const dId of scope.departments) {
       roles.push({ name: deptMap.get(dId) ?? "Depto", type: "department" });
@@ -308,7 +437,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
       roles.push({ name: dName ? `${dName}: ${p.name}` : p.name, type: "position" });
     }
     return roles;
-  }
+  }, [deptMap, positionMap]);
 
   const docsByFolder = useMemo(() => {
     const map = new Map<string | null, DocumentRow[]>();
@@ -356,14 +485,52 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   const downloadsTrend = Math.max(0, Math.round(((downloadsMonth - downloadsPrevMonth) / downloadsPrevMonth) * 100));
 
   const includeDocument = useCallback((doc: DocumentRow) => {
-    const q = query.trim().toLowerCase();
-    if (q && !doc.title.toLowerCase().includes(q)) return false;
-    if (folderFilter && doc.folder_id !== folderFilter) return false;
-    if (locationFilter && doc.branch_id !== locationFilter) return false;
-    const scope = parseScope(doc.access_scope);
+    if (normalizedQuery) {
+      const scope = getEffectiveDocumentScope(doc);
+      const locationNames = getScopeLocNames(scope, doc.branch_id);
+      const scopeRoles = getScopeRoles(scope).map((item) => item.name);
+      const searchableText = normalizeSearchText([
+        doc.title,
+        doc.mime_type ?? "",
+        ...locationNames,
+        ...scope.locations,
+        ...scopeRoles,
+        ...scope.departments,
+        ...scope.positions,
+      ].join(" "));
+
+      if (!searchableText.includes(normalizedQuery)) return false;
+    }
+    if (folderFilter) {
+      let currentFolderId = doc.folder_id;
+      let withinSelectedTree = false;
+      while (currentFolderId) {
+        if (currentFolderId === folderFilter) {
+          withinSelectedTree = true;
+          break;
+        }
+        currentFolderId = folderById.get(currentFolderId)?.parent_id ?? null;
+      }
+      if (!withinSelectedTree) return false;
+    }
+    if (locationFilter) {
+      const locationIds = getDocumentLocationIds(doc);
+      if (!locationIds.has(locationFilter)) return false;
+    }
+    const scope = getEffectiveDocumentScope(doc);
     if (departmentFilter && !scope.departments.includes(departmentFilter)) return false;
     return true;
-  }, [departmentFilter, folderFilter, locationFilter, query]);
+  }, [
+    departmentFilter,
+    folderById,
+    folderFilter,
+    getDocumentLocationIds,
+    getEffectiveDocumentScope,
+    getScopeLocNames,
+    getScopeRoles,
+    locationFilter,
+    normalizedQuery,
+  ]);
 
   const sortDocuments = useCallback((rows: DocumentRow[]) => {
     return [...rows].sort((a, b) => {
@@ -683,10 +850,24 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   }
 
   function renderFolderTree(parentId: string | null, depth = 0) {
-    const folderList = childrenByFolder.get(parentId) ?? [];
+    const folderList = (childrenByFolder.get(parentId) ?? []).filter((folder) => {
+      if (!visibleFolderIdSet.has(folder.id)) return false;
+      if (!folderFilter) return true;
+      if (folder.id === folderFilter) return true;
+
+      let currentParentId = folder.parent_id;
+      while (currentParentId) {
+        if (currentParentId === folderFilter) {
+          return true;
+        }
+        currentParentId = folderById.get(currentParentId)?.parent_id ?? null;
+      }
+
+      return false;
+    });
     return folderList.flatMap((folder) => {
       const docList = visibleDocumentsByFolder.get(folder.id) ?? [];
-      const isOpen = openFolders.has(folder.id);
+      const isOpen = folderFilter === folder.id || openFolders.has(folder.id);
       const scope = parseScope(folder.access_scope);
       const locNames = getScopeLocNames(scope, null);
       const roles = getScopeRoles(scope);
@@ -736,14 +917,15 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
             >
               <button
                 type="button"
-                onClick={() =>
+                onClick={() => {
+                  setSelectedTreeFolderId(folder.id);
                   setOpenFolders((prev) => {
                     const next = new Set(prev);
                     if (next.has(folder.id)) next.delete(folder.id);
                     else next.add(folder.id);
                     return next;
-                  })
-                }
+                  });
+                }}
                 className="flex min-w-0 items-center gap-1.5 text-left"
                 style={{ paddingLeft: `${depth * 18}px` }}
               >
@@ -857,6 +1039,51 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
     return map;
   }, [docsByFolder, includeDocument, sortDocuments]);
 
+  const visibleFolderIdSet = useMemo(() => {
+    const hasActiveDynamicFilters = Boolean(normalizedQuery || locationFilter || departmentFilter);
+    if (!hasActiveDynamicFilters) {
+      return new Set(folderRows.map((folder) => folder.id));
+    }
+
+    const memo = new Map<string, boolean>();
+
+    const checkFolderVisibility = (folderId: string, visiting: Set<string>): boolean => {
+      const cached = memo.get(folderId);
+      if (typeof cached === "boolean") return cached;
+
+      const folder = folderById.get(folderId);
+      if (!folder) {
+        memo.set(folderId, false);
+        return false;
+      }
+
+      if (visiting.has(folderId)) {
+        const hasOwnDocs = (visibleDocumentsByFolder.get(folderId) ?? []).length > 0;
+        memo.set(folderId, hasOwnDocs);
+        return hasOwnDocs;
+      }
+
+      visiting.add(folderId);
+      const scope = parseScope(folder.access_scope);
+      const matchesLocation = !locationFilter || scope.locations.includes(locationFilter);
+      const matchesDepartment = !departmentFilter || scope.departments.includes(departmentFilter);
+      const matchesFolderScope = matchesLocation && matchesDepartment;
+      const hasOwnDocs = (visibleDocumentsByFolder.get(folderId) ?? []).length > 0;
+      const hasVisibleChild = (childrenByFolder.get(folderId) ?? []).some((child) => checkFolderVisibility(child.id, visiting));
+      visiting.delete(folderId);
+
+      const visible = matchesFolderScope || hasOwnDocs || hasVisibleChild;
+      memo.set(folderId, visible);
+      return visible;
+    };
+
+    for (const folder of folderRows) {
+      checkFolderVisibility(folder.id, new Set<string>());
+    }
+
+    return new Set(Array.from(memo.entries()).filter(([, visible]) => visible).map(([id]) => id));
+  }, [childrenByFolder, departmentFilter, folderById, folderRows, locationFilter, normalizedQuery, visibleDocumentsByFolder]);
+
   const folderDocumentCountById = useMemo(() => {
     const memo = new Map<string, number>();
 
@@ -871,6 +1098,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
       let total = ownDocumentsCount;
 
       for (const child of childrenByFolder.get(folderId) ?? []) {
+        if (!visibleFolderIdSet.has(child.id)) continue;
         total += computeCount(child.id, visiting);
       }
 
@@ -880,13 +1108,15 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
     };
 
     for (const folder of folderRows) {
+      if (!visibleFolderIdSet.has(folder.id)) continue;
       computeCount(folder.id, new Set<string>());
     }
 
     return memo;
-  }, [childrenByFolder, folderRows, visibleDocumentsByFolder]);
+  }, [childrenByFolder, folderRows, visibleDocumentsByFolder, visibleFolderIdSet]);
 
-  const rootDocuments = visibleDocumentsByFolder.get(null) ?? [];
+  const rootDocuments = folderFilter ? [] : (visibleDocumentsByFolder.get(null) ?? []);
+  const treeRootParentId = folderFilter ? (folderById.get(folderFilter)?.parent_id ?? null) : null;
 
   const folderColumns = useMemo(() => {
     const levels: Array<{ parentId: string | null; folders: FolderRow[]; documents: DocumentRow[]; selectedFolderId: string | null }> = [];
@@ -894,12 +1124,14 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
     for (let index = 0; index <= depth; index += 1) {
       const parentId = index === 0 ? null : columnPath[index - 1] ?? null;
       const selectedFolderId = columnPath[index] ?? null;
-      const foldersAtLevel = [...(childrenByFolder.get(parentId) ?? [])].sort((a, b) => a.name.localeCompare(b.name, "es"));
+      const foldersAtLevel = [...(childrenByFolder.get(parentId) ?? [])]
+        .filter((folder) => visibleFolderIdSet.has(folder.id))
+        .sort((a, b) => a.name.localeCompare(b.name, "es"));
       const documentsAtLevel = visibleDocumentsByFolder.get(parentId) ?? [];
       levels.push({ parentId, folders: foldersAtLevel, documents: documentsAtLevel, selectedFolderId });
     }
     return levels;
-  }, [childrenByFolder, columnPath, visibleDocumentsByFolder]);
+  }, [childrenByFolder, columnPath, visibleDocumentsByFolder, visibleFolderIdSet]);
 
   const selectedColumnDocument = useMemo(
     () => documentRows.find((doc) => doc.id === selectedColumnDocId) ?? null,
@@ -946,7 +1178,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
         <AnimatedItem><article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4"><p className="text-xs text-[var(--gbp-text2)]">Carpetas</p><p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{folderRows.length}</p><p className="text-[11px] text-[var(--gbp-muted)]">Con permisos activos</p></article></AnimatedItem>
         <AnimatedItem><article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4"><p className="text-xs text-[var(--gbp-text2)]">Total Documentos</p><p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{totalDocuments}</p><p className="text-[11px] text-[var(--gbp-muted)]"><span className="text-[var(--gbp-success)]">+{Math.max(0, docsThisMonth - docsPrevMonth)}</span> este mes</p></article></AnimatedItem>
         <AnimatedItem><article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4"><p className="text-xs text-[var(--gbp-text2)]">Descargas (mes)</p><p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{downloadsMonth}</p><p className="text-[11px] text-[var(--gbp-muted)]"><span className="text-[var(--gbp-success)]">↑ {downloadsTrend}%</span> vs anterior</p></article></AnimatedItem>
-        <AnimatedItem><article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4"><p className="text-xs text-[var(--gbp-text2)]">Usuarios activos</p><p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{activeUsers}</p><p className="text-[11px] text-[var(--gbp-muted)]">{branches.length} ubicaciones</p></article></AnimatedItem>
+        <AnimatedItem><article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4"><p className="text-xs text-[var(--gbp-text2)]">Usuarios activos</p><p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{activeUsers}</p><p className="text-[11px] text-[var(--gbp-muted)]">{locationFilterOptions.length} ubicaciones con documentos</p></article></AnimatedItem>
       </AnimatedList>
 
       <section className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3">
@@ -955,10 +1187,14 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
           <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-[34px] w-[220px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] pl-9 pr-3 text-xs" placeholder="Buscar documentos..." />
         </div>
         {viewMode === "tree" ? (
-          <select value={folderFilter} onChange={(event) => setFolderFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las carpetas</option>{folderOptions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
+          <select value={folderFilter} onChange={(event) => {
+            const nextFolderId = event.target.value || ROOT_TREE_CONTEXT;
+            setFolderFilter(event.target.value);
+            setSelectedTreeFolderId(nextFolderId);
+          }} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las carpetas</option>{folderOptions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
         ) : null}
-        <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las ubicaciones</option>{branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
-        <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todos los departamentos</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
+        <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las ubicaciones</option>{locationFilterOptions.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
+        <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todos los departamentos</option>{departmentFilterOptions.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
         <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="date-desc">Más recientes primero</option><option value="date-asc">Más antiguos primero</option><option value="name-asc">Nombre A-Z</option><option value="name-desc">Nombre Z-A</option><option value="size-desc">Mayor tamaño</option><option value="size-asc">Menor tamaño</option></select>
       </section>
 
@@ -1010,7 +1246,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                 Soltar aquí para mover a la raíz
               </div>
             ) : null}
-            {renderFolderTree(null)}
+            {renderFolderTree(treeRootParentId)}
             <AnimatePresence>
               {rootDocuments.map((doc) => {
                 const scope = getEffectiveDocumentScope(doc);

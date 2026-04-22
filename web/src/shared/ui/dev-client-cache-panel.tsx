@@ -1,28 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-
-type CacheMetricAction =
-  | "hit"
-  | "miss"
-  | "write"
-  | "clear"
-  | "stale"
-  | "invalid"
-  | "read_error"
-  | "write_error";
-
-type CacheMetricEvent = {
-  key: string;
-  action: CacheMetricAction;
-  timestamp: string;
-};
+import {
+  clearClientCacheMetricsSnapshot,
+  getClientCacheMetricsSnapshot,
+  type CacheMetricAction,
+  type CacheMetricEvent,
+} from "@/shared/lib/client-cache";
 
 const MAX_EVENTS = 40;
 
 export function DevClientCachePanel() {
   const [open, setOpen] = useState(false);
-  const [events, setEvents] = useState<CacheMetricEvent[]>([]);
+  const [events, setEvents] = useState<CacheMetricEvent[]>(() => {
+    if (process.env.NODE_ENV !== "development") return [];
+    return getClientCacheMetricsSnapshot().events.slice(0, MAX_EVENTS);
+  });
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") return;
@@ -68,7 +61,7 @@ export function DevClientCachePanel() {
   if (process.env.NODE_ENV !== "development") return null;
 
   return (
-    <div className="fixed bottom-4 left-4 z-[100]">
+    <div className="fixed left-1/2 top-4 z-[100] -translate-x-1/2">
       {!open ? (
         <button
           type="button"
@@ -85,7 +78,10 @@ export function DevClientCachePanel() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setEvents([])}
+                onClick={() => {
+                  clearClientCacheMetricsSnapshot();
+                  setEvents([]);
+                }}
                 className="rounded border border-emerald-400/30 px-2 py-1 text-[10px] hover:bg-emerald-400/15"
               >
                 Limpiar
@@ -126,6 +122,13 @@ export function DevClientCachePanel() {
                     <td className="px-2 py-1 text-emerald-200/80">{item.key}</td>
                   </tr>
                 ))}
+                {events.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="px-2 py-3 text-center text-emerald-200/70">
+                      Sin eventos aun. Abre una accion rapida o navega por Documentos para generar metricas.
+                    </td>
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </div>

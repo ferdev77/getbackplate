@@ -4,7 +4,7 @@ export type SessionCacheSnapshot<T> = {
   data: T;
 };
 
-type CacheMetricAction =
+export type CacheMetricAction =
   | "hit"
   | "miss"
   | "write"
@@ -14,13 +14,51 @@ type CacheMetricAction =
   | "read_error"
   | "write_error";
 
+export type CacheMetricEvent = {
+  key: string;
+  action: CacheMetricAction;
+  timestamp: string;
+};
+
+type CacheMetricsStore = {
+  events: CacheMetricEvent[];
+};
+
+const METRICS_STORE_KEY = "__gbClientCacheMetrics";
+const MAX_METRIC_EVENTS = 120;
+
+declare global {
+  interface Window {
+    __gbClientCacheMetrics?: CacheMetricsStore;
+  }
+}
+
+function getMetricsStore(): CacheMetricsStore {
+  if (typeof window === "undefined") return { events: [] };
+  if (!window[METRICS_STORE_KEY]) {
+    window[METRICS_STORE_KEY] = { events: [] };
+  }
+  return window[METRICS_STORE_KEY] as CacheMetricsStore;
+}
+
+export function getClientCacheMetricsSnapshot() {
+  return getMetricsStore();
+}
+
+export function clearClientCacheMetricsSnapshot() {
+  const store = getMetricsStore();
+  store.events = [];
+}
+
 function emitCacheMetric(key: string, action: CacheMetricAction) {
   if (typeof window === "undefined") return;
-  const detail = {
+  const detail: CacheMetricEvent = {
     key,
     action,
     timestamp: new Date().toISOString(),
   };
+  const store = getMetricsStore();
+  store.events = [detail, ...store.events].slice(0, MAX_METRIC_EVENTS);
   window.dispatchEvent(new CustomEvent("gb:client-cache-metric", { detail }));
   if (process.env.NODE_ENV === "development") {
     console.debug("[client-cache]", detail);

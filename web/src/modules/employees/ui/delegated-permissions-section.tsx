@@ -44,6 +44,13 @@ function capabilityLabel(moduleCode: DelegatedPermissionModuleCode, capability: 
   return CAPABILITY_LABELS[capability];
 }
 
+function visibleCapabilities(moduleCode: DelegatedPermissionModuleCode) {
+  if (moduleCode === "ai_assistant") {
+    return ["create"] as DelegatedPermissionCapability[];
+  }
+  return CAPABILITIES;
+}
+
 export function DelegatedPermissionsSection({ delegatedPermissions, setDelegatedPermissions }: Props) {
   return (
     <>
@@ -63,7 +70,7 @@ export function DelegatedPermissionsSection({ delegatedPermissions, setDelegated
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm font-bold text-[var(--gbp-text)]">{moduleItem.label}</p>
               <div className="flex flex-wrap items-center gap-2">
-                {CAPABILITIES.map((capability) => {
+                {visibleCapabilities(moduleItem.code).map((capability) => {
                   const checked = delegatedPermissions[moduleItem.code][capability];
 
                   return (
@@ -76,6 +83,7 @@ export function DelegatedPermissionsSection({ delegatedPermissions, setDelegated
                           [moduleItem.code]: {
                             ...prev[moduleItem.code],
                             [capability]: !prev[moduleItem.code][capability],
+                            ...(moduleItem.code === "ai_assistant" ? { edit: false, delete: false } : {}),
                           },
                         }));
                       }}
