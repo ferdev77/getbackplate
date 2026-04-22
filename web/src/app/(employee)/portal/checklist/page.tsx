@@ -242,6 +242,10 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
     buildScopeUsersCatalog(tenant.organizationId),
   ]);
 
+  const scopeUsersInAllowedLocations = scopeUsers.filter(
+    (user) => Boolean(user.user_id) && Boolean(user.branch_id) && allowedLocationIds.includes(user.branch_id as string),
+  );
+
   return (
     <main>
       <RestoreChecklistScroll />
@@ -258,7 +262,7 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
             }))}
             departments={departments ?? []}
             positions={positions ?? []}
-            users={scopeUsers}
+            users={scopeUsersInAllowedLocations}
             submitEndpoint="/api/employee/checklists/templates"
             basePath="/portal/checklist"
             allowedLocationIds={allowedLocationIds}
@@ -282,7 +286,7 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
         }))}
         departments={departments ?? []}
         positions={positions ?? []}
-        users={scopeUsers}
+        users={scopeUsersInAllowedLocations}
         allowedLocationIds={allowedLocationIds}
         lockLocationSelection
         locationHelperText={locationHelperText}

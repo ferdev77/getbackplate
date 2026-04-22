@@ -7,6 +7,7 @@ export type PositionOption = { id: string; department_id: string; name: string }
 export type ScopedUserOption = {
   id: string;
   user_id: string | null;
+  branch_id?: string | null;
   first_name: string;
   last_name: string;
   role_label?: string;

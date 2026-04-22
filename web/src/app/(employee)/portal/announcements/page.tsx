@@ -181,6 +181,9 @@ export default async function EmployeeAnnouncementsPage() {
   const allowedLocationIds = Array.from(
     new Set([tenant.branchId, employeeRow?.branch_id].filter((value): value is string => Boolean(value))),
   );
+  const scopeUsersInAllowedLocations = scopeUsers.filter(
+    (user) => Boolean(user.user_id) && Boolean(user.branch_id) && allowedLocationIds.includes(user.branch_id as string),
+  );
   const locationHelperText =
     "Tu alcance base queda limitado a tus ubicaciones asignadas. Departamento y puesto filtran dentro de ese alcance.";
 
@@ -198,7 +201,7 @@ export default async function EmployeeAnnouncementsPage() {
             branches={mappedBranches}
             departments={departments ?? []}
             positions={positions ?? []}
-            users={scopeUsers}
+            users={scopeUsersInAllowedLocations}
             submitEndpoint="/api/employee/announcements/manage"
             basePath="/portal/announcements"
             allowedLocationIds={allowedLocationIds}
@@ -220,7 +223,7 @@ export default async function EmployeeAnnouncementsPage() {
         branches={mappedBranches}
         departments={departments ?? []}
         positions={positions ?? []}
-        users={scopeUsers}
+        users={scopeUsersInAllowedLocations}
         allowedLocationIds={allowedLocationIds}
         lockLocationSelection
         locationHelperText={locationHelperText}

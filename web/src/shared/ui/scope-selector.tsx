@@ -10,6 +10,7 @@ type ScopeSelectorProps = {
   users: Array<{
     id: string;
     user_id: string | null;
+    branch_id?: string | null;
     first_name: string;
     last_name: string;
     role_label?: string;
@@ -75,10 +76,25 @@ export function ScopeSelector({
     return lockLocationSelection ? availableLocationIds : [];
   }, [availableLocationIds, initialLocations, lockLocationSelection]);
 
+  const usersWithAccess = useMemo(
+    () => users.filter((user) => Boolean(user.user_id)),
+    [users],
+  );
+
+  const allowedUserIdSet = useMemo(
+    () => new Set(usersWithAccess.map((user) => user.user_id).filter(Boolean) as string[]),
+    [usersWithAccess],
+  );
+
+  const sanitizedInitialUsers = useMemo(
+    () => normalize(initialUsers).filter((userId) => allowedUserIdSet.has(userId)),
+    [allowedUserIdSet, initialUsers],
+  );
+
   const [selectedLocations, setSelectedLocations] = useState<Set<string>>(() => new Set(fallbackLocations));
   const [selectedDepartments, setSelectedDepartments] = useState<Set<string>>(() => new Set(normalize(initialDepartments)));
   const [selectedPositions, setSelectedPositions] = useState<Set<string>>(() => new Set(normalize(initialPositions)));
-  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(() => new Set(normalize(initialUsers)));
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(() => new Set(sanitizedInitialUsers));
   const [query, setQuery] = useState("");
 
   const allDepartments = useMemo(() => departments.map((department) => department.id), [departments]);
@@ -104,11 +120,6 @@ export function ScopeSelector({
   const selectedPositionNames = useMemo(
     () => new Set(Array.from(selectedPositions).map((id) => positionNameById.get(id)).filter(Boolean)),
     [positionNameById, selectedPositions],
-  );
-
-  const usersWithAccess = useMemo(
-    () => users.filter((user) => Boolean(user.user_id)),
-    [users],
   );
 
   const usersReachedByFilters = useMemo(() => {

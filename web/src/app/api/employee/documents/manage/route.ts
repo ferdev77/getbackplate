@@ -8,7 +8,11 @@ import { assertPlanLimitForStorage, getPlanLimitErrorMessage } from "@/shared/li
 import { isEmployeeLinkedDocument } from "@/shared/lib/document-domain";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { ensureEmployeeDocumentsRootFolder } from "@/shared/lib/employee-documents-root-folder";
-import { normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
+import {
+  normalizeScopeSelection,
+  validateEmployeeUserScopeWithinLocations,
+  validateTenantScopeReferences,
+} from "@/shared/lib/scope-validation";
 import { enforceLocationPolicy } from "@/shared/lib/scope-policy";
 
 const BUCKET_NAME = "tenant-documents";
@@ -151,6 +155,17 @@ export async function POST(request: Request) {
 
   if (!scopeValidation.ok) {
     return NextResponse.json({ error: "El alcance seleccionado no es válido" }, { status: 400 });
+  }
+
+  const userScopePolicy = await validateEmployeeUserScopeWithinLocations({
+    supabase: admin,
+    organizationId: access.tenant.organizationId,
+    userIds: requestedRootScope.users,
+    allowedLocationIds: locationPolicy.locations,
+  });
+
+  if (!userScopePolicy.ok) {
+    return NextResponse.json({ error: "Solo puedes agregar usuarios de tus ubicaciones permitidas" }, { status: 400 });
   }
 
   if (folderIdInput) {

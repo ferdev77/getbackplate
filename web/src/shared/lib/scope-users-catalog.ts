@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 export type ScopeCatalogUser = {
   id: string;
   user_id: string | null;
+  branch_id?: string | null;
   first_name: string;
   last_name: string;
   role_label: "Empleado" | "Usuario";
@@ -80,6 +81,7 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
     catalog.push({
       id: employee.id,
       user_id: employee.user_id,
+      branch_id: employee.branch_id,
       first_name: employee.first_name ?? "Usuario",
       last_name: employee.last_name ?? "",
       role_label: "Empleado",
@@ -95,6 +97,7 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
     catalog.push({
       id: `up-${profile.id}`,
       user_id: profile.user_id,
+      branch_id: null,
       first_name: profile.first_name ?? "Usuario",
       last_name: profile.last_name ?? "",
       role_label: roleLabel,
@@ -110,6 +113,7 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
     catalog.push({
       id: `m-${userId}`,
       user_id: userId,
+      branch_id: null,
       first_name: "Empleado",
       last_name: userId.slice(0, 8),
       role_label: "Empleado",

@@ -93,3 +93,42 @@ export async function validateTenantScopeReferences(
 
   return { ok: true };
 }
+
+export async function validateEmployeeUserScopeWithinLocations(input: {
+  supabase: SupabaseClient;
+  organizationId: string;
+  userIds: string[];
+  allowedLocationIds: string[];
+}): Promise<{ ok: true } | { ok: false; field: "users" }> {
+  const userIds = unique(input.userIds ?? []);
+  if (userIds.length === 0) {
+    return { ok: true };
+  }
+
+  const allowedLocationIds = unique(input.allowedLocationIds ?? []);
+  const { data: rows, error } = await input.supabase
+    .from("employees")
+    .select("user_id, branch_id")
+    .eq("organization_id", input.organizationId)
+    .in("user_id", userIds);
+
+  if (error) {
+    return { ok: false, field: "users" };
+  }
+
+  const validUserIds = new Set(
+    (rows ?? [])
+      .filter((row) => {
+        if (!row.user_id) return false;
+        if (allowedLocationIds.length === 0) return false;
+        return Boolean(row.branch_id && allowedLocationIds.includes(row.branch_id));
+      })
+      .map((row) => row.user_id as string),
+  );
+
+  if (validUserIds.size !== userIds.length) {
+    return { ok: false, field: "users" };
+  }
+
+  return { ok: true };
+}
