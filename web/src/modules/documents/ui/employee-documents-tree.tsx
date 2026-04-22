@@ -584,12 +584,12 @@ export function EmployeeDocumentsTree({
     }
   }
 
-  const noDocumentsTitle = ownershipView === "created" ? "Aún no subiste documentos" : "Sin documentos asignados";
+  const noDocumentsTitle = ownershipView === "created" ? "Aún no cargaste documentos" : "Sin documentos asignados";
   const noDocumentsDescription = ownershipView === "created"
-    ? "Todavía no subiste documentos en este módulo."
+    ? "Todavía no cargaste documentos en este módulo."
     : "No hay documentos visibles para tu perfil en este momento.";
 
-  const noResultsLabel = `No se encontraron resultados para \"${query}\" en ${ownershipView === "created" ? "Subidos" : "Asignados"}.`;
+  const noResultsLabel = `No se encontraron resultados para \"${query}\" en ${ownershipView === "created" ? "Cargados" : "Asignados"}.`;
   const hasOwnershipContent = ownershipDocumentsCount > 0 || (ownershipView === "created" && ownedFolderIds.size > 0);
   const isDraggingColumnsItem = Boolean(draggedDocumentId || draggedFolderId);
   const handleViewModeChange = useCallback((next: "tree" | "columns") => {
@@ -607,7 +607,7 @@ export function EmployeeDocumentsTree({
       <OperationHeaderCard
         eyebrow="Operación diaria"
         title="Mis Documentos"
-        description="Explora y gestiona los documentos operativos que tienes asignados o subidos según tu perfil."
+        description="Explora y gestiona los documentos operativos que tienes asignados o cargados según tu perfil."
         action={(
           <div className="flex flex-wrap gap-2">
             <DocumentViewModeToggle
@@ -658,7 +658,7 @@ export function EmployeeDocumentsTree({
         viewMode={ownershipView}
         onChange={setOwnershipView}
         assignedLabel="Asignados"
-        createdLabel="Subidos"
+        createdLabel="Cargados"
         variant="header"
       />
 
