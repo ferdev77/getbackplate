@@ -94,7 +94,7 @@ export function AnnouncementCard({
         </div>
         <div className="flex items-center gap-1.5 self-start">
           <span className={`rounded-full border px-2 py-0.5 text-[11px] ${kindClass(announcement.kind)}`}>{kindLabel(announcement.kind)}</span>
-          {announcement.is_featured ? <span className="inline-flex items-center gap-1 rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-semibold text-[var(--gbp-accent)]"><Pin className="h-3 w-3" /> FIJADO</span> : null}
+          {announcement.is_featured ? <span title="Aviso fijado" className="inline-flex items-center justify-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] p-1 text-[var(--gbp-accent)]"><Pin className="h-3.5 w-3.5" /></span> : null}
           <button
             type="button"
             onClick={() => setExpanded((prev) => !prev)}
