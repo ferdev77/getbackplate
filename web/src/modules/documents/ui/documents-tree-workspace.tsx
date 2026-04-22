@@ -82,6 +82,10 @@ function normalizeSearchText(value: string) {
     .trim();
 }
 
+function hasAnyScopeValue(scope: ReturnType<typeof parseScope>) {
+  return scope.locations.length > 0 || scope.departments.length > 0 || scope.positions.length > 0 || scope.users.length > 0;
+}
+
 function parseScope(scope: unknown) {
   if (!scope || typeof scope !== "object") {
     return { locations: [] as string[], departments: [] as string[], positions: [] as string[], users: [] as string[] };
@@ -197,10 +201,25 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   const positionMap = useMemo(() => new Map(positions.map((row) => [row.id, row])), [positions]);
   const folderById = useMemo(() => new Map(folderRows.map((row) => [row.id, row])), [folderRows]);
 
-  const getEffectiveDocumentScope = useCallback((doc: DocumentRow) => {
-    if (!doc.folder_id) return parseScope(doc.access_scope);
-    return parseScope(folderById.get(doc.folder_id)?.access_scope ?? doc.access_scope);
+  const getEffectiveFolderScope = useCallback((folderId: string | null) => {
+    let currentFolderId = folderId;
+    while (currentFolderId) {
+      const folder = folderById.get(currentFolderId);
+      if (!folder) break;
+      const scope = parseScope(folder.access_scope);
+      if (hasAnyScopeValue(scope)) {
+        return scope;
+      }
+      currentFolderId = folder.parent_id;
+    }
+    return parseScope(null);
   }, [folderById]);
+
+  const getEffectiveDocumentScope = useCallback((doc: DocumentRow) => {
+    const ownScope = parseScope(doc.access_scope);
+    if (hasAnyScopeValue(ownScope) || !doc.folder_id) return ownScope;
+    return getEffectiveFolderScope(doc.folder_id);
+  }, [getEffectiveFolderScope]);
 
   const getDocumentLocationIds = useCallback((doc: DocumentRow) => {
     const ids = new Set<string>();
@@ -876,6 +895,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
         <AnimatedItem key={folder.id}>
           <div className="border-b border-[var(--gbp-border)]">
             <div
+              data-testid={`documents-folder-row-${folder.id}`}
               className={`grid grid-cols-[1fr_auto] md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px] items-center gap-2 px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)] ${dropFolderId === folder.id ? "bg-[var(--gbp-accent-glow)] ring-1 ring-inset ring-[var(--gbp-accent)]" : ""}`}
               draggable={!isProtectedFolder(folder)}
               onDragStart={(event) => {
@@ -975,7 +995,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                       const docRoles = getScopeRoles(docScope);
 
                       return (
-                        <div key={doc.id} className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px] items-center gap-2 border-t border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]" draggable onDragStart={(event) => { dragMetaRef.current = { kind: "document", id: doc.id }; event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; setDraggedDocumentId(doc.id); setDraggedFolderId(null); setDropRootColumn(false); setDropColumnTargetId(null); logDnd("dragstart-doc-tree-nested", { documentId: doc.id }); }} onDragEnd={resetDndState}>
+                        <div data-testid={`documents-doc-row-${doc.id}`} key={doc.id} className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px] items-center gap-2 border-t border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]" draggable onDragStart={(event) => { dragMetaRef.current = { kind: "document", id: doc.id }; event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; setDraggedDocumentId(doc.id); setDraggedFolderId(null); setDropRootColumn(false); setDropColumnTargetId(null); logDnd("dragstart-doc-tree-nested", { documentId: doc.id }); }} onDragEnd={resetDndState}>
                           <div className="min-w-0 pl-8">
                             <p className="truncate text-xs font-medium text-[var(--gbp-text)]">{doc.title}</p>
                             <p className="truncate text-[11px] text-[var(--gbp-muted)]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p>
@@ -1040,7 +1060,9 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   }, [docsByFolder, includeDocument, sortDocuments]);
 
   const visibleFolderIdSet = useMemo(() => {
-    const hasActiveDynamicFilters = Boolean(normalizedQuery || locationFilter || departmentFilter);
+    const hasTextQuery = Boolean(normalizedQuery);
+    const hasScopeFilters = Boolean(locationFilter || departmentFilter);
+    const hasActiveDynamicFilters = hasTextQuery || hasScopeFilters;
     if (!hasActiveDynamicFilters) {
       return new Set(folderRows.map((folder) => folder.id));
     }
@@ -1064,15 +1086,26 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
       }
 
       visiting.add(folderId);
-      const scope = parseScope(folder.access_scope);
+      const scope = getEffectiveFolderScope(folder.id);
       const matchesLocation = !locationFilter || scope.locations.includes(locationFilter);
       const matchesDepartment = !departmentFilter || scope.departments.includes(departmentFilter);
-      const matchesFolderScope = matchesLocation && matchesDepartment;
+      const matchesFolderScope = hasScopeFilters ? (matchesLocation && matchesDepartment) : false;
+      const folderRoleNames = getScopeRoles(scope).map((item) => item.name);
+      const folderLocationNames = getScopeLocNames(scope, null);
+      const searchableFolderText = normalizeSearchText([
+        folder.name,
+        ...folderLocationNames,
+        ...scope.locations,
+        ...folderRoleNames,
+        ...scope.departments,
+        ...scope.positions,
+      ].join(" "));
+      const matchesFolderQuery = hasTextQuery ? searchableFolderText.includes(normalizedQuery) : false;
       const hasOwnDocs = (visibleDocumentsByFolder.get(folderId) ?? []).length > 0;
       const hasVisibleChild = (childrenByFolder.get(folderId) ?? []).some((child) => checkFolderVisibility(child.id, visiting));
       visiting.delete(folderId);
 
-      const visible = matchesFolderScope || hasOwnDocs || hasVisibleChild;
+      const visible = matchesFolderScope || matchesFolderQuery || hasOwnDocs || hasVisibleChild;
       memo.set(folderId, visible);
       return visible;
     };
@@ -1082,7 +1115,18 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
     }
 
     return new Set(Array.from(memo.entries()).filter(([, visible]) => visible).map(([id]) => id));
-  }, [childrenByFolder, departmentFilter, folderById, folderRows, locationFilter, normalizedQuery, visibleDocumentsByFolder]);
+  }, [
+    childrenByFolder,
+    departmentFilter,
+    folderById,
+    folderRows,
+    getEffectiveFolderScope,
+    getScopeLocNames,
+    getScopeRoles,
+    locationFilter,
+    normalizedQuery,
+    visibleDocumentsByFolder,
+  ]);
 
   const folderDocumentCountById = useMemo(() => {
     const memo = new Map<string, number>();
@@ -1184,17 +1228,17 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
       <section className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--gbp-muted)]" />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-[34px] w-[220px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] pl-9 pr-3 text-xs" placeholder="Buscar documentos..." />
+          <input data-testid="documents-search-input" value={query} onChange={(event) => setQuery(event.target.value)} className="h-[34px] w-[220px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] pl-9 pr-3 text-xs" placeholder="Buscar documentos..." />
         </div>
         {viewMode === "tree" ? (
           <select value={folderFilter} onChange={(event) => {
             const nextFolderId = event.target.value || ROOT_TREE_CONTEXT;
             setFolderFilter(event.target.value);
             setSelectedTreeFolderId(nextFolderId);
-          }} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las carpetas</option>{folderOptions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
+          }} data-testid="documents-filter-folder" className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las carpetas</option>{folderOptions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
         ) : null}
-        <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las ubicaciones</option>{locationFilterOptions.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
-        <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todos los departamentos</option>{departmentFilterOptions.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
+        <select data-testid="documents-filter-location" value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las ubicaciones</option>{locationFilterOptions.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
+        <select data-testid="documents-filter-department" value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todos los departamentos</option>{departmentFilterOptions.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
         <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="date-desc">Más recientes primero</option><option value="date-asc">Más antiguos primero</option><option value="name-asc">Nombre A-Z</option><option value="name-desc">Nombre Z-A</option><option value="size-desc">Mayor tamaño</option><option value="size-asc">Menor tamaño</option></select>
       </section>
 
