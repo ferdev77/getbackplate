@@ -56,6 +56,11 @@ import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 import { toast } from "sonner";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import {
+  clearSessionCacheSnapshot,
+  readSessionCacheSnapshot,
+  writeSessionCacheSnapshot,
+} from "@/shared/lib/client-cache";
+import {
   ANNOUNCEMENT_CATALOG_TTL_MS,
   CHECKLIST_CATALOG_TTL_MS,
   DOCUMENTS_CATALOG_TTL_MS,
@@ -139,6 +144,15 @@ type CompanyShellProps = {
 };
 
 type BillingCycle = "monthly" | "yearly";
+
+const COMPANY_SHELL_CATALOG_CACHE_VERSION = 1;
+const COMPANY_SHELL_CATALOG_CACHE_PREFIX = "gb.company-shell.catalog";
+
+type CatalogCacheName = "announcements" | "checklists" | "documents" | "employees" | "users";
+
+function getCatalogCacheKey(tenantId: string, sessionUserEmail: string, catalogName: CatalogCacheName) {
+  return `${COMPANY_SHELL_CATALOG_CACHE_PREFIX}:v${COMPANY_SHELL_CATALOG_CACHE_VERSION}:${tenantId}:${sessionUserEmail.toLowerCase()}:${catalogName}`;
+}
 
 const MODULE_LABELS: Record<string, string> = {
   announcements: "Avisos",
@@ -366,6 +380,66 @@ export function CompanyShell({
   const usersCatalogFetchedAtRef = useRef<number | null>(null);
   const announcementCatalogFetchedAtRef = useRef<number | null>(null);
   const currentPlanCardRef = useRef<HTMLDivElement | null>(null);
+  const normalizedSessionUserEmail = useMemo(() => sessionUserEmail.trim().toLowerCase(), [sessionUserEmail]);
+  const catalogCacheKeys = useMemo(() => ({
+    announcements: getCatalogCacheKey(tenantId, normalizedSessionUserEmail, "announcements"),
+    checklists: getCatalogCacheKey(tenantId, normalizedSessionUserEmail, "checklists"),
+    documents: getCatalogCacheKey(tenantId, normalizedSessionUserEmail, "documents"),
+    employees: getCatalogCacheKey(tenantId, normalizedSessionUserEmail, "employees"),
+    users: getCatalogCacheKey(tenantId, normalizedSessionUserEmail, "users"),
+  }), [normalizedSessionUserEmail, tenantId]);
+
+  useEffect(() => {
+    const announcementSnapshot = readSessionCacheSnapshot<AnnouncementModalCatalog>({
+      key: catalogCacheKeys.announcements,
+      version: COMPANY_SHELL_CATALOG_CACHE_VERSION,
+      ttlMs: ANNOUNCEMENT_CATALOG_TTL_MS,
+    });
+    if (announcementSnapshot) {
+      setAnnouncementModalCatalog((prev) => prev ?? announcementSnapshot.data);
+      announcementCatalogFetchedAtRef.current = announcementSnapshot.fetchedAt;
+    }
+
+    const checklistSnapshot = readSessionCacheSnapshot<ChecklistModalCatalog>({
+      key: catalogCacheKeys.checklists,
+      version: COMPANY_SHELL_CATALOG_CACHE_VERSION,
+      ttlMs: CHECKLIST_CATALOG_TTL_MS,
+    });
+    if (checklistSnapshot) {
+      setChecklistModalCatalog((prev) => prev ?? checklistSnapshot.data);
+      checklistCatalogFetchedAtRef.current = checklistSnapshot.fetchedAt;
+    }
+
+    const documentsSnapshot = readSessionCacheSnapshot<DocumentsModalCatalog>({
+      key: catalogCacheKeys.documents,
+      version: COMPANY_SHELL_CATALOG_CACHE_VERSION,
+      ttlMs: DOCUMENTS_CATALOG_TTL_MS,
+    });
+    if (documentsSnapshot) {
+      setDocumentsModalCatalog((prev) => prev ?? documentsSnapshot.data);
+      documentsCatalogFetchedAtRef.current = documentsSnapshot.fetchedAt;
+    }
+
+    const employeesSnapshot = readSessionCacheSnapshot<EmployeesModalCatalog>({
+      key: catalogCacheKeys.employees,
+      version: COMPANY_SHELL_CATALOG_CACHE_VERSION,
+      ttlMs: EMPLOYEES_CATALOG_TTL_MS,
+    });
+    if (employeesSnapshot) {
+      setEmployeesModalCatalog((prev) => prev ?? employeesSnapshot.data);
+      employeesCatalogFetchedAtRef.current = employeesSnapshot.fetchedAt;
+    }
+
+    const usersSnapshot = readSessionCacheSnapshot<UsersModalCatalog>({
+      key: catalogCacheKeys.users,
+      version: COMPANY_SHELL_CATALOG_CACHE_VERSION,
+      ttlMs: USERS_CATALOG_TTL_MS,
+    });
+    if (usersSnapshot) {
+      setUsersModalCatalog((prev) => prev ?? usersSnapshot.data);
+      usersCatalogFetchedAtRef.current = usersSnapshot.fetchedAt;
+    }
+  }, [catalogCacheKeys]);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -440,6 +514,34 @@ export function CompanyShell({
     }
 
     function scheduleRefresh(payload?: { table?: string }) {
+      if (payload?.table === "announcements") {
+        setAnnouncementModalCatalog(null);
+        announcementCatalogFetchedAtRef.current = null;
+        clearSessionCacheSnapshot(catalogCacheKeys.announcements);
+      }
+      if (payload?.table === "checklist_templates") {
+        setChecklistModalCatalog(null);
+        checklistCatalogFetchedAtRef.current = null;
+        clearSessionCacheSnapshot(catalogCacheKeys.checklists);
+      }
+      if (payload?.table === "documents" || payload?.table === "document_folders") {
+        setDocumentsModalCatalog(null);
+        documentsCatalogFetchedAtRef.current = null;
+        clearSessionCacheSnapshot(catalogCacheKeys.documents);
+      }
+      if (
+        payload?.table === "employees" ||
+        payload?.table === "organization_user_profiles" ||
+        payload?.table === "memberships"
+      ) {
+        setEmployeesModalCatalog(null);
+        setUsersModalCatalog(null);
+        employeesCatalogFetchedAtRef.current = null;
+        usersCatalogFetchedAtRef.current = null;
+        clearSessionCacheSnapshot(catalogCacheKeys.employees);
+        clearSessionCacheSnapshot(catalogCacheKeys.users);
+      }
+
       if (
         payload?.table === "branches" ||
         payload?.table === "organization_departments" ||
@@ -455,6 +557,11 @@ export function CompanyShell({
         documentsCatalogFetchedAtRef.current = null;
         employeesCatalogFetchedAtRef.current = null;
         usersCatalogFetchedAtRef.current = null;
+        clearSessionCacheSnapshot(catalogCacheKeys.announcements);
+        clearSessionCacheSnapshot(catalogCacheKeys.checklists);
+        clearSessionCacheSnapshot(catalogCacheKeys.documents);
+        clearSessionCacheSnapshot(catalogCacheKeys.employees);
+        clearSessionCacheSnapshot(catalogCacheKeys.users);
       }
 
       if (isReorderingRef.current || isPersistingBranchOrderRef.current) {
@@ -495,7 +602,7 @@ export function CompanyShell({
       }
       supabase.removeChannel(channel);
     };
-  }, [pathname, router, tenantId]);
+  }, [catalogCacheKeys, pathname, router, tenantId]);
 
   useEffect(() => {
     setCurrentAvatarUrl(sessionAvatarUrl);
@@ -740,15 +847,24 @@ export function CompanyShell({
         throw new Error(data?.error || "No se pudo cargar el formulario de aviso");
       }
       const nextCatalog = data as AnnouncementModalCatalog;
+      const fetchedAt = Date.now();
       setAnnouncementModalCatalog(nextCatalog);
-      announcementCatalogFetchedAtRef.current = Date.now();
+      announcementCatalogFetchedAtRef.current = fetchedAt;
+      writeSessionCacheSnapshot({
+        key: catalogCacheKeys.announcements,
+        snapshot: {
+          version: COMPANY_SHELL_CATALOG_CACHE_VERSION,
+          fetchedAt,
+          data: nextCatalog,
+        },
+      });
       return nextCatalog;
     } catch (error) {
       throw error;
     } finally {
       setAnnouncementModalLoading(false);
     }
-  }, [announcementModalCatalog, announcementModalLoading]);
+  }, [announcementModalCatalog, announcementModalLoading, catalogCacheKeys.announcements]);
 
   async function openAnnouncementModal() {
     setAnnouncementModalOpen(true);
@@ -792,13 +908,22 @@ export function CompanyShell({
         throw new Error(data?.error || "No se pudo cargar el formulario de checklist");
       }
       const nextCatalog = data as ChecklistModalCatalog;
+      const fetchedAt = Date.now();
       setChecklistModalCatalog(nextCatalog);
-      checklistCatalogFetchedAtRef.current = Date.now();
+      checklistCatalogFetchedAtRef.current = fetchedAt;
+      writeSessionCacheSnapshot({
+        key: catalogCacheKeys.checklists,
+        snapshot: {
+          version: COMPANY_SHELL_CATALOG_CACHE_VERSION,
+          fetchedAt,
+          data: nextCatalog,
+        },
+      });
       return nextCatalog;
     } finally {
       setChecklistModalLoading(false);
     }
-  }, [checklistModalCatalog, checklistModalLoading]);
+  }, [catalogCacheKeys.checklists, checklistModalCatalog, checklistModalLoading]);
 
   async function openChecklistModal() {
     setChecklistModalOpen(true);
@@ -838,13 +963,22 @@ export function CompanyShell({
         throw new Error(data?.error || "No se pudo cargar el formulario de documentos");
       }
       const nextCatalog = data as DocumentsModalCatalog;
+      const fetchedAt = Date.now();
       setDocumentsModalCatalog(nextCatalog);
-      documentsCatalogFetchedAtRef.current = Date.now();
+      documentsCatalogFetchedAtRef.current = fetchedAt;
+      writeSessionCacheSnapshot({
+        key: catalogCacheKeys.documents,
+        snapshot: {
+          version: COMPANY_SHELL_CATALOG_CACHE_VERSION,
+          fetchedAt,
+          data: nextCatalog,
+        },
+      });
       return nextCatalog;
     } finally {
       setDocumentsModalLoading(false);
     }
-  }, [documentsModalCatalog, documentsModalLoading]);
+  }, [catalogCacheKeys.documents, documentsModalCatalog, documentsModalLoading]);
 
   async function openDocumentFolderModal() {
     setDocumentFolderModalOpen(true);
@@ -904,13 +1038,22 @@ export function CompanyShell({
         throw new Error(data?.error || "No se pudo cargar el formulario de empleados");
       }
       const nextCatalog = data as EmployeesModalCatalog;
+      const fetchedAt = Date.now();
       setEmployeesModalCatalog(nextCatalog);
-      employeesCatalogFetchedAtRef.current = Date.now();
+      employeesCatalogFetchedAtRef.current = fetchedAt;
+      writeSessionCacheSnapshot({
+        key: catalogCacheKeys.employees,
+        snapshot: {
+          version: COMPANY_SHELL_CATALOG_CACHE_VERSION,
+          fetchedAt,
+          data: nextCatalog,
+        },
+      });
       return nextCatalog;
     } finally {
       setEmployeeModalLoading(false);
     }
-  }, [employeeModalLoading, employeesModalCatalog]);
+  }, [catalogCacheKeys.employees, employeeModalLoading, employeesModalCatalog]);
 
   async function openEmployeeModal() {
     setEmployeeModalOpen(true);
@@ -949,13 +1092,22 @@ export function CompanyShell({
         throw new Error(data?.error || "No se pudo cargar el formulario de administradores");
       }
       const nextCatalog = data as UsersModalCatalog;
+      const fetchedAt = Date.now();
       setUsersModalCatalog(nextCatalog);
-      usersCatalogFetchedAtRef.current = Date.now();
+      usersCatalogFetchedAtRef.current = fetchedAt;
+      writeSessionCacheSnapshot({
+        key: catalogCacheKeys.users,
+        snapshot: {
+          version: COMPANY_SHELL_CATALOG_CACHE_VERSION,
+          fetchedAt,
+          data: nextCatalog,
+        },
+      });
       return nextCatalog;
     } finally {
       setUserModalLoading(false);
     }
-  }, [userModalLoading, usersModalCatalog]);
+  }, [catalogCacheKeys.users, userModalLoading, usersModalCatalog]);
 
   async function openUserModal() {
     setUserModalOpen(true);
