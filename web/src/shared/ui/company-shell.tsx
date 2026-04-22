@@ -23,6 +23,7 @@ import { reorderBranchesAction } from "@/modules/organizations/actions";
 import dynamic from "next/dynamic";
 import { FloatingAiAssistant } from "@/shared/ui/floating-ai-assistant";
 import { CollapsibleSidebarNavItem } from "@/shared/ui/collapsible-sidebar-nav-item";
+import { DevClientCachePanel } from "@/shared/ui/dev-client-cache-panel";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
 import { GetBackplateMark } from "@/shared/ui/getbackplate-mark";
 
@@ -2447,6 +2448,7 @@ export function CompanyShell({
           </aside>
         </div>
       ) : null}
+      <DevClientCachePanel />
     </div>
   );
 }

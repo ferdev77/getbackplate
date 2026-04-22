@@ -185,6 +185,39 @@ Beneficio concreto:
 - Comportamiento mas predecible para usuarios en flujos colaborativos/realtime.
 - Base lista para escalar a invalidacion selectiva por dominio sin depender solo de tiempo.
 
+## 4.5 Panel de observabilidad local de cache (solo desarrollo)
+
+Problema previo:
+
+- No habia una vista rapida y visual para confirmar en tiempo real si el cache cliente estaba funcionando (hit/miss/stale/clear).
+
+Implementacion:
+
+- Se agrego panel dev flotante:
+  - `web/src/shared/ui/dev-client-cache-panel.tsx`
+- Se integra en shells:
+  - `web/src/shared/ui/company-shell.tsx`
+  - `web/src/shared/ui/employee-shell.tsx`
+
+Como funciona:
+
+1. Escucha el evento browser `gb:client-cache-metric` emitido por `client-cache.ts`.
+2. Acumula ultimos eventos (`hit`, `miss`, `write`, `clear`, `stale`, etc.).
+3. Muestra resumen con hit-rate y tabla de eventos recientes.
+4. Solo renderiza en `NODE_ENV=development`.
+
+Que ve el equipo en este panel:
+
+- porcentaje de hit-rate de cache,
+- contadores por tipo de evento,
+- listado temporal de keys y acciones para detectar invalidaciones excesivas o misses recurrentes.
+
+Beneficio:
+
+- acelera diagnostico de performance durante desarrollo y QA tecnico,
+- evita optimizar a ciegas,
+- permite ajustar TTL/invalidation con evidencia.
+
 ---
 
 ## 5) Como funciona ahora (version basica)
@@ -206,6 +239,7 @@ Flujo en cliente (Company Shell):
 3. En background o al abrir modal: fetch revalidate.
 4. On success: write snapshot con `fetchedAt` nuevo.
 5. On realtime change: clear snapshot + reset estado en memoria.
+6. En desarrollo, el panel dev consume eventos y expone telemetria visual de cache.
 
 Flujo en server (Documentos):
 
@@ -247,6 +281,7 @@ Nuevos:
 - `web/src/shared/lib/client-cache.ts`
 - `web/src/modules/documents/cached-queries.ts`
 - `web/src/modules/documents/revalidate-cache.ts`
+- `web/src/shared/ui/dev-client-cache-panel.tsx`
 
 Actualizados:
 
@@ -258,6 +293,8 @@ Actualizados:
 - `web/src/app/api/employee/documents/manage/route.ts`
 - `web/src/app/api/employee/document-folders/route.ts`
 - `web/src/shared/lib/employee-delegation-persistence.ts`
+- `web/src/shared/ui/company-shell.tsx`
+- `web/src/shared/ui/employee-shell.tsx`
 
 ---
 
