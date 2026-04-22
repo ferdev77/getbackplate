@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 import { EmptyState } from "@/shared/ui/empty-state";
+import { ScopePillsOverflow } from "@/shared/ui/scope-pills-overflow";
 import type { BranchOption } from "@/shared/contracts/scope-options";
 
 type UserRow = {
@@ -259,11 +260,14 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreat
                 </div>
               </div>
               <p className="hidden truncate text-xs text-[var(--gbp-text2)] lg:block">{row.email || "Sin email"}</p>
-              <p className="hidden md:block">
-                <span className="inline-flex max-w-full items-center truncate rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] font-medium text-[var(--gbp-accent)]">
-                  {row.branchName}
-                </span>
-              </p>
+              <div className="hidden md:block">
+                <ScopePillsOverflow
+                  pills={[{ name: row.branchName, type: "location" }]}
+                  max={5}
+                  variant="initials"
+                  emptyLabel={<span className="text-xs text-[var(--gbp-muted)]">-</span>}
+                />
+              </div>
               <p className="hidden lg:block"><span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${row.status === "active" ? "bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]"}`}>{statusLabel(row.status)}</span></p>
               <div className="flex items-center justify-end gap-1">
                 <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedMembershipId(row.membershipId); }} className={ACTION_BTN_NEUTRAL}><Eye className="h-3.5 w-3.5" /><TooltipLabel label="Ver perfil" /></button>

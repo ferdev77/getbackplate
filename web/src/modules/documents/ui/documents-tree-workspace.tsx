@@ -758,7 +758,8 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
               <div className="hidden lg:flex flex-wrap items-center gap-1">
                 <ScopePillsOverflow
                   pills={locNames.map((n) => ({ name: n, type: "location" as const }))}
-                  max={4}
+                  max={5}
+                  variant="initials"
                   emptyLabel={
                     <span className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-muted)]">
                       <MapPin className="mr-1 h-3 w-3" />Sin ubicación
@@ -770,7 +771,8 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
               <div className="hidden lg:flex flex-wrap items-center gap-1">
                 <ScopePillsOverflow
                   pills={roles.map((r) => ({ name: r.name, type: r.type }))}
-                  max={4}
+                  max={5}
+                  variant="initials"
                   emptyLabel={<span className="text-xs text-[var(--gbp-muted)]">-</span>}
                 />
               </div>
@@ -802,7 +804,8 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                           <div className="hidden lg:flex flex-wrap items-center gap-1">
                             <ScopePillsOverflow
                               pills={docLocNames.map((n) => ({ name: n, type: "location" as const }))}
-                              max={4}
+                              max={5}
+                              variant="initials"
                               emptyLabel={
                                 <span className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-muted)]">
                                   <MapPin className="mr-1 h-3 w-3" />Sin ubicación
@@ -814,7 +817,8 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                           <div className="hidden lg:flex flex-wrap items-center gap-1">
                             <ScopePillsOverflow
                               pills={docRoles.map((r) => ({ name: r.name, type: r.type }))}
-                              max={4}
+                              max={5}
+                              variant="initials"
                               emptyLabel={<span className="text-xs text-[var(--gbp-muted)]">-</span>}
                             />
                           </div>
@@ -1022,7 +1026,8 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                       <div className="hidden lg:flex flex-wrap items-center gap-1">
                         <ScopePillsOverflow
                           pills={rLocNames.map((n) => ({ name: n, type: "location" as const }))}
-                          max={4}
+                          max={5}
+                          variant="initials"
                           emptyLabel={
                             <span className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-muted)]">
                               <MapPin className="mr-1 h-3 w-3" />Sin ubicación
@@ -1034,7 +1039,8 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                       <div className="hidden lg:flex flex-wrap items-center gap-1">
                         <ScopePillsOverflow
                           pills={rRoles.map((r) => ({ name: r.name, type: r.type }))}
-                          max={4}
+                          max={5}
+                          variant="initials"
                           emptyLabel={<span className="text-xs text-[var(--gbp-muted)]">-</span>}
                         />
                       </div>
@@ -1299,11 +1305,11 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                             <>
                               <div>
                                 <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Locaciones</p>
-                                <ScopePillsOverflow pills={locs.map((name) => ({ name, type: "location" as const }))} max={6} emptyLabel={<span className="text-xs text-[var(--gbp-muted)]">Todas</span>} />
+                                <ScopePillsOverflow pills={locs.map((name) => ({ name, type: "location" as const }))} max={5} variant="initials" emptyLabel={<span className="text-xs text-[var(--gbp-muted)]">Todas</span>} />
                               </div>
                               <div>
                                 <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Deptos / Puestos</p>
-                                <ScopePillsOverflow pills={roles.map((role) => ({ name: role.name, type: role.type }))} max={6} emptyLabel={<span className="text-xs text-[var(--gbp-muted)]">Todos</span>} />
+                                <ScopePillsOverflow pills={roles.map((role) => ({ name: role.name, type: role.type }))} max={5} variant="initials" emptyLabel={<span className="text-xs text-[var(--gbp-muted)]">Todos</span>} />
                               </div>
                             </>
                           );
