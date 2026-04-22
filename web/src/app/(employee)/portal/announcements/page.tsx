@@ -178,6 +178,11 @@ export default async function EmployeeAnnouncementsPage() {
     id: branch.id,
     name: getBranchDisplayName(branch, customBrandingEnabled),
   }));
+  const allowedLocationIds = Array.from(
+    new Set([tenant.branchId, employeeRow?.branch_id].filter((value): value is string => Boolean(value))),
+  );
+  const locationHelperText =
+    "Tu alcance base queda limitado a tus ubicaciones asignadas. Departamento y puesto filtran dentro de ese alcance.";
 
   return (
     <div className="space-y-6">
@@ -196,6 +201,9 @@ export default async function EmployeeAnnouncementsPage() {
             users={scopeUsers}
             submitEndpoint="/api/employee/announcements/manage"
             basePath="/portal/announcements"
+            allowedLocationIds={allowedLocationIds}
+            lockLocationSelection
+            locationHelperText={locationHelperText}
           >
             <BellPlus className="h-3.5 w-3.5" /> Nuevo Aviso
           </AnnouncementModalTrigger>
@@ -213,6 +221,9 @@ export default async function EmployeeAnnouncementsPage() {
         departments={departments ?? []}
         positions={positions ?? []}
         users={scopeUsers}
+        allowedLocationIds={allowedLocationIds}
+        lockLocationSelection
+        locationHelperText={locationHelperText}
       />
     </div>
   );

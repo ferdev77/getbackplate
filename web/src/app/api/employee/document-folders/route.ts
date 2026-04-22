@@ -4,6 +4,8 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
 import { ensureEmployeeDocumentsRootFolder } from "@/shared/lib/employee-documents-root-folder";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
+import { enforceLocationPolicy } from "@/shared/lib/scope-policy";
 
 async function resolveEmployeeScope(organizationId: string, userId: string) {
   const admin = createSupabaseAdminClient();
@@ -28,9 +30,32 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
-  const body = (await request.json().catch(() => null)) as { name?: string; parentId?: string | null } | null;
+  const body = (await request.json().catch(() => null)) as {
+    name?: string;
+    parentId?: string | null;
+    locationScope?: string[];
+    departmentScope?: string[];
+    positionScope?: string[];
+    userScope?: string[];
+  } | null;
   const name = String(body?.name ?? "").trim();
   const incomingParentId = body?.parentId === null ? null : typeof body?.parentId === "string" ? body.parentId.trim() : null;
+  const requestedLocations = normalizeScopeSelection(
+    Array.isArray(body?.locationScope) ? body.locationScope.map(String) : [],
+    { allowAllToken: true },
+  );
+  const requestedDepartments = normalizeScopeSelection(
+    Array.isArray(body?.departmentScope) ? body.departmentScope.map(String) : [],
+    { allowAllToken: true },
+  );
+  const requestedPositions = normalizeScopeSelection(
+    Array.isArray(body?.positionScope) ? body.positionScope.map(String) : [],
+    { allowAllToken: true },
+  );
+  const requestedUsers = normalizeScopeSelection(
+    Array.isArray(body?.userScope) ? body.userScope.map(String) : [],
+    { allowAllToken: true },
+  );
 
   if (!name) {
     return NextResponse.json({ error: "Nombre de carpeta requerido" }, { status: 400 });
@@ -61,6 +86,36 @@ export async function POST(request: Request) {
   }
 
   const scope = await resolveEmployeeScope(access.tenant.organizationId, access.userId);
+  const locationPolicy = enforceLocationPolicy({
+    requestedLocations,
+    allowedLocations: scope.locations,
+    fallbackToAllowedWhenEmpty: true,
+  });
+
+  if (!locationPolicy.ok) {
+    return NextResponse.json({ error: "No puedes seleccionar locaciones fuera de tu alcance" }, { status: 403 });
+  }
+
+  const effectiveScope = {
+    locations: locationPolicy.locations,
+    department_ids: requestedDepartments,
+    position_ids: requestedPositions,
+    users: requestedUsers,
+  };
+
+  const scopeValidation = await validateTenantScopeReferences({
+    supabase: admin,
+    organizationId: access.tenant.organizationId,
+    locationIds: effectiveScope.locations,
+    departmentIds: effectiveScope.department_ids,
+    positionIds: effectiveScope.position_ids,
+    userIds: effectiveScope.users,
+    userSource: "memberships",
+  });
+
+  if (!scopeValidation.ok) {
+    return NextResponse.json({ error: "El alcance seleccionado no es válido" }, { status: 400 });
+  }
 
   const { data, error } = await admin
     .from("document_folders")
@@ -69,7 +124,7 @@ export async function POST(request: Request) {
       parent_id: parentId,
       name,
       created_by: access.userId,
-      access_scope: scope,
+      access_scope: effectiveScope,
     })
     .select("id")
     .single();

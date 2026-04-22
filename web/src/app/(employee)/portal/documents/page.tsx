@@ -38,6 +38,9 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
     .maybeSingle();
 
   const employeeBranchId = tenant.branchId ?? employeeRow?.branch_id ?? null;
+  const allowedLocationIds = Array.from(
+    new Set([tenant.branchId, employeeRow?.branch_id].filter((value): value is string => Boolean(value))),
+  );
 
   let employeePositionIds: string[] = [];
   if (employeeRow?.position) {
@@ -212,6 +215,7 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
           branch_id: doc.branch_id,
           created_at: doc.created_at,
         }))}
+        allowedLocationIds={allowedLocationIds}
       />
     </>
   );

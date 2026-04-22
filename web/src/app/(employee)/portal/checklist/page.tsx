@@ -52,6 +52,11 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
     .maybeSingle();
 
   const employeeBranchId = tenant.branchId ?? employeeRow?.branch_id ?? null;
+  const allowedLocationIds = Array.from(
+    new Set([tenant.branchId, employeeRow?.branch_id].filter((value): value is string => Boolean(value))),
+  );
+  const locationHelperText =
+    "Tu alcance base queda limitado a tus ubicaciones asignadas. Departamento y puesto filtran dentro de ese alcance.";
 
   let employeePositionIds: string[] = [];
   if (employeeRow?.position) {
@@ -256,6 +261,9 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
             users={scopeUsers}
             submitEndpoint="/api/employee/checklists/templates"
             basePath="/portal/checklist"
+            allowedLocationIds={allowedLocationIds}
+            lockLocationSelection
+            locationHelperText={locationHelperText}
           >
             <ClipboardPlus className="h-4 w-4" /> Nuevo Checklist
           </ChecklistCreateTrigger>
@@ -275,6 +283,9 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
         departments={departments ?? []}
         positions={positions ?? []}
         users={scopeUsers}
+        allowedLocationIds={allowedLocationIds}
+        lockLocationSelection
+        locationHelperText={locationHelperText}
       />
     </main>
   );

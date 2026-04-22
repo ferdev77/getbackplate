@@ -27,6 +27,8 @@ type Props = {
   redirectPath?: string;
   hideScopeSelector?: boolean;
   scopeLockedMessage?: string;
+  allowedLocationIds?: string[];
+  lockLocationSelection?: boolean;
 };
 
 export function UploadDocumentModal({
@@ -41,6 +43,8 @@ export function UploadDocumentModal({
   redirectPath = "/app/documents",
   hideScopeSelector = false,
   scopeLockedMessage = "Este archivo heredará automáticamente el alcance permitido para tu perfil.",
+  allowedLocationIds,
+  lockLocationSelection = false,
 }: Props) {
   const router = useRouter();
   const [isUploading, setIsUploading] = useState(false);
@@ -181,6 +185,9 @@ export function UploadDocumentModal({
                         departmentInputName="department_scope"
                         positionInputName="position_scope"
                         userInputName="user_scope"
+                        allowedLocationIds={allowedLocationIds}
+                        lockLocationSelection={lockLocationSelection}
+                        locationHelperText={lockLocationSelection ? "Tu alcance base queda limitado a tus ubicaciones asignadas." : undefined}
                       />
                     </>
                   )}

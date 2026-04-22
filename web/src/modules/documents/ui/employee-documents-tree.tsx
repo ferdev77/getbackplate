@@ -68,6 +68,7 @@ type Props = {
   positions?: PositionOption[];
   users?: ScopedUserOption[];
   recentDocuments?: Array<{ id: string; title: string; branch_id: string | null; created_at: string }>;
+  allowedLocationIds?: string[];
 };
 
 function formatSize(bytes: number | null) {
@@ -96,6 +97,7 @@ export function EmployeeDocumentsTree({
   positions = [],
   users = [],
   recentDocuments = [],
+  allowedLocationIds = [],
 }: Props) {
   const router = useRouter();
   const [documentsState, setDocumentsState] = useState<DocumentRow[]>(documents);
@@ -1005,7 +1007,8 @@ export function EmployeeDocumentsTree({
           recentDocuments={recentDocuments}
           submitEndpoint="/api/employee/documents/manage"
           redirectPath="/portal/documents"
-          hideScopeSelector
+          allowedLocationIds={allowedLocationIds}
+          lockLocationSelection
         />
       ) : null}
 
@@ -1019,7 +1022,8 @@ export function EmployeeDocumentsTree({
           employees={users}
           submitEndpoint="/api/employee/document-folders"
           redirectPath="/portal/documents"
-          hideScopeSelector
+          allowedLocationIds={allowedLocationIds}
+          lockLocationSelection
         />
       ) : null}
 

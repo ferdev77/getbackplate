@@ -4,6 +4,8 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
 import { buildAnnouncementAudienceRows } from "@/modules/announcements/lib/scope";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
+import { enforceLocationPolicy } from "@/shared/lib/scope-policy";
 
 function normalizeKind(kind: string) {
   const value = kind.trim().toLowerCase();
@@ -24,7 +26,7 @@ async function resolveEmployeeDefaultScope(organizationId: string, userId: strin
 
   return {
     locations: employeeRow?.branch_id ? [employeeRow.branch_id] : [],
-    department_ids: employeeRow?.department_id ? [employeeRow.department_id] : [],
+    department_ids: [],
     position_ids: [],
     users: [],
   };
@@ -62,25 +64,53 @@ export async function POST(request: Request) {
 
   const admin = createSupabaseAdminClient();
   const employeeScope = await resolveEmployeeDefaultScope(access.tenant.organizationId, access.userId);
-  const requestedScope = {
-    locations: Array.isArray(body?.location_scope) ? body.location_scope.map(String).filter(Boolean) : [],
-    department_ids: Array.isArray(body?.department_scope) ? body.department_scope.map(String).filter(Boolean) : [],
-    position_ids: Array.isArray(body?.position_scope) ? body.position_scope.map(String).filter(Boolean) : [],
-    users: Array.isArray(body?.user_scope) ? body.user_scope.map(String).filter(Boolean) : [],
+  const requestedLocations = normalizeScopeSelection(
+    Array.isArray(body?.location_scope) ? body.location_scope.map(String) : [],
+    { allowAllToken: true },
+  );
+  const requestedDepartments = normalizeScopeSelection(
+    Array.isArray(body?.department_scope) ? body.department_scope.map(String) : [],
+    { allowAllToken: true },
+  );
+  const requestedPositions = normalizeScopeSelection(
+    Array.isArray(body?.position_scope) ? body.position_scope.map(String) : [],
+    { allowAllToken: true },
+  );
+  const requestedUsers = normalizeScopeSelection(
+    Array.isArray(body?.user_scope) ? body.user_scope.map(String) : [],
+    { allowAllToken: true },
+  );
+
+  const locationPolicy = enforceLocationPolicy({
+    requestedLocations,
+    allowedLocations: employeeScope.locations,
+    fallbackToAllowedWhenEmpty: true,
+  });
+
+  if (!locationPolicy.ok) {
+    return NextResponse.json({ error: "No puedes seleccionar locaciones fuera de tu alcance" }, { status: 403 });
+  }
+
+  const scope = {
+    locations: locationPolicy.locations,
+    department_ids: requestedDepartments,
+    position_ids: requestedPositions,
+    users: requestedUsers,
   };
-  const hasRequestedScope =
-    requestedScope.locations.length > 0 ||
-    requestedScope.department_ids.length > 0 ||
-    requestedScope.position_ids.length > 0 ||
-    requestedScope.users.length > 0;
-  const scope = hasRequestedScope
-    ? requestedScope
-    : {
-        locations: employeeScope.locations,
-        department_ids: employeeScope.department_ids,
-        position_ids: employeeScope.position_ids,
-        users: employeeScope.users,
-      };
+
+  const scopeValidation = await validateTenantScopeReferences({
+    supabase: admin,
+    organizationId: access.tenant.organizationId,
+    locationIds: scope.locations,
+    departmentIds: scope.department_ids,
+    positionIds: scope.position_ids,
+    userIds: scope.users,
+    userSource: "memberships",
+  });
+
+  if (!scopeValidation.ok) {
+    return NextResponse.json({ error: "El alcance seleccionado no es válido" }, { status: 400 });
+  }
 
   const { data: created, error } = await admin
     .from("announcements")
@@ -170,25 +200,53 @@ export async function PATCH(request: Request) {
   }
 
   const employeeScope = await resolveEmployeeDefaultScope(access.tenant.organizationId, access.userId);
-  const requestedScope = {
-    locations: Array.isArray(body?.location_scope) ? body.location_scope.map(String).filter(Boolean) : [],
-    department_ids: Array.isArray(body?.department_scope) ? body.department_scope.map(String).filter(Boolean) : [],
-    position_ids: Array.isArray(body?.position_scope) ? body.position_scope.map(String).filter(Boolean) : [],
-    users: Array.isArray(body?.user_scope) ? body.user_scope.map(String).filter(Boolean) : [],
+  const requestedLocations = normalizeScopeSelection(
+    Array.isArray(body?.location_scope) ? body.location_scope.map(String) : [],
+    { allowAllToken: true },
+  );
+  const requestedDepartments = normalizeScopeSelection(
+    Array.isArray(body?.department_scope) ? body.department_scope.map(String) : [],
+    { allowAllToken: true },
+  );
+  const requestedPositions = normalizeScopeSelection(
+    Array.isArray(body?.position_scope) ? body.position_scope.map(String) : [],
+    { allowAllToken: true },
+  );
+  const requestedUsers = normalizeScopeSelection(
+    Array.isArray(body?.user_scope) ? body.user_scope.map(String) : [],
+    { allowAllToken: true },
+  );
+
+  const locationPolicy = enforceLocationPolicy({
+    requestedLocations,
+    allowedLocations: employeeScope.locations,
+    fallbackToAllowedWhenEmpty: true,
+  });
+
+  if (!locationPolicy.ok) {
+    return NextResponse.json({ error: "No puedes seleccionar locaciones fuera de tu alcance" }, { status: 403 });
+  }
+
+  const scope = {
+    locations: locationPolicy.locations,
+    department_ids: requestedDepartments,
+    position_ids: requestedPositions,
+    users: requestedUsers,
   };
-  const hasRequestedScope =
-    requestedScope.locations.length > 0 ||
-    requestedScope.department_ids.length > 0 ||
-    requestedScope.position_ids.length > 0 ||
-    requestedScope.users.length > 0;
-  const scope = hasRequestedScope
-    ? requestedScope
-    : {
-        locations: employeeScope.locations,
-        department_ids: employeeScope.department_ids,
-        position_ids: employeeScope.position_ids,
-        users: employeeScope.users,
-      };
+
+  const scopeValidation = await validateTenantScopeReferences({
+    supabase: admin,
+    organizationId: access.tenant.organizationId,
+    locationIds: scope.locations,
+    departmentIds: scope.department_ids,
+    positionIds: scope.position_ids,
+    userIds: scope.users,
+    userSource: "memberships",
+  });
+
+  if (!scopeValidation.ok) {
+    return NextResponse.json({ error: "El alcance seleccionado no es válido" }, { status: 400 });
+  }
 
   const { error } = await admin
     .from("announcements")

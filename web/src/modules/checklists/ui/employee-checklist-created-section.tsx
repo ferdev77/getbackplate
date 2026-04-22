@@ -32,6 +32,9 @@ type Props = {
   departments: DepartmentOption[];
   positions: PositionOption[];
   users: ScopedUserOption[];
+  allowedLocationIds?: string[];
+  lockLocationSelection?: boolean;
+  locationHelperText?: string;
   onRefresh: () => void;
   onMineChange: (next: CreatedTemplateRow[]) => void;
   loadingTemplateId: string;
@@ -46,6 +49,9 @@ export function EmployeeChecklistCreatedSection({
   departments,
   positions,
   users,
+  allowedLocationIds,
+  lockLocationSelection,
+  locationHelperText,
   onRefresh,
   onMineChange,
   loadingTemplateId,
@@ -177,6 +183,9 @@ export function EmployeeChecklistCreatedSection({
                         users={users}
                         submitEndpoint="/api/employee/checklists/templates"
                         basePath="/portal/checklist"
+                        allowedLocationIds={allowedLocationIds}
+                        lockLocationSelection={lockLocationSelection}
+                        locationHelperText={locationHelperText}
                         onSubmitted={onRefresh}
                       >
                         <Pencil className="h-3.5 w-3.5" />

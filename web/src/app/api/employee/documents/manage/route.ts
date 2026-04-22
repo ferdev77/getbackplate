@@ -8,6 +8,8 @@ import { assertPlanLimitForStorage, getPlanLimitErrorMessage } from "@/shared/li
 import { isEmployeeLinkedDocument } from "@/shared/lib/document-domain";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { ensureEmployeeDocumentsRootFolder } from "@/shared/lib/employee-documents-root-folder";
+import { normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
+import { enforceLocationPolicy } from "@/shared/lib/scope-policy";
 
 const BUCKET_NAME = "tenant-documents";
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -80,6 +82,10 @@ export async function POST(request: Request) {
 
   const titleInput = String(formData.get("title") ?? "").trim();
   const folderIdInput = String(formData.get("folder_id") ?? "").trim();
+  const requestedLocations = normalizeScopeSelection(formData.getAll("location_scope").map(String), { allowAllToken: true });
+  const requestedDepartments = normalizeScopeSelection(formData.getAll("department_scope").map(String), { allowAllToken: true });
+  const requestedPositions = normalizeScopeSelection(formData.getAll("position_scope").map(String), { allowAllToken: true });
+  const requestedUsers = normalizeScopeSelection(formData.getAll("user_scope").map(String), { allowAllToken: true });
   const file = formData.get("file");
   if (!(file instanceof File) || file.size <= 0) {
     return NextResponse.json({ error: "Selecciona un archivo" }, { status: 400 });
@@ -113,7 +119,40 @@ export async function POST(request: Request) {
   const admin = createSupabaseAdminClient();
 
   let folderId: string | null = null;
-  let scope = await resolveEmployeeScope(access.tenant.organizationId, access.userId);
+  const employeeScope = await resolveEmployeeScope(access.tenant.organizationId, access.userId);
+  let scope = employeeScope;
+
+  const locationPolicy = enforceLocationPolicy({
+    requestedLocations,
+    allowedLocations: employeeScope.locations,
+    fallbackToAllowedWhenEmpty: true,
+  });
+
+  if (!locationPolicy.ok) {
+    return NextResponse.json({ error: "No puedes seleccionar locaciones fuera de tu alcance" }, { status: 403 });
+  }
+
+  const requestedRootScope: AccessScope = {
+    locations: locationPolicy.locations,
+    department_ids: requestedDepartments,
+    position_ids: requestedPositions,
+    users: requestedUsers,
+  };
+
+  const scopeValidation = await validateTenantScopeReferences({
+    supabase: admin,
+    organizationId: access.tenant.organizationId,
+    locationIds: requestedRootScope.locations,
+    departmentIds: requestedRootScope.department_ids,
+    positionIds: requestedRootScope.position_ids,
+    userIds: requestedRootScope.users,
+    userSource: "memberships",
+  });
+
+  if (!scopeValidation.ok) {
+    return NextResponse.json({ error: "El alcance seleccionado no es válido" }, { status: 400 });
+  }
+
   if (folderIdInput) {
     const { data: folder } = await admin
       .from("document_folders")
@@ -137,6 +176,7 @@ export async function POST(request: Request) {
       userId: access.userId,
     });
     folderId = root.folderId;
+    scope = requestedRootScope;
   }
 
   await ensureBucketExists();

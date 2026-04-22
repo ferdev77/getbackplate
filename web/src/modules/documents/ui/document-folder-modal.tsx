@@ -22,6 +22,8 @@ type DocumentFolderModalProps = {
   submitEndpoint?: string;
   redirectPath?: string;
   hideScopeSelector?: boolean;
+  allowedLocationIds?: string[];
+  lockLocationSelection?: boolean;
 };
 
 export function DocumentFolderModal({
@@ -34,6 +36,8 @@ export function DocumentFolderModal({
   submitEndpoint = "/api/company/document-folders",
   redirectPath = "/app/documents",
   hideScopeSelector = false,
+  allowedLocationIds,
+  lockLocationSelection = false,
 }: DocumentFolderModalProps) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
@@ -133,6 +137,9 @@ export function DocumentFolderModal({
                     departmentInputName="department_scope"
                     positionInputName="position_scope"
                     userInputName="user_scope"
+                    allowedLocationIds={allowedLocationIds}
+                    lockLocationSelection={lockLocationSelection}
+                    locationHelperText={lockLocationSelection ? "Tu alcance base queda limitado a tus ubicaciones asignadas." : undefined}
                   />
                 </div>
               ) : null}
