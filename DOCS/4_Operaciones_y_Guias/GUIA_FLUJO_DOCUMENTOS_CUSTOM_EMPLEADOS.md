@@ -106,6 +106,26 @@ Definir el comportamiento oficial de los documentos `custom_*` para que sean equ
 - Preview usa endpoint dedicado `GET /api/documents/preview?documentId=...`.
 - Hardening aplicado al preview: rate-limit liviano por usuario + telemetria/auditoria de errores de render.
 
+### Contrato tecnico canonico del toggle (obligatorio)
+
+- Estados validos: `tree` y `columns`.
+- Precedencia de fuente para modo inicial:
+  1. Query param `?view=columns|tree` (si existe y es valido).
+  2. Preferencia persistida por `localStorage` en clave por `organization_id + user_id`.
+  3. Fallback server default (`tree`).
+- Persistencia cliente:
+  - empresa: `gbp.documents.view:{organizationId}:{viewerUserId}`
+  - portal: `gbp.portal.documents.view:{organizationId}:{viewerUserId}`
+  - carpeta columnas empresa: `gbp.documents.columns.folder:{organizationId}:{viewerUserId}`
+  - carpeta columnas portal: `gbp.portal.documents.columns.folder:{organizationId}:{viewerUserId}`
+- Regla de hidratacion: leer preferencia guardada primero y escribir despues de hidratar para no pisar estado previo.
+- Accesibilidad: los botones de toggle deben exponer `aria-pressed` correcto en ambos modos.
+- Selectores E2E estables:
+  - botones empresa: `documents-view-tree`, `documents-view-columns`
+  - botones portal: `portal-documents-view-tree`, `portal-documents-view-columns`
+  - root empresa: `documents-tree-root`, `documents-columns-root`
+  - root portal: `portal-documents-tree-root`, `portal-documents-columns-root`
+
 ## Norte recomendado (siguiente etapa)
 
 1. Mover deteccion de `requested_without_file` a metadata explicita en DB para eliminar heuristicas por `mime_type/file_path`.

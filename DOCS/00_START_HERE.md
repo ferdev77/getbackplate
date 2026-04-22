@@ -51,6 +51,12 @@ Leer:
 - `DOCS/2_Planes_y_Checklists/PLAN_IMPLEMENTACION_SENIOR_ARQUITECTURA_MODULAR_2026-04-19.md`
 - `DOCS/4_Operaciones_y_Guias/REPORTE_EJECUCION_ULTRA_PASADA_ARQUITECTURA_2026-04-19.md`
 
+## 9) Si la pregunta es toggle/vistas de Documentos (empresa + portal)
+
+Leer:
+- `DOCS/2_Planes_y_Checklists/TECH_REMEDIATION_TRACK_DOCUMENTOS_TOGGLE_Y_VISTAS_PLAN_2026-04-21.md`
+- `DOCS/4_Operaciones_y_Guias/GUIA_FLUJO_DOCUMENTOS_CUSTOM_EMPLEADOS.md`
+
 ## Regla operativa para IA o humanos
 
 1. Responder primero lo puntual pedido por el usuario.

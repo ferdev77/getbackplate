@@ -13,21 +13,40 @@ export function useEmployeeDocumentsPreferences({
 }) {
   const [viewMode, setViewMode] = useState<"tree" | "columns">(initialViewMode);
   const [selectedColumnFolderId, setSelectedColumnFolderId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const key = `gbp.portal.documents.view:${organizationId}:${viewerUserId}`;
-    window.localStorage.setItem(key, viewMode);
-  }, [organizationId, viewerUserId, viewMode]);
+  const [hydratedViewKey, setHydratedViewKey] = useState<string | null>(null);
+  const [hydratedFolderKey, setHydratedFolderKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const key = `gbp.portal.documents.view:${organizationId}:${viewerUserId}`;
     const stored = window.localStorage.getItem(key);
-    if (stored !== "tree" && stored !== "columns") return;
 
     const frame = window.requestAnimationFrame(() => {
-      setViewMode((prev) => (prev === stored ? prev : stored));
+      if (stored === "tree" || stored === "columns") {
+        setViewMode((prev) => (prev === stored ? prev : stored));
+      }
+      setHydratedViewKey(key);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [organizationId, viewerUserId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const key = `gbp.portal.documents.view:${organizationId}:${viewerUserId}`;
+    if (hydratedViewKey !== key) return;
+    window.localStorage.setItem(key, viewMode);
+  }, [hydratedViewKey, organizationId, viewerUserId, viewMode]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const key = `gbp.portal.documents.columns.folder:${organizationId}:${viewerUserId}`;
+    const stored = window.localStorage.getItem(key);
+
+    const frame = window.requestAnimationFrame(() => {
+      if (stored) {
+        setSelectedColumnFolderId((prev) => (prev === stored ? prev : stored));
+      }
+      setHydratedFolderKey(key);
     });
     return () => window.cancelAnimationFrame(frame);
   }, [organizationId, viewerUserId]);
@@ -35,24 +54,13 @@ export function useEmployeeDocumentsPreferences({
   useEffect(() => {
     if (typeof window === "undefined") return;
     const key = `gbp.portal.documents.columns.folder:${organizationId}:${viewerUserId}`;
+    if (hydratedFolderKey !== key) return;
     if (selectedColumnFolderId) {
       window.localStorage.setItem(key, selectedColumnFolderId);
     } else {
       window.localStorage.removeItem(key);
     }
-  }, [organizationId, selectedColumnFolderId, viewerUserId]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const key = `gbp.portal.documents.columns.folder:${organizationId}:${viewerUserId}`;
-    const stored = window.localStorage.getItem(key);
-    if (!stored) return;
-
-    const frame = window.requestAnimationFrame(() => {
-      setSelectedColumnFolderId((prev) => (prev === stored ? prev : stored));
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [organizationId, viewerUserId]);
+  }, [hydratedFolderKey, organizationId, selectedColumnFolderId, viewerUserId]);
 
   return {
     viewMode,

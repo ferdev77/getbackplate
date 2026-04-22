@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, Eye, MapPin, Pencil, Search, Share2, Trash2, ChevronRight, Folder, Mail } from "lucide-react";
+import { Download, Eye, GripVertical, MapPin, Pencil, Search, Share2, Trash2, ChevronRight, Folder, Mail } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
@@ -107,6 +107,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   const [emailShareDocId, setEmailShareDocId] = useState<string | null>(null);
   const [dropFolderId, setDropFolderId] = useState<string | null>(null);
   const [dropRootColumn, setDropRootColumn] = useState(false);
+  const [dropColumnTargetId, setDropColumnTargetId] = useState<string | null>(null);
   const [draggedDocumentId, setDraggedDocumentId] = useState<string | null>(null);
   const [draggedFolderId, setDraggedFolderId] = useState<string | null>(null);
   const [columnPath, setColumnPath] = useState<string[]>([]);
@@ -117,31 +118,54 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   });
   const [busy, setBusy] = useState(false);
   const [connectedUsersCount, setConnectedUsersCount] = useState<number | null>(null);
+  const [hydratedColumnFolderKey, setHydratedColumnFolderKey] = useState<string | null>(null);
   const columnsScrollRef = useRef<HTMLDivElement | null>(null);
   const previousColumnCountRef = useRef(1);
+  const suppressColumnClickRef = useRef(false);
+  const dragMetaRef = useRef<{ kind: "document" | "folder" | null; id: string | null }>({ kind: null, id: null });
+  const dndDebugEnabled = process.env.NODE_ENV === "development";
+  const dndDebugSnapshotRef = useRef<{ event: string; details: Record<string, unknown>; at: string } | null>(null);
+
+  function logDnd(event: string, details: Record<string, unknown>) {
+    if (!dndDebugEnabled) return;
+    console.debug(`[documents-dnd:admin] ${event}`, details);
+    dndDebugSnapshotRef.current = { event, details, at: new Date().toLocaleTimeString() };
+  }
+
+  function resetDndState() {
+    dragMetaRef.current = { kind: null, id: null };
+    setDraggedDocumentId(null);
+    setDraggedFolderId(null);
+    setDropFolderId(null);
+    setDropRootColumn(false);
+    setDropColumnTargetId(null);
+  }
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const key = `gbp.documents.columns.folder:${organizationId}:${viewerUserId}`;
+    const stored = window.localStorage.getItem(key);
+
+    const frame = window.requestAnimationFrame(() => {
+      if (stored) {
+        setColumnPath((prev) => (prev[prev.length - 1] === stored ? prev : [stored]));
+      }
+      setHydratedColumnFolderKey(key);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [organizationId, viewerUserId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const key = `gbp.documents.columns.folder:${organizationId}:${viewerUserId}`;
+    if (hydratedColumnFolderKey !== key) return;
     const currentFolderId = columnPath[columnPath.length - 1] ?? null;
     if (currentFolderId) {
       window.localStorage.setItem(key, currentFolderId);
     } else {
       window.localStorage.removeItem(key);
     }
-  }, [columnPath, organizationId, viewerUserId]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const key = `gbp.documents.columns.folder:${organizationId}:${viewerUserId}`;
-    const stored = window.localStorage.getItem(key);
-    if (!stored) return;
-
-    const frame = window.requestAnimationFrame(() => {
-      setColumnPath((prev) => (prev[prev.length - 1] === stored ? prev : [stored]));
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [organizationId, viewerUserId]);
+  }, [columnPath, hydratedColumnFolderKey, organizationId, viewerUserId]);
 
   useEffect(() => {
     if (columnPath.length === 0) return;
@@ -318,7 +342,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   const downloadsPrevMonth = Math.max(totalDocuments * 2, 1);
   const downloadsTrend = Math.max(0, Math.round(((downloadsMonth - downloadsPrevMonth) / downloadsPrevMonth) * 100));
 
-  function includeDocument(doc: DocumentRow) {
+  const includeDocument = useCallback((doc: DocumentRow) => {
     const q = query.trim().toLowerCase();
     if (q && !doc.title.toLowerCase().includes(q)) return false;
     if (folderFilter && doc.folder_id !== folderFilter) return false;
@@ -326,9 +350,9 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
     const scope = parseScope(doc.access_scope);
     if (departmentFilter && !scope.departments.includes(departmentFilter)) return false;
     return true;
-  }
+  }, [departmentFilter, folderFilter, locationFilter, query]);
 
-  function sortDocuments(rows: DocumentRow[]) {
+  const sortDocuments = useCallback((rows: DocumentRow[]) => {
     return [...rows].sort((a, b) => {
       if (sortBy === "date-asc") return +new Date(a.created_at) - +new Date(b.created_at);
       if (sortBy === "name-asc") return a.title.localeCompare(b.title, "es");
@@ -337,7 +361,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
       if (sortBy === "size-asc") return (a.file_size_bytes ?? 0) - (b.file_size_bytes ?? 0);
       return +new Date(b.created_at) - +new Date(a.created_at);
     });
-  }
+  }, [sortBy]);
 
   async function saveDocument(payload: {
     documentId: string;
@@ -472,6 +496,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   }
 
   async function moveDocumentToFolder(documentId: string, folderId: string | null) {
+    logDnd("move-document:start", { documentId, folderId });
     setBusy(true);
     try {
       const response = await fetch("/api/company/documents", {
@@ -481,22 +506,42 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "No se pudo mover documento");
+      logDnd("move-document:ok", { documentId, folderId });
 
       setDocumentRows((prev) =>
         prev.map((row) => (row.id === documentId ? { ...row, folder_id: folderId } : row)),
       );
       toast.success("Documento movido");
     } catch (error) {
+      logDnd("move-document:error", { documentId, folderId, error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : "Error moviendo documento");
     } finally {
+      dragMetaRef.current = { kind: null, id: null };
       setBusy(false);
       setDropFolderId(null);
       setDropRootColumn(false);
+      setDropColumnTargetId(null);
       setDraggedDocumentId(null);
     }
   }
 
   async function moveFolderToFolder(folderId: string, parentId: string | null) {
+    logDnd("move-folder:start", { folderId, parentId });
+    if (folderId === parentId) {
+      toast.error("No puedes mover una carpeta dentro de si misma");
+      return;
+    }
+    if (parentId) {
+      const parentById = new Map(folderRows.map((row) => [row.id, row.parent_id]));
+      let currentParentId = parentById.get(parentId) ?? null;
+      while (currentParentId) {
+        if (currentParentId === folderId) {
+          toast.error("No puedes mover una carpeta dentro de una subcarpeta suya");
+          return;
+        }
+        currentParentId = parentById.get(currentParentId) ?? null;
+      }
+    }
     setBusy(true);
     try {
       const response = await fetch("/api/company/document-folders", {
@@ -506,17 +551,21 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "No se pudo mover carpeta");
+      logDnd("move-folder:ok", { folderId, parentId });
 
       setFolderRows((prev) =>
         prev.map((row) => (row.id === folderId ? { ...row, parent_id: parentId } : row)),
       );
       toast.success("Carpeta movida");
     } catch (error) {
+      logDnd("move-folder:error", { folderId, parentId, error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : "Error moviendo carpeta");
     } finally {
+      dragMetaRef.current = { kind: null, id: null };
       setBusy(false);
       setDropFolderId(null);
       setDropRootColumn(false);
+      setDropColumnTargetId(null);
       setDraggedFolderId(null);
     }
   }
@@ -624,27 +673,41 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
         <AnimatedItem key={folder.id}>
           <div className="border-b border-[var(--gbp-border)]">
             <div
-              className={`grid grid-cols-[1fr_auto] md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px] items-center gap-2 px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)] ${dropFolderId === folder.id ? "bg-[var(--gbp-accent-glow)]" : ""}`}
+              className={`grid grid-cols-[1fr_auto] md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px] items-center gap-2 px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)] ${dropFolderId === folder.id ? "bg-[var(--gbp-accent-glow)] ring-1 ring-inset ring-[var(--gbp-accent)]" : ""}`}
               draggable
               onDragStart={(event) => {
+                dragMetaRef.current = { kind: "folder", id: folder.id };
                 event.dataTransfer.setData("application/x-folder-id", folder.id);
                 event.dataTransfer.effectAllowed = "move";
+                setDraggedFolderId(folder.id);
+                setDraggedDocumentId(null);
+                setDropRootColumn(false);
+                setDropColumnTargetId(null);
+                logDnd("dragstart-folder-tree", { folderId: folder.id });
               }}
+              onDragEnd={resetDndState}
               onDragOver={(event) => {
                 event.preventDefault();
+                event.stopPropagation();
                 setDropFolderId(folder.id);
+                setDropRootColumn(false);
               }}
-              onDragLeave={() => setDropFolderId((prev) => (prev === folder.id ? null : prev))}
+              onDragLeave={(event) => {
+                if (event.currentTarget.contains(event.relatedTarget as Node)) return;
+                setDropFolderId((prev) => (prev === folder.id ? null : prev));
+              }}
               onDrop={(event) => {
                 event.preventDefault();
-                const draggedDocId = event.dataTransfer.getData("application/x-document-id");
-                const draggedFolderId = event.dataTransfer.getData("application/x-folder-id");
-                if (draggedDocId) {
-                  void moveDocumentToFolder(draggedDocId, folder.id);
+                event.stopPropagation();
+                const droppedDocId = event.dataTransfer.getData("application/x-document-id") || (dragMetaRef.current.kind === "document" ? dragMetaRef.current.id : null) || draggedDocumentId;
+                const droppedFolderId = event.dataTransfer.getData("application/x-folder-id") || (dragMetaRef.current.kind === "folder" ? dragMetaRef.current.id : null) || draggedFolderId;
+                logDnd("drop-folder-tree", { targetFolderId: folder.id, droppedDocId, droppedFolderId });
+                if (droppedDocId) {
+                  void moveDocumentToFolder(droppedDocId, folder.id);
                   return;
                 }
-                if (draggedFolderId && draggedFolderId !== folder.id) {
-                  void moveFolderToFolder(draggedFolderId, folder.id);
+                if (droppedFolderId && droppedFolderId !== folder.id) {
+                  void moveFolderToFolder(droppedFolderId, folder.id);
                 }
               }}
             >
@@ -705,7 +768,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                       const docRoles = getScopeRoles(docScope);
 
                       return (
-                        <div key={doc.id} className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px] items-center gap-2 border-t border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]" draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; }}>
+                        <div key={doc.id} className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px] items-center gap-2 border-t border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]" draggable onDragStart={(event) => { dragMetaRef.current = { kind: "document", id: doc.id }; event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; setDraggedDocumentId(doc.id); setDraggedFolderId(null); setDropRootColumn(false); setDropColumnTargetId(null); logDnd("dragstart-doc-tree-nested", { documentId: doc.id }); }} onDragEnd={resetDndState}>
                           <div className="min-w-0 pl-8">
                             <p className="truncate text-xs font-medium text-[var(--gbp-text)]">{doc.title}</p>
                             <p className="truncate text-[11px] text-[var(--gbp-muted)]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p>
@@ -759,15 +822,15 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
     });
   }
 
-  const visibleDocumentsByFolder = (() => {
+  const visibleDocumentsByFolder = useMemo(() => {
     const map = new Map<string | null, DocumentRow[]>();
     for (const [parentId, rows] of docsByFolder.entries()) {
       map.set(parentId, sortDocuments(rows.filter(includeDocument)));
     }
     return map;
-  })();
+  }, [docsByFolder, includeDocument, sortDocuments]);
 
-  const folderDocumentCountById = (() => {
+  const folderDocumentCountById = useMemo(() => {
     const memo = new Map<string, number>();
 
     const computeCount = (folderId: string, visiting: Set<string>): number => {
@@ -794,11 +857,11 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
     }
 
     return memo;
-  })();
+  }, [childrenByFolder, folderRows, visibleDocumentsByFolder]);
 
   const rootDocuments = visibleDocumentsByFolder.get(null) ?? [];
 
-  const folderColumns = (() => {
+  const folderColumns = useMemo(() => {
     const levels: Array<{ parentId: string | null; folders: FolderRow[]; documents: DocumentRow[]; selectedFolderId: string | null }> = [];
     const depth = columnPath.length;
     for (let index = 0; index <= depth; index += 1) {
@@ -809,7 +872,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
       levels.push({ parentId, folders: foldersAtLevel, documents: documentsAtLevel, selectedFolderId });
     }
     return levels;
-  })();
+  }, [childrenByFolder, columnPath, visibleDocumentsByFolder]);
 
   const selectedColumnDocument = useMemo(
     () => documentRows.find((doc) => doc.id === selectedColumnDocId) ?? null,
@@ -848,6 +911,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   const shareDocument = documentRows.find((doc) => doc.id === shareDocId) ?? null;
   const shareFolder = folderRows.find((folder) => folder.id === shareFolderId) ?? null;
   const emailShareDocument = documentRows.find((doc) => doc.id === emailShareDocId) ?? null;
+  const isDraggingColumnsItem = Boolean(draggedDocumentId || draggedFolderId);
 
   return (
     <>
@@ -881,7 +945,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
           transition={{ duration: 0.18 }}
         >
         {viewMode === "tree" ? (
-        <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
+        <section data-testid="documents-tree-root" className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
           <div className="grid grid-cols-[1fr_auto] gap-2 bg-[var(--gbp-bg)] px-4 py-3 text-[11px] font-bold tracking-[0.07em] text-[var(--gbp-muted)] uppercase md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px]">
             <p>Nombre</p>
             <p className="hidden md:block">Fecha de carga</p>
@@ -890,19 +954,35 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
             <p className="text-right">Acciones</p>
           </div>
           <div
-            onDragOver={(event) => event.preventDefault()}
+            onDragOver={(event) => { event.preventDefault(); setDropRootColumn(true); }}
+            onDragLeave={(event) => {
+              if (event.currentTarget.contains(event.relatedTarget as Node)) return;
+              setDropRootColumn(false);
+            }}
             onDrop={(event) => {
-              const draggedDocId = event.dataTransfer.getData("application/x-document-id");
-              const draggedFolderId = event.dataTransfer.getData("application/x-folder-id");
-              if (draggedDocId) {
-                void moveDocumentToFolder(draggedDocId, null);
+              event.preventDefault();
+              event.stopPropagation();
+              const droppedDocId = event.dataTransfer.getData("application/x-document-id") || (dragMetaRef.current.kind === "document" ? dragMetaRef.current.id : null) || draggedDocumentId;
+              const droppedFolderId = event.dataTransfer.getData("application/x-folder-id") || (dragMetaRef.current.kind === "folder" ? dragMetaRef.current.id : null) || draggedFolderId;
+              logDnd("drop-tree-root", { droppedDocId, droppedFolderId });
+              if (droppedDocId) {
+                void moveDocumentToFolder(droppedDocId, null);
                 return;
               }
-              if (draggedFolderId) {
-                void moveFolderToFolder(draggedFolderId, null);
+              if (droppedFolderId) {
+                void moveFolderToFolder(droppedFolderId, null);
               }
             }}
           >
+            {isDraggingColumnsItem ? (
+              <div className={`mx-3 mt-3 rounded-lg border border-dashed px-3 py-2 text-center text-xs transition-colors ${
+                dropRootColumn
+                  ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
+                  : "border-[var(--gbp-border2)] text-[var(--gbp-muted)]"
+              }`}>
+                Soltar aquí para mover a la raíz
+              </div>
+            ) : null}
             {renderFolderTree(null)}
             <AnimatePresence>
               {rootDocuments.map((doc) => {
@@ -911,7 +991,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                 const rRoles = getScopeRoles(scope);
                 return (
                   <AnimatedItem key={doc.id}>
-                    <div className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px] items-center gap-2 border-t border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]" draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; }}>
+                    <div className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px] items-center gap-2 border-t border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]" draggable onDragStart={(event) => { dragMetaRef.current = { kind: "document", id: doc.id }; event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; setDraggedDocumentId(doc.id); setDraggedFolderId(null); setDropRootColumn(false); setDropColumnTargetId(null); logDnd("dragstart-doc-tree-root", { documentId: doc.id }); }} onDragEnd={resetDndState}>
                       <div className="min-w-0"><p className="truncate text-xs font-medium text-[var(--gbp-text)]">{doc.title}</p><p className="truncate text-[11px] text-[var(--gbp-muted)]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p></div>
                       {/* Fecha de carga */}
                       <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{formatDate(doc.created_at)}</p>
@@ -954,41 +1034,65 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
           </div>
         </section>
         ) : (
-          <section className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
+          <section data-testid="documents-columns-root" className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
             <div ref={columnsScrollRef} className="overflow-x-auto">
               <div className="flex min-h-[560px] divide-x divide-[var(--gbp-border)]">
                 {folderColumns.map((column, index) => {
                   const parentFolder = column.parentId ? (folderById.get(column.parentId) ?? null) : null;
                   const isRootColumn = index === 0;
                   return (
-                    <div key={`col-${index}-${column.parentId ?? "root"}`} className="w-[300px] shrink-0 bg-[var(--gbp-bg)] p-3">
+                    <div
+                      key={`col-${index}-${column.parentId ?? "root"}`}
+                      className="w-[300px] shrink-0 bg-[var(--gbp-bg)] p-3"
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        if (isRootColumn) {
+                          setDropRootColumn(true);
+                        } else {
+                          setDropColumnTargetId(column.parentId ?? null);
+                        }
+                        setDropFolderId(null);
+                      }}
+                      onDragLeave={(event) => {
+                        if (event.currentTarget.contains(event.relatedTarget as Node)) return;
+                        if (isRootColumn) {
+                          setDropRootColumn(false);
+                        } else {
+                          setDropColumnTargetId((prev) => (prev === (column.parentId ?? null) ? null : prev));
+                        }
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        setDropRootColumn(false);
+                        setDropColumnTargetId(null);
+                        const droppedDocId = event.dataTransfer.getData("application/x-document-id") || event.dataTransfer.getData("text/plain") || (dragMetaRef.current.kind === "document" ? dragMetaRef.current.id : null) || draggedDocumentId;
+                        const droppedFolderId = event.dataTransfer.getData("application/x-folder-id") || (dragMetaRef.current.kind === "folder" ? dragMetaRef.current.id : null) || draggedFolderId;
+                        logDnd("drop-column", { parentId: column.parentId ?? null, droppedDocId, droppedFolderId });
+                        if (droppedFolderId) {
+                          void moveFolderToFolder(droppedFolderId, column.parentId ?? null);
+                          return;
+                        }
+                        if (!droppedDocId) return;
+                        void moveDocumentToFolder(droppedDocId, column.parentId ?? null);
+                      }}
+                    >
                       <p className="mb-2 px-1 text-[11px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">
                         {isRootColumn ? "Principal" : parentFolder?.name ?? "Carpeta"}
                       </p>
-                      {isRootColumn ? (
+                      {isDraggingColumnsItem ? (
                         <div
-                          onDragOver={(event) => {
-                            event.preventDefault();
-                            setDropRootColumn(true);
-                            setDropFolderId(null);
-                          }}
-                          onDragLeave={() => setDropRootColumn(false)}
-                          onDrop={(event) => {
-                            event.preventDefault();
-                            setDropRootColumn(false);
-                            const droppedDocId = event.dataTransfer.getData("application/x-document-id") || event.dataTransfer.getData("text/plain") || draggedDocumentId;
-                            const droppedFolderId = event.dataTransfer.getData("application/x-folder-id") || draggedFolderId;
-                            if (droppedFolderId) {
-                              void moveFolderToFolder(droppedFolderId, null);
-                              return;
-                            }
-                            const draggedDocId = droppedDocId;
-                            if (!draggedDocId) return;
-                            void moveDocumentToFolder(draggedDocId, null);
-                          }}
-                          className={`mb-2 rounded-lg border border-dashed px-3 py-2 text-xs transition-colors ${dropRootColumn ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]" : "border-[var(--gbp-border2)] text-[var(--gbp-muted)]"}`}
+                          className={`pointer-events-none mb-2 rounded-lg border border-dashed px-3 py-2 text-center text-xs transition-colors ${
+                            isRootColumn
+                              ? dropRootColumn
+                                ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
+                                : "border-[var(--gbp-border2)] text-[var(--gbp-muted)]"
+                              : dropColumnTargetId === (column.parentId ?? null)
+                                ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
+                                : "border-[var(--gbp-border2)] text-[var(--gbp-muted)]"
+                          }`}
                         >
-                          Soltar aqui para mover a Principal
+                          {isRootColumn ? "Soltar aquí para mover a Principal" : `Soltar aquí para mover a ${parentFolder?.name ?? "carpeta"}`}
                         </div>
                       ) : null}
                       <div className="space-y-1">
@@ -998,18 +1102,33 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                             type="button"
                             draggable
                             onDragStart={(event) => {
+                              suppressColumnClickRef.current = true;
+                              dragMetaRef.current = { kind: "folder", id: folder.id };
                               event.dataTransfer.setData("application/x-folder-id", folder.id);
+                              event.dataTransfer.setData("text/plain", folder.id);
                               event.dataTransfer.effectAllowed = "move";
+                              logDnd("dragstart-folder", { folderId: folder.id, columnParentId: column.parentId ?? null });
                               setDraggedFolderId(folder.id);
                               setDraggedDocumentId(null);
                               setDropRootColumn(false);
+                              setDropColumnTargetId(null);
                             }}
                             onDragEnd={() => {
+                              logDnd("dragend-folder", { folderId: folder.id });
+                              dragMetaRef.current = { kind: null, id: null };
                               setDraggedFolderId(null);
                               setDropFolderId(null);
                               setDropRootColumn(false);
+                              setDropColumnTargetId(null);
+                              window.setTimeout(() => {
+                                suppressColumnClickRef.current = false;
+                              }, 0);
                             }}
                             onClick={() => {
+                              if (suppressColumnClickRef.current) {
+                                suppressColumnClickRef.current = false;
+                                return;
+                              }
                               setColumnPath((prev) => {
                                 const next = prev.slice(0, index);
                                 next[index] = folder.id;
@@ -1019,15 +1138,19 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                             }}
                             onDragOver={(event) => {
                               event.preventDefault();
+                              event.stopPropagation();
                               setDropFolderId(folder.id);
                               setDropRootColumn(false);
+                              setDropColumnTargetId(null);
                             }}
                             onDragLeave={() => setDropFolderId((prev) => (prev === folder.id ? null : prev))}
                             onDrop={(event) => {
                               event.preventDefault();
+                              event.stopPropagation();
                               setDropFolderId(null);
-                              const droppedDocId = event.dataTransfer.getData("application/x-document-id") || event.dataTransfer.getData("text/plain") || draggedDocumentId;
-                              const droppedFolderId = event.dataTransfer.getData("application/x-folder-id") || draggedFolderId;
+                              const droppedDocId = event.dataTransfer.getData("application/x-document-id") || event.dataTransfer.getData("text/plain") || (dragMetaRef.current.kind === "document" ? dragMetaRef.current.id : null) || draggedDocumentId;
+                              const droppedFolderId = event.dataTransfer.getData("application/x-folder-id") || (dragMetaRef.current.kind === "folder" ? dragMetaRef.current.id : null) || draggedFolderId;
+                              logDnd("drop-folder-target", { targetFolderId: folder.id, droppedDocId, droppedFolderId });
                               if (droppedFolderId && droppedFolderId !== folder.id) {
                                 void moveFolderToFolder(droppedFolderId, folder.id);
                                 return;
@@ -1039,6 +1162,14 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                             className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left ${dropFolderId === folder.id || column.selectedFolderId === folder.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] hover:bg-[var(--gbp-bg)]"}`}
                           >
                             <span className="flex min-w-0 items-center gap-2">
+                              <span
+                                draggable={false}
+                                onClick={(event) => event.stopPropagation()}
+                                className="inline-flex h-5 w-5 shrink-0 cursor-grab items-center justify-center rounded text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text2)] active:cursor-grabbing"
+                                title="Arrastrar carpeta"
+                              >
+                                <GripVertical className="h-3.5 w-3.5" />
+                              </span>
                               <Folder className="h-3.5 w-3.5 shrink-0 text-[var(--gbp-text2)]" />
                               <span className="truncate text-sm font-medium text-[var(--gbp-text)]">{folder.name}</span>
                             </span>
@@ -1052,20 +1183,34 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                             type="button"
                             draggable
                             onDragStart={(event) => {
+                              suppressColumnClickRef.current = true;
+                              dragMetaRef.current = { kind: "document", id: doc.id };
                               event.dataTransfer.setData("application/x-document-id", doc.id);
                               event.dataTransfer.setData("text/plain", doc.id);
                               event.dataTransfer.effectAllowed = "move";
+                              logDnd("dragstart-document", { documentId: doc.id, columnParentId: column.parentId ?? null });
                               setDraggedDocumentId(doc.id);
                               setDraggedFolderId(null);
                               setDropRootColumn(false);
+                              setDropColumnTargetId(null);
                             }}
                             onDragEnd={() => {
+                              logDnd("dragend-document", { documentId: doc.id });
+                              dragMetaRef.current = { kind: null, id: null };
                               setDraggedDocumentId(null);
                               setDraggedFolderId(null);
                               setDropFolderId(null);
                               setDropRootColumn(false);
+                              setDropColumnTargetId(null);
+                              window.setTimeout(() => {
+                                suppressColumnClickRef.current = false;
+                              }, 0);
                             }}
                             onClick={() => {
+                              if (suppressColumnClickRef.current) {
+                                suppressColumnClickRef.current = false;
+                                return;
+                              }
                               setSelectedColumnDocId(doc.id);
                               setPreviewState({
                                 docId: doc.id,
@@ -1074,7 +1219,17 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                             }}
                             className={`w-full rounded-lg border px-3 py-2 text-left ${selectedColumnDocId === doc.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] hover:bg-[var(--gbp-bg)]"}`}
                           >
-                            <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{doc.title}</p>
+                            <span className="flex min-w-0 items-center gap-2">
+                              <span
+                                draggable={false}
+                                onClick={(event) => event.stopPropagation()}
+                                className="inline-flex h-5 w-5 shrink-0 cursor-grab items-center justify-center rounded text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text2)] active:cursor-grabbing"
+                                title="Arrastrar archivo"
+                              >
+                                <GripVertical className="h-3.5 w-3.5" />
+                              </span>
+                              <span className="truncate text-sm font-semibold text-[var(--gbp-text)]">{doc.title}</span>
+                            </span>
                             <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">{formatDate(doc.created_at)} · {formatSize(doc.file_size_bytes)}</p>
                           </button>
                         ))}
@@ -1229,6 +1384,8 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
           onSubmit={(payload) => void shareDocumentByEmail(payload)}
         />
       ) : null}
+
+
 
     </>
   );
