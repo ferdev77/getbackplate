@@ -143,7 +143,6 @@ export function ScopeSelector({
     return usersWithAccess
       .filter((user) => {
         if (!user.user_id) return false;
-        if (selectedUsers.has(user.user_id)) return false;
 
         const searchable = [
           `${user.first_name} ${user.last_name}`,
@@ -159,7 +158,9 @@ export function ScopeSelector({
       .sort((a, b) => {
         const aReached = Boolean(a.user_id && reachedUserIds.has(a.user_id));
         const bReached = Boolean(b.user_id && reachedUserIds.has(b.user_id));
-        if (aReached !== bReached) return aReached ? 1 : -1;
+        const aChecked = Boolean(a.user_id && (selectedUsers.has(a.user_id) || aReached));
+        const bChecked = Boolean(b.user_id && (selectedUsers.has(b.user_id) || bReached));
+        if (aChecked !== bChecked) return aChecked ? -1 : 1;
         const aName = `${a.first_name} ${a.last_name}`.trim().toLowerCase();
         const bName = `${b.first_name} ${b.last_name}`.trim().toLowerCase();
         return aName.localeCompare(bName, "es");
@@ -345,23 +346,28 @@ export function ScopeSelector({
             {filteredCandidates.map((user) => {
               if (!user.user_id) return null;
               const reachedByFilter = reachedUserIds.has(user.user_id);
+              const isChecked = selectedUsers.has(user.user_id) || reachedByFilter;
               return (
                 <label
                   key={`${namespace}-usr-${user.id}`}
-                  className="grid grid-cols-[14px_minmax(0,1fr)] items-start gap-x-2 gap-y-1 rounded-md border border-transparent px-1 py-1.5 hover:border-[var(--gbp-border)] hover:bg-[var(--gbp-bg)]"
+                  className={`grid grid-cols-[14px_minmax(0,1fr)] items-start gap-x-2 gap-y-1 rounded-md border px-1 py-1.5 hover:bg-[var(--gbp-bg)] ${
+                    isChecked
+                      ? "border-emerald-300/40 bg-emerald-50/70"
+                      : "border-transparent hover:border-[var(--gbp-border)]"
+                  }`}
                 >
                   <input
                     type="checkbox"
-                    checked={selectedUsers.has(user.user_id)}
+                    checked={isChecked}
                     onChange={(event) => toggleUser(user.user_id!, event.target.checked)}
-                    className="mt-[2px] h-[13px] w-[13px] accent-[var(--gbp-accent)]"
+                    className="mt-[2px] h-[13px] w-[13px] accent-emerald-600"
                   />
                   <div className="min-w-0">
                     <p className="truncate text-xs font-medium text-[var(--gbp-text)]">{user.first_name} {user.last_name}</p>
                     <p className="mt-0.5 truncate text-[11px] text-[var(--gbp-text2)]">
                       {[user.location_label, user.department_label, user.position_label].filter(Boolean).join(" · ") || "Sin datos de perfil"}
                     </p>
-                    {reachedByFilter ? <p className="text-[10px] text-[var(--gbp-muted)]">Ya está alcanzado por filtros</p> : null}
+                    {reachedByFilter ? <p className="text-[10px] text-emerald-700">Alcanzado por filtros</p> : null}
                   </div>
                 </label>
               );
