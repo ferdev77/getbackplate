@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { revalidateDocumentsCaches } from "@/modules/documents/revalidate-cache";
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
 import { ensureEmployeeDocumentsRootFolder } from "@/shared/lib/employee-documents-root-folder";
 import { logAuditEvent } from "@/shared/lib/audit";
@@ -160,6 +161,8 @@ export async function POST(request: Request) {
     metadata: { name, parent_id: parentId },
   });
 
+  revalidateDocumentsCaches();
+
   return NextResponse.json({ ok: true, folderId: data.id, parentId });
 }
 
@@ -250,6 +253,8 @@ export async function PATCH(request: Request) {
     severity: "low",
     metadata: { parent_id: parentId },
   });
+
+  revalidateDocumentsCaches();
 
   return NextResponse.json({ ok: true, folderId, parentId });
 }

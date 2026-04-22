@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
+import { revalidateDocumentsCaches } from "@/modules/documents/revalidate-cache";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { analyzeUploadedFile } from "@/shared/lib/file-security";
 import { logAuditEvent } from "@/shared/lib/audit";
@@ -386,6 +387,8 @@ export async function POST(request: Request) {
     severity: "high",
   });
 
+  revalidateDocumentsCaches();
+
   return NextResponse.json({ ok: true, message: "Documento subido" });
 }
 
@@ -553,6 +556,8 @@ export async function PATCH(request: Request) {
     },
   });
 
+  revalidateDocumentsCaches();
+
   return NextResponse.json({ ok: true });
 }
 
@@ -624,6 +629,8 @@ export async function DELETE(request: Request) {
       file_path: document.file_path,
     },
   });
+
+  revalidateDocumentsCaches();
 
   return NextResponse.json({ ok: true });
 }

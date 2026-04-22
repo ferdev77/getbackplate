@@ -4,6 +4,9 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { getEmployeeDocumentIdSet } from "@/shared/lib/document-domain";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 
+export const DOCUMENTS_WORKSPACE_SEED_TAG = "documents-workspace-seed-v1";
+export const DOCUMENTS_SCOPE_USERS_TAG = "documents-scope-users-v1";
+
 function hasMissingColumnError(error: { message?: string } | null, column: string) {
   const message = error?.message?.toLowerCase() ?? "";
   return message.includes("column") && message.includes(column.toLowerCase());
@@ -104,12 +107,12 @@ export const getDocumentsWorkspaceSeedCached = unstable_cache(
       employeeDocumentIds: Array.from(employeeDocumentIds),
     };
   },
-  ["documents-workspace-seed-v1"],
-  { revalidate: 20 },
+  [DOCUMENTS_WORKSPACE_SEED_TAG],
+  { revalidate: 20, tags: [DOCUMENTS_WORKSPACE_SEED_TAG] },
 );
 
 export const getDocumentsScopeUsersCached = unstable_cache(
   async (organizationId: string) => buildScopeUsersCatalog(organizationId),
-  ["documents-scope-users-v1"],
-  { revalidate: 60 },
+  [DOCUMENTS_SCOPE_USERS_TAG],
+  { revalidate: 60, tags: [DOCUMENTS_SCOPE_USERS_TAG] },
 );

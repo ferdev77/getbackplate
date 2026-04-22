@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { revalidateDocumentsCaches } from "@/modules/documents/revalidate-cache";
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
 import { analyzeUploadedFile } from "@/shared/lib/file-security";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
@@ -244,6 +245,8 @@ export async function POST(request: Request) {
     metadata: { title },
   });
 
+  revalidateDocumentsCaches();
+
   return NextResponse.json({ ok: true, documentId: createdDoc.id });
 }
 
@@ -339,6 +342,8 @@ export async function PATCH(request: Request) {
     metadata: { title },
   });
 
+  revalidateDocumentsCaches();
+
   return NextResponse.json({ ok: true, folderId: folderId ?? existing.folder_id ?? null });
 }
 
@@ -396,6 +401,8 @@ export async function DELETE(request: Request) {
     severity: "medium",
     metadata: {},
   });
+
+  revalidateDocumentsCaches();
 
   return NextResponse.json({ ok: true });
 }

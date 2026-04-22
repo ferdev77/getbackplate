@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
+import { revalidateDocumentsCaches } from "@/modules/documents/revalidate-cache";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { getEmployeesRootFolderId, isProtectedEmployeeDocumentsFolder } from "@/shared/lib/employee-documents-root-folder";
@@ -146,6 +147,8 @@ export async function POST(request: Request) {
       parent_id: parentId,
     },
   });
+
+  revalidateDocumentsCaches();
 
   return NextResponse.json({ ok: true, folderId: data.id });
 }
@@ -345,6 +348,8 @@ export async function PATCH(request: Request) {
     },
   });
 
+  revalidateDocumentsCaches();
+
   return NextResponse.json({ ok: true });
 }
 
@@ -432,6 +437,8 @@ export async function DELETE(request: Request) {
     actorId: userId,
     metadata: {},
   });
+
+  revalidateDocumentsCaches();
 
   return NextResponse.json({ ok: true });
 }
