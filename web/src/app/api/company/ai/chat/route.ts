@@ -21,6 +21,13 @@ type Complexity = "simple" | "complex";
 type Confidence = "alto" | "medio" | "bajo";
 type AssistantMode = "basic" | "basic_ai" | "pro_ai";
 
+type ResponseStyle = "short" | "normal" | "detailed";
+
+type AiUserPreferences = {
+  responseStyle?: ResponseStyle;
+  includeNextAction?: boolean;
+};
+
 type Facts = {
   employeesActive: number;
   employeesTotal: number;
@@ -69,11 +76,17 @@ type SessionMemory = {
   messages: ChatMessage[];
 };
 
+type ConversationContext = {
+  id: string;
+  status: "active" | "archived";
+};
+
 const MAX_QUESTION_LENGTH = 400;
 const REQUEST_WINDOW_MS = 60_000;
 const MAX_REQUESTS_PER_WINDOW = 20;
 const SESSION_MEMORY_TTL_MS = 30 * 60 * 1000;
 const SESSION_MEMORY_MAX_TURNS = 6;
+const PERSISTED_HISTORY_MAX_TURNS = 6;
 const FAQ_CACHE_TTL_MS = 90 * 1000;
 const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-6";
 
@@ -123,6 +136,66 @@ function normalizeHistory(raw: unknown): ChatMessage[] {
     .slice(-8);
 }
 
+function normalizeConversationId(raw: unknown) {
+  const value = String(raw ?? "").trim();
+  if (!value) return null;
+  return value.slice(0, 80);
+}
+
+function normalizeUserPreferences(raw: unknown): AiUserPreferences {
+  if (!raw || typeof raw !== "object") return {};
+  const row = raw as Record<string, unknown>;
+  const responseStyle = row.responseStyle;
+  const includeNextAction = row.includeNextAction;
+  const normalized: AiUserPreferences = {};
+  if (responseStyle === "short" || responseStyle === "normal" || responseStyle === "detailed") {
+    normalized.responseStyle = responseStyle;
+  }
+  if (typeof includeNextAction === "boolean") {
+    normalized.includeNextAction = includeNextAction;
+  }
+  return normalized;
+}
+
+function detectPreferenceUpdate(question: string): Partial<AiUserPreferences> | null {
+  const q = question.toLowerCase();
+  let hasChanges = false;
+  const next: Partial<AiUserPreferences> = {};
+
+  if (
+    q.includes("respuesta corta") ||
+    q.includes("breve") ||
+    q.includes("directo") ||
+    q.includes("sin vueltas")
+  ) {
+    next.responseStyle = "short";
+    hasChanges = true;
+  }
+
+  if (
+    q.includes("detall") ||
+    q.includes("mas contexto") ||
+    q.includes("más contexto") ||
+    q.includes("explica mas") ||
+    q.includes("explica más")
+  ) {
+    next.responseStyle = "detailed";
+    hasChanges = true;
+  }
+
+  if (q.includes("sin siguiente accion") || q.includes("sin siguiente acción")) {
+    next.includeNextAction = false;
+    hasChanges = true;
+  }
+
+  if (q.includes("con siguiente accion") || q.includes("con siguiente acción")) {
+    next.includeNextAction = true;
+    hasChanges = true;
+  }
+
+  return hasChanges ? next : null;
+}
+
 function detectIntent(question: string): AssistantIntent {
   const q = question.toLowerCase();
   if (q.includes("emplead") || q.includes("usuario") || q.includes("admin") || q.includes("administrador")) return "employees";
@@ -153,11 +226,27 @@ function detectComplexity(question: string): Complexity {
   return "simple";
 }
 
-function buildDomainPrompt(intent: AssistantIntent) {
+function buildDomainPrompt(intent: AssistantIntent, preferences: AiUserPreferences) {
+  const styleInstruction =
+    preferences.responseStyle === "short"
+      ? "Responde en maximo 2 lineas si la consulta es puntual."
+      : preferences.responseStyle === "detailed"
+        ? "Puedes ampliar contexto cuando sea util para decidir acciones."
+        : "Mantente breve, con foco operacional.";
+
+  const nextActionInstruction =
+    preferences.includeNextAction === false
+      ? "No agregues 'Siguiente accion' salvo que el usuario la pida explicitamente."
+      : "Incluye 'Siguiente accion' solo cuando aporte valor real y este vinculada a la pregunta.";
+
   const shared = [
-    "Responde siempre en español simple, concreto y corto.",
+    "Responde siempre en español simple, concreto y sin relleno.",
     "No inventes datos. Solo usa los facts entregados.",
-    "Formato obligatorio: Resumen / Dato clave / Siguiente acción.",
+    "Primero responde exactamente lo que el usuario pregunto.",
+    "Solo agrega contexto extra si mejora la respuesta.",
+    styleInstruction,
+    nextActionInstruction,
+    "Cuando corresponda usa formato: Resumen / Dato clave / Siguiente accion.",
   ];
 
   if (intent === "employees") return ["Enfoca en fuerza laboral y personal.", ...shared].join(" ");
@@ -172,13 +261,14 @@ function buildSystemPrompt(params: {
   roleCode: string;
   originModule: string;
   intent: AssistantIntent;
+  preferences: AiUserPreferences;
 }) {
   return [
     "Eres el asistente operativo de la empresa para operaciones gastronómicas.",
     `Rol de quien pregunta: ${params.roleCode}.`,
     `Módulo origen: ${params.originModule}.`,
     `Intención detectada: ${params.intent}.`,
-    buildDomainPrompt(params.intent),
+    buildDomainPrompt(params.intent, params.preferences),
     "Si la pregunta no se puede responder con facts, dilo claramente.",
   ].join(" ");
 }
@@ -191,7 +281,8 @@ function hasLowQualityAnswer(answer: string, intent: AssistantIntent) {
   const normalized = answer.trim().toLowerCase();
   if (!normalized) return true;
   if (normalized.length < 40) return true;
-  if (!normalized.includes("resumen") || !normalized.includes("dato clave") || !normalized.includes("siguiente acción")) {
+  const hasNextAction = normalized.includes("siguiente acción") || normalized.includes("siguiente accion");
+  if (!normalized.includes("resumen") || !normalized.includes("dato clave") || !hasNextAction) {
     return true;
   }
   if (intent !== "general" && normalized.includes("no tengo informacion")) {
@@ -275,6 +366,193 @@ async function setSessionMemory(memoryKey: string, history: ChatMessage[]) {
     value: payload,
     ttlSeconds: Math.ceil(SESSION_MEMORY_TTL_MS / 1000),
   });
+}
+
+async function ensureConversationContext(params: {
+  organizationId: string;
+  userId: string;
+  roleCode: string;
+  originModule: string;
+  question: string;
+  conversationId: string | null;
+}): Promise<ConversationContext | null> {
+  const supabase = await createSupabaseServerClient();
+
+  if (params.conversationId) {
+    const { data: existing } = await supabase
+      .from("ai_conversations")
+      .select("id, status")
+      .eq("id", params.conversationId)
+      .eq("organization_id", params.organizationId)
+      .eq("user_id", params.userId)
+      .maybeSingle();
+
+    if (existing?.id && (existing.status === "active" || existing.status === "archived")) {
+      if (existing.status === "archived") {
+        const { data: reopened } = await supabase
+          .from("ai_conversations")
+          .update({ status: "active", updated_at: new Date().toISOString() })
+          .eq("id", existing.id)
+          .select("id, status")
+          .maybeSingle();
+
+        if (reopened?.id) {
+          return {
+            id: reopened.id,
+            status: reopened.status as "active" | "archived",
+          };
+        }
+      }
+
+      return {
+        id: existing.id,
+        status: existing.status as "active" | "archived",
+      };
+    }
+  }
+
+  const { data: created } = await supabase
+    .from("ai_conversations")
+    .insert({
+      organization_id: params.organizationId,
+      user_id: params.userId,
+      role_code: params.roleCode,
+      origin_module: params.originModule,
+      title: params.question.slice(0, 120),
+      status: "active",
+    })
+    .select("id, status")
+    .maybeSingle();
+
+  if (!created?.id) {
+    return null;
+  }
+
+  return {
+    id: created.id,
+    status: created.status as "active" | "archived",
+  };
+}
+
+async function getPersistedConversationHistory(conversationId: string): Promise<ChatMessage[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("ai_messages")
+    .select("role, content")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: false })
+    .limit(PERSISTED_HISTORY_MAX_TURNS * 2);
+
+  if (!data?.length) return [];
+
+  return data
+    .slice()
+    .reverse()
+    .map((row): ChatMessage => ({
+      role: row.role === "assistant" ? "assistant" : "user",
+      content: String(row.content ?? "").slice(0, 500),
+    }))
+    .filter((row) => Boolean(row.content));
+}
+
+async function getUserAiPreferences(organizationId: string, userId: string): Promise<AiUserPreferences> {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("ai_user_memory")
+    .select("preferences")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  return normalizeUserPreferences(data?.preferences);
+}
+
+async function upsertUserAiPreferences(params: {
+  organizationId: string;
+  userId: string;
+  next: Partial<AiUserPreferences>;
+}) {
+  const current = await getUserAiPreferences(params.organizationId, params.userId);
+  const merged = {
+    ...current,
+    ...params.next,
+  };
+
+  const supabase = await createSupabaseServerClient();
+  await supabase.from("ai_user_memory").upsert(
+    {
+      organization_id: params.organizationId,
+      user_id: params.userId,
+      preferences: merged,
+      updated_at: new Date().toISOString(),
+    },
+    {
+      onConflict: "organization_id,user_id",
+      ignoreDuplicates: false,
+    },
+  );
+
+  return merged;
+}
+
+async function persistConversationTurn(params: {
+  conversationId: string;
+  organizationId: string;
+  userId: string;
+  question: string;
+  answer: string;
+  mode: AssistantMode;
+  confidence: Confidence;
+  provider: "anthropic" | "openrouter" | "structured";
+  modelUsed: string | null;
+  inputTokens: number;
+  outputTokens: number;
+  durationMs: number;
+}) {
+  const supabase = await createSupabaseServerClient();
+  const now = new Date().toISOString();
+
+  await supabase.from("ai_messages").insert([
+    {
+      conversation_id: params.conversationId,
+      organization_id: params.organizationId,
+      user_id: params.userId,
+      role: "user",
+      content: params.question,
+      mode: params.mode,
+      provider: params.provider,
+      model: params.modelUsed,
+      confidence: params.confidence,
+      tokens_in: params.inputTokens,
+      tokens_out: 0,
+      latency_ms: null,
+    },
+    {
+      conversation_id: params.conversationId,
+      organization_id: params.organizationId,
+      user_id: params.userId,
+      role: "assistant",
+      content: params.answer,
+      mode: params.mode,
+      provider: params.provider,
+      model: params.modelUsed,
+      confidence: params.confidence,
+      tokens_in: params.inputTokens,
+      tokens_out: params.outputTokens,
+      latency_ms: params.durationMs,
+    },
+  ]);
+
+  await supabase
+    .from("ai_conversations")
+    .update({
+      last_message_at: now,
+      updated_at: now,
+      status: "active",
+    })
+    .eq("id", params.conversationId)
+    .eq("organization_id", params.organizationId)
+    .eq("user_id", params.userId);
 }
 
 function isSensitiveQuestion(question: string) {
@@ -561,6 +839,7 @@ async function callAnthropic(params: {
   roleCode: string;
   originModule: string;
   intent: AssistantIntent;
+  preferences: AiUserPreferences;
   forceQualityPrompt?: boolean;
 }): Promise<AiResult | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -572,6 +851,7 @@ async function callAnthropic(params: {
     roleCode: params.roleCode,
     originModule: params.originModule,
     intent: params.intent,
+    preferences: params.preferences,
   });
 
   const qualityPrompt = params.forceQualityPrompt
@@ -628,6 +908,7 @@ async function callOpenRouter(params: {
   originModule: string;
   intent: AssistantIntent;
   complexity: Complexity;
+  preferences: AiUserPreferences;
   forceQualityPrompt?: boolean;
 }): Promise<AiResult | null> {
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -645,6 +926,7 @@ async function callOpenRouter(params: {
     roleCode: params.roleCode,
     originModule: params.originModule,
     intent: params.intent,
+    preferences: params.preferences,
   });
 
   const qualityPrompt = params.forceQualityPrompt
@@ -726,19 +1008,77 @@ export async function POST(request: Request) {
   const payload = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   const question = normalizeQuestion(payload?.question);
   const incomingHistory = normalizeHistory(payload?.history);
+  const incomingConversationId = normalizeConversationId(payload?.conversationId);
   const originModule = String(payload?.originModule ?? "company_panel").trim().slice(0, 60) || "company_panel";
 
   if (!question) {
     return NextResponse.json({ error: "Pregunta inválida" }, { status: 400 });
   }
 
+  let conversationContext: ConversationContext | null = null;
+  try {
+    conversationContext = await ensureConversationContext({
+      organizationId: access.tenant.organizationId,
+      userId: access.userId,
+      roleCode: access.tenant.roleCode,
+      originModule,
+      question,
+      conversationId: incomingConversationId,
+    });
+  } catch {
+    conversationContext = null;
+  }
+
+  const memoryKey = getSessionMemoryKey(access.tenant.organizationId, access.userId);
+  let userPreferences: AiUserPreferences = {};
+  try {
+    userPreferences = await getUserAiPreferences(access.tenant.organizationId, access.userId);
+    const prefUpdate = detectPreferenceUpdate(question);
+    if (prefUpdate) {
+      userPreferences = await upsertUserAiPreferences({
+        organizationId: access.tenant.organizationId,
+        userId: access.userId,
+        next: prefUpdate,
+      });
+    }
+  } catch {
+    userPreferences = {};
+  }
+
   if (isSensitiveQuestion(question)) {
+    const sensitiveAnswer =
+      "Resumen: no puedo responder esa consulta por seguridad.\nDato clave: la pregunta incluye datos sensibles o fuera de alcance.\nSiguiente accion: formula una consulta operativa (empleados, checklists, documentos o modulos).\n\n(Modo estructurado)\nConfianza: alto";
+
+    try {
+      const assistantMessage: ChatMessage = { role: "assistant", content: sensitiveAnswer };
+      const history = await getSessionMemory(memoryKey, incomingHistory);
+      await setSessionMemory(memoryKey, [...history, { role: "user", content: question }, assistantMessage]);
+      if (conversationContext?.id) {
+        await persistConversationTurn({
+          conversationId: conversationContext.id,
+          organizationId: access.tenant.organizationId,
+          userId: access.userId,
+          question,
+          answer: sensitiveAnswer,
+          mode: "basic",
+          confidence: "alto",
+          provider: "structured",
+          modelUsed: null,
+          inputTokens: 0,
+          outputTokens: 0,
+          durationMs: Date.now() - startedAt,
+        });
+      }
+    } catch {
+      // noop
+    }
+
     return NextResponse.json({
-      answer:
-        "Resumen: no puedo responder esa consulta por seguridad.\nDato clave: la pregunta incluye datos sensibles o fuera de alcance.\nSiguiente acción: formula una consulta operativa (empleados, checklists, documentos o módulos).\n\n(Modo estructurado)\nConfianza: alto",
+      answer: sensitiveAnswer,
       mode: "basic",
       confidence: "alto",
       hasRealAi: false,
+      conversationId: conversationContext?.id ?? null,
     });
   }
 
@@ -746,8 +1086,11 @@ export async function POST(request: Request) {
   const intent = detectIntent(question);
   const complexity = detectComplexity(question);
 
-  const memoryKey = getSessionMemoryKey(access.tenant.organizationId, access.userId);
-  const history = await getSessionMemory(memoryKey, incomingHistory);
+  const persistedHistory = !incomingHistory.length && conversationContext?.id
+    ? await getPersistedConversationHistory(conversationContext.id)
+    : [];
+  const historySource = incomingHistory.length ? incomingHistory : persistedHistory;
+  const history = await getSessionMemory(memoryKey, historySource);
 
   const canUseFaqCache = history.length <= 1;
   const cacheKey = buildFaqCacheKey({
@@ -788,6 +1131,28 @@ export async function POST(request: Request) {
           cached: true,
         },
       });
+
+      if (conversationContext?.id) {
+        try {
+          await persistConversationTurn({
+            conversationId: conversationContext.id,
+            organizationId: access.tenant.organizationId,
+            userId: access.userId,
+            question,
+            answer: cached.answer,
+            mode: cached.mode,
+            confidence: cached.confidence,
+            provider: cached.provider,
+            modelUsed: cached.model,
+            inputTokens: 0,
+            outputTokens: 0,
+            durationMs: Date.now() - startedAt,
+          });
+        } catch {
+          // noop
+        }
+      }
+
       return NextResponse.json({
         answer: cached.answer,
         mode: cached.mode,
@@ -798,6 +1163,7 @@ export async function POST(request: Request) {
         provider: cached.provider,
         model: cached.model,
         cached: true,
+        conversationId: conversationContext?.id ?? null,
       });
     }
   }
@@ -821,6 +1187,7 @@ export async function POST(request: Request) {
         originModule,
         intent,
         complexity,
+        preferences: userPreferences,
       }),
     () =>
       callOpenRouter({
@@ -831,6 +1198,7 @@ export async function POST(request: Request) {
         originModule,
         intent,
         complexity,
+        preferences: userPreferences,
         forceQualityPrompt: true,
       }),
     intent,
@@ -855,6 +1223,7 @@ export async function POST(request: Request) {
           roleCode: access.tenant.roleCode,
           originModule,
           intent,
+          preferences: userPreferences,
         }),
       () =>
         callAnthropic({
@@ -864,6 +1233,7 @@ export async function POST(request: Request) {
           roleCode: access.tenant.roleCode,
           originModule,
           intent,
+          preferences: userPreferences,
           forceQualityPrompt: true,
         }),
       intent,
@@ -895,6 +1265,27 @@ export async function POST(request: Request) {
   }
 
   const durationMs = Date.now() - startedAt;
+
+  if (conversationContext?.id) {
+    try {
+      await persistConversationTurn({
+        conversationId: conversationContext.id,
+        organizationId: access.tenant.organizationId,
+        userId: access.userId,
+        question,
+        answer,
+        mode,
+        confidence,
+        provider,
+        modelUsed,
+        inputTokens,
+        outputTokens,
+        durationMs,
+      });
+    } catch {
+      // noop
+    }
+  }
 
   await logAuditEvent({
     action: "ai_assistant.chat.query",
@@ -937,5 +1328,6 @@ export async function POST(request: Request) {
     model: modelUsed,
     durationMs,
     cached: false,
+    conversationId: conversationContext?.id ?? null,
   });
 }

@@ -1872,7 +1872,7 @@ export function CompanyShell({
       ) : null}
 
       {enabledModuleSet.has("ai_assistant") ? (
-        <FloatingAiAssistant currentPlanCode={currentPlanCode} userName={sessionUserName} />
+        <FloatingAiAssistant currentPlanCode={currentPlanCode} userName={sessionUserName} tenantId={tenantId} userKey={sessionUserEmail} />
       ) : null}
 
       {feedbackOpen ? (

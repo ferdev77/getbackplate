@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Bot, Send, Sparkles, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 
@@ -12,9 +12,11 @@ type Message = {
 type FloatingAiAssistantProps = {
   currentPlanCode: string | null;
   userName: string;
+  tenantId: string;
+  userKey: string;
 };
 
-export function FloatingAiAssistant({ currentPlanCode, userName }: FloatingAiAssistantProps) {
+export function FloatingAiAssistant({ currentPlanCode, userName, tenantId, userKey }: FloatingAiAssistantProps) {
   const pathname = usePathname();
   const isEmployeesPage = pathname.startsWith("/app/employees");
   const launcherBottomClass = isEmployeesPage ? "bottom-[66px]" : "bottom-[34px]";
@@ -22,6 +24,8 @@ export function FloatingAiAssistant({ currentPlanCode, userName }: FloatingAiAss
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const storageKey = useMemo(() => `gb.ai.conversation.${tenantId}.${userKey || "anon"}`, [tenantId, userKey]);
   const displayName = userName.trim().split(/\s+/)[0] || "";
   const planIntro = currentPlanCode === "pro"
     ? "Puedo ayudarte con análisis y consultas avanzadas de tu operación."
@@ -32,6 +36,22 @@ export function FloatingAiAssistant({ currentPlanCode, userName }: FloatingAiAss
       content: `Hola${displayName ? ` ${displayName}` : ""}, soy tu asistente IA. ${planIntro} ¿En qué puedo ayudarte hoy?`,
     },
   ]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem(storageKey);
+    setConversationId(stored ? stored.slice(0, 80) : null);
+  }, [storageKey]);
+
+  function syncConversationId(nextId: string | null) {
+    setConversationId(nextId);
+    if (typeof window === "undefined") return;
+    if (!nextId) {
+      window.localStorage.removeItem(storageKey);
+      return;
+    }
+    window.localStorage.setItem(storageKey, nextId);
+  }
 
   async function sendQuestion() {
     const question = input.trim();
@@ -49,6 +69,7 @@ export function FloatingAiAssistant({ currentPlanCode, userName }: FloatingAiAss
         body: JSON.stringify({
           question,
           history: nextMessages.slice(-8),
+          conversationId,
           originModule: pathname,
         }),
       });
@@ -58,10 +79,22 @@ export function FloatingAiAssistant({ currentPlanCode, userName }: FloatingAiAss
         error?: string;
         mode?: "basic" | "basic_ai" | "pro_ai";
         confidence?: "alto" | "medio" | "bajo";
+        conversationId?: string | null;
       };
 
+      if (data.conversationId && data.conversationId !== conversationId) {
+        syncConversationId(data.conversationId);
+      }
+
       if (!response.ok) {
-        throw new Error(data.error || "No pude procesar tu consulta");
+        const statusHint = response.status === 429
+          ? "Limite de consultas por minuto alcanzado."
+          : response.status === 403
+            ? "No tienes permisos para usar el asistente IA en este modulo."
+            : response.status === 402
+              ? "El modulo de IA no esta habilitado en tu plan actual."
+              : null;
+        throw new Error(data.error || statusHint || "No pude procesar tu consulta");
       }
 
       const suffix =

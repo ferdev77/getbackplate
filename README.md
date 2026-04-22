@@ -87,7 +87,7 @@ Guia canonica de estos flujos:
 
 - **IA (Anthropic/OpenRouter)**
   - Endpoint principal: `web/src/app/api/company/ai/chat/route.ts`
-  - Variables principales: `ANTHROPIC_API_KEY` (principal) y `OPENROUTER_API_KEY` (fallback)
+  - Variables principales: `OPENROUTER_API_KEY` (principal) y `ANTHROPIC_API_KEY` (fallback)
 
 - **Upstash Redis (rate limit/cache opcional)**
   - Variables: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
@@ -170,3 +170,4 @@ Nota: en algunos pedidos aparece `-all`, pero la forma valida en Git es `--all`.
 - Tenant lifecycle (alta/baja): `DOCS/4_Operaciones_y_Guias/TENANT_OPS_GUIDE.md`
 - Custom Domains (estado actual + runbook + checklists): `DOCS/4_Operaciones_y_Guias/GUIA_CUSTOM_DOMAINS.md`
 - Separacion de documentos laborales vs operativos: `DOCS/4_Operaciones_y_Guias/GUIA_SEPARACION_DOCUMENTOS_LABORALES_OPERATIVOS.md`
+- Politica interna del asistente IA: `DOCS/4_Operaciones_y_Guias/POLITICA_INTERNA_ASISTENTE_IA.md`

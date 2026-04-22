@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { type CSSProperties, type ReactNode } from "react";
-import { type LucideIcon } from "lucide-react";
+import { type CSSProperties, type ComponentType, type ReactNode } from "react";
 
 import { TooltipLabel } from "@/shared/ui/tooltip";
 
 type BaseProps = {
-  icon: LucideIcon;
+  icon: ComponentType<{ className?: string }>;
   label: string;
   collapsed: boolean;
   className: string;
