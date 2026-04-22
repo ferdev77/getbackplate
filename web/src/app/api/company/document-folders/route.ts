@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { getEmployeesRootFolderId, isProtectedEmployeeDocumentsFolder } from "@/shared/lib/employee-documents-root-folder";
 import { normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
 
 async function requireContext() {
@@ -57,6 +58,11 @@ export async function POST(request: Request) {
 
   if (!name) {
     return NextResponse.json({ error: "Nombre de carpeta requerido" }, { status: 400 });
+  }
+
+  const employeesRootFolderId = await getEmployeesRootFolderId(tenant.organizationId);
+  if (parentId && employeesRootFolderId && parentId === employeesRootFolderId) {
+    return NextResponse.json({ error: "No se pueden crear carpetas manuales dentro de Carpetas de empleados" }, { status: 403 });
   }
 
   if (parentId) {
@@ -181,8 +187,33 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Carpeta inválida" }, { status: 400 });
   }
 
+  const [{ data: targetFolder }, employeesRootFolderId] = await Promise.all([
+    supabase
+      .from("document_folders")
+      .select("id, parent_id, access_scope")
+      .eq("organization_id", tenant.organizationId)
+      .eq("id", folderId)
+      .maybeSingle(),
+    getEmployeesRootFolderId(tenant.organizationId),
+  ]);
+
+  if (!targetFolder) {
+    return NextResponse.json({ error: "Carpeta no encontrada" }, { status: 404 });
+  }
+
+  if (isProtectedEmployeeDocumentsFolder(targetFolder, employeesRootFolderId)) {
+    return NextResponse.json(
+      { error: "Las carpetas de empleados protegidas no se pueden editar, mover o renombrar" },
+      { status: 403 },
+    );
+  }
+
   if (parentId !== undefined && parentId === folderId) {
     return NextResponse.json({ error: "Una carpeta no puede ser su propio padre" }, { status: 400 });
+  }
+
+  if (parentId && employeesRootFolderId && parentId === employeesRootFolderId) {
+    return NextResponse.json({ error: "No se pueden crear o mover carpetas manuales dentro de Carpetas de empleados" }, { status: 403 });
   }
 
   if (parentId !== undefined && parentId) {
@@ -327,6 +358,24 @@ export async function DELETE(request: Request) {
 
   if (!folderId) {
     return NextResponse.json({ error: "Carpeta inválida" }, { status: 400 });
+  }
+
+  const [{ data: targetFolder }, employeesRootFolderId] = await Promise.all([
+    supabase
+      .from("document_folders")
+      .select("id, parent_id, access_scope")
+      .eq("organization_id", tenant.organizationId)
+      .eq("id", folderId)
+      .maybeSingle(),
+    getEmployeesRootFolderId(tenant.organizationId),
+  ]);
+
+  if (!targetFolder) {
+    return NextResponse.json({ error: "Carpeta no encontrada" }, { status: 404 });
+  }
+
+  if (isProtectedEmployeeDocumentsFolder(targetFolder, employeesRootFolderId)) {
+    return NextResponse.json({ error: "No se pueden eliminar carpetas protegidas de empleados" }, { status: 403 });
   }
 
   const [{ data: childFolders }, { data: childDocs }] = await Promise.all([

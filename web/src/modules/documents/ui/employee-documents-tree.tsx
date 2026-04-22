@@ -571,7 +571,8 @@ export function EmployeeDocumentsTree({
         throw new Error(data.error || "No se pudo mover la carpeta");
       }
       if (data.parentId !== undefined) {
-        setFolderRows((prev) => prev.map((row) => (row.id === folderId ? { ...row, parent_id: data.parentId } : row)));
+        const resolvedParentId = data.parentId ?? null;
+        setFolderRows((prev) => prev.map((row) => (row.id === folderId ? { ...row, parent_id: resolvedParentId } : row)));
       }
       logDnd("move-folder:ok", { folderId, targetFolderId });
       router.refresh();

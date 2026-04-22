@@ -13,7 +13,7 @@ import { DocumentViewModeToggle } from "@/shared/ui/document-view-mode-toggle";
 import { OperationHeaderCard } from "@/shared/ui/operation-header-card";
 import { PageContent } from "@/shared/ui/page-content";
 
-type Folder = { id: string; name: string; parent_id: string | null; access_scope: unknown; created_at: string };
+type Folder = { id: string; name: string; parent_id: string | null; access_scope: unknown; created_at: string; created_by?: string | null };
 type Document = {
   id: string;
   title: string;

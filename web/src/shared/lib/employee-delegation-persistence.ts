@@ -45,7 +45,7 @@ export async function syncDelegatedEmployeePermissions(input: {
     return { error: `No se pudieron guardar permisos delegados: ${error.message}` };
   }
 
-  if (input.permissions.documents.create) {
+  if (input.permissions.documents.create || input.permissions.documents.edit || input.permissions.documents.delete) {
     const { data: membership } = await admin
       .from("memberships")
       .select("user_id")
