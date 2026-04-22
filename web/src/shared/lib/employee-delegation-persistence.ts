@@ -1,4 +1,5 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { revalidateDocumentsCaches } from "@/modules/documents/revalidate-cache";
 import {
   EMPLOYEE_PERMISSION_MODULES,
   getEmptyEmployeeDelegatedPermissions,
@@ -76,6 +77,8 @@ export async function syncDelegatedEmployeePermissions(input: {
     }
   }
 
+  revalidateDocumentsCaches();
+
   return { error: null as string | null };
 }
 
@@ -90,6 +93,8 @@ export async function clearDelegatedEmployeePermissionsByMembership(organization
   if (error) {
     return { error: `No se pudieron limpiar permisos delegados: ${error.message}` };
   }
+
+  revalidateDocumentsCaches();
 
   return { error: null as string | null };
 }
