@@ -4,6 +4,7 @@ import { isEmployeePrivateDocument } from "@/shared/lib/employee-private-documen
 import { requireEmployeeModule } from "@/shared/lib/access";
 import { EmployeeDocumentsTree } from "@/modules/documents/ui/employee-documents-tree";
 import { getEmployeeDelegatedPermissionsByMembership } from "@/shared/lib/employee-module-permissions";
+import { getSystemFolderType } from "@/shared/lib/employee-documents-folders-contract";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { getEnabledModulesCached } from "@/modules/organizations/cached-queries";
 import { getBranchDisplayName } from "@/shared/lib/branch-display";
@@ -162,7 +163,27 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
     }
   }
 
-  const finalFolders = (folders ?? []).filter((f) => visibleFolderIds.has(f.id));
+  const systemFolderIds = new Set(
+    (folders ?? [])
+      .filter((folder) => {
+        const systemType = getSystemFolderType(folder.access_scope);
+        return systemType === "employees_root" || systemType === "employee_home";
+      })
+      .map((folder) => folder.id),
+  );
+
+  const visibleFolders = (folders ?? []).filter((folder) => visibleFolderIds.has(folder.id) && !systemFolderIds.has(folder.id));
+  const visibleFolderIdSet = new Set(visibleFolders.map((folder) => folder.id));
+
+  const finalFolders = visibleFolders.map((folder) => ({
+    ...folder,
+    parent_id: folder.parent_id && visibleFolderIdSet.has(folder.parent_id) ? folder.parent_id : null,
+  }));
+
+  const normalizedDocuments = visibleDocuments.map((doc) => ({
+    ...doc,
+    folder_id: doc.folder_id && visibleFolderIdSet.has(doc.folder_id) ? doc.folder_id : null,
+  }));
 
   return (
     <>
@@ -170,9 +191,9 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
         organizationId={tenant.organizationId}
         viewerUserId={userId}
         folders={finalFolders}
-        documents={visibleDocuments.map((doc, i) => ({
+        documents={normalizedDocuments.map((doc, i) => ({
           ...doc,
-          is_new: i < 2, 
+          is_new: i < 2,
         }))}
         initialViewMode={initialViewMode}
         canCreate={delegatedPermissions.documents.create}
@@ -185,7 +206,7 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
         departments={departments ?? []}
         positions={positions ?? []}
         users={scopeUsers}
-        recentDocuments={visibleDocuments.slice(0, 6).map((doc) => ({
+        recentDocuments={normalizedDocuments.slice(0, 6).map((doc) => ({
           id: doc.id,
           title: doc.title,
           branch_id: doc.branch_id,
