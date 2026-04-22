@@ -4,7 +4,11 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
 import { ensureEmployeeDocumentsRootFolder } from "@/shared/lib/employee-documents-root-folder";
 import { logAuditEvent } from "@/shared/lib/audit";
-import { normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
+import {
+  normalizeScopeSelection,
+  validateEmployeeUserScopeWithinLocations,
+  validateTenantScopeReferences,
+} from "@/shared/lib/scope-validation";
 import { enforceLocationPolicy } from "@/shared/lib/scope-policy";
 
 async function resolveEmployeeScope(organizationId: string, userId: string) {
@@ -115,6 +119,17 @@ export async function POST(request: Request) {
 
   if (!scopeValidation.ok) {
     return NextResponse.json({ error: "El alcance seleccionado no es válido" }, { status: 400 });
+  }
+
+  const userScopePolicy = await validateEmployeeUserScopeWithinLocations({
+    supabase: admin,
+    organizationId: access.tenant.organizationId,
+    userIds: effectiveScope.users,
+    allowedLocationIds: locationPolicy.locations,
+  });
+
+  if (!userScopePolicy.ok) {
+    return NextResponse.json({ error: "Solo puedes agregar usuarios de tus ubicaciones permitidas" }, { status: 400 });
   }
 
   const { data, error } = await admin

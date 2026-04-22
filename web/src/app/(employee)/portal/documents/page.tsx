@@ -2,10 +2,10 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { canReadDocumentInTenant } from "@/shared/lib/document-access";
 import { isEmployeePrivateDocument } from "@/shared/lib/employee-private-documents";
 import { requireEmployeeModule } from "@/shared/lib/access";
+import { getDocumentsScopeUsersCached, getDocumentsWorkspaceSeedCached } from "@/modules/documents/cached-queries";
 import { EmployeeDocumentsTree } from "@/modules/documents/ui/employee-documents-tree";
 import { getEmployeeDelegatedPermissionsByMembership } from "@/shared/lib/employee-module-permissions";
 import { getSystemFolderType } from "@/shared/lib/employee-documents-folders-contract";
-import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { getEnabledModulesCached } from "@/modules/organizations/cached-queries";
 import { getBranchDisplayName } from "@/shared/lib/branch-display";
 
@@ -55,41 +55,12 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
     employeePositionIds = (positionRows ?? []).map((row) => row.id);
   }
 
-  const [{ data: folders }, { data: documents }, { data: branches }, { data: departments }, { data: positions }, scopeUsers] = await Promise.all([
-    supabase
-      .from("document_folders")
-      .select("id, name, parent_id, access_scope, created_at, created_by")
-      .eq("organization_id", tenant.organizationId)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("documents")
-      .select("id, title, mime_type, file_size_bytes, folder_id, created_at, branch_id, access_scope, owner_user_id")
-.is('deleted_at', null)
-      .eq("organization_id", tenant.organizationId)
-      .order("created_at", { ascending: false })
-      .limit(300),
-    supabase
-      .from("branches")
-      .select("id, name, city")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("name"),
-    supabase
-      .from("organization_departments")
-      .select("id, name")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("name"),
-    supabase
-      .from("department_positions")
-      .select("id, department_id, name")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("name"),
-    buildScopeUsersCatalog(tenant.organizationId),
+  const [{ folders, documents, branches, departments, positions }, scopeUsers] = await Promise.all([
+    getDocumentsWorkspaceSeedCached(tenant.organizationId),
+    getDocumentsScopeUsersCached(tenant.organizationId),
   ]);
 
-  const visibleDocumentIds = (documents ?? []).map((doc) => doc.id);
+  const visibleDocumentIds = documents.map((doc) => doc.id);
   let employeeDomainDocumentIds = new Set<string>();
 
   if (visibleDocumentIds.length > 0) {
@@ -115,7 +86,7 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
     }
   }
 
-  const folderById = new Map((folders ?? []).map((f) => [f.id, f]));
+  const folderById = new Map(folders.map((f) => [f.id, f]));
 
   const visibleDocuments = (documents ?? []).filter((doc) => {
     if (employeeDomainDocumentIds.has(doc.id)) {
@@ -143,7 +114,7 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
 
   const visibleFolderIds = new Set<string>();
 
-  (folders ?? []).forEach((folder) => {
+  folders.forEach((folder) => {
     const isValid = canReadDocumentInTenant({
       roleCode: tenant.roleCode,
       userId,
@@ -167,7 +138,7 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
   }
 
   const systemFolderIds = new Set(
-    (folders ?? [])
+    folders
       .filter((folder) => {
         const systemType = getSystemFolderType(folder.access_scope);
         return systemType === "employees_root" || systemType === "employee_home";
@@ -175,7 +146,7 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
       .map((folder) => folder.id),
   );
 
-  const visibleFolders = (folders ?? []).filter((folder) => visibleFolderIds.has(folder.id) && !systemFolderIds.has(folder.id));
+  const visibleFolders = folders.filter((folder) => visibleFolderIds.has(folder.id) && !systemFolderIds.has(folder.id));
   const visibleFolderIdSet = new Set(visibleFolders.map((folder) => folder.id));
 
   const finalFolders = visibleFolders.map((folder) => ({
@@ -202,12 +173,12 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
         canCreate={delegatedPermissions.documents.create}
         canEdit={delegatedPermissions.documents.edit}
         canDelete={delegatedPermissions.documents.delete}
-        branches={(branches ?? []).map((branch) => ({
+        branches={branches.map((branch) => ({
           ...branch,
           name: getBranchDisplayName(branch, customBrandingEnabled),
         }))}
-        departments={departments ?? []}
-        positions={positions ?? []}
+        departments={departments}
+        positions={positions}
         users={scopeUsers}
         recentDocuments={normalizedDocuments.slice(0, 6).map((doc) => ({
           id: doc.id,

@@ -29,6 +29,7 @@ El alcance final siempre se resuelve asi:
 
 - `users` siempre suma alcance como excepcion explicita.
 - Un usuario incluido en `users` recibe acceso aunque no cumpla filtros de depto/puesto.
+- Regla para contexto empleado: solo se pueden agregar usuarios que pertenezcan a sus ubicaciones permitidas.
 
 ## Comportamiento de lectura
 
@@ -68,6 +69,7 @@ Todos los formularios que configuran alcance deben mostrar:
 - Validacion de referencias de alcance (ubicaciones/deptos/puestos/usuarios).
 - Validacion de ubicaciones permitidas por actor.
 - Rechazo explicito cuando se intenta seleccionar ubicaciones fuera de alcance.
+- En rutas de empleado, validacion extra de `users` para bloquear usuarios fuera de sus ubicaciones permitidas.
 
 ## Cobertura
 

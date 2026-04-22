@@ -4,7 +4,11 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
 import { buildAnnouncementAudienceRows } from "@/modules/announcements/lib/scope";
 import { logAuditEvent } from "@/shared/lib/audit";
-import { normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
+import {
+  normalizeScopeSelection,
+  validateEmployeeUserScopeWithinLocations,
+  validateTenantScopeReferences,
+} from "@/shared/lib/scope-validation";
 import { enforceLocationPolicy } from "@/shared/lib/scope-policy";
 
 function normalizeKind(kind: string) {
@@ -110,6 +114,17 @@ export async function POST(request: Request) {
 
   if (!scopeValidation.ok) {
     return NextResponse.json({ error: "El alcance seleccionado no es válido" }, { status: 400 });
+  }
+
+  const userScopePolicy = await validateEmployeeUserScopeWithinLocations({
+    supabase: admin,
+    organizationId: access.tenant.organizationId,
+    userIds: scope.users,
+    allowedLocationIds: locationPolicy.locations,
+  });
+
+  if (!userScopePolicy.ok) {
+    return NextResponse.json({ error: "Solo puedes agregar usuarios de tus ubicaciones permitidas" }, { status: 400 });
   }
 
   const { data: created, error } = await admin
@@ -246,6 +261,17 @@ export async function PATCH(request: Request) {
 
   if (!scopeValidation.ok) {
     return NextResponse.json({ error: "El alcance seleccionado no es válido" }, { status: 400 });
+  }
+
+  const userScopePolicy = await validateEmployeeUserScopeWithinLocations({
+    supabase: admin,
+    organizationId: access.tenant.organizationId,
+    userIds: scope.users,
+    allowedLocationIds: locationPolicy.locations,
+  });
+
+  if (!userScopePolicy.ok) {
+    return NextResponse.json({ error: "Solo puedes agregar usuarios de tus ubicaciones permitidas" }, { status: 400 });
   }
 
   const { error } = await admin
