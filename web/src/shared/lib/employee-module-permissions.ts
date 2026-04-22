@@ -41,6 +41,9 @@ export function normalizeEmployeeDelegatedPermissions(input: unknown): EmployeeD
     };
   }
 
+  base.ai_assistant.edit = false;
+  base.ai_assistant.delete = false;
+
   return base;
 }
 
@@ -71,6 +74,9 @@ export async function getEmployeeDelegatedPermissionsByMembership(
     };
   }
 
+  result.ai_assistant.edit = false;
+  result.ai_assistant.delete = false;
+
   return result;
 }
 
@@ -79,5 +85,8 @@ export function hasEmployeeDelegatedCapability(
   moduleCode: EmployeePermissionModuleCode,
   capability: EmployeePermissionCapability,
 ) {
+  if (moduleCode === "ai_assistant" && capability !== "create") {
+    return false;
+  }
   return permissions[moduleCode]?.[capability] === true;
 }

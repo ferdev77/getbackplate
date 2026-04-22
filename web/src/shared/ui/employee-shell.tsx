@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
-import { ChevronDown, LayoutDashboard, ClipboardList, Folder, Bell, FileText, PanelsLeftRight, LogOut, Menu, Trash2, User, type LucideIcon } from "lucide-react";
+import { ChevronDown, LayoutDashboard, ClipboardList, Folder, Bell, FileText, FileBarChart, PanelsLeftRight, LogOut, Menu, Trash2, User, type LucideIcon } from "lucide-react";
 import { NewEmployeeModal, type EmployeeModalInitialData, type ModalBranch, type ModalDepartment, type ModalPosition } from "@/modules/employees/ui/new-employee-modal";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
 import { GetBackplateMark } from "@/shared/ui/getbackplate-mark";
@@ -40,6 +40,7 @@ type EmployeeShellProps = {
     ai_assistant: boolean;
   };
   canDeleteDocuments: boolean;
+  canCreateChecklistReports: boolean;
   customBrandingEnabled: boolean;
   companyLogoUrl: string;
   employeeProfile: EmployeeModalInitialData;
@@ -80,6 +81,7 @@ export function EmployeeShell({
   checklistTemplateNames,
   enabledModules,
   canDeleteDocuments,
+  canCreateChecklistReports,
   customBrandingEnabled,
   companyLogoUrl,
   employeeProfile,
@@ -97,9 +99,10 @@ export function EmployeeShell({
   const [collapsed, setCollapsed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
-  const [documentsMenuOpen, setDocumentsMenuOpen] = useState(
-    pathname.startsWith("/portal/documents") || pathname.startsWith("/portal/trash"),
-  );
+  const [submenuOpenByParent, setSubmenuOpenByParent] = useState<Record<string, boolean>>({
+    "/portal/documents": pathname.startsWith("/portal/documents") || pathname.startsWith("/portal/trash"),
+    "/portal/checklist": pathname.startsWith("/portal/checklist/reports"),
+  });
 
   // Realtime: auto-refresh when employee portal scoped data changes
   useEffect(() => {
@@ -272,7 +275,14 @@ export function EmployeeShell({
       result.push({ href: "/portal/announcements", label: "Avisos", icon: Bell });
     }
     if (enabledModules.checklists) {
-      result.push({ href: "/portal/checklist", label: "Checklists", icon: ClipboardList });
+      result.push({
+        href: "/portal/checklist",
+        label: "Checklists",
+        icon: ClipboardList,
+        children: canCreateChecklistReports
+          ? [{ href: "/portal/checklist/reports", label: "Reportes", icon: FileBarChart }]
+          : [],
+      });
     }
     if (enabledModules.documents) {
       result.push({
@@ -286,7 +296,7 @@ export function EmployeeShell({
       result.push({ href: "/portal/onboarding", label: "Instrucciones", icon: FileText });
     }
     return result;
-  }, [canDeleteDocuments, enabledModules.announcements, enabledModules.checklists, enabledModules.documents, enabledModules.onboarding]);
+  }, [canCreateChecklistReports, canDeleteDocuments, enabledModules.announcements, enabledModules.checklists, enabledModules.documents, enabledModules.onboarding]);
 
   const sidebarWidth = collapsed ? "w-[56px]" : "w-[240px]";
   const sidebarPaddingX = collapsed ? "px-2" : "px-4";
@@ -393,8 +403,7 @@ export function EmployeeShell({
                 const childActive = item.children?.some((child) => pathname.startsWith(child.href)) ?? false;
                 const active = pathname.startsWith(item.href) || childActive;
                 const hasChildren = Boolean(item.children?.length);
-                const isDocumentsGroup = item.href === "/portal/documents";
-                const isExpanded = isDocumentsGroup ? documentsMenuOpen : false;
+                const isExpanded = hasChildren ? (submenuOpenByParent[item.href] ?? childActive) : false;
                 return (
                   <div key={item.href}>
                     <CollapsibleSidebarNavItem
@@ -431,12 +440,13 @@ export function EmployeeShell({
                               onClick={(event) => {
                                 event.preventDefault();
                                 event.stopPropagation();
-                                if (isDocumentsGroup) {
-                                  setDocumentsMenuOpen((prev) => !prev);
-                                }
+                                setSubmenuOpenByParent((prev) => ({
+                                  ...prev,
+                                  [item.href]: !(prev[item.href] ?? childActive),
+                                }));
                               }}
                               className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-md text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"
-                              aria-label={isExpanded ? "Ocultar submenu de documentos" : "Mostrar submenu de documentos"}
+                              aria-label={isExpanded ? `Ocultar submenu de ${item.label}` : `Mostrar submenu de ${item.label}`}
                             >
                               <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : "rotate-0"}`} />
                             </button>

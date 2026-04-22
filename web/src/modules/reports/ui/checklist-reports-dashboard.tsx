@@ -95,6 +95,7 @@ type ChecklistReportsDashboardProps = {
   reports: ChecklistReportView[];
   attentionFeed: AttentionFeedItem[];
   deferredDataUrl?: string;
+  reviewEndpoint?: string;
 };
 
 const REPORTS_POLL_MS = 3000;
@@ -114,6 +115,7 @@ export function ChecklistReportsDashboard({
   reports,
   attentionFeed,
   deferredDataUrl,
+  reviewEndpoint = "/api/company/checklists/review",
 }: ChecklistReportsDashboardProps) {
   const router = useRouter();
   const [generatedLabel, setGeneratedLabel] = useState(generatedAt);
@@ -298,7 +300,7 @@ export function ChecklistReportsDashboard({
     setReviewError("");
     setIsReviewing(true);
 
-    const response = await fetch("/api/company/checklists/review", {
+    const response = await fetch(reviewEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ submissionId: selectedReport.id }),

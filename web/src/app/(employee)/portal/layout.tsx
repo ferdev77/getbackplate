@@ -667,6 +667,7 @@ export default async function EmployeeLayout({
         ai_assistant: isAiAssistantEnabled,
       }}
       canDeleteDocuments={delegatedPermissions.documents.delete}
+      canCreateChecklistReports={delegatedPermissions.checklists.create}
       customBrandingEnabled={customBrandingEnabled}
       companyLogoUrl={brandingSettings?.company_logo_url ?? ""}
       employeeProfile={employeeProfile}
