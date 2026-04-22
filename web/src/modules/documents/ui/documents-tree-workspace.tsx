@@ -15,6 +15,7 @@ import { FolderEditModal } from "@/modules/documents/ui/folder-edit-modal";
 import { DocumentShareByEmailModal } from "@/modules/documents/ui/document-share-by-email-modal";
 import { DocumentShareAccessModal } from "@/modules/documents/ui/document-share-access-modal";
 import { DocumentPreviewPanel } from "@/modules/documents/ui/document-preview-panel";
+import { getSystemFolderType } from "@/shared/lib/employee-documents-folders-contract";
 
 type FolderRow = {
   id: string;
@@ -22,6 +23,7 @@ type FolderRow = {
   parent_id: string | null;
   access_scope: unknown;
   created_at: string;
+  created_by?: string | null;
 };
 
 type DocumentRow = {
@@ -266,6 +268,17 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
 
   const folderOptions = useMemo(() => folderRows.map((row) => ({ id: row.id, name: row.name })), [folderRows]);
   const folderById = useMemo(() => new Map(folderRows.map((row) => [row.id, row])), [folderRows]);
+  const employeesRootFolderId = useMemo(
+    () => folderRows.find((row) => getSystemFolderType(row.access_scope) === "employees_root")?.id ?? null,
+    [folderRows],
+  );
+
+  const isProtectedFolder = useCallback((folder: FolderRow) => {
+    const systemType = getSystemFolderType(folder.access_scope);
+    if (systemType === "employees_root" || systemType === "employee_home") return true;
+    if (employeesRootFolderId && folder.id === employeesRootFolderId) return true;
+    return Boolean(employeesRootFolderId && folder.parent_id === employeesRootFolderId);
+  }, [employeesRootFolderId]);
 
   function getEffectiveDocumentScope(doc: DocumentRow) {
     if (!doc.folder_id) return parseScope(doc.access_scope);
@@ -527,6 +540,15 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
 
   async function moveFolderToFolder(folderId: string, parentId: string | null) {
     logDnd("move-folder:start", { folderId, parentId });
+    const movingFolder = folderRows.find((row) => row.id === folderId);
+    if (movingFolder && isProtectedFolder(movingFolder)) {
+      toast.error("No se pueden mover carpetas protegidas de empleados");
+      return;
+    }
+    if (parentId && employeesRootFolderId && parentId === employeesRootFolderId) {
+      toast.error("No puedes mover carpetas manuales dentro de Carpetas de empleados");
+      return;
+    }
     if (folderId === parentId) {
       toast.error("No puedes mover una carpeta dentro de si misma");
       return;
@@ -674,8 +696,9 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
           <div className="border-b border-[var(--gbp-border)]">
             <div
               className={`grid grid-cols-[1fr_auto] md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px] items-center gap-2 px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)] ${dropFolderId === folder.id ? "bg-[var(--gbp-accent-glow)] ring-1 ring-inset ring-[var(--gbp-accent)]" : ""}`}
-              draggable
+              draggable={!isProtectedFolder(folder)}
               onDragStart={(event) => {
+                if (isProtectedFolder(folder)) return;
                 dragMetaRef.current = { kind: "folder", id: folder.id };
                 event.dataTransfer.setData("application/x-folder-id", folder.id);
                 event.dataTransfer.effectAllowed = "move";
@@ -753,9 +776,9 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
               </div>
               {/* Acciones */}
               <div className="flex items-center justify-end gap-1">
-                <button type="button" onClick={() => setEditFolderId(folder.id)} className={ACTION_BTN_NEUTRAL} ><Pencil className="h-3.5 w-3.5" /><TooltipLabel label="Editar carpeta" /></button>
+                {isProtectedFolder(folder) ? null : <button type="button" onClick={() => setEditFolderId(folder.id)} className={ACTION_BTN_NEUTRAL} ><Pencil className="h-3.5 w-3.5" /><TooltipLabel label="Editar carpeta" /></button>}
                 <button type="button" onClick={() => setShareFolderId(folder.id)} className={ACTION_BTN_NEUTRAL} ><Share2 className="h-3.5 w-3.5" /><TooltipLabel label="Compartir" /></button>
-                <button type="button" onClick={() => setDeleteFolderId(folder.id)} className={ACTION_BTN_DANGER} ><Trash2 className="h-3.5 w-3.5" /><TooltipLabel label="Eliminar carpeta" /></button>
+                {isProtectedFolder(folder) ? null : <button type="button" onClick={() => setDeleteFolderId(folder.id)} className={ACTION_BTN_DANGER} ><Trash2 className="h-3.5 w-3.5" /><TooltipLabel label="Eliminar carpeta" /></button>}
               </div>
             </div>
             <AnimatePresence>
@@ -1100,8 +1123,9 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                           <button
                             key={folder.id}
                             type="button"
-                            draggable
+                            draggable={!isProtectedFolder(folder)}
                             onDragStart={(event) => {
+                              if (isProtectedFolder(folder)) return;
                               suppressColumnClickRef.current = true;
                               dragMetaRef.current = { kind: "folder", id: folder.id };
                               event.dataTransfer.setData("application/x-folder-id", folder.id);
@@ -1165,8 +1189,8 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                               <span
                                 draggable={false}
                                 onClick={(event) => event.stopPropagation()}
-                                className="inline-flex h-5 w-5 shrink-0 cursor-grab items-center justify-center rounded text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text2)] active:cursor-grabbing"
-                                title="Arrastrar carpeta"
+                                className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[var(--gbp-muted)] ${isProtectedFolder(folder) ? "cursor-not-allowed opacity-45" : "cursor-grab hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text2)] active:cursor-grabbing"}`}
+                                title={isProtectedFolder(folder) ? "Carpeta protegida" : "Arrastrar carpeta"}
                               >
                                 <GripVertical className="h-3.5 w-3.5" />
                               </span>
