@@ -14,6 +14,7 @@ import { PageContent } from "@/shared/ui/page-content";
 import { CollapsibleSidebarNavItem } from "@/shared/ui/collapsible-sidebar-nav-item";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 import { FloatingAiAssistant } from "@/shared/ui/floating-ai-assistant";
+import { DevClientCachePanel } from "@/shared/ui/dev-client-cache-panel";
 
 const CHECKLIST_PREVIEW_GUARD_KEY = "portal-checklist-preview-guard";
 const CHECKLIST_PREVIEW_GUARD_TTL_MS = 15000;
@@ -588,6 +589,7 @@ export function EmployeeShell({
           userKey={userId}
         />
       ) : null}
+      <DevClientCachePanel />
     </div>
   );
 }
