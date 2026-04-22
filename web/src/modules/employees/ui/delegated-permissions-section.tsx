@@ -2,7 +2,7 @@
 
 import type { Dispatch, SetStateAction } from "react";
 
-type DelegatedPermissionModuleCode = "announcements" | "checklists" | "documents";
+type DelegatedPermissionModuleCode = "announcements" | "checklists" | "documents" | "ai_assistant";
 type DelegatedPermissionCapability = "create" | "edit" | "delete";
 
 type DelegatedPermissionsState = Record<
@@ -19,6 +19,7 @@ const MODULES: Array<{ code: DelegatedPermissionModuleCode; label: string }> = [
   { code: "announcements", label: "Avisos" },
   { code: "checklists", label: "Checklists" },
   { code: "documents", label: "Documentos Operativos" },
+  { code: "ai_assistant", label: "Asistente IA" },
 ];
 
 const CAPABILITIES: DelegatedPermissionCapability[] = ["create", "edit", "delete"];
@@ -35,6 +36,11 @@ function capabilityLabel(moduleCode: DelegatedPermissionModuleCode, capability: 
     if (capability === "edit") return "Editar propios";
     if (capability === "delete") return "Eliminar propios";
   }
+  if (moduleCode === "ai_assistant") {
+    if (capability === "create") return "Usar IA";
+    if (capability === "edit") return "Configurar";
+    if (capability === "delete") return "Reiniciar";
+  }
   return CAPABILITY_LABELS[capability];
 }
 
@@ -48,6 +54,7 @@ export function DelegatedPermissionsSection({ delegatedPermissions, setDelegated
       <p className="mb-5 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3 text-xs text-[var(--gbp-text2)]">
         Estos permisos aplican al portal de empleado. Editar y eliminar solo se permitirá sobre contenido creado por este usuario.
         En Documentos, <strong>Subir</strong> habilita carga de archivos y organización visual (filtros/orden) de sus propios documentos.
+        En <strong>Asistente IA</strong>, el permiso <strong>Usar IA</strong> habilita el asistente en el panel del empleado.
       </p>
 
       <div className="space-y-4">

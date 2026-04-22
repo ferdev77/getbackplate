@@ -13,6 +13,7 @@ import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 import { PageContent } from "@/shared/ui/page-content";
 import { CollapsibleSidebarNavItem } from "@/shared/ui/collapsible-sidebar-nav-item";
 import { TooltipLabel } from "@/shared/ui/tooltip";
+import { FloatingAiAssistant } from "@/shared/ui/floating-ai-assistant";
 
 const CHECKLIST_PREVIEW_GUARD_KEY = "portal-checklist-preview-guard";
 const CHECKLIST_PREVIEW_GUARD_TTL_MS = 15000;
@@ -35,6 +36,7 @@ type EmployeeShellProps = {
     checklists: boolean;
     announcements: boolean;
     onboarding: boolean;
+    ai_assistant: boolean;
   };
   canDeleteDocuments: boolean;
   customBrandingEnabled: boolean;
@@ -578,6 +580,14 @@ export function EmployeeShell({
           </footer>
         </div>
       </div>
+      {enabledModules.ai_assistant ? (
+        <FloatingAiAssistant
+          currentPlanCode={null}
+          userName={employeeName}
+          tenantId={organizationId}
+          userKey={userId}
+        />
+      ) : null}
     </div>
   );
 }
