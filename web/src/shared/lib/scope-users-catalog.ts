@@ -34,7 +34,6 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
       .from("organization_user_profiles")
       .select("id, user_id, first_name, last_name")
       .eq("organization_id", organizationId)
-      .eq("is_employee", false)
       .order("first_name"),
     admin
       .from("memberships")

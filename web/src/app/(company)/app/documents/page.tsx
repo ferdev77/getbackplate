@@ -34,10 +34,15 @@ export default async function CompanyDocumentsPage({
     name: customBrandingEnabled && b.city ? b.city : b.name,
   }));
 
+  const viewerUserName = authData.user?.user_metadata?.first_name 
+    ? `${authData.user.user_metadata.first_name} ${authData.user.user_metadata.last_name || ""}`.trim() 
+    : undefined;
+
   return (
     <DocumentsPageWorkspace
       organizationId={tenant.organizationId}
       viewerUserId={viewerUserId}
+      viewerUserName={viewerUserName}
       folders={folders}
       documents={companyDocuments}
       branches={branches}
