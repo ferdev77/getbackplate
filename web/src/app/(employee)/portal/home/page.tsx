@@ -267,7 +267,6 @@ export default async function EmployeeHomePage() {
         departmentId: employeeRow?.department_id ?? null,
         positionIds: employeePositionIds,
         templateBranchId: template.branch_id,
-        templateDepartmentId: template.department_id,
         targetScope: template.target_scope,
       }),
     ).slice(0, 3);

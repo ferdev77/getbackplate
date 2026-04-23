@@ -7,7 +7,6 @@ type ChecklistTemplateAccessInput = {
   departmentId: string | null;
   positionIds?: string[];
   templateBranchId: string | null;
-  templateDepartmentId: string | null;
   targetScope: unknown;
 };
 
@@ -19,11 +18,8 @@ export function canUseChecklistTemplateInTenant(input: ChecklistTemplateAccessIn
   const baseBranchMatch = input.templateBranchId
     ? Boolean(input.branchId && input.templateBranchId === input.branchId)
     : true;
-  const baseDepartmentMatch = input.templateDepartmentId
-    ? Boolean(input.departmentId && input.templateDepartmentId === input.departmentId)
-    : true;
 
-  if (!baseBranchMatch || !baseDepartmentMatch) {
+  if (!baseBranchMatch) {
     return false;
   }
 

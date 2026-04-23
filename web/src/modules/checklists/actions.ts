@@ -203,7 +203,6 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
       actorEmail: authData.user?.email ?? "Usuario interno",
       targetScope: scopePayload,
       templateBranchId: parsed.data.branch_id,
-      templateDepartmentId: parsed.data.department_id,
     });
   }
 
@@ -217,7 +216,6 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
       actorEmail: authData.user?.email ?? "Usuario interno",
       targetScope: scopePayload,
       templateBranchId: parsed.data.branch_id,
-      templateDepartmentId: parsed.data.department_id,
     });
   }
 
@@ -231,7 +229,6 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
       actorEmail: authData.user?.email ?? "Usuario interno",
       targetScope: scopePayload,
       templateBranchId: parsed.data.branch_id,
-      templateDepartmentId: parsed.data.department_id,
     });
   }
 
