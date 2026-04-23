@@ -99,7 +99,7 @@ type ChecklistReportsDashboardProps = {
   className?: string;
 };
 
-const REPORTS_POLL_MS = 3000;
+const REPORTS_POLL_MS = 15000;
 
 function toneClasses(tone: ReportStatCard["tone"]) {
   if (tone === "success") return "text-[var(--gbp-success)]";
@@ -125,10 +125,14 @@ export function ChecklistReportsDashboard({
   const [locationCardsState, setLocationCardsState] = useState(locationCards);
   const [reportsState, setReportsState] = useState(reports);
   const [attentionFeedState, setAttentionFeedState] = useState(attentionFeed);
+  const [reviewedOverrides, setReviewedOverrides] = useState<Set<string>>(() => new Set());
   const [refreshKey, setRefreshKey] = useState(0);
+  const hasInitialSnapshot =
+    statCards.length > 0 || locationCards.length > 0 || reports.length > 0 || attentionFeed.length > 0;
 
   useEffect(() => {
     if (!deferredDataUrl) return;
+    if (refreshKey === 0 && hasInitialSnapshot) return;
     const controller = new AbortController();
     void fetch(deferredDataUrl, { method: "GET", cache: "no-store", signal: controller.signal })
       .then((response) => response.json())
@@ -145,13 +149,33 @@ export function ChecklistReportsDashboard({
       });
 
     return () => controller.abort();
-  }, [deferredDataUrl, refreshKey]);
+  }, [deferredDataUrl, hasInitialSnapshot, refreshKey]);
 
-  const effectiveGeneratedAt = deferredDataUrl ? generatedLabel : generatedAt;
-  const effectiveStatCards = deferredDataUrl ? statCardsState : statCards;
-  const effectiveLocationCards = deferredDataUrl ? locationCardsState : locationCards;
-  const effectiveReports = deferredDataUrl ? reportsState : reports;
-  const effectiveAttentionFeed = deferredDataUrl ? attentionFeedState : attentionFeed;
+  const baseGeneratedAt = deferredDataUrl ? generatedLabel : generatedAt;
+  const baseStatCards = deferredDataUrl ? statCardsState : statCards;
+  const baseLocationCards = deferredDataUrl ? locationCardsState : locationCards;
+  const baseReports = deferredDataUrl ? reportsState : reports;
+  const baseAttentionFeed = deferredDataUrl ? attentionFeedState : attentionFeed;
+
+  const effectiveGeneratedAt = baseGeneratedAt;
+  const effectiveStatCards = baseStatCards;
+  const effectiveLocationCards = baseLocationCards;
+  const effectiveReports = useMemo(
+    () => baseReports.map((report) => (
+      reviewedOverrides.has(report.id)
+        ? { ...report, dbStatus: "reviewed" }
+        : report
+    )),
+    [baseReports, reviewedOverrides],
+  );
+  const effectiveAttentionFeed = useMemo(
+    () => baseAttentionFeed.map((item) => (
+      reviewedOverrides.has(item.reportId)
+        ? { ...item, resolved: true }
+        : item
+    )),
+    [baseAttentionFeed, reviewedOverrides],
+  );
   const hasSingleLocationCard = effectiveLocationCards.length === 1;
   const [query, setQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
@@ -172,8 +196,11 @@ export function ChecklistReportsDashboard({
         clearTimeout(refreshTimerRef.current);
       }
       refreshTimerRef.current = setTimeout(() => {
-        router.refresh();
-        setRefreshKey((prev) => prev + 1);
+        if (deferredDataUrl) {
+          setRefreshKey((prev) => prev + 1);
+        } else {
+          router.refresh();
+        }
       }, 300);
     }
 
@@ -237,7 +264,7 @@ export function ChecklistReportsDashboard({
       }
       supabase.removeChannel(channel);
     };
-  }, [organizationId, router]);
+  }, [deferredDataUrl, organizationId, router]);
 
   useEffect(() => {
     function triggerClientRefresh() {
@@ -250,20 +277,30 @@ export function ChecklistReportsDashboard({
       }
     }
 
-    const pollTimer = setInterval(() => {
-      if (document.visibilityState !== "visible") return;
-      triggerClientRefresh();
-    }, REPORTS_POLL_MS);
+    const pollTimer = deferredDataUrl
+      ? setInterval(() => {
+          if (document.visibilityState !== "visible") return;
+          triggerClientRefresh();
+        }, REPORTS_POLL_MS)
+      : null;
 
     window.addEventListener("focus", triggerClientRefresh);
     document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
-      clearInterval(pollTimer);
+      if (pollTimer) clearInterval(pollTimer);
       window.removeEventListener("focus", triggerClientRefresh);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, []);
+  }, [deferredDataUrl]);
+
+  function applyReviewedState(submissionId: string) {
+    setReviewedOverrides((prev) => {
+      const next = new Set(prev);
+      next.add(submissionId);
+      return next;
+    });
+  }
 
   const selectedReport = useMemo(
     () => effectiveReports.find((report) => report.id === selectedReportId) ?? null,
@@ -316,8 +353,13 @@ export function ChecklistReportsDashboard({
       return;
     }
 
+    applyReviewedState(selectedReport.id);
     setSelectedReportId(null);
-    router.refresh();
+    if (deferredDataUrl) {
+      setRefreshKey((prev) => prev + 1);
+    } else {
+      router.refresh();
+    }
   }
 
   return (
