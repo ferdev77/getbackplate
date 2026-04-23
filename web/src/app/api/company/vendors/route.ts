@@ -4,8 +4,6 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 
-const VENDOR_CATEGORIES = ["alimentos", "bebidas", "equipos", "limpieza", "mantenimiento", "empaque", "otro"] as const;
-
 // Coerce empty string / null → null before further validation
 const nullableStr = (max: number) =>
   z.preprocess(
@@ -15,7 +13,7 @@ const nullableStr = (max: number) =>
 
 const vendorSchema = z.object({
   name: z.string().min(1, "El nombre es requerido").max(200),
-  category: z.enum(VENDOR_CATEGORIES),
+  category: z.string().trim().min(1).max(80),
   contact_name: nullableStr(200),
   contact_email: nullableStr(300),
   contact_phone: nullableStr(50),
@@ -48,6 +46,7 @@ export async function GET(request: Request) {
     { data: vendors },
     { data: branches },
     { data: vendorLocations },
+    { data: categories },
   ] = await Promise.all([
     admin.rpc("is_module_enabled", { org_id: organizationId, module_code: "custom_branding" }),
     admin
@@ -65,6 +64,12 @@ export async function GET(request: Request) {
       .from("vendor_locations")
       .select("vendor_id, branch_id")
       .eq("organization_id", organizationId),
+    admin
+      .from("vendor_categories")
+      .select("id, code, name, is_system, sort_order")
+      .eq("organization_id", organizationId)
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true }),
   ]);
 
   const locationsByVendor = new Map<string, string[]>();
@@ -101,7 +106,7 @@ export async function GET(request: Request) {
         v.contact_whatsapp?.includes(q)
     );
   }
-  if (category && VENDOR_CATEGORIES.includes(category as typeof VENDOR_CATEGORIES[number])) {
+  if (category) {
     result = result.filter((v) => v.category === category);
   }
   if (branchId) {
@@ -115,7 +120,7 @@ export async function GET(request: Request) {
     name: customBrandingEnabled && branch.city ? branch.city : branch.name,
   }));
 
-  return NextResponse.json({ vendors: result, branches: mappedBranches });
+  return NextResponse.json({ vendors: result, branches: mappedBranches, categories: categories ?? [] });
 }
 
 // ─── POST /api/company/vendors ────────────────────────────────────────────────
@@ -146,6 +151,17 @@ export async function POST(request: Request) {
 
   const { branch_ids, ...vendorData } = parsed.data;
   const admin = createSupabaseAdminClient();
+
+  const { data: category } = await admin
+    .from("vendor_categories")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("code", vendorData.category)
+    .maybeSingle();
+
+  if (!category) {
+    return NextResponse.json({ error: "Categoría inválida" }, { status: 422 });
+  }
 
   console.log("[vendors POST] Inserting vendor for org:", organizationId);
 

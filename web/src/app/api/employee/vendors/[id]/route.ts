@@ -4,8 +4,6 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 
-const VENDOR_CATEGORIES = ["alimentos", "bebidas", "equipos", "limpieza", "mantenimiento", "empaque", "otro"] as const;
-
 const nullableStr = (max: number) =>
   z.preprocess(
     (v) => (v === "" || v === null || v === undefined ? null : String(v).trim()),
@@ -14,7 +12,7 @@ const nullableStr = (max: number) =>
 
 const vendorUpdateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
-  category: z.enum(VENDOR_CATEGORIES).optional(),
+  category: z.string().trim().min(1).max(80).optional(),
   contact_name: nullableStr(200),
   contact_email: nullableStr(300),
   contact_phone: nullableStr(50),
@@ -54,6 +52,19 @@ export async function PUT(request: Request, { params }: RouteParams) {
   }
 
   const admin = createSupabaseAdminClient();
+
+  if (parsed.data.category) {
+    const { data: category } = await admin
+      .from("vendor_categories")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .eq("code", parsed.data.category)
+      .maybeSingle();
+
+    if (!category) {
+      return NextResponse.json({ error: "Categoría inválida" }, { status: 422 });
+    }
+  }
 
   const [{ data: existing }, { data: existingLocations }] = await Promise.all([
     admin

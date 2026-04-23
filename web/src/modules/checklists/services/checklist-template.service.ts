@@ -137,7 +137,7 @@ export async function upsertChecklistTemplate(
 
   if (!scopeValidation.ok) {
     const messageByField = {
-      locations: "Algunas ubicaciones de alcance no son válidas",
+      locations: "Algunas locaciones de alcance no son válidas",
       departments: "Algunos departamentos de alcance no son validos",
       positions: "Algunos puestos de alcance no son validos",
       users: "Algunos usuarios seleccionados no son validos",

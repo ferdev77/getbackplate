@@ -289,7 +289,7 @@ export function CompanyShell({
     const ids = newOrder.map(b => b.id);
     const result = await reorderBranchesAction(ids);
     if (result.ok) {
-      toast.success("Orden de ubicaciones actualizado", {
+      toast.success("Orden de locaciones actualizado", {
         description: "Los cambios se han guardado profesionalmente.",
         duration: 2000,
       });
@@ -2181,7 +2181,7 @@ export function CompanyShell({
                       </div>
                       <p className={`mt-1 text-[11px] ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-text2)]"}`}>{plan.code.toUpperCase()} · {planBillingCycle === "yearly" ? "Anual" : "Mensual"}{isCurrentPlanCode ? ` · Periodo actual: ${normalizePlanPeriod(billingPeriod) === "yearly" ? "Anual" : "Mensual"}` : ""}</p>
                       <div className={`mb-2 mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-text2)]"}`}>
-                        <span>Sucursales: {plan.maxBranches ?? "-"}</span>
+                        <span>Locaciones: {plan.maxBranches ?? "-"}</span>
                         <span>Usuarios: {plan.maxUsers ?? "-"}</span>
                         <span>Empleados: {plan.maxEmployees ?? "-"}</span>
                         <span>Storage MB: {plan.maxStorageMb ?? "-"}</span>

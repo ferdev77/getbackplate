@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { VendorRow } from "@/modules/vendors/types";
-import { VENDOR_CATEGORIES } from "@/modules/vendors/types";
+import { DEFAULT_VENDOR_CATEGORIES } from "@/modules/vendors/types";
 
 type Branch = { id: string; name: string };
 
@@ -23,7 +23,7 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
 
 function CategoryBadge({ category }: { category: string }) {
   const colors = CATEGORY_COLORS[category] ?? CATEGORY_COLORS.otro;
-  const label = VENDOR_CATEGORIES.find((c) => c.value === category)?.label ?? category;
+  const label = DEFAULT_VENDOR_CATEGORIES.find((c) => c.value === category)?.label ?? category;
   return (
     <span
       style={{
@@ -320,7 +320,7 @@ export default function VendorsEmployeeView({ initialVendors, branches }: Props)
           style={selectStyle}
         >
           <option value="">Todas las categorías</option>
-          {VENDOR_CATEGORIES.map((c) => (
+          {DEFAULT_VENDOR_CATEGORIES.map((c) => (
             <option key={c.value} value={c.value}>{c.label}</option>
           ))}
         </select>
@@ -331,7 +331,7 @@ export default function VendorsEmployeeView({ initialVendors, branches }: Props)
             onChange={(e) => setFilterBranch(e.target.value)}
             style={selectStyle}
           >
-            <option value="">Todas las ubicaciones</option>
+            <option value="">Todas las locaciones</option>
             {branches.map((b) => (
               <option key={b.id} value={b.id}>{b.name}</option>
             ))}
@@ -364,7 +364,7 @@ export default function VendorsEmployeeView({ initialVendors, branches }: Props)
           <p style={{ margin: 0, fontSize: 14, color: "var(--text-muted, #94a3b8)", textAlign: "center" }}>
             {search || filterCategory || filterBranch
               ? "Probá ajustando los filtros."
-              : "Aún no hay proveedores asignados a tu ubicación."}
+              : "Aún no hay proveedores asignados a tu locación."}
           </p>
         </div>
       ) : (

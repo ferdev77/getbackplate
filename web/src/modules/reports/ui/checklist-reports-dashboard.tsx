@@ -383,7 +383,7 @@ export function ChecklistReportsDashboard({
       </section>
 
       <section className="mb-7">
-        <h2 className="mb-3 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Estado por Ubicación - Hoy</h2>
+        <h2 className="mb-3 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Estado por Locación - Hoy</h2>
         <div className={locationCardsGridClass}>
           {effectiveLocationCards.map((card) => (
             <button
@@ -462,7 +462,7 @@ export function ChecklistReportsDashboard({
                 onChange={(event) => setLocationFilter(event.target.value)}
                 className="h-9 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm text-[var(--gbp-text2)]"
               >
-                <option value="">Todas las ubicaciones</option>
+                <option value="">Todas las locaciones</option>
                 {locations.map((location) => (
                   <option key={location} value={location}>{location}</option>
                 ))}
@@ -482,7 +482,7 @@ export function ChecklistReportsDashboard({
               <table className="w-full min-w-[920px] border-collapse">
                 <thead>
                   <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-left text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">
-                    <th className="px-4 py-3">Nombre / Ubicación</th>
+                    <th className="px-4 py-3">Nombre / Locación</th>
                     <th className="px-4 py-3">Fecha</th>
                     <th className="px-4 py-3">Progreso</th>
                     <th className="px-4 py-3">Observaciones</th>

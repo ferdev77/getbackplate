@@ -56,7 +56,7 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
     new Set([tenant.branchId, employeeRow?.branch_id].filter((value): value is string => Boolean(value))),
   );
   const locationHelperText =
-    "Tu alcance base queda limitado a tus ubicaciones asignadas. Departamento y puesto filtran dentro de ese alcance.";
+    "Tu alcance base queda limitado a tus locaciones asignadas. Departamento y puesto filtran dentro de ese alcance.";
 
   let employeePositionIds: string[] = [];
   if (employeeRow?.position) {

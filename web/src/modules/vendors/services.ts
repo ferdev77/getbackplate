@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { cache } from "react";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { type VendorRow } from "./types";
+import { DEFAULT_VENDOR_CATEGORIES, type VendorCategoryOption, type VendorRow } from "./types";
 
 export const getVendorDirectoryView = cache(async (
   organizationId: string,
@@ -17,6 +17,7 @@ export const getVendorDirectoryView = cache(async (
     { data: vendors },
     { data: branches },
     { data: vendorLocations },
+    { data: categories },
   ] = await Promise.all([
     supabase.rpc("is_module_enabled", { org_id: organizationId, module_code: "custom_branding" }),
     options.forEmployee
@@ -41,6 +42,12 @@ export const getVendorDirectoryView = cache(async (
       .from("vendor_locations")
       .select("vendor_id, branch_id")
       .eq("organization_id", organizationId),
+    supabase
+      .from("vendor_categories")
+      .select("id, code, name, is_system, sort_order")
+      .eq("organization_id", organizationId)
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true }),
   ]);
 
   const branchById = new Map(
@@ -102,5 +109,18 @@ export const getVendorDirectoryView = cache(async (
       id: b.id,
       name: customBrandingEnabled && b.city ? b.city : b.name,
     })),
+    categories: ((categories ?? []).length
+      ? (categories ?? []).map((category) => ({
+          id: category.id,
+          code: category.code,
+          name: category.name,
+          isSystem: category.is_system,
+        }))
+      : DEFAULT_VENDOR_CATEGORIES.map((category) => ({
+          id: `default-${category.value}`,
+          code: category.value,
+          name: category.label,
+          isSystem: true,
+        }))) as VendorCategoryOption[],
   };
 });

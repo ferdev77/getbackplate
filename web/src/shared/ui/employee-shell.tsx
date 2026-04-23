@@ -612,7 +612,7 @@ export function EmployeeShell({
             </div>
             <div className="flex items-center gap-2">
               <span className="hidden rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2.5 py-1 text-xs font-medium text-[var(--gbp-accent)] sm:inline shadow-sm">
-                {branchName || "Sucursal"}
+                {branchName || "Locación"}
               </span>
               {departmentName ? (
                 <span className="hidden rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 lg:inline shadow-sm">

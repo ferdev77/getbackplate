@@ -82,7 +82,7 @@ export function ChecklistTemplatePreviewModal({
                       ? locations.map((name) => (
                           <span key={`loc-${name}`} className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-medium text-[var(--gbp-accent)]">{name}</span>
                         ))
-                      : <span>{hasScopedRules ? "No restringe por ubicación" : "Todas"}</span>}
+                      : <span>{hasScopedRules ? "No restringe por locación" : "Todas"}</span>}
                   </div>
                 </div>
                 <div>

@@ -458,7 +458,7 @@ export async function buildChecklistReportsSnapshot({
   const noReportBranch = locationCards.find((card) => card.status === "none")?.branchName ?? "Sin pendiente";
 
   const statCards: ReportStatCard[] = [
-    { icon: "📋", label: "Reportes hoy", value: String(branchesWithReportToday), subLabel: `de ${(branches ?? []).length} ubicaciones`, tone: "default" },
+    { icon: "📋", label: "Reportes hoy", value: String(branchesWithReportToday), subLabel: `de ${(branches ?? []).length} locaciones`, tone: "default" },
     { icon: "✅", label: "Completados", value: String(completedToday), subLabel: completedToday > 0 ? "Sin novedades" : "Sin reportes completos", tone: "success" },
     { icon: "⚑", label: "Para atencion", value: String(attentionToday), subLabel: `items en ${todayReports.filter((row) => row.flaggedItems > 0).length} reportes`, tone: "warning" },
     { icon: "⏳", label: "Sin reporte", value: String(noReportToday), subLabel: noReportToday > 0 ? noReportBranch : "Todo al día", tone: "muted" },

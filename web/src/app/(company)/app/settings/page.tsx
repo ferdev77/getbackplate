@@ -275,7 +275,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
               <p className={`inline-flex items-center gap-1 text-[11px] font-bold tracking-[0.1em] uppercase ${TEXT_MUTED}`}>
                 <MapPin className="h-3.5 w-3.5" /> Cobertura Geográfica
               </p>
-              <h2 className="mt-1 text-lg font-bold text-[var(--gbp-text)]">Locaciones / Sucursales</h2>
+              <h2 className="mt-1 text-lg font-bold text-[var(--gbp-text)]">Locaciones / Locaciones</h2>
             </div>
             <InlineBranchForm createAction={createBranchAction} />
           </div>

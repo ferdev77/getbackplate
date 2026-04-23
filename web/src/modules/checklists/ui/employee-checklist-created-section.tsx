@@ -130,7 +130,7 @@ export function EmployeeChecklistCreatedSection({
             options: branches.map((b) => ({ id: b.id, label: b.name })),
             value: locationFilter,
             onChange: setLocationFilter,
-            allLabel: "Todas las ubicaciones",
+            allLabel: "Todas las locaciones",
             testId: "employee-checklists-filter-location",
           },
           {

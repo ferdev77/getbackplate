@@ -632,8 +632,8 @@ export default async function EmployeeLayout({
     ? [{
         id: resolvedBranchId,
         name: customBrandingEnabled
-          ? ((resolvedBranch.data ?? branch)?.city ?? (resolvedBranch.data ?? branch)?.name ?? "Sucursal")
-          : ((resolvedBranch.data ?? branch)?.name ?? "Sucursal"),
+          ? ((resolvedBranch.data ?? branch)?.city ?? (resolvedBranch.data ?? branch)?.name ?? "Locación")
+          : ((resolvedBranch.data ?? branch)?.name ?? "Locación"),
       }]
     : [];
   const profileDepartments = resolvedDepartmentId

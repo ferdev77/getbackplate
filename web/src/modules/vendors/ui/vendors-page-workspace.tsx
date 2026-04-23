@@ -8,13 +8,14 @@ type Props = {
 };
 
 export async function VendorsPageWorkspace({ organizationId }: Props) {
-  const { vendors, branches } = await getVendorDirectoryView(organizationId);
+  const { vendors, branches, categories } = await getVendorDirectoryView(organizationId);
 
   return (
     <PageContent>
       <VendorsTableWorkspace
         initialVendors={vendors}
         branches={branches}
+        initialCategories={categories}
         organizationId={organizationId}
         deferredDataUrl="/api/company/vendors"
       />

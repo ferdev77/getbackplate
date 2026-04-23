@@ -187,7 +187,7 @@ export default async function EmployeeAnnouncementsPage() {
     (user) => Boolean(user.user_id) && Boolean(user.branch_id) && allowedLocationIds.includes(user.branch_id as string),
   );
   const locationHelperText =
-    "Tu alcance base queda limitado a tus ubicaciones asignadas. Departamento y puesto filtran dentro de ese alcance.";
+    "Tu alcance base queda limitado a tus locaciones asignadas. Departamento y puesto filtran dentro de ese alcance.";
 
   return (
     <div className="space-y-6">

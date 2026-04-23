@@ -167,7 +167,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                       <div className="md:col-span-6 bg-muted/20 rounded-2xl p-6 border border-line/20">
                          <p className="mb-6 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand">Restricciones Técnicas (0 = Ilimitado)</p>
                          <div className="grid gap-4 sm:grid-cols-4">
-                           <SuperadminInputField label="Sucursales" name="max_branches" type="number" min="0" defaultValue="0" />
+                           <SuperadminInputField label="Locaciones" name="max_branches" type="number" min="0" defaultValue="0" />
                            <SuperadminInputField label="Cant. Usuarios" name="max_users" type="number" min="0" defaultValue="0" />
                            <SuperadminInputField label="Cant. Empleados" name="max_employees" type="number" min="0" defaultValue="0" />
                            <SuperadminInputField label="Storage (MB)" name="max_storage_mb" type="number" min="0" defaultValue="0" />
@@ -273,7 +273,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
 
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
                      {[
-                       { label: 'Sucursales', val: plan.max_branches, icon: Building2 },
+                       { label: 'Locaciones', val: plan.max_branches, icon: Building2 },
                        { label: 'Usuarios', val: plan.max_users, icon: Users2 },
                        { label: 'Empleados', val: plan.max_employees, icon: Layers },
                        { label: 'Storage (MB)', val: plan.max_storage_mb, icon: HardDrive },
@@ -333,7 +333,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                                
                                <div className="md:col-span-6 bg-muted/20 rounded-2xl p-6">
                                   <div className="grid gap-4 sm:grid-cols-4">
-                                    <SuperadminInputField label="Sucursales" name="max_branches" type="number" min="0" defaultValue={plan.max_branches ?? "0"} />
+                                    <SuperadminInputField label="Locaciones" name="max_branches" type="number" min="0" defaultValue={plan.max_branches ?? "0"} />
                                     <SuperadminInputField label="Cant. Usuarios" name="max_users" type="number" min="0" defaultValue={plan.max_users ?? "0"} />
                                     <SuperadminInputField label="Cant. Empleados" name="max_employees" type="number" min="0" defaultValue={plan.max_employees ?? "0"} />
                                     <SuperadminInputField label="Storage (MB)" name="max_storage_mb" type="number" min="0" defaultValue={plan.max_storage_mb ?? "0"} />

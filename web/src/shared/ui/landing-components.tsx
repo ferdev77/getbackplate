@@ -94,7 +94,7 @@ export function LandingHero() {
 const features = [
   {
     title: "Gestión de Empleados",
-    description: "Organiza tu plantilla por sucursales, departamentos y rangos con total claridad.",
+    description: "Organiza tu plantilla por locaciones, departamentos y rangos con total claridad.",
     icon: <Users className="h-6 w-6" />,
     color: "bg-blue-50 text-blue-600"
   },

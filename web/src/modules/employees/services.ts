@@ -257,7 +257,7 @@ export const getEmployeeDirectoryView = cache(async (
       roleCode: roleCode ?? "employee",
       status: row.status ?? "active",
       branchId: row.branch_id ?? null,
-      branchName: row.branch_id ? (branchById.get(row.branch_id) ?? "Sin ubicación") : "Sin ubicación",
+      branchName: row.branch_id ? (branchById.get(row.branch_id) ?? "Sin locación") : "Sin locación",
       createdAt: row.created_at ?? "",
     };
   });

@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useCallback, useTransition, useEffect } from "react";
+import { useState, useCallback, useTransition, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Truck, Plus, Search, Pencil, Trash2, X, Phone, Mail, Globe, MapPin, FileText, Building2, Clock, Eye, MessageCircle } from "lucide-react";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { SlideUp } from "@/shared/ui/animations";
+import { ScopePillsOverflow } from "@/shared/ui/scope-pills-overflow";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
-import type { VendorRow } from "@/modules/vendors/types";
-import { VENDOR_CATEGORIES } from "@/modules/vendors/types";
+import type { VendorCategoryOption, VendorRow } from "@/modules/vendors/types";
+import { DEFAULT_VENDOR_CATEGORIES } from "@/modules/vendors/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Branch = { id: string; name: string };
@@ -16,6 +17,7 @@ type Branch = { id: string; name: string };
 type Props = {
   initialVendors: VendorRow[];
   branches: Branch[];
+  initialCategories: VendorCategoryOption[];
   organizationId: string;
   canCreate?: boolean;
   canEdit?: boolean;
@@ -53,12 +55,12 @@ const CATEGORY_CLASS: Record<string, string> = {
   otro:          "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]",
 };
 
-function CategoryBadge({ category }: { category: string }) {
+function CategoryBadge({ category, label }: { category: string; label?: string }) {
   const cls = CATEGORY_CLASS[category] ?? CATEGORY_CLASS.otro;
-  const label = VENDOR_CATEGORIES.find((c) => c.value === category)?.label ?? category;
+  const resolvedLabel = label ?? DEFAULT_VENDOR_CATEGORIES.find((c) => c.value === category)?.label ?? category;
   return (
     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${cls}`}>
-      {label}
+      {resolvedLabel}
     </span>
   );
 }
@@ -118,8 +120,8 @@ function getChangesSummary(metadata: Record<string, unknown> | null): string[] |
 
         // Manejo especial para categorías
         if (key === "category") {
-           const oldCat = VENDOR_CATEGORIES.find(c => c.value === payload.old)?.label ?? oldVal;
-           const newCat = VENDOR_CATEGORIES.find(c => c.value === payload.new)?.label ?? newVal;
+           const oldCat = DEFAULT_VENDOR_CATEGORIES.find(c => c.value === payload.old)?.label ?? oldVal;
+           const newCat = DEFAULT_VENDOR_CATEGORIES.find(c => c.value === payload.new)?.label ?? newVal;
            changesList.push(`${label}: de "${oldCat}" a "${newCat}"`);
         } else if (key === "is_active") {
            const newStatus = payload.new ? "Activo" : "Inactivo";
@@ -135,7 +137,7 @@ function getChangesSummary(metadata: Record<string, unknown> | null): string[] |
   }
   
   if (metadata.branch_ids) {
-    changesList.push("Actualizó las ubicaciones asignadas");
+    changesList.push("Actualizó las locaciones asignadas");
   }
   
   if (changesList.length > 0) return changesList;
@@ -242,8 +244,9 @@ function VendorHistoryTab({ vendorId, historyEndpointBase }: { vendorId: string;
 }
 
 // ─── Detail Slide-in Panel ────────────────────────────────────────────────────
-function VendorDetailPanel({ vendor, onClose, onEdit, onDelete, canEdit, canDelete, historyEndpointBase }: {
+function VendorDetailPanel({ vendor, categoryLabel, onClose, onEdit, onDelete, canEdit, canDelete, historyEndpointBase }: {
   vendor: VendorRow;
+  categoryLabel?: string;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -264,7 +267,7 @@ function VendorDetailPanel({ vendor, onClose, onEdit, onDelete, canEdit, canDele
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                 <StatusBadge active={vendor.isActive} />
-                <CategoryBadge category={vendor.category} />
+                <CategoryBadge category={vendor.category} label={categoryLabel} />
               </div>
               <h2 className={`text-lg font-bold truncate ${TEXT_STRONG}`}>{vendor.name}</h2>
             </div>
@@ -338,7 +341,7 @@ function VendorDetailPanel({ vendor, onClose, onEdit, onDelete, canEdit, canDele
               <div className="pb-4 border-b border-[var(--gbp-border)]">
                 <p className={`text-[11px] font-bold uppercase tracking-widest mb-2 ${TEXT_MUTED}`}>Locaciones asignadas</p>
                 {vendor.branchNames.length === 0 ? (
-                  <span className={`text-xs italic ${TEXT_MUTED}`}>Todas las ubicaciones</span>
+                  <span className={`text-xs italic ${TEXT_MUTED}`}>Todas las locaciones</span>
                 ) : (
                   <div className="flex flex-wrap gap-1.5">
                     {vendor.branchNames.map((name) => (
@@ -416,10 +419,53 @@ function DeleteConfirmDialog({ vendor, onCancel, onConfirm, isPending }: {
   );
 }
 
+function CategoryManagerRow({
+  category,
+  isPending,
+  onRename,
+  onDelete,
+}: {
+  category: VendorCategoryOption;
+  isPending: boolean;
+  onRename: (name: string) => void;
+  onDelete: () => void;
+}) {
+  const [draftName, setDraftName] = useState(category.name);
+
+  return (
+    <div className="flex items-center gap-2 rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2 py-1.5">
+      <input
+        value={draftName}
+        onChange={(event) => setDraftName(event.target.value)}
+        className="h-7 flex-1 rounded border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2 text-xs"
+      />
+      <button
+        type="button"
+        onClick={() => onRename(draftName)}
+        disabled={isPending || !draftName.trim() || draftName.trim() === category.name}
+        className="h-7 rounded border border-[var(--gbp-border)] px-2 text-[11px] font-semibold disabled:opacity-50"
+      >
+        Guardar
+      </button>
+      <button
+        type="button"
+        onClick={onDelete}
+        disabled={isPending || category.code === "otro"}
+        className="h-7 rounded border border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] px-2 text-[11px] font-semibold text-[var(--gbp-error)] disabled:opacity-50"
+      >
+        Eliminar
+      </button>
+    </div>
+  );
+}
+
 // ─── Vendor Form Modal ─────────────────────────────────────────────────────────
-function VendorFormModal({ vendor, branches, onClose, onSaved, apiBasePath }: {
+function VendorFormModal({ vendor, branches, categories, onCategoriesChange, categoryApiBasePath, onClose, onSaved, apiBasePath }: {
   vendor: VendorRow | null;
   branches: Branch[];
+  categories: VendorCategoryOption[];
+  onCategoriesChange: (next: VendorCategoryOption[]) => void;
+  categoryApiBasePath: string;
   onClose: () => void;
   onSaved: () => void;
   apiBasePath: string;
@@ -427,10 +473,13 @@ function VendorFormModal({ vendor, branches, onClose, onSaved, apiBasePath }: {
   const isEdit = Boolean(vendor);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [isCategoryPending, setIsCategoryPending] = useState(false);
 
   const [form, setForm] = useState({
     name: vendor?.name ?? "",
-    category: vendor?.category ?? "alimentos",
+    category: vendor?.category ?? categories[0]?.code ?? "otro",
     contact_name: vendor?.contactName ?? "",
     contact_email: vendor?.contactEmail ?? "",
     contact_phone: vendor?.contactPhone ?? "",
@@ -442,6 +491,12 @@ function VendorFormModal({ vendor, branches, onClose, onSaved, apiBasePath }: {
     branch_ids: vendor?.branchIds ?? ([] as string[]),
   });
 
+  useEffect(() => {
+    if (categories.some((category) => category.code === form.category)) return;
+    const fallback = categories[0]?.code ?? "otro";
+    setForm((prev) => ({ ...prev, category: fallback }));
+  }, [categories, form.category]);
+
   const toggleBranch = (id: string) => {
     setForm((prev) => ({
       ...prev,
@@ -450,6 +505,75 @@ function VendorFormModal({ vendor, branches, onClose, onSaved, apiBasePath }: {
         : [...prev.branch_ids, id],
     }));
   };
+
+  async function addCategory() {
+    if (!newCategoryName.trim() || isCategoryPending) return;
+    setIsCategoryPending(true);
+    try {
+      const res = await fetch(categoryApiBasePath, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newCategoryName.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "No se pudo crear categoría");
+      const created = data.category as VendorCategoryOption;
+      onCategoriesChange([...categories, created]);
+      setForm((prev) => ({ ...prev, category: created.code }));
+      setNewCategoryName("");
+      toast.success("Categoría creada");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al crear categoría");
+    } finally {
+      setIsCategoryPending(false);
+    }
+  }
+
+  async function renameCategory(categoryId: string, name: string) {
+    if (!name.trim() || isCategoryPending) return;
+    setIsCategoryPending(true);
+    try {
+      const res = await fetch(`${categoryApiBasePath}/${categoryId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "No se pudo editar categoría");
+      const updated = data.category as VendorCategoryOption;
+      const prev = categories.find((category) => category.id === categoryId);
+      onCategoriesChange(categories.map((category) => (category.id === categoryId ? updated : category)));
+      if (prev?.code && form.category === prev.code) {
+        setForm((current) => ({ ...current, category: updated.code }));
+      }
+      toast.success("Categoría actualizada");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al editar categoría");
+    } finally {
+      setIsCategoryPending(false);
+    }
+  }
+
+  async function deleteCategory(categoryId: string, categoryCode: string) {
+    if (isCategoryPending) return;
+    setIsCategoryPending(true);
+    try {
+      const res = await fetch(`${categoryApiBasePath}/${categoryId}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "No se pudo eliminar categoría");
+      const next = categories.filter((category) => category.id !== categoryId);
+      onCategoriesChange(next);
+      if (form.category === categoryCode) {
+        const fallback = next.find((category) => category.code === "otro") ?? next[0];
+        setForm((prev) => ({ ...prev, category: fallback?.code ?? "otro" }));
+      }
+      toast.success("Categoría eliminada");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al eliminar categoría");
+    } finally {
+      setIsCategoryPending(false);
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -501,13 +625,56 @@ function VendorFormModal({ vendor, branches, onClose, onSaved, apiBasePath }: {
           </div>
 
           <div>
-            <label className={labelCls}>Categoría *</label>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <label className={labelCls}>Categoría *</label>
+              <button
+                type="button"
+                onClick={() => setCategoriesOpen((prev) => !prev)}
+                className="rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2 py-1 text-[11px] font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
+              >
+                {categoriesOpen ? "Cerrar gestor" : "Gestionar"}
+              </button>
+            </div>
             <select className={inputCls} value={form.category}
               onChange={(e) => setForm((p) => ({ ...p, category: e.target.value as typeof form.category }))} required>
-              {VENDOR_CATEGORIES.map((cat) => (
-                <option key={cat.value} value={cat.value}>{cat.label}</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.code}>{cat.name}</option>
               ))}
             </select>
+            {categoriesOpen ? (
+              <div className="mt-2 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
+                <p className="mb-2 text-[11px] text-[var(--gbp-text2)]">
+                  Crea, edita o elimina categorías sin salir del modal.
+                </p>
+                <div className="mb-3 flex gap-2">
+                  <input
+                    value={newCategoryName}
+                    onChange={(event) => setNewCategoryName(event.target.value)}
+                    placeholder="Nueva categoría"
+                    className="h-8 flex-1 rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2 text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={addCategory}
+                    disabled={isCategoryPending || !newCategoryName.trim()}
+                    className="h-8 rounded-md bg-[var(--gbp-text)] px-3 text-xs font-bold text-white disabled:opacity-60"
+                  >
+                    Agregar
+                  </button>
+                </div>
+                <div className="max-h-40 space-y-1 overflow-y-auto">
+                  {categories.map((category) => (
+                    <CategoryManagerRow
+                      key={`${category.id}:${category.name}`}
+                      category={category}
+                      isPending={isCategoryPending}
+                      onRename={(name) => renameCategory(category.id, name)}
+                      onDelete={() => deleteCategory(category.id, category.code)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -561,11 +728,11 @@ function VendorFormModal({ vendor, branches, onClose, onSaved, apiBasePath }: {
               <span className="font-normal text-[var(--gbp-muted)]">(sin selección = visible en todas)</span>
             </label>
             {branches.length === 0 ? (
-              <p className={`text-xs ${TEXT_MUTED}`}>No hay sucursales activas para asignar.</p>
+              <p className={`text-xs ${TEXT_MUTED}`}>No hay locaciones activas para asignar.</p>
             ) : (
               <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
                 <p className="mb-2 text-[11px] text-[var(--gbp-text2)]">
-                  Elegí las ubicaciones donde será visible este proveedor.
+                  Elegí las locaciones donde será visible este proveedor.
                 </p>
                 <label className="mb-2 inline-flex items-center gap-2 border-b border-[var(--gbp-border)] pb-2 text-xs font-semibold text-[var(--gbp-text)]">
                   <input
@@ -580,7 +747,7 @@ function VendorFormModal({ vendor, branches, onClose, onSaved, apiBasePath }: {
                     }}
                     className="h-[14px] w-[14px] accent-[var(--gbp-accent)]"
                   />
-                  Todas las ubicaciones
+                  Todas las locaciones
                 </label>
                 <div className="grid grid-cols-2 gap-2 text-xs text-[var(--gbp-text2)]">
                   {branches.map((branch) => (
@@ -645,6 +812,7 @@ function VendorFormModal({ vendor, branches, onClose, onSaved, apiBasePath }: {
 export default function VendorsTableWorkspace({
   initialVendors,
   branches,
+  initialCategories,
   organizationId,
   canCreate = true,
   canEdit = true,
@@ -656,6 +824,16 @@ export default function VendorsTableWorkspace({
   const router = useRouter();
   const [vendors, setVendors] = useState<VendorRow[]>(initialVendors);
   const [branchOptions, setBranchOptions] = useState<Branch[]>(branches);
+  const [categories, setCategories] = useState<VendorCategoryOption[]>(
+    initialCategories.length
+      ? initialCategories
+      : DEFAULT_VENDOR_CATEGORIES.map((category) => ({
+          id: `default-${category.value}`,
+          code: category.value,
+          name: category.label,
+          isSystem: true,
+        })),
+  );
   const [refreshKey, setRefreshKey] = useState(0);
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
@@ -666,6 +844,10 @@ export default function VendorsTableWorkspace({
   const [detailVendor, setDetailVendor] = useState<VendorRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<VendorRow | null>(null);
   const [isDeleting, startDelete] = useTransition();
+  const categoryNameByCode = useMemo(
+    () => new Map(categories.map((category) => [category.code, category.name])),
+    [categories],
+  );
 
   // Sync initial vendors on navigation refresh
   useEffect(() => {
@@ -675,6 +857,19 @@ export default function VendorsTableWorkspace({
   useEffect(() => {
     setBranchOptions(branches);
   }, [branches]);
+
+  useEffect(() => {
+    setCategories(
+      initialCategories.length
+        ? initialCategories
+        : DEFAULT_VENDOR_CATEGORIES.map((category) => ({
+            id: `default-${category.value}`,
+            code: category.value,
+            name: category.label,
+            isSystem: true,
+          })),
+    );
+  }, [initialCategories]);
 
   useEffect(() => {
     if (!deferredDataUrl) return;
@@ -723,6 +918,16 @@ export default function VendorsTableWorkspace({
           setBranchOptions((data.branches as Array<Record<string, unknown>>)
             .map((row) => ({ id: String(row.id ?? ""), name: String(row.name ?? "") }))
             .filter((row) => row.id && row.name));
+        }
+        if (Array.isArray(data?.categories)) {
+          setCategories((data.categories as Array<Record<string, unknown>>)
+            .map((row) => ({
+              id: String(row.id ?? ""),
+              code: String(row.code ?? ""),
+              name: String(row.name ?? row.code ?? ""),
+              isSystem: Boolean(row.isSystem ?? row.is_system),
+            }))
+            .filter((row) => row.id && row.code && row.name));
         }
       })
       .catch(() => {
@@ -837,6 +1042,7 @@ export default function VendorsTableWorkspace({
   });
 
   const selectCls = `h-9 px-3 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-xs font-medium text-[var(--gbp-text2)] focus:outline-none focus:ring-2 focus:ring-[var(--gbp-accent)]/30 focus:border-[var(--gbp-accent)] transition-colors`;
+  const categoryApiBasePath = `${apiBasePath}/categories`;
 
   return (
     <div className="flex flex-col gap-0 h-full min-h-0">
@@ -870,12 +1076,12 @@ export default function VendorsTableWorkspace({
 
           <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className={selectCls}>
             <option value="">Todas las categorías</option>
-            {VENDOR_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+            {categories.map((c) => <option key={c.id} value={c.code}>{c.name}</option>)}
           </select>
 
           {branchOptions.length > 0 && (
             <select value={filterBranch} onChange={(e) => setFilterBranch(e.target.value)} className={selectCls}>
-              <option value="">Todas las ubicaciones</option>
+              <option value="">Todas las locaciones</option>
               {branchOptions.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           )}
@@ -919,9 +1125,20 @@ export default function VendorsTableWorkspace({
             <table className="w-full text-sm min-w-[700px] border-collapse">
               <thead>
                 <tr className="bg-[var(--gbp-bg)]">
-                  {["Proveedor", "Categoría", "Contacto", "Teléfono", "Locaciones", "Estado", "Acciones"].map((h) => (
-                    <th key={h} className={`px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.08em] border-b border-[var(--gbp-border)] whitespace-nowrap ${TEXT_MUTED}`}>
-                      {h}
+                  {[
+                    { label: "Proveedor" },
+                    { label: "Categoría" },
+                    { label: "Contacto" },
+                    { label: "Teléfono" },
+                    { label: "Locaciones" },
+                    { label: "Estado" },
+                    { label: "Acciones", align: "right" as const },
+                  ].map((column) => (
+                    <th
+                      key={column.label}
+                      className={`px-4 py-3 text-[11px] font-bold uppercase tracking-[0.08em] border-b border-[var(--gbp-border)] whitespace-nowrap ${column.align === "right" ? "text-right" : "text-left"} ${TEXT_MUTED}`}
+                    >
+                      {column.label}
                     </th>
                   ))}
                 </tr>
@@ -936,7 +1153,7 @@ export default function VendorsTableWorkspace({
                         {v.name}
                       </div>
                     </td>
-                    <td className="px-4 py-3"><CategoryBadge category={v.category} /></td>
+                    <td className="px-4 py-3"><CategoryBadge category={v.category} label={categoryNameByCode.get(v.category)} /></td>
                     <td className={`px-4 py-3 text-xs ${TEXT_MUTED}`}>
                       {v.contactName ?? <span className="text-[var(--gbp-border2)]">—</span>}
                     </td>
@@ -947,18 +1164,11 @@ export default function VendorsTableWorkspace({
                       {v.branchNames.length === 0 ? (
                         <span className={`text-xs italic ${TEXT_MUTED}`}>Todas</span>
                       ) : (
-                        <div className="flex flex-wrap gap-1">
-                          {v.branchNames.slice(0, 2).map((name) => (
-                            <span key={name} className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--gbp-text2)]">
-                              {name}
-                            </span>
-                          ))}
-                          {v.branchNames.length > 2 && (
-                            <span className={`rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2 py-0.5 text-[11px] ${TEXT_MUTED}`}>
-                              +{v.branchNames.length - 2}
-                            </span>
-                          )}
-                        </div>
+                        <ScopePillsOverflow
+                          pills={v.branchNames.map((name) => ({ name, type: "location" as const }))}
+                          max={3}
+                          variant="initials"
+                        />
                       )}
                     </td>
                     <td className="px-4 py-3"><StatusBadge active={v.isActive} /></td>
@@ -996,6 +1206,9 @@ export default function VendorsTableWorkspace({
       {/* Modals / Panels */}
       {(modalOpen || editingVendor) && (
         <VendorFormModal vendor={editingVendor} branches={branchOptions}
+          categories={categories}
+          onCategoriesChange={setCategories}
+          categoryApiBasePath={categoryApiBasePath}
           onClose={() => { setModalOpen(false); setEditingVendor(null); }}
           onSaved={handleSaved}
           apiBasePath={apiBasePath} />
@@ -1003,6 +1216,7 @@ export default function VendorsTableWorkspace({
 
       {detailVendor && !modalOpen && (
         <VendorDetailPanel vendor={detailVendor}
+          categoryLabel={categoryNameByCode.get(detailVendor.category)}
           onClose={() => setDetailVendor(null)}
           onEdit={() => { if (canEdit) { setEditingVendor(detailVendor); setModalOpen(true); } }}
           onDelete={() => { if (canDelete) { setDeleteTarget(detailVendor); } }}

@@ -287,7 +287,7 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
 
       <div className="mb-5 grid gap-3 sm:grid-cols-4">
         <div className="h-full">
-          <article className={`h-full rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Avisos activos</p><p className={`mt-1 text-2xl font-bold ${TEXT_STRONG}`}>{announcements?.length ?? 0}</p><p className={`text-[11px] ${TEXT_MUTED}`}>En todas las ubicaciones</p></article>
+          <article className={`h-full rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Avisos activos</p><p className={`mt-1 text-2xl font-bold ${TEXT_STRONG}`}>{announcements?.length ?? 0}</p><p className={`text-[11px] ${TEXT_MUTED}`}>En todas las locaciones</p></article>
         </div>
         <div className="h-full">
           <article className={`h-full rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Fijados</p><p className={`mt-1 text-2xl font-bold ${TEXT_STRONG}`}>{(announcements ?? []).filter((row) => row.is_featured).length}</p><p className={`text-[11px] ${TEXT_MUTED}`}>Visible al top</p></article>

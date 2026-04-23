@@ -64,7 +64,7 @@ export default function SuperadminGuidePage() {
           },
           { 
             title: "Planes", 
-            desc: "La oferta comercial. Define límites de almacenamiento, sucursales y usuarios.",
+            desc: "La oferta comercial. Define límites de almacenamiento, locaciones y usuarios.",
             icon: Zap,
             color: "text-amber-600 bg-amber-50/50 border-amber-100"
           }

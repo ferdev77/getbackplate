@@ -108,7 +108,7 @@ export function ChecklistsFilterBar({
           options: branches.map((b) => ({ id: b.id, label: b.name })),
           value: locFilter,
           onChange: (value) => navigate({ loc: value }),
-          allLabel: "Todas las ubicaciones",
+          allLabel: "Todas las locaciones",
           testId: "checklists-filter-location",
         },
       ]}

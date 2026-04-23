@@ -108,7 +108,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreat
     const previousRows = [...rows];
     const editingId = editing.membershipId;
     const branchName = editBranchId
-      ? branchOptions.find((branch) => branch.id === editBranchId)?.name || "Sucursal"
+      ? branchOptions.find((branch) => branch.id === editBranchId)?.name || "Locación"
       : "Todas";
 
     // Optimistic update
@@ -248,7 +248,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreat
             options: locationOptions,
             value: locationFilter,
             onChange: setLocationFilter,
-            allLabel: "Todas las ubicaciones",
+            allLabel: "Todas las locaciones",
             testId: "users-filter-location",
           },
           {

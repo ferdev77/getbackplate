@@ -28,7 +28,7 @@ export function BranchList({
   toggleStatusAction,
 }: BranchListProps) {
   if (!initialBranches?.length) {
-    return <p className="text-center py-8 rounded-xl border border-dashed border-[var(--gbp-border2)] text-sm text-[var(--gbp-text2)]">Aún no hay ubicaciones.</p>;
+    return <p className="text-center py-8 rounded-xl border border-dashed border-[var(--gbp-border2)] text-sm text-[var(--gbp-text2)]">Aún no hay locaciones.</p>;
   }
 
   return (

@@ -4,8 +4,6 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 
-const VENDOR_CATEGORIES = ["alimentos", "bebidas", "equipos", "limpieza", "mantenimiento", "empaque", "otro"] as const;
-
 // Coerce empty string / null → null before further validation
 const nullableStr = (max: number) =>
   z.preprocess(
@@ -15,7 +13,7 @@ const nullableStr = (max: number) =>
 
 const vendorUpdateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
-  category: z.enum(VENDOR_CATEGORIES).optional(),
+  category: z.string().trim().min(1).max(80).optional(),
   contact_name: nullableStr(200),
   contact_email: nullableStr(300),
   contact_phone: nullableStr(50),
@@ -93,6 +91,19 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
   const admin = createSupabaseAdminClient();
 
+  if (parsed.data.category) {
+    const { data: category } = await admin
+      .from("vendor_categories")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .eq("code", parsed.data.category)
+      .maybeSingle();
+
+    if (!category) {
+      return NextResponse.json({ error: "Categoría inválida" }, { status: 422 });
+    }
+  }
+
   // Verify vendor belongs to org and get current data for diffing
   const [{ data: existing }, { data: existingLocations }] = await Promise.all([
     admin
@@ -166,7 +177,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
           }))
         );
       } else {
-        // Global (sin sucursal específica)
+        // Global (sin locación específica)
         await admin.from("vendor_locations").insert({
           vendor_id: id,
           organization_id: organizationId,

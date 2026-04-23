@@ -291,8 +291,8 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
 
     const scope = typeof template.target_scope === "object" && template.target_scope !== null ? (template.target_scope as Record<string, string[]>) : {};
     const scopeLocationNames = Array.isArray(scope.locations) && scope.locations.length > 0
-      ? scope.locations.map((id) => branchNameMap.get(id) ?? "Sucursal")
-      : (template.branch_id ? [branchNameMap.get(template.branch_id) ?? "Sucursal"] : []);
+      ? scope.locations.map((id) => branchNameMap.get(id) ?? "Locación")
+      : (template.branch_id ? [branchNameMap.get(template.branch_id) ?? "Locación"] : []);
     const explicitDepts = Array.isArray(scope.department_ids) ? [...scope.department_ids] : [];
     const explicitPositions = Array.isArray(scope.position_ids) ? [...scope.position_ids] : [];
 
@@ -327,7 +327,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
       scheduledJob: scheduledJobsByTemplateId.get(template.id) ?? null,
       scopeLocationNames,
       scopeRoles,
-      branchName: template.branch_id ? branchNameMap.get(template.branch_id) ?? "Sucursal" : "Global",
+      branchName: template.branch_id ? branchNameMap.get(template.branch_id) ?? "Locación" : "Global",
       created_by_name: template.created_by ? checklistAuthorNameMap.get(template.created_by) ?? "Usuario" : "Sin autor",
     };
   });
@@ -451,7 +451,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
                         <div>
                           <p className="mb-1 font-semibold text-[var(--gbp-text)]">Locaciones</p>
                           <div className="flex flex-wrap gap-1">
-                            {locations.length ? locations.map((name) => <span key={`loc-${name}`} className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-medium text-[var(--gbp-accent)]">{name}</span>) : <span>{hasScopedRules ? "No restringe por ubicación" : "Todas"}</span>}
+                            {locations.length ? locations.map((name) => <span key={`loc-${name}`} className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-medium text-[var(--gbp-accent)]">{name}</span>) : <span>{hasScopedRules ? "No restringe por locación" : "Todas"}</span>}
                           </div>
                         </div>
                         <div>
