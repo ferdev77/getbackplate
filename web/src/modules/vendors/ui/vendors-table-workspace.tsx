@@ -16,6 +16,11 @@ type Props = {
   initialVendors: VendorRow[];
   branches: Branch[];
   organizationId: string;
+  canCreate?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  apiBasePath?: string;
+  historyEndpointBase?: string | null;
 };
 
 type HistoryEntry = {
@@ -148,14 +153,14 @@ function formatDate(iso: string) {
 }
 
 // ─── History Tab ──────────────────────────────────────────────────────────────
-function VendorHistoryTab({ vendorId }: { vendorId: string }) {
+function VendorHistoryTab({ vendorId, historyEndpointBase }: { vendorId: string; historyEndpointBase: string }) {
   const [history, setHistory] = useState<HistoryEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    fetch(`/api/company/vendors/${vendorId}/history`)
+    fetch(`${historyEndpointBase}/${vendorId}/history`)
       .then((r) => r.json())
       .then((d) => {
         if (cancelled) return;
@@ -169,7 +174,7 @@ function VendorHistoryTab({ vendorId }: { vendorId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [vendorId]);
+  }, [historyEndpointBase, vendorId]);
 
   const loading = !history && !error;
 
@@ -218,14 +223,17 @@ function VendorHistoryTab({ vendorId }: { vendorId: string }) {
 }
 
 // ─── Detail Slide-in Panel ────────────────────────────────────────────────────
-function VendorDetailPanel({ vendor, onClose, onEdit, onDelete }: {
+function VendorDetailPanel({ vendor, onClose, onEdit, onDelete, canEdit, canDelete, historyEndpointBase }: {
   vendor: VendorRow;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  canEdit: boolean;
+  canDelete: boolean;
+  historyEndpointBase: string | null;
 }) {
   const [activeTab, setActiveTab] = useState<"details" | "history">("details");
-  const tabs = [{ id: "details" as const, label: "Detalles" }, { id: "history" as const, label: "Historial" }];
+  const tabs = [{ id: "details" as const, label: "Detalles" }, ...(historyEndpointBase ? [{ id: "history" as const, label: "Historial" }] : [])];
 
   return (
     <div className="fixed inset-0 z-[900] flex justify-end">
@@ -324,21 +332,27 @@ function VendorDetailPanel({ vendor, onClose, onEdit, onDelete }: {
               )}
             </div>
           ) : (
-            <VendorHistoryTab key={vendor.id} vendorId={vendor.id} />
+            historyEndpointBase ? <VendorHistoryTab key={vendor.id} vendorId={vendor.id} historyEndpointBase={historyEndpointBase} /> : null
           )}
         </div>
 
         {/* Footer actions */}
-        <div className="p-4 border-t border-[var(--gbp-border)] flex gap-2 sticky bottom-0 bg-[var(--gbp-surface)]">
-          <button onClick={onEdit}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-lg border border-[var(--gbp-accent)] text-[var(--gbp-accent)] text-xs font-bold hover:bg-[var(--gbp-accent)] hover:text-white transition-colors">
-            <Pencil className="h-3.5 w-3.5" /> Editar
-          </button>
-          <button onClick={onDelete}
-            className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg border border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] text-[var(--gbp-error)] text-xs font-bold hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_12%,transparent)] transition-colors">
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
+        {canEdit || canDelete ? (
+          <div className="p-4 border-t border-[var(--gbp-border)] flex gap-2 sticky bottom-0 bg-[var(--gbp-surface)]">
+            {canEdit ? (
+              <button onClick={onEdit}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-lg border border-[var(--gbp-accent)] text-[var(--gbp-accent)] text-xs font-bold hover:bg-[var(--gbp-accent)] hover:text-white transition-colors">
+                <Pencil className="h-3.5 w-3.5" /> Editar
+              </button>
+            ) : null}
+            {canDelete ? (
+              <button onClick={onDelete}
+                className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg border border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] text-[var(--gbp-error)] text-xs font-bold hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_12%,transparent)] transition-colors">
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -376,11 +390,12 @@ function DeleteConfirmDialog({ vendor, onCancel, onConfirm, isPending }: {
 }
 
 // ─── Vendor Form Modal ─────────────────────────────────────────────────────────
-function VendorFormModal({ vendor, branches, onClose, onSaved }: {
+function VendorFormModal({ vendor, branches, onClose, onSaved, apiBasePath }: {
   vendor: VendorRow | null;
   branches: Branch[];
   onClose: () => void;
   onSaved: () => void;
+  apiBasePath: string;
 }) {
   const isEdit = Boolean(vendor);
   const [isPending, startTransition] = useTransition();
@@ -413,7 +428,7 @@ function VendorFormModal({ vendor, branches, onClose, onSaved }: {
     setError(null);
     startTransition(async () => {
       try {
-        const url = isEdit ? `/api/company/vendors/${vendor!.id}` : "/api/company/vendors";
+        const url = isEdit ? `${apiBasePath}/${vendor!.id}` : apiBasePath;
         const res = await fetch(url, {
           method: isEdit ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
@@ -572,7 +587,16 @@ function VendorFormModal({ vendor, branches, onClose, onSaved }: {
 }
 
 // ─── Main Table Workspace ──────────────────────────────────────────────────────
-export default function VendorsTableWorkspace({ initialVendors, branches, organizationId }: Props) {
+export default function VendorsTableWorkspace({
+  initialVendors,
+  branches,
+  organizationId,
+  canCreate = true,
+  canEdit = true,
+  canDelete = true,
+  apiBasePath = "/api/company/vendors",
+  historyEndpointBase = "/api/company/vendors",
+}: Props) {
   const router = useRouter();
   const [vendors, setVendors] = useState<VendorRow[]>(initialVendors);
   const [search, setSearch] = useState("");
@@ -604,7 +628,7 @@ export default function VendorsTableWorkspace({ initialVendors, branches, organi
     if (!deleteTarget) return;
     startDelete(async () => {
       try {
-        const res = await fetch(`/api/company/vendors/${deleteTarget.id}`, { method: "DELETE" });
+        const res = await fetch(`${apiBasePath}/${deleteTarget.id}`, { method: "DELETE" });
         if (!res.ok) throw new Error("No se pudo eliminar el proveedor");
         toast.success("Proveedor eliminado correctamente");
         setDeleteTarget(null);
@@ -615,7 +639,7 @@ export default function VendorsTableWorkspace({ initialVendors, branches, organi
         toast.error(message);
       }
     });
-  }, [deleteTarget, router]);
+  }, [apiBasePath, deleteTarget, router]);
 
   const filtered = vendors.filter((v) => {
     if (!showInactive && !v.isActive) return false;
@@ -647,11 +671,13 @@ export default function VendorsTableWorkspace({ initialVendors, branches, organi
             <Truck className="h-4 w-4" />
             <h1 className="text-lg font-bold">Proveedores</h1>
           </div>
-          <button
-            onClick={() => { setEditingVendor(null); setModalOpen(true); }}
-            className="inline-flex h-[33px] items-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-[var(--gbp-bg)] hover:bg-[var(--gbp-accent)] transition-colors">
-            <Plus className="h-3.5 w-3.5" /> Nuevo Proveedor
-          </button>
+          {canCreate ? (
+            <button
+              onClick={() => { setEditingVendor(null); setModalOpen(true); }}
+              className="inline-flex h-[33px] items-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-[var(--gbp-bg)] hover:bg-[var(--gbp-accent)] transition-colors">
+              <Plus className="h-3.5 w-3.5" /> Nuevo Proveedor
+            </button>
+          ) : null}
         </section>
       </SlideUp>
 
@@ -701,7 +727,7 @@ export default function VendorsTableWorkspace({ initialVendors, branches, organi
             description={search || filterCategory || filterBranch
               ? "Probá ajustando los filtros de búsqueda."
               : "Agregá tu primer proveedor para comenzar a gestionar el directorio."}
-            action={!search && !filterCategory && !filterBranch ? (
+            action={canCreate && !search && !filterCategory && !filterBranch ? (
               <button onClick={() => { setEditingVendor(null); setModalOpen(true); }}
                 className="mt-1 inline-flex h-9 items-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-4 text-xs font-bold text-[var(--gbp-bg)] hover:bg-[var(--gbp-accent)] transition-colors">
                 <Plus className="h-3.5 w-3.5" /> Nuevo proveedor
@@ -713,7 +739,7 @@ export default function VendorsTableWorkspace({ initialVendors, branches, organi
             <table className="w-full text-sm min-w-[700px] border-collapse">
               <thead>
                 <tr className="bg-[var(--gbp-bg)]">
-                  {["Proveedor", "Categoría", "Contacto", "Teléfono", "Locaciones", "Estado", ""].map((h) => (
+                  {["Proveedor", "Categoría", "Contacto", "Teléfono", "Locaciones", "Estado", ...(canEdit || canDelete ? [""] : [])].map((h) => (
                     <th key={h} className={`px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.08em] border-b border-[var(--gbp-border)] whitespace-nowrap ${TEXT_MUTED}`}>
                       {h}
                     </th>
@@ -756,18 +782,24 @@ export default function VendorsTableWorkspace({ initialVendors, branches, organi
                       )}
                     </td>
                     <td className="px-4 py-3"><StatusBadge active={v.isActive} /></td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <button onClick={(e) => { e.stopPropagation(); setEditingVendor(v); setModalOpen(true); }}
-                          className={ACTION_BTN} title="Editar">
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(v); }}
-                          className={ACTION_BTN_DANGER} title="Eliminar">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </td>
+                    {canEdit || canDelete ? (
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          {canEdit ? (
+                            <button onClick={(e) => { e.stopPropagation(); setEditingVendor(v); setModalOpen(true); }}
+                              className={ACTION_BTN} title="Editar">
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                          ) : null}
+                          {canDelete ? (
+                            <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(v); }}
+                              className={ACTION_BTN_DANGER} title="Eliminar">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          ) : null}
+                        </div>
+                      </td>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>
@@ -780,14 +812,18 @@ export default function VendorsTableWorkspace({ initialVendors, branches, organi
       {(modalOpen || editingVendor) && (
         <VendorFormModal vendor={editingVendor} branches={branches}
           onClose={() => { setModalOpen(false); setEditingVendor(null); }}
-          onSaved={handleSaved} />
+          onSaved={handleSaved}
+          apiBasePath={apiBasePath} />
       )}
 
       {detailVendor && !modalOpen && (
         <VendorDetailPanel vendor={detailVendor}
           onClose={() => setDetailVendor(null)}
-          onEdit={() => { setEditingVendor(detailVendor); setModalOpen(true); }}
-          onDelete={() => setDeleteTarget(detailVendor)} />
+          onEdit={() => { if (canEdit) { setEditingVendor(detailVendor); setModalOpen(true); } }}
+          onDelete={() => { if (canDelete) { setDeleteTarget(detailVendor); } }}
+          canEdit={canEdit}
+          canDelete={canDelete}
+          historyEndpointBase={historyEndpointBase} />
       )}
 
       {deleteTarget && (

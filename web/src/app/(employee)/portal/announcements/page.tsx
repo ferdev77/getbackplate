@@ -113,20 +113,22 @@ export default async function EmployeeAnnouncementsPage() {
       return announcementTimestamp(b) - announcementTimestamp(a);
     });
 
-    const { data: createdByMeData } = await supabase
-      .from("announcements")
-      .select("id, title, body, kind, is_featured, publish_at, created_at, expires_at, target_scope, created_by")
-      .eq("organization_id", tenant.organizationId)
-      .eq("created_by", userId)
-      .order("created_at", { ascending: false })
-      .limit(60);
+    if (canCreate) {
+      const { data: createdByMeData } = await supabase
+        .from("announcements")
+        .select("id, title, body, kind, is_featured, publish_at, created_at, expires_at, target_scope, created_by")
+        .eq("organization_id", tenant.organizationId)
+        .eq("created_by", userId)
+        .order("created_at", { ascending: false })
+        .limit(60);
 
-    myAnnouncements = (createdByMeData ?? []).sort((a, b) => {
-      if (Boolean(a.is_featured) !== Boolean(b.is_featured)) {
-        return a.is_featured ? -1 : 1;
-      }
-      return announcementTimestamp(b) - announcementTimestamp(a);
-    });
+      myAnnouncements = (createdByMeData ?? []).sort((a, b) => {
+        if (Boolean(a.is_featured) !== Boolean(b.is_featured)) {
+          return a.is_featured ? -1 : 1;
+        }
+        return announcementTimestamp(b) - announcementTimestamp(a);
+      });
+    }
 
     const authorIds = Array.from(
       new Set(
@@ -216,6 +218,7 @@ export default async function EmployeeAnnouncementsPage() {
       <EmployeeAnnouncementsWorkspace
         visibleAnnouncements={announcements}
         myAnnouncements={myAnnouncements}
+        canViewCreated={canCreate}
         canEdit={canEdit}
         canDelete={canDelete}
         viewerUserId={userId}

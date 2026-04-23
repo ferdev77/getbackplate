@@ -29,6 +29,7 @@ type AnnouncementRow = {
 type Props = {
   visibleAnnouncements: AnnouncementRow[];
   myAnnouncements: AnnouncementRow[];
+  canViewCreated: boolean;
   canEdit: boolean;
   canDelete: boolean;
   viewerUserId: string;
@@ -63,6 +64,7 @@ function sortAnnouncements(rows: AnnouncementRow[]) {
 export function EmployeeAnnouncementsWorkspace({
   visibleAnnouncements,
   myAnnouncements,
+  canViewCreated,
   canEdit,
   canDelete,
   viewerUserId,
@@ -88,6 +90,12 @@ export function EmployeeAnnouncementsWorkspace({
   useEffect(() => {
     setMine(myAnnouncements);
   }, [myAnnouncements]);
+
+  useEffect(() => {
+    if (!canViewCreated && viewMode === "created") {
+      setViewMode("assigned");
+    }
+  }, [canViewCreated, viewMode]);
 
   const branchNameMap = useMemo(() => new Map(branches.map((row) => [row.id, row.name])), [branches]);
   const departmentNameMap = useMemo(() => new Map(departments.map((row) => [row.id, row.name])), [departments]);
@@ -196,6 +204,7 @@ export function EmployeeAnnouncementsWorkspace({
       <AssignedCreatedToggle
         viewMode={viewMode}
         onChange={setViewMode}
+        showCreated={canViewCreated}
         assignedLabel="Asignados"
         createdLabel="Creados"
         assignedCount={assignedFeed.length}
@@ -203,7 +212,7 @@ export function EmployeeAnnouncementsWorkspace({
         variant="header"
       />
 
-      {viewMode === "created" && mineResolved.length > 0 ? (
+      {canViewCreated && viewMode === "created" && mineResolved.length > 0 ? (
         <section className="space-y-3">
           <p className="text-[11px] font-bold tracking-[0.12em] text-[var(--gbp-muted)] uppercase">Creados por mi</p>
           {mineResolved.map((ann) => {
@@ -290,7 +299,7 @@ export function EmployeeAnnouncementsWorkspace({
           </p>
         ) : null}
       </section>
-      ) : mineResolved.length === 0 ? (
+      ) : canViewCreated && mineResolved.length === 0 ? (
         <section className="space-y-3">
           <p className="text-[11px] font-bold tracking-[0.12em] text-[var(--gbp-muted)] uppercase">Creados por mi</p>
           <p className="rounded-2xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-10 text-center text-sm text-[var(--gbp-text2)]">

@@ -32,6 +32,7 @@ export async function syncDelegatedEmployeePermissions(input: {
     organization_id: input.organizationId,
     membership_id: input.membershipId,
     module_code: moduleCode,
+    can_view: input.permissions[moduleCode].view,
     can_create: input.permissions[moduleCode].create,
     can_edit: input.permissions[moduleCode].edit,
     can_delete: input.permissions[moduleCode].delete,

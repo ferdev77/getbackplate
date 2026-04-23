@@ -13,7 +13,7 @@ export default async function CompanyReportsPage() {
       reports={[]}
       attentionFeed={[]}
       deferredDataUrl="/api/company/reports"
-      className="mx-auto w-full max-w-[var(--gbp-content-max)] px-[var(--gbp-content-pad-x)] py-[var(--gbp-content-pad-y)] sm:px-[var(--gbp-content-pad-x-sm)]"
+      className="mx-auto w-full max-w-[var(--gbp-content-max)] px-[var(--gbp-content-pad-x)] py-[var(--gbp-content-shell-pad-y)] sm:px-[var(--gbp-content-pad-x-sm)] sm:py-[var(--gbp-content-shell-pad-y-sm)]"
     />
   );
 }

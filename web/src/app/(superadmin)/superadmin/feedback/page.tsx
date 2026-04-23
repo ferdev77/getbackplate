@@ -48,6 +48,7 @@ export default async function SuperadminFeedbackPage() {
       title,
       message,
       page_path,
+      source_channel,
       created_at,
       status,
       resolved_at,
@@ -110,6 +111,16 @@ export default async function SuperadminFeedbackPage() {
               const typeLabel = msg.feedback_type === "bug" ? "Bug Report" : msg.feedback_type === "idea" ? "Idea / Sugerencia" : "Otro Mensaje";
               const TypeIcon = msg.feedback_type === "bug" ? Bug : msg.feedback_type === "idea" ? Sparkles : MessageSquare;
               const typeColor = msg.feedback_type === "bug" ? "text-rose-600 bg-rose-50 border-rose-100" : msg.feedback_type === "idea" ? "text-blue-600 bg-blue-50 border-blue-100" : "text-muted-foreground bg-muted/20 border-line/40";
+              const sourceChannel =
+                msg.source_channel === "employee"
+                  ? "employee"
+                  : msg.source_channel === "company"
+                    ? "company"
+                    : (msg.page_path?.startsWith("/portal/") ? "employee" : "company");
+              const sourceLabel = sourceChannel === "employee" ? "Empleados" : "Empresa";
+              const sourceColor = sourceChannel === "employee"
+                ? "text-indigo-700 bg-indigo-50 border-indigo-200"
+                : "text-emerald-700 bg-emerald-50 border-emerald-200";
               const isResolved = msg.status === 'resolved';
 
               return (
@@ -125,9 +136,13 @@ export default async function SuperadminFeedbackPage() {
                        
                         <div className="flex items-center gap-1.5 rounded-full border border-line/40 bg-muted/20 px-2.5 py-0.5 text-[11px] uppercase font-semibold tracking-[0.11em] text-muted-foreground">
                            {getOrganizationName(msg.organizations as { name?: string } | Array<{ name?: string }> | null)}
-                       </div>
+                        </div>
 
-                       <div className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground/60">
+                        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.11em] ${sourceColor}`}>
+                          {sourceLabel}
+                        </span>
+
+                        <div className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground/60">
                          por <span className="text-foreground">{userEmail}</span> • {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true, locale: es })}
                        </div>
 
