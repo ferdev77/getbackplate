@@ -47,12 +47,15 @@ type DocumentRow = {
 
 function parseScope(scope: unknown) {
   if (!scope || typeof scope !== "object") {
-    return { departments: [] as string[] };
+    return { departments: [] as string[], users: [] as string[] };
   }
   const value = scope as Record<string, unknown>;
   return {
     departments: Array.isArray(value.department_ids)
       ? value.department_ids.filter((x): x is string => typeof x === "string")
+      : [],
+    users: Array.isArray(value.users)
+      ? value.users.filter((x): x is string => typeof x === "string")
       : [],
   };
 }
@@ -238,6 +241,24 @@ export function EmployeeDocumentsTree({
     });
   }, [selectedColumnFolderId]);
 
+  const userByUserId = useMemo(() => {
+    const map = new Map<string, ScopedUserOption>();
+    for (const u of users) {
+      if (u.user_id) map.set(u.user_id, u);
+    }
+    return map;
+  }, [users]);
+
+  const getCreatorLabel = useCallback((ownerId?: string | null) => {
+    const user = ownerId ? userByUserId.get(ownerId) : undefined;
+    if (!user) return "Administrador";
+    const fullName = `${user.first_name} ${user.last_name}`.trim();
+    if (user.position_label) {
+      return `${fullName} - ${user.position_label}`;
+    }
+    return fullName || "Administrador";
+  }, [userByUserId]);
+
   const folderById = useMemo(() => new Map(folderRows.map((folder) => [folder.id, folder])), [folderRows]);
   const folderOptions = useMemo(() => folderRows.map((folder) => ({ id: folder.id, name: folder.name })), [folderRows]);
 
@@ -246,12 +267,14 @@ export function EmployeeDocumentsTree({
     return parseScope(folderById.get(doc.folder_id)?.access_scope ?? doc.access_scope);
   }, [folderById]);
 
+
   const docsByFolder = useMemo(() => {
     const q = query.trim().toLowerCase();
     const map = new Map<string | null, DocumentRow[]>();
     for (const doc of documentsState.filter((row) => {
-      const own = row.owner_user_id === viewerUserId;
-      if (ownershipView === "created" ? !own : own) return false;
+      const scope = getEffectiveDocumentScope(row);
+      const isPersonal = row.owner_user_id === viewerUserId || scope.users.includes(viewerUserId);
+      if (ownershipView === "created" ? !isPersonal : isPersonal) return false;
       if (folderFilter && row.folder_id !== folderFilter) return false;
       if (locationFilter && row.branch_id !== locationFilter) return false;
       if (departmentFilter) {
@@ -284,7 +307,10 @@ export function EmployeeDocumentsTree({
   );
 
   const ownedFolderIds = useMemo(
-    () => new Set(folderRows.filter((folder) => folder.created_by === viewerUserId).map((folder) => folder.id)),
+    () => new Set(folderRows.filter((folder) => {
+      const isPersonal = folder.created_by === viewerUserId || parseScope(folder.access_scope).users.includes(viewerUserId);
+      return isPersonal;
+    }).map((folder) => folder.id)),
     [folderRows, viewerUserId],
   );
 
@@ -466,7 +492,9 @@ export function EmployeeDocumentsTree({
               >
                 <ChevronRight className={`h-4 w-4 text-[var(--gbp-text2)] transition ${isOpen ? "rotate-90" : ""}`} />
                 <Folder className="h-5 w-5 text-[var(--gbp-text2)]" />
-                <span className="truncate text-sm font-semibold text-[var(--gbp-text)]">{folder.name}</span>
+                <span className="truncate text-sm font-semibold text-[var(--gbp-text)]">
+                  {folder.name}
+                </span>
                 <span className="text-xs text-[var(--gbp-muted)]">({folderDocumentCountById.get(folder.id) ?? 0})</span>
               </div>
             </div>
@@ -484,7 +512,7 @@ export function EmployeeDocumentsTree({
                              {doc.is_new ? <span className="ml-2 rounded-full border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--gbp-success)]">NUEVO</span> : null}
                            </p>
                            <p className="truncate text-xs text-[var(--gbp-muted)]">
-                             {formatSize(doc.file_size_bytes)} · {(doc.mime_type ?? "archivo").toUpperCase()}
+                             Subido por {getCreatorLabel(doc.owner_user_id)}
                            </p>
                          </div>
                       </div>
@@ -837,7 +865,7 @@ export function EmployeeDocumentsTree({
                                       {doc.is_new ? <span className="ml-2 rounded-full border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--gbp-success)]">NUEVO</span> : null}
                                     </p>
                                     <p className="truncate text-xs text-[var(--gbp-muted)]">
-                                      {formatSize(doc.file_size_bytes)} · {(doc.mime_type ?? "archivo").toUpperCase()}
+                                      Subido por {getCreatorLabel(doc.owner_user_id)}
                                     </p>
                                   </div>
                                 </div>
@@ -999,7 +1027,9 @@ export function EmployeeDocumentsTree({
                                       <GripVertical className="h-3.5 w-3.5" />
                                     </span>
                                     <Folder className="h-3.5 w-3.5 shrink-0 text-[var(--gbp-text2)]" />
-                                    <span className="truncate text-sm font-medium text-[var(--gbp-text)]">{folder.name}</span>
+                                    <span className="flex items-center truncate text-sm font-medium text-[var(--gbp-text)]">
+                                      {folder.name}
+                                    </span>
                                   </span>
                                   <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[var(--gbp-muted)]" />
                                 </div>
@@ -1050,10 +1080,12 @@ export function EmployeeDocumentsTree({
                                     >
                                       <GripVertical className="h-3.5 w-3.5" />
                                     </span>
-                                    <span className="truncate text-sm font-semibold text-[var(--gbp-text)]">{doc.title}</span>
+                                    <span className="flex items-center truncate text-sm font-semibold text-[var(--gbp-text)]">
+                                      {doc.title}
+                                    </span>
                                   </span>
                                   <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">
-                                    {formatSize(doc.file_size_bytes)} · {(doc.mime_type ?? "archivo").toUpperCase()}
+                                    Subido por {getCreatorLabel(doc.owner_user_id)}
                                   </p>
                                 </div>
                               ))}
@@ -1073,8 +1105,10 @@ export function EmployeeDocumentsTree({
                           <p className="mb-2 px-1 text-[11px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Detalle</p>
                           <div className="space-y-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
                             <div>
-                              <p className="text-sm font-semibold text-[var(--gbp-text)]">{selectedColumnDocument.title}</p>
-                              <p className="mt-1 text-xs text-[var(--gbp-text2)]">{formatSize(selectedColumnDocument.file_size_bytes)} · {(selectedColumnDocument.mime_type ?? "archivo").toUpperCase()}</p>
+                              <p className="flex items-center text-sm font-semibold text-[var(--gbp-text)]">
+                                {selectedColumnDocument.title}
+                              </p>
+                              <p className="mt-1 text-xs text-[var(--gbp-text2)]">Subido por {getCreatorLabel(selectedColumnDocument.owner_user_id)}</p>
                             </div>
                             <EmployeeDocumentActions
                               documentId={selectedColumnDocument.id}
