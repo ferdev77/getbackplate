@@ -119,13 +119,12 @@ async function processRecurrence(req: Request) {
                 ? targetScope.notify_channels
                 : [];
 
-             const audienceInput = {
-               supabase: supabaseAdmin,
-               organizationId: template.organization_id,
-               targetScope: targetScope,
-               templateBranchId: template.branch_id,
-               templateDepartmentId: template.department_id,
-             };
+              const audienceInput = {
+                supabase: supabaseAdmin,
+                organizationId: template.organization_id,
+                targetScope: targetScope,
+                templateBranchId: template.branch_id,
+              };
 
              if (notifyVia !== 'none') {
                try {

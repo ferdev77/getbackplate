@@ -153,7 +153,7 @@ export async function POST(request: Request) {
     .insert({
         organization_id: access.tenant.organizationId,
         branch_id: employeeCtx.branchId,
-        department_id: employeeCtx.departmentId,
+        department_id: null,
         checklist_type: checklistType,
         shift,
         repeat_every: repeatEvery,

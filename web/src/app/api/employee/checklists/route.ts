@@ -65,7 +65,6 @@ export async function GET(request: Request) {
     departmentId: employeeRow?.department_id ?? null,
     positionIds: employeePositionIds,
     templateBranchId: template.branch_id,
-    templateDepartmentId: template.department_id,
     targetScope: template.target_scope,
   });
 

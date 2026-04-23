@@ -96,6 +96,7 @@ type ChecklistReportsDashboardProps = {
   attentionFeed: AttentionFeedItem[];
   deferredDataUrl?: string;
   reviewEndpoint?: string;
+  className?: string;
 };
 
 const REPORTS_POLL_MS = 3000;
@@ -116,6 +117,7 @@ export function ChecklistReportsDashboard({
   attentionFeed,
   deferredDataUrl,
   reviewEndpoint = "/api/company/checklists/review",
+  className,
 }: ChecklistReportsDashboardProps) {
   const router = useRouter();
   const [generatedLabel, setGeneratedLabel] = useState(generatedAt);
@@ -319,28 +321,27 @@ export function ChecklistReportsDashboard({
   }
 
   return (
-    <main className="mx-auto w-full max-w-[1320px] px-4 py-7 sm:px-6 lg:px-8">
+    <main className={className}>
       <section className="mb-6 rounded-2xl border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-5 py-4 sm:px-6">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-[var(--gbp-muted)]">Reportes de apertura</p>
-          <h1 className="mt-1 font-serif text-3xl leading-none text-[var(--gbp-text)]">Dashboard de Reportes</h1>
-          <p className="mt-1 text-xs text-[var(--gbp-text2)]">{effectiveGeneratedAt}</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Dashboard de Reportes</h1>
+          <p className="mt-1 text-sm text-[var(--gbp-text2)]">{effectiveGeneratedAt}</p>
         </div>
       </section>
 
       <section className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {effectiveStatCards.map((card) => (
           <article key={card.label} className="rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-5 py-4 transition hover:shadow-[var(--gbp-shadow-md)]">
-            <p className="text-xl leading-none">{card.icon}</p>
-            <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">{card.label}</p>
-            <p className={`mt-1 font-serif text-3xl leading-none ${toneClasses(card.tone)}`}>{card.value}</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">{card.label}</p>
+            <p className={`mt-1 text-2xl font-bold tracking-tight ${toneClasses(card.tone)}`}>{card.value}</p>
             <p className="mt-1 text-xs text-[var(--gbp-muted)]">{card.subLabel}</p>
           </article>
         ))}
       </section>
 
       <section className="mb-7">
-        <h2 className="mb-3 font-serif text-2xl text-[var(--gbp-text)]">Estado por Ubicación - Hoy</h2>
+        <h2 className="mb-3 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Estado por Ubicación - Hoy</h2>
         <div className={locationCardsGridClass}>
           {effectiveLocationCards.map((card) => (
             <button
@@ -401,7 +402,7 @@ export function ChecklistReportsDashboard({
 
       <section className="grid items-start gap-4 xl:grid-cols-[1fr_340px]">
         <div className="min-w-0">
-          <h2 className="mb-3 font-serif text-2xl text-[var(--gbp-text)]">Historial de Reportes</h2>
+          <h2 className="mb-3 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Historial de Reportes</h2>
           <div className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
             <div className="flex flex-wrap items-center gap-2 border-b border-[var(--gbp-border)] px-4 py-3">
               <p className="mr-auto text-sm font-bold text-[var(--gbp-text)]">Todos los reportes</p>
@@ -527,7 +528,7 @@ export function ChecklistReportsDashboard({
         </div>
 
         <aside className="min-w-0">
-          <h2 className="mb-3 font-serif text-2xl text-[var(--gbp-text)]">⚑ Ítems para Atención</h2>
+          <h2 className="mb-3 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Ítems para Atención</h2>
           <div className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
             {effectiveAttentionFeed.map((item) => (
               <button
@@ -561,7 +562,7 @@ export function ChecklistReportsDashboard({
           <aside className="fixed inset-y-0 right-0 z-[151] flex w-full max-w-[560px] flex-col bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-lg)]">
             <header className="flex items-start justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
               <div>
-                <h3 className="font-serif text-2xl text-[var(--gbp-text)]">{selectedReport.templateName}</h3>
+                <h3 className="text-2xl font-bold tracking-tight text-[var(--gbp-text)]">{selectedReport.templateName}</h3>
                 <p className="text-xs text-[var(--gbp-text2)]">{selectedReport.managerName} · {selectedReport.dateLabel} {selectedReport.timeLabel} · {selectedReport.locationName}{selectedReport.cityLabel ? ` - ${selectedReport.cityLabel}` : ""}</p>
               </div>
               <button type="button" onClick={() => setSelectedReportId(null)} className="grid h-8 w-8 place-items-center rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:bg-[var(--gbp-accent)] hover:text-white">

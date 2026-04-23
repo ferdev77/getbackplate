@@ -18,7 +18,6 @@ export type ChecklistAudienceInput = {
     users?: string[];
   } | null;
   templateBranchId?: string | null;
-  templateDepartmentId?: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -72,8 +71,6 @@ export async function resolveChecklistAudienceContacts(input: ChecklistAudienceI
   for (const employee of employees ?? []) {
     if (!employee.user_id) continue;
     const byTemplateBranch = Boolean(input.templateBranchId) && employee.branch_id === input.templateBranchId;
-    const byTemplateDepartment =
-      Boolean(input.templateDepartmentId) && employee.department_id === input.templateDepartmentId;
     const byLocationScope = locationIds.length > 0 && Boolean(employee.branch_id) && locationIds.includes(employee.branch_id);
     const byDepartmentScope =
       departmentIds.length > 0 && Boolean(employee.department_id) && departmentIds.includes(employee.department_id);
@@ -89,7 +86,7 @@ export async function resolveChecklistAudienceContacts(input: ChecklistAudienceI
 
     const isInAudience = hasAnyScope
       ? byLocationScope || byDepartmentScope || byPositionScope || byUserScope
-      : byTemplateBranch || byTemplateDepartment || (!input.templateBranchId && !input.templateDepartmentId);
+      : byTemplateBranch || !input.templateBranchId;
 
     if (isInAudience) {
       recipientUserIds.add(employee.user_id);
@@ -103,8 +100,6 @@ export async function resolveChecklistAudienceContacts(input: ChecklistAudienceI
     if (!profile.user_id) continue;
 
     const byTemplateBranch = Boolean(input.templateBranchId) && profile.branch_id === input.templateBranchId;
-    const byTemplateDepartment =
-      Boolean(input.templateDepartmentId) && profile.department_id === input.templateDepartmentId;
     const byLocationScope =
       locationIds.length > 0 && Boolean(profile.branch_id) && locationIds.includes(profile.branch_id);
     const byDepartmentScope =
@@ -115,14 +110,14 @@ export async function resolveChecklistAudienceContacts(input: ChecklistAudienceI
 
     const isInAudience = hasAnyScope
       ? byLocationScope || byDepartmentScope || byPositionScope || byUserScope
-      : byTemplateBranch || byTemplateDepartment || (!input.templateBranchId && !input.templateDepartmentId);
+      : byTemplateBranch || !input.templateBranchId;
 
     if (isInAudience) {
       recipientUserIds.add(profile.user_id);
     }
   }
 
-  if (!hasAnyScope && !input.templateBranchId && !input.templateDepartmentId) {
+  if (!hasAnyScope && !input.templateBranchId) {
     for (const userId of membershipUserIds) {
       recipientUserIds.add(userId);
     }

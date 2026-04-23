@@ -87,7 +87,6 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
       departmentId: employeeRow?.department_id ?? null,
       positionIds: employeePositionIds,
       templateBranchId: template.branch_id,
-      templateDepartmentId: template.department_id,
       targetScope: template.target_scope,
     }),
   );
@@ -157,7 +156,7 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
     };
   });
 
-  const { data: myCreatedTemplates } = await supabase
+  const { data: myCreatedTemplates } = await admin
     .from("checklist_templates")
     .select("id, name, created_at, checklist_type, shift, repeat_every, is_active, target_scope")
     .eq("organization_id", tenant.organizationId)
@@ -168,7 +167,7 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
 
   const myCreatedTemplateIds = (myCreatedTemplates ?? []).map((row) => row.id);
   const { data: mySections } = myCreatedTemplateIds.length
-    ? await supabase
+    ? await admin
         .from("checklist_template_sections")
         .select("id, template_id, name, sort_order")
         .eq("organization_id", tenant.organizationId)
@@ -178,7 +177,7 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
 
   const mySectionIds = (mySections ?? []).map((row) => row.id);
   const { data: myItems } = mySectionIds.length
-    ? await supabase
+    ? await admin
         .from("checklist_template_items")
         .select("id, section_id, label, sort_order")
         .eq("organization_id", tenant.organizationId)
