@@ -18,6 +18,7 @@ export type VendorRow = {
   contactName: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
+  contactWhatsapp: string | null;
   websiteUrl: string | null;
   address: string | null;
   notes: string | null;

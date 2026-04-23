@@ -143,6 +143,10 @@ export const SECTIONS: SidebarSection[] = [
     ],
   },
   {
+    label: "Proveedores",
+    items: [{ href: "/app/vendors", label: "Proveedores", icon: Truck, moduleCode: "vendors" }],
+  },
+  {
     label: "Recursos Humanos",
     items: [
       { href: "/app/employees", label: "Usuarios / Empleados", icon: Users, moduleCode: "employees" },
@@ -164,10 +168,6 @@ export const SECTIONS: SidebarSection[] = [
         actionKey: "openUserModal",
       },
     ],
-  },
-  {
-    label: "Proveedores",
-    items: [{ href: "/app/vendors", label: "Proveedores", icon: Truck, moduleCode: "vendors" }],
   },
 ];
 

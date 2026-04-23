@@ -3,9 +3,10 @@
 import { useState, useCallback, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Truck, Plus, Search, Pencil, Trash2, X, Phone, Mail, Globe, MapPin, FileText, Building2, Clock } from "lucide-react";
+import { Truck, Plus, Search, Pencil, Trash2, X, Phone, Mail, Globe, MapPin, FileText, Building2, Clock, Eye, MessageCircle } from "lucide-react";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { SlideUp } from "@/shared/ui/animations";
+import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import type { VendorRow } from "@/modules/vendors/types";
 import { VENDOR_CATEGORIES } from "@/modules/vendors/types";
 
@@ -21,6 +22,7 @@ type Props = {
   canDelete?: boolean;
   apiBasePath?: string;
   historyEndpointBase?: string | null;
+  deferredDataUrl?: string;
 };
 
 type HistoryEntry = {
@@ -84,6 +86,7 @@ const FIELD_LABELS: Record<string, string> = {
   contact_name: "Contacto",
   contact_email: "Email",
   contact_phone: "Teléfono",
+  contact_whatsapp: "WhatsApp",
   website_url: "Sitio Web",
   address: "Dirección",
   notes: "Notas",
@@ -159,9 +162,22 @@ function VendorHistoryTab({ vendorId, historyEndpointBase }: { vendorId: string;
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
 
-    fetch(`${historyEndpointBase}/${vendorId}/history`)
-      .then((r) => r.json())
+    fetch(`${historyEndpointBase}/${vendorId}/history`, {
+      method: "GET",
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          const message = typeof data?.error === "string" ? data.error : "No se pudo cargar el historial";
+          throw new Error(message);
+        }
+        return data;
+      })
       .then((d) => {
         if (cancelled) return;
         setHistory(Array.isArray(d.history) ? d.history : []);
@@ -169,10 +185,13 @@ function VendorHistoryTab({ vendorId, historyEndpointBase }: { vendorId: string;
       .catch(() => {
         if (cancelled) return;
         setError("No se pudo cargar el historial");
+        setHistory([]);
       });
 
     return () => {
       cancelled = true;
+      clearTimeout(timeout);
+      controller.abort();
     };
   }, [historyEndpointBase, vendorId]);
 
@@ -281,6 +300,14 @@ function VendorDetailPanel({ vendor, onClose, onEdit, onDelete, canEdit, canDele
                   <p className={`text-[11px] font-bold uppercase tracking-widest mb-1 ${TEXT_MUTED}`}>Teléfono</p>
                   <a href={`tel:${vendor.contactPhone}`} className="flex items-center gap-1.5 text-sm font-medium text-[var(--gbp-accent)] hover:underline">
                     <Phone className="h-3.5 w-3.5" />{vendor.contactPhone}
+                  </a>
+                </div>
+              )}
+              {vendor.contactWhatsapp && (
+                <div className="pb-4 border-b border-[var(--gbp-border)]">
+                  <p className={`text-[11px] font-bold uppercase tracking-widest mb-1 ${TEXT_MUTED}`}>WhatsApp</p>
+                  <a href={`https://wa.me/${vendor.contactWhatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm font-medium text-[var(--gbp-accent)] hover:underline">
+                    <MessageCircle className="h-3.5 w-3.5" />{vendor.contactWhatsapp}
                   </a>
                 </div>
               )}
@@ -407,6 +434,7 @@ function VendorFormModal({ vendor, branches, onClose, onSaved, apiBasePath }: {
     contact_name: vendor?.contactName ?? "",
     contact_email: vendor?.contactEmail ?? "",
     contact_phone: vendor?.contactPhone ?? "",
+    contact_whatsapp: vendor?.contactWhatsapp ?? "",
     website_url: vendor?.websiteUrl ?? "",
     address: vendor?.address ?? "",
     notes: vendor?.notes ?? "",
@@ -497,6 +525,13 @@ function VendorFormModal({ vendor, branches, onClose, onSaved, apiBasePath }: {
             </div>
           </div>
 
+          <div>
+            <label className={labelCls}>WhatsApp</label>
+            <input className={inputCls} value={form.contact_whatsapp}
+              onChange={(e) => setForm((p) => ({ ...p, contact_whatsapp: e.target.value }))}
+              placeholder="+54 9 11 1234 5678" maxLength={50} />
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Email</label>
@@ -528,18 +563,38 @@ function VendorFormModal({ vendor, branches, onClose, onSaved, apiBasePath }: {
             {branches.length === 0 ? (
               <p className={`text-xs ${TEXT_MUTED}`}>No hay sucursales activas para asignar.</p>
             ) : (
-              <div className="flex flex-wrap gap-2 p-3 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)]">
-                {branches.map((b) => {
-                  const sel = form.branch_ids.includes(b.id);
-                  return (
-                    <button key={b.id} type="button" onClick={() => toggleBranch(b.id)}
-                      className={`h-7 px-3 rounded-full text-xs font-semibold border transition-colors ${sel
-                        ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent)] text-white"
-                        : "border-[var(--gbp-border)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"}`}>
-                      {b.name}
-                    </button>
-                  );
-                })}
+              <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
+                <p className="mb-2 text-[11px] text-[var(--gbp-text2)]">
+                  Elegí las ubicaciones donde será visible este proveedor.
+                </p>
+                <label className="mb-2 inline-flex items-center gap-2 border-b border-[var(--gbp-border)] pb-2 text-xs font-semibold text-[var(--gbp-text)]">
+                  <input
+                    type="checkbox"
+                    checked={form.branch_ids.length === branches.length && branches.length > 0}
+                    onChange={(event) => {
+                      const checked = event.target.checked;
+                      setForm((prev) => ({
+                        ...prev,
+                        branch_ids: checked ? branches.map((branch) => branch.id) : [],
+                      }));
+                    }}
+                    className="h-[14px] w-[14px] accent-[var(--gbp-accent)]"
+                  />
+                  Todas las ubicaciones
+                </label>
+                <div className="grid grid-cols-2 gap-2 text-xs text-[var(--gbp-text2)]">
+                  {branches.map((branch) => (
+                    <label key={branch.id} className="inline-flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={form.branch_ids.includes(branch.id)}
+                        onChange={() => toggleBranch(branch.id)}
+                        className="h-[13px] w-[13px] accent-[var(--gbp-accent)]"
+                      />
+                      {branch.name}
+                    </label>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -596,9 +651,12 @@ export default function VendorsTableWorkspace({
   canDelete = true,
   apiBasePath = "/api/company/vendors",
   historyEndpointBase = "/api/company/vendors",
+  deferredDataUrl,
 }: Props) {
   const router = useRouter();
   const [vendors, setVendors] = useState<VendorRow[]>(initialVendors);
+  const [branchOptions, setBranchOptions] = useState<Branch[]>(branches);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterBranch, setFilterBranch] = useState("");
@@ -614,6 +672,115 @@ export default function VendorsTableWorkspace({
     setVendors(initialVendors);
   }, [initialVendors]);
 
+  useEffect(() => {
+    setBranchOptions(branches);
+  }, [branches]);
+
+  useEffect(() => {
+    if (!deferredDataUrl) return;
+    const controller = new AbortController();
+
+    void fetch(deferredDataUrl, { method: "GET", cache: "no-store", signal: controller.signal })
+      .then((response) => response.json())
+      .then((data) => {
+        if (controller.signal.aborted) return;
+        if (!Array.isArray(data?.vendors)) return;
+
+        const normalized = (data.vendors as Array<Record<string, unknown>>).map((row) => {
+          const branchIdsRaw = Array.isArray(row.branchIds)
+            ? row.branchIds
+            : Array.isArray(row.branch_ids)
+              ? row.branch_ids
+              : [];
+          const branchNamesRaw = Array.isArray(row.branchNames)
+            ? row.branchNames
+            : Array.isArray(row.branch_names)
+              ? row.branch_names
+              : [];
+
+          return {
+            id: String(row.id ?? ""),
+            organizationId: String(row.organizationId ?? row.organization_id ?? organizationId),
+            name: String(row.name ?? ""),
+            category: String(row.category ?? "otro") as VendorRow["category"],
+            contactName: (row.contactName ?? row.contact_name ?? null) as string | null,
+            contactEmail: (row.contactEmail ?? row.contact_email ?? null) as string | null,
+            contactPhone: (row.contactPhone ?? row.contact_phone ?? null) as string | null,
+            contactWhatsapp: (row.contactWhatsapp ?? row.contact_whatsapp ?? null) as string | null,
+            websiteUrl: (row.websiteUrl ?? row.website_url ?? null) as string | null,
+            address: (row.address ?? null) as string | null,
+            notes: (row.notes ?? null) as string | null,
+            isActive: Boolean(row.isActive ?? row.is_active ?? true),
+            createdAt: String(row.createdAt ?? row.created_at ?? new Date(0).toISOString()),
+            updatedAt: String(row.updatedAt ?? row.updated_at ?? new Date(0).toISOString()),
+            branchIds: branchIdsRaw.map((value) => String(value)),
+            branchNames: branchNamesRaw.map((value) => String(value)),
+          } satisfies VendorRow;
+        });
+
+        setVendors(normalized);
+        if (Array.isArray(data?.branches)) {
+          setBranchOptions((data.branches as Array<Record<string, unknown>>)
+            .map((row) => ({ id: String(row.id ?? ""), name: String(row.name ?? "") }))
+            .filter((row) => row.id && row.name));
+        }
+      })
+      .catch(() => {
+        // keep current snapshot
+      });
+
+    return () => controller.abort();
+  }, [deferredDataUrl, organizationId, refreshKey]);
+
+  useEffect(() => {
+    if (!deferredDataUrl) return;
+    const supabase = createSupabaseBrowserClient();
+    const orgFilter = `organization_id=eq.${organizationId}`;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const scheduleRefresh = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        setRefreshKey((prev) => prev + 1);
+      }, 300);
+    };
+
+    const channel = supabase
+      .channel(`vendors-workspace-${organizationId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "vendors", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "vendor_locations", filter: orgFilter }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "branches", filter: orgFilter }, scheduleRefresh)
+      .subscribe();
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      supabase.removeChannel(channel);
+    };
+  }, [deferredDataUrl, organizationId]);
+
+  useEffect(() => {
+    if (!deferredDataUrl) return;
+
+    const triggerRefresh = () => setRefreshKey((prev) => prev + 1);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") triggerRefresh();
+    };
+
+    const poll = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      triggerRefresh();
+    }, 15000);
+
+    window.addEventListener("focus", triggerRefresh);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      clearInterval(poll);
+      window.removeEventListener("focus", triggerRefresh);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [deferredDataUrl]);
+
   // suppress unused warning
   void organizationId;
 
@@ -621,8 +788,12 @@ export default function VendorsTableWorkspace({
     setModalOpen(false);
     setEditingVendor(null);
     setDetailVendor(null);
+    if (deferredDataUrl) {
+      setRefreshKey((prev) => prev + 1);
+      return;
+    }
     router.refresh();
-  }, [router]);
+  }, [deferredDataUrl, router]);
 
   const handleDelete = useCallback(() => {
     if (!deleteTarget) return;
@@ -633,13 +804,17 @@ export default function VendorsTableWorkspace({
         toast.success("Proveedor eliminado correctamente");
         setDeleteTarget(null);
         setDetailVendor(null);
-        router.refresh();
+        if (deferredDataUrl) {
+          setRefreshKey((prev) => prev + 1);
+        } else {
+          router.refresh();
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : "Error al eliminar";
         toast.error(message);
       }
     });
-  }, [apiBasePath, deleteTarget, router]);
+  }, [apiBasePath, deferredDataUrl, deleteTarget, router]);
 
   const filtered = vendors.filter((v) => {
     if (!showInactive && !v.isActive) return false;
@@ -650,13 +825,14 @@ export default function VendorsTableWorkspace({
     }
     if (search) {
       const q = search.toLowerCase();
-      return (
-        v.name.toLowerCase().includes(q) ||
-        v.contactName?.toLowerCase().includes(q) ||
-        v.contactEmail?.toLowerCase().includes(q) ||
-        v.contactPhone?.includes(q)
-      );
-    }
+        return (
+          v.name.toLowerCase().includes(q) ||
+          v.contactName?.toLowerCase().includes(q) ||
+          v.contactEmail?.toLowerCase().includes(q) ||
+          v.contactPhone?.includes(q) ||
+          v.contactWhatsapp?.includes(q)
+        );
+      }
     return true;
   });
 
@@ -697,10 +873,10 @@ export default function VendorsTableWorkspace({
             {VENDOR_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
 
-          {branches.length > 0 && (
+          {branchOptions.length > 0 && (
             <select value={filterBranch} onChange={(e) => setFilterBranch(e.target.value)} className={selectCls}>
               <option value="">Todas las ubicaciones</option>
-              {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+              {branchOptions.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           )}
 
@@ -736,10 +912,14 @@ export default function VendorsTableWorkspace({
           />
         ) : (
           <div className={`overflow-x-auto rounded-xl border ${CARD}`}>
+            <div className="flex items-center justify-between border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3">
+              <p className={`text-sm font-bold ${TEXT_STRONG}`}>Listado de proveedores</p>
+              <p className={`text-[11px] font-semibold uppercase tracking-[0.09em] ${TEXT_MUTED}`}>{filtered.length}</p>
+            </div>
             <table className="w-full text-sm min-w-[700px] border-collapse">
               <thead>
                 <tr className="bg-[var(--gbp-bg)]">
-                  {["Proveedor", "Categoría", "Contacto", "Teléfono", "Locaciones", "Estado", ...(canEdit || canDelete ? [""] : [])].map((h) => (
+                  {["Proveedor", "Categoría", "Contacto", "Teléfono", "Locaciones", "Estado", "Acciones"].map((h) => (
                     <th key={h} className={`px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.08em] border-b border-[var(--gbp-border)] whitespace-nowrap ${TEXT_MUTED}`}>
                       {h}
                     </th>
@@ -782,24 +962,29 @@ export default function VendorsTableWorkspace({
                       )}
                     </td>
                     <td className="px-4 py-3"><StatusBadge active={v.isActive} /></td>
-                    {canEdit || canDelete ? (
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1">
-                          {canEdit ? (
-                            <button onClick={(e) => { e.stopPropagation(); setEditingVendor(v); setModalOpen(true); }}
-                              className={ACTION_BTN} title="Editar">
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                          ) : null}
-                          {canDelete ? (
-                            <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(v); }}
-                              className={ACTION_BTN_DANGER} title="Eliminar">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          ) : null}
-                        </div>
-                      </td>
-                    ) : null}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDetailVendor(v); }}
+                          className={ACTION_BTN}
+                          title="Ver"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </button>
+                        {canEdit ? (
+                          <button onClick={(e) => { e.stopPropagation(); setEditingVendor(v); setModalOpen(true); }}
+                            className={ACTION_BTN} title="Editar">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                        ) : null}
+                        {canDelete ? (
+                          <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(v); }}
+                            className={ACTION_BTN_DANGER} title="Eliminar">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        ) : null}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -810,7 +995,7 @@ export default function VendorsTableWorkspace({
 
       {/* Modals / Panels */}
       {(modalOpen || editingVendor) && (
-        <VendorFormModal vendor={editingVendor} branches={branches}
+        <VendorFormModal vendor={editingVendor} branches={branchOptions}
           onClose={() => { setModalOpen(false); setEditingVendor(null); }}
           onSaved={handleSaved}
           apiBasePath={apiBasePath} />

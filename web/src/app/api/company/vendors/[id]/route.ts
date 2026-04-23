@@ -19,6 +19,7 @@ const vendorUpdateSchema = z.object({
   contact_name: nullableStr(200),
   contact_email: nullableStr(300),
   contact_phone: nullableStr(50),
+  contact_whatsapp: nullableStr(50),
   website_url: nullableStr(500),
   address: nullableStr(500),
   notes: nullableStr(2000),
@@ -122,6 +123,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
   if ("contact_name" in updateFields) updatePayload.contact_name = updateFields.contact_name || null;
   if ("contact_email" in updateFields) updatePayload.contact_email = updateFields.contact_email || null;
   if ("contact_phone" in updateFields) updatePayload.contact_phone = updateFields.contact_phone || null;
+  if ("contact_whatsapp" in updateFields) updatePayload.contact_whatsapp = updateFields.contact_whatsapp || null;
   if ("website_url" in updateFields) updatePayload.website_url = updateFields.website_url || null;
   if ("address" in updateFields) updatePayload.address = updateFields.address || null;
   if ("notes" in updateFields) updatePayload.notes = updateFields.notes || null;

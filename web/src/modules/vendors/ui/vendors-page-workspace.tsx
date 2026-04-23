@@ -16,6 +16,7 @@ export async function VendorsPageWorkspace({ organizationId }: Props) {
         initialVendors={vendors}
         branches={branches}
         organizationId={organizationId}
+        deferredDataUrl="/api/company/vendors"
       />
     </PageContent>
   );

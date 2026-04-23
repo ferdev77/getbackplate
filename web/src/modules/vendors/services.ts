@@ -13,20 +13,22 @@ export const getVendorDirectoryView = cache(async (
   const supabase = await createSupabaseServerClient();
 
   const [
+    { data: customBrandingEnabled },
     { data: vendors },
     { data: branches },
     { data: vendorLocations },
   ] = await Promise.all([
+    supabase.rpc("is_module_enabled", { org_id: organizationId, module_code: "custom_branding" }),
     options.forEmployee
       ? supabase
           .from("vendors")
-          .select("id, organization_id, name, category, contact_name, contact_email, contact_phone, website_url, address, notes, is_active, created_at, updated_at")
+          .select("id, organization_id, name, category, contact_name, contact_email, contact_phone, contact_whatsapp, website_url, address, notes, is_active, created_at, updated_at")
           .eq("organization_id", organizationId)
           .eq("is_active", true)
           .order("name")
       : supabase
           .from("vendors")
-          .select("id, organization_id, name, category, contact_name, contact_email, contact_phone, website_url, address, notes, is_active, created_at, updated_at")
+          .select("id, organization_id, name, category, contact_name, contact_email, contact_phone, contact_whatsapp, website_url, address, notes, is_active, created_at, updated_at")
           .eq("organization_id", organizationId)
           .order("name"),
     supabase
@@ -42,7 +44,7 @@ export const getVendorDirectoryView = cache(async (
   ]);
 
   const branchById = new Map(
-    (branches ?? []).map((b) => [b.id, b.name])
+    (branches ?? []).map((b) => [b.id, customBrandingEnabled && b.city ? b.city : b.name])
   );
 
   // Build vendor → branch_ids map
@@ -70,6 +72,7 @@ export const getVendorDirectoryView = cache(async (
       contactName: v.contact_name,
       contactEmail: v.contact_email,
       contactPhone: v.contact_phone,
+      contactWhatsapp: v.contact_whatsapp,
       websiteUrl: v.website_url,
       address: v.address,
       notes: v.notes,
@@ -95,6 +98,9 @@ export const getVendorDirectoryView = cache(async (
 
   return {
     vendors: mappedVendors,
-    branches: (branches ?? []).map((b) => ({ id: b.id, name: b.name })),
+    branches: (branches ?? []).map((b) => ({
+      id: b.id,
+      name: customBrandingEnabled && b.city ? b.city : b.name,
+    })),
   };
 });

@@ -35,7 +35,8 @@ async function VendorContent({
       canEdit={canEdit}
       canDelete={canDelete}
       apiBasePath="/api/employee/vendors"
-      historyEndpointBase={null}
+      historyEndpointBase="/api/employee/vendors"
+      deferredDataUrl="/api/employee/vendors"
     />
   );
 }
