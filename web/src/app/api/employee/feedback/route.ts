@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       action: "feedback.create",
       entityType: "feedback_message",
       organizationId,
-      eventDomain: "employee_portal",
+      eventDomain: "employees",
       outcome: "error",
       severity: "medium",
       metadata: {
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
     action: "feedback.create",
     entityType: "feedback_message",
     organizationId,
-    eventDomain: "employee_portal",
+    eventDomain: "employees",
     outcome: "success",
     severity: "low",
     actorId: userId,
