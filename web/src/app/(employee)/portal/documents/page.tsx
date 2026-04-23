@@ -27,6 +27,8 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
     tenant.organizationId,
     tenant.membershipId,
   );
+  const canViewCreatedDocuments =
+    delegatedPermissions.documents.create || delegatedPermissions.documents.edit || delegatedPermissions.documents.delete;
   const enabledModulesSet = new Set(await getEnabledModulesCached(tenant.organizationId));
   const customBrandingEnabled = enabledModulesSet.has("custom_branding");
 
@@ -173,6 +175,7 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
         canCreate={delegatedPermissions.documents.create}
         canEdit={delegatedPermissions.documents.edit}
         canDelete={delegatedPermissions.documents.delete}
+        showCreatedView={canViewCreatedDocuments}
         branches={branches.map((branch) => ({
           ...branch,
           name: getBranchDisplayName(branch, customBrandingEnabled),

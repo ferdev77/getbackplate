@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 type Props = {
   viewMode: "assigned" | "created";
   onChange: (next: "assigned" | "created") => void;
+  showCreated?: boolean;
   assignedLabel?: string;
   createdLabel?: string;
   assignedCount?: number;
@@ -17,6 +18,7 @@ type Props = {
 export function AssignedCreatedToggle({
   viewMode,
   onChange,
+  showCreated = true,
   assignedLabel = "Asignados a mi",
   createdLabel = "Creados por mi",
   assignedCount,
@@ -45,13 +47,15 @@ export function AssignedCreatedToggle({
           >
             {assignedText}
           </button>
-          <button
-            type="button"
-            onClick={() => onChange("created")}
-            className={`rounded-full border px-3 py-1 text-sm font-semibold transition ${viewMode === "created" ? "border-[color:color-mix(in_oklab,var(--gbp-accent)_40%,transparent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]"}`}
-          >
-            {createdText}
-          </button>
+          {showCreated ? (
+            <button
+              type="button"
+              onClick={() => onChange("created")}
+              className={`rounded-full border px-3 py-1 text-sm font-semibold transition ${viewMode === "created" ? "border-[color:color-mix(in_oklab,var(--gbp-accent)_40%,transparent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]"}`}
+            >
+              {createdText}
+            </button>
+          ) : null}
         </div>
       </section>
     );
@@ -66,13 +70,15 @@ export function AssignedCreatedToggle({
       >
         {assignedText}
       </button>
-      <button
-        type="button"
-        onClick={() => onChange("created")}
-        className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${viewMode === "created" ? "bg-[var(--gbp-bg)] text-[var(--gbp-text)]" : "text-[var(--gbp-text2)]"}`}
-      >
-        {createdText}
-      </button>
+      {showCreated ? (
+        <button
+          type="button"
+          onClick={() => onChange("created")}
+          className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${viewMode === "created" ? "bg-[var(--gbp-bg)] text-[var(--gbp-text)]" : "text-[var(--gbp-text2)]"}`}
+        >
+          {createdText}
+        </button>
+      ) : null}
     </section>
   );
 }

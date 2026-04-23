@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { buildChecklistReportsSnapshot } from "@/modules/reports/services/checklist-reports-snapshot";
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
@@ -33,8 +34,10 @@ export async function GET() {
     ...(membershipRows ?? []).map((row) => row.branch_id),
   ].filter((value): value is string => Boolean(value)))];
 
+  const admin = createSupabaseAdminClient();
+
   const snapshot = await buildChecklistReportsSnapshot({
-    supabase,
+    supabase: admin,
     organizationId: moduleAccess.tenant.organizationId,
     templateCreatorUserId: moduleAccess.userId,
     visibleBranchIds: activeLocationIds,

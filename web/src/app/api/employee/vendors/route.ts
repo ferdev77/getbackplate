@@ -1,11 +1,34 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { assertTenantModuleApi } from "@/shared/lib/access";
+import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
+import { logAuditEvent } from "@/shared/lib/audit";
+
+const VENDOR_CATEGORIES = ["alimentos", "bebidas", "equipos", "limpieza", "mantenimiento", "empaque", "otro"] as const;
+
+const nullableStr = (max: number) =>
+  z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? null : String(v).trim()),
+    z.string().max(max).nullable().optional(),
+  );
+
+const vendorSchema = z.object({
+  name: z.string().min(1, "El nombre es requerido").max(200),
+  category: z.enum(VENDOR_CATEGORIES),
+  contact_name: nullableStr(200),
+  contact_email: nullableStr(300),
+  contact_phone: nullableStr(50),
+  website_url: nullableStr(500),
+  address: nullableStr(500),
+  notes: nullableStr(2000),
+  is_active: z.boolean().optional().default(true),
+  branch_ids: z.array(z.string().uuid()).optional().default([]),
+});
 
 // ─── GET /api/employee/vendors ────────────────────────────────────────────────
-// Empleado: solo lectura, filtrado por su sucursal
+// Empleado: listado filtrado por sucursal y permisos delegados
 export async function GET(request: Request) {
-  const access = await assertTenantModuleApi("vendors");
+  const access = await assertEmployeeCapabilityApi("vendors", "view");
   if (!access.ok) {
     return NextResponse.json({ error: access.error }, { status: access.status });
   }
@@ -83,4 +106,92 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({ vendors: result, branches: branches ?? [] });
+}
+
+// ─── POST /api/employee/vendors ───────────────────────────────────────────────
+export async function POST(request: Request) {
+  const access = await assertEmployeeCapabilityApi("vendors", "create");
+  if (!access.ok) {
+    return NextResponse.json({ error: access.error }, { status: access.status });
+  }
+
+  if (access.tenant.roleCode !== "employee") {
+    return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  }
+
+  const { organizationId } = access.tenant;
+  const actorId = access.userId;
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Body invalido" }, { status: 400 });
+  }
+
+  const parsed = vendorSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Datos invalidos", details: parsed.error.flatten() }, { status: 422 });
+  }
+
+  const { branch_ids, ...vendorData } = parsed.data;
+  const admin = createSupabaseAdminClient();
+
+  const { data: newVendor, error: insertError } = await admin
+    .from("vendors")
+    .insert({
+      organization_id: organizationId,
+      name: vendorData.name,
+      category: vendorData.category,
+      contact_name: vendorData.contact_name ?? null,
+      contact_email: vendorData.contact_email ?? null,
+      contact_phone: vendorData.contact_phone ?? null,
+      website_url: vendorData.website_url ?? null,
+      address: vendorData.address ?? null,
+      notes: vendorData.notes ?? null,
+      is_active: vendorData.is_active ?? true,
+      created_by: actorId,
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !newVendor) {
+    return NextResponse.json({ error: "Error al crear proveedor", detail: insertError?.message }, { status: 500 });
+  }
+
+  if (branch_ids.length > 0) {
+    const { error: locError } = await admin.from("vendor_locations").insert(
+      branch_ids.map((bid) => ({
+        vendor_id: newVendor.id,
+        organization_id: organizationId,
+        branch_id: bid,
+      })),
+    );
+    if (locError) {
+      return NextResponse.json({ error: "No se pudieron asignar locaciones" }, { status: 500 });
+    }
+  } else {
+    const { error: locError } = await admin.from("vendor_locations").insert({
+      vendor_id: newVendor.id,
+      organization_id: organizationId,
+      branch_id: null,
+    });
+    if (locError) {
+      return NextResponse.json({ error: "No se pudo asignar alcance global" }, { status: 500 });
+    }
+  }
+
+  await logAuditEvent({
+    action: "vendor.create",
+    entityType: "vendor",
+    entityId: newVendor.id,
+    organizationId,
+    actorId,
+    eventDomain: "settings",
+    outcome: "success",
+    severity: "medium",
+    metadata: { source: "employee", name: vendorData.name, category: vendorData.category, branch_ids },
+  });
+
+  return NextResponse.json({ vendor: { id: newVendor.id } }, { status: 201 });
 }

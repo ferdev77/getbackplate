@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
@@ -22,6 +23,7 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createSupabaseServerClient();
+  const admin = createSupabaseAdminClient();
   const submissionId = parsed.data.submissionId;
   const organizationId = moduleAccess.tenant.organizationId;
 
@@ -47,7 +49,7 @@ export async function POST(request: Request) {
     ...(membershipRows ?? []).map((row) => row.branch_id),
   ].filter((value): value is string => Boolean(value)))];
 
-  const { data: submission } = await supabase
+  const { data: submission } = await admin
     .from("checklist_submissions")
     .select("id, status, template_id, branch_id")
     .eq("organization_id", organizationId)
@@ -62,7 +64,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No puedes operar reportes fuera de tus locaciones activas" }, { status: 403 });
   }
 
-  const { data: template } = await supabase
+  const { data: template } = await admin
     .from("checklist_templates")
     .select("id")
     .eq("organization_id", organizationId)
@@ -78,7 +80,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, status: "reviewed" });
   }
 
-  const { error } = await supabase
+  const { error } = await admin
     .from("checklist_submissions")
     .update({
       status: "reviewed",

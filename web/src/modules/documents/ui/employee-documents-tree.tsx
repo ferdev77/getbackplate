@@ -64,6 +64,7 @@ type Props = {
   canCreate?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
+  showCreatedView?: boolean;
   branches?: BranchOption[];
   departments?: DepartmentOption[];
   positions?: PositionOption[];
@@ -93,6 +94,7 @@ export function EmployeeDocumentsTree({
   canCreate = false,
   canEdit = false,
   canDelete = false,
+  showCreatedView = true,
   branches = [],
   departments = [],
   positions = [],
@@ -173,6 +175,12 @@ export function EmployeeDocumentsTree({
   useEffect(() => {
     setFolderRows(folders);
   }, [folders]);
+
+  useEffect(() => {
+    if (!showCreatedView && ownershipView === "created") {
+      setOwnershipView("assigned");
+    }
+  }, [ownershipView, showCreatedView]);
 
   useEffect(() => {
     setColumnPath((prev) => {
@@ -687,6 +695,7 @@ export function EmployeeDocumentsTree({
       <AssignedCreatedToggle
         viewMode={ownershipView}
         onChange={setOwnershipView}
+        showCreated={showCreatedView}
         assignedLabel="Asignados"
         createdLabel="Cargados"
         variant="header"

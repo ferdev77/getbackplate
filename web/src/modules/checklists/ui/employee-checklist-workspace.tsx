@@ -39,6 +39,7 @@ export function EmployeeChecklistWorkspace({
   templates,
   initialPreviewTemplateId,
   createdTemplates,
+  canViewCreated,
   canEdit,
   canDelete,
   branches,
@@ -52,6 +53,7 @@ export function EmployeeChecklistWorkspace({
   templates: TemplateRow[];
   initialPreviewTemplateId?: string;
   createdTemplates: CreatedTemplateRow[];
+  canViewCreated: boolean;
   canEdit: boolean;
   canDelete: boolean;
   branches: BranchOption[];
@@ -91,6 +93,12 @@ export function EmployeeChecklistWorkspace({
     setMine(createdTemplates);
   }, [createdTemplates]);
 
+  useEffect(() => {
+    if (!canViewCreated && viewMode === "created") {
+      setViewMode("assigned");
+    }
+  }, [canViewCreated, viewMode]);
+
   const createdTemplateIds = new Set(mine.map((row) => row.id));
   const assignedTemplates = templateRows.filter((row) => !createdTemplateIds.has(row.id));
 
@@ -115,9 +123,10 @@ export function EmployeeChecklistWorkspace({
         onChange={setViewMode}
         assignedCount={assignedTemplates.length}
         createdCount={mine.length}
+        showCreated={canViewCreated}
       />
 
-      {viewMode === "created" ? (
+      {canViewCreated && viewMode === "created" ? (
         <EmployeeChecklistCreatedSection
           mine={mineWithStatus}
           canEdit={canEdit}

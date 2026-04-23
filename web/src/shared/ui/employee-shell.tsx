@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
-import { ChevronDown, LayoutDashboard, ClipboardList, Folder, Bell, FileText, FileBarChart, PanelsLeftRight, LogOut, Menu, Trash2, User, type LucideIcon } from "lucide-react";
+import { ChevronDown, LayoutDashboard, ClipboardList, Folder, Bell, FileText, FileBarChart, PanelsLeftRight, LogOut, Menu, Trash2, User, Truck, MessageSquarePlus, X, Loader2, type LucideIcon } from "lucide-react";
+import { toast } from "sonner";
 import { NewEmployeeModal, type EmployeeModalInitialData, type ModalBranch, type ModalDepartment, type ModalPosition } from "@/modules/employees/ui/new-employee-modal";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
 import { GetBackplateMark } from "@/shared/ui/getbackplate-mark";
@@ -37,10 +38,12 @@ type EmployeeShellProps = {
     checklists: boolean;
     announcements: boolean;
     onboarding: boolean;
+    vendors: boolean;
     ai_assistant: boolean;
   };
   canDeleteDocuments: boolean;
   canCreateChecklistReports: boolean;
+  canViewVendors: boolean;
   customBrandingEnabled: boolean;
   companyLogoUrl: string;
   employeeProfile: EmployeeModalInitialData;
@@ -82,6 +85,7 @@ export function EmployeeShell({
   enabledModules,
   canDeleteDocuments,
   canCreateChecklistReports,
+  canViewVendors,
   customBrandingEnabled,
   companyLogoUrl,
   employeeProfile,
@@ -99,6 +103,11 @@ export function EmployeeShell({
   const [collapsed, setCollapsed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackBusy, setFeedbackBusy] = useState(false);
+  const [fbType, setFbType] = useState<"bug" | "idea">("bug");
+  const [fbTitle, setFbTitle] = useState("");
+  const [fbMessage, setFbMessage] = useState("");
   const [submenuOpenByParent, setSubmenuOpenByParent] = useState<Record<string, boolean>>({
     "/portal/documents": pathname.startsWith("/portal/documents") || pathname.startsWith("/portal/trash"),
     "/portal/checklist": pathname.startsWith("/portal/checklist/reports"),
@@ -251,7 +260,7 @@ export function EmployeeShell({
 
     const channel = channelBuilder.subscribe();
 
-    if (pathname.startsWith("/portal/home") || pathname.startsWith("/portal/announcements") || pathname.startsWith("/portal/checklist") || pathname.startsWith("/portal/documents") || pathname.startsWith("/portal/trash")) {
+    if (pathname.startsWith("/portal/home") || pathname.startsWith("/portal/announcements") || pathname.startsWith("/portal/checklist") || pathname.startsWith("/portal/documents") || pathname.startsWith("/portal/trash") || pathname.startsWith("/portal/vendors")) {
       pollingRef = setInterval(() => {
         const now = Date.now();
         if (now - lastRefreshAtRef.current < 7000) return;
@@ -292,11 +301,14 @@ export function EmployeeShell({
         children: canDeleteDocuments ? [{ href: "/portal/trash", label: "Papelera", icon: Trash2 }] : [],
       });
     }
+    if (enabledModules.vendors && canViewVendors) {
+      result.push({ href: "/portal/vendors", label: "Proveedores", icon: Truck });
+    }
     if (enabledModules.onboarding) {
       result.push({ href: "/portal/onboarding", label: "Instrucciones", icon: FileText });
     }
     return result;
-  }, [canCreateChecklistReports, canDeleteDocuments, enabledModules.announcements, enabledModules.checklists, enabledModules.documents, enabledModules.onboarding]);
+  }, [canCreateChecklistReports, canDeleteDocuments, canViewVendors, enabledModules.announcements, enabledModules.checklists, enabledModules.documents, enabledModules.onboarding, enabledModules.vendors]);
 
   const sidebarWidth = collapsed ? "w-[56px]" : "w-[240px]";
   const sidebarPaddingX = collapsed ? "px-2" : "px-4";
@@ -331,6 +343,32 @@ export function EmployeeShell({
 
     return () => clearTimeout(timer);
   }, [items, pathname, router]);
+
+  async function sendFeedback() {
+    setFeedbackBusy(true);
+    try {
+      const response = await fetch("/api/employee/feedback", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          feedbackType: fbType,
+          title: fbTitle,
+          message: fbMessage,
+          pagePath: pathname,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "No se pudo enviar");
+      setFbTitle("");
+      setFbMessage("");
+      setFeedbackOpen(false);
+      toast.success("Feedback enviado correctamente");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Error al enviar feedback");
+    } finally {
+      setFeedbackBusy(false);
+    }
+  }
 
   return (
     <div data-theme="default" className="min-h-screen overflow-x-clip text-[var(--gbp-text)]" style={{ background: palette.pageGradient }}>
@@ -506,14 +544,36 @@ export function EmployeeShell({
             ) : null}
 
             {collapsed ? (
+              <div className="mb-2 flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setProfileModalOpen(true)}
+                  className="group/tooltip relative inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"
+                  aria-label="Abrir mi perfil"
+                >
+                  <User className="h-3.5 w-3.5" />
+                  <TooltipLabel label="Mi perfil" side="right" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFeedbackOpen(true)}
+                  className="group/tooltip relative inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"
+                  aria-label="Abrir feedback"
+                >
+                  <MessageSquarePlus className="h-3.5 w-3.5" />
+                  <TooltipLabel label="Feedback" side="right" />
+                </button>
+              </div>
+            ) : null}
+
+            {!collapsed ? (
               <button
                 type="button"
-                onClick={() => setProfileModalOpen(true)}
-                className="group/tooltip relative mb-2 inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"
-                aria-label="Abrir mi perfil"
+                onClick={() => setFeedbackOpen(true)}
+                className="group/tooltip relative mb-2 inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] py-2 text-xs text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)] px-2"
               >
-                <User className="h-3.5 w-3.5" />
-                <TooltipLabel label="Mi perfil" side="right" />
+                <MessageSquarePlus className="h-3.5 w-3.5" />
+                <span>Feedback</span>
               </button>
             ) : null}
 
@@ -598,6 +658,31 @@ export function EmployeeShell({
           tenantId={organizationId}
           userKey={userId}
         />
+      ) : null}
+      {feedbackOpen ? (
+        <div className="fixed inset-0 z-[1200] grid place-items-center bg-black/45 p-4" onClick={() => setFeedbackOpen(false)}>
+          <div className="w-full max-w-[480px] rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]" onClick={(event) => event.stopPropagation()}>
+            <div className="relative p-6 pb-2">
+              <button type="button" onClick={() => setFeedbackOpen(false)} className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"><X className="h-4 w-4" /></button>
+              <p className="font-serif text-lg font-bold text-[var(--gbp-text)]">Feedback</p>
+              <p className="text-sm text-[var(--gbp-muted)]">iAyudanos a mejorar!</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 px-6 pb-4">
+              <button type="button" onClick={() => setFbType("bug")} className={`rounded-[10px] border-[1.5px] px-3 py-2 text-sm font-semibold ${fbType === "bug" ? "bg-[var(--gbp-error-soft)]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"}`} style={fbType === "bug" ? { borderColor: palette.accent, color: palette.accent } : undefined}>Reportar problema</button>
+              <button type="button" onClick={() => setFbType("idea")} className={`rounded-[10px] border-[1.5px] px-3 py-2 text-sm font-semibold ${fbType === "idea" ? "border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"}`}>Nueva idea / integracion</button>
+            </div>
+            <div className="px-6 pb-6">
+              <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Titulo del mensaje</label>
+              <input value={fbTitle} onChange={(event) => setFbTitle(event.target.value)} className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]" placeholder="Resume el problema o idea en una linea..." />
+              <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Descripcion detallada</label>
+              <textarea value={fbMessage} onChange={(event) => setFbMessage(event.target.value)} rows={4} className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]" placeholder="Cuentanos con detalle..." />
+              <button type="button" disabled={feedbackBusy || !fbTitle.trim() || !fbMessage.trim()} onClick={sendFeedback} className="mt-4 flex w-full items-center justify-center gap-2 flex-row rounded-lg px-3 py-2.5 text-sm font-bold text-white disabled:opacity-60" style={{ background: palette.accent }}>
+                {feedbackBusy && <Loader2 className="h-4 w-4 animate-spin" />}
+                {feedbackBusy ? "Enviando msj..." : "Enviar mensaje"}
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
       <DevClientCachePanel />
     </div>

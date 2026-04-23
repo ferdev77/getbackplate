@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { getActiveOrganizationIdFromCookie } from "@/shared/lib/tenant-selection";
 
 const feedbackSchema = z.object({
   feedbackType: z.enum(["bug", "idea", "other"]).default("idea"),
@@ -13,14 +13,40 @@ const feedbackSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const moduleAccess = await assertCompanyAdminModuleApi("settings");
-  if (!moduleAccess.ok) {
-    return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
+  const supabase = await createSupabaseServerClient();
+  const { data: authData } = await supabase.auth.getUser();
+  const userId = authData.user?.id;
+
+  if (!userId) {
+    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
-  const tenant = moduleAccess.tenant;
-  const userId = moduleAccess.userId;
-  const supabase = await createSupabaseServerClient();
+  const organizationId = await getActiveOrganizationIdFromCookie();
+  if (!organizationId) {
+    return NextResponse.json({ error: "organization_selection_required" }, { status: 409 });
+  }
+
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("role_id")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (!membership?.role_id) {
+    return NextResponse.json({ error: "Sin acceso al portal de empleado" }, { status: 403 });
+  }
+
+  const { data: role } = await supabase
+    .from("roles")
+    .select("code")
+    .eq("id", membership.role_id)
+    .maybeSingle();
+
+  if (role?.code !== "employee") {
+    return NextResponse.json({ error: "Sin acceso al portal de empleado" }, { status: 403 });
+  }
 
   const rawBody = await request.json().catch(() => null);
   const parsed = feedbackSchema.safeParse(rawBody);
@@ -34,9 +60,9 @@ export async function POST(request: Request) {
   const pagePath = parsed.data.pagePath || null;
 
   const { error } = await supabase.from("feedback_messages").insert({
-    organization_id: tenant.organizationId,
+    organization_id: organizationId,
     user_id: userId,
-    source_channel: "company",
+    source_channel: "employee",
     feedback_type: normalizedType,
     title,
     message,
@@ -47,8 +73,8 @@ export async function POST(request: Request) {
     await logAuditEvent({
       action: "feedback.create",
       entityType: "feedback_message",
-      organizationId: tenant.organizationId,
-      eventDomain: "settings",
+      organizationId,
+      eventDomain: "employee_portal",
       outcome: "error",
       severity: "medium",
       metadata: {
@@ -63,8 +89,8 @@ export async function POST(request: Request) {
   await logAuditEvent({
     action: "feedback.create",
     entityType: "feedback_message",
-    organizationId: tenant.organizationId,
-    eventDomain: "settings",
+    organizationId,
+    eventDomain: "employee_portal",
     outcome: "success",
     severity: "low",
     actorId: userId,

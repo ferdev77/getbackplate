@@ -164,10 +164,10 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   const { data: delegatedPermissionRows } = membershipIds.length
     ? await createSupabaseAdminClient()
         .from("employee_module_permissions")
-        .select("membership_id, module_code, can_create, can_edit, can_delete")
+        .select("membership_id, module_code, can_view, can_create, can_edit, can_delete")
         .eq("organization_id", tenant.organizationId)
         .in("membership_id", membershipIds)
-    : { data: [] as Array<{ membership_id: string; module_code: string; can_create: boolean; can_edit: boolean; can_delete: boolean }> };
+    : { data: [] as Array<{ membership_id: string; module_code: string; can_view: boolean; can_create: boolean; can_edit: boolean; can_delete: boolean }> };
 
   const delegatedPermissionsByMembershipId = new Map<string, ReturnType<typeof getEmptyEmployeeDelegatedPermissions>>();
   for (const row of delegatedPermissionRows ?? []) {
@@ -175,10 +175,14 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
     const moduleCode = row.module_code;
     if (!isEmployeePermissionModuleCode(moduleCode)) continue;
     current[moduleCode] = {
+      view: row.can_view === true,
       create: row.can_create === true,
       edit: row.can_edit === true,
       delete: row.can_delete === true,
     };
+    if (moduleCode === "vendors" && (current[moduleCode].create || current[moduleCode].edit || current[moduleCode].delete)) {
+      current[moduleCode].view = true;
+    }
     delegatedPermissionsByMembershipId.set(row.membership_id, current);
   }
 

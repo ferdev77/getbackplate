@@ -7,13 +7,15 @@ type Props = {
   onChange: (next: "assigned" | "created") => void;
   assignedCount: number;
   createdCount: number;
+  showCreated?: boolean;
 };
 
-export function EmployeeChecklistViewTabs({ viewMode, onChange, assignedCount, createdCount }: Props) {
+export function EmployeeChecklistViewTabs({ viewMode, onChange, assignedCount, createdCount, showCreated = true }: Props) {
   return (
     <AssignedCreatedToggle
       viewMode={viewMode}
       onChange={onChange}
+      showCreated={showCreated}
       assignedLabel="Asignados"
       createdLabel="Creados"
       assignedCount={assignedCount}

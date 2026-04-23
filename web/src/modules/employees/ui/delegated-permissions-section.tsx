@@ -2,8 +2,8 @@
 
 import type { Dispatch, SetStateAction } from "react";
 
-type DelegatedPermissionModuleCode = "announcements" | "checklists" | "documents" | "ai_assistant";
-type DelegatedPermissionCapability = "create" | "edit" | "delete";
+type DelegatedPermissionModuleCode = "announcements" | "checklists" | "documents" | "vendors" | "ai_assistant";
+type DelegatedPermissionCapability = "view" | "create" | "edit" | "delete";
 
 type DelegatedPermissionsState = Record<
   DelegatedPermissionModuleCode,
@@ -19,12 +19,14 @@ const MODULES: Array<{ code: DelegatedPermissionModuleCode; label: string }> = [
   { code: "announcements", label: "Avisos" },
   { code: "checklists", label: "Checklists" },
   { code: "documents", label: "Documentos Operativos" },
+  { code: "vendors", label: "Proveedores" },
   { code: "ai_assistant", label: "Asistente IA" },
 ];
 
-const CAPABILITIES: DelegatedPermissionCapability[] = ["create", "edit", "delete"];
+const CAPABILITIES: DelegatedPermissionCapability[] = ["view", "create", "edit", "delete"];
 
 const CAPABILITY_LABELS: Record<DelegatedPermissionCapability, string> = {
+  view: "Ver",
   create: "Crear",
   edit: "Editar",
   delete: "Eliminar",
@@ -41,12 +43,21 @@ function capabilityLabel(moduleCode: DelegatedPermissionModuleCode, capability: 
     if (capability === "edit") return "Configurar";
     if (capability === "delete") return "Reiniciar";
   }
+  if (moduleCode === "vendors") {
+    if (capability === "view") return "Ver";
+    if (capability === "create") return "Crear";
+    if (capability === "edit") return "Editar";
+    if (capability === "delete") return "Eliminar";
+  }
   return CAPABILITY_LABELS[capability];
 }
 
 function visibleCapabilities(moduleCode: DelegatedPermissionModuleCode) {
   if (moduleCode === "ai_assistant") {
     return ["create"] as DelegatedPermissionCapability[];
+  }
+  if (moduleCode === "vendors") {
+    return ["view", "create", "edit", "delete"] as DelegatedPermissionCapability[];
   }
   return CAPABILITIES;
 }
@@ -61,6 +72,7 @@ export function DelegatedPermissionsSection({ delegatedPermissions, setDelegated
       <p className="mb-5 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3 text-xs text-[var(--gbp-text2)]">
         Estos permisos aplican al portal de empleado. Editar y eliminar solo se permitirá sobre contenido creado por este usuario.
         En Documentos, <strong>Subir</strong> habilita carga de archivos y organización visual (filtros/orden) de sus propios documentos.
+        En <strong>Proveedores</strong>, <strong>Ver</strong> habilita el acceso a la pantalla y luego podés delegar Crear, Editar o Eliminar.
         En <strong>Asistente IA</strong>, el permiso <strong>Usar IA</strong> habilita el asistente en el panel del empleado.
       </p>
 
@@ -83,6 +95,12 @@ export function DelegatedPermissionsSection({ delegatedPermissions, setDelegated
                           [moduleItem.code]: {
                             ...prev[moduleItem.code],
                             [capability]: !prev[moduleItem.code][capability],
+                            ...(moduleItem.code === "vendors" && capability !== "view" && !prev[moduleItem.code][capability]
+                              ? { view: true }
+                              : {}),
+                            ...(moduleItem.code === "vendors" && capability === "view" && prev[moduleItem.code].view
+                              ? { create: false, edit: false, delete: false }
+                              : {}),
                             ...(moduleItem.code === "ai_assistant" ? { edit: false, delete: false } : {}),
                           },
                         }));

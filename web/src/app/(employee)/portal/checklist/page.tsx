@@ -156,14 +156,16 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
     };
   });
 
-  const { data: myCreatedTemplates } = await admin
-    .from("checklist_templates")
-    .select("id, name, created_at, checklist_type, shift, repeat_every, is_active, target_scope")
-    .eq("organization_id", tenant.organizationId)
-    .eq("is_active", true)
-    .eq("created_by", userId)
-    .order("created_at", { ascending: false })
-    .limit(40);
+  const { data: myCreatedTemplates } = canCreate
+    ? await admin
+        .from("checklist_templates")
+        .select("id, name, created_at, checklist_type, shift, repeat_every, is_active, target_scope")
+        .eq("organization_id", tenant.organizationId)
+        .eq("is_active", true)
+        .eq("created_by", userId)
+        .order("created_at", { ascending: false })
+        .limit(40)
+    : { data: [] };
 
   const myCreatedTemplateIds = (myCreatedTemplates ?? []).map((row) => row.id);
   const { data: mySections } = myCreatedTemplateIds.length
@@ -277,6 +279,7 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
         templates={templatesWorkspaceData}
         initialPreviewTemplateId={previewTemplateId}
         createdTemplates={myCreatedWorkspaceData}
+        canViewCreated={canCreate}
         canEdit={canEdit}
         canDelete={canDelete}
         branches={(branches ?? []).map((branch) => ({
