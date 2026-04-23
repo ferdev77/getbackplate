@@ -21,6 +21,25 @@ type AttentionFeedItem = {
   resolved: boolean;
 };
 
+type LocationCard = {
+  branchId: string;
+  branchName: string;
+  cityLabel: string;
+  status: "ok" | "warn" | "none";
+  badge: string;
+  managerName: string;
+  managerInitials: string;
+  managerColor: string;
+  sentAtLabel: string;
+  metrics: {
+    total: number;
+    done: number;
+    attention: number;
+    photos: number;
+  };
+  reportId: string | null;
+};
+
 function initials(name: string) {
   const tokens = name.trim().split(/\s+/).filter(Boolean).slice(0, 2);
   if (!tokens.length) return "EM";
@@ -413,7 +432,7 @@ export async function buildChecklistReportsSnapshot({
     if (!todayReportByBranch.has(report.branchId)) todayReportByBranch.set(report.branchId, report);
   }
 
-  const locationCards = (branches ?? []).map((branch) => {
+  const locationCards: LocationCard[] = (branches ?? []).map((branch) => {
     const report = todayReportByBranch.get(branch.id);
     if (!report) {
       return {
