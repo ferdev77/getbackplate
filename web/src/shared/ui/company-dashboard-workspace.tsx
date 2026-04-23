@@ -272,7 +272,7 @@ export function CompanyDashboardWorkspace({
             subtitle={organizationName}
             details={[
               { label: "Estado", value: statusLabel(organizationStatus) },
-              { label: "Sucursales activas", value: effectiveMetrics.branchesCount },
+              { label: "Locaciones activas", value: effectiveMetrics.branchesCount },
               { label: "Vista", value: selectedLocationName ? `Locación: ${selectedLocationName}` : "General" },
             ]}
           />
@@ -378,7 +378,7 @@ export function CompanyDashboardWorkspace({
                             </span>
                           </div>
                           <p className="mt-1 text-xs text-[var(--gbp-text2)]">
-                            {notice.branch_id ? branchNameMap.get(notice.branch_id) ?? "Sucursal" : "Todas las sucursales"}
+                            {notice.branch_id ? branchNameMap.get(notice.branch_id) ?? "Locación" : "Todas las locaciones"}
                             {notice.is_featured ? " - Fijado" : ""}
                           </p>
                           <p className="mt-2 border-t border-[var(--gbp-border)] pt-2 text-xs text-[var(--gbp-muted)]">

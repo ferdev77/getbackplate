@@ -57,7 +57,7 @@ const BASE_SECTIONS: Section[] = [
     description:
       "Cuando ingresas, el Dashboard te muestra un resumen rápido de lo más importante de tu jornada.",
     points: [
-      "Revisa tu bienvenida, sucursal y datos de tu perfil.",
+      "Revisa tu bienvenida, locación y datos de tu perfil.",
       "Consulta accesos directos a checklists, avisos y documentos.",
       "Úsalo como punto de inicio antes de navegar a otras secciones.",
     ],
@@ -100,7 +100,7 @@ const BASE_SECTIONS: Section[] = [
     iconColor: "text-[var(--gbp-success)]",
     title: "Biblioteca de documentos",
     description:
-      "Aquí tienes los documentos que te corresponden por puesto, sucursal o asignación directa.",
+      "Aquí tienes los documentos que te corresponden por puesto, locación o asignación directa.",
     points: [
       "Descarga y revisa archivos operativos cuando lo necesites.",
       "Mantente al día con versiones y documentos nuevos.",

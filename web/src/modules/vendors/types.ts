@@ -1,4 +1,4 @@
-export const VENDOR_CATEGORIES = [
+export const DEFAULT_VENDOR_CATEGORIES = [
   { value: "alimentos", label: "Alimentos" },
   { value: "bebidas", label: "Bebidas" },
   { value: "equipos", label: "Equipos" },
@@ -8,7 +8,14 @@ export const VENDOR_CATEGORIES = [
   { value: "otro", label: "Otro" },
 ] as const;
 
-export type VendorCategory = (typeof VENDOR_CATEGORIES)[number]["value"];
+export type VendorCategory = string;
+
+export type VendorCategoryOption = {
+  id: string;
+  code: string;
+  name: string;
+  isSystem?: boolean;
+};
 
 export type VendorRow = {
   id: string;
@@ -25,7 +32,7 @@ export type VendorRow = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-  /** branch IDs assigned; empty array = visible en todas las sucursales */
+  /** branch IDs assigned; empty array = visible en todas las locaciones */
   branchIds: string[];
   /** branch names for display */
   branchNames: string[];

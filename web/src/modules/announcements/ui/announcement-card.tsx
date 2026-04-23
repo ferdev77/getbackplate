@@ -116,7 +116,7 @@ export function AnnouncementCard({
             <div className="mt-3 flex flex-wrap items-center gap-1.5">
               <span className="text-[11px] font-semibold text-[var(--gbp-text2)]">Para:</span>
               {!hasAudience ? <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2 py-0.5 text-[11px] text-[var(--gbp-text2)]">Todos los empleados</span> : null}
-              {scopedLocations.length > 0 && <ScopePillsOverflow pills={scopedLocations.map((id) => ({ name: branchNameMap?.get(id) ?? "Sucursal", type: "location" as const }))} max={5} variant="initials" />}
+              {scopedLocations.length > 0 && <ScopePillsOverflow pills={scopedLocations.map((id) => ({ name: branchNameMap?.get(id) ?? "Locación", type: "location" as const }))} max={5} variant="initials" />}
               {scopedDepartments.length > 0 && <ScopePillsOverflow pills={scopedDepartments.map((id) => ({ name: departmentNameMap?.get(id) ?? "Departamento", type: "department" as const }))} max={5} variant="initials" />}
               {scopedPositions.length > 0 && <ScopePillsOverflow pills={scopedPositions.map((id) => ({ name: positionNameMap?.get(id) ?? "Puesto", type: "position" as const }))} max={5} variant="initials" />}
             </div>

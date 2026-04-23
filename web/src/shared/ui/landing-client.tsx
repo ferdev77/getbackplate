@@ -122,8 +122,8 @@ export function LandingPricing({ plans, highlightPlanId, compact }: { plans: Lan
   const formattedPlans = plans.map((plan) => {
     const features = [];
     
-    if (plan.max_branches) features.push(`Hasta ${plan.max_branches} sucursales`);
-    else features.push("Sucursales ilimitadas");
+    if (plan.max_branches) features.push(`Hasta ${plan.max_branches} locaciones`);
+    else features.push("Locaciones ilimitadas");
     
     if (plan.max_users) features.push(`Hasta ${plan.max_users} usuarios`);
     else features.push("Usuarios ilimitados");

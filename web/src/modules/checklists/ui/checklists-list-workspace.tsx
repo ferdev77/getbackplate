@@ -152,7 +152,7 @@ export function ChecklistsListWorkspace({
               options: activeBranches,
               value: locFilter,
               onChange: setLocFilter,
-              allLabel: "Todas las ubicaciones",
+              allLabel: "Todas las locaciones",
               testId: "checklists-filter-location",
             },
           ]}

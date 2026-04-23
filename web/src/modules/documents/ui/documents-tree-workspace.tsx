@@ -288,7 +288,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
     }
 
     return Array.from(ids)
-      .map((id) => ({ id, name: branchMap.get(id) ?? "Sucursal" }))
+      .map((id) => ({ id, name: branchMap.get(id) ?? "Locación" }))
       .sort((a, b) => a.name.localeCompare(b.name, "es"));
   }, [branchMap, documentRows, folderRows, getDocumentLocationIds]);
 
@@ -435,9 +435,9 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
 
   // Locaciones del scope → nombres. Si no hay, array vacío = "Todas"
   const getScopeLocNames = useCallback((scope: ReturnType<typeof parseScope>, branchId: string | null): string[] => {
-    const fromScope = scope.locations.map((id) => branchMap.get(id) ?? "Sucursal").filter(Boolean);
+    const fromScope = scope.locations.map((id) => branchMap.get(id) ?? "Locación").filter(Boolean);
     if (fromScope.length > 0) return fromScope;
-    if (branchId) return [branchMap.get(branchId) ?? "Sucursal"];
+    if (branchId) return [branchMap.get(branchId) ?? "Locación"];
     return [];
   }, [branchMap]);
 
@@ -957,7 +957,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                   variant="initials"
                   emptyLabel={
                     <span className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-muted)]">
-                      <MapPin className="mr-1 h-3 w-3" />Sin ubicación
+                      <MapPin className="mr-1 h-3 w-3" />Sin locación
                     </span>
                   }
                 />
@@ -1003,7 +1003,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                               variant="initials"
                               emptyLabel={
                                 <span className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-muted)]">
-                                  <MapPin className="mr-1 h-3 w-3" />Sin ubicación
+                                  <MapPin className="mr-1 h-3 w-3" />Sin locación
                                 </span>
                               }
                             />
@@ -1215,7 +1215,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
         <AnimatedItem><article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4"><p className="text-xs text-[var(--gbp-text2)]">Carpetas</p><p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{folderRows.length}</p><p className="text-[11px] text-[var(--gbp-muted)]">Con permisos activos</p></article></AnimatedItem>
         <AnimatedItem><article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4"><p className="text-xs text-[var(--gbp-text2)]">Total Documentos</p><p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{totalDocuments}</p><p className="text-[11px] text-[var(--gbp-muted)]"><span className="text-[var(--gbp-success)]">+{Math.max(0, docsThisMonth - docsPrevMonth)}</span> este mes</p></article></AnimatedItem>
         <AnimatedItem><article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4"><p className="text-xs text-[var(--gbp-text2)]">Descargas (mes)</p><p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{downloadsMonth}</p><p className="text-[11px] text-[var(--gbp-muted)]"><span className="text-[var(--gbp-success)]">↑ {downloadsTrend}%</span> vs anterior</p></article></AnimatedItem>
-        <AnimatedItem><article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4"><p className="text-xs text-[var(--gbp-text2)]">Usuarios activos</p><p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{activeUsers}</p><p className="text-[11px] text-[var(--gbp-muted)]">{locationFilterOptions.length} ubicaciones con documentos</p></article></AnimatedItem>
+        <AnimatedItem><article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4"><p className="text-xs text-[var(--gbp-text2)]">Usuarios activos</p><p className="mt-1 text-2xl font-bold text-[var(--gbp-text)]">{activeUsers}</p><p className="text-[11px] text-[var(--gbp-muted)]">{locationFilterOptions.length} locaciones con documentos</p></article></AnimatedItem>
       </AnimatedList>
 
       <FilterBar
@@ -1240,7 +1240,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
             options: locationFilterOptions.map((b) => ({ id: b.id, label: b.name })),
             value: locationFilter,
             onChange: setLocationFilter,
-            allLabel: "Todas las ubicaciones",
+            allLabel: "Todas las locaciones",
             testId: "documents-filter-location",
           },
           {
@@ -1330,7 +1330,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                           variant="initials"
                           emptyLabel={
                             <span className="inline-flex items-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-muted)]">
-                              <MapPin className="mr-1 h-3 w-3" />Sin ubicación
+                              <MapPin className="mr-1 h-3 w-3" />Sin locación
                             </span>
                           }
                         />

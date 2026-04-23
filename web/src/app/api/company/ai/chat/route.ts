@@ -203,7 +203,7 @@ function detectIntent(question: string): AssistantIntent {
   if (q.includes("document") || q.includes("firma") || q.includes("carpeta")) return "documents";
   if (q.includes("aviso") || q.includes("anuncio") || q.includes("publicacion") || q.includes("publicación")) return "executive";
   if (q.includes("modulo") || q.includes("módulo") || q.includes("habilitado") || q.includes("plan") || q.includes("configur")) return "modules";
-  if (q.includes("sucursal") || q.includes("departamento") || q.includes("puesto") || q.includes("reporte")) return "executive";
+  if (q.includes("locación") || q.includes("departamento") || q.includes("puesto") || q.includes("reporte")) return "executive";
   if (q.includes("resumen") || q.includes("ejecut") || q.includes("general")) return "executive";
   return "general";
 }
@@ -751,7 +751,7 @@ function answerWithRules(question: string, facts: Facts) {
   if (q.includes("todo") || q.includes("toda la info") || q.includes("panorama completo") || q.includes("estado general")) {
     return [
       `Resumen: empleados activos ${facts.employeesActive}/${facts.employeesTotal}, usuarios activos ${facts.usersActive}, checklists pendientes ${facts.checklistPending}, documentos pendientes ${facts.documentsPending}, avisos ${facts.announcementsActive}.`,
-      `Dato clave: sucursales ${facts.branchesActive}, departamentos ${facts.departmentsActive}, puestos ${facts.positionsActive}, plantillas checklist ${facts.checklistTemplatesTotal}, ejecuciones checklist ${facts.checklistRunsTotal}.`,
+      `Dato clave: locaciones ${facts.branchesActive}, departamentos ${facts.departmentsActive}, puestos ${facts.positionsActive}, plantillas checklist ${facts.checklistTemplatesTotal}, ejecuciones checklist ${facts.checklistRunsTotal}.`,
       `Siguiente acción: pide detalle por módulo (empleados, documentos, checklists, avisos, módulos, plan) para bajar a nivel operativo.${facts.latestAnnouncementTitle ? ` Último aviso: ${facts.latestAnnouncementTitle}.` : ""}`,
     ].join("\n");
   }
@@ -766,7 +766,7 @@ function answerWithRules(question: string, facts: Facts) {
     return [
       `Resumen: hay ${facts.checklistPending} checklists pendientes de revisión.`,
       `Dato clave: pendientes actuales = ${facts.checklistPending}.`,
-      "Siguiente acción: prioriza sucursales con mayor atraso y cierra incidencias primero.",
+      "Siguiente acción: prioriza locaciones con mayor atraso y cierra incidencias primero.",
     ].join("\n");
   }
   if (q.includes("document") || q.includes("firma")) {
@@ -784,11 +784,11 @@ function answerWithRules(question: string, facts: Facts) {
       "Siguiente acción: valida que los equipos usen solo módulos habilitados para tu plan.",
     ].join("\n");
   }
-  if (q.includes("sucursal") || q.includes("departamento") || q.includes("puesto")) {
+  if (q.includes("locación") || q.includes("departamento") || q.includes("puesto")) {
     return [
-      `Resumen: tienes ${facts.branchesActive} sucursales activas, ${facts.departmentsActive} departamentos activos y ${facts.positionsActive} puestos activos.`,
+      `Resumen: tienes ${facts.branchesActive} locaciones activas, ${facts.departmentsActive} departamentos activos y ${facts.positionsActive} puestos activos.`,
       `Dato clave: estructura operativa actual = ${facts.branchesActive}/${facts.departmentsActive}/${facts.positionsActive}.`,
-      "Siguiente acción: valida cobertura por sucursal y departamentos con mayor carga.",
+      "Siguiente acción: valida cobertura por locación y departamentos con mayor carga.",
     ].join("\n");
   }
   if (q.includes("plan") || q.includes("pricing") || q.includes("facturacion") || q.includes("facturación")) {
@@ -815,7 +815,7 @@ function answerWithRules(question: string, facts: Facts) {
   return [
     `Resumen: ${facts.employeesActive} empleados activos, ${facts.checklistPending} checklists pendientes, ${facts.documentsPending} documentos pendientes y ${facts.announcementsActive} avisos creados.`,
     `Dato clave: plan actual = ${facts.planName ?? facts.planCode ?? "sin plan"}.`,
-    `Siguiente acción: decide si quieres profundizar en empleados, checklists, documentos, módulos, sucursales o reportes${facts.latestDocumentName ? ` (último documento: ${facts.latestDocumentName})` : ""}.`,
+    `Siguiente acción: decide si quieres profundizar en empleados, checklists, documentos, módulos, locaciones o reportes${facts.latestDocumentName ? ` (último documento: ${facts.latestDocumentName})` : ""}.`,
   ].join("\n");
 }
 

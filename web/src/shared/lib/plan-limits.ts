@@ -1,6 +1,6 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 
-export type PlanLimitResource = "sucursales" | "usuarios" | "empleados" | "almacenamiento";
+export type PlanLimitResource = "locaciones" | "usuarios" | "empleados" | "almacenamiento";
 
 export class PlanLimitExceededError extends Error {
   readonly resource: PlanLimitResource;
@@ -222,7 +222,7 @@ function validateLimit({
 export async function assertPlanLimitForBranches(orgId: string, adding = 1) {
   const [limits, usage] = await Promise.all([getLimits(orgId), getUsage(orgId)]);
   validateLimit({
-    resource: "sucursales",
+    resource: "locaciones",
     current: usage.branches,
     adding,
     limit: limits.maxBranches,
@@ -286,7 +286,7 @@ export async function assertOrganizationCanSwitchToPlan(orgId: string, targetPla
     targetPlanLimits.maxBranches > 0 &&
     usageSnapshot.usage.branches > targetPlanLimits.maxBranches
   ) {
-    violations.push(`sucursales ${usageSnapshot.usage.branches}/${targetPlanLimits.maxBranches}.`);
+    violations.push(`locaciones ${usageSnapshot.usage.branches}/${targetPlanLimits.maxBranches}.`);
   }
 
   if (

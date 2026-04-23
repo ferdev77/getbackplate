@@ -351,7 +351,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
             options: locationOptions.map(l => ({ id: l, label: l })),
             value: location,
             onChange: setLocation,
-            allLabel: "Todas las ubicaciones",
+            allLabel: "Todas las locaciones",
             testId: "employees-filter-location",
           },
           {

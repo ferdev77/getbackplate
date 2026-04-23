@@ -124,7 +124,7 @@ export async function POST(request: Request) {
   });
 
   if (!userScopePolicy.ok) {
-    return NextResponse.json({ error: "Solo puedes agregar usuarios de tus ubicaciones permitidas" }, { status: 400 });
+    return NextResponse.json({ error: "Solo puedes agregar usuarios de tus locaciones permitidas" }, { status: 400 });
   }
 
   const { data: created, error } = await admin
@@ -271,7 +271,7 @@ export async function PATCH(request: Request) {
   });
 
   if (!userScopePolicy.ok) {
-    return NextResponse.json({ error: "Solo puedes agregar usuarios de tus ubicaciones permitidas" }, { status: 400 });
+    return NextResponse.json({ error: "Solo puedes agregar usuarios de tus locaciones permitidas" }, { status: 400 });
   }
 
   const { error } = await admin

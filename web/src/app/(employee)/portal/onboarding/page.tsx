@@ -37,7 +37,7 @@ export default async function EmployeeOnboardingPage() {
             <div className="mt-[1px] grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full bg-[var(--gbp-text)] text-xs font-bold text-white">2</div>
             <div>
               <p className="mb-1 text-sm font-bold text-[var(--gbp-text)]">Ve a la pestaña &quot;Mis Documentos&quot;</p>
-              <p className="text-sm leading-6 text-[var(--gbp-text2)]">Ahí encontrarás únicamente los archivos asignados a tu puesto y sucursal. No verás documentos de otras áreas - eso es intencional.</p>
+              <p className="text-sm leading-6 text-[var(--gbp-text2)]">Ahí encontrarás únicamente los archivos asignados a tu puesto y locación. No verás documentos de otras áreas - eso es intencional.</p>
             </div>
           </div>
           <div className="flex items-start gap-4">

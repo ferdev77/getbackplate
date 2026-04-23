@@ -4,8 +4,6 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 
-const VENDOR_CATEGORIES = ["alimentos", "bebidas", "equipos", "limpieza", "mantenimiento", "empaque", "otro"] as const;
-
 const nullableStr = (max: number) =>
   z.preprocess(
     (v) => (v === "" || v === null || v === undefined ? null : String(v).trim()),
@@ -14,7 +12,7 @@ const nullableStr = (max: number) =>
 
 const vendorSchema = z.object({
   name: z.string().min(1, "El nombre es requerido").max(200),
-  category: z.enum(VENDOR_CATEGORIES),
+  category: z.string().trim().min(1).max(80),
   contact_name: nullableStr(200),
   contact_email: nullableStr(300),
   contact_phone: nullableStr(50),
@@ -27,7 +25,7 @@ const vendorSchema = z.object({
 });
 
 // ─── GET /api/employee/vendors ────────────────────────────────────────────────
-// Empleado: listado filtrado por sucursal y permisos delegados
+// Empleado: listado filtrado por locación y permisos delegados
 export async function GET(request: Request) {
   const access = await assertEmployeeCapabilityApi("vendors", "view");
   if (!access.ok) {
@@ -45,7 +43,7 @@ export async function GET(request: Request) {
 
   const admin = createSupabaseAdminClient();
 
-  const [{ data: customBrandingEnabled }, { data: vendors }, { data: vendorLocations }, { data: branches }] = await Promise.all([
+  const [{ data: customBrandingEnabled }, { data: vendors }, { data: vendorLocations }, { data: branches }, { data: categories }] = await Promise.all([
     admin.rpc("is_module_enabled", { org_id: organizationId, module_code: "custom_branding" }),
     admin
       .from("vendors")
@@ -63,6 +61,12 @@ export async function GET(request: Request) {
       .eq("organization_id", organizationId)
       .eq("is_active", true)
       .order("name"),
+    admin
+      .from("vendor_categories")
+      .select("id, code, name, is_system, sort_order")
+      .eq("organization_id", organizationId)
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true }),
   ]);
 
   // Build vendor → branch_ids map
@@ -113,7 +117,7 @@ export async function GET(request: Request) {
     name: customBrandingEnabled && branch.city ? branch.city : branch.name,
   }));
 
-  return NextResponse.json({ vendors: result, branches: mappedBranches });
+  return NextResponse.json({ vendors: result, branches: mappedBranches, categories: categories ?? [] });
 }
 
 // ─── POST /api/employee/vendors ───────────────────────────────────────────────
@@ -144,6 +148,17 @@ export async function POST(request: Request) {
 
   const { branch_ids, ...vendorData } = parsed.data;
   const admin = createSupabaseAdminClient();
+
+  const { data: category } = await admin
+    .from("vendor_categories")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("code", vendorData.category)
+    .maybeSingle();
+
+  if (!category) {
+    return NextResponse.json({ error: "Categoría inválida" }, { status: 422 });
+  }
 
   const { data: newVendor, error: insertError } = await admin
     .from("vendors")

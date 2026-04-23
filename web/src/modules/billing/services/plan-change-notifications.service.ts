@@ -240,7 +240,7 @@ export async function sendPlanChangeDecisionEmail(params: {
       : "upgrade";
 
   const limits = [
-    { label: "Sucursales", value: targetPlan.max_branches != null ? String(targetPlan.max_branches) : "Sin limite" },
+    { label: "Locaciones", value: targetPlan.max_branches != null ? String(targetPlan.max_branches) : "Sin limite" },
     { label: "Usuarios", value: targetPlan.max_users != null ? String(targetPlan.max_users) : "Sin limite" },
     { label: "Empleados", value: targetPlan.max_employees != null ? String(targetPlan.max_employees) : "Sin limite" },
     { label: "Storage", value: targetPlan.max_storage_mb != null ? `${targetPlan.max_storage_mb} MB` : "Sin limite" },
@@ -332,7 +332,7 @@ export async function sendPlanChangeAppliedEmail(params: {
       : "upgrade";
 
   const limits = [
-    { label: "Sucursales", value: targetPlan.max_branches != null ? String(targetPlan.max_branches) : "Sin limite" },
+    { label: "Locaciones", value: targetPlan.max_branches != null ? String(targetPlan.max_branches) : "Sin limite" },
     { label: "Usuarios", value: targetPlan.max_users != null ? String(targetPlan.max_users) : "Sin limite" },
     { label: "Empleados", value: targetPlan.max_employees != null ? String(targetPlan.max_employees) : "Sin limite" },
     { label: "Storage", value: targetPlan.max_storage_mb != null ? `${targetPlan.max_storage_mb} MB` : "Sin limite" },

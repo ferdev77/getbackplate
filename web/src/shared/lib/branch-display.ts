@@ -6,7 +6,7 @@ type BranchDisplayInput = {
 export function getBranchDisplayName(
   branch: BranchDisplayInput,
   customBrandingEnabled: boolean,
-  fallback = "Sucursal",
+  fallback = "Locación",
 ) {
   if (customBrandingEnabled) {
     const cityName = branch.city?.trim();

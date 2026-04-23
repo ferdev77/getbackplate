@@ -268,7 +268,7 @@ export function SuperadminOrganizationsWorkspace({
                   <p className="text-lg font-bold text-foreground">{selectedOrg.name}</p>
                   <p className="text-sm text-[var(--gbp-text2)]">Administrador: {selectedAdmins[0]?.email ?? "- No asignado -"}</p>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    {[{ label: "Sucursales", used: selectedUsage?.branches ?? 0, limit: selectedLimit?.max_branches ?? null }, { label: "Usuarios", used: selectedUsage?.users ?? 0, limit: selectedLimit?.max_users ?? null }, { label: "Colaboradores", used: selectedUsage?.employees ?? 0, limit: selectedLimit?.max_employees ?? null }, { label: "Almacenamiento (MB)", used: selectedUsage?.storageMb ?? 0, limit: selectedLimit?.max_storage_mb ?? null }].map((row) => {
+                    {[{ label: "Locaciones", used: selectedUsage?.branches ?? 0, limit: selectedLimit?.max_branches ?? null }, { label: "Usuarios", used: selectedUsage?.users ?? 0, limit: selectedLimit?.max_users ?? null }, { label: "Colaboradores", used: selectedUsage?.employees ?? 0, limit: selectedLimit?.max_employees ?? null }, { label: "Almacenamiento (MB)", used: selectedUsage?.storageMb ?? 0, limit: selectedLimit?.max_storage_mb ?? null }].map((row) => {
                       const pct = usagePercent(Number(row.used), row.limit);
                       return <p key={row.label} className="text-sm text-[var(--gbp-text2)]">{row.label}: {row.used} / {row.limit ?? "∞"} ({pct ?? 0}%)</p>;
                     })}

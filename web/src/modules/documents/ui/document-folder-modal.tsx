@@ -139,7 +139,7 @@ export function DocumentFolderModal({
                     userInputName="user_scope"
                     allowedLocationIds={allowedLocationIds}
                     lockLocationSelection={lockLocationSelection}
-                    locationHelperText={lockLocationSelection ? "Tu alcance base queda limitado a tus ubicaciones asignadas." : undefined}
+                    locationHelperText={lockLocationSelection ? "Tu alcance base queda limitado a tus locaciones asignadas." : undefined}
                   />
                 </div>
               ) : null}

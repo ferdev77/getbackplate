@@ -244,7 +244,7 @@ export function ScopeSelector({
 
   return (
     <>
-      <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Alcance base por ubicación</label>
+      <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Alcance base por locación</label>
       <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
         {locationHelperText ? (
           <p className="mb-2 text-[11px] text-[var(--gbp-text2)]">{locationHelperText}</p>
@@ -260,7 +260,7 @@ export function ScopeSelector({
               }}
               className="h-[14px] w-[14px] accent-[var(--gbp-accent)]"
             />
-            Todas mis ubicaciones habilitadas
+            Todas mis locaciones habilitadas
           </label>
         ) : null}
         <div className="grid grid-cols-2 gap-2 text-xs text-[var(--gbp-text2)]">
@@ -282,7 +282,7 @@ export function ScopeSelector({
       <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Filtros dentro del alcance (departamento / puesto)</label>
       <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3 text-xs text-[var(--gbp-text2)]">
         <p className="mb-2 text-[11px] text-[var(--gbp-text2)]">
-          Estos filtros reducen la audiencia dentro de las ubicaciones elegidas.
+          Estos filtros reducen la audiencia dentro de las locaciones elegidas.
         </p>
         <label className="mb-2 inline-flex items-center gap-2 border-b border-[var(--gbp-border)] pb-2 text-xs font-semibold text-[var(--gbp-text)]">
           <input
@@ -350,7 +350,7 @@ export function ScopeSelector({
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]"
-          placeholder="Agregar usuario (nombre, ubicación, departamento o puesto)"
+          placeholder="Agregar usuario (nombre, locación, departamento o puesto)"
         />
         <div className="mt-2 max-h-44 overflow-y-auto rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-2">
           <div className="grid gap-1.5 text-xs text-[var(--gbp-text2)]">

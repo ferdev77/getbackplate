@@ -21,7 +21,7 @@ async function VendorContent({
   canEdit: boolean;
   canDelete: boolean;
 }) {
-  const { vendors, branches } = await getVendorDirectoryView(organizationId, {
+  const { vendors, branches, categories } = await getVendorDirectoryView(organizationId, {
     forEmployee: true,
     branchId,
   });
@@ -30,6 +30,7 @@ async function VendorContent({
     <VendorsTableWorkspace
       initialVendors={vendors}
       branches={branches}
+      initialCategories={categories}
       organizationId={organizationId}
       canCreate={canCreate}
       canEdit={canEdit}

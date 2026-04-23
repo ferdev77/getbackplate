@@ -174,7 +174,7 @@ export function UploadDocumentModal({
                     </p>
                   ) : (
                     <>
-                      <p className="mt-1 text-xs text-[var(--gbp-text2)]">Define acceso por ubicación, departamento, puesto o usuario. Esta configuración aplica cuando el archivo está en raíz.</p>
+                      <p className="mt-1 text-xs text-[var(--gbp-text2)]">Define acceso por locación, departamento, puesto o usuario. Esta configuración aplica cuando el archivo está en raíz.</p>
                       <ScopeSelector
                         namespace="upload-modal"
                         branches={branches}
@@ -187,7 +187,7 @@ export function UploadDocumentModal({
                         userInputName="user_scope"
                         allowedLocationIds={allowedLocationIds}
                         lockLocationSelection={lockLocationSelection}
-                        locationHelperText={lockLocationSelection ? "Tu alcance base queda limitado a tus ubicaciones asignadas." : undefined}
+                        locationHelperText={lockLocationSelection ? "Tu alcance base queda limitado a tus locaciones asignadas." : undefined}
                       />
                     </>
                   )}
