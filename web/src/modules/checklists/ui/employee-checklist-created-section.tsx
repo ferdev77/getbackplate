@@ -8,6 +8,7 @@ import { ChecklistEditTrigger } from "@/modules/checklists/ui/checklist-edit-tri
 import type { BranchOption, DepartmentOption, PositionOption, ScopedUserOption } from "@/shared/contracts/scope-options";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 import { ScopePillsOverflow } from "@/shared/ui/scope-pills-overflow";
+import { FilterBar } from "@/shared/ui/filter-bar";
 
 type CreatedTemplateRow = {
   id: string;
@@ -59,6 +60,20 @@ export function EmployeeChecklistCreatedSection({
 }: Props) {
   const [deleteTemplate, setDeleteTemplate] = useState<CreatedTemplateRow | null>(null);
 
+  const [query, setQuery] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+
+  const filteredMine = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return mine.filter((row) => {
+      const byQuery = !q || row.name.toLowerCase().includes(q);
+      const byStatus = !statusFilter || (statusFilter === "active" ? row.is_active : !row.is_active);
+      const byLocation = !locationFilter || (row.target_scope?.locations || []).includes(locationFilter) || (row.target_scope?.location_scope || []).includes(locationFilter);
+      return byQuery && byStatus && byLocation;
+    });
+  }, [locationFilter, mine, query, statusFilter]);
+
   const branchNameById = useMemo(() => new Map(branches.map((branch) => [branch.id, branch.name])), [branches]);
   const departmentNameById = useMemo(() => new Map(departments.map((department) => [department.id, department.name])), [departments]);
   const positionNameById = useMemo(() => new Map(positions.map((position) => [position.id, position.name])), [positions]);
@@ -104,14 +119,48 @@ export function EmployeeChecklistCreatedSection({
 
   return (
     <section className="space-y-3">
+      <FilterBar
+        query={query}
+        onQueryChange={setQuery}
+        searchPlaceholder="Buscar checklist..."
+        searchTestId="employee-checklists-search"
+        filters={[
+          {
+            key: "location",
+            options: branches.map((b) => ({ id: b.id, label: b.name })),
+            value: locationFilter,
+            onChange: setLocationFilter,
+            allLabel: "Todas las ubicaciones",
+            testId: "employee-checklists-filter-location",
+          },
+          {
+            key: "status",
+            options: [
+              { id: "active", label: "Activa" },
+              { id: "inactive", label: "Inactiva" },
+            ],
+            value: statusFilter,
+            onChange: setStatusFilter,
+            allLabel: "Todos los estados",
+            testId: "employee-checklists-filter-status",
+          },
+        ]}
+        hasActiveFilters={Boolean(query || locationFilter || statusFilter)}
+        onClearFilters={() => {
+          setQuery("");
+          setLocationFilter("");
+          setStatusFilter("");
+        }}
+      />
+
       <section className="overflow-hidden rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
         <div className="grid grid-cols-[1fr_120px] md:grid-cols-[2fr_100px_90px_120px] lg:grid-cols-[minmax(220px,1.7fr)_80px_90px_110px_minmax(160px,1fr)_minmax(220px,1.35fr)_90px_120px] gap-x-4 border-b-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-2.5 text-[11px] font-bold tracking-[0.07em] uppercase text-[var(--gbp-muted)]">
           <p>Checklist</p><p className="hidden md:block">Tipo</p><p className="hidden lg:block">Shift</p><p className="hidden lg:block">Frecuencia</p><p className="hidden lg:block">Locación</p><p className="hidden lg:block">Deptos / Puestos</p><p className="hidden md:block">Estado</p><p>Acciones</p>
         </div>
 
-        {mine.length > 0 ? (
+        {filteredMine.length > 0 ? (
           <div>
-            {mine.map((row) => {
+            {filteredMine.map((row) => {
               const scope = parseScope(row.target_scope);
               const locationNames = scope.locations.map((id) => branchNameById.get(id) ?? id);
               const rolePills = [

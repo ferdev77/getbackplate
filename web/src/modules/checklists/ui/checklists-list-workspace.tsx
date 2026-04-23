@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Eye, MapPin, Pencil, Trash2 } from "lucide-react";
 import { FilterBar } from "@/shared/ui/filter-bar";
@@ -48,10 +48,10 @@ export type ChecklistTemplateRow = {
   checklist_type: string;
   is_active: boolean;
   branch_id: string | null;
-  shift: string | null;
-  department: string | null;
-  department_id: string | null;
-  repeat_every: string | null;
+  shift?: string;
+  department?: string;
+  department_id?: string;
+  repeat_every?: string;
   target_scope: Record<string, string[]>;
   created_by: string | null;
   created_by_name: string;
@@ -104,10 +104,27 @@ export function ChecklistsListWorkspace({
 
   const normalizedQuery = normalize(query);
 
+  const activeBranches = useMemo(() => {
+    const branchIds = new Set<string>();
+    templates.forEach((t) => {
+      if (t.branch_id) branchIds.add(t.branch_id);
+      if (Array.isArray(t.target_scope?.locations)) {
+        t.target_scope.locations.forEach((id) => branchIds.add(id));
+      }
+    });
+
+    return branches
+      .filter((b) => branchIds.has(b.id))
+      .map((b) => ({ id: b.id, label: b.name }));
+  }, [templates, branches]);
+
   const filteredTemplates = templates.filter((row) => {
     const byQ = !normalizedQuery || normalize(row.name).includes(normalizedQuery);
     const byType = !typeFilter || row.checklist_type === typeFilter;
-    const byLoc = !locFilter || row.branch_id === locFilter;
+    const byLoc =
+      !locFilter ||
+      row.branch_id === locFilter ||
+      (Array.isArray(row.target_scope?.locations) && row.target_scope.locations.includes(locFilter));
     return byQ && byType && byLoc;
   });
 
@@ -132,7 +149,7 @@ export function ChecklistsListWorkspace({
             },
             {
               key: "location",
-              options: branches.map((b) => ({ id: b.id, label: b.name })),
+              options: activeBranches,
               value: locFilter,
               onChange: setLocFilter,
               allLabel: "Todas las ubicaciones",

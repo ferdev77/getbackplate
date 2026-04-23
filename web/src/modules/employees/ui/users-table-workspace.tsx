@@ -8,6 +8,7 @@ import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ScopePillsOverflow } from "@/shared/ui/scope-pills-overflow";
+import { FilterBar } from "@/shared/ui/filter-bar";
 import type { BranchOption } from "@/shared/contracts/scope-options";
 
 type UserRow = {
@@ -71,6 +72,11 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreat
   const selected = rows.find((item) => item.membershipId === selectedMembershipId) ?? null;
   const editing = rows.find((item) => item.membershipId === editMembershipId) ?? null;
   const deleteTarget = rows.find((item) => item.membershipId === deleteTargetId) ?? null;
+
+  const locationOptions = useMemo(
+    () => [...new Set(rows.map((item) => item.branchName).filter(Boolean))].sort().map((name) => ({ id: name, label: name })),
+    [rows],
+  );
 
   const [editRole, setEditRole] = useState("employee");
   const [editStatus, setEditStatus] = useState("active");
@@ -231,11 +237,39 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreat
         <article className="rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6"><p className="mb-2 text-[11px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Activos</p><p className="font-serif text-4xl leading-none font-bold text-[var(--gbp-text)]">{activeCount}</p></article>
       </section>
 
-      <section className="mt-2 flex flex-wrap items-center gap-2">
-        <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-[34px] w-[210px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs text-[var(--gbp-text)]" placeholder="Buscar administrador..." />
-        <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs text-[var(--gbp-text)]"><option value="">Todas las ubicaciones</option>{[...new Set(rows.map((item) => item.branchName))].map((item) => <option key={item} value={item}>{item}</option>)}</select>
-        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs text-[var(--gbp-text)]"><option value="">Todos los accesos</option><option value="active">Activo</option><option value="inactive">Inactivo</option></select>
-      </section>
+            <FilterBar
+        query={query}
+        onQueryChange={setQuery}
+        searchPlaceholder="Buscar administrador..."
+        searchTestId="users-search-input"
+        filters={[
+          {
+            key: "location",
+            options: locationOptions,
+            value: locationFilter,
+            onChange: setLocationFilter,
+            allLabel: "Todas las ubicaciones",
+            testId: "users-filter-location",
+          },
+          {
+            key: "status",
+            options: [
+              { id: "active", label: "Activo" },
+              { id: "inactive", label: "Inactivo" },
+            ],
+            value: statusFilter,
+            onChange: setStatusFilter,
+            allLabel: "Todos los accesos",
+            testId: "users-filter-status",
+          },
+        ]}
+        hasActiveFilters={Boolean(query || locationFilter || statusFilter)}
+        onClearFilters={() => {
+          setQuery("");
+          setLocationFilter("");
+          setStatusFilter("");
+        }}
+      />
 
       <p className="text-[11px] text-[var(--gbp-text2)]">
         Este estado controla el ingreso a la plataforma (no el estado laboral).
