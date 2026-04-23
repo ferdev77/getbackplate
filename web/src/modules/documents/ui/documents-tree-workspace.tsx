@@ -49,6 +49,7 @@ type User = { id: string; user_id: string | null; first_name: string; last_name:
 type Props = {
   organizationId: string;
   viewerUserId: string;
+  viewerUserName?: string;
   folders: FolderRow[];
   documents: DocumentRow[];
   branches: Branch[];
@@ -106,7 +107,7 @@ function parseScope(scope: unknown) {
   };
 }
 
-export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, documents, branches, departments, positions, users, customBrandingEnabled = false, viewMode = "tree" }: Props) {
+export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUserName, folders, documents, branches, departments, positions, users, customBrandingEnabled = false, viewMode = "tree" }: Props) {
   const router = useRouter();
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [folderRows, setFolderRows] = useState(folders);
@@ -231,14 +232,15 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   }, [users]);
 
   const getCreatorLabel = useCallback((ownerId?: string | null) => {
+    if (ownerId === viewerUserId && viewerUserName) return viewerUserName;
     const user = ownerId ? userByUserId.get(ownerId) : undefined;
     if (!user) return "Administrador";
     const fullName = `${user.first_name} ${user.last_name}`.trim();
-    if (user.role_label && user.role_label !== "Usuario") {
-      return `${fullName} - ${user.role_label}`;
+    if (user.position_label) {
+      return `${fullName} - ${user.position_label}`;
     }
     return fullName || "Administrador";
-  }, [userByUserId]);
+  }, [userByUserId, viewerUserId, viewerUserName]);
 
   const getEffectiveFolderScope = useCallback((folderId: string | null) => {
     let currentFolderId = folderId;

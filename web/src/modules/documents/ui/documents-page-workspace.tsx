@@ -33,6 +33,7 @@ type ScopeUser = { id: string; user_id: string | null; first_name: string; last_
 type DocumentsPageWorkspaceProps = {
   organizationId: string;
   viewerUserId: string;
+  viewerUserName?: string;
   folders: Folder[];
   documents: Document[];
   branches: Branch[];
@@ -48,6 +49,7 @@ type DocumentsPageWorkspaceProps = {
 export function DocumentsPageWorkspace({
   organizationId,
   viewerUserId,
+  viewerUserName,
   folders,
   documents,
   branches,
@@ -137,6 +139,7 @@ export function DocumentsPageWorkspace({
         <DocumentsTreeWorkspace
           organizationId={organizationId}
           viewerUserId={viewerUserId}
+          viewerUserName={viewerUserName}
           folders={folders}
           documents={documents}
           branches={branches}

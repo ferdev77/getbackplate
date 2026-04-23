@@ -63,6 +63,7 @@ function parseScope(scope: unknown) {
 type Props = {
   organizationId: string;
   viewerUserId: string;
+  viewerUserName?: string;
   folders: FolderRow[];
   documents: DocumentRow[];
   initialViewMode?: "tree" | "columns";
@@ -93,6 +94,7 @@ function isPreviewableMime(mimeType: string | null) {
 export function EmployeeDocumentsTree({
   organizationId,
   viewerUserId,
+  viewerUserName,
   folders,
   documents,
   initialViewMode = "tree",
@@ -250,6 +252,7 @@ export function EmployeeDocumentsTree({
   }, [users]);
 
   const getCreatorLabel = useCallback((ownerId?: string | null) => {
+    if (ownerId === viewerUserId && viewerUserName) return viewerUserName;
     const user = ownerId ? userByUserId.get(ownerId) : undefined;
     if (!user) return "Administrador";
     const fullName = `${user.first_name} ${user.last_name}`.trim();
@@ -257,7 +260,7 @@ export function EmployeeDocumentsTree({
       return `${fullName} - ${user.position_label}`;
     }
     return fullName || "Administrador";
-  }, [userByUserId]);
+  }, [userByUserId, viewerUserId, viewerUserName]);
 
   const folderById = useMemo(() => new Map(folderRows.map((folder) => [folder.id, folder])), [folderRows]);
   const folderOptions = useMemo(() => folderRows.map((folder) => ({ id: folder.id, name: folder.name })), [folderRows]);
