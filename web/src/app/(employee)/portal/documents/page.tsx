@@ -4,6 +4,7 @@ import { isEmployeePrivateDocument } from "@/shared/lib/employee-private-documen
 import { requireEmployeeModule } from "@/shared/lib/access";
 import { getDocumentsScopeUsersCached, getDocumentsWorkspaceSeedCached } from "@/modules/documents/cached-queries";
 import { EmployeeDocumentsTree } from "@/modules/documents/ui/employee-documents-tree";
+
 import { getEmployeeDelegatedPermissionsByMembership } from "@/shared/lib/employee-module-permissions";
 import { getSystemFolderType } from "@/shared/lib/employee-documents-folders-contract";
 import { getEnabledModulesCached } from "@/modules/organizations/cached-queries";

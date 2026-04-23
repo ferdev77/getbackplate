@@ -26,7 +26,7 @@ export function EmployeeDocumentActions({
   const showResponsive = labelMode === "responsive";
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2" draggable={false} onDragStart={(e) => e.stopPropagation()}>
       <a href={`/api/documents/${documentId}/download?inline=1`} target="_blank" rel="noopener noreferrer" className="group/tooltip relative inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs font-semibold text-[var(--gbp-text2)] transition-colors hover:bg-[var(--gbp-surface2)]">
         <Eye className="h-3.5 w-3.5" /> <span className={showResponsive ? "hidden sm:inline" : "inline"}>Ver</span>
         <TooltipLabel label="Vista preliminar" />

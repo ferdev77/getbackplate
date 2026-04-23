@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
+import { isDndActive } from "@/modules/documents/hooks/use-dnd-safety-net";
 import { ChevronDown, LayoutDashboard, ClipboardList, Folder, Bell, FileText, FileBarChart, PanelsLeftRight, LogOut, Menu, Trash2, User, Truck, MessageSquarePlus, X, Loader2, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { NewEmployeeModal, type EmployeeModalInitialData, type ModalBranch, type ModalDepartment, type ModalPosition } from "@/modules/employees/ui/new-employee-modal";
@@ -232,6 +233,8 @@ export function EmployeeShell({
       debounceRef.current = setTimeout(() => {
         const now = Date.now();
         if (now - lastRefreshAtRef.current < 1200) return;
+        // Skip refresh while a drag-and-drop is active anywhere in the app
+        if (isDndActive()) return;
         lastRefreshAtRef.current = now;
         router.refresh();
       }, refreshDelayMs);
@@ -264,6 +267,8 @@ export function EmployeeShell({
       pollingRef = setInterval(() => {
         const now = Date.now();
         if (now - lastRefreshAtRef.current < 7000) return;
+        // Skip refresh while a drag-and-drop is active anywhere in the app
+        if (isDndActive()) return;
         lastRefreshAtRef.current = now;
         router.refresh();
       }, 8000);
