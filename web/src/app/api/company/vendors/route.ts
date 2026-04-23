@@ -19,6 +19,7 @@ const vendorSchema = z.object({
   contact_name: nullableStr(200),
   contact_email: nullableStr(300),
   contact_phone: nullableStr(50),
+  contact_whatsapp: nullableStr(50),
   website_url: nullableStr(500),
   address: nullableStr(500),
   notes: nullableStr(2000),
@@ -43,18 +44,20 @@ export async function GET(request: Request) {
   const admin = createSupabaseAdminClient();
 
   const [
+    { data: customBrandingEnabled },
     { data: vendors },
     { data: branches },
     { data: vendorLocations },
   ] = await Promise.all([
+    admin.rpc("is_module_enabled", { org_id: organizationId, module_code: "custom_branding" }),
     admin
       .from("vendors")
-      .select("id, name, category, contact_name, contact_email, contact_phone, website_url, address, notes, is_active, created_at, updated_at")
+      .select("id, name, category, contact_name, contact_email, contact_phone, contact_whatsapp, website_url, address, notes, is_active, created_at, updated_at")
       .eq("organization_id", organizationId)
       .order("name"),
     admin
       .from("branches")
-      .select("id, name")
+      .select("id, name, city")
       .eq("organization_id", organizationId)
       .eq("is_active", true)
       .order("name"),
@@ -74,7 +77,7 @@ export async function GET(request: Request) {
     }
   }
 
-  const branchById = new Map((branches ?? []).map((b) => [b.id, b.name]));
+  const branchById = new Map((branches ?? []).map((b) => [b.id, customBrandingEnabled && b.city ? b.city : b.name]));
 
   let result = (vendors ?? []).map((v) => {
     const branchIds = locationsByVendor.get(v.id) ?? [];
@@ -94,7 +97,8 @@ export async function GET(request: Request) {
         v.name.toLowerCase().includes(q) ||
         v.contact_name?.toLowerCase().includes(q) ||
         v.contact_email?.toLowerCase().includes(q) ||
-        v.contact_phone?.includes(q)
+        v.contact_phone?.includes(q) ||
+        v.contact_whatsapp?.includes(q)
     );
   }
   if (category && VENDOR_CATEGORIES.includes(category as typeof VENDOR_CATEGORIES[number])) {
@@ -106,7 +110,12 @@ export async function GET(request: Request) {
     );
   }
 
-  return NextResponse.json({ vendors: result, branches: branches ?? [] });
+  const mappedBranches = (branches ?? []).map((branch) => ({
+    id: branch.id,
+    name: customBrandingEnabled && branch.city ? branch.city : branch.name,
+  }));
+
+  return NextResponse.json({ vendors: result, branches: mappedBranches });
 }
 
 // ─── POST /api/company/vendors ────────────────────────────────────────────────
@@ -149,6 +158,7 @@ export async function POST(request: Request) {
       contact_name: vendorData.contact_name ?? null,
       contact_email: vendorData.contact_email ?? null,
       contact_phone: vendorData.contact_phone ?? null,
+      contact_whatsapp: vendorData.contact_whatsapp ?? null,
       website_url: vendorData.website_url ?? null,
       address: vendorData.address ?? null,
       notes: vendorData.notes ?? null,
