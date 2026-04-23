@@ -56,6 +56,7 @@ import { TooltipLabel } from "@/shared/ui/tooltip";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 import { toast } from "sonner";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
+import { isDndActive } from "@/modules/documents/hooks/use-dnd-safety-net";
 import {
   clearSessionCacheSnapshot,
   readSessionCacheSnapshot,
@@ -572,6 +573,8 @@ export function CompanyShell({
         clearTimeout(refreshTimerRef.current);
       }
       refreshTimerRef.current = setTimeout(() => {
+        // Skip refresh while a drag-and-drop is active anywhere in the app
+        if (isDndActive()) return;
         router.refresh();
       }, refreshDelayMs);
     }

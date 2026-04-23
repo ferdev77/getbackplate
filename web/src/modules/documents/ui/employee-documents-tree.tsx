@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, ChevronRight, Folder, GripVertical, UploadCloud, FolderPlus } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
-import { FadeIn, SlideUp, AnimatedItem } from "@/shared/ui/animations";
+// AnimatePresence removed — it interferes with HTML5 DnD by controlling DOM mounting
+
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
 import { UploadDocumentModal } from "@/modules/documents/ui/upload-document-modal";
@@ -20,6 +20,8 @@ import { AssignedCreatedToggle } from "@/shared/ui/assigned-created-toggle";
 import { DocumentViewModeToggle } from "@/shared/ui/document-view-mode-toggle";
 import { FilterBar } from "@/shared/ui/filter-bar";
 import { OperationHeaderCard } from "@/shared/ui/operation-header-card";
+import { useDndSafetyNet, markDndActive, markDndInactive } from "@/modules/documents/hooks/use-dnd-safety-net";
+import { toast } from "sonner";
 
 type FolderRow = {
   id: string;
@@ -140,12 +142,18 @@ export function EmployeeDocumentsTree({
   const dragMetaRef = useRef<{ kind: "document" | "folder" | null; id: string | null }>({ kind: null, id: null });
   const dndDebugEnabled = process.env.NODE_ENV === "development";
   const dndDebugSnapshotRef = useRef<{ event: string; details: Record<string, unknown>; at: string } | null>(null);
+  const prevDocumentsKeyRef = useRef("");
+  const prevFoldersKeyRef = useRef("");
+  const deferredPropsRef = useRef<{ documents?: DocumentRow[]; folders?: FolderRow[] } | null>(null);
 
   function logDnd(event: string, details: Record<string, unknown>) {
     if (!dndDebugEnabled) return;
     console.debug(`[documents-dnd:employee] ${event}`, details);
     dndDebugSnapshotRef.current = { event, details, at: new Date().toLocaleTimeString() };
   }
+
+
+
 
   function resetDndState() {
     dragMetaRef.current = { kind: null, id: null };
@@ -154,7 +162,23 @@ export function EmployeeDocumentsTree({
     setDropFolderId(null);
     setDropRootColumn(false);
     setDropColumnTargetId(null);
+    suppressColumnClickRef.current = false;
+    markDndInactive();
+    // Flush any props that arrived during drag
+    if (deferredPropsRef.current) {
+      const deferred = deferredPropsRef.current;
+      deferredPropsRef.current = null;
+      if (deferred.documents) setDocumentsState(deferred.documents);
+      if (deferred.folders) setFolderRows(deferred.folders);
+    }
   }
+
+  // ── DnD Safety Net (see DOCS/DND_SAFETY_NET.md) ──
+  const { resetOnPropsSync } = useDndSafetyNet({
+    resetDndState,
+    isDragActive: () => Boolean(draggedDocumentId || draggedFolderId || dragMetaRef.current.kind),
+    onDeferredRefresh: () => router.refresh(),
+  });
 
   const {
     busy,
@@ -168,11 +192,34 @@ export function EmployeeDocumentsTree({
     deleteDocumentById,
   } = useEmployeeDocumentMutations<DocumentRow>(setDocumentsState);
 
+  // ── Stable props sync ──
+  // The EmployeeShell polls router.refresh() every 8s, which re-executes the
+  // Server Component and creates NEW array references via .map() even when
+  // data hasn't changed.  Using JSON.stringify to detect *real* changes avoids
+  // gratuitous re-renders that destroy draggable DOM nodes mid-drag.
+
   useEffect(() => {
+    const key = JSON.stringify(documents.map((d) => d.id + d.folder_id + d.title));
+    if (key === prevDocumentsKeyRef.current) return; // no real change
+    prevDocumentsKeyRef.current = key;
+
+    // Don't update state during active drag — it would destroy DOM nodes
+    if (dragMetaRef.current.kind) {
+      deferredPropsRef.current = { ...deferredPropsRef.current, documents };
+      return;
+    }
     setDocumentsState(documents);
   }, [documents]);
 
   useEffect(() => {
+    const key = JSON.stringify(folders.map((f) => f.id + f.parent_id + f.name));
+    if (key === prevFoldersKeyRef.current) return;
+    prevFoldersKeyRef.current = key;
+
+    if (dragMetaRef.current.kind) {
+      deferredPropsRef.current = { ...deferredPropsRef.current, folders };
+      return;
+    }
     setFolderRows(folders);
   }, [folders]);
 
@@ -353,7 +400,7 @@ export function EmployeeDocumentsTree({
       const isOpen = openFolders.has(folder.id);
 
       const row = (
-        <AnimatedItem key={folder.id}>
+        <div key={folder.id}>
           <div className="border-b border-[var(--gbp-border)]">
             <div
               className={`flex items-center justify-between px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)] ${dropFolderId === folder.id ? "bg-[var(--gbp-accent-glow)] ring-1 ring-inset ring-[var(--gbp-accent)]" : ""}`}
@@ -382,8 +429,9 @@ export function EmployeeDocumentsTree({
                 }
               }}
             >
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() =>
                   setOpenFolders((prev) => {
                     const next = new Set(prev);
@@ -392,7 +440,18 @@ export function EmployeeDocumentsTree({
                     return next;
                   })
                 }
-                className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setOpenFolders((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(folder.id)) next.delete(folder.id);
+                      else next.add(folder.id);
+                      return next;
+                    });
+                  }
+                }}
+                className="flex min-w-0 flex-1 items-center gap-2 text-left cursor-pointer"
                 style={{ paddingLeft: `${depth * 20}px` }}
                 draggable={isFolderOwner(folder)}
                 onDragStart={(event) => {
@@ -400,10 +459,7 @@ export function EmployeeDocumentsTree({
                   dragMetaRef.current = { kind: "folder", id: folder.id };
                   event.dataTransfer.setData("application/x-folder-id", folder.id);
                   event.dataTransfer.effectAllowed = "move";
-                  setDraggedFolderId(folder.id);
-                  setDraggedDocumentId(null);
-                  setDropRootColumn(false);
-                  setDropColumnTargetId(null);
+                  markDndActive();
                   logDnd("dragstart-folder-tree", { folderId: folder.id });
                 }}
                 onDragEnd={resetDndState}
@@ -412,45 +468,43 @@ export function EmployeeDocumentsTree({
                 <Folder className="h-5 w-5 text-[var(--gbp-text2)]" />
                 <span className="truncate text-sm font-semibold text-[var(--gbp-text)]">{folder.name}</span>
                 <span className="text-xs text-[var(--gbp-muted)]">({folderDocumentCountById.get(folder.id) ?? 0})</span>
-              </button>
+              </div>
             </div>
             
-            <AnimatePresence>
-              {isOpen && (
-                <FadeIn delay={0.05}>
-                  <div className="border-l-[3px] border-[var(--gbp-border)]">
-                    {docList.map((doc) => (
-                      <div key={doc.id} className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]" draggable={isOwner(doc)} onDragStart={(event) => { if (!isOwner(doc)) return; dragMetaRef.current = { kind: "document", id: doc.id }; event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; setDraggedDocumentId(doc.id); setDraggedFolderId(null); setDropRootColumn(false); setDropColumnTargetId(null); logDnd("dragstart-doc-tree-nested", { documentId: doc.id }); }} onDragEnd={resetDndState}>
-                        <div className="min-w-0 flex-1 flex items-center gap-3" style={{ paddingLeft: `${(depth + 1) * 20}px` }}>
-                           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-lg">📄</div>
-                           <div className="min-w-0">
-                             <p className="truncate text-sm font-bold text-[var(--gbp-text)]">
-                               {doc.title}
-                               {doc.is_new ? <span className="ml-2 rounded-full border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--gbp-success)]">NUEVO</span> : null}
-                             </p>
-                             <p className="truncate text-xs text-[var(--gbp-muted)]">
-                               {formatSize(doc.file_size_bytes)} · {(doc.mime_type ?? "archivo").toUpperCase()}
-                             </p>
-                           </div>
-                        </div>
-                        <EmployeeDocumentActions
-                          documentId={doc.id}
-                          canEdit={canEdit}
-                          canDelete={canDelete}
-                          isOwner={isOwner(doc)}
-                          onEdit={() => setEditingDocument(doc)}
-                          onDelete={() => setDeleteDocument(doc)}
-                          labelMode="responsive"
-                        />
+            {isOpen && (
+              <div>
+                <div className="border-l-[3px] border-[var(--gbp-border)]">
+                  {docList.map((doc) => (
+                    <div key={doc.id} className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]" draggable={isOwner(doc)} onDragStart={(event) => { if (!isOwner(doc)) return; dragMetaRef.current = { kind: "document", id: doc.id }; event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; markDndActive(); logDnd("dragstart-doc-tree-nested", { documentId: doc.id }); }} onDragEnd={resetDndState}>
+                      <div className="min-w-0 flex-1 flex items-center gap-3" style={{ paddingLeft: `${(depth + 1) * 20}px` }}>
+                         <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-lg">📄</div>
+                         <div className="min-w-0">
+                           <p className="truncate text-sm font-bold text-[var(--gbp-text)]">
+                             {doc.title}
+                             {doc.is_new ? <span className="ml-2 rounded-full border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--gbp-success)]">NUEVO</span> : null}
+                           </p>
+                           <p className="truncate text-xs text-[var(--gbp-muted)]">
+                             {formatSize(doc.file_size_bytes)} · {(doc.mime_type ?? "archivo").toUpperCase()}
+                           </p>
+                         </div>
                       </div>
-                    ))}
-                    {renderFolderTree(folder.id, depth + 1)}
-                  </div>
-                </FadeIn>
-              )}
-            </AnimatePresence>
+                      <EmployeeDocumentActions
+                        documentId={doc.id}
+                        canEdit={canEdit}
+                        canDelete={canDelete}
+                        isOwner={isOwner(doc)}
+                        onEdit={() => setEditingDocument(doc)}
+                        onDelete={() => setDeleteDocument(doc)}
+                        labelMode="responsive"
+                      />
+                    </div>
+                  ))}
+                  {renderFolderTree(folder.id, depth + 1)}
+                </div>
+              </div>
+            )}
           </div>
-        </AnimatedItem>
+        </div>
       );
 
       return [row];
@@ -519,9 +573,14 @@ export function EmployeeDocumentsTree({
   async function moveDocumentToFolder(documentId: string, targetFolderId: string | null) {
     const doc = documentsState.find((row) => row.id === documentId);
     if (!doc || !isOwner(doc)) {
+      resetDndState();
       return;
     }
-    try {
+    const targetFolderName = targetFolderId
+      ? folderRows.find((f) => f.id === targetFolderId)?.name ?? "carpeta"
+      : "raíz";
+
+    const movePromise = (async () => {
       logDnd("move-document:start", { documentId, targetFolderId });
       setPreviewState((prev) => (prev.docId === documentId ? { ...prev, status: "idle" } : prev));
       const response = await fetch("/api/employee/documents/manage", {
@@ -535,25 +594,33 @@ export function EmployeeDocumentsTree({
       logDnd("move-document:ok", { documentId, targetFolderId });
       setDocumentsState((prev) => prev.map((row) => (row.id === documentId ? { ...row, folder_id: resolvedFolderId } : row)));
       router.refresh();
-    } catch (error) {
-      logDnd("move-document:error", { documentId, targetFolderId, error: error instanceof Error ? error.message : String(error) });
-      console.error(error);
-    } finally {
+      return { targetFolderName };
+    })();
+
+    toast.promise(movePromise, {
+      loading: `Moviendo documento a "${targetFolderName}"…`,
+      success: () => `Documento movido a "${targetFolderName}"`,
+      error: (err) => (err instanceof Error ? err.message : "Error moviendo documento"),
+    });
+
+    movePromise.catch(() => {}).finally(() => {
       dragMetaRef.current = { kind: null, id: null };
       setDropFolderId(null);
       setDropRootColumn(false);
       setDropColumnTargetId(null);
       setDraggedDocumentId(null);
       setDraggedFolderId(null);
-    }
+    });
   }
 
   async function moveFolderToFolder(folderId: string, targetFolderId: string | null) {
     const folder = folderRows.find((row) => row.id === folderId);
     if (!folder || !isFolderOwner(folder)) {
+      resetDndState();
       return;
     }
     if (folderId === targetFolderId) {
+      resetDndState();
       return;
     }
     if (targetFolderId) {
@@ -561,6 +628,8 @@ export function EmployeeDocumentsTree({
       let currentParentId = parentById.get(targetFolderId) ?? null;
       while (currentParentId) {
         if (currentParentId === folderId) {
+          toast.error("No puedes mover una carpeta dentro de una subcarpeta suya");
+          resetDndState();
           return;
         }
         currentParentId = parentById.get(currentParentId) ?? null;
@@ -568,7 +637,12 @@ export function EmployeeDocumentsTree({
     }
     // Optimistic update
     setFolderRows((prev) => prev.map((row) => (row.id === folderId ? { ...row, parent_id: targetFolderId } : row)));
-    try {
+
+    const targetFolderName = targetFolderId
+      ? folderRows.find((f) => f.id === targetFolderId)?.name ?? "carpeta"
+      : "raíz";
+
+    const movePromise = (async () => {
       logDnd("move-folder:start", { folderId, targetFolderId });
       const response = await fetch("/api/employee/document-folders", {
         method: "PATCH",
@@ -587,12 +661,18 @@ export function EmployeeDocumentsTree({
       }
       logDnd("move-folder:ok", { folderId, targetFolderId });
       router.refresh();
-    } catch (error) {
-      logDnd("move-folder:error", { folderId, targetFolderId, error: error instanceof Error ? error.message : String(error) });
-      console.error(error);
-    } finally {
+      return { targetFolderName };
+    })();
+
+    toast.promise(movePromise, {
+      loading: `Moviendo carpeta a "${targetFolderName}"…`,
+      success: () => `Carpeta movida a "${targetFolderName}"`,
+      error: (err) => (err instanceof Error ? err.message : "Error moviendo carpeta"),
+    });
+
+    movePromise.catch(() => {}).finally(() => {
       resetDndState();
-    }
+    });
   }
 
   const noDocumentsTitle = ownershipView === "created" ? "Aún no cargaste documentos" : "Sin documentos asignados";
@@ -602,7 +682,7 @@ export function EmployeeDocumentsTree({
 
   const noResultsLabel = `No se encontraron resultados para \"${query}\" en ${ownershipView === "created" ? "Cargados" : "Asignados"}.`;
   const hasOwnershipContent = ownershipDocumentsCount > 0 || (ownershipView === "created" && ownedFolderIds.size > 0);
-  const isDraggingColumnsItem = Boolean(draggedDocumentId || draggedFolderId);
+  const isDraggingColumnsItem = Boolean(dragMetaRef.current.kind);
   const handleViewModeChange = useCallback((next: "tree" | "columns") => {
     setViewMode(next);
     trackDocumentViewModeChange({
@@ -704,16 +784,8 @@ export function EmployeeDocumentsTree({
       {!hasOwnershipContent ? (
         <EmptyState title={noDocumentsTitle} description={noDocumentsDescription} />
       ) : (
-        <SlideUp delay={0.1}>
-          <AnimatePresence initial={false} mode="sync">
-            <motion.div
-              key={viewMode}
-              initial={{ opacity: 0, y: 10, scale: 0.995 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -8, scale: 0.995 }}
-              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-              className="will-change-transform"
-            >
+        <div>
+          <div>
               {viewMode === "tree" ? (
                 <section data-testid="portal-documents-tree-root" className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
                   <div className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3 text-xs font-bold uppercase tracking-[0.07em] text-[var(--gbp-muted)]">
@@ -754,10 +826,9 @@ export function EmployeeDocumentsTree({
                           </div>
                         ) : null}
                         {renderFolderTree(null)}
-                        <AnimatePresence>
-                          {rootDocuments.map((doc) => (
-                            <AnimatedItem key={doc.id}>
-                              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]" draggable={isOwner(doc)} onDragStart={(event) => { if (!isOwner(doc)) return; dragMetaRef.current = { kind: "document", id: doc.id }; event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; setDraggedDocumentId(doc.id); setDraggedFolderId(null); setDropRootColumn(false); setDropColumnTargetId(null); logDnd("dragstart-doc-tree-root", { documentId: doc.id }); }} onDragEnd={resetDndState}>
+                        {rootDocuments.map((doc) => (
+                            <div key={doc.id}>
+                              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]" draggable={isOwner(doc)} onDragStart={(event) => { if (!isOwner(doc)) return; dragMetaRef.current = { kind: "document", id: doc.id }; event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; markDndActive(); logDnd("dragstart-doc-tree-root", { documentId: doc.id }); }} onDragEnd={resetDndState}>
                                 <div className="min-w-0 flex-1 flex items-center gap-3">
                                   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-lg">📄</div>
                                   <div className="min-w-0">
@@ -780,9 +851,8 @@ export function EmployeeDocumentsTree({
                                   labelMode="responsive"
                                 />
                               </div>
-                            </AnimatedItem>
+                            </div>
                           ))}
-                        </AnimatePresence>
                       </>
                     )}
                   </div>
@@ -851,9 +921,10 @@ export function EmployeeDocumentsTree({
                             ) : null}
                             <div className="space-y-1">
                               {column.folders.map((folder) => (
-                                <button
+                                <div
                                   key={folder.id}
-                                  type="button"
+                                  role="button"
+                                  tabIndex={0}
                                   draggable={isFolderOwner(folder)}
                                   onDragStart={(event) => {
                                     if (!isFolderOwner(folder)) return;
@@ -862,19 +933,12 @@ export function EmployeeDocumentsTree({
                                     event.dataTransfer.setData("application/x-folder-id", folder.id);
                                     event.dataTransfer.setData("text/plain", folder.id);
                                     event.dataTransfer.effectAllowed = "move";
+                                    markDndActive();
                                     logDnd("dragstart-folder", { folderId: folder.id, columnParentId: column.parentId ?? null });
-                                    setDraggedFolderId(folder.id);
-                                    setDraggedDocumentId(null);
-                                    setDropRootColumn(false);
-                                    setDropColumnTargetId(null);
                                   }}
                                   onDragEnd={() => {
                                     logDnd("dragend-folder", { folderId: folder.id });
-                                    dragMetaRef.current = { kind: null, id: null };
-                                    setDraggedFolderId(null);
-                                    setDropFolderId(null);
-                                    setDropRootColumn(false);
-                                    setDropColumnTargetId(null);
+                                    resetDndState();
                                     window.setTimeout(() => {
                                       suppressColumnClickRef.current = false;
                                     }, 0);
@@ -890,6 +954,17 @@ export function EmployeeDocumentsTree({
                                       return next;
                                     });
                                     setSelectedColumnDocId(null);
+                                  }}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter" || event.key === " ") {
+                                      event.preventDefault();
+                                      setColumnPath((prev) => {
+                                        const next = prev.slice(0, index);
+                                        next[index] = folder.id;
+                                        return next;
+                                      });
+                                      setSelectedColumnDocId(null);
+                                    }
                                   }}
                                   onDragOver={(event) => {
                                     event.preventDefault();
@@ -914,12 +989,10 @@ export function EmployeeDocumentsTree({
                                     if (!draggedDocId) return;
                                     void moveDocumentToFolder(draggedDocId, folder.id);
                                   }}
-                                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left ${dropFolderId === folder.id || column.selectedFolderId === folder.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] hover:bg-[var(--gbp-bg)]"}`}
+                                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left cursor-pointer ${dropFolderId === folder.id || column.selectedFolderId === folder.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] hover:bg-[var(--gbp-bg)]"}`}
                                 >
                                   <span className="flex min-w-0 items-center gap-2">
                                     <span
-                                      draggable={false}
-                                      onClick={(event) => event.stopPropagation()}
                                       className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded ${isFolderOwner(folder) ? "cursor-grab text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text2)] active:cursor-grabbing" : "cursor-not-allowed text-[var(--gbp-border2)]"}`}
                                       title={isFolderOwner(folder) ? "Arrastrar carpeta" : "Solo puedes mover carpetas que creaste"}
                                     >
@@ -929,13 +1002,14 @@ export function EmployeeDocumentsTree({
                                     <span className="truncate text-sm font-medium text-[var(--gbp-text)]">{folder.name}</span>
                                   </span>
                                   <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[var(--gbp-muted)]" />
-                                </button>
+                                </div>
                               ))}
 
                               {column.documents.map((doc) => (
-                                <button
+                                <div
                                   key={doc.id}
-                                  type="button"
+                                  role="button"
+                                  tabIndex={0}
                                   draggable={isOwner(doc)}
                                   onDragStart={(event) => {
                                     if (!isOwner(doc)) return;
@@ -944,20 +1018,12 @@ export function EmployeeDocumentsTree({
                                     event.dataTransfer.setData("application/x-document-id", doc.id);
                                     event.dataTransfer.setData("text/plain", doc.id);
                                     event.dataTransfer.effectAllowed = "move";
+                                    markDndActive();
                                     logDnd("dragstart-document", { documentId: doc.id, columnParentId: column.parentId ?? null });
-                                    setDraggedDocumentId(doc.id);
-                                    setDraggedFolderId(null);
-                                    setDropRootColumn(false);
-                                    setDropColumnTargetId(null);
                                   }}
                                   onDragEnd={() => {
                                     logDnd("dragend-document", { documentId: doc.id });
-                                    dragMetaRef.current = { kind: null, id: null };
-                                    setDraggedDocumentId(null);
-                                    setDraggedFolderId(null);
-                                    setDropFolderId(null);
-                                    setDropRootColumn(false);
-                                    setDropColumnTargetId(null);
+                                    resetDndState();
                                     window.setTimeout(() => {
                                       suppressColumnClickRef.current = false;
                                     }, 0);
@@ -969,12 +1035,16 @@ export function EmployeeDocumentsTree({
                                     }
                                     setSelectedColumnDocId(doc.id);
                                   }}
-                                  className={`w-full rounded-lg border px-3 py-2 text-left ${selectedColumnDocId === doc.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] hover:bg-[var(--gbp-bg)]"}`}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter" || event.key === " ") {
+                                      event.preventDefault();
+                                      setSelectedColumnDocId(doc.id);
+                                    }
+                                  }}
+                                  className={`w-full rounded-lg border px-3 py-2 text-left cursor-pointer ${selectedColumnDocId === doc.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] hover:bg-[var(--gbp-bg)]"}`}
                                 >
                                   <span className="flex min-w-0 items-center gap-2">
                                     <span
-                                      draggable={false}
-                                      onClick={(event) => event.stopPropagation()}
                                       className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded ${isOwner(doc) ? "cursor-grab text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text2)] active:cursor-grabbing" : "cursor-not-allowed text-[var(--gbp-border2)]"}`}
                                       title={isOwner(doc) ? "Arrastrar archivo" : "Solo puedes mover archivos que subiste"}
                                     >
@@ -985,7 +1055,7 @@ export function EmployeeDocumentsTree({
                                   <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">
                                     {formatSize(doc.file_size_bytes)} · {(doc.mime_type ?? "archivo").toUpperCase()}
                                   </p>
-                                </button>
+                                </div>
                               ))}
 
                               {column.folders.length === 0 && column.documents.length === 0 ? (
@@ -1028,9 +1098,8 @@ export function EmployeeDocumentsTree({
                   </div>
                 </section>
               )}
-            </motion.div>
-          </AnimatePresence>
-        </SlideUp>
+          </div>
+        </div>
       )}
 
       {isUploadModalOpen ? (
