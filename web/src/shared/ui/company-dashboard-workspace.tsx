@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {
+  AlertCircle,
   Building2,
   CalendarClock,
   CheckCircle2,
@@ -9,6 +10,7 @@ import {
   Flag,
   FolderOpen,
   Megaphone,
+  PartyPopper,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
@@ -352,24 +354,41 @@ export function CompanyDashboardWorkspace({
                 <AnimatedList className="space-y-2">
                   {effectiveMetrics.announcements.map((notice) => (
                     <AnimatedItem key={notice.id}>
-                      <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-sm font-medium text-[var(--gbp-text)]">{notice.title}</p>
-                          <span className={`rounded-full border px-2 py-0.5 text-[11px] ${kindClass(notice.kind)}`}>
-                            {kindLabel(notice.kind)}
-                          </span>
+                      <article className="group flex gap-3 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] hover:shadow-lg hover:shadow-black/5">
+                        <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl transition-colors ${
+                          notice.kind === "urgent"
+                            ? "bg-rose-50 text-rose-500 group-hover:bg-rose-100"
+                            : notice.kind === "reminder"
+                              ? "bg-amber-50 text-amber-500 group-hover:bg-amber-100"
+                              : notice.kind === "celebration"
+                                ? "bg-blue-50 text-blue-500 group-hover:bg-blue-100"
+                                : "bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)] group-hover:bg-[color:color-mix(in_oklab,var(--gbp-accent)_18%,transparent)]"
+                        }`}>
+                          {notice.kind === "urgent" && <AlertCircle className="h-5 w-5" />}
+                          {notice.kind === "reminder" && <CalendarClock className="h-5 w-5" />}
+                          {notice.kind === "celebration" && <PartyPopper className="h-5 w-5" />}
+                          {(notice.kind === "general" || !notice.kind) && <Megaphone className="h-5 w-5" />}
                         </div>
-                        <p className="mt-1 text-xs text-[var(--gbp-text2)]">
-                          {notice.branch_id ? branchNameMap.get(notice.branch_id) ?? "Sucursal" : "Todas las sucursales"}
-                          {notice.is_featured ? " - Fijado" : ""}
-                        </p>
-                        <p className="mt-1 text-xs text-[var(--gbp-muted)]">
-                          {notice.publish_at
-                            ? `Publicado ${new Date(notice.publish_at).toLocaleDateString("es-AR")}`
-                            : "Sin fecha de publicación"}
-                          {` · ${notice.created_by_name ?? "Dirección General"}`}
-                        </p>
-                      </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-sm font-semibold text-[var(--gbp-text)]">{notice.title}</p>
+                            <span className={`rounded-full border px-2 py-0.5 text-[11px] ${kindClass(notice.kind)}`}>
+                            {kindLabel(notice.kind)}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs text-[var(--gbp-text2)]">
+                            {notice.branch_id ? branchNameMap.get(notice.branch_id) ?? "Sucursal" : "Todas las sucursales"}
+                            {notice.is_featured ? " - Fijado" : ""}
+                          </p>
+                          <p className="mt-2 border-t border-[var(--gbp-border)] pt-2 text-xs text-[var(--gbp-muted)]">
+                            {notice.publish_at
+                              ? `Publicado ${new Date(notice.publish_at).toLocaleDateString("es-AR")}`
+                              : "Sin fecha de publicación"}
+                            {` · ${notice.created_by_name ?? "Dirección General"}`}
+                          </p>
+                        </div>
+                      </article>
                     </AnimatedItem>
                   ))}
                 </AnimatedList>
@@ -386,18 +405,18 @@ export function CompanyDashboardWorkspace({
           <article className="h-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4">
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--gbp-text2)]">Seguimiento de checklist</h2>
             <div className="space-y-2">
-              <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
-                <p className="inline-flex items-center gap-1 text-xs text-[var(--gbp-text2)]"><CalendarClock className="h-3.5 w-3.5" /> Checklists semana</p>
-                <p className="mt-1 text-xl font-bold text-[var(--gbp-text)]">{showChecklistsPanel ? effectiveMetrics.checklistWeekCount : 0}</p>
-              </div>
-              <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
-                <p className="inline-flex items-center gap-1 text-xs text-[var(--gbp-text2)]"><ClipboardCheck className="h-3.5 w-3.5" /> Pendientes de revision</p>
-                <p className="mt-1 text-xl font-bold text-[var(--gbp-text)]">{showChecklistsPanel ? effectiveMetrics.pendingReviewCount : 0}</p>
-              </div>
-              <div className="rounded-lg border border-[var(--gbp-error)]/30 bg-[var(--gbp-error-soft)] p-3">
-                <p className="inline-flex items-center gap-1 text-xs text-[var(--gbp-error)]"><Flag className="h-3.5 w-3.5" /> Incidencias abiertas</p>
-                <p className="mt-1 text-xl font-bold text-[var(--gbp-error)]">{showChecklistsPanel ? effectiveMetrics.openFlagsCount : 0}</p>
-              </div>
+              <article className="group rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] hover:shadow-lg hover:shadow-black/5">
+                <p className="inline-flex items-center gap-1 text-xs font-medium text-[var(--gbp-text2)]"><CalendarClock className="h-3.5 w-3.5" /> Checklists semana</p>
+                <p className="mt-2 text-2xl font-bold leading-none text-[var(--gbp-text)]">{showChecklistsPanel ? effectiveMetrics.checklistWeekCount : 0}</p>
+              </article>
+              <article className="group rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] hover:shadow-lg hover:shadow-black/5">
+                <p className="inline-flex items-center gap-1 text-xs font-medium text-[var(--gbp-text2)]"><ClipboardCheck className="h-3.5 w-3.5" /> Pendientes de revision</p>
+                <p className="mt-2 text-2xl font-bold leading-none text-[var(--gbp-text)]">{showChecklistsPanel ? effectiveMetrics.pendingReviewCount : 0}</p>
+              </article>
+              <article className="group rounded-2xl border border-[var(--gbp-error)]/30 bg-[var(--gbp-error-soft)] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--gbp-error)]/45 hover:shadow-lg hover:shadow-rose-900/10">
+                <p className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--gbp-error)]"><Flag className="h-3.5 w-3.5" /> Incidencias abiertas</p>
+                <p className="mt-2 text-2xl font-bold leading-none text-[var(--gbp-error)]">{showChecklistsPanel ? effectiveMetrics.openFlagsCount : 0}</p>
+              </article>
             </div>
           </article>
         </SlideUp>

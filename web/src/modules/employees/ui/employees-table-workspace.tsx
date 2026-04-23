@@ -8,6 +8,7 @@ import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ScopePillsOverflow } from "@/shared/ui/scope-pills-overflow";
+import { FilterBar } from "@/shared/ui/filter-bar";
 
 export type EmployeeRow = {
   recordType: "employee" | "user";
@@ -328,56 +329,62 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
         </article>
       </section>
 
-      <section className="mt-2 flex flex-wrap items-center gap-2">
-        <div className="relative">
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            className="h-[34px] w-[210px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"
-            placeholder="Buscar usuario/empleado..."
-          />
-        </div>
-        <select
-          value={recordTypeFilter}
-          onChange={(event) => setRecordTypeFilter(event.target.value as "" | "employee" | "user")}
-          className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"
-        >
-          <option value="">Todos</option>
-          <option value="employee">Empleado</option>
-          <option value="user">Usuario</option>
-        </select>
-        <select
-          value={location}
-          onChange={(event) => setLocation(event.target.value)}
-          className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"
-        >
-          <option value="">Todas las ubicaciones</option>
-          {locationOptions.map((item) => (
-            <option key={item} value={item}>{item}</option>
-          ))}
-        </select>
-        <select
-          value={department}
-          onChange={(event) => setDepartment(event.target.value)}
-          className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"
-        >
-          <option value="">Todos los departamentos</option>
-          {departmentOptions.map((item) => (
-            <option key={item} value={item}>{item}</option>
-          ))}
-        </select>
-        <select
-          value={status}
-          onChange={(event) => setStatus(event.target.value)}
-          className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"
-        >
-          <option value="">Todos los estados laborales</option>
-          <option value="active">Activo</option>
-          <option value="inactive">Inactivo</option>
-          <option value="vacation">Vacaciones</option>
-          <option value="leave">Baja</option>
-        </select>
-      </section>
+            <FilterBar
+        query={query}
+        onQueryChange={setQuery}
+        searchPlaceholder="Buscar usuario/empleado..."
+        searchTestId="employees-search-input"
+        filters={[
+          {
+            key: "recordType",
+            options: [
+              { id: "employee", label: "Empleado" },
+              { id: "user", label: "Usuario" }
+            ],
+            value: recordTypeFilter,
+            onChange: (val) => setRecordTypeFilter(val as "" | "employee" | "user"),
+            allLabel: "Todos",
+            testId: "employees-filter-recordType",
+          },
+          {
+            key: "location",
+            options: locationOptions.map(l => ({ id: l, label: l })),
+            value: location,
+            onChange: setLocation,
+            allLabel: "Todas las ubicaciones",
+            testId: "employees-filter-location",
+          },
+          {
+            key: "department",
+            options: departmentOptions.map(d => ({ id: d, label: d })),
+            value: department,
+            onChange: setDepartment,
+            allLabel: "Todos los departamentos",
+            testId: "employees-filter-department",
+          },
+          {
+            key: "status",
+            options: [
+              { id: "active", label: "Activo" },
+              { id: "inactive", label: "Inactivo" },
+              { id: "vacation", label: "Vacaciones" },
+              { id: "leave", label: "Baja" },
+            ],
+            value: status,
+            onChange: setStatus,
+            allLabel: "Todos los estados laborales",
+            testId: "employees-filter-status",
+          },
+        ]}
+        hasActiveFilters={Boolean(query || recordTypeFilter || location || department || status)}
+        onClearFilters={() => {
+          setQuery("");
+          setRecordTypeFilter("");
+          setLocation("");
+          setDepartment("");
+          setStatus("");
+        }}
+      />
 
       <p className="text-[11px] text-[var(--gbp-text2)]">
         Estado laboral y acceso a plataforma se gestionan por separado.

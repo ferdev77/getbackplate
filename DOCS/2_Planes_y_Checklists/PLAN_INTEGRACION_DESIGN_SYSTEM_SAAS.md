@@ -332,6 +332,32 @@ Avance registrado (2026-03-30, cierre hardening final Settings + IA):
 
 Estado final de ejecucion del plan DS: **cerrado funcionalmente**.
 
+## 4.1) Backlog UX/UI futuro (post-cierre DS)
+
+Registro 2026-04-22:
+
+- [ ] Refactor de patron reutilizable para cards interactivas entre dashboard de empleado y dashboard de empresa.
+
+Objetivo puntual:
+
+- evitar duplicacion de clases Tailwind en cards de "Avisos recientes" y "Checklists/Seguimiento",
+- centralizar estados visuales (`default`, `warning`, `danger`) y comportamiento hover elevable,
+- mantener consistencia de UX/UI entre `portal/home` (employee) y `app/dashboard` (company).
+
+Alcance tecnico propuesto:
+
+- crear componente compartido en `web/src/shared/ui/` (ejemplo: `interactive-info-card.tsx`),
+- migrar uso inicial en:
+  - `web/src/app/(employee)/portal/home/page.tsx`
+  - `web/src/shared/ui/company-dashboard-workspace.tsx`
+- no modificar queries, permisos, rutas ni server actions (solo presentacion).
+
+Criterios de aceptacion:
+
+- ambos dashboards usan el mismo componente base para cards internas equivalentes,
+- el look & feel se mantiene (elevacion en hover, tonos por tipo, jerarquia tipografica),
+- sin regresion funcional ni cambios en flujo de negocio.
+
 ## 5) Riesgos y mitigacion
 
 Riesgos:

@@ -18,6 +18,7 @@ import type { BranchOption, DepartmentOption, PositionOption, ScopedUserOption }
 import { DocumentPreviewPanel } from "@/modules/documents/ui/document-preview-panel";
 import { AssignedCreatedToggle } from "@/shared/ui/assigned-created-toggle";
 import { DocumentViewModeToggle } from "@/shared/ui/document-view-mode-toggle";
+import { FilterBar } from "@/shared/ui/filter-bar";
 import { OperationHeaderCard } from "@/shared/ui/operation-header-card";
 
 type FolderRow = {
@@ -643,18 +644,45 @@ export function EmployeeDocumentsTree({
         )}
       />
 
-      <section className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--gbp-muted)]" />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-[34px] w-[220px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] pl-9 pr-3 text-xs" placeholder="Buscar documentos..." />
-        </div>
-        {viewMode === "tree" ? (
-          <select value={folderFilter} onChange={(event) => setFolderFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las carpetas</option>{folderOptions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
-        ) : null}
-        <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todas las ubicaciones</option>{branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
-        <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="">Todos los departamentos</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
-        <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="h-[34px] rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-xs"><option value="date-desc">Más recientes primero</option><option value="date-asc">Más antiguos primero</option><option value="name-asc">Nombre A-Z</option><option value="name-desc">Nombre Z-A</option><option value="size-desc">Mayor tamaño</option><option value="size-asc">Menor tamaño</option></select>
-      </section>
+            <FilterBar
+        query={query}
+        onQueryChange={setQuery}
+        searchPlaceholder="Buscar documentos..."
+        searchTestId="employee-documents-search-input"
+        filters={[
+          ...(viewMode === "tree" ? [{
+            key: "folder",
+            options: folderOptions.map((f) => ({ id: f.id, label: f.name })),
+            value: folderFilter,
+            onChange: setFolderFilter,
+            allLabel: "Todas las carpetas",
+            testId: "documents-filter-folder",
+          }] : []),
+          {
+            key: "location",
+            options: branches.map((b) => ({ id: b.id, label: b.name })),
+            value: locationFilter,
+            onChange: setLocationFilter,
+            allLabel: "Todas las ubicaciones",
+            testId: "documents-filter-location",
+          },
+          {
+            key: "department",
+            options: departments.map((d) => ({ id: d.id, label: d.name })),
+            value: departmentFilter,
+            onChange: setDepartmentFilter,
+            allLabel: "Todos los departamentos",
+            testId: "documents-filter-department",
+          },
+        ]}
+        hasActiveFilters={Boolean(query || locationFilter || departmentFilter || folderFilter)}
+        onClearFilters={() => {
+          setQuery("");
+          setLocationFilter("");
+          setDepartmentFilter("");
+          setFolderFilter("");
+        }}
+      />
 
       <AssignedCreatedToggle
         viewMode={ownershipView}
