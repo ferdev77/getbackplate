@@ -21,9 +21,10 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
   const supabase = await createSupabaseServerClient();
   const { data: authData } = await supabase.auth.getUser();
   const userId = authData.user?.id;
-  const viewerUserName = authData.user?.user_metadata?.first_name 
-    ? `${authData.user.user_metadata.first_name} ${authData.user.user_metadata.last_name || ""}`.trim() 
-    : undefined;
+  const viewerUserName = authData.user?.user_metadata?.full_name?.trim() 
+    || authData.user?.user_metadata?.name?.trim()
+    || authData.user?.user_metadata?.first_name?.trim()
+    || undefined;
 
   if (!userId) return null;
 

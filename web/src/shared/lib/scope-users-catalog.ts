@@ -92,7 +92,8 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
 
   for (const profile of userProfiles ?? []) {
     if (profile.user_id && userIdsInCatalog.has(profile.user_id)) continue;
-    const roleLabel = profile.user_id && roleCodeByUserId.get(profile.user_id) === "employee" ? "Empleado" : "Usuario";
+    const isEmployee = profile.user_id && roleCodeByUserId.get(profile.user_id) === "employee";
+    const roleLabel = isEmployee ? "Empleado" : "Usuario";
     catalog.push({
       id: `up-${profile.id}`,
       user_id: profile.user_id,
@@ -100,6 +101,7 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
       first_name: profile.first_name ?? "Usuario",
       last_name: profile.last_name ?? "",
       role_label: roleLabel,
+      position_label: isEmployee ? undefined : "Admin Company",
     });
     if (profile.user_id) {
       userIdsInCatalog.add(profile.user_id);

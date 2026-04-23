@@ -252,14 +252,16 @@ export function EmployeeDocumentsTree({
   }, [users]);
 
   const getCreatorLabel = useCallback((ownerId?: string | null) => {
-    if (ownerId === viewerUserId && viewerUserName) return viewerUserName;
     const user = ownerId ? userByUserId.get(ownerId) : undefined;
-    if (!user) return "Administrador";
+    if (!user) {
+      if (ownerId === viewerUserId && viewerUserName) return `${viewerUserName} - Admin Company`;
+      return "Admin Company";
+    }
     const fullName = `${user.first_name} ${user.last_name}`.trim();
     if (user.position_label) {
       return `${fullName} - ${user.position_label}`;
     }
-    return fullName || "Administrador";
+    return `${fullName} - Admin Company`;
   }, [userByUserId, viewerUserId, viewerUserName]);
 
   const folderById = useMemo(() => new Map(folderRows.map((folder) => [folder.id, folder])), [folderRows]);
@@ -607,6 +609,11 @@ export function EmployeeDocumentsTree({
       resetDndState();
       return;
     }
+    // No hacer nada si ya está en la misma carpeta
+    if (doc.folder_id === targetFolderId) {
+      resetDndState();
+      return;
+    }
     const targetFolderName = targetFolderId
       ? folderRows.find((f) => f.id === targetFolderId)?.name ?? "carpeta"
       : "raíz";
@@ -651,6 +658,11 @@ export function EmployeeDocumentsTree({
       return;
     }
     if (folderId === targetFolderId) {
+      resetDndState();
+      return;
+    }
+    // No hacer nada si ya está en el mismo contenedor padre
+    if (folder.parent_id === targetFolderId) {
       resetDndState();
       return;
     }

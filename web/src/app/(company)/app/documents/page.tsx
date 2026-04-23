@@ -34,9 +34,10 @@ export default async function CompanyDocumentsPage({
     name: customBrandingEnabled && b.city ? b.city : b.name,
   }));
 
-  const viewerUserName = authData.user?.user_metadata?.first_name 
-    ? `${authData.user.user_metadata.first_name} ${authData.user.user_metadata.last_name || ""}`.trim() 
-    : undefined;
+  const viewerUserName = authData.user?.user_metadata?.full_name?.trim() 
+    || authData.user?.user_metadata?.name?.trim()
+    || authData.user?.user_metadata?.first_name?.trim()
+    || undefined;
 
   return (
     <DocumentsPageWorkspace
