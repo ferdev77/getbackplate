@@ -40,6 +40,50 @@ type LocationCard = {
   reportId: string | null;
 };
 
+type ReportView = {
+  id: string;
+  branchId: string | null;
+  locationName: string;
+  locationShort: string;
+  cityLabel: string;
+  managerName: string;
+  managerShort: string;
+  managerInitials: string;
+  managerColor: string;
+  dateLabel: string;
+  timeLabel: string;
+  submittedAtIso: string | null;
+  templateName: string;
+  templateId: string;
+  totalItems: number;
+  completedItems: number;
+  flaggedItems: number;
+  commentsCount: number;
+  photosCount: number;
+  status: "ok" | "warn";
+  dbStatus: string;
+  categories: Array<{
+    id: string;
+    name: string;
+    items: Array<{
+      id: string;
+      text: string;
+      ok: boolean;
+      flag: boolean;
+      note?: string;
+      photosCount: number;
+      photos?: string[];
+      itemOrder: number;
+    }>;
+  }>;
+  attentionItems: Array<{
+    id: string;
+    task: string;
+    note: string;
+    category: string;
+  }>;
+};
+
 function initials(name: string) {
   const tokens = name.trim().split(/\s+/).filter(Boolean).slice(0, 2);
   if (!tokens.length) return "EM";
@@ -340,7 +384,7 @@ export async function buildChecklistReportsSnapshot({
     metricsBySubmissionId.set(row.submission_id, metrics);
   }
 
-  const reports = submissions.map((submission) => {
+  const reports: ReportView[] = submissions.map((submission) => {
     const timestamp = submission.submitted_at ?? submission.created_at;
     const branch = submission.branch_id ? branchById.get(submission.branch_id) : null;
     const managerName = employeeNameByUserId.get(submission.submitted_by) ?? "Usuario";
