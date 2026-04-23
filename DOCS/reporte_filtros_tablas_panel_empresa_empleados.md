@@ -56,6 +56,22 @@ Presente en:
 - Checklists asignados empleado
 - Papelera empresa/empleado
 
+## 2.1) Tabla comparativa de comportamientos
+
+| Vista | Panel | UI de filtros | Campos filtrables | Busqueda | Normaliza acentos | "Limpiar filtros" | Origen de opciones | Comportamiento diferencial |
+|---|---|---|---|---|---|---|---|---|
+| Empleados (`/app/employees`) | Empresa | `FilterBar` | tipo, locacion, departamento, estado | nombre + puesto | No | Si | Derivado de filas cargadas | Filtro exacto en selects |
+| Usuarios (`/app/users`) | Empresa | `FilterBar` | locacion, estado | nombre + email | No | Si | Derivado de filas cargadas | Filtro exacto en selects |
+| Checklists (`/app/checklists`) | Empresa | `FilterBar` | tipo, locacion | nombre checklist | Si | Si | Locaciones usadas por templates (`activeBranches`) | Locacion matchea `branch_id` o `target_scope.locations` |
+| Documentos (`/app/documents`) | Empresa | `FilterBar` | carpeta, locacion, departamento | titulo + mime + scope/roles | Si | Si | Scope real de docs+carpetas | Carpeta jerarquica (incluye descendientes); limpiar resetea arbol/columnas |
+| Proveedores (`/app/vendors`) | Empresa | Toolbar custom | categoria, locacion, inactivos | nombre + contacto + email + telefonos | No | No | Branches/categorias del workspace | Proveedor sin locaciones se mantiene visible al filtrar por locacion |
+| Reportes (`/app/reports`) | Empresa | Toolbar custom | locacion, estado | manager + locacion + template | No | No | Locaciones derivadas de reportes visibles | Sin accion global de reseteo |
+| Documentos (`/portal/documents`) | Empleado | `FilterBar` | carpeta (solo tree), locacion, departamento | titulo | No | Si | Catalogos por props (branches/departments/folders) | Toggle adicional `Asignados/Cargados`; carpeta directa en filtro base |
+| Checklists creados (`/portal/checklist`, tab "Creados") | Empleado | `FilterBar` | locacion, estado | nombre checklist | No | Si | Catalogo completo de sucursales por props | Soporta `locations` y `location_scope` |
+| Proveedores (`/portal/vendors`) | Empleado | Toolbar custom | categoria, locacion, inactivos | nombre + contacto + email + telefonos | No | No | Branches/categorias del workspace | Mismo comportamiento que empresa (componente compartido) |
+| Checklists asignados (`/portal/checklist`, tab "Asignados") | Empleado | Sin filtros | N/A | N/A | N/A | N/A | N/A | Solo listado + acciones (sin barra de filtros) |
+| Papelera (`/app/trash`, `/portal/trash`) | Empresa/Empleado | Sin filtros | N/A | N/A | N/A | N/A | N/A | Solo listado con acciones restaurar/eliminar |
+
 ---
 
 ## 3) Detalle por tabla/listado con filtros

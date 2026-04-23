@@ -38,6 +38,7 @@ type DocumentRow = {
   branch_id: string | null;
   access_scope: unknown;
   created_at: string;
+  owner_user_id?: string | null;
 };
 
 type Branch = { id: string; name: string; city?: string | null };
@@ -221,6 +222,24 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
   const positionMap = useMemo(() => new Map(positions.map((row) => [row.id, row])), [positions]);
   const folderById = useMemo(() => new Map(folderRows.map((row) => [row.id, row])), [folderRows]);
 
+  const userByUserId = useMemo(() => {
+    const map = new Map<string, User>();
+    for (const u of users) {
+      if (u.user_id) map.set(u.user_id, u);
+    }
+    return map;
+  }, [users]);
+
+  const getCreatorLabel = useCallback((ownerId?: string | null) => {
+    const user = ownerId ? userByUserId.get(ownerId) : undefined;
+    if (!user) return "Administrador";
+    const fullName = `${user.first_name} ${user.last_name}`.trim();
+    if (user.role_label && user.role_label !== "Usuario") {
+      return `${fullName} - ${user.role_label}`;
+    }
+    return fullName || "Administrador";
+  }, [userByUserId]);
+
   const getEffectiveFolderScope = useCallback((folderId: string | null) => {
     let currentFolderId = folderId;
     while (currentFolderId) {
@@ -270,7 +289,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
       }
       currentFolderId = folderById.get(currentFolderId)?.parent_id ?? null;
     }
-    return false;
+    return folderById;
   }, [folderById]);
 
   const contextualFolderId = useMemo(() => {
@@ -1023,7 +1042,9 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
               >
                 <ChevronRight className={`h-4 w-4 shrink-0 text-[var(--gbp-text2)] transition ${isOpen ? "rotate-90" : ""}`} />
                 <Folder className="h-4 w-4 shrink-0 text-[var(--gbp-text2)]" />
-                <span className="truncate text-sm font-semibold text-[var(--gbp-text)]">{folder.name}</span>
+                <span className="truncate text-sm font-semibold text-[var(--gbp-text)]">
+                  {folder.name}
+                </span>
                 <span className="shrink-0 text-[11px] text-[var(--gbp-muted)]">({folderDocumentCountById.get(folder.id) ?? 0})</span>
               </div>
               {/* Fecha de carga */}
@@ -1068,8 +1089,10 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                     return (
                       <div data-testid={`documents-doc-row-${doc.id}`} key={doc.id} className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px] items-center gap-2 border-t border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]" draggable onDragStart={(event) => { dragMetaRef.current = { kind: "document", id: doc.id }; event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; markDndActive(); logDnd("dragstart-doc-tree-nested", { documentId: doc.id }); }} onDragEnd={resetDndState}>
                         <div className="min-w-0 pl-8">
-                          <p className="truncate text-xs font-medium text-[var(--gbp-text)]">{doc.title}</p>
-                          <p className="truncate text-[11px] text-[var(--gbp-muted)]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p>
+                          <p className="truncate text-sm font-medium text-[var(--gbp-text)]">
+                            {doc.title}
+                          </p>
+                          <p className="truncate text-[11px] text-[var(--gbp-muted)]">Subido por {getCreatorLabel(doc.owner_user_id)}</p>
                         </div>
                         {/* Fecha de carga */}
                         <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{formatDate(doc.created_at)}</p>
@@ -1343,7 +1366,10 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
         <div>
         {viewMode === "tree" ? (
         <section data-testid="documents-tree-root" className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
-          <div className="grid grid-cols-[1fr_auto] gap-2 bg-[var(--gbp-bg)] px-4 py-3 text-[11px] font-bold tracking-[0.07em] text-[var(--gbp-muted)] uppercase md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px]">
+          <div className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3 text-xs font-bold uppercase tracking-[0.07em] text-[var(--gbp-muted)]">
+            Explorador de Archivos
+          </div>
+          <div className="grid grid-cols-[1fr_auto] gap-2 border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3 text-[11px] font-bold tracking-[0.07em] text-[var(--gbp-muted)] uppercase md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px]">
             <p>Nombre</p>
             <p className="hidden md:block">Fecha de carga</p>
             <p className="hidden lg:block">Locación</p>
@@ -1388,7 +1414,12 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                 return (
                   <div key={doc.id}>
                     <div className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_100px_auto] lg:grid-cols-[minmax(150px,1.5fr)_100px_minmax(120px,1fr)_minmax(150px,1.5fr)_160px] items-center gap-2 border-t border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]" draggable onDragStart={(event) => { dragMetaRef.current = { kind: "document", id: doc.id }; event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; markDndActive(); logDnd("dragstart-doc-tree-root", { documentId: doc.id }); }} onDragEnd={resetDndState}>
-                      <div className="min-w-0"><p className="truncate text-xs font-medium text-[var(--gbp-text)]">{doc.title}</p><p className="truncate text-[11px] text-[var(--gbp-muted)]">{formatSize(doc.file_size_bytes)} · {doc.mime_type ?? "archivo"}</p></div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-[var(--gbp-text)]">
+                          {doc.title}
+                        </p>
+                        <p className="truncate text-[11px] text-[var(--gbp-muted)]">Subido por {getCreatorLabel(doc.owner_user_id)}</p>
+                      </div>
                       {/* Fecha de carga */}
                       <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{formatDate(doc.created_at)}</p>
                       {/* Locación */}
@@ -1572,7 +1603,9 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                                 <GripVertical className="h-3.5 w-3.5" />
                               </span>
                               <Folder className="h-3.5 w-3.5 shrink-0 text-[var(--gbp-text2)]" />
-                              <span className="truncate text-sm font-medium text-[var(--gbp-text)]">{folder.name}</span>
+                              <span className="truncate text-sm font-semibold text-[var(--gbp-text)]">
+                                {folder.name}
+                              </span>
                             </span>
                             <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[var(--gbp-muted)]" />
                           </div>
@@ -1630,9 +1663,11 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                               >
                                 <GripVertical className="h-3.5 w-3.5" />
                               </span>
-                              <span className="truncate text-sm font-semibold text-[var(--gbp-text)]">{doc.title}</span>
+                              <p className="truncate text-sm font-bold text-[var(--gbp-text)]">
+                                {doc.title}
+                              </p>
                             </span>
-                            <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">{formatDate(doc.created_at)} · {formatSize(doc.file_size_bytes)}</p>
+                            <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">Subido por {getCreatorLabel(doc.owner_user_id)}</p>
                           </div>
                         ))}
 
@@ -1649,8 +1684,10 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, folders, 
                     <p className="mb-2 px-1 text-[11px] font-bold tracking-[0.08em] text-[var(--gbp-muted)] uppercase">Detalle</p>
                     <div className="space-y-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
                       <div>
-                        <p className="text-sm font-semibold text-[var(--gbp-text)]">{selectedColumnDocument.title}</p>
-                        <p className="mt-1 text-xs text-[var(--gbp-text2)]">{formatDate(selectedColumnDocument.created_at)} · {formatSize(selectedColumnDocument.file_size_bytes)} · {selectedColumnDocument.mime_type ?? "archivo"}</p>
+                        <p className="flex items-center text-sm font-semibold text-[var(--gbp-text)]">
+                          {selectedColumnDocument.title}
+                        </p>
+                        <p className="mt-1 text-xs text-[var(--gbp-text2)]">Subido por {getCreatorLabel(selectedColumnDocument.owner_user_id)}</p>
                       </div>
                       <div className="flex flex-wrap gap-1.5">
                         <a href={`/api/documents/${selectedColumnDocument.id}/download?inline=1`} target="_blank" rel="noopener noreferrer" className={ACTION_BTN_NEUTRAL}><Eye className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Ver" /></a>
