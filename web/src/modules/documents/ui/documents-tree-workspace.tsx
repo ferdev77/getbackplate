@@ -232,14 +232,17 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
   }, [users]);
 
   const getCreatorLabel = useCallback((ownerId?: string | null) => {
-    if (ownerId === viewerUserId && viewerUserName) return viewerUserName;
     const user = ownerId ? userByUserId.get(ownerId) : undefined;
-    if (!user) return "Administrador";
+    if (!user) {
+      // Si es el propio viewer (admin sin perfil en el catálogo), usa su nombre de sesión
+      if (ownerId === viewerUserId && viewerUserName) return `${viewerUserName} - Admin Company`;
+      return "Admin Company";
+    }
     const fullName = `${user.first_name} ${user.last_name}`.trim();
     if (user.position_label) {
       return `${fullName} - ${user.position_label}`;
     }
-    return fullName || "Administrador";
+    return `${fullName} - Admin Company`;
   }, [userByUserId, viewerUserId, viewerUserName]);
 
   const getEffectiveFolderScope = useCallback((folderId: string | null) => {
@@ -743,6 +746,10 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
   }
 
   async function moveDocumentToFolder(documentId: string, folderId: string | null) {
+    // No hacer nada si ya está en la misma carpeta
+    const currentDoc = documentRows.find((row) => row.id === documentId);
+    if (currentDoc && currentDoc.folder_id === folderId) return;
+
     logDnd("move-document:start", { documentId, folderId });
 
     const targetFolderName = folderId
@@ -784,8 +791,12 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
   }
 
   async function moveFolderToFolder(folderId: string, parentId: string | null) {
-    logDnd("move-folder:start", { folderId, parentId });
     const movingFolder = folderRows.find((row) => row.id === folderId);
+
+    // No hacer nada si ya está en el mismo contenedor padre
+    if (movingFolder && movingFolder.parent_id === parentId) return;
+
+    logDnd("move-folder:start", { folderId, parentId });
     if (movingFolder && isProtectedFolder(movingFolder)) {
       toast.error("No se pueden mover carpetas protegidas de empleados");
       resetDndState();
