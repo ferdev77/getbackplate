@@ -7,6 +7,7 @@ import { Truck, Plus, Search, Pencil, Trash2, X, Phone, Mail, Globe, MapPin, Fil
 import { EmptyState } from "@/shared/ui/empty-state";
 import { SlideUp } from "@/shared/ui/animations";
 import { ScopePillsOverflow } from "@/shared/ui/scope-pills-overflow";
+import { OperationHeaderCard } from "@/shared/ui/operation-header-card";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import type { VendorCategoryOption, VendorRow } from "@/modules/vendors/types";
 import { DEFAULT_VENDOR_CATEGORIES } from "@/modules/vendors/types";
@@ -1041,6 +1042,11 @@ export default function VendorsTableWorkspace({
     return true;
   });
 
+  const activeCategoryLabel = useMemo(() => {
+    if (!filterCategory) return null;
+    return categories.find((category) => category.code === filterCategory)?.name ?? filterCategory;
+  }, [categories, filterCategory]);
+
   const selectCls = `h-9 px-3 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-xs font-medium text-[var(--gbp-text2)] focus:outline-none focus:ring-2 focus:ring-[var(--gbp-accent)]/30 focus:border-[var(--gbp-accent)] transition-colors`;
   const categoryApiBasePath = `${apiBasePath}/categories`;
 
@@ -1048,19 +1054,22 @@ export default function VendorsTableWorkspace({
     <div className="flex flex-col gap-0 h-full min-h-0">
       {/* Toolbar */}
       <SlideUp>
-        <section className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div className={`inline-flex items-center gap-2 ${TEXT_STRONG}`}>
-            <Truck className="h-4 w-4" />
-            <h1 className="text-lg font-bold">Proveedores</h1>
-          </div>
-          {canCreate ? (
+        <OperationHeaderCard
+          eyebrow="Directorio de proveedores"
+          title="Mis Proveedores"
+          description="Gestiona tu directorio de proveedores, categorías, alcance por locación y estado operativo."
+          eyebrowClassName={`text-[11px] font-semibold tracking-[0.14em] uppercase ${TEXT_MUTED}`}
+          titleClassName={`mt-1 text-2xl font-bold tracking-tight ${TEXT_STRONG}`}
+          descriptionClassName={`mt-1 text-sm ${TEXT_MUTED}`}
+          action={canCreate ? (
             <button
               onClick={() => { setEditingVendor(null); setModalOpen(true); }}
-              className="inline-flex h-[33px] items-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-[var(--gbp-bg)] hover:bg-[var(--gbp-accent)] transition-colors">
+              className="inline-flex h-[33px] items-center gap-1 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white hover:bg-[var(--gbp-accent)]"
+            >
               <Plus className="h-3.5 w-3.5" /> Nuevo Proveedor
             </button>
           ) : null}
-        </section>
+        />
       </SlideUp>
 
       {/* Filters */}
@@ -1094,12 +1103,6 @@ export default function VendorsTableWorkspace({
         </div>
       </SlideUp>
 
-      {/* Count */}
-      <p className={`mb-3 text-[11px] font-bold tracking-[0.11em] uppercase ${TEXT_MUTED}`}>
-        {filtered.length} {filtered.length === 1 ? "proveedor" : "proveedores"}
-        {search || filterCategory || filterBranch ? " encontrados" : ""}
-      </p>
-
       {/* Table / Empty */}
       <SlideUp delay={0.1}>
         {filtered.length === 0 ? (
@@ -1119,8 +1122,14 @@ export default function VendorsTableWorkspace({
         ) : (
           <div className={`overflow-x-auto rounded-xl border ${CARD}`}>
             <div className="flex items-center justify-between border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3">
-              <p className={`text-sm font-bold ${TEXT_STRONG}`}>Listado de proveedores</p>
-              <p className={`text-[11px] font-semibold uppercase tracking-[0.09em] ${TEXT_MUTED}`}>{filtered.length}</p>
+              <p className={`text-sm font-bold ${TEXT_STRONG}`}>
+                {activeCategoryLabel
+                  ? `Listado de proveedores: ${activeCategoryLabel} (${filtered.length})`
+                  : `Listado de proveedores (${filtered.length})`}
+              </p>
+              <p className={`text-[11px] font-semibold uppercase tracking-[0.09em] ${TEXT_MUTED}`}>
+                cantidad
+              </p>
             </div>
             <table className="w-full text-sm min-w-[700px] border-collapse">
               <thead>
