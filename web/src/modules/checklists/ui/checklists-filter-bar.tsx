@@ -73,12 +73,6 @@ export function ChecklistsFilterBar({
     [navigate],
   );
 
-  // Sync local state if URL param changes externally (e.g. browser back/forward)
-  useEffect(() => {
-    const urlQuery = searchParams.get("q") ?? "";
-    setLocalQuery(urlQuery);
-  }, [searchParams]);
-
   // Cleanup on unmount
   useEffect(() => {
     return () => {
