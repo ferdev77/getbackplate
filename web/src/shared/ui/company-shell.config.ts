@@ -144,7 +144,7 @@ export const SECTIONS: SidebarSection[] = [
   },
   {
     label: "Proveedores",
-    items: [{ href: "/app/vendors", label: "Proveedores", icon: Truck, moduleCode: "vendors" }],
+    items: [{ href: "/app/vendors", label: "Proveedores", icon: Truck, sub: true, moduleCode: "vendors" }],
   },
   {
     label: "Recursos Humanos",
