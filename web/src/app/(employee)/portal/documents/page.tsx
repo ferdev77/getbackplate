@@ -14,6 +14,16 @@ type EmployeeDocumentsPageProps = {
   searchParams: Promise<{ view?: string }>;
 };
 
+function hasExplicitScopeValue(scope: unknown) {
+  if (!scope || typeof scope !== "object") return false;
+  const value = scope as Record<string, unknown>;
+  const locations = Array.isArray(value.locations) ? value.locations : [];
+  const departments = Array.isArray(value.department_ids) ? value.department_ids : [];
+  const positions = Array.isArray(value.position_ids) ? value.position_ids : [];
+  const users = Array.isArray(value.users) ? value.users : [];
+  return locations.length > 0 || departments.length > 0 || positions.length > 0 || users.length > 0;
+}
+
 export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDocumentsPageProps) {
   const tenant = await requireEmployeeModule("documents");
   const params = await searchParams;
@@ -105,7 +115,9 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
     }
 
     const effectiveScope = doc.folder_id
-      ? folderById.get(doc.folder_id)?.access_scope ?? doc.access_scope
+      ? (hasExplicitScopeValue(doc.access_scope)
+          ? doc.access_scope
+          : (folderById.get(doc.folder_id)?.access_scope ?? doc.access_scope))
       : doc.access_scope;
 
     return canReadDocumentInTenant({
