@@ -223,6 +223,18 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
   const positionMap = useMemo(() => new Map(positions.map((row) => [row.id, row])), [positions]);
   const folderById = useMemo(() => new Map(folderRows.map((row) => [row.id, row])), [folderRows]);
 
+  const buildFolderPath = useCallback((folderId: string) => {
+    const path: string[] = [];
+    const visited = new Set<string>();
+    let currentId: string | null = folderId;
+    while (currentId && !visited.has(currentId)) {
+      path.unshift(currentId);
+      visited.add(currentId);
+      currentId = folderById.get(currentId)?.parent_id ?? null;
+    }
+    return path;
+  }, [folderById]);
+
   const userByUserId = useMemo(() => {
     const map = new Map<string, User>();
     for (const u of users) {
@@ -381,6 +393,21 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
       setSelectedTreeFolderId(ROOT_TREE_CONTEXT);
     }
   }, [folderById, selectedTreeFolderId]);
+
+  useEffect(() => {
+    if (viewMode !== "columns") return;
+    if (!folderFilter) {
+      setColumnPath([]);
+      return;
+    }
+    const nextPath = buildFolderPath(folderFilter);
+    setColumnPath((prev) => {
+      if (prev.length === nextPath.length && prev.every((folderId, index) => folderId === nextPath[index])) {
+        return prev;
+      }
+      return nextPath;
+    });
+  }, [buildFolderPath, folderFilter, viewMode]);
 
   useEffect(() => {
     const key = JSON.stringify(documents.map((d) => d.id + d.folder_id + d.title));
@@ -1845,4 +1872,3 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
 const ACTION_BTN_NEUTRAL = "group/tooltip relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] transition-opacity hover:bg-[var(--gbp-surface2)] [.theme-dark-pro_&]:border-[var(--gbp-border2)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)] [.theme-dark-pro_&]:text-[var(--gbp-text2)] [.theme-dark-pro_&]:hover:bg-[var(--gbp-surface2)]";
 const ACTION_BTN_MAIL = "group/tooltip relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)] transition-opacity hover:bg-[color:color-mix(in_oklab,var(--gbp-accent)_16%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-accent)_40%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-accent-glow)] [.theme-dark-pro_&]:text-[var(--gbp-accent)]";
 const ACTION_BTN_DANGER = "group/tooltip relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] text-[var(--gbp-error)] transition-opacity hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_16%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-error)_45%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-error-soft)] [.theme-dark-pro_&]:text-[var(--gbp-error)]";
-
