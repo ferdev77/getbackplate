@@ -79,9 +79,11 @@ export function useDndSafetyNet({
   const onDeferredRefreshRef = useRef(onDeferredRefresh);
 
   // Keep refs in sync without re-triggering effects.
-  isDragActiveRef.current = isDragActive;
-  resetDndStateRef.current = resetDndState;
-  onDeferredRefreshRef.current = onDeferredRefresh;
+  useEffect(() => {
+    isDragActiveRef.current = isDragActive;
+    resetDndStateRef.current = resetDndState;
+    onDeferredRefreshRef.current = onDeferredRefresh;
+  }, [isDragActive, resetDndState, onDeferredRefresh]);
 
   // ──────────────────────────────────────────────
   // Layer 1: Global dragend listener
