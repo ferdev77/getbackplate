@@ -369,7 +369,7 @@ export function EmployeeChecklistPreviewModal({
         <div className={`fixed inset-0 z-[1120] flex items-center justify-center bg-black/70 p-4 transition-opacity duration-200 ${successVisible ? "opacity-100" : "opacity-0"}`}>
           <div className={`w-full max-w-[420px] rounded-[20px] bg-[var(--gbp-surface)] px-8 py-10 text-center shadow-[0_32px_80px_rgba(0,0,0,.4)] transition-all duration-200 ${successVisible ? "scale-100 opacity-100" : "scale-95 opacity-0"}`}>
             <div className="mx-auto mb-5 grid h-[72px] w-[72px] place-items-center rounded-full border-2 border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-3xl">✅</div>
-            <h3 className="font-serif text-2xl text-[var(--gbp-text)]">Apertura Completada</h3>
+            <h3 className="font-serif text-2xl text-[var(--gbp-text)]">Checklist Completado</h3>
             <p className="mt-2 text-sm leading-6 text-[var(--gbp-text2)]">El reporte fue registrado exitosamente y esta listo para revision.</p>
             <div className="mt-5 rounded-[10px] bg-[var(--gbp-bg)] px-4 py-3 text-left text-xs leading-7 text-[var(--gbp-text2)]">
               <p><strong className="text-[var(--gbp-text)]">Fecha:</strong> {new Date().toLocaleDateString("es-AR")}</p>
