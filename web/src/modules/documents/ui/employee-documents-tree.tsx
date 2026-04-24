@@ -235,13 +235,14 @@ export function EmployeeDocumentsTree({
   }, [ownershipView, showCreatedView]);
 
   useEffect(() => {
+    if (viewMode === "columns" && folderFilter) return;
     setColumnPath((prev) => {
       const last = prev[prev.length - 1] ?? null;
       if (last === selectedColumnFolderId) return prev;
       if (!selectedColumnFolderId) return [];
       return [selectedColumnFolderId];
     });
-  }, [selectedColumnFolderId]);
+  }, [folderFilter, selectedColumnFolderId, viewMode]);
 
   const userByUserId = useMemo(() => {
     const map = new Map<string, ScopedUserOption>();
@@ -265,7 +266,6 @@ export function EmployeeDocumentsTree({
   }, [userByUserId, viewerUserId, viewerUserName]);
 
   const folderById = useMemo(() => new Map(folderRows.map((folder) => [folder.id, folder])), [folderRows]);
-  const folderOptions = useMemo(() => folderRows.map((folder) => ({ id: folder.id, name: folder.name })), [folderRows]);
 
   const getEffectiveDocumentScope = useCallback((doc: DocumentRow) => {
     if (!doc.folder_id) return parseScope(doc.access_scope);
@@ -280,7 +280,18 @@ export function EmployeeDocumentsTree({
       const scope = getEffectiveDocumentScope(row);
       const isPersonal = row.owner_user_id === viewerUserId || scope.users.includes(viewerUserId);
       if (ownershipView === "created" ? !isPersonal : isPersonal) return false;
-      if (folderFilter && row.folder_id !== folderFilter) return false;
+      if (folderFilter) {
+        let currentFolderId = row.folder_id;
+        let withinSelectedTree = false;
+        while (currentFolderId) {
+          if (currentFolderId === folderFilter) {
+            withinSelectedTree = true;
+            break;
+          }
+          currentFolderId = folderById.get(currentFolderId)?.parent_id ?? null;
+        }
+        if (!withinSelectedTree) return false;
+      }
       if (locationFilter && row.branch_id !== locationFilter) return false;
       if (departmentFilter) {
         const scope = getEffectiveDocumentScope(row);
@@ -294,7 +305,7 @@ export function EmployeeDocumentsTree({
       map.set(doc.folder_id, list);
     }
     return map;
-  }, [departmentFilter, documentsState, folderFilter, getEffectiveDocumentScope, locationFilter, ownershipView, query, viewerUserId]);
+  }, [departmentFilter, documentsState, folderById, folderFilter, getEffectiveDocumentScope, locationFilter, ownershipView, query, viewerUserId]);
 
   const childrenByFolder = useMemo(() => {
     const map = new Map<string | null, FolderRow[]>();
@@ -311,6 +322,18 @@ export function EmployeeDocumentsTree({
     [folderRows],
   );
 
+  const buildFolderPath = useCallback((folderId: string) => {
+    const path: string[] = [];
+    const visited = new Set<string>();
+    let currentId: string | null = folderId;
+    while (currentId && !visited.has(currentId)) {
+      path.unshift(currentId);
+      visited.add(currentId);
+      currentId = folderParentById.get(currentId) ?? null;
+    }
+    return path;
+  }, [folderParentById]);
+
   const ownedFolderIds = useMemo(
     () => new Set(folderRows.filter((folder) => {
       const isPersonal = folder.created_by === viewerUserId || parseScope(folder.access_scope).users.includes(viewerUserId);
@@ -319,9 +342,40 @@ export function EmployeeDocumentsTree({
     [folderRows, viewerUserId],
   );
 
+  const ownershipScopedFolderIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const row of documentsState) {
+      const scope = getEffectiveDocumentScope(row);
+      const isPersonal = row.owner_user_id === viewerUserId || scope.users.includes(viewerUserId);
+      if (ownershipView === "created" ? !isPersonal : isPersonal) continue;
+      let currentId = row.folder_id;
+      while (currentId) {
+        ids.add(currentId);
+        currentId = folderParentById.get(currentId) ?? null;
+      }
+    }
+    if (ownershipView === "created") {
+      for (const folderId of ownedFolderIds) {
+        let currentId: string | null = folderId;
+        while (currentId) {
+          ids.add(currentId);
+          currentId = folderParentById.get(currentId) ?? null;
+        }
+      }
+    }
+    return ids;
+  }, [documentsState, folderParentById, getEffectiveDocumentScope, ownedFolderIds, ownershipView, viewerUserId]);
+
   const orderedFolderRows = useMemo(
     () => [...folderRows].sort((a, b) => a.name.localeCompare(b.name, "es")),
     [folderRows],
+  );
+
+  const folderOptions = useMemo(
+    () => orderedFolderRows
+      .filter((folder) => ownershipScopedFolderIds.has(folder.id))
+      .map((folder) => ({ id: folder.id, name: folder.name })),
+    [orderedFolderRows, ownershipScopedFolderIds],
   );
 
   const sortDocuments = useCallback((rows: DocumentRow[]) => {
@@ -572,6 +626,23 @@ export function EmployeeDocumentsTree({
   }, [visibleFolderRows]);
 
   useEffect(() => {
+    if (viewMode !== "columns") return;
+    if (!folderFilter) {
+      setColumnPath([]);
+      return;
+    }
+    setColumnPath(buildFolderPath(folderFilter));
+    setSelectedColumnFolderId(folderFilter);
+    setSelectedColumnDocId(null);
+  }, [buildFolderPath, folderFilter, setSelectedColumnFolderId, viewMode]);
+
+  useEffect(() => {
+    if (!folderFilter) return;
+    if (folderOptions.some((option) => option.id === folderFilter)) return;
+    setFolderFilter("");
+  }, [folderFilter, folderOptions]);
+
+  useEffect(() => {
     const last = columnPath[columnPath.length - 1] ?? null;
     setSelectedColumnFolderId((prev) => (prev === last ? prev : last));
   }, [columnPath, setSelectedColumnFolderId]);
@@ -775,20 +846,20 @@ export function EmployeeDocumentsTree({
         )}
       />
 
-            <FilterBar
+      <FilterBar
         query={query}
         onQueryChange={setQuery}
         searchPlaceholder="Buscar documentos..."
         searchTestId="employee-documents-search-input"
         filters={[
-          ...(viewMode === "tree" ? [{
+          {
             key: "folder",
             options: folderOptions.map((f) => ({ id: f.id, label: f.name })),
             value: folderFilter,
             onChange: setFolderFilter,
             allLabel: "Todas las carpetas",
             testId: "documents-filter-folder",
-          }] : []),
+          },
           {
             key: "location",
             options: branches.map((b) => ({ id: b.id, label: b.name })),
@@ -812,6 +883,8 @@ export function EmployeeDocumentsTree({
           setLocationFilter("");
           setDepartmentFilter("");
           setFolderFilter("");
+          setColumnPath([]);
+          setSelectedColumnDocId(null);
         }}
       />
 
