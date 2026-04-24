@@ -60,6 +60,10 @@ function parseScope(scope: unknown) {
   };
 }
 
+function hasAnyScopeValue(scope: ReturnType<typeof parseScope>) {
+  return scope.departments.length > 0 || scope.users.length > 0;
+}
+
 type Props = {
   organizationId: string;
   viewerUserId: string;
@@ -268,7 +272,8 @@ export function EmployeeDocumentsTree({
   const folderById = useMemo(() => new Map(folderRows.map((folder) => [folder.id, folder])), [folderRows]);
 
   const getEffectiveDocumentScope = useCallback((doc: DocumentRow) => {
-    if (!doc.folder_id) return parseScope(doc.access_scope);
+    const ownScope = parseScope(doc.access_scope);
+    if (!doc.folder_id || hasAnyScopeValue(ownScope)) return ownScope;
     return parseScope(folderById.get(doc.folder_id)?.access_scope ?? doc.access_scope);
   }, [folderById]);
 
