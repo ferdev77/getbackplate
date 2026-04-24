@@ -383,7 +383,7 @@ export function ChecklistReportsDashboard({
       </section>
 
       <section className="mb-7">
-        <h2 className="mb-3 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Estado por Locación - Hoy</h2>
+        <h2 className="mb-3 px-5 text-2xl font-bold tracking-tight text-[var(--gbp-text)] sm:px-6">Estado por Locación - Hoy</h2>
         <div className={locationCardsGridClass}>
           {effectiveLocationCards.map((card) => (
             <button
@@ -444,7 +444,7 @@ export function ChecklistReportsDashboard({
 
       <section className="grid items-start gap-4 xl:grid-cols-[1fr_340px]">
         <div className="min-w-0">
-          <h2 className="mb-3 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Historial de Reportes</h2>
+          <h2 className="mb-3 px-5 text-2xl font-bold tracking-tight text-[var(--gbp-text)] sm:px-6">Historial de Reportes</h2>
           <div className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
             <div className="flex flex-wrap items-center gap-2 border-b border-[var(--gbp-border)] px-4 py-3">
               <p className="mr-auto text-sm font-bold text-[var(--gbp-text)]">Todos los reportes</p>
@@ -570,7 +570,7 @@ export function ChecklistReportsDashboard({
         </div>
 
         <aside className="min-w-0">
-          <h2 className="mb-3 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Ítems para Atención</h2>
+          <h2 className="mb-3 px-5 text-2xl font-bold tracking-tight text-[var(--gbp-text)] sm:px-6">Ítems para Atención</h2>
           <div className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
             {effectiveAttentionFeed.map((item) => (
               <button
