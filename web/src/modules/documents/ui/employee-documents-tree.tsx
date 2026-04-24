@@ -277,9 +277,8 @@ export function EmployeeDocumentsTree({
     const q = query.trim().toLowerCase();
     const map = new Map<string | null, DocumentRow[]>();
     for (const doc of documentsState.filter((row) => {
-      const scope = getEffectiveDocumentScope(row);
-      const isPersonal = row.owner_user_id === viewerUserId || scope.users.includes(viewerUserId);
-      if (ownershipView === "created" ? !isPersonal : isPersonal) return false;
+      const isCreatedByViewer = row.owner_user_id === viewerUserId;
+      if (ownershipView === "created" ? !isCreatedByViewer : isCreatedByViewer) return false;
       if (folderFilter) {
         let currentFolderId = row.folder_id;
         let withinSelectedTree = false;
@@ -335,19 +334,15 @@ export function EmployeeDocumentsTree({
   }, [folderParentById]);
 
   const ownedFolderIds = useMemo(
-    () => new Set(folderRows.filter((folder) => {
-      const isPersonal = folder.created_by === viewerUserId || parseScope(folder.access_scope).users.includes(viewerUserId);
-      return isPersonal;
-    }).map((folder) => folder.id)),
+    () => new Set(folderRows.filter((folder) => folder.created_by === viewerUserId).map((folder) => folder.id)),
     [folderRows, viewerUserId],
   );
 
   const ownershipScopedFolderIds = useMemo(() => {
     const ids = new Set<string>();
     for (const row of documentsState) {
-      const scope = getEffectiveDocumentScope(row);
-      const isPersonal = row.owner_user_id === viewerUserId || scope.users.includes(viewerUserId);
-      if (ownershipView === "created" ? !isPersonal : isPersonal) continue;
+      const isCreatedByViewer = row.owner_user_id === viewerUserId;
+      if (ownershipView === "created" ? !isCreatedByViewer : isCreatedByViewer) continue;
       let currentId = row.folder_id;
       while (currentId) {
         ids.add(currentId);
