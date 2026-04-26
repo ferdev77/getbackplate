@@ -67,7 +67,7 @@ export function initialInviteTemplate({ fullName, loginEmail, loginPassword, log
       
       <div style="margin: 32px 0;">
         <a href="${loginUrl}" style="display: block; width: max-content; background-color: #171311; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; text-align: center;">
-          Ingresá con tus credenciales
+          Ingresa con tus credenciales
         </a>
       </div>
 
@@ -95,7 +95,7 @@ export function resendReminderTemplate({ fullName, loginUrl, recoveryUrl, brandi
       
       <div style="margin: 32px 0;">
         <a href="${loginUrl}" style="display: block; width: max-content; margin-bottom: 12px; background-color: #171311; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; text-align: center;">
-          Ingresá con tus credenciales
+          Ingresa con tus credenciales
         </a>
         <a href="${recoveryUrl}" style="display: block; width: max-content; background-color: #e5e7eb; color: #171311; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; text-align: center;">
           Olvidé mi contraseña

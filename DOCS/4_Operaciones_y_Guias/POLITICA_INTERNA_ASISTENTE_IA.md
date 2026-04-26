@@ -62,8 +62,8 @@ Las tres tablas deben operar con RLS habilitado y politicas por `organization_id
 
 ## Proveedores IA y fallback
 
-- Prioridad actual: OpenRouter (IA media).
-- Fallback automatico: Anthropic (IA pro).
+- Prioridad actual en runtime: OpenRouter (`mode: basic_ai`).
+- Fallback automatico: Anthropic (`mode: pro_ai`).
 - Si ambos fallan, usar respuesta estructurada local (reglas).
 
 ## Observabilidad

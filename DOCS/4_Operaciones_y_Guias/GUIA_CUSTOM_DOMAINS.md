@@ -18,15 +18,15 @@ Hoy el modulo funciona asi:
 
 - Cada empresa puede tener **1 solo dominio personalizado**.
 - El dominio debe cargarse con formato `app.tudominio.com`.
-- La resolucion por host esta centralizada en middleware y tambien soporta estado `verifying_ssl`.
+- La resolucion por host esta centralizada en `proxy.ts` y tambien soporta estado `verifying_ssl`.
 - El login y recuperacion de password en custom domain ya usan metadata tenant-aware (titulo de pestana + favicon de empresa).
 - La UI bloquea crear mas de 1 dominio y oculta datos DNS cuando el dominio ya esta en `active`.
 
 ## 3) Cambios implementados (confirmados)
 
-### 3.1 Resolucion tenant por host en middleware
+### 3.1 Resolucion tenant por host en proxy
 
-Archivo: `web/src/middleware.ts`
+Archivo: `web/src/proxy.ts`
 
 - Se resuelve `organization_id` por `host` para dominios no reservados.
 - Prioridad de cookie activa:
@@ -38,7 +38,7 @@ Archivo: `web/src/middleware.ts`
 
 Archivos:
 
-- `web/src/middleware.ts`
+- `web/src/proxy.ts`
 - `web/src/shared/lib/custom-domains.ts`
 
 Cambio aplicado:
@@ -137,7 +137,7 @@ Registro esperado:
 ### 5.4 Resolucion runtime
 
 1. Request llega por custom host.
-2. Middleware busca `organization_id` en `organization_domains`.
+2. Proxy busca `organization_id` en `organization_domains`.
 3. Si hay match en `active` o `verifying_ssl`, setea cookie tenant activa.
 4. Auth pages y accesos resuelven branding y contexto de esa empresa.
 

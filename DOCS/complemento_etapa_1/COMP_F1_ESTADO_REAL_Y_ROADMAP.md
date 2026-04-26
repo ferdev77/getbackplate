@@ -45,15 +45,15 @@ Impacto tecnico esperado:
 - UI empresa/empleado con filtros por locacion y turno.
 
 ### 3.2 Supplier & Vendor Directory (nuevo)
-**Estado real:** no iniciado.
+**Estado real:** parcial-avanzado.
 
-- No hay modelo de proveedores ni asignacion por locacion.
-- No hay auditoria especifica para proveedores.
+- Ya existe modelo de proveedores con asignacion por locacion.
+- Ya existe CRUD en panel empresa y vista de consulta en portal empleado.
+- Persisten pendientes de cierre formal: evidencia de QA integral y homologacion final del checklist de fase.
 
 Impacto tecnico esperado:
-- DB nueva (`vendors`, `vendor_locations`, `vendor_audit`).
-- CRUD en panel empresa.
-- Vista lectura para empleado.
+- Consolidar auditoria y evidencia de calidad para flujo completo de proveedores.
+- Cerrar Definition of Done de fase en documentacion canonica.
 
 ### 3.3 Portal empleado - upload de documentos (mejora)
 **Estado real:** parcial.

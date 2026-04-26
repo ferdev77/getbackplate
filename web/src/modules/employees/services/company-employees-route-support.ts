@@ -223,7 +223,7 @@ async function buildContractPdfBytes(input: {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(96, 109, 128);
-  const generatedAt = new Intl.DateTimeFormat("es-ES", {
+  const generatedAt = new Intl.DateTimeFormat("es-US", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -302,11 +302,11 @@ export async function upsertEmployeeContractDocument(input: UpsertEmployeeContra
   const contractTypeLabel = contractTypeLabels[input.contractType] ?? input.contractType;
   const paymentFrequencyLabel = paymentFrequencyLabels[input.paymentFrequency] ?? input.paymentFrequency;
   const salaryCurrency = input.salaryCurrency ?? "USD";
-  const salaryLabel = new Intl.NumberFormat("es-ES", {
+  const salaryLabel = new Intl.NumberFormat("es-US", {
     style: "currency",
     currency: salaryCurrency,
   }).format(input.salaryAmount ?? 0);
-  const hiredAtLabel = new Intl.DateTimeFormat("es-ES", {
+  const hiredAtLabel = new Intl.DateTimeFormat("es-US", {
     day: "2-digit",
     month: "short",
     year: "numeric",

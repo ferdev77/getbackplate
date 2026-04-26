@@ -296,7 +296,7 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
           <article className={`h-full rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Por vencer</p><p className={`mt-1 text-2xl font-bold ${TEXT_STRONG}`}>{porVencer}</p><p className={`text-[11px] ${TEXT_MUTED}`}>Esta semana</p></article>
         </div>
         <div className="h-full">
-          <article className={`h-full rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Última publicación</p><p className={`mt-1 text-2xl font-bold ${TEXT_STRONG}`}>{latestDate ? new Date(latestDate).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }) : "-"}</p><p className={`text-[11px] ${TEXT_MUTED}`}>{latestAnnouncement ? authorNameMap.get(latestAnnouncement.created_by ?? "") || "Dirección General" : "Sin avisos"}</p></article>
+          <article className={`h-full rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Última publicación</p><p className={`mt-1 text-2xl font-bold ${TEXT_STRONG}`}>{latestDate ? new Date(latestDate).toLocaleDateString("es-US", { day: "2-digit", month: "short" }) : "-"}</p><p className={`text-[11px] ${TEXT_MUTED}`}>{latestAnnouncement ? authorNameMap.get(latestAnnouncement.created_by ?? "") || "Dirección General" : "Sin avisos"}</p></article>
         </div>
       </div>
 

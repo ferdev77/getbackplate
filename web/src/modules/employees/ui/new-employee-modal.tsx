@@ -116,7 +116,7 @@ function formatDateForUi(value: string | null | undefined): string {
   if (!value) return "";
   const parsed = new Date(`${value}T00:00:00.000Z`);
   if (Number.isNaN(parsed.getTime())) return value;
-  return new Intl.DateTimeFormat("es-AR", {
+  return new Intl.DateTimeFormat("es-US", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -145,7 +145,7 @@ function formatDateTimeForUi(value: string | null | undefined): string {
   if (!value) return "";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
-  return new Intl.DateTimeFormat("es-AR", {
+  return new Intl.DateTimeFormat("es-US", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -813,7 +813,7 @@ export function NewEmployeeModal({
   const previewDepartment = selectedDept ? (departmentNameById.get(selectedDept) ?? "Sin departamento") : "Sin departamento";
   const previewPosition = selectedPosition ? (positionNameById.get(selectedPosition) ?? "Puesto no definido") : "Puesto no definido";
   const previewHireDate = hireDate
-    ? new Intl.DateTimeFormat("es-ES", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${hireDate}T00:00:00`))
+    ? new Intl.DateTimeFormat("es-US", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${hireDate}T00:00:00`))
     : "[Fecha de ingreso]";
 
   const contractTypeLabelMap: Record<string, string> = {
@@ -835,7 +835,7 @@ export function NewEmployeeModal({
   const salaryCurrency = initialEmployee?.salary_currency ?? "USD";
   const salaryNumeric = salaryAmount.trim() ? Number(salaryAmount) : NaN;
   const previewSalary = Number.isFinite(salaryNumeric)
-    ? new Intl.NumberFormat("es-ES", { style: "currency", currency: salaryCurrency }).format(salaryNumeric)
+    ? new Intl.NumberFormat("es-US", { style: "currency", currency: salaryCurrency }).format(salaryNumeric)
     : "[Salario]";
 
   const contractReady =
@@ -871,7 +871,7 @@ export function NewEmployeeModal({
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(96, 109, 128);
-    const generatedAt = new Intl.DateTimeFormat("es-ES", {
+    const generatedAt = new Intl.DateTimeFormat("es-US", {
       day: "2-digit",
       month: "short",
       year: "numeric",

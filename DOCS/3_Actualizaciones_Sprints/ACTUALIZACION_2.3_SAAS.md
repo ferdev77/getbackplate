@@ -88,7 +88,7 @@ const content = textBlock?.text?.trim();
 - `Anthropic.RateLimitError` — Límite de uso superado
 - `Anthropic.NotFoundError` — Modelo no encontrado
 
-Todos son capturados en un bloque `try/catch` que retorna `null`, accionando el fallback a OpenRouter sin interrumpir el flujo del usuario.
+Todos son capturados en un bloque `try/catch` que retorna `null`, manteniendo el fallback al siguiente proveedor configurado sin interrumpir el flujo del usuario.
 
 ---
 
@@ -107,9 +107,9 @@ Pregunta del usuario
        ↓ miss
 [Collect Facts from Supabase]
        ↓
-[callAnthropic() via SDK] ──── ok ──→ mode: "pro_ai" ✅
-       ↓ fallo/null
 [callOpenRouter() via fetch] ── ok ──→ mode: "basic_ai" ✅
+       ↓ fallo/null
+[callAnthropic() via SDK] ──── ok ──→ mode: "pro_ai" ✅
        ↓ fallo/null
 [answerWithRules() — sin IA] ────────→ mode: "basic" ✅
        ↓

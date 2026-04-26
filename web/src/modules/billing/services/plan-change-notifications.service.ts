@@ -257,7 +257,7 @@ export async function sendPlanChangeDecisionEmail(params: {
     modulesToEnable,
     modulesToDisable,
     direction,
-    happenedAt: new Date().toLocaleString("es-AR"),
+    happenedAt: new Date().toLocaleString("es-US"),
     branding: await getTenantEmailBranding(params.organizationId),
   });
 
@@ -349,7 +349,7 @@ export async function sendPlanChangeAppliedEmail(params: {
     modulesToEnable,
     modulesToDisable,
     direction,
-    appliedAt: new Date().toLocaleString("es-AR"),
+    appliedAt: new Date().toLocaleString("es-US"),
     branding: await getTenantEmailBranding(params.organizationId),
   });
 

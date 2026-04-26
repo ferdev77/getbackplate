@@ -152,7 +152,7 @@ function getChangesSummary(metadata: Record<string, unknown> | null): string[] |
 }
 
 function formatDate(iso: string) {
-  return new Intl.DateTimeFormat("es-AR", {
+  return new Intl.DateTimeFormat("es-US", {
     day: "2-digit", month: "short", year: "numeric",
     hour: "2-digit", minute: "2-digit",
   }).format(new Date(iso));

@@ -31,7 +31,7 @@ type SuperadminPlansPageProps = {
 
 function money(amount: number | null, currency = "USD") {
   if (amount === null || amount === undefined) return "Sin precio";
-  return new Intl.NumberFormat("es-AR", {
+  return new Intl.NumberFormat("es-US", {
     style: "currency",
     currency,
     minimumFractionDigits: 0,

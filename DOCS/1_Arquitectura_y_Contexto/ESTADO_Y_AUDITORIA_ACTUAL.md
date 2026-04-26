@@ -17,7 +17,7 @@ A continuación se detalla la corrección de fallas críticas halladas y solucio
 
 ### Seguridad y Hardening (Completado)
 * **Zero-Knowledge User Metadata:** Se prohibió determinantemente inyectar contraseñas en texto plano dentro de la tabla `auth.users` (`user_metadata`). La creación de instancias de usuario ahora se consolida mediante `src/shared/lib/user-provisioning.service.ts` limitándose a los parámetros autorizados de la empresa.
-* **Rate Limiting Global:** Implementado en el borde (Edge) mediante `middleware.ts`. Ningún endpoint (especialmente `/api/company/...`) está libre de límites. Esto previene ataques de fuerza bruta hacia la creación de objetos y perfiles.
+* **Rate Limiting Global:** Implementado en el borde (Edge) mediante `proxy.ts`. Ningún endpoint (especialmente `/api/company/...`) está libre de límites. Esto previene ataques de fuerza bruta hacia la creación de objetos y perfiles.
 * **Protección Anti-XSS:** Todas las plantillas de correo (`modules/emails/...`) y el DOM React están sanitizados. Las sentencias destructivas a DB emplean Strict RLS y sentencias encadenadas (`.eq("organization_id", tenant.organizationId)`), mitigando Insecure Direct Object Reference (IDOR).
 * **Auditoría Forense en Autenticaciones:** Ahora se aplican logs de auditoría ante la caducidad (cierre) de las sesiones de impersonación (Superadmin a Tenant), permitiendo un trazado legal auditable.
 * **Cabeceras de Seguridad (CSP):** `next.config.ts` ajustado para rechazar enmarcados (clickjacking) y endurecer el Content-Security-Policy.

@@ -70,7 +70,7 @@ type Props = {
 const ROOT_TREE_CONTEXT = "__root_principal__";
 
 function formatDate(dateText: string) {
-  return new Date(dateText).toLocaleDateString("es-AR");
+  return new Date(dateText).toLocaleDateString("es-US");
 }
 
 function formatSize(bytes: number | null) {

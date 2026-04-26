@@ -5,7 +5,7 @@
 
 # Checklist Fase 4 - Bitacora + Proveedores
 
-Estado inicial: pendiente
+Estado inicial: en ejecucion parcial (proveedores avanzado, bitacora pendiente)
 Dependencia para abrir fase: Fase 3 cerrada
 
 ## Objetivo de fase
@@ -15,7 +15,7 @@ Entregar los dos modulos operativos net-new de mayor impacto diario: Bitacora de
 ## Estado real de partida (segun codigo actual)
 
 - Bitacora: no iniciado (sin tablas/rutas/componentes dedicados).
-- Proveedores: no iniciado (sin modelo DB ni CRUD por locacion).
+- Proveedores: implementado en base operativa (modelo DB + CRUD company + vista employee + permisos delegados); pendiente cierre formal de evidencia y checklist.
 
 ## A) Descubrimiento funcional y diseno de dominio
 
@@ -38,11 +38,11 @@ Entregar los dos modulos operativos net-new de mayor impacto diario: Bitacora de
 
 ## C) Proveedores
 
-- [ ] C1. Crear esquema DB (vendors, asignacion por locacion, auditoria minima).
-- [ ] C2. Implementar CRUD company para admin segun permiso.
-- [ ] C3. Implementar vista de consulta para empleados segun alcance.
-- [ ] C4. Implementar filtros utiles (categoria, locacion, disponibilidad/contacto).
-- [ ] C5. Agregar auditoria para altas/ediciones/bajas.
+- [ ] C1. Crear esquema DB (vendors, asignacion por locacion, auditoria minima). (Implementado en codigo; pendiente evidencia formal en este checklist)
+- [ ] C2. Implementar CRUD company para admin segun permiso. (Implementado en codigo; pendiente evidencia formal en este checklist)
+- [ ] C3. Implementar vista de consulta para empleados segun alcance. (Implementado en codigo; pendiente evidencia formal en este checklist)
+- [ ] C4. Implementar filtros utiles (categoria, locacion, disponibilidad/contacto). (Implementado en codigo; pendiente evidencia formal en este checklist)
+- [ ] C5. Agregar auditoria para altas/ediciones/bajas. (Parcial en codigo; pendiente validacion y evidencia de cobertura completa)
 
 ## D) Integracion operativa
 

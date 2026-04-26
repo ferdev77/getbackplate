@@ -16,7 +16,7 @@ function formatSubmittedAt(value: string | null) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString("es-AR", {
+  return date.toLocaleString("es-US", {
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",

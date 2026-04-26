@@ -65,7 +65,7 @@ export function AnnouncementCard({
   const hasAudience =
     scopedLocations.length > 0 || scopedDepartments.length > 0 || scopedPositions.length > 0 || scopedUsers.length > 0;
 
-  const publishLabel = announcement.publish_at ? new Date(announcement.publish_at).toLocaleDateString("es-AR") : "-";
+  const publishLabel = announcement.publish_at ? new Date(announcement.publish_at).toLocaleDateString("es-US") : "-";
 
   const expirationBadge = announcement.expires_at
     ? (() => {
@@ -77,7 +77,7 @@ export function AnnouncementCard({
         const prefix = datePart < todayIso ? "Vencio" : datePart === todayIso ? "Vence hoy" : "Por vencer";
         return (
           <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${badgeClass}`}>
-            <CalendarClock className="h-3 w-3" /> {prefix}: {new Date(announcement.expires_at).toLocaleDateString("es-AR")}
+            <CalendarClock className="h-3 w-3" /> {prefix}: {new Date(announcement.expires_at).toLocaleDateString("es-US")}
           </span>
         );
       })()
