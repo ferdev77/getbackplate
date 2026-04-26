@@ -49,14 +49,14 @@ export function initialInviteTemplate({ fullName, loginEmail, loginPassword, log
   const safeEmail = escapeHtml(loginEmail);
   const safePassword = loginPassword ? escapeHtml(loginPassword) : null;
   const safeOrg = organizationName ? escapeHtml(organizationName) : null;
-  const orgText = safeOrg ? ` a <strong>${safeOrg}</strong>` : "";
   const brandName = branding?.isCustom ? escapeHtml(branding.companyName) : "GetBackplate";
+  const platformName = safeOrg ?? brandName;
 
   return `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #171311; line-height: 1.6;">
       ${renderEmailBrandingHeader(branding)}
       <h2>Hola ${safeName},</h2>
-      <p>Has sido invitado${orgText} en la plataforma <strong>${brandName}</strong>.</p>
+      <p>Has sido invitado a acceder a la plataforma de <strong>${platformName}</strong>.</p>
       
       <p>Tu cuenta ya está lista. A continuación te detallamos tus credenciales de acceso temporal. Por tu seguridad, te solicitaremos que cambies la contraseña la primera vez que ingreses:</p>
       
