@@ -57,6 +57,11 @@ Leer:
 - `DOCS/2_Planes_y_Checklists/TECH_REMEDIATION_TRACK_DOCUMENTOS_TOGGLE_Y_VISTAS_PLAN_2026-04-21.md`
 - `DOCS/4_Operaciones_y_Guias/GUIA_FLUJO_DOCUMENTOS_CUSTOM_EMPLEADOS.md`
 
+## 10) Si la pregunta es scripts operativos (que hace cada script y como correrlo)
+
+Leer:
+- `DOCS/4_Operaciones_y_Guias/GUIA_SCRIPTS_PLATAFORMA.md`
+
 ## Regla operativa para IA o humanos
 
 1. Responder primero lo puntual pedido por el usuario.

@@ -109,7 +109,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreat
     const editingId = editing.membershipId;
     const branchName = editBranchId
       ? branchOptions.find((branch) => branch.id === editBranchId)?.name || "Locación"
-      : "Todas";
+      : "Todas las locaciones";
 
     // Optimistic update
     setRows((prev) =>
@@ -355,7 +355,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreat
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Email</p><p className="text-sm text-[var(--gbp-text)]">{editing.email}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Rol</p><select value={editRole} onChange={(event) => setEditRole(event.target.value)} className="mt-1 h-9 w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-sm text-[var(--gbp-text)]">{roleOptions.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}</select></div>
                <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Acceso a plataforma</p><select value={editStatus} onChange={(event) => setEditStatus(event.target.value)} className="mt-1 h-9 w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-sm text-[var(--gbp-text)]"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></div>
-              <div className="sm:col-span-2"><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Locación</p><select value={editBranchId} onChange={(event) => setEditBranchId(event.target.value)} className="mt-1 h-9 w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-sm text-[var(--gbp-text)]"><option value="">Todas</option>{branchOptions.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></div>
+               <div className="sm:col-span-2"><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Locación</p><select value={editBranchId} onChange={(event) => setEditBranchId(event.target.value)} className="mt-1 h-9 w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-sm text-[var(--gbp-text)]"><option value="">Todas las locaciones</option>{branchOptions.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></div>
             </div>
             <div className="flex items-center justify-between gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
               <button type="button" disabled={busyResend} onClick={() => void resendInvitation(editing)} className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm font-semibold text-[var(--gbp-text2)] transition-all hover:border-[var(--gbp-accent)] hover:bg-[var(--gbp-accent-glow)] hover:text-[var(--gbp-accent)] disabled:opacity-50">{busyResend ? "Enviando..." : "Reenviar Invitación"}</button>
