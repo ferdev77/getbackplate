@@ -3,6 +3,7 @@ import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { sendTwilioMessage } from "@/infrastructure/twilio/client";
 import { getAuthEmailByUserId } from "@/shared/lib/auth-users";
 import { resolveTenantAppUrlByOrganizationId } from "@/shared/lib/custom-domains";
+import { buildBrandedEmailSubject, getTenantEmailBranding, resolveEmailSenderName } from "@/shared/lib/email-branding";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -187,10 +188,12 @@ export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput &
     fallbackAppUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://getbackplate.com",
   });
   const reportsUrl = appUrl ? `${appUrl}/app/reports` : "/app/reports";
+  const branding = await getTenantEmailBranding(input.organizationId);
   const subject =
     input.event === "created"
       ? `Nuevo checklist creado: ${input.templateName}`
       : `Checklist enviado: ${input.templateName}`;
+  const brandedSubject = buildBrandedEmailSubject(subject, branding);
   const html =
     input.event === "created"
       ? `
@@ -213,7 +216,7 @@ export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput &
       ? `Nuevo checklist creado\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nCreado por: ${input.actorEmail ?? "Usuario interno"}\nVer checklists: ${reportsUrl}`
       : `Checklist enviado\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nIncidencias: ${input.flaggedCount ?? 0}\nEnviado por: ${input.actorEmail ?? "Usuario interno"}\nVer en reportes: ${reportsUrl}`;
 
-  await Promise.allSettled(contacts.emails.map((to) => sendTransactionalEmail({ to, subject, html, text })));
+  await Promise.allSettled(contacts.emails.map((to) => sendTransactionalEmail({ to, subject: brandedSubject, html, text, senderName: resolveEmailSenderName(branding) })));
   return contacts.emails.length;
 }
 

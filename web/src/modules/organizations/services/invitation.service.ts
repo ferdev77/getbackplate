@@ -2,7 +2,7 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { sendEmail } from "@/shared/lib/brevo";
-import { getTenantEmailBranding } from "@/shared/lib/email-branding";
+import { buildBrandedEmailSubject, getTenantEmailBranding, resolveEmailSenderName } from "@/shared/lib/email-branding";
 import { initialInviteTemplate } from "@/shared/lib/email-templates/invitation";
 import { buildTenantAuthUrls } from "@/shared/lib/tenant-auth-branding";
 
@@ -119,7 +119,8 @@ export async function sendOrganizationAdminInvitation(params: {
     try {
       await sendEmail({
         to: [{ email: params.email, name: params.fullName }],
-        subject: `Tus credenciales de acceso a ${accessBrandName}`,
+        subject: buildBrandedEmailSubject(`Tus credenciales de acceso a ${accessBrandName}`, branding),
+        senderName: resolveEmailSenderName(branding),
         htmlContent: initialInviteTemplate({
           fullName: params.fullName,
           loginEmail: params.email,
@@ -175,7 +176,8 @@ export async function sendOrganizationAdminInvitation(params: {
     try {
       await sendEmail({
         to: [{ email: params.email, name: params.fullName }],
-        subject: `Bienvenido(a) a ${accessBrandName} - Tus credenciales`,
+        subject: buildBrandedEmailSubject(`Bienvenido(a) a ${accessBrandName} - Tus credenciales`, branding),
+        senderName: resolveEmailSenderName(branding),
         htmlContent: initialInviteTemplate({
           fullName: params.fullName,
           loginEmail: params.email,

@@ -7,7 +7,7 @@ import { getEmployeeDirectoryView } from "@/modules/employees/services";
 import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { USERS_API_MESSAGES } from "@/shared/lib/employees-messages";
-import { getTenantEmailBranding } from "@/shared/lib/email-branding";
+import { buildBrandedEmailSubject, getTenantEmailBranding, resolveEmailSenderName } from "@/shared/lib/email-branding";
 import { getCanonicalAppUrl } from "@/shared/lib/app-url";
 import { assertPlanLimitForUsers, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
 import { buildTenantAuthUrls } from "@/shared/lib/tenant-auth-branding";
@@ -54,7 +54,8 @@ async function resolveOrCreateAuthUser(params: {
       try {
         await sendEmail({
           to: [{ email: params.email, name: params.fullName }],
-          subject: `Acceso activado para una nueva empresa en ${accessBrandName}`,
+          subject: buildBrandedEmailSubject(`Acceso activado para una nueva empresa en ${accessBrandName}`, branding),
+          senderName: resolveEmailSenderName(branding),
           htmlContent: resendReminderTemplate({
             fullName: params.fullName,
             loginUrl,
@@ -85,7 +86,8 @@ async function resolveOrCreateAuthUser(params: {
     try {
       await sendEmail({
         to: [{ email: params.email, name: params.fullName }],
-        subject: `Tus credenciales de acceso a ${accessBrandName}`,
+        subject: buildBrandedEmailSubject(`Tus credenciales de acceso a ${accessBrandName}`, branding),
+        senderName: resolveEmailSenderName(branding),
         htmlContent: initialInviteTemplate({
           fullName: params.fullName,
           loginEmail: params.email,
@@ -121,7 +123,8 @@ async function resolveOrCreateAuthUser(params: {
   try {
     await sendEmail({
       to: [{ email: params.email, name: params.fullName }],
-      subject: `Bienvenido(a) a ${accessBrandName} - Tus credenciales`,
+      subject: buildBrandedEmailSubject(`Bienvenido(a) a ${accessBrandName} - Tus credenciales`, branding),
+      senderName: resolveEmailSenderName(branding),
         htmlContent: initialInviteTemplate({
           fullName: params.fullName,
           loginEmail: params.email,

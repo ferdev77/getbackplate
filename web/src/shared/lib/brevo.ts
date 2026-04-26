@@ -4,9 +4,10 @@ export interface SendEmailOptions {
   to: { name?: string; email: string }[];
   subject: string;
   htmlContent: string;
+  senderName?: string;
 }
 
-export async function sendEmail({ to, subject, htmlContent }: SendEmailOptions) {
+export async function sendEmail({ to, subject, htmlContent, senderName }: SendEmailOptions) {
   if (!to.length) {
     return { ok: false, error: "No hay destinatarios para enviar el correo." };
   }
@@ -18,6 +19,7 @@ export async function sendEmail({ to, subject, htmlContent }: SendEmailOptions) 
       to: recipient.email,
       subject,
       html: htmlContent,
+      senderName,
     });
 
     if (!result.ok && !firstError) {

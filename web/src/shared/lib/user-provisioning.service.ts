@@ -1,7 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { EMPLOYEES_MESSAGES } from "@/shared/lib/employees-messages";
-import { getTenantEmailBranding } from "@/shared/lib/email-branding";
+import { buildBrandedEmailSubject, getTenantEmailBranding, resolveEmailSenderName } from "@/shared/lib/email-branding";
 import { getCanonicalAppUrl } from "@/shared/lib/app-url";
 import { sendEmail } from "@/shared/lib/brevo";
 import { initialInviteTemplate } from "@/shared/lib/email-templates/invitation";
@@ -52,7 +52,8 @@ export async function provisionOrganizationUserAccount(input: {
       if (!isMember) {
         await sendEmail({
           to: [{ email: loginEmail, name: fullName }],
-          subject: `Acceso habilitado para una nueva empresa en ${accessBrandName}`,
+          subject: buildBrandedEmailSubject(`Acceso habilitado para una nueva empresa en ${accessBrandName}`, branding),
+          senderName: resolveEmailSenderName(branding),
           htmlContent: resendReminderTemplate({
             fullName,
             loginUrl,
@@ -82,7 +83,8 @@ export async function provisionOrganizationUserAccount(input: {
 
       await sendEmail({
         to: [{ email: loginEmail, name: fullName }],
-        subject: `Tus credenciales de acceso a ${accessBrandName}`,
+        subject: buildBrandedEmailSubject(`Tus credenciales de acceso a ${accessBrandName}`, branding),
+        senderName: resolveEmailSenderName(branding),
         htmlContent: initialInviteTemplate({
           fullName,
           loginEmail,
@@ -116,7 +118,8 @@ export async function provisionOrganizationUserAccount(input: {
 
       await sendEmail({
         to: [{ email: loginEmail, name: fullName }],
-        subject: `Bienvenido(a) a ${accessBrandName} - Tus credenciales`,
+        subject: buildBrandedEmailSubject(`Bienvenido(a) a ${accessBrandName} - Tus credenciales`, branding),
+        senderName: resolveEmailSenderName(branding),
         htmlContent: initialInviteTemplate({
           fullName,
           loginEmail,
