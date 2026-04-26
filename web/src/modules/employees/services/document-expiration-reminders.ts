@@ -1,5 +1,6 @@
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { buildBrandedEmailSubject, getTenantEmailBranding, resolveEmailSenderName } from "@/shared/lib/email-branding";
 
 function parseUtcDateOnly(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
@@ -75,6 +76,11 @@ export async function processEmployeeDocumentExpirationReminders() {
   const documentById = new Map((documents ?? []).map((row) => [row.id, row]));
   const organizationById = new Map((organizations ?? []).map((row) => [row.id, row]));
   const profileByOrgAndUser = new Map((profiles ?? []).map((row) => [`${row.organization_id}:${row.user_id}`, row]));
+  const brandingByOrganizationId = new Map(
+    await Promise.all(
+      organizationIds.map(async (organizationId) => [organizationId, await getTenantEmailBranding(organizationId)] as const),
+    ),
+  );
 
   let sent = 0;
   let failed = 0;
@@ -112,6 +118,8 @@ export async function processEmployeeDocumentExpirationReminders() {
     });
 
     const subject = `Recordatorio: documento por vencer (${link.reminder_days} días)`;
+    const branding = brandingByOrganizationId.get(link.organization_id);
+    const brandedSubject = buildBrandedEmailSubject(subject, branding);
     const html = [
       `<p>Hola,</p>`,
       `<p>Este es un recordatorio automático para el documento <strong>${doc.title}</strong>.</p>`,
@@ -129,8 +137,9 @@ export async function processEmployeeDocumentExpirationReminders() {
     for (const email of recipients) {
       const result = await sendTransactionalEmail({
         to: email,
-        subject,
+        subject: brandedSubject,
         html,
+        senderName: resolveEmailSenderName(branding),
       });
       if (!result.ok) {
         deliveryFailed = true;
@@ -247,6 +256,11 @@ export async function processEmployeeDocumentPendingReminders() {
   const documentById = new Map((documents ?? []).map((row) => [row.id, row]));
   const organizationById = new Map((organizations ?? []).map((row) => [row.id, row]));
   const profileByOrgAndUser = new Map((profiles ?? []).map((row) => [`${row.organization_id}:${row.user_id}`, row]));
+  const brandingByOrganizationId = new Map(
+    await Promise.all(
+      organizationIds.map(async (organizationId) => [organizationId, await getTenantEmailBranding(organizationId)] as const),
+    ),
+  );
 
   const managerEmailsByOrg = new Map<string, string[]>();
   for (const membership of managerMemberships ?? []) {
@@ -294,6 +308,8 @@ export async function processEmployeeDocumentPendingReminders() {
     const subject = link.requested_without_file
       ? "Recordatorio: documento pendiente de carga"
       : "Recordatorio: documento pendiente de revisión";
+    const branding = brandingByOrganizationId.get(link.organization_id);
+    const brandedSubject = buildBrandedEmailSubject(subject, branding);
 
     const html = [
       `<p>Hola,</p>`,
@@ -311,8 +327,9 @@ export async function processEmployeeDocumentPendingReminders() {
     for (const email of recipients) {
       const result = await sendTransactionalEmail({
         to: email,
-        subject,
+        subject: brandedSubject,
         html,
+        senderName: resolveEmailSenderName(branding),
       });
       if (!result.ok) {
         failed += 1;

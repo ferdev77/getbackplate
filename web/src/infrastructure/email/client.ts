@@ -3,21 +3,22 @@ type SendEmailInput = {
   subject: string;
   html: string;
   text?: string;
+  senderName?: string;
 };
 
 type SendEmailResult =
   | { ok: true }
   | { ok: false; error: string };
 
-function getSender() {
+function getSender(overrideSenderName?: string) {
   const senderEmail = process.env.BREVO_SENDER_EMAIL?.trim() || process.env.MAIL_FROM?.trim();
-  const senderName = process.env.BREVO_SENDER_NAME?.trim() || "GetBackplate";
+  const senderName = overrideSenderName?.trim() || process.env.BREVO_SENDER_NAME?.trim() || "GetBackplate";
   return { senderEmail, senderName };
 }
 
 export async function sendTransactionalEmail(input: SendEmailInput): Promise<SendEmailResult> {
   const apiKey = process.env.BREVO_API_KEY?.trim();
-  const { senderEmail, senderName } = getSender();
+  const { senderEmail, senderName } = getSender(input.senderName);
 
   if (!apiKey) {
     return { ok: false, error: "BREVO_API_KEY no configurada" };

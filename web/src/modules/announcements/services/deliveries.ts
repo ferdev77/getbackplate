@@ -2,7 +2,12 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { sendTwilioMessage } from "@/infrastructure/twilio/client";
 import { getAuthEmailByUserId } from "@/shared/lib/auth-users";
-import { getTenantEmailBranding } from "@/shared/lib/email-branding";
+import {
+  buildBrandedEmailSubject,
+  getTenantEmailBranding,
+  resolveEmailSenderName,
+  type TenantEmailBranding,
+} from "@/shared/lib/email-branding";
 import { AnnouncementScope, parseAnnouncementScope } from "../lib/scope";
 
 type DeliveryRow = {
@@ -190,7 +195,7 @@ export async function processAnnouncementDeliveries() {
               brandingByOrganizationId.set(primary.organization_id, branding);
             }
             return withTimeout(
-              sendAnnouncementEmail(contact, announcement.title, announcement.body, branding.companyName),
+              sendAnnouncementEmail(contact, announcement.title, announcement.body, branding),
               DELIVERY_SEND_TIMEOUT_MS,
               `announcement email to ${contact}`,
             );
@@ -237,16 +242,18 @@ export async function processAnnouncementDeliveries() {
   };
 }
 
-async function sendAnnouncementEmail(email: string, title: string, body: string, brandName: string) {
+async function sendAnnouncementEmail(email: string, title: string, body: string, branding: TenantEmailBranding) {
+  const brandName = branding.companyName;
   const result = await sendTransactionalEmail({
     to: email,
-    subject: `Nuevo aviso en ${brandName}: ${title}`,
+    subject: buildBrandedEmailSubject(`Nuevo aviso en ${brandName}: ${title}`, branding),
     html: `
       <h2 style="margin:0 0 10px 0;">${title}</h2>
       <p style="margin:0 0 14px 0;color:#444;">${body.replace(/\n/g, "<br/>")}</p>
       <p style="margin:14px 0 0 0;font-size:12px;color:#666;">Entra a ${brandName} para ver el aviso completo.</p>
     `,
     text: `${title}\n\n${body}\n\nIngresa a ${brandName} para ver el aviso completo.`,
+    senderName: resolveEmailSenderName(branding),
   });
 
   return result.ok

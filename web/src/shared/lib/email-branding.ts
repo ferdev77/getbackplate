@@ -6,6 +6,25 @@ export type TenantEmailBranding = {
   logoUrl: string | null;
 };
 
+export function resolveEmailBrandName(branding?: TenantEmailBranding | null) {
+  const candidate = branding?.companyName?.trim();
+  return candidate || "GetBackplate";
+}
+
+export function resolveEmailSenderName(branding?: TenantEmailBranding | null) {
+  return resolveEmailBrandName(branding);
+}
+
+export function buildBrandedEmailSubject(baseSubject: string, branding?: TenantEmailBranding | null) {
+  const base = String(baseSubject ?? "").trim();
+  const brandName = resolveEmailBrandName(branding);
+  const prefix = `[${brandName}]`;
+
+  if (!base) return prefix;
+  if (base.startsWith(prefix)) return base;
+  return `${prefix} ${base}`;
+}
+
 function resolveDefaultBrandLogoUrl() {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://getbackplate.com";
   return `${appUrl.replace(/\/$/, "")}/getbackplate-logo-light.svg`;

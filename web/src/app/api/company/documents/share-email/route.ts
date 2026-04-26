@@ -7,6 +7,7 @@ import { logAuditEvent } from "@/shared/lib/audit";
 import { resolveTenantAppUrlByOrganizationId } from "@/shared/lib/custom-domains";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
 import { isEmployeeLinkedDocument } from "@/shared/lib/document-domain";
+import { buildBrandedEmailSubject, getTenantEmailBranding, resolveEmailSenderName } from "@/shared/lib/email-branding";
 
 const BUCKET_NAME = "tenant-documents";
 
@@ -72,6 +73,7 @@ export async function POST(request: Request) {
     organizationId: tenant.organizationId,
     fallbackAppUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://getbackplate.com",
   });
+  const branding = await getTenantEmailBranding(tenant.organizationId);
   const html = `
     <h2 style="margin:0 0 10px 0;">Documento compartido</h2>
     <p style="margin:0 0 10px 0;color:#444;">Te compartieron el documento <strong>${document.title}</strong>.</p>
@@ -83,9 +85,10 @@ export async function POST(request: Request) {
 
   const emailResult = await sendTransactionalEmail({
     to: recipientEmail,
-    subject: `Documento compartido: ${document.title}`,
+    subject: buildBrandedEmailSubject(`Documento compartido: ${document.title}`, branding),
     html,
     text: `Te compartieron el documento ${document.title}. Enlace: ${signed.signedUrl}. Expira en 24 horas.`,
+    senderName: resolveEmailSenderName(branding),
   });
 
   if (!emailResult.ok) {

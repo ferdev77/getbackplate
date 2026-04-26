@@ -1,7 +1,7 @@
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { stripe } from "@/infrastructure/stripe/client";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { getTenantEmailBranding } from "@/shared/lib/email-branding";
+import { buildBrandedEmailSubject, getTenantEmailBranding, resolveEmailSenderName } from "@/shared/lib/email-branding";
 import { planChangeAppliedTemplate, planChangeDecisionTemplate } from "@/shared/lib/email-templates/billing";
 
 type PlanRow = {
@@ -246,6 +246,8 @@ export async function sendPlanChangeDecisionEmail(params: {
     { label: "Storage", value: targetPlan.max_storage_mb != null ? `${targetPlan.max_storage_mb} MB` : "Sin limite" },
   ];
 
+  const branding = await getTenantEmailBranding(params.organizationId);
+
   const html = planChangeDecisionTemplate({
     orgName,
     actorName: params.actorFullName,
@@ -258,13 +260,14 @@ export async function sendPlanChangeDecisionEmail(params: {
     modulesToDisable,
     direction,
     happenedAt: new Date().toLocaleString("es-US"),
-    branding: await getTenantEmailBranding(params.organizationId),
+    branding,
   });
 
   const result = await sendTransactionalEmail({
     to: params.actorEmail,
-    subject: `Cambio de plan solicitado: ${targetPlan.name}`,
+    subject: buildBrandedEmailSubject(`Cambio de plan solicitado: ${targetPlan.name}`, branding),
     html,
+    senderName: resolveEmailSenderName(branding),
   });
 
   return result;
@@ -338,6 +341,8 @@ export async function sendPlanChangeAppliedEmail(params: {
     { label: "Storage", value: targetPlan.max_storage_mb != null ? `${targetPlan.max_storage_mb} MB` : "Sin limite" },
   ];
 
+  const branding = await getTenantEmailBranding(params.organizationId);
+
   const html = planChangeAppliedTemplate({
     orgName,
     actorName: actor.actorName,
@@ -350,13 +355,14 @@ export async function sendPlanChangeAppliedEmail(params: {
     modulesToDisable,
     direction,
     appliedAt: new Date().toLocaleString("es-US"),
-    branding: await getTenantEmailBranding(params.organizationId),
+    branding,
   });
 
   const result = await sendTransactionalEmail({
     to: actor.actorEmail,
-    subject: `Cambio de plan aplicado: ${targetPlan.name}`,
+    subject: buildBrandedEmailSubject(`Cambio de plan aplicado: ${targetPlan.name}`, branding),
     html,
+    senderName: resolveEmailSenderName(branding),
   });
 
   return result;

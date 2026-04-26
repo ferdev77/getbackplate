@@ -6,7 +6,7 @@ import { findAuthUserByEmail } from "@/shared/lib/auth-users";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { sendEmail } from "@/shared/lib/brevo";
 import { getCanonicalAppUrl } from "@/shared/lib/app-url";
-import { getTenantEmailBranding } from "@/shared/lib/email-branding";
+import { buildBrandedEmailSubject, getTenantEmailBranding, resolveEmailSenderName } from "@/shared/lib/email-branding";
 import { resendReminderTemplate } from "@/shared/lib/email-templates/invitation";
 import { buildTenantAuthUrls } from "@/shared/lib/tenant-auth-branding";
 import { isUserMemberOfOrganization } from "@/shared/lib/tenant-membership";
@@ -113,7 +113,8 @@ export async function POST(request: Request) {
 
   const emailResult = await sendEmail({
     to: [{ email, name: fullName }],
-    subject: "Recordatorio de acceso a la plataforma",
+    subject: buildBrandedEmailSubject("Recordatorio de acceso a la plataforma", branding),
+    senderName: resolveEmailSenderName(branding),
     htmlContent: resendReminderTemplate({
       fullName,
       loginUrl,

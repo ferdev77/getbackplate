@@ -7,7 +7,12 @@ import {
   subscriptionActivatedTemplate,
 } from "@/shared/lib/email-templates/billing";
 import { resolveTenantAppUrlByOrganizationId } from "@/shared/lib/custom-domains";
-import { getTenantEmailBranding } from "@/shared/lib/email-branding";
+import {
+  buildBrandedEmailSubject,
+  getTenantEmailBranding,
+  resolveEmailSenderName,
+  type TenantEmailBranding,
+} from "@/shared/lib/email-branding";
 
 async function getOrganizationAdminEmail(organizationId: string): Promise<string | null> {
   const supabase = createSupabaseAdminClient();
@@ -62,6 +67,7 @@ async function sendBillingEmail(params: {
   organizationId: string;
   subject: string;
   html: string;
+  branding: TenantEmailBranding;
   type: "renewal_reminder" | "plan_changed" | "payment_failed" | "subscription_activated";
 }) {
   const email = await getOrganizationAdminEmail(params.organizationId);
@@ -72,8 +78,9 @@ async function sendBillingEmail(params: {
 
   const result = await sendTransactionalEmail({
     to: email,
-    subject: params.subject,
+    subject: buildBrandedEmailSubject(params.subject, params.branding),
     html: params.html,
+    senderName: resolveEmailSenderName(params.branding),
   });
 
   if (!result.ok) {
@@ -97,6 +104,7 @@ export async function sendRenewalReminderEmail(organizationId: string, renewalDa
     organizationId,
     subject: "Tu plan se renueva pronto",
     html,
+    branding,
     type: "renewal_reminder",
   });
 }
@@ -111,6 +119,7 @@ export async function sendPlanChangedEmail(organizationId: string, planName: str
     organizationId,
     subject: "Tu plan ha sido actualizado",
     html,
+    branding,
     type: "plan_changed",
   });
 }
@@ -126,6 +135,7 @@ export async function sendPaymentFailedEmail(organizationId: string, retryLink: 
     organizationId,
     subject: "Acción requerida: Problema con tu pago",
     html,
+    branding,
     type: "payment_failed",
   });
 }
@@ -155,6 +165,7 @@ export async function sendSubscriptionActivatedEmail(params: {
     organizationId: params.organizationId,
     subject: "¡Tu suscripción ya está activa!",
     html,
+    branding,
     type: "subscription_activated",
   });
 }

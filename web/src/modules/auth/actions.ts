@@ -16,7 +16,12 @@ import { normalizeOrganizationId } from "@/shared/lib/tenant-selection-shared";
 import { resolveOrganizationIdFromAuthHint } from "@/shared/lib/tenant-auth-branding";
 import { getCanonicalAppUrl } from "@/shared/lib/app-url";
 import { resolveTenantAppUrlByOrganizationId } from "@/shared/lib/custom-domains";
-import { getDefaultEmailBranding, getTenantEmailBranding } from "@/shared/lib/email-branding";
+import {
+  buildBrandedEmailSubject,
+  getDefaultEmailBranding,
+  getTenantEmailBranding,
+  resolveEmailSenderName,
+} from "@/shared/lib/email-branding";
 import { sendEmail } from "@/shared/lib/brevo";
 import { passwordRecoveryTemplate } from "@/shared/lib/email-templates/recovery";
 import { buildRecoveryBridgeUrl } from "@/shared/lib/recovery-link";
@@ -403,7 +408,8 @@ export async function requestPasswordRecoveryAction(formData: FormData) {
 
   const mailResult = await sendEmail({
     to: [{ email }],
-    subject: `Restablece tu contraseña en ${branding.companyName}`,
+    subject: buildBrandedEmailSubject(`Restablece tu contraseña en ${branding.companyName}`, branding),
+    senderName: resolveEmailSenderName(branding),
     htmlContent: passwordRecoveryTemplate({
       recoveryUrl: recoveryBridgeUrl,
       branding,
