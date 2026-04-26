@@ -98,7 +98,6 @@ export async function sendOrganizationAdminInvitation(params: {
     organizationId: params.organizationId,
   });
   const branding = await getTenantEmailBranding(params.organizationId);
-  const accessBrandName = branding.isCustom ? branding.companyName : "GetBackplate";
 
   const existingUser = await findAuthUserByEmail(params.email);
   let userId = existingUser?.id ?? null;
@@ -119,7 +118,7 @@ export async function sendOrganizationAdminInvitation(params: {
     try {
       await sendEmail({
         to: [{ email: params.email, name: params.fullName }],
-        subject: buildBrandedEmailSubject(`Tus credenciales de acceso a ${accessBrandName}`, branding),
+        subject: buildBrandedEmailSubject("Tus credenciales de acceso", branding),
         senderName: resolveEmailSenderName(branding),
         htmlContent: initialInviteTemplate({
           fullName: params.fullName,
@@ -176,7 +175,7 @@ export async function sendOrganizationAdminInvitation(params: {
     try {
       await sendEmail({
         to: [{ email: params.email, name: params.fullName }],
-        subject: buildBrandedEmailSubject(`Bienvenido(a) a ${accessBrandName} - Tus credenciales`, branding),
+        subject: buildBrandedEmailSubject("Bienvenido(a) - Tus credenciales", branding),
         senderName: resolveEmailSenderName(branding),
         htmlContent: initialInviteTemplate({
           fullName: params.fullName,

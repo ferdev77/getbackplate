@@ -408,7 +408,7 @@ export async function requestPasswordRecoveryAction(formData: FormData) {
 
   const mailResult = await sendEmail({
     to: [{ email }],
-    subject: buildBrandedEmailSubject(`Restablece tu contraseña en ${branding.companyName}`, branding),
+    subject: buildBrandedEmailSubject("Restablece tu contraseña", branding),
     senderName: resolveEmailSenderName(branding),
     htmlContent: passwordRecoveryTemplate({
       recoveryUrl: recoveryBridgeUrl,

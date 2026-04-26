@@ -246,7 +246,7 @@ async function sendAnnouncementEmail(email: string, title: string, body: string,
   const brandName = branding.companyName;
   const result = await sendTransactionalEmail({
     to: email,
-    subject: buildBrandedEmailSubject(`Nuevo aviso en ${brandName}: ${title}`, branding),
+    subject: buildBrandedEmailSubject(`Nuevo aviso: ${title}`, branding),
     html: `
       <h2 style="margin:0 0 10px 0;">${title}</h2>
       <p style="margin:0 0 14px 0;color:#444;">${body.replace(/\n/g, "<br/>")}</p>
