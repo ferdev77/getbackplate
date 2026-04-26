@@ -36,7 +36,6 @@ export async function provisionOrganizationUserAccount(input: {
     });
     const fullName = `${firstName} ${lastName}`.trim();
     const branding = await getTenantEmailBranding(organizationId);
-    const accessBrandName = branding.isCustom ? branding.companyName : "GetBackplate";
 
     const existingAuthUser = await findAuthUserByEmail(loginEmail);
     
@@ -52,7 +51,7 @@ export async function provisionOrganizationUserAccount(input: {
       if (!isMember) {
         await sendEmail({
           to: [{ email: loginEmail, name: fullName }],
-          subject: buildBrandedEmailSubject(`Acceso habilitado para una nueva empresa en ${accessBrandName}`, branding),
+          subject: buildBrandedEmailSubject("Acceso activado para la plataforma", branding),
           senderName: resolveEmailSenderName(branding),
           htmlContent: resendReminderTemplate({
             fullName,
@@ -83,7 +82,7 @@ export async function provisionOrganizationUserAccount(input: {
 
       await sendEmail({
         to: [{ email: loginEmail, name: fullName }],
-        subject: buildBrandedEmailSubject(`Tus credenciales de acceso a ${accessBrandName}`, branding),
+        subject: buildBrandedEmailSubject("Tus credenciales de acceso", branding),
         senderName: resolveEmailSenderName(branding),
         htmlContent: initialInviteTemplate({
           fullName,
@@ -118,7 +117,7 @@ export async function provisionOrganizationUserAccount(input: {
 
       await sendEmail({
         to: [{ email: loginEmail, name: fullName }],
-        subject: buildBrandedEmailSubject(`Bienvenido(a) a ${accessBrandName} - Tus credenciales`, branding),
+        subject: buildBrandedEmailSubject("Bienvenido(a) - Tus credenciales", branding),
         senderName: resolveEmailSenderName(branding),
         htmlContent: initialInviteTemplate({
           fullName,
