@@ -1,10 +1,14 @@
 # Analisis Integral de App + Database (2026-03-31)
 
+> ESTADO DOCUMENTAL: HISTORICO DE DIAGNOSTICO.
+> Este documento representa una foto tecnica al 2026-03-31.
+> Para decisiones operativas actuales usar: `DOCS/00_START_HERE.md` y `DOCS/1_Arquitectura_y_Contexto/DOCUMENTACION_TECNICA.md`.
+
 ## 1) Alcance y metodologia
 
 Este analisis se realizo revisando:
 
-- Aplicacion web (`web/`): arquitectura, middleware, APIs, seguridad, observabilidad y operaciones.
+- Aplicacion web (`web/`): arquitectura, proxy/middleware, APIs, seguridad, observabilidad y operaciones.
 - Base de datos Supabase/Postgres (`supabase/migrations/` + `supabase/seed.sql`): modelo, RLS, funciones, RPCs, indices y consistencia evolutiva.
 - Documentacion tecnica y operativa existente (`DOCS/`): alineacion entre contrato funcional y estado implementado.
 

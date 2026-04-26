@@ -1,5 +1,9 @@
 # ACTUALIZACION 2.0 SAAS
 
+> ESTADO DOCUMENTAL: HISTORICO CONGELADO.
+> Este archivo conserva contexto del sprint 2.0 y puede no reflejar el estado runtime mas reciente.
+> Para estado vigente usar: `DOCS/00_START_HERE.md`, `DOCS/1_Arquitectura_y_Contexto/DOCUMENTACION_TECNICA.md` y checklists/actualizaciones mas nuevas.
+
 Nombre oficial del producto: **GetBackplate**.
 
 ## Estado

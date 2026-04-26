@@ -1,5 +1,9 @@
 # ACTUALIZACION 2.1 SAAS
 
+> ESTADO DOCUMENTAL: HISTORICO CONGELADO.
+> Este archivo conserva el marco original de implementacion 2.1 y puede diferir de la prioridad/fallback actual de proveedores IA.
+> Para estado vigente del asistente IA usar: `DOCS/4_Operaciones_y_Guias/POLITICA_INTERNA_ASISTENTE_IA.md` y `DOCS/3_Actualizaciones_Sprints/ACTUALIZACION_2.3_SAAS.md`.
+
 ## Objetivo de la version 2.1
 
 Definir la ruta oficial de implementacion para un **chatbot flotante con IA** dentro del panel de empresa.

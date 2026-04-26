@@ -1,5 +1,9 @@
 # ACTUALIZACION 2.2 SAAS - Plan Maestro de Estabilizacion y Performance
 
+> ESTADO DOCUMENTAL: HISTORICO CONGELADO.
+> Este archivo resume la ejecucion de estabilizacion 2.2; no debe usarse solo como fuente de estado actual.
+> Para estado vigente usar: `DOCS/00_START_HERE.md` y `DOCS/1_Arquitectura_y_Contexto/DOCUMENTACION_TECNICA.md`.
+
 > **🛑 REGLA DE ORO DE ESTA REVISION 🛑**
 > Queda **ESTRICTAMENTE PROHIBIDO** alterar flujos de negocio existentes, modificar drásticamente la interfaz (UI) o agregar nuevas pantallas. La versión 2.2 es una etapa de "Refactorización y Pulido Senior". Todas las mejoras aquí descritas son "under the hood" (bajo el capó) o ajustes de consistencia visual fina para mejorar lo que ya existe.
 

@@ -2,6 +2,21 @@
 
 Objetivo: evitar confusion entre fases globales del producto y subfases internas de complementos.
 
+## Vigente vs Historico (lectura de 30 segundos)
+
+Usar como vigente primero:
+- `DOCS/00_START_HERE.md`
+- `DOCS/1_Arquitectura_y_Contexto/DOCUMENTACION_TECNICA.md`
+- `DOCS/complemento_etapa_1/COMP_F1_ESTADO_REAL_Y_ROADMAP.md`
+
+Tomar como historico/contextual (no como estado runtime unico):
+- `DOCS/3_Actualizaciones_Sprints/ACTUALIZACION_2.0_SAAS.md`
+- `DOCS/3_Actualizaciones_Sprints/ACTUALIZACION_2.1_SAAS.md`
+- `DOCS/3_Actualizaciones_Sprints/ACTUALIZACION_2.2_SAAS.md`
+- `DOCS/1_Arquitectura_y_Contexto/ANALISIS_INTEGRAL_APP_DB_2026-03-31.md`
+
+Regla rapida: si un documento historico contradice uno vigente, prevalece el vigente.
+
 ## 1) Si la pregunta es "cual es la siguiente fase de implementacion"
 
 Leer primero:
