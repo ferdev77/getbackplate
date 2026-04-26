@@ -80,7 +80,7 @@ function statusClass(status: string) {
 
 function formatMoney(amount: number | null, currency: string | null) {
   if (typeof amount !== "number") return "-";
-  return new Intl.NumberFormat("es-AR", {
+  return new Intl.NumberFormat("es-US", {
     style: "currency",
     currency: currency || "USD",
     maximumFractionDigits: 2,
@@ -89,7 +89,7 @@ function formatMoney(amount: number | null, currency: string | null) {
 
 function formatDate(dateText: string | null) {
   if (!dateText) return "-";
-  return new Date(dateText).toLocaleDateString("es-AR");
+  return new Date(dateText).toLocaleDateString("es-US");
 }
 
 export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspaceProps) {
@@ -255,7 +255,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
       doc.text(row.recordType === "employee" ? "Perfil de Empleado" : "Perfil de Usuario", left, y);
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
-      doc.text(`Generado: ${new Date().toLocaleString("es-AR")}`, left, y + 16);
+      doc.text(`Generado: ${new Date().toLocaleString("es-US")}`, left, y + 16);
       doc.setTextColor(17, 17, 17);
       y += 52;
 

@@ -190,7 +190,7 @@ export function EmployeeChecklistPreviewModal({
 
   let summaryText = `${resolvedCount} de ${totalItems} items resueltos.`;
   if (readOnly && initialReport?.submittedAt) {
-    summaryText = `Reporte enviado el ${new Date(initialReport.submittedAt).toLocaleString("es-AR")}`;
+    summaryText = `Reporte enviado el ${new Date(initialReport.submittedAt).toLocaleString("es-US")}`;
   } else if (!totalItems) {
     summaryText = "Sin items para completar";
   } else if (canSubmit && flaggedIds.length === 0) {
@@ -372,8 +372,8 @@ export function EmployeeChecklistPreviewModal({
             <h3 className="font-serif text-2xl text-[var(--gbp-text)]">Checklist Completado</h3>
             <p className="mt-2 text-sm leading-6 text-[var(--gbp-text2)]">El reporte fue registrado exitosamente y esta listo para revision.</p>
             <div className="mt-5 rounded-[10px] bg-[var(--gbp-bg)] px-4 py-3 text-left text-xs leading-7 text-[var(--gbp-text2)]">
-              <p><strong className="text-[var(--gbp-text)]">Fecha:</strong> {new Date().toLocaleDateString("es-AR")}</p>
-              <p><strong className="text-[var(--gbp-text)]">Hora:</strong> {new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</p>
+              <p><strong className="text-[var(--gbp-text)]">Fecha:</strong> {new Date().toLocaleDateString("es-US")}</p>
+              <p><strong className="text-[var(--gbp-text)]">Hora:</strong> {new Date().toLocaleTimeString("es-US", { hour: "2-digit", minute: "2-digit" })}</p>
               <p><strong className="text-[var(--gbp-text)]">Items resueltos:</strong> {resolvedCount}/{totalItems}</p>
               <p><strong className="text-[var(--gbp-text)]">Atencion requerida:</strong> {flaggedIds.length}</p>
             </div>

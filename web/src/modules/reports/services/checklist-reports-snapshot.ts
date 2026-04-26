@@ -101,7 +101,7 @@ function formatTimeLabel(value: string | null) {
   if (!value) return "Sin hora";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Sin hora";
-  return date.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleTimeString("es-US", { hour: "2-digit", minute: "2-digit" });
 }
 
 function formatDateLabel(value: string | null, todayStart: Date) {
@@ -112,7 +112,7 @@ function formatDateLabel(value: string | null, todayStart: Date) {
   const yesterdayStart = new Date(todayStart);
   yesterdayStart.setDate(yesterdayStart.getDate() - 1);
   if (date >= yesterdayStart) return "Ayer";
-  return date.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" });
+  return date.toLocaleDateString("es-US", { day: "2-digit", month: "2-digit" });
 }
 
 function relativeFromNow(value: string | null) {
@@ -543,7 +543,7 @@ export async function buildChecklistReportsSnapshot({
     .slice(0, 10);
 
   return {
-    generatedAt: now.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" }),
+    generatedAt: now.toLocaleDateString("es-US", { weekday: "long", day: "numeric", month: "long" }),
     statCards,
     locationCards,
     reports,

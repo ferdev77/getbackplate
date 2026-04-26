@@ -383,7 +383,7 @@ export function CompanyDashboardWorkspace({
                           </p>
                           <p className="mt-2 border-t border-[var(--gbp-border)] pt-2 text-xs text-[var(--gbp-muted)]">
                             {notice.publish_at
-                              ? `Publicado ${new Date(notice.publish_at).toLocaleDateString("es-AR")}`
+                              ? `Publicado ${new Date(notice.publish_at).toLocaleDateString("es-US")}`
                               : "Sin fecha de publicación"}
                             {` · ${notice.created_by_name ?? "Dirección General"}`}
                           </p>

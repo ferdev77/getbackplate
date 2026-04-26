@@ -469,8 +469,8 @@ export async function POST(req: Request) {
         }
 
         if (event.type === 'invoice.upcoming') {
-            const amountStr = new Intl.NumberFormat('es-AR', { style: 'currency', currency: invoice.currency.toUpperCase() }).format(invoice.amount_due / 100);
-            const renewalDate = new Date(invoice.period_end * 1000).toLocaleDateString('es-AR');
+            const amountStr = new Intl.NumberFormat('es-US', { style: 'currency', currency: invoice.currency.toUpperCase() }).format(invoice.amount_due / 100);
+            const renewalDate = new Date(invoice.period_end * 1000).toLocaleDateString('es-US');
             
             await sendRenewalReminderEmail(organizationId, renewalDate, amountStr);
             console.info(`[Webhook] Sent renewal reminder for org ${organizationId}`);

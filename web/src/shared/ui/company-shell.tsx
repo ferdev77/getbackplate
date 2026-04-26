@@ -740,7 +740,7 @@ export function CompanyShell({
     if (!trialStatus?.endsAt) return null;
     const date = new Date(trialStatus.endsAt);
     if (Number.isNaN(date.getTime())) return null;
-    return new Intl.DateTimeFormat("es-ES", {
+    return new Intl.DateTimeFormat("es-US", {
       day: "2-digit",
       month: "short",
     }).format(date);

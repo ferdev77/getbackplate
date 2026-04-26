@@ -39,7 +39,7 @@ function formatLastChecked(value: string | null) {
     return "Sin verificación reciente";
   }
 
-  return new Intl.DateTimeFormat("es-AR", {
+  return new Intl.DateTimeFormat("es-US", {
     day: "2-digit",
     month: "short",
     hour: "2-digit",

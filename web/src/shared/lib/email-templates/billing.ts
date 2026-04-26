@@ -326,7 +326,7 @@ export function subscriptionActivatedTemplate({ orgName, planName, trialDays, da
   const appUrl = dashboardUrl ?? `${(process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://getbackplate.com").replace(/\/$/, "")}/app/dashboard`;
   const trialCopy =
     trialDays > 0
-      ? `Tu prueba gratis de <strong>${trialDays} dias</strong> ya esta activa. Antes del primer cobro te enviaremos recordatorios para que gestiones tu plan con tranquilidad.`
+      ? `Tu prueba gratis de <strong>${trialDays} días</strong> ya está activa. Antes del primer cobro te enviaremos recordatorios para que gestiones tu plan con tranquilidad.`
       : "Tu plan ya se encuentra activo y tu equipo puede operar con acceso completo a la plataforma.";
 
   return `
@@ -336,8 +336,8 @@ export function subscriptionActivatedTemplate({ orgName, planName, trialDays, da
 
         <div style="padding:24px 24px 8px 24px;">
           ${renderBrandingHeader(branding)}
-          <p style="margin:0;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#9ca3af;">Confirmacion de suscripcion</p>
-          <h2 style="margin:10px 0 0 0;font-size:24px;line-height:1.2;color:#111827;">Tu empresa ya quedo activada en ${brandName}</h2>
+          <p style="margin:0;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#9ca3af;">Confirmación de suscripción</p>
+          <h2 style="margin:10px 0 0 0;font-size:24px;line-height:1.2;color:#111827;">Tu empresa ya quedó activada en ${brandName}</h2>
           <p style="margin:10px 0 0 0;color:#4b5563;font-size:14px;line-height:1.6;">Hola <strong>${orgName}</strong>, validamos correctamente tu pago en Stripe y habilitamos tu entorno de trabajo.</p>
         </div>
 

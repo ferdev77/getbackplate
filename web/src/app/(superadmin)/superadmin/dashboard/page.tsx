@@ -205,7 +205,7 @@ export default async function SuperadminDashboardPage() {
                   </span>
                   {row.invitedAdminFirstLoginStatus === "completed" && row.invitedAdminFirstLoginAt ? (
                     <span className="text-[11px] text-muted-foreground">
-                      {new Date(row.invitedAdminFirstLoginAt).toLocaleString("es-ES")}
+                      {new Date(row.invitedAdminFirstLoginAt).toLocaleString("es-US")}
                     </span>
                   ) : null}
                   {row.invitedAdminEmail ? (

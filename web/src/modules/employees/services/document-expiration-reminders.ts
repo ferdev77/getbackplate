@@ -104,25 +104,25 @@ export async function processEmployeeDocumentExpirationReminders() {
       continue;
     }
 
-    const dueDateLabel = new Date(`${link.expires_at}T00:00:00.000Z`).toLocaleDateString("es-AR", {
+    const dueDateLabel = new Date(`${link.expires_at}T00:00:00.000Z`).toLocaleDateString("es-US", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
       timeZone: "UTC",
     });
 
-    const subject = `Recordatorio: documento por vencer (${link.reminder_days} dias)`;
+    const subject = `Recordatorio: documento por vencer (${link.reminder_days} días)`;
     const html = [
       `<p>Hola,</p>`,
-      `<p>Este es un recordatorio automatico para el documento <strong>${doc.title}</strong>.</p>`,
+      `<p>Este es un recordatorio automático para el documento <strong>${doc.title}</strong>.</p>`,
       `<p>`,
       `Empleado: <strong>${employeeName}</strong><br/>`,
       `Empresa: <strong>${org?.name ?? "Empresa"}</strong><br/>`,
       `Fecha de vencimiento: <strong>${dueDateLabel}</strong><br/>`,
-      `Recordatorio configurado: <strong>${link.reminder_days} dias antes</strong><br/>`,
+      `Recordatorio configurado: <strong>${link.reminder_days} días antes</strong><br/>`,
       `Aprobado por: <strong>${reviewerName}</strong>`,
       `</p>`,
-      `<p>Por favor revisa y actualiza la documentacion en el panel de empleados.</p>`,
+      `<p>Por favor revisa y actualiza la documentación en el panel de empleados.</p>`,
     ].join("\n");
 
     let deliveryFailed = false;
@@ -293,16 +293,16 @@ export async function processEmployeeDocumentPendingReminders() {
 
     const subject = link.requested_without_file
       ? "Recordatorio: documento pendiente de carga"
-      : "Recordatorio: documento pendiente de revision";
+      : "Recordatorio: documento pendiente de revisión";
 
     const html = [
       `<p>Hola,</p>`,
-      `<p>Este es un recordatorio automatico sobre el documento <strong>${doc.title}</strong>.</p>`,
+      `<p>Este es un recordatorio automático sobre el documento <strong>${doc.title}</strong>.</p>`,
       `<p>`,
       `Empleado: <strong>${employeeName}</strong><br/>`,
       `Empresa: <strong>${org?.name ?? "Empresa"}</strong><br/>`,
-      `Estado actual: <strong>${link.requested_without_file ? "Pendiente de carga" : "Pendiente de revision"}</strong><br/>`,
-      `Tiempo en estado pendiente: <strong>${ageDays} dias</strong>`,
+      `Estado actual: <strong>${link.requested_without_file ? "Pendiente de carga" : "Pendiente de revisión"}</strong><br/>`,
+      `Tiempo en estado pendiente: <strong>${ageDays} días</strong>`,
       `</p>`,
       `<p>${link.requested_without_file ? "Ingresa al portal y sube el archivo solicitado." : "Revisa el documento desde el panel de empleados para aprobar o rechazar."}</p>`,
     ].join("\n");

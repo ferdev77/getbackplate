@@ -212,7 +212,7 @@ export function UploadDocumentModal({
                     return (
                       <div key={document.id} className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2">
                         <p className="truncate text-xs font-semibold text-[var(--gbp-text)]">{document.title}</p>
-                        <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">{branchName} · {new Date(document.created_at).toLocaleDateString("es-AR")}</p>
+                        <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">{branchName} · {new Date(document.created_at).toLocaleDateString("es-US")}</p>
                         <p className="mt-1 text-[11px] font-semibold text-[var(--gbp-success)]">Activo</p>
                       </div>
                     );
