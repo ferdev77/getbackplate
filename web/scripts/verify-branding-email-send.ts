@@ -5,8 +5,9 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RECIPIENT = process.env.BRANDING_TEST_RECIPIENT || "fer@cardinal.com";
 
-if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-  throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+function requireEnv(value: string | undefined, name: string): string {
+  if (!value) throw new Error(`Missing ${name}`);
+  return value;
 }
 
 function buildBrandedEmailSubject(baseSubject: string, brandName: string) {
@@ -18,7 +19,10 @@ function buildBrandedEmailSubject(baseSubject: string, brandName: string) {
 }
 
 async function main() {
-  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+  const supabaseUrl = requireEnv(SUPABASE_URL, "NEXT_PUBLIC_SUPABASE_URL");
+  const serviceRoleKey = requireEnv(SERVICE_ROLE_KEY, "SUPABASE_SERVICE_ROLE_KEY");
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
