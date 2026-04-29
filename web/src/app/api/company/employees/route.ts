@@ -210,6 +210,13 @@ export async function GET(request: Request) {
 
     const employeeRows = viewData.employees.map((emp) => {
       const defaultContract = emp.contracts?.[0];
+      const resolvedLocationNames = emp.allLocations
+        ? ["Todas las locaciones"]
+        : (Array.isArray(emp.locationScopeIds) && emp.locationScopeIds.length
+          ? emp.locationScopeIds.map((id) => branchNameById.get(id) ?? "Locación")
+          : (emp.branchId
+            ? [branchNameById.get(emp.branchId) ?? emp.branchName ?? "Locación"]
+            : (emp.branchName ? [emp.branchName] : [])));
       return {
         recordType: "employee" as const,
         id: emp.id,
@@ -221,11 +228,8 @@ export async function GET(request: Request) {
         status: emp.status,
         dashboardAccess: Boolean(emp.userId && activeMembershipUserIds.has(emp.userId)),
         hiredAt: emp.hiredAt,
-        branchName: emp.allLocations
-          ? "Todas las locaciones"
-          : (Array.isArray(emp.locationScopeIds) && emp.locationScopeIds.length > 1
-            ? `${emp.locationScopeIds.length} locaciones`
-            : (emp.branchName ?? "Sin locación")),
+        branchName: resolvedLocationNames[0] ?? "Sin locación",
+        locationNames: resolvedLocationNames,
         departmentName: emp.department ?? "Sin departamento",
         salaryAmount: defaultContract?.salary_amount ?? null,
         salaryCurrency: defaultContract?.salary_currency ?? null,
@@ -251,6 +255,11 @@ export async function GET(request: Request) {
     const userRows = (organizationUserProfiles ?? []).map((profile) => {
       const fullName = `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim();
       const membership = profile.user_id ? membershipByUser.get(profile.user_id) : null;
+      const resolvedLocationNames = profile.all_locations
+        ? ["Todas las locaciones"]
+        : (Array.isArray(profile.location_scope_ids) && profile.location_scope_ids.length
+          ? profile.location_scope_ids.map((id) => branchNameById.get(id) ?? "Locación")
+          : (profile.branch_id ? [branchNameById.get(profile.branch_id) ?? "Sin locación"] : []));
 
       return {
         recordType: "user" as const,
@@ -266,11 +275,8 @@ export async function GET(request: Request) {
         status: profile.status ?? "inactive",
         dashboardAccess: Boolean(profile.user_id && activeMembershipUserIds.has(profile.user_id)),
         hiredAt: null,
-        branchName: profile.all_locations
-          ? "Todas las locaciones"
-          : (Array.isArray(profile.location_scope_ids) && profile.location_scope_ids.length > 1
-            ? `${profile.location_scope_ids.length} locaciones`
-            : (profile.branch_id ? (branchNameById.get(profile.branch_id) ?? "Sin locación") : "Sin locación")),
+        branchName: resolvedLocationNames[0] ?? "Sin locación",
+        locationNames: resolvedLocationNames,
         departmentName: profile.department_id ? (departmentNameById.get(profile.department_id) ?? "Sin departamento") : "Sin departamento",
         salaryAmount: null,
         salaryCurrency: null,
