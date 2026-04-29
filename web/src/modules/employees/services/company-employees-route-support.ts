@@ -94,6 +94,7 @@ export async function syncEmployeeProfileProjection(input: {
   employeeId: string;
   userId: string | null;
   branchId: string | null;
+  allLocations: boolean;
   departmentId: string | null;
   positionId: string | null;
   firstName: string;
@@ -110,6 +111,7 @@ export async function syncEmployeeProfileProjection(input: {
     user_id: input.userId,
     employee_id: input.employeeId,
     branch_id: input.branchId,
+    all_locations: input.allLocations,
     department_id: input.departmentId,
     position_id: input.positionId,
     first_name: input.firstName,
