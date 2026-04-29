@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Download, Eye, Pencil, Trash2, Users } from "lucide-react";
+import { Download, Eye, MapPin, Pencil, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
 import { TooltipLabel } from "@/shared/ui/tooltip";
@@ -418,12 +418,17 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                     <p className="truncate text-[11px] text-[var(--gbp-muted)]">{row.position || "Sin puesto"}</p>
                   </div>
                 </div>
-                <div className="hidden md:block">
+                <div className="hidden lg:flex flex-wrap items-center gap-1">
                   <ScopePillsOverflow
-                    pills={(row.locationNames?.length ? row.locationNames : [row.branchName]).map((name) => ({ name, type: "location" as const }))}
+                    pills={resolveLocationPills(row)}
                     max={5}
                     variant="initials"
-                    emptyLabel={<span className="text-xs text-[var(--gbp-muted)]">-</span>}
+                    emptyLabel={
+                      <span className="inline-flex items-center gap-1 rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-medium text-[var(--gbp-accent)]">
+                        <MapPin className="h-3 w-3" />
+                        Sin locación
+                      </span>
+                    }
                   />
                 </div>
                 <div className="hidden lg:block">
@@ -575,3 +580,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
     </>
   );
 }
+  function resolveLocationPills(row: EmployeeRow) {
+    const names = (row.locationNames ?? []).filter(Boolean);
+    return names.map((name) => ({ name, type: "location" as const }));
+  }
