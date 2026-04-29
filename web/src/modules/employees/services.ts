@@ -251,6 +251,8 @@ export const getEmployeeDirectoryView = cache(async (
     .filter((row: any) => !validEmployeeUserIds.has(row.user_id))
     .map((row: any) => {
     const roleCode = roleById.get(row.role_id);
+    const rpcBranchName = typeof row.branch_name === "string" ? row.branch_name.trim() : "";
+    const allLocations = row.all_locations === true || rpcBranchName.toLowerCase() === "todas las locaciones";
     return {
       membershipId: row.id,
       userId: row.user_id,
@@ -259,10 +261,12 @@ export const getEmployeeDirectoryView = cache(async (
       roleCode: roleCode ?? "employee",
       status: row.status ?? "active",
       branchId: row.branch_id ?? null,
-      allLocations: row.all_locations === true,
-      branchName: row.all_locations === true
+      allLocations,
+      branchName: allLocations
         ? "Todas las locaciones"
-        : (row.branch_id ? (branchById.get(row.branch_id) ?? "Locación") : "Sin locación"),
+        : (row.branch_id
+          ? ((branchById.get(row.branch_id) ?? rpcBranchName) || "Locación")
+          : (rpcBranchName || "Sin locación")),
       createdAt: row.created_at ?? "",
     };
   });
