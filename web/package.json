@@ -47,7 +47,9 @@
     "report:tenant-usage": "node --env-file=.env.local scripts/generate-tenant-usage-report.mjs --format=table",
     "report:tenant-usage:json": "node --env-file=.env.local scripts/generate-tenant-usage-report.mjs --format=json",
     "report:tenant-usage:csv": "node --env-file=.env.local scripts/generate-tenant-usage-report.mjs --format=csv",
-    "verify:layout-guardrails": "node scripts/verify-layout-guardrails.mjs"
+    "verify:layout-guardrails": "node scripts/verify-layout-guardrails.mjs",
+    "verify:qbo-r365-readiness": "node --env-file=.env.local scripts/verify-qbo-r365-readiness.mjs",
+    "verify:employee-all-locations-multi-position": "node --env-file=.env.production.local scripts/verify-employee-all-locations-multi-position.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.89.0",
@@ -57,6 +59,7 @@
     "@supabase/supabase-js": "^2.99.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.37.0",
+    "basic-ftp": "^5.3.0",
     "cron-parser": "^5.5.0",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.36.0",

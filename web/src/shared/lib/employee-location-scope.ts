@@ -3,7 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 type EmployeeScopeInput = {
   tenantBranchId: string | null;
   employeeBranchId: string | null;
-  membershipRows?: Array<{ branch_id: string | null; all_locations?: boolean | null }> | null;
+  employeeLocationIds?: string[] | null;
+  membershipRows?: Array<{ branch_id: string | null; all_locations?: boolean | null; location_scope_ids?: string[] | null }> | null;
   employeeAllLocations?: boolean | null;
 };
 
@@ -15,7 +16,9 @@ export async function resolveEmployeeLocationScope(
   const explicitIds = [
     input.tenantBranchId,
     input.employeeBranchId,
+    ...((input.employeeLocationIds ?? [])),
     ...((input.membershipRows ?? []).map((row) => row.branch_id)),
+    ...((input.membershipRows ?? []).flatMap((row) => row.location_scope_ids ?? [])),
   ].filter((value): value is string => Boolean(value));
 
   const hasAllLocations =
