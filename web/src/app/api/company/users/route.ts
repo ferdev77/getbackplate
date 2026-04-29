@@ -194,8 +194,44 @@ export async function GET(request: Request) {
     includeUsersTab: true,
   });
 
+  const userIds = Array.from(
+    new Set((viewData.users ?? []).map((row: any) => row.userId).filter((value: any): value is string => Boolean(value))),
+  );
+
+  const { data: profileRows } = userIds.length
+    ? await supabase
+        .from("organization_user_profiles")
+        .select("user_id, branch_id, all_locations, location_scope_ids")
+        .eq("organization_id", tenant.organizationId)
+        .in("user_id", userIds)
+    : { data: [] as Array<{ user_id: string; branch_id: string | null; all_locations: boolean | null; location_scope_ids: string[] | null }> };
+
+  const profileByUserId = new Map((profileRows ?? []).map((row) => [row.user_id, row]));
+  const branchNameById = new Map(mappedBranches.map((row) => [row.id, row.name]));
+
+  const mappedUsers = (viewData.users ?? []).map((row: any) => {
+    const profile = row.userId ? profileByUserId.get(row.userId) : null;
+    const allLocations = profile?.all_locations === true;
+    const locationScopeNames = (profile?.location_scope_ids ?? [])
+      .map((id: any) => branchNameById.get(id))
+      .filter((value: any): value is string => Boolean(value));
+
+    const branchName = allLocations
+      ? "Todas las locaciones"
+      : (locationScopeNames[0]
+        ?? (profile?.branch_id ? (branchNameById.get(profile.branch_id) ?? null) : null)
+        ?? row.branchName
+        ?? "Sin locación");
+
+    return {
+      ...row,
+      branchName,
+      branchId: allLocations ? null : (profile?.branch_id ?? row.branchId ?? null),
+    };
+  });
+
   return NextResponse.json({
-    users: viewData.users ?? [],
+    users: mappedUsers,
     branches: mappedBranches,
   });
 }
