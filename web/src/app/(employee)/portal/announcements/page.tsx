@@ -11,6 +11,7 @@ import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-author
 import { getBranchDisplayName } from "@/shared/lib/branch-display";
 import { AnnouncementModalTrigger } from "@/modules/announcements/ui/announcement-modal-trigger";
 import { OperationHeaderCard } from "@/shared/ui/operation-header-card";
+import { resolveEmployeeLocationScope } from "@/shared/lib/employee-location-scope";
 
 type AnnouncementRow = {
   id: string;
@@ -38,10 +39,25 @@ export default async function EmployeeAnnouncementsPage() {
 
   const { data: employeeRow } = await supabase
     .from("employees")
-    .select("department_id, position, branch_id")
+    .select("department_id, position, branch_id, all_locations")
     .eq("organization_id", tenant.organizationId)
     .eq("user_id", userId)
     .maybeSingle();
+
+  const { data: membershipRows } = await supabase
+    .from("memberships")
+    .select("branch_id, all_locations")
+    .eq("organization_id", tenant.organizationId)
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .limit(20);
+
+  const locationScope = await resolveEmployeeLocationScope(supabase, tenant.organizationId, {
+    tenantBranchId: tenant.branchId,
+    employeeBranchId: employeeRow?.branch_id ?? null,
+    membershipRows,
+    employeeAllLocations: employeeRow?.all_locations ?? false,
+  });
 
   let employeePositionIds: string[] = [];
   if (employeeRow?.position) {
@@ -101,7 +117,8 @@ export default async function EmployeeAnnouncementsPage() {
       return canReadAnnouncementInTenant({
         roleCode: tenant.roleCode,
         userId,
-        branchId: tenant.branchId ?? employeeRow?.branch_id ?? null,
+        branchId: locationScope.primaryLocationId,
+        branchIds: locationScope.locationIds,
         departmentId: employeeRow?.department_id ?? null,
         positionIds: employeePositionIds,
         targetScope: item.target_scope,
@@ -180,9 +197,7 @@ export default async function EmployeeAnnouncementsPage() {
     id: branch.id,
     name: getBranchDisplayName(branch, customBrandingEnabled),
   }));
-  const allowedLocationIds = Array.from(
-    new Set([tenant.branchId, employeeRow?.branch_id].filter((value): value is string => Boolean(value))),
-  );
+  const allowedLocationIds = locationScope.locationIds;
   const scopeUsersInAllowedLocations = scopeUsers.filter(
     (user) => Boolean(user.user_id) && Boolean(user.branch_id) && allowedLocationIds.includes(user.branch_id as string),
   );

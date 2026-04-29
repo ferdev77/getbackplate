@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { buildChecklistReportsSnapshot } from "@/modules/reports/services/checklist-reports-snapshot";
 import { requireEmployeeModule } from "@/shared/lib/access";
 import { getEmployeeDelegatedPermissionsByMembership } from "@/shared/lib/employee-module-permissions";
+import { resolveEmployeeLocationScope } from "@/shared/lib/employee-location-scope";
 
 export default async function EmployeeChecklistReportsPage() {
   const tenant = await requireEmployeeModule("checklists");
@@ -23,24 +24,26 @@ export default async function EmployeeChecklistReportsPage() {
   const [{ data: employeeRow }, { data: membershipRows }] = await Promise.all([
     supabase
       .from("employees")
-      .select("branch_id")
+      .select("branch_id, all_locations")
       .eq("organization_id", tenant.organizationId)
       .eq("user_id", userId)
       .maybeSingle(),
     supabase
       .from("memberships")
-      .select("branch_id")
+      .select("branch_id, all_locations")
       .eq("organization_id", tenant.organizationId)
       .eq("user_id", userId)
       .eq("status", "active")
       .limit(20),
   ]);
 
-  const activeLocationIds = [...new Set([
-    tenant.branchId,
-    employeeRow?.branch_id,
-    ...(membershipRows ?? []).map((row) => row.branch_id),
-  ].filter((value): value is string => Boolean(value)))];
+  const locationScope = await resolveEmployeeLocationScope(supabase, tenant.organizationId, {
+    tenantBranchId: tenant.branchId,
+    employeeBranchId: employeeRow?.branch_id ?? null,
+    membershipRows,
+    employeeAllLocations: employeeRow?.all_locations ?? false,
+  });
+  const activeLocationIds = locationScope.locationIds;
 
   const admin = createSupabaseAdminClient();
   const snapshot = await buildChecklistReportsSnapshot({

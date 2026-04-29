@@ -4,6 +4,7 @@ type ChecklistTemplateAccessInput = {
   roleCode: string;
   userId: string;
   branchId: string | null;
+  branchIds?: string[];
   departmentId: string | null;
   positionIds?: string[];
   templateBranchId: string | null;
@@ -15,18 +16,35 @@ export function canUseChecklistTemplateInTenant(input: ChecklistTemplateAccessIn
     return true;
   }
 
+  const candidateBranchIds = [
+    ...(input.branchIds ?? []),
+    ...(input.branchId ? [input.branchId] : []),
+  ];
+  const uniqueBranchIds = [...new Set(candidateBranchIds.filter(Boolean))];
+
   const baseBranchMatch = input.templateBranchId
-    ? Boolean(input.branchId && input.templateBranchId === input.branchId)
+    ? uniqueBranchIds.includes(input.templateBranchId)
     : true;
 
   if (!baseBranchMatch) {
     return false;
   }
 
-  return canSubjectAccessScope(input.targetScope, {
-    userId: input.userId,
-    locationId: input.branchId,
-    departmentId: input.departmentId,
-    positionIds: input.positionIds ?? [],
-  });
+  if (uniqueBranchIds.length === 0) {
+    return canSubjectAccessScope(input.targetScope, {
+      userId: input.userId,
+      locationId: input.branchId,
+      departmentId: input.departmentId,
+      positionIds: input.positionIds ?? [],
+    });
+  }
+
+  return uniqueBranchIds.some((locationId) =>
+    canSubjectAccessScope(input.targetScope, {
+      userId: input.userId,
+      locationId,
+      departmentId: input.departmentId,
+      positionIds: input.positionIds ?? [],
+    }),
+  );
 }

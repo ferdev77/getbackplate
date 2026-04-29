@@ -141,7 +141,7 @@ export async function GET(request: Request) {
 
     const { data: organizationUserProfiles } = await supabase
       .from("organization_user_profiles")
-      .select("id, user_id, first_name, last_name, email, phone, branch_id, department_id, is_employee, status, created_at")
+      .select("id, user_id, first_name, last_name, email, phone, branch_id, all_locations, department_id, is_employee, status, created_at")
       .eq("organization_id", organizationId)
       .eq("is_employee", false)
       .order("created_at", { ascending: false })
@@ -221,7 +221,7 @@ export async function GET(request: Request) {
         status: emp.status,
         dashboardAccess: Boolean(emp.userId && activeMembershipUserIds.has(emp.userId)),
         hiredAt: emp.hiredAt,
-        branchName: emp.branchName ?? "Sin locación",
+        branchName: emp.allLocations ? "Todas las locaciones" : (emp.branchName ?? "Sin locación"),
         departmentName: emp.department ?? "Sin departamento",
         salaryAmount: defaultContract?.salary_amount ?? null,
         salaryCurrency: defaultContract?.salary_currency ?? null,
@@ -262,7 +262,9 @@ export async function GET(request: Request) {
         status: profile.status ?? "inactive",
         dashboardAccess: Boolean(profile.user_id && activeMembershipUserIds.has(profile.user_id)),
         hiredAt: null,
-        branchName: profile.branch_id ? (branchNameById.get(profile.branch_id) ?? "Sin locación") : "Sin locación",
+        branchName: profile.all_locations
+          ? "Todas las locaciones"
+          : (profile.branch_id ? (branchNameById.get(profile.branch_id) ?? "Sin locación") : "Sin locación"),
         departmentName: profile.department_id ? (departmentNameById.get(profile.department_id) ?? "Sin departamento") : "Sin departamento",
         salaryAmount: null,
         salaryCurrency: null,
@@ -322,7 +324,9 @@ export async function POST(request: Request) {
   let position = String(formData.get("position") ?? "").trim() || null;
   let departmentId = String(formData.get("department_id") ?? "").trim() || null;
   let department = String(formData.get("department") ?? "").trim() || null;
-  const branchId = String(formData.get("branch_id") ?? "").trim() || null;
+  const rawBranchValue = String(formData.get("branch_id") ?? "").trim();
+  const allLocations = rawBranchValue === "__all__";
+  const branchId = allLocations ? null : (rawBranchValue || null);
   let branchName: string | null = null;
   const email = String(formData.get("email") ?? "").trim().toLowerCase() || null;
   const phone = String(formData.get("phone") ?? "").trim() || null;
@@ -629,6 +633,7 @@ export async function POST(request: Request) {
             user_id: linkedUserId,
             role_id: role.id,
             branch_id: branchId,
+            all_locations: allLocations,
             status: "active",
           },
           { onConflict: "organization_id,user_id" },
@@ -669,6 +674,7 @@ export async function POST(request: Request) {
       user_id: linkedUserId,
       employee_id: null,
       branch_id: branchId,
+      all_locations: allLocations,
       department_id: departmentId,
       position_id: positionId,
       first_name: firstName,
@@ -910,6 +916,7 @@ export async function POST(request: Request) {
             user_id: linkedUserId,
             role_id: role.id,
             branch_id: branchId,
+            all_locations: allLocations,
             status: "active",
           },
           { onConflict: "organization_id,user_id" },
@@ -951,6 +958,7 @@ export async function POST(request: Request) {
       .update({
         user_id: createMode === "with_account" ? linkedUserId : existingEmployee.user_id,
         branch_id: branchId,
+        all_locations: allLocations,
         first_name: firstName,
         last_name: lastName,
         status: employmentStatus,
@@ -1054,7 +1062,7 @@ export async function POST(request: Request) {
           .insert({
             organization_id: tenant.organizationId,
             branch_id: branchId,
-      owner_user_id: actorId,
+            owner_user_id: actorId,
             title: `${upload.slotLabel} - ${firstName} ${lastName}`,
             file_path: path,
             mime_type: existingDuplicate?.mime_type || upload.analysis.normalizedMime,
@@ -1209,6 +1217,7 @@ export async function POST(request: Request) {
         employeeId: employeeIdValue,
         userId: linkedUserId ?? existingEmployee.user_id ?? null,
         branchId,
+        allLocations,
         departmentId,
         positionId,
         firstName,
@@ -1324,6 +1333,7 @@ export async function POST(request: Request) {
           user_id: linkedUserId,
           role_id: role.id,
           branch_id: branchId,
+          all_locations: allLocations,
           status: "active",
         },
         { onConflict: "organization_id,user_id" },
@@ -1351,6 +1361,7 @@ export async function POST(request: Request) {
     .insert({
       organization_id: tenant.organizationId,
       branch_id: branchId,
+      all_locations: allLocations,
       user_id: linkedUserId,
       first_name: firstName,
       last_name: lastName,
@@ -1633,6 +1644,7 @@ export async function POST(request: Request) {
       employeeId: employee.id,
       userId: linkedUserId,
       branchId,
+      allLocations,
       departmentId,
       positionId,
       firstName,
@@ -2019,4 +2031,3 @@ export async function DELETE(request: Request) {
 
   return NextResponse.json({ ok: true });
 }
-
