@@ -26,6 +26,7 @@ export type EmployeeRow = {
   dashboardAccess?: boolean;
   hiredAt: string | null;
   branchName: string;
+  locationNames?: string[];
   departmentName: string;
   salaryAmount: number | null;
   salaryCurrency: string | null;
@@ -419,7 +420,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                 </div>
                 <div className="hidden md:block">
                   <ScopePillsOverflow
-                    pills={[{ name: row.branchName, type: "location" }]}
+                    pills={(row.locationNames?.length ? row.locationNames : [row.branchName]).map((name) => ({ name, type: "location" as const }))}
                     max={5}
                     variant="initials"
                     emptyLabel={<span className="text-xs text-[var(--gbp-muted)]">-</span>}
@@ -501,7 +502,11 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                   <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${selected.dashboardAccess ? "bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]"}`}>
                     {selected.dashboardAccess ? "Acceso plataforma: habilitado" : "Acceso plataforma: sin acceso"}
                   </span>
-                  <span className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[11px] font-medium text-[var(--gbp-accent)]">{selected.branchName}</span>
+                  <ScopePillsOverflow
+                    pills={(selected.locationNames?.length ? selected.locationNames : [selected.branchName]).map((name) => ({ name, type: "location" as const }))}
+                    max={6}
+                    variant="initials"
+                  />
                   <span className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-600 dark:text-blue-400">{selected.departmentName}</span>
                 </div>
               </div>

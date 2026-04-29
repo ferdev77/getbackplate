@@ -539,6 +539,11 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       dashboardAccess: Boolean(emp.userId && activeMembershipUserIds.has(emp.userId)),
       hiredAt: emp.hiredAt,
       branchName: emp.branchName ?? "Sin locación",
+      locationNames: emp.allLocations
+        ? ["Todas las locaciones"]
+        : ((Array.isArray(emp.locationScopeIds) && emp.locationScopeIds.length
+          ? emp.locationScopeIds.map((id) => branchNameById.get(id) ?? "Locación")
+          : [emp.branchName ?? "Sin locación"])),
       departmentName: emp.department ?? "Sin departamento",
       salaryAmount: defaultContract?.salary_amount ?? null,
       salaryCurrency: defaultContract?.salary_currency ?? null,
@@ -586,6 +591,11 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
         : (Array.isArray(profile.location_scope_ids) && profile.location_scope_ids.length > 1
           ? `${profile.location_scope_ids.length} locaciones`
           : (profile.branch_id ? (branchNameById.get(profile.branch_id) ?? "Sin locación") : "Sin locación")),
+      locationNames: profile.all_locations
+        ? ["Todas las locaciones"]
+        : (Array.isArray(profile.location_scope_ids) && profile.location_scope_ids.length
+          ? profile.location_scope_ids.map((id) => branchNameById.get(id) ?? "Locación")
+          : [profile.branch_id ? (branchNameById.get(profile.branch_id) ?? "Sin locación") : "Sin locación"]),
       departmentName: profile.department_id ? (departmentNameById.get(profile.department_id) ?? "Sin departamento") : "Sin departamento",
       salaryAmount: null,
       salaryCurrency: null,
