@@ -24,13 +24,13 @@ export default async function EmployeeChecklistReportsPage() {
   const [{ data: employeeRow }, { data: membershipRows }] = await Promise.all([
     supabase
       .from("employees")
-      .select("branch_id, all_locations")
+      .select("branch_id, all_locations, location_scope_ids")
       .eq("organization_id", tenant.organizationId)
       .eq("user_id", userId)
       .maybeSingle(),
     supabase
       .from("memberships")
-      .select("branch_id, all_locations")
+      .select("branch_id, all_locations, location_scope_ids")
       .eq("organization_id", tenant.organizationId)
       .eq("user_id", userId)
       .eq("status", "active")
@@ -40,6 +40,7 @@ export default async function EmployeeChecklistReportsPage() {
   const locationScope = await resolveEmployeeLocationScope(supabase, tenant.organizationId, {
     tenantBranchId: tenant.branchId,
     employeeBranchId: employeeRow?.branch_id ?? null,
+    employeeLocationIds: employeeRow?.location_scope_ids ?? [],
     membershipRows,
     employeeAllLocations: employeeRow?.all_locations ?? false,
   });
