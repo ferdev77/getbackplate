@@ -141,7 +141,7 @@ export async function GET(request: Request) {
 
     const { data: organizationUserProfiles } = await supabase
       .from("organization_user_profiles")
-      .select("id, user_id, first_name, last_name, email, phone, branch_id, all_locations, department_id, is_employee, status, created_at")
+      .select("id, user_id, first_name, last_name, email, phone, branch_id, all_locations, location_scope_ids, department_id, is_employee, status, created_at")
       .eq("organization_id", organizationId)
       .eq("is_employee", false)
       .order("created_at", { ascending: false })
@@ -221,7 +221,11 @@ export async function GET(request: Request) {
         status: emp.status,
         dashboardAccess: Boolean(emp.userId && activeMembershipUserIds.has(emp.userId)),
         hiredAt: emp.hiredAt,
-        branchName: emp.allLocations ? "Todas las locaciones" : (emp.branchName ?? "Sin locación"),
+        branchName: emp.allLocations
+          ? "Todas las locaciones"
+          : (Array.isArray(emp.locationScopeIds) && emp.locationScopeIds.length > 1
+            ? `${emp.locationScopeIds.length} locaciones`
+            : (emp.branchName ?? "Sin locación")),
         departmentName: emp.department ?? "Sin departamento",
         salaryAmount: defaultContract?.salary_amount ?? null,
         salaryCurrency: defaultContract?.salary_currency ?? null,
@@ -264,7 +268,9 @@ export async function GET(request: Request) {
         hiredAt: null,
         branchName: profile.all_locations
           ? "Todas las locaciones"
-          : (profile.branch_id ? (branchNameById.get(profile.branch_id) ?? "Sin locación") : "Sin locación"),
+          : (Array.isArray(profile.location_scope_ids) && profile.location_scope_ids.length > 1
+            ? `${profile.location_scope_ids.length} locaciones`
+            : (profile.branch_id ? (branchNameById.get(profile.branch_id) ?? "Sin locación") : "Sin locación")),
         departmentName: profile.department_id ? (departmentNameById.get(profile.department_id) ?? "Sin departamento") : "Sin departamento",
         salaryAmount: null,
         salaryCurrency: null,
@@ -325,8 +331,16 @@ export async function POST(request: Request) {
   let departmentId = String(formData.get("department_id") ?? "").trim() || null;
   let department = String(formData.get("department") ?? "").trim() || null;
   const rawBranchValue = String(formData.get("branch_id") ?? "").trim();
+  const branchScopeValues = formData
+    .getAll("branch_ids")
+    .map((value) => String(value ?? "").trim())
+    .filter(Boolean);
+  const requestedBranchScopeIds = Array.from(new Set(branchScopeValues));
   const allLocations = rawBranchValue === "__all__";
-  const branchId = allLocations ? null : (rawBranchValue || null);
+  const locationScopeIds = allLocations
+    ? []
+    : Array.from(new Set([...(rawBranchValue ? [rawBranchValue] : []), ...requestedBranchScopeIds]));
+  const branchId = allLocations ? null : (locationScopeIds[0] ?? null);
   let branchName: string | null = null;
   const email = String(formData.get("email") ?? "").trim().toLowerCase() || null;
   const phone = String(formData.get("phone") ?? "").trim() || null;
@@ -487,19 +501,24 @@ export async function POST(request: Request) {
     }
   }
 
-  if (branchId) {
-    const { data: branch, error: branchError } = await supabase
+  if (locationScopeIds.length) {
+    const { data: branchRows, error: branchError } = await supabase
       .from("branches")
       .select("id, name")
       .eq("organization_id", tenant.organizationId)
-      .eq("id", branchId)
-      .maybeSingle();
+      .in("id", locationScopeIds);
 
-    if (branchError || !branch) {
+    if (branchError) {
       return NextResponse.json({ error: "Locación no válida para esta empresa" }, { status: 400 });
     }
 
-    branchName = branch.name;
+    const validIds = new Set((branchRows ?? []).map((row) => row.id));
+    const hasInvalid = locationScopeIds.some((id) => !validIds.has(id));
+    if (hasInvalid) {
+      return NextResponse.json({ error: "Una o más locaciones no son válidas para esta empresa" }, { status: 400 });
+    }
+
+    branchName = (branchRows ?? [])[0]?.name ?? null;
   }
 
   if (departmentId) {
@@ -634,6 +653,7 @@ export async function POST(request: Request) {
             role_id: role.id,
             branch_id: branchId,
             all_locations: allLocations,
+            location_scope_ids: locationScopeIds,
             status: "active",
           },
           { onConflict: "organization_id,user_id" },
@@ -675,6 +695,7 @@ export async function POST(request: Request) {
       employee_id: null,
       branch_id: branchId,
       all_locations: allLocations,
+      location_scope_ids: locationScopeIds,
       department_id: departmentId,
       position_id: positionId,
       first_name: firstName,
@@ -771,7 +792,7 @@ export async function POST(request: Request) {
             checksum_sha256: upload.analysis.checksumSha256,
             file_size_bytes: upload.file.size,
             access_scope: {
-              locations: branchId ? [branchId] : [],
+              locations: locationScopeIds,
               department_ids: departmentId ? [departmentId] : [],
               users: [linkedUserId],
               internal_only: true,
@@ -917,6 +938,7 @@ export async function POST(request: Request) {
             role_id: role.id,
             branch_id: branchId,
             all_locations: allLocations,
+            location_scope_ids: locationScopeIds,
             status: "active",
           },
           { onConflict: "organization_id,user_id" },
@@ -959,6 +981,7 @@ export async function POST(request: Request) {
         user_id: createMode === "with_account" ? linkedUserId : existingEmployee.user_id,
         branch_id: branchId,
         all_locations: allLocations,
+        location_scope_ids: locationScopeIds,
         first_name: firstName,
         last_name: lastName,
         status: employmentStatus,
@@ -1070,7 +1093,7 @@ export async function POST(request: Request) {
             checksum_sha256: upload.analysis.checksumSha256,
             file_size_bytes: upload.file.size,
             access_scope: {
-              locations: branchId ? [branchId] : [],
+              locations: locationScopeIds,
               department_ids: departmentId ? [departmentId] : [],
               users: existingEmployee.user_id ? [existingEmployee.user_id] : [],
               internal_only: true,
@@ -1218,6 +1241,7 @@ export async function POST(request: Request) {
         userId: linkedUserId ?? existingEmployee.user_id ?? null,
         branchId,
         allLocations,
+        locationScopeIds,
         departmentId,
         positionId,
         firstName,
@@ -1334,6 +1358,7 @@ export async function POST(request: Request) {
           role_id: role.id,
           branch_id: branchId,
           all_locations: allLocations,
+          location_scope_ids: locationScopeIds,
           status: "active",
         },
         { onConflict: "organization_id,user_id" },
@@ -1362,6 +1387,7 @@ export async function POST(request: Request) {
       organization_id: tenant.organizationId,
       branch_id: branchId,
       all_locations: allLocations,
+      location_scope_ids: locationScopeIds,
       user_id: linkedUserId,
       first_name: firstName,
       last_name: lastName,
@@ -1500,7 +1526,7 @@ export async function POST(request: Request) {
           checksum_sha256: upload.analysis.checksumSha256,
           file_size_bytes: upload.file.size,
           access_scope: {
-            locations: branchId ? [branchId] : [],
+            locations: locationScopeIds,
             department_ids: departmentId ? [departmentId] : [],
             users: linkedUserId ? [linkedUserId] : [],
             internal_only: true,
@@ -1645,6 +1671,7 @@ export async function POST(request: Request) {
       userId: linkedUserId,
       branchId,
       allLocations,
+      locationScopeIds,
       departmentId,
       positionId,
       firstName,

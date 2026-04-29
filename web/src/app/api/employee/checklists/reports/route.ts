@@ -16,13 +16,13 @@ export async function GET() {
   const [{ data: employeeRow }, { data: membershipRows }] = await Promise.all([
     supabase
       .from("employees")
-      .select("branch_id, all_locations")
+      .select("branch_id, all_locations, location_scope_ids")
       .eq("organization_id", moduleAccess.tenant.organizationId)
       .eq("user_id", moduleAccess.userId)
       .maybeSingle(),
     supabase
       .from("memberships")
-      .select("branch_id, all_locations")
+      .select("branch_id, all_locations, location_scope_ids")
       .eq("organization_id", moduleAccess.tenant.organizationId)
       .eq("user_id", moduleAccess.userId)
       .eq("status", "active")
@@ -32,6 +32,7 @@ export async function GET() {
   const locationScope = await resolveEmployeeLocationScope(supabase, moduleAccess.tenant.organizationId, {
     tenantBranchId: moduleAccess.tenant.branchId,
     employeeBranchId: employeeRow?.branch_id ?? null,
+    employeeLocationIds: employeeRow?.location_scope_ids ?? [],
     membershipRows,
     employeeAllLocations: employeeRow?.all_locations ?? false,
   });

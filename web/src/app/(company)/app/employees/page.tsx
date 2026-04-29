@@ -130,7 +130,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
 
   const { data: organizationUserProfiles } = await supabase
     .from("organization_user_profiles")
-    .select("id, user_id, first_name, last_name, email, phone, branch_id, all_locations, department_id, is_employee, status, created_at")
+    .select("id, user_id, first_name, last_name, email, phone, branch_id, all_locations, location_scope_ids, department_id, is_employee, status, created_at")
     .eq("organization_id", tenant.organizationId)
     .eq("is_employee", false)
     .order("created_at", { ascending: false })
@@ -451,6 +451,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
         document_number: editEmployee.documentNumber ?? null,
         address: editEmployee.addressLine1 ?? null,
         branch_id: editEmployee.branchId ?? "",
+        location_scope_ids: editEmployee.locationScopeIds ?? [],
         all_locations: editEmployee.allLocations === true,
         position: editEmployee.position ?? "",
         position_id: editEmployee.positionId ?? "",
@@ -491,6 +492,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
           document_number: null,
           address: null,
           branch_id: editUserProfile.branch_id ?? "",
+          location_scope_ids: Array.isArray(editUserProfile.location_scope_ids) ? editUserProfile.location_scope_ids : [],
           all_locations: editUserProfile.all_locations === true,
           position: "",
           position_id: "",
@@ -581,7 +583,9 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       hiredAt: null,
       branchName: profile.all_locations
         ? "Todas las locaciones"
-        : (profile.branch_id ? (branchNameById.get(profile.branch_id) ?? "Sin locación") : "Sin locación"),
+        : (Array.isArray(profile.location_scope_ids) && profile.location_scope_ids.length > 1
+          ? `${profile.location_scope_ids.length} locaciones`
+          : (profile.branch_id ? (branchNameById.get(profile.branch_id) ?? "Sin locación") : "Sin locación")),
       departmentName: profile.department_id ? (departmentNameById.get(profile.department_id) ?? "Sin departamento") : "Sin departamento",
       salaryAmount: null,
       salaryCurrency: null,

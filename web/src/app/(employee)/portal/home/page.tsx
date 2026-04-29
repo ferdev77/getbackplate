@@ -51,14 +51,14 @@ export default async function EmployeeHomePage() {
 
   const { data: employeeRow } = await supabase
     .from("employees")
-    .select("id, department_id, branch_id, all_locations, hired_at, position, emergency_contact_name, first_name, last_name")
+    .select("id, department_id, branch_id, all_locations, location_scope_ids, hired_at, position, emergency_contact_name, first_name, last_name")
     .eq("organization_id", tenant.organizationId)
     .eq("user_id", userId)
     .maybeSingle();
 
   const { data: membershipRows } = await supabase
     .from("memberships")
-    .select("branch_id, all_locations")
+    .select("branch_id, all_locations, location_scope_ids")
     .eq("organization_id", tenant.organizationId)
     .eq("user_id", userId)
     .eq("status", "active")
@@ -67,6 +67,7 @@ export default async function EmployeeHomePage() {
   const locationScope = await resolveEmployeeLocationScope(supabase, tenant.organizationId, {
     tenantBranchId: tenant.branchId,
     employeeBranchId: employeeRow?.branch_id ?? null,
+    employeeLocationIds: employeeRow?.location_scope_ids ?? [],
     membershipRows,
     employeeAllLocations: employeeRow?.all_locations ?? false,
   });
