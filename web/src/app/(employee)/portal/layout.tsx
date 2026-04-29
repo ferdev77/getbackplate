@@ -36,7 +36,7 @@ function normalizeDocumentType(value: unknown): "dni" | "cuil" | "ssn" | "passpo
   return null;
 }
 
-const EMPLOYEE_PROFILE_SELECT = "id, user_id, first_name, last_name, position, department_id, branch_id, email, phone, phone_country_code, birth_date, document_type, document_number, address_line1, hired_at, personal_email";
+const EMPLOYEE_PROFILE_SELECT = "id, user_id, first_name, last_name, position, department_id, branch_id, all_locations, location_scope_ids, email, phone, phone_country_code, birth_date, document_type, document_number, address_line1, hired_at, personal_email";
 
 export async function generateMetadata(): Promise<Metadata> {
   let tenant;
@@ -101,7 +101,7 @@ export default async function EmployeeLayout({
       .maybeSingle(),
     supabase
       .from("organization_user_profiles")
-      .select("employee_id, first_name, last_name, email, phone, branch_id, department_id, position_id")
+      .select("employee_id, first_name, last_name, email, phone, branch_id, all_locations, location_scope_ids, department_id, position_id")
       .eq("organization_id", tenant.organizationId)
       .eq("user_id", user.id)
       .maybeSingle(),
@@ -119,7 +119,7 @@ export default async function EmployeeLayout({
   const { data: profileByEmail } = !employeeProfileRow && candidateEmails.length > 0
     ? await supabase
         .from("organization_user_profiles")
-        .select("employee_id, first_name, last_name, email, phone, branch_id, department_id, position_id")
+        .select("employee_id, first_name, last_name, email, phone, branch_id, all_locations, location_scope_ids, department_id, position_id")
         .eq("organization_id", tenant.organizationId)
         .eq("status", "active")
         .in("email", candidateEmails)
@@ -365,6 +365,11 @@ export default async function EmployeeLayout({
     : { data: null };
 
   const resolvedBranchId = resolvedEmployee?.branch_id ?? resolvedProfileRow?.branch_id ?? tenant.branchId ?? null;
+  const scopedLocationIds = Array.from(new Set([
+    ...(Array.isArray(resolvedEmployee?.location_scope_ids) ? resolvedEmployee.location_scope_ids : []),
+    ...(Array.isArray(resolvedProfileRow?.location_scope_ids) ? resolvedProfileRow.location_scope_ids : []),
+    ...(resolvedBranchId ? [resolvedBranchId] : []),
+  ].filter((value): value is string => Boolean(value))));
   const resolvedDepartmentId = resolvedEmployee?.department_id ?? resolvedProfileRow?.department_id ?? null;
 
   const { data: fallbackDepartment } = !department && resolvedDepartmentId
@@ -399,6 +404,23 @@ export default async function EmployeeLayout({
     : null;
 
   const employeeBranchId = resolvedBranchId;
+
+  const { data: scopedBranches } = (resolvedEmployee?.all_locations || resolvedProfileRow?.all_locations)
+    ? await supabase
+        .from("branches")
+        .select("id, name, city")
+        .eq("organization_id", tenant.organizationId)
+        .eq("is_active", true)
+        .order("name", { ascending: true })
+    : (scopedLocationIds.length
+      ? await supabase
+          .from("branches")
+          .select("id, name, city")
+          .eq("organization_id", tenant.organizationId)
+          .in("id", scopedLocationIds)
+      : { data: [] as Array<{ id: string; name: string; city: string | null }> });
+
+  const topBarBranchNames = (scopedBranches ?? []).map((row) => row.name);
 
   const resolvedBranch = employeeBranchId
     ? await supabase
@@ -572,6 +594,8 @@ export default async function EmployeeLayout({
     last_name: resolvedEmployee?.last_name ?? resolvedProfileRow?.last_name ?? metadataLastName ?? "",
     email: resolvedEmployee?.email ?? resolvedProfileRow?.email ?? user.email ?? "",
     branch_id: resolvedBranchId ?? resolvedProfileRow?.branch_id ?? "",
+    all_locations: resolvedEmployee?.all_locations === true || resolvedProfileRow?.all_locations === true,
+    location_scope_ids: scopedLocationIds,
     department_id: resolvedDepartmentId ?? resolvedProfileRow?.department_id ?? "",
     position_id: resolvedPositionId ?? positionById?.id ?? fallbackPositionRow?.id ?? legacyPositionId ?? "",
     document_type: normalizeDocumentType(resolvedEmployee?.document_type),
@@ -628,14 +652,10 @@ export default async function EmployeeLayout({
     }, {}),
   };
 
-  const profileBranches = resolvedBranchId
-    ? [{
-        id: resolvedBranchId,
-        name: customBrandingEnabled
-          ? ((resolvedBranch.data ?? branch)?.city ?? (resolvedBranch.data ?? branch)?.name ?? "Locación")
-          : ((resolvedBranch.data ?? branch)?.name ?? "Locación"),
-      }]
-    : [];
+  const profileBranches = (scopedBranches ?? []).map((row) => ({
+    id: row.id,
+    name: customBrandingEnabled ? (row.city ?? row.name) : row.name,
+  }));
   const profileDepartments = resolvedDepartmentId
     ? [{ id: resolvedDepartmentId, name: department?.name ?? fallbackDepartment?.name ?? "Departamento" }]
     : [];
@@ -677,6 +697,7 @@ export default async function EmployeeLayout({
       profileBranches={profileBranches}
       profileDepartments={profileDepartments}
       profilePositions={profilePositions}
+      branchNames={topBarBranchNames}
       realtimeAccessToken={session?.access_token ?? null}
     >
       {children}
