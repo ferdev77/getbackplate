@@ -17,6 +17,7 @@ import { CollapsibleSidebarNavItem } from "@/shared/ui/collapsible-sidebar-nav-i
 import { TooltipLabel } from "@/shared/ui/tooltip";
 import { FloatingAiAssistant } from "@/shared/ui/floating-ai-assistant";
 import { DevClientCachePanel } from "@/shared/ui/dev-client-cache-panel";
+import { ScopePillsOverflow } from "@/shared/ui/scope-pills-overflow";
 
 const CHECKLIST_PREVIEW_GUARD_KEY = "portal-checklist-preview-guard";
 const CHECKLIST_PREVIEW_GUARD_TTL_MS = 15000;
@@ -31,6 +32,7 @@ type EmployeeShellProps = {
   employeeName: string;
   employeePosition: string | null;
   branchName: string | null;
+  branchNames?: string[];
   departmentName: string | null;
   docsCount: number;
   checklistTemplateNames: string[];
@@ -80,6 +82,7 @@ export function EmployeeShell({
   employeeName,
   employeePosition,
   branchName,
+  branchNames = [],
   departmentName,
   docsCount,
   checklistTemplateNames,
@@ -616,9 +619,13 @@ export function EmployeeShell({
               <p className="font-serif text-lg font-bold text-[var(--gbp-text)]">{currentLabel}</p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="hidden rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2.5 py-1 text-xs font-medium text-[var(--gbp-accent)] sm:inline shadow-sm">
-                {branchName || "Locación"}
-              </span>
+              <div className="hidden sm:block">
+                <ScopePillsOverflow
+                  pills={(branchNames.length ? branchNames : [branchName || "Locación"]).map((name) => ({ name, type: "location" as const }))}
+                  max={4}
+                  variant="initials"
+                />
+              </div>
               {departmentName ? (
                 <span className="hidden rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 lg:inline shadow-sm">
                   {departmentName}
