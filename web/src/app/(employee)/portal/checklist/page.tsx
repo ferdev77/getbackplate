@@ -11,6 +11,7 @@ import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { getEnabledModulesCached } from "@/modules/organizations/cached-queries";
 import { getBranchDisplayName } from "@/shared/lib/branch-display";
 import { OperationHeaderCard } from "@/shared/ui/operation-header-card";
+import { resolveEmployeeLocationScope } from "@/shared/lib/employee-location-scope";
 
 type EmployeeChecklistPageProps = {
   searchParams: Promise<{ preview?: string | string[] }>;
@@ -46,15 +47,27 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
 
   const { data: employeeRow } = await supabase
     .from("employees")
-    .select("department_id, branch_id, position")
+    .select("department_id, branch_id, all_locations, position")
     .eq("organization_id", tenant.organizationId)
     .eq("user_id", userId)
     .maybeSingle();
 
-  const employeeBranchId = tenant.branchId ?? employeeRow?.branch_id ?? null;
-  const allowedLocationIds = Array.from(
-    new Set([tenant.branchId, employeeRow?.branch_id].filter((value): value is string => Boolean(value))),
-  );
+  const { data: membershipRows } = await supabase
+    .from("memberships")
+    .select("branch_id, all_locations")
+    .eq("organization_id", tenant.organizationId)
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .limit(20);
+
+  const locationScope = await resolveEmployeeLocationScope(supabase, tenant.organizationId, {
+    tenantBranchId: tenant.branchId,
+    employeeBranchId: employeeRow?.branch_id ?? null,
+    membershipRows,
+    employeeAllLocations: employeeRow?.all_locations ?? false,
+  });
+  const employeeBranchId = locationScope.primaryLocationId;
+  const allowedLocationIds = locationScope.locationIds;
   const locationHelperText =
     "Tu alcance base queda limitado a tus locaciones asignadas. Departamento y puesto filtran dentro de ese alcance.";
 
@@ -84,6 +97,7 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
       roleCode: tenant.roleCode,
       userId,
       branchId: employeeBranchId,
+      branchIds: allowedLocationIds,
       departmentId: employeeRow?.department_id ?? null,
       positionIds: employeePositionIds,
       templateBranchId: template.branch_id,

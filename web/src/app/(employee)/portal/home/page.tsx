@@ -8,6 +8,7 @@ import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-author
 import { canReadAnnouncementInTenant } from "@/shared/lib/announcement-access";
 import { canReadDocumentInTenant } from "@/shared/lib/document-access";
 import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
+import { resolveEmployeeLocationScope } from "@/shared/lib/employee-location-scope";
 import { FileText, ClipboardCheck, ArrowRight, AlertCircle, CalendarClock, PartyPopper, Megaphone, Pin } from "lucide-react";
 
 type AnnouncementRow = {
@@ -50,12 +51,26 @@ export default async function EmployeeHomePage() {
 
   const { data: employeeRow } = await supabase
     .from("employees")
-    .select("id, department_id, branch_id, hired_at, position, emergency_contact_name, first_name, last_name")
+    .select("id, department_id, branch_id, all_locations, hired_at, position, emergency_contact_name, first_name, last_name")
     .eq("organization_id", tenant.organizationId)
     .eq("user_id", userId)
     .maybeSingle();
 
-  const employeeBranchId = tenant.branchId ?? employeeRow?.branch_id ?? null;
+  const { data: membershipRows } = await supabase
+    .from("memberships")
+    .select("branch_id, all_locations")
+    .eq("organization_id", tenant.organizationId)
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .limit(20);
+
+  const locationScope = await resolveEmployeeLocationScope(supabase, tenant.organizationId, {
+    tenantBranchId: tenant.branchId,
+    employeeBranchId: employeeRow?.branch_id ?? null,
+    membershipRows,
+    employeeAllLocations: employeeRow?.all_locations ?? false,
+  });
+  const employeeBranchId = locationScope.primaryLocationId;
 
   let employeePositionIds: string[] = [];
   if (employeeRow?.position) {
@@ -213,6 +228,7 @@ export default async function EmployeeHomePage() {
         roleCode: tenant.roleCode,
         userId,
         branchId: employeeBranchId,
+        branchIds: locationScope.locationIds,
         departmentId: employeeRow?.department_id ?? null,
         positionIds: employeePositionIds,
         targetScope: item.target_scope,
@@ -248,6 +264,7 @@ export default async function EmployeeHomePage() {
         roleCode: tenant.roleCode,
         userId,
         branchId: employeeBranchId,
+        branchIds: locationScope.locationIds,
         departmentId: employeeRow?.department_id ?? null,
         positionIds: employeePositionIds,
         isDirectlyAssigned: assignedDocumentIds.has(doc.id),
@@ -264,6 +281,7 @@ export default async function EmployeeHomePage() {
         roleCode: tenant.roleCode,
         userId,
         branchId: employeeBranchId,
+        branchIds: locationScope.locationIds,
         departmentId: employeeRow?.department_id ?? null,
         positionIds: employeePositionIds,
         templateBranchId: template.branch_id,

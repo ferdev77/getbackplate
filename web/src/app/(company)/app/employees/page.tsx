@@ -130,7 +130,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
 
   const { data: organizationUserProfiles } = await supabase
     .from("organization_user_profiles")
-    .select("id, user_id, first_name, last_name, email, phone, branch_id, department_id, is_employee, status, created_at")
+    .select("id, user_id, first_name, last_name, email, phone, branch_id, all_locations, department_id, is_employee, status, created_at")
     .eq("organization_id", tenant.organizationId)
     .eq("is_employee", false)
     .order("created_at", { ascending: false })
@@ -451,6 +451,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
         document_number: editEmployee.documentNumber ?? null,
         address: editEmployee.addressLine1 ?? null,
         branch_id: editEmployee.branchId ?? "",
+        all_locations: editEmployee.allLocations === true,
         position: editEmployee.position ?? "",
         position_id: editEmployee.positionId ?? "",
         department_id: editEmployee.departmentId ?? "",
@@ -490,6 +491,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
           document_number: null,
           address: null,
           branch_id: editUserProfile.branch_id ?? "",
+          all_locations: editUserProfile.all_locations === true,
           position: "",
           position_id: "",
           department_id: editUserProfile.department_id ?? "",
@@ -577,7 +579,9 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       status: profile.status ?? "inactive",
       dashboardAccess: Boolean(profile.user_id && activeMembershipUserIds.has(profile.user_id)),
       hiredAt: null,
-      branchName: profile.branch_id ? (branchNameById.get(profile.branch_id) ?? "Sin locación") : "Sin locación",
+      branchName: profile.all_locations
+        ? "Todas las locaciones"
+        : (profile.branch_id ? (branchNameById.get(profile.branch_id) ?? "Sin locación") : "Sin locación"),
       departmentName: profile.department_id ? (departmentNameById.get(profile.department_id) ?? "Sin departamento") : "Sin departamento",
       salaryAmount: null,
       salaryCurrency: null,
