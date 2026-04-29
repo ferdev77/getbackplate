@@ -23,7 +23,7 @@ export const getEmployeeDirectoryView = cache(async (
       ? supabase
           .from("employees")
           .select(`
-            id, user_id, first_name, last_name, email, phone, phone_country_code, position, department, department_id, status, branch_id, all_locations, hired_at, birth_date, sex, nationality, address_line1, address_city, address_state, address_postal_code, address_country, emergency_contact_name, emergency_contact_phone, emergency_contact_email, created_at,
+            id, user_id, first_name, last_name, email, phone, phone_country_code, position, department, department_id, status, branch_id, all_locations, location_scope_ids, hired_at, birth_date, sex, nationality, address_line1, address_city, address_state, address_postal_code, address_country, emergency_contact_name, emergency_contact_phone, emergency_contact_email, created_at,
             document_type, document_number, personal_email,
             branch:branches ( id, name ),
             dept:organization_departments ( id, name )
@@ -214,6 +214,7 @@ export const getEmployeeDirectoryView = cache(async (
       status: emp.status,
       branchId: emp.branch_id,
       allLocations: emp.all_locations === true,
+      locationScopeIds: Array.isArray(emp.location_scope_ids) ? emp.location_scope_ids.filter(Boolean) : [],
       branchName: (emp.branch_id ? branchById.get(emp.branch_id) : undefined) || emp.branch?.name,
       roleCode: emp.user_id ? roleByUser.get(emp.user_id) : undefined,
       hiredAt: emp.hired_at,

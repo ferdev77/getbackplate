@@ -54,6 +54,7 @@ export type EmployeeModalInitialData = {
   last_name: string;
   email: string;
   branch_id: string;
+  location_scope_ids?: string[];
   all_locations?: boolean;
   department_id: string;
   position_id: string;
@@ -198,7 +199,14 @@ export function NewEmployeeModal({
   const [isActionPending, setIsActionPending] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [selectedDept, setSelectedDept] = useState(initialEmployee?.department_id ?? "");
-  const [selectedBranch, setSelectedBranch] = useState(initialEmployee?.all_locations ? "__all__" : (initialEmployee?.branch_id ?? ""));
+  const [allLocationsEnabled, setAllLocationsEnabled] = useState(initialEmployee?.all_locations === true);
+  const [selectedBranchIds, setSelectedBranchIds] = useState<string[]>(
+    initialEmployee?.all_locations
+      ? []
+      : (Array.isArray(initialEmployee?.location_scope_ids) && initialEmployee.location_scope_ids.length
+        ? initialEmployee.location_scope_ids
+        : (initialEmployee?.branch_id ? [initialEmployee.branch_id] : [])),
+  );
   const [selectedPosition, setSelectedPosition] = useState(initialEmployee?.position_id ?? "");
   const [createAccount, setCreateAccount] = useState(Boolean(initialEmployee?.has_dashboard_access));
   const [delegatedPermissions, setDelegatedPermissions] = useState<DelegatedPermissionsState>(
@@ -302,7 +310,14 @@ export function NewEmployeeModal({
 
   useEffect(() => {
     setSelectedDept(initialEmployee?.department_id ?? "");
-    setSelectedBranch(initialEmployee?.all_locations ? "__all__" : (initialEmployee?.branch_id ?? ""));
+    setAllLocationsEnabled(initialEmployee?.all_locations === true);
+    setSelectedBranchIds(
+      initialEmployee?.all_locations
+        ? []
+        : (Array.isArray(initialEmployee?.location_scope_ids) && initialEmployee.location_scope_ids.length
+          ? initialEmployee.location_scope_ids
+          : (initialEmployee?.branch_id ? [initialEmployee.branch_id] : [])),
+    );
     setSelectedPosition(initialEmployee?.position_id ?? "");
     setCreateAccount(Boolean(initialEmployee?.has_dashboard_access));
     setDelegatedPermissions(initialEmployee?.delegated_permissions ?? EMPTY_DELEGATED_PERMISSIONS);
@@ -810,7 +825,11 @@ export function NewEmployeeModal({
   const positionNameById = useMemo(() => new Map(positions.map((row) => [row.id, row.name])), [positions]);
 
   const employeeFullName = `${firstName} ${lastName}`.trim() || "[Nombre del empleado]";
-  const previewBranch = selectedBranch ? (branchNameById.get(selectedBranch) ?? "Sin locación") : "Sin locación";
+  const previewBranch = allLocationsEnabled
+    ? "Todas las locaciones"
+    : (selectedBranchIds.length
+      ? selectedBranchIds.map((id) => branchNameById.get(id) ?? "Locación").join(", ")
+      : "Sin locación");
   const previewDepartment = selectedDept ? (departmentNameById.get(selectedDept) ?? "Sin departamento") : "Sin departamento";
   const previewPosition = selectedPosition ? (positionNameById.get(selectedPosition) ?? "Puesto no definido") : "Puesto no definido";
   const previewHireDate = hireDate
@@ -842,7 +861,7 @@ export function NewEmployeeModal({
   const contractReady =
     Boolean(firstName.trim()) &&
     Boolean(lastName.trim()) &&
-    Boolean(selectedBranch) &&
+    (allLocationsEnabled || selectedBranchIds.length > 0) &&
     Boolean(selectedDept) &&
     Boolean(selectedPosition) &&
     Boolean(hireDate) &&
@@ -1301,21 +1320,40 @@ export function NewEmployeeModal({
               <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="space-y-2">
                   <label className={FIELD_LABEL}>Locación / Locación</label>
+                  <input type="hidden" name="branch_id" value={allLocationsEnabled ? "__all__" : (selectedBranchIds[0] ?? "")} />
+                  {!allLocationsEnabled
+                    ? selectedBranchIds.map((branchId) => (
+                        <input key={`scope-${branchId}`} type="hidden" name="branch_ids" value={branchId} />
+                      ))
+                    : null}
+                  <label className="flex items-center gap-2 text-xs font-semibold text-[var(--gbp-text2)]">
+                    <input
+                      type="checkbox"
+                      checked={allLocationsEnabled}
+                      onChange={(event) => {
+                        setAllLocationsEnabled(event.target.checked);
+                        if (event.target.checked) setSelectedBranchIds([]);
+                      }}
+                    />
+                    Todas las locaciones
+                  </label>
                   <select
-                    name="branch_id"
-                    value={selectedBranch}
-                    onChange={(event) => setSelectedBranch(event.target.value)}
-                    className={`${FIELD_INPUT} appearance-none`}
-                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: 'right 1rem center', backgroundRepeat: 'no-repeat' }}
+                    multiple
+                    value={selectedBranchIds}
+                    disabled={allLocationsEnabled}
+                    onChange={(event) => {
+                      const values = Array.from(event.target.selectedOptions).map((option) => option.value);
+                      setSelectedBranchIds(values);
+                    }}
+                    className={FIELD_INPUT}
                   >
-                    <option value="">— Selecciona locación —</option>
-                    <option value="__all__">Todas las locaciones</option>
                     {branches.map((b) => (
                       <option key={b.id} value={b.id}>
                         {b.name}
                       </option>
                     ))}
                   </select>
+                  <p className="text-xs text-[var(--gbp-text2)]">Mantén Ctrl/Cmd para seleccionar varias locaciones.</p>
                 </div>
               </div>
 

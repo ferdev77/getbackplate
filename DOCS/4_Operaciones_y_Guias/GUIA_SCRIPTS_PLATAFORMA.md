@@ -91,6 +91,7 @@ npx supabase db query --linked -f "scripts/remove_user_from_org_with_auth.sql"
 - `verify-document-guardrails.mjs`: verifica guardrails de documentos.
 - `verify-docuseal-integration.mjs`: verifica integracion DocuSeal.
 - `verify-employee-documents-custom-flow.mjs`: valida flujo custom de docs de empleado.
+- `verify-employee-all-locations-multi-position.mjs`: valida alcance de empleado con `all_locations` y multiple puesto por scope.
 - `verify-layout-guardrails.mjs`: valida guardrails de layout/ui.
 - `verify-massive-test.mjs`: valida escenario de carga masiva.
 - `verify-master-e2e.mjs`: validacion E2E maestra.
