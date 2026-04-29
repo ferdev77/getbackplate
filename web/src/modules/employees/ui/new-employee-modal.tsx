@@ -1337,23 +1337,46 @@ export function NewEmployeeModal({
                     />
                     Todas las locaciones
                   </label>
-                  <select
-                    multiple
-                    value={selectedBranchIds}
-                    disabled={allLocationsEnabled}
-                    onChange={(event) => {
-                      const values = Array.from(event.target.selectedOptions).map((option) => option.value);
-                      setSelectedBranchIds(values);
-                    }}
-                    className={FIELD_INPUT}
-                  >
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-[var(--gbp-text2)]">Mantén Ctrl/Cmd para seleccionar varias locaciones.</p>
+                  <div className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-[var(--gbp-text2)]">Locaciones específicas</span>
+                      <button
+                        type="button"
+                        disabled={allLocationsEnabled}
+                        onClick={() => {
+                          setSelectedBranchIds((prev) => {
+                            if (prev.length === branches.length) return [];
+                            return branches.map((branch) => branch.id);
+                          });
+                        }}
+                        className="text-xs font-semibold text-[var(--gbp-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {selectedBranchIds.length === branches.length ? "Quitar todas" : "Seleccionar todas"}
+                      </button>
+                    </div>
+                    <div className="grid max-h-40 grid-cols-1 gap-2 overflow-y-auto pr-1">
+                      {branches.map((branch) => {
+                        const checked = selectedBranchIds.includes(branch.id);
+                        return (
+                          <label key={branch.id} className="flex items-center gap-2 rounded-lg border border-[var(--gbp-border)] px-2 py-1.5 text-sm text-[var(--gbp-text)]">
+                            <input
+                              type="checkbox"
+                              disabled={allLocationsEnabled}
+                              checked={checked}
+                              onChange={(event) => {
+                                const isChecked = event.target.checked;
+                                setSelectedBranchIds((prev) => {
+                                  if (isChecked) return Array.from(new Set([...prev, branch.id]));
+                                  return prev.filter((id) => id !== branch.id);
+                                });
+                              }}
+                            />
+                            <span>{branch.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
 
