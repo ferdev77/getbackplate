@@ -90,7 +90,7 @@ export default async function EmployeeHomePage() {
     enabledModules,
     { data: preferencesRow },
     { data: department },
-    resolvedBranch,
+    { data: scopedBranches },
   ] = await Promise.all([
     getEnabledModulesCached(tenant.organizationId),
     supabase
@@ -107,22 +107,22 @@ export default async function EmployeeHomePage() {
           .eq("id", employeeRow.department_id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    employeeBranchId
+    locationScope.locationIds.length
       ? supabase
           .from("branches")
-          .select("name, city")
+          .select("id, name, city")
           .eq("organization_id", tenant.organizationId)
-          .eq("id", employeeBranchId)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
+          .in("id", locationScope.locationIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; name: string; city: string | null }> }),
   ]);
 
   const enabledModulesSet = new Set(enabledModules);
 
   const customBrandingEnabled = enabledModulesSet.has("custom_branding");
-  const resolvedBranchDisplayName = resolvedBranch.data
-    ? (customBrandingEnabled && resolvedBranch.data.city ? resolvedBranch.data.city : resolvedBranch.data.name)
-    : null;
+  const branchNameById = new Map((scopedBranches ?? []).map((row) => [row.id, customBrandingEnabled && row.city ? row.city : row.name]));
+  const resolvedBranchDisplayNames = locationScope.locationIds
+    .map((id) => branchNameById.get(id))
+    .filter((value): value is string => Boolean(value));
 
   const hasAnnouncementsModule = enabledModulesSet.has("announcements");
   const hasDocumentsModule = enabledModulesSet.has("documents");
@@ -316,7 +316,9 @@ export default async function EmployeeHomePage() {
             {employeeRow?.position && <span className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] px-2.5 py-0.5 text-[var(--gbp-success)]">{employeeRow.position}</span>}
           </div>
           <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-medium">
-            {resolvedBranchDisplayName && <span className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-3 py-1 text-[var(--gbp-accent)]">{resolvedBranchDisplayName}</span>}
+            {resolvedBranchDisplayNames.map((locationName) => (
+              <span key={locationName} className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-3 py-1 text-[var(--gbp-accent)]">{locationName}</span>
+            ))}
           </div>
         </div>
         <div className="min-w-[140px] rounded-xl bg-[var(--gbp-bg)] p-5 text-center">
