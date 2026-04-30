@@ -206,19 +206,30 @@ export async function GET(request: Request) {
         .in("user_id", userIds)
     : { data: [] as Array<{ user_id: string; branch_id: string | null; all_locations: boolean | null; location_scope_ids: string[] | null }> };
 
+  const { data: membershipRows } = userIds.length
+    ? await supabase
+        .from("memberships")
+        .select("user_id, branch_id, all_locations, location_scope_ids")
+        .eq("organization_id", tenant.organizationId)
+        .in("user_id", userIds)
+    : { data: [] as Array<{ user_id: string; branch_id: string | null; all_locations: boolean | null; location_scope_ids: string[] | null }> };
+
   const profileByUserId = new Map((profileRows ?? []).map((row) => [row.user_id, row]));
+  const membershipByUserId = new Map((membershipRows ?? []).map((row) => [row.user_id, row]));
   const branchNameById = new Map(mappedBranches.map((row) => [row.id, row.name]));
 
   const mappedUsers = (viewData.users ?? []).map((row: any) => {
     const profile = row.userId ? profileByUserId.get(row.userId) : null;
-    const allLocations = profile?.all_locations === true;
-    const locationScopeNames = (profile?.location_scope_ids ?? [])
+    const membership = row.userId ? membershipByUserId.get(row.userId) : null;
+    const allLocations = membership?.all_locations === true || profile?.all_locations === true;
+    const locationScopeNames = ((membership?.location_scope_ids ?? profile?.location_scope_ids ?? []) as string[])
       .map((id: any) => branchNameById.get(id))
       .filter((value: any): value is string => Boolean(value));
 
     const branchName = allLocations
       ? "Todas las locaciones"
       : (locationScopeNames[0]
+        ?? (membership?.branch_id ? (branchNameById.get(membership.branch_id) ?? null) : null)
         ?? (profile?.branch_id ? (branchNameById.get(profile.branch_id) ?? null) : null)
         ?? row.branchName
         ?? "Sin locación");
@@ -226,7 +237,7 @@ export async function GET(request: Request) {
     return {
       ...row,
       branchName,
-      branchId: allLocations ? null : (profile?.branch_id ?? row.branchId ?? null),
+      branchId: allLocations ? null : (membership?.branch_id ?? profile?.branch_id ?? row.branchId ?? null),
     };
   });
 
@@ -266,7 +277,7 @@ export async function PATCH(request: Request) {
 
   const { data: previousMembership } = await supabase
     .from("memberships")
-    .select("status, role_id, branch_id")
+    .select("status, role_id, branch_id, all_locations, location_scope_ids")
     .eq("organization_id", tenant.organizationId)
     .eq("id", membershipId)
     .maybeSingle();
@@ -299,9 +310,12 @@ export async function PATCH(request: Request) {
     }
   }
 
+  const allLocations = !branchId;
+  const locationScopeIds = branchId ? [branchId] : [];
+
   const { error: updateError } = await supabase
     .from("memberships")
-    .update({ role_id: role.id, status, branch_id: branchId })
+    .update({ role_id: role.id, status, branch_id: branchId, all_locations: allLocations, location_scope_ids: locationScopeIds })
     .eq("organization_id", tenant.organizationId)
     .eq("id", membershipId);
 
@@ -319,6 +333,8 @@ export async function PATCH(request: Request) {
         role_code: roleCode,
         status,
         branch_id: branchId,
+        all_locations: allLocations,
+        location_scope_ids: locationScopeIds,
         error: updateError.message,
       },
     });
@@ -341,6 +357,8 @@ export async function PATCH(request: Request) {
       role_code: roleCode,
       status,
       branch_id: branchId,
+      all_locations: allLocations,
+      location_scope_ids: locationScopeIds,
       previous_status: previousMembership?.status ?? null,
       status_changed: previousMembership?.status !== status,
     },
@@ -384,6 +402,8 @@ export async function POST(request: Request) {
   const password = String(formData.get("password") ?? "");
   const roleCodeInput = String(formData.get("role_code") ?? "employee").trim();
   const branchId = String(formData.get("branch_id") ?? "").trim() || null;
+  const allLocations = !branchId;
+  const locationScopeIds = branchId ? [branchId] : [];
   const accessStatusRaw = String(formData.get("access_status") ?? "active").trim().toLowerCase();
   const accessStatus = accessStatusRaw === "inactive" || accessStatusRaw === "inactivo" ? "inactive" : "active";
 
@@ -461,6 +481,8 @@ export async function POST(request: Request) {
         user_id: targetUserId,
         role_id: role.id,
         branch_id: branchId,
+        all_locations: allLocations,
+        location_scope_ids: locationScopeIds,
         status: accessStatus,
       },
       { onConflict: "organization_id,user_id" },
@@ -491,6 +513,8 @@ export async function POST(request: Request) {
       role_code: roleCode,
       status: accessStatus,
       branch_id: branchId,
+      all_locations: allLocations,
+      location_scope_ids: locationScopeIds,
       was_existing_membership: Boolean(existingMembership),
     },
   });
