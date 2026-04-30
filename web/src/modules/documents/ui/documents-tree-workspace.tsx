@@ -533,9 +533,9 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
     return [];
   }, [branchMap]);
 
-  // Deptos + Puestos combinados: igual que checklists scopeRoles
-  // Departamento solo → "Cocina"
-  // Puesto con depto → "Cocina: Chef"
+  // Deptos + Puestos combinados
+  // Departamento → "Cocina"
+  // Puesto → "Chef" (sin repetir el nombre del depto)
   const getScopeRoles = useCallback((scope: ReturnType<typeof parseScope>): { name: string, type: "department" | "position" }[] => {
     const roles: { name: string, type: "department" | "position" }[] = [];
     for (const dId of scope.departments) {
@@ -544,8 +544,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
     for (const pId of scope.positions) {
       const p = positionMap.get(pId);
       if (!p) { roles.push({ name: "Puesto", type: "position" }); continue; }
-      const dName = p.department_id ? (deptMap.get(p.department_id) ?? "Depto") : null;
-      roles.push({ name: dName ? `${dName}: ${p.name}` : p.name, type: "position" });
+      roles.push({ name: p.name, type: "position" });
     }
     return roles;
   }, [deptMap, positionMap]);
