@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
 import { assertTenantModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { resolveEmployeeAllowedLocationIds } from "@/shared/lib/employee-api-scope";
 
 const EVIDENCE_BUCKET = "checklist-evidence";
 const MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024;
@@ -125,12 +126,15 @@ export async function POST(request: Request) {
     return fail("Sin items para enviar", 400, { template_id: templateId });
   }
 
-  const { data: employeeRow } = await supabase
-    .from("employees")
-    .select("department_id, position, branch_id")
-    .eq("organization_id", tenant.organizationId)
-    .eq("user_id", userId)
-    .maybeSingle();
+  const [{ data: employeeRow }, allowedLocationIds] = await Promise.all([
+    supabase
+      .from("employees")
+      .select("department_id, position, branch_id")
+      .eq("organization_id", tenant.organizationId)
+      .eq("user_id", userId)
+      .maybeSingle(),
+    resolveEmployeeAllowedLocationIds(tenant.organizationId, userId),
+  ]);
 
   let employeePositionIds: string[] = [];
   if (employeeRow?.position) {
@@ -161,6 +165,7 @@ export async function POST(request: Request) {
     roleCode: tenant.roleCode,
     userId,
     branchId: tenant.branchId ?? employeeRow?.branch_id ?? null,
+    branchIds: allowedLocationIds,
     departmentId: employeeRow?.department_id ?? null,
     positionIds: employeePositionIds,
     templateBranchId: template.branch_id,

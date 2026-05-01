@@ -44,6 +44,24 @@ function employeeHomeScope(base: AccessScope, userId: string): AccessScope {
   };
 }
 
+function normalizeTextArray(values: string[] | undefined) {
+  return [...(values ?? [])].filter(Boolean).sort();
+}
+
+function sameScope(a: AccessScope, b: AccessScope) {
+  return JSON.stringify({
+    locations: normalizeTextArray(a.locations),
+    department_ids: normalizeTextArray(a.department_ids),
+    position_ids: normalizeTextArray(a.position_ids),
+    users: normalizeTextArray(a.users),
+  }) === JSON.stringify({
+    locations: normalizeTextArray(b.locations),
+    department_ids: normalizeTextArray(b.department_ids),
+    position_ids: normalizeTextArray(b.position_ids),
+    users: normalizeTextArray(b.users),
+  });
+}
+
 export function isProtectedEmployeeDocumentsFolder(folder: {
   id?: string;
   access_scope?: unknown;
@@ -59,9 +77,40 @@ export function isProtectedEmployeeDocumentsFolder(folder: {
 async function resolveEmployeeIdentity(organizationId: string, userId: string) {
   const admin = createSupabaseAdminClient();
 
+  const resolveLocationScope = async (input: {
+    branchId?: string | null;
+    allLocations?: boolean | null;
+    locationScopeIds?: unknown;
+  }) => {
+    if (input.allLocations) {
+      const { data: branches } = await admin
+        .from("branches")
+        .select("id")
+        .eq("organization_id", organizationId)
+        .eq("is_active", true);
+      return (branches ?? []).map((row) => row.id);
+    }
+
+    const scoped = Array.isArray(input.locationScopeIds)
+      ? input.locationScopeIds.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+    if (scoped.length > 0) return scoped;
+    if (input.branchId) return [input.branchId];
+    return [];
+  };
+
   const { data: employee } = await admin
     .from("employees")
-    .select("first_name, last_name, branch_id, department_id")
+    .select("first_name, last_name, branch_id, department_id, all_locations, location_scope_ids")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { data: profile } = await admin
+    .from("organization_user_profiles")
+    .select("first_name, last_name, branch_id, department_id, position_id, all_locations, location_scope_ids")
     .eq("organization_id", organizationId)
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
@@ -69,22 +118,29 @@ async function resolveEmployeeIdentity(organizationId: string, userId: string) {
     .maybeSingle();
 
   if (employee) {
+    const locations = await resolveLocationScope({
+      branchId: employee.branch_id,
+      allLocations: employee.all_locations,
+      locationScopeIds: employee.location_scope_ids,
+    });
+
     return {
       name: normalizeEmployeeFolderName(`${employee.first_name ?? ""} ${employee.last_name ?? ""}`),
       scope: {
-        locations: employee.branch_id ? [employee.branch_id] : [],
-        department_ids: employee.department_id ? [employee.department_id] : [],
-        position_ids: [],
+        locations,
+        department_ids: employee.department_id ? [employee.department_id] : profile?.department_id ? [profile.department_id] : [],
+        position_ids: profile?.position_id ? [profile.position_id] : [],
         users: [userId],
       } satisfies AccessScope,
     };
   }
 
-  const { data: profile } = await admin
-    .from("organization_user_profiles")
-    .select("first_name, last_name")
+  const { data: membership } = await admin
+    .from("memberships")
+    .select("branch_id, all_locations, location_scope_ids")
     .eq("organization_id", organizationId)
     .eq("user_id", userId)
+    .eq("status", "active")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -92,9 +148,13 @@ async function resolveEmployeeIdentity(organizationId: string, userId: string) {
   return {
     name: normalizeEmployeeFolderName(`${profile?.first_name ?? ""} ${profile?.last_name ?? ""}`),
     scope: {
-      locations: [],
-      department_ids: [],
-      position_ids: [],
+      locations: await resolveLocationScope({
+        branchId: membership?.branch_id,
+        allLocations: membership?.all_locations,
+        locationScopeIds: membership?.location_scope_ids,
+      }),
+      department_ids: profile?.department_id ? [profile.department_id] : [],
+      position_ids: profile?.position_id ? [profile.position_id] : [],
       users: [userId],
     } satisfies AccessScope,
   };
@@ -233,7 +293,12 @@ export async function ensureEmployeeDocumentsRootFolder(input: {
   } else {
     const currentType = getSystemFolderType(rootFolder.access_scope);
     const expectedScope = employeeHomeScope(identity.scope, input.userId);
-    if (rootFolder.name !== identity.name || rootFolder.parent_id !== employeesRoot.id || currentType !== "employee_home") {
+    const currentScope = rootFolder.access_scope && typeof rootFolder.access_scope === "object"
+      ? (rootFolder.access_scope as AccessScope)
+      : null;
+    const requiresScopeSync = !currentScope || !sameScope(currentScope, expectedScope);
+
+    if (rootFolder.name !== identity.name || rootFolder.parent_id !== employeesRoot.id || currentType !== "employee_home" || requiresScopeSync) {
       const { error: syncError } = await admin
         .from("document_folders")
         .update({

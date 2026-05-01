@@ -114,8 +114,14 @@ export async function proxy(request: NextRequest) {
   const hasAuthCode = request.nextUrl.searchParams.has("code");
   const hasTokenHashFlow = request.nextUrl.searchParams.has("token_hash") && isSupportedAuthType;
   const hasTokenFlow = request.nextUrl.searchParams.has("token") && isSupportedAuthType;
+  const shouldBypassAuthCodeRedirect =
+    path.startsWith("/api/company/integrations/qbo-r365/oauth/callback");
 
-  if ((hasAuthCode || hasTokenHashFlow || hasTokenFlow) && !path.startsWith("/auth/callback")) {
+  if (
+    !shouldBypassAuthCodeRedirect
+    && (hasAuthCode || hasTokenHashFlow || hasTokenFlow)
+    && !path.startsWith("/auth/callback")
+  ) {
     const callbackUrl = request.nextUrl.clone();
     callbackUrl.pathname = "/auth/callback";
 

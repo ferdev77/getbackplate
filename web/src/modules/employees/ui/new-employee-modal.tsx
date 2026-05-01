@@ -88,6 +88,7 @@ type NewEmployeeModalProps = {
   initialEmployee?: EmployeeModalInitialData;
   selfProfileUploadEndpoint?: string;
   recentDocuments?: ModalDocument[];
+  enabledModules?: string[];
 };
 
 type SlotUploadUiState = {
@@ -194,6 +195,7 @@ export function NewEmployeeModal({
   mode = "create",
   initialEmployee,
   selfProfileUploadEndpoint = "/api/employee/profile/documents",
+  enabledModules,
 }: NewEmployeeModalProps) {
   const isEmployeeSelfMode = mode === "employee_self";
   const [isActionPending, setIsActionPending] = useState(false);
@@ -2066,6 +2068,7 @@ export function NewEmployeeModal({
               <DelegatedPermissionsSection
                 delegatedPermissions={delegatedPermissions}
                 setDelegatedPermissions={setDelegatedPermissions}
+                enabledModules={enabledModules}
               />
             </div>
           </div>

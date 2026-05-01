@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { EmployeesPageWorkspace } from "@/modules/employees/ui/employees-page-workspace";
 import { getEmployeeDirectoryView } from "@/modules/employees/services";
 import { requireTenantModule } from "@/shared/lib/access";
+import { getEnabledModulesCached } from "@/modules/organizations/cached-queries";
 import { extractDisplayName } from "@/shared/lib/user";
 import {
   EMPLOYEE_PERMISSION_MODULES,
@@ -83,6 +84,8 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
   const statusParam = params.status;
   const messageParam = params.message;
 
+  const enabledModules = await getEnabledModulesCached(tenant.organizationId);
+
   if (!isEditAction) {
     return (
       <EmployeesPageWorkspace
@@ -97,6 +100,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
         initialModalOpen={openEmployeeModal}
         initialModalMode="create"
         deferredDataUrl={`/api/company/employees?catalog=directory_page&limit=100&page=1`}
+        enabledModules={enabledModules}
       />
     );
   }
@@ -635,6 +639,7 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       initialModalOpen={openEmployeeModal}
       initialModalMode={isEditAction ? "edit" : "create"}
       initialEmployee={initialEmployeeData}
+      enabledModules={enabledModules}
     />
   );
 }
