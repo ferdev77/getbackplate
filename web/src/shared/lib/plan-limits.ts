@@ -153,22 +153,6 @@ async function getUsage(orgId: string): Promise<OrganizationUsage> {
   return usage;
 }
 
-function bumpUsageCache(orgId: string, updates: Partial<OrganizationUsage>) {
-  const cached = usageCache.get(orgId);
-  if (!cached) return;
-
-  const next: OrganizationUsage = {
-    branches: Math.max(0, cached.usage.branches + (updates.branches ?? 0)),
-    users: Math.max(0, cached.usage.users + (updates.users ?? 0)),
-    employees: Math.max(0, cached.usage.employees + (updates.employees ?? 0)),
-    storageBytes: Math.max(0, cached.usage.storageBytes + (updates.storageBytes ?? 0)),
-  };
-
-  usageCache.set(orgId, {
-    usage: next,
-    fetchedAt: cached.fetchedAt,
-  });
-}
 
 async function getPlanLimitsById(planId: string): Promise<PlanLimits | null> {
   const admin = createSupabaseAdminClient();
@@ -266,7 +250,7 @@ export async function assertPlanLimitForStorage(orgId: string, addingBytes: numb
     limit: maxStorageBytes,
   });
 
-  bumpUsageCache(orgId, { storageBytes: Math.floor(addingBytes) });
+  usageCache.delete(orgId);
 }
 
 export async function assertOrganizationCanSwitchToPlan(orgId: string, targetPlanId: string) {

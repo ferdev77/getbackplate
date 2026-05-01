@@ -77,6 +77,33 @@ Leer:
 Leer:
 - `DOCS/4_Operaciones_y_Guias/GUIA_SCRIPTS_PLATAFORMA.md`
 
+## 11) Si la pregunta es integracion QuickBooks Online -> Restaurant365
+
+Leer (orden recomendado):
+- `DOCS/4_Operaciones_y_Guias/GUIA_ONBOARDING_QBO_R365_RAPIDA.md`
+- `DOCS/2_Planes_y_Checklists/PRODUCT_PHASE_INTEGRACION_QBO_R365_PROPUESTA_IMPLEMENTACION.md`
+- `DOCS/1_Arquitectura_y_Contexto/PRODUCT_PHASE_QBO_R365_ESPECIFICACION_TECNICA.md`
+- `DOCS/2_Planes_y_Checklists/PRODUCT_PHASE_QBO_R365_MATRIZ_MAPEO_BASE.md`
+- `DOCS/2_Planes_y_Checklists/PRODUCT_PHASE_QBO_R365_PLAN_IMPLEMENTACION_CHECKLIST.md`
+- `DOCS/4_Operaciones_y_Guias/GUIA_OPERATIVA_QBO_R365.md`
+- `DOCS/4_Operaciones_y_Guias/GUIA_CONFIGURACION_QBO_R365_SANDBOX.md`
+
+## 12) Si la pregunta es scope/permisos de empleados multi-locacion
+
+El sistema tiene dos contextos de acceso:
+- **Admin** (`/app/*`): scope global, todas las locaciones
+- **Portal empleado** (`/portal/*`): scope restringido a locaciones asignadas
+
+Archivos clave en codigo (no en DOCS, leer directamente):
+- `web/src/shared/lib/employee-api-scope.ts` — resolver locaciones permitidas para APIs
+- `web/src/shared/lib/employee-location-scope.ts` — resolver scope para paginas del portal
+- `web/src/shared/lib/employee-module-permissions.ts` — permisos delegados por modulo
+- `web/src/shared/lib/scope-policy.ts` — logica de matcheo de audiencia
+- `web/src/shared/lib/scope-validation.ts` — validacion de IDs de scope contra BD
+
+Estado al 2026-05-01: scope multi-locacion corregido en todas las rutas API de empleado
+(announcements, documents, document-folders, checklists/templates, checklists/submit, vendors).
+
 ## Regla operativa para IA o humanos
 
 1. Responder primero lo puntual pedido por el usuario.

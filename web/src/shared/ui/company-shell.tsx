@@ -167,6 +167,7 @@ const MODULE_LABELS: Record<string, string> = {
   dashboard: "Dashboard",
   company_portal: "Portal Empresa",
   vendors: "Proveedores",
+  qbo_r365: "Integración QuickBooks",
 };
 
 function isActive(pathname: string, searchParams: URLSearchParams, href: string) {
@@ -503,6 +504,12 @@ export function CompanyShell({
     } else if (pathname.startsWith("/app/vendors")) {
       subscriptions.push(
         { table: "vendors", filter: orgFilter },
+      );
+    } else if (pathname.startsWith("/app/integrations/quickbooks")) {
+      subscriptions.push(
+        { table: "integration_runs", filter: orgFilter },
+        { table: "integration_run_items", filter: orgFilter },
+        { table: "integration_connections", filter: orgFilter },
       );
     } else if (pathname.startsWith("/app/settings")) {
       subscriptions.push(
@@ -2122,6 +2129,7 @@ export function CompanyShell({
             positions={employeesModalCatalog.positions}
             publisherName={employeesModalCatalog.publisherName}
             companyName={employeesModalCatalog.companyName}
+            enabledModules={enabledModules}
           />
         ) : renderModalLoading("Nuevo Usuario / Empleado")
       ) : null}

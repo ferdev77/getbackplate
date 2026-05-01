@@ -8,6 +8,7 @@ export const getVendorDirectoryView = cache(async (
   options: {
     forEmployee?: boolean;
     branchId?: string | null;
+    branchIds?: string[];
   } = {}
 ) => {
   const supabase = await createSupabaseServerClient();
@@ -93,14 +94,19 @@ export const getVendorDirectoryView = cache(async (
 
   let mappedVendors = (vendors ?? []).map(mapVendor);
 
-  // For employee view: filter by their branch (if branchId provided)
-  if (options.forEmployee && options.branchId) {
-    mappedVendors = mappedVendors.filter((v) => {
-      // Show if vendor is global (no locations) OR assigned to this branch
-      const hasLocations = v.branchIds.length > 0;
-      if (!hasLocations) return true; // global
-      return v.branchIds.includes(options.branchId!);
-    });
+  // For employee view: filter by their allowed branches
+  if (options.forEmployee) {
+    const allowedIds = new Set([
+      ...(options.branchIds ?? []),
+      ...(options.branchId ? [options.branchId] : []),
+    ]);
+    if (allowedIds.size > 0) {
+      mappedVendors = mappedVendors.filter((v) => {
+        const hasLocations = v.branchIds.length > 0;
+        if (!hasLocations) return true; // global vendor — visible to all
+        return v.branchIds.some((id) => allowedIds.has(id));
+      });
+    }
   }
 
   return {

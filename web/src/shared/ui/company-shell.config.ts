@@ -5,6 +5,7 @@ import {
   FilePlus2,
   FolderPlus,
   LayoutGrid,
+  Link2,
   MessageSquarePlus,
   Settings,
   Trash2,
@@ -145,6 +146,12 @@ export const SECTIONS: SidebarSection[] = [
   {
     label: "Proveedores",
     items: [{ href: "/app/vendors", label: "Proveedores", icon: Truck, sub: true, moduleCode: "vendors" }],
+  },
+  {
+    label: "Integraciones",
+    items: [
+      { href: "/app/integrations/quickbooks", label: "Integración QuickBooks", icon: Link2, moduleCode: "qbo_r365" },
+    ],
   },
   {
     label: "Recursos Humanos",

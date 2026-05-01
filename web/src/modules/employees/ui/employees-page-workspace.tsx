@@ -63,6 +63,7 @@ type EmployeesPageWorkspaceProps = {
   initialModalMode: "create" | "edit";
   initialEmployee?: InitialEmployeePayload;
   deferredDataUrl?: string;
+  enabledModules?: string[];
 };
 
 export function EmployeesPageWorkspace({
@@ -78,6 +79,7 @@ export function EmployeesPageWorkspace({
   initialModalMode,
   initialEmployee,
   deferredDataUrl,
+  enabledModules,
 }: EmployeesPageWorkspaceProps) {
   const router = useRouter();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(initialModalOpen && initialModalMode === "create");
@@ -166,6 +168,7 @@ export function EmployeesPageWorkspace({
           positions={effectivePositions}
           publisherName={effectivePublisherName}
           companyName={effectiveCompanyName}
+          enabledModules={enabledModules}
         />
       ) : null}
 
@@ -180,6 +183,7 @@ export function EmployeesPageWorkspace({
           positions={effectivePositions}
           publisherName={effectivePublisherName}
           companyName={effectiveCompanyName}
+          enabledModules={enabledModules}
         />
       ) : null}
     </PageContent>

@@ -126,11 +126,11 @@ export default async function CompanyLayout({
     ...(enabledModuleCodesSet.has("reports") ? ["reports"] : []),
     ...(enabledModuleCodesSet.has("ai_assistant") ? ["ai_assistant"] : []),
     ...(enabledModuleCodesSet.has("vendors") ? ["vendors"] : []),
+    ...(enabledModuleCodesSet.has("qbo_r365") ? ["qbo_r365"] : []),
   ];
 
   const roleLabelByCode: Record<string, string> = {
     company_admin: "Admin de empresa",
-    
     employee: "Empleado",
   };
 
