@@ -15,6 +15,7 @@ import {
   validateTenantScopeReferences,
 } from "@/shared/lib/scope-validation";
 import { enforceLocationPolicy } from "@/shared/lib/scope-policy";
+import { resolveEmployeeAllowedLocationIds } from "@/shared/lib/employee-api-scope";
 
 const BUCKET_NAME = "tenant-documents";
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -39,22 +40,6 @@ async function ensureBucketExists() {
   bucketExistsChecked = true;
 }
 
-async function resolveEmployeeScope(organizationId: string, userId: string): Promise<AccessScope> {
-  const admin = createSupabaseAdminClient();
-  const { data: employeeRow } = await admin
-    .from("employees")
-    .select("branch_id, department_id")
-    .eq("organization_id", organizationId)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  return {
-    locations: employeeRow?.branch_id ? [employeeRow.branch_id] : [],
-    department_ids: employeeRow?.department_id ? [employeeRow.department_id] : [],
-    position_ids: [] as string[],
-    users: [] as string[],
-  };
-}
 
 type AccessScope = {
   locations: string[];
@@ -124,12 +109,13 @@ export async function POST(request: Request) {
   const admin = createSupabaseAdminClient();
 
   let folderId: string | null = null;
-  const employeeScope = await resolveEmployeeScope(access.tenant.organizationId, access.userId);
-  let scope = employeeScope;
+  const allowedLocations = await resolveEmployeeAllowedLocationIds(access.tenant.organizationId, access.userId);
+  const fallbackScope: AccessScope = { locations: allowedLocations, department_ids: [], position_ids: [], users: [] };
+  let scope = fallbackScope;
 
   const locationPolicy = enforceLocationPolicy({
     requestedLocations,
-    allowedLocations: employeeScope.locations,
+    allowedLocations,
     fallbackToAllowedWhenEmpty: true,
   });
 

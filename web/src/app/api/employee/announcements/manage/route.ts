@@ -10,6 +10,7 @@ import {
   validateTenantScopeReferences,
 } from "@/shared/lib/scope-validation";
 import { enforceLocationPolicy } from "@/shared/lib/scope-policy";
+import { resolveEmployeeAllowedLocationIds } from "@/shared/lib/employee-api-scope";
 
 function normalizeKind(kind: string) {
   const value = kind.trim().toLowerCase();
@@ -19,22 +20,6 @@ function normalizeKind(kind: string) {
   return "general";
 }
 
-async function resolveEmployeeDefaultScope(organizationId: string, userId: string) {
-  const admin = createSupabaseAdminClient();
-  const { data: employeeRow } = await admin
-    .from("employees")
-    .select("branch_id, department_id")
-    .eq("organization_id", organizationId)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  return {
-    locations: employeeRow?.branch_id ? [employeeRow.branch_id] : [],
-    department_ids: [],
-    position_ids: [],
-    users: [],
-  };
-}
 
 export async function POST(request: Request) {
   const access = await assertEmployeeCapabilityApi("announcements", "create", { allowBillingBypass: true });
@@ -67,7 +52,7 @@ export async function POST(request: Request) {
   }
 
   const admin = createSupabaseAdminClient();
-  const employeeScope = await resolveEmployeeDefaultScope(access.tenant.organizationId, access.userId);
+  const allowedLocations = await resolveEmployeeAllowedLocationIds(access.tenant.organizationId, access.userId);
   const requestedLocations = normalizeScopeSelection(
     Array.isArray(body?.location_scope) ? body.location_scope.map(String) : [],
     { allowAllToken: true },
@@ -87,7 +72,7 @@ export async function POST(request: Request) {
 
   const locationPolicy = enforceLocationPolicy({
     requestedLocations,
-    allowedLocations: employeeScope.locations,
+    allowedLocations,
     fallbackToAllowedWhenEmpty: true,
   });
 
@@ -199,12 +184,15 @@ export async function PATCH(request: Request) {
   }
 
   const admin = createSupabaseAdminClient();
-  const { data: existing } = await admin
-    .from("announcements")
-    .select("id, created_by")
-    .eq("organization_id", access.tenant.organizationId)
-    .eq("id", announcementId)
-    .maybeSingle();
+  const [{ data: existing }, allowedLocations] = await Promise.all([
+    admin
+      .from("announcements")
+      .select("id, created_by")
+      .eq("organization_id", access.tenant.organizationId)
+      .eq("id", announcementId)
+      .maybeSingle(),
+    resolveEmployeeAllowedLocationIds(access.tenant.organizationId, access.userId),
+  ]);
 
   if (!existing) {
     return NextResponse.json({ error: "Aviso no encontrado" }, { status: 404 });
@@ -214,7 +202,6 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Solo puedes editar avisos creados por ti" }, { status: 403 });
   }
 
-  const employeeScope = await resolveEmployeeDefaultScope(access.tenant.organizationId, access.userId);
   const requestedLocations = normalizeScopeSelection(
     Array.isArray(body?.location_scope) ? body.location_scope.map(String) : [],
     { allowAllToken: true },
@@ -234,7 +221,7 @@ export async function PATCH(request: Request) {
 
   const locationPolicy = enforceLocationPolicy({
     requestedLocations,
-    allowedLocations: employeeScope.locations,
+    allowedLocations,
     fallbackToAllowedWhenEmpty: true,
   });
 

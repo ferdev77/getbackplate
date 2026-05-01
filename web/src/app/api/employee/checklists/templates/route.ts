@@ -9,6 +9,7 @@ import {
   validateTenantScopeReferences,
 } from "@/shared/lib/scope-validation";
 import { enforceLocationPolicy } from "@/shared/lib/scope-policy";
+import { resolveEmployeeAllowedLocationIds } from "@/shared/lib/employee-api-scope";
 
 function parseItems(input: string) {
   return input
@@ -44,20 +45,6 @@ function parseSectionsPayload(raw: string | null | undefined) {
   }
 }
 
-async function resolveEmployeeContext(organizationId: string, userId: string) {
-  const admin = createSupabaseAdminClient();
-  const { data: employeeRow } = await admin
-    .from("employees")
-    .select("branch_id, department_id")
-    .eq("organization_id", organizationId)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  return {
-    branchId: employeeRow?.branch_id ?? null,
-    departmentId: employeeRow?.department_id ?? null,
-  };
-}
 
 export async function POST(request: Request) {
   const access = await assertEmployeeCapabilityApi("checklists", "create", { allowBillingBypass: true });
@@ -111,11 +98,20 @@ export async function POST(request: Request) {
   }
 
   const admin = createSupabaseAdminClient();
-  const employeeCtx = await resolveEmployeeContext(access.tenant.organizationId, access.userId);
+  const [allowedLocations, { data: empRow }] = await Promise.all([
+    resolveEmployeeAllowedLocationIds(access.tenant.organizationId, access.userId),
+    admin
+      .from("employees")
+      .select("branch_id")
+      .eq("organization_id", access.tenant.organizationId)
+      .eq("user_id", access.userId)
+      .maybeSingle(),
+  ]);
+  const primaryBranchId = empRow?.branch_id ?? null;
 
   const locationPolicy = enforceLocationPolicy({
     requestedLocations: requestedLocationScope,
-    allowedLocations: employeeCtx.branchId ? [employeeCtx.branchId] : [],
+    allowedLocations,
     fallbackToAllowedWhenEmpty: true,
   });
 
@@ -152,7 +148,7 @@ export async function POST(request: Request) {
     .from("checklist_templates")
     .insert({
         organization_id: access.tenant.organizationId,
-        branch_id: employeeCtx.branchId,
+        branch_id: primaryBranchId,
         department_id: null,
         checklist_type: checklistType,
         shift,
@@ -285,11 +281,11 @@ export async function PATCH(request: Request) {
   }
 
   const admin = createSupabaseAdminClient();
-  const employeeCtx = await resolveEmployeeContext(access.tenant.organizationId, access.userId);
+  const allowedLocations = await resolveEmployeeAllowedLocationIds(access.tenant.organizationId, access.userId);
 
   const locationPolicy = enforceLocationPolicy({
     requestedLocations: requestedLocationScope,
-    allowedLocations: employeeCtx.branchId ? [employeeCtx.branchId] : [],
+    allowedLocations,
     fallbackToAllowedWhenEmpty: true,
   });
 

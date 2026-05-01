@@ -179,7 +179,8 @@ export function ScopeSelector({
   }, [query, reachedUserIds, selectedUsers, usersWithAccess]);
 
   function toggleLocation(value: string, checked: boolean) {
-    if (lockLocationSelection) return;
+    if (lockLocationSelection && availableLocationIds.length <= 1) return;
+    if (lockLocationSelection && !checked && selectedLocations.size <= 1) return;
     setSelectedLocations((prev) => {
       const next = new Set(prev);
       if (checked) next.add(value);
@@ -270,7 +271,7 @@ export function ScopeSelector({
                 type="checkbox"
                 checked={selectedLocations.has(branch.id)}
                 onChange={(event) => toggleLocation(branch.id, event.target.checked)}
-                disabled={lockLocationSelection}
+                disabled={lockLocationSelection && availableLocationIds.length <= 1}
                 className="h-[13px] w-[13px] accent-[var(--gbp-accent)]"
               />
               {branch.name}
