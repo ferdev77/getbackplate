@@ -11,23 +11,7 @@ import {
   validateTenantScopeReferences,
 } from "@/shared/lib/scope-validation";
 import { enforceLocationPolicy } from "@/shared/lib/scope-policy";
-
-async function resolveEmployeeScope(organizationId: string, userId: string) {
-  const admin = createSupabaseAdminClient();
-  const { data: employeeRow } = await admin
-    .from("employees")
-    .select("branch_id, department_id")
-    .eq("organization_id", organizationId)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  return {
-    locations: employeeRow?.branch_id ? [employeeRow.branch_id] : [],
-    department_ids: employeeRow?.department_id ? [employeeRow.department_id] : [],
-    position_ids: [],
-    users: [],
-  };
-}
+import { resolveEmployeeAllowedLocationIds } from "@/shared/lib/employee-api-scope";
 
 export async function POST(request: Request) {
   const access = await assertEmployeeCapabilityApi("documents", "create", { allowBillingBypass: true });
@@ -90,10 +74,10 @@ export async function POST(request: Request) {
     }
   }
 
-  const scope = await resolveEmployeeScope(access.tenant.organizationId, access.userId);
+  const allowedLocations = await resolveEmployeeAllowedLocationIds(access.tenant.organizationId, access.userId);
   const locationPolicy = enforceLocationPolicy({
     requestedLocations,
-    allowedLocations: scope.locations,
+    allowedLocations,
     fallbackToAllowedWhenEmpty: true,
   });
 
