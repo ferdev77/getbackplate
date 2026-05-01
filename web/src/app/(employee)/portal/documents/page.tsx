@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { canReadDocumentInTenant } from "@/shared/lib/document-access";
+import { canReadDocumentInTenant, resolveDocumentEffectiveScope } from "@/shared/lib/document-access";
 import { isEmployeePrivateDocument } from "@/shared/lib/employee-private-documents";
 import { requireEmployeeModule } from "@/shared/lib/access";
 import { getDocumentsScopeUsersCached, getDocumentsWorkspaceSeedCached } from "@/modules/documents/cached-queries";
@@ -14,16 +14,6 @@ import { resolveEmployeeLocationScope } from "@/shared/lib/employee-location-sco
 type EmployeeDocumentsPageProps = {
   searchParams: Promise<{ view?: string }>;
 };
-
-function hasExplicitScopeValue(scope: unknown) {
-  if (!scope || typeof scope !== "object") return false;
-  const value = scope as Record<string, unknown>;
-  const locations = Array.isArray(value.locations) ? value.locations : [];
-  const departments = Array.isArray(value.department_ids) ? value.department_ids : [];
-  const positions = Array.isArray(value.position_ids) ? value.position_ids : [];
-  const users = Array.isArray(value.users) ? value.users : [];
-  return locations.length > 0 || departments.length > 0 || positions.length > 0 || users.length > 0;
-}
 
 export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDocumentsPageProps) {
   const tenant = await requireEmployeeModule("documents");
@@ -128,11 +118,7 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
       return false;
     }
 
-    const effectiveScope = doc.folder_id
-      ? (hasExplicitScopeValue(doc.access_scope)
-          ? doc.access_scope
-          : (folderById.get(doc.folder_id)?.access_scope ?? doc.access_scope))
-      : doc.access_scope;
+    const effectiveScope = resolveDocumentEffectiveScope(doc, folderById);
 
     return canReadDocumentInTenant({
       roleCode: tenant.roleCode,
