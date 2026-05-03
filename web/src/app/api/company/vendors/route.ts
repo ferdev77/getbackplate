@@ -163,8 +163,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Categoría inválida" }, { status: 422 });
   }
 
-  console.log("[vendors POST] Inserting vendor for org:", organizationId);
-
   const { data: newVendor, error: insertError } = await admin
     .from("vendors")
     .insert({
@@ -188,8 +186,6 @@ export async function POST(request: Request) {
     console.error("[vendors POST] Insert error:", insertError?.message, insertError?.details);
     return NextResponse.json({ error: "Error al crear proveedor", detail: insertError?.message }, { status: 500 });
   }
-
-  console.log("[vendors POST] Vendor created:", newVendor.id, "branch_ids:", branch_ids);
 
   // Insert vendor_locations
   if (branch_ids && branch_ids.length > 0) {

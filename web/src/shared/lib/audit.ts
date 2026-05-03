@@ -30,7 +30,7 @@ const SENSITIVE_METADATA_KEYS = new Set([
   "service_role_key",
 ]);
 
-function sanitizeMetadataValue(value: unknown): unknown {
+export function sanitizeMetadataValue(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map((item) => sanitizeMetadataValue(item));
   }

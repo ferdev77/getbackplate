@@ -3,7 +3,6 @@ import Link from "next/link";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 
-import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { parseAnnouncementScope } from "@/modules/announcements/lib/scope";
 import { AnnouncementModalTrigger } from "@/modules/announcements/ui/announcement-modal-trigger";
 import {
@@ -11,16 +10,13 @@ import {
   toggleAnnouncementFeaturedAction,
 } from "@/modules/announcements/actions";
 import { AnnouncementCard } from "@/modules/announcements/ui/announcement-card";
-import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
 import { requireTenantModule } from "@/shared/lib/access";
-import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { AnnouncementCreateModal } from "@/shared/ui/announcement-create-modal";
-import { getEnabledModulesCached } from "@/modules/organizations/cached-queries";
 import { ConfirmSubmitButton } from "@/shared/ui/confirm-submit-button";
 import { SlideUp } from "@/shared/ui/animations";
-import { extractDisplayName } from "@/shared/lib/user";
 import { OperationHeaderCard } from "@/shared/ui/operation-header-card";
 import { PageContent } from "@/shared/ui/page-content";
+import { getAnnouncementPageData } from "@/modules/announcements/queries";
 
 type CompanyAnnouncementsPageProps = {
   searchParams: Promise<{
@@ -38,30 +34,27 @@ const CARD = "border-[var(--gbp-border)] bg-[var(--gbp-surface)]";
 const ACTION_BTN_NEUTRAL = "group/tooltip relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
 const ACTION_BTN_DANGER = "group/tooltip relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] text-[var(--gbp-error)] hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_16%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-error)_45%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-error-soft)] [.theme-dark-pro_&]:text-[var(--gbp-error)]";
 
-function hasMissingColumnError(error: { message?: string } | null, column: string) {
-  const message = error?.message?.toLowerCase() ?? "";
-  return message.includes("column") && message.includes(column.toLowerCase());
-}
-
 export default async function CompanyAnnouncementsPage({ searchParams }: CompanyAnnouncementsPageProps) {
   const tenant = await requireTenantModule("announcements");
   const params = await searchParams;
   const action = String(params.action ?? "").trim().toLowerCase();
   const creatorFilter = String(params.creator ?? "all").trim().toLowerCase();
   const openCreateModal = action === "create" || action === "edit";
-  const supabase = await createSupabaseServerClient();
-  const { data: authData } = await supabase.auth.getUser();
 
-  const { data: announcements, error: annError } = await supabase
-    .from("announcements")
-    .select("id, title, body, kind, is_featured, publish_at, created_at, expires_at, branch_id, target_scope, created_by")
-    .eq("organization_id", tenant.organizationId)
-    .order("publish_at", { ascending: false })
-    .limit(100);
-
-  if (annError) {
-    console.error("Error fetching announcements:", annError);
-  }
+  const {
+    announcements,
+    branches: mappedBranches,
+    departments,
+    positions,
+    branchNameMap,
+    departmentNameMap,
+    positionNameMap,
+    authorNameMap,
+    employeeNameByUserId,
+    adminUserIds,
+    scopeUsers,
+    publisherName,
+  } = await getAnnouncementPageData(tenant.organizationId);
 
   const announcementTimestamp = (row: { publish_at: string | null; created_at: string }) => {
     const dateValue = row.publish_at ?? row.created_at;
@@ -69,154 +62,14 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
     return Number.isNaN(timestamp) ? 0 : timestamp;
   };
 
-  const orderedAnnouncements = [...(announcements ?? [])].sort((a, b) => {
-    if (Boolean(a.is_featured) !== Boolean(b.is_featured)) {
-      return a.is_featured ? -1 : 1;
-    }
+  const orderedAnnouncements = [...announcements].sort((a, b) => {
+    if (Boolean(a.is_featured) !== Boolean(b.is_featured)) return a.is_featured ? -1 : 1;
     return announcementTimestamp(b) - announcementTimestamp(a);
   });
 
-  const latestAnnouncement = [...(announcements ?? [])].sort(
+  const latestAnnouncement = [...announcements].sort(
     (a, b) => announcementTimestamp(b) - announcementTimestamp(a),
   )[0] ?? null;
-
-  const authorIds = Array.from(new Set((announcements ?? []).map((ann) => ann.created_by).filter(Boolean)));
-
-  const fetchOrderedBranches = async () => {
-    const primary = await supabase
-      .from("branches")
-      .select("id, name, city")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true })
-      .order("name", { ascending: true });
-
-    if (!hasMissingColumnError(primary.error, "sort_order")) return { data: primary.data };
-
-    return supabase
-      .from("branches")
-      .select("id, name, city")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("name", { ascending: true });
-  };
-
-  const fetchOrderedDepartments = async () => {
-    const primary = await supabase
-      .from("organization_departments")
-      .select("id, name")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true })
-      .order("name", { ascending: true });
-
-    if (!hasMissingColumnError(primary.error, "sort_order")) return { data: primary.data };
-
-    return supabase
-      .from("organization_departments")
-      .select("id, name")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("name", { ascending: true });
-  };
-
-  const fetchOrderedPositions = async () => {
-    const primary = await supabase
-      .from("department_positions")
-      .select("id, department_id, name")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("department_id", { ascending: true })
-      .order("sort_order", { ascending: true })
-      .order("name", { ascending: true });
-
-    if (!hasMissingColumnError(primary.error, "sort_order")) return { data: primary.data };
-
-    return supabase
-      .from("department_positions")
-      .select("id, department_id, name")
-      .eq("organization_id", tenant.organizationId)
-      .eq("is_active", true)
-      .order("department_id", { ascending: true })
-      .order("name", { ascending: true });
-  };
-
-  const employeesQuery = supabase
-    .from("employees")
-    .select("id, user_id, first_name, last_name, branch_id, department_id, position")
-    .eq("organization_id", tenant.organizationId);
-
-  const userProfilesQuery = supabase
-    .from("organization_user_profiles")
-  .select("id, user_id, first_name, last_name")
-  .eq("organization_id", tenant.organizationId)
-  .eq("is_employee", false);
-
-  const membershipsQuery = supabase
-    .from("memberships")
-    .select("user_id, role_id, status")
-    .eq("organization_id", tenant.organizationId)
-    .eq("status", "active");
-
-  const rolesQuery = supabase
-    .from("roles")
-    .select("id, code");
-
-  const [
-    { data: branches },
-    { data: employees },
-    { data: userProfiles },
-    { data: departments },
-    { data: positions },
-    { data: memberships },
-    { data: roles },
-  ] = await Promise.all([
-    fetchOrderedBranches(),
-    employeesQuery,
-    userProfilesQuery,
-    fetchOrderedDepartments(),
-    fetchOrderedPositions(),
-    membershipsQuery,
-    rolesQuery,
-  ]);
-
-  const enabledModulesArr = await getEnabledModulesCached(tenant.organizationId);
-  const enabledModules = new Set(enabledModulesArr);
-  const customBrandingEnabled = enabledModules.has("custom_branding");
-
-  const mappedBranches = (branches ?? []).map((b) => ({
-    ...b,
-    originalName: b.name, // Keep it just in case, though might not be needed
-    name: customBrandingEnabled && b.city ? b.city : b.name,
-  }));
-
-  const branchNameMap = new Map(mappedBranches.map((row) => [row.id, row.name]));
-  const departmentNameMap = new Map((departments ?? []).map((row) => [row.id, row.name]));
-  const authorNameMap = await resolveAnnouncementAuthorNames({
-    organizationId: tenant.organizationId,
-    authorIds,
-  });
-  const employeeNameByUserId = new Map(
-    (employees ?? [])
-      .filter((row) => row.user_id)
-      .map((row) => [row.user_id as string, `${row.first_name ?? ""} ${row.last_name ?? ""}`.trim()]),
-  );
-  for (const profile of userProfiles ?? []) {
-    if (!profile.user_id) continue;
-    if (employeeNameByUserId.has(profile.user_id)) continue;
-    employeeNameByUserId.set(profile.user_id, `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim() || "Usuario");
-  }
-
-  const scopeUsers = await buildScopeUsersCatalog(tenant.organizationId);
-  const positionNameMap = new Map((positions ?? []).map((row) => [row.id, row.name]));
-
-  const roleCodeById = new Map((roles ?? []).map((row) => [row.id, row.code]));
-  const adminUserIds = new Set(
-    (memberships ?? [])
-      .filter((row) => roleCodeById.get(row.role_id) === "company_admin")
-      .map((row) => row.user_id)
-      .filter((value): value is string => typeof value === "string" && value.length > 0),
-  );
 
   const announcementsWithCreatorKind = orderedAnnouncements.map((ann) => ({
     ...ann,
@@ -235,7 +88,7 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
   const now = new Date();
   const in7Days = new Date(now);
   in7Days.setDate(in7Days.getDate() + 7);
-  const porVencer = (announcements ?? []).filter((row) => {
+  const porVencer = announcements.filter((row) => {
     if (!row.expires_at) return false;
     const exp = new Date(row.expires_at);
     return exp >= now && exp <= in7Days;
@@ -245,10 +98,8 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
   const today = new Date().toISOString().slice(0, 10);
 
   const editingAnnouncement = action === "edit"
-    ? (announcements ?? []).find((row) => row.id === params.announcementId)
+    ? announcements.find((row) => row.id === params.announcementId)
     : null;
-
-  const publisherName = extractDisplayName(authData.user);
 
   const filterHref = (value: "all" | "admin" | "employee") => {
     const q = new URLSearchParams();

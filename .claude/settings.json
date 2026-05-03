@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/pikachu/.claude/projects/c--Users-pikachu-Downloads-saasresto/79220aad-0390-46f9-a9da-26900c8197a6/subagents/**)",
+      "Bash(npx supabase *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Read(//c/Users/pikachu/.claude/projects/c--Users-pikachu-Downloads-saasresto/memory/**)",
+      "Bash(npm test *)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\pikachu\\.claude\\projects\\c--Users-pikachu-Downloads-saasresto\\memory"
+    ]
+  }
+}

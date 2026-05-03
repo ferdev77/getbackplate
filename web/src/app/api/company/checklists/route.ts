@@ -3,11 +3,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
-
-function hasMissingColumnError(error: { message?: string } | null, column: string) {
-  const message = error?.message?.toLowerCase() ?? "";
-  return message.includes("column") && message.includes(column.toLowerCase());
-}
+import { hasMissingColumnError } from "@/shared/lib/supabase-compat";
 
 export async function GET(request: Request) {
   const moduleAccess = await assertCompanyAdminModuleApi("checklists");

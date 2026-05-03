@@ -28,7 +28,7 @@ import {
 
 export const MODULE_DISABLED_COPY = "Este módulo no está incluido en tu plan actual.";
 
-function userMustChangePassword(user: { user_metadata?: unknown } | null | undefined) {
+export function userMustChangePassword(user: { user_metadata?: unknown } | null | undefined) {
   if (!user || typeof user.user_metadata !== "object" || !user.user_metadata) return false;
   return Boolean((user.user_metadata as Record<string, unknown>).force_password_change);
 }

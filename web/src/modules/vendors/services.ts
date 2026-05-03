@@ -1,7 +1,23 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { cache } from "react";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { DEFAULT_VENDOR_CATEGORIES, type VendorCategoryOption, type VendorRow } from "./types";
+
+type RawVendor = {
+  id: string;
+  organization_id: string;
+  name: string;
+  category: string | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  contact_whatsapp: string | null;
+  website_url: string | null;
+  address: string | null;
+  notes: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string | null;
+};
 
 export const getVendorDirectoryView = cache(async (
   organizationId: string,
@@ -66,7 +82,7 @@ export const getVendorDirectoryView = cache(async (
     }
   }
 
-  const mapVendor = (v: any): VendorRow => {
+  const mapVendor = (v: RawVendor): VendorRow => {
     const branchIds = locationsByVendor.get(v.id) ?? [];
     const branchNames = branchIds
       .map((id) => branchById.get(id))

@@ -24,6 +24,7 @@ import { ReorderableDepartmentList } from "@/modules/settings/ui/reorderable-dep
 import { isModuleEnabledForOrganization, requireTenantModule } from "@/shared/lib/access";
 import { DEFAULT_CUSTOM_DOMAIN_CNAME_TARGET } from "@/shared/lib/custom-domains";
 import { PageContent } from "@/shared/ui/page-content";
+import { hasMissingColumnError } from "@/shared/lib/supabase-compat";
 
 type CompanySettingsPageProps = {
   searchParams: Promise<{ status?: string; message?: string; action?: string; departmentId?: string }>;
@@ -61,11 +62,6 @@ type PositionRow = {
   is_active: boolean;
   sort_order: number;
 };
-
-function hasMissingColumnError(error: { message?: string } | null, column: string) {
-  const message = error?.message?.toLowerCase() ?? "";
-  return message.includes("column") && message.includes(column.toLowerCase());
-}
 
 export default async function CompanySettingsPage({ searchParams }: CompanySettingsPageProps) {
   const params = await searchParams;

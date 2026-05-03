@@ -9,6 +9,7 @@ import { TooltipLabel } from "@/shared/ui/tooltip";
 import { ScopePillsOverflow } from "@/shared/ui/scope-pills-overflow";
 import { ChecklistEditTrigger } from "@/modules/checklists/ui/checklist-edit-trigger";
 import { SlideUp } from "@/shared/ui/animations";
+import type { ScopeCatalogUser } from "@/shared/lib/scope-users-catalog";
 
 // ─── Styling tokens (kept in sync with page.tsx) ────────────────────────────
 const TEXT_STRONG = "text-[var(--gbp-text)]";
@@ -73,8 +74,7 @@ type ChecklistsListWorkspaceProps = {
   branches: Branch[];
   departments: Department[];
   positions: Position[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  users: any[];
+  users: ScopeCatalogUser[];
   initialQuery: string;
   initialType: string;
   initialLocation: string;
