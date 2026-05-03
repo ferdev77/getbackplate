@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
@@ -189,6 +189,8 @@ export async function toggleOrganizationModuleAction(formData: FormData) {
       onConflict: "organization_id,module_id",
     },
   );
+
+  revalidateTag(`org-modules-${organizationId}`, "max");
 
   await logAuditEvent({
     action: "organization.module.toggle",
