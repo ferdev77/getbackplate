@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
-import { getQboR365Snapshot, upsertQboR365Config } from "@/modules/integrations/qbo-r365/service";
+import { getQboR365Snapshot, upsertQboR365Config, updateQboConnectionPublicConfig } from "@/modules/integrations/qbo-r365/service";
 import { qboR365ConfigUpsertSchema } from "@/modules/integrations/qbo-r365/types";
 
 export async function saveIntegrationConfigAction(formData: FormData) {
@@ -13,18 +13,21 @@ export async function saveIntegrationConfigAction(formData: FormData) {
 
   try {
     const ftpHost = String(formData.get("ftpHost") ?? "").trim();
-    const ftpUsername = String(formData.get("ftpUsername") ?? "").trim();
-    const ftpPassword = String(formData.get("ftpPassword") ?? "").trim();
+    const ftpUsername = String(formData.get("ftpLogin") ?? formData.get("ftpUsername") ?? "").trim();
+    const ftpPassword = String(formData.get("ftpSecret") ?? formData.get("ftpPassword") ?? "").trim();
     const ftpRemotePath = String(formData.get("ftpRemotePath") ?? "").trim();
     const ftpPortRaw = formData.get("ftpPort");
     const settingsTemplate = String(formData.get("settingsTemplate") ?? "").trim();
+    const settingsLookbackRaw = formData.get("settingsLookbackHours");
+    const settingsLookbackHours = settingsLookbackRaw ? Number(settingsLookbackRaw) : null;
+    const sandboxFieldVisible = formData.get("__sandboxVisible") === "1";
+    const useSandboxQbo = formData.get("useSandboxQbo") === "true";
 
     const rawData: Record<string, unknown> = {};
 
     const ftpPort = ftpPortRaw ? Number(ftpPortRaw) : 21;
     const hasFtpCredentialsInput = Boolean(ftpHost || ftpUsername || ftpPassword);
-    const hasFtpAdvancedInput = Boolean((ftpRemotePath && ftpRemotePath !== "/APImports/R365") || ftpPort !== 21);
-    const hasAnyFtpField = hasFtpCredentialsInput || hasFtpAdvancedInput;
+    const hasAnyFtpField = hasFtpCredentialsInput;
     if (hasAnyFtpField) {
       if (!ftpHost || !ftpUsername || !ftpPassword) {
         return { status: "error", message: "Para actualizar FTP, completa Host, Usuario y Contraseña." };
@@ -40,15 +43,15 @@ export async function saveIntegrationConfigAction(formData: FormData) {
       };
     }
 
-    const hasAnySettingsField = Boolean(settingsTemplate);
+    const hasAnySettingsField = Boolean(settingsTemplate) || settingsLookbackHours !== null;
     if (hasAnySettingsField) {
       const snapshot = await getQboR365Snapshot(access.tenant.organizationId);
       rawData.settings = {
-        template: settingsTemplate || "by_item",
+        template: settingsTemplate || snapshot.settings.template,
         taxMode: snapshot.settings.taxMode,
         timezone: snapshot.settings.timezone,
         filePrefix: snapshot.settings.filePrefix,
-        incrementalLookbackHours: snapshot.settings.incrementalLookbackHours,
+        incrementalLookbackHours: settingsLookbackHours ?? snapshot.settings.incrementalLookbackHours,
         maxRetryAttempts: snapshot.settings.maxRetryAttempts,
         isEnabled: snapshot.settings.isEnabled,
       };
@@ -68,6 +71,14 @@ export async function saveIntegrationConfigAction(formData: FormData) {
       actorId: access.userId,
       payload: parsed.data,
     });
+
+    if (sandboxFieldVisible) {
+      await updateQboConnectionPublicConfig({
+        organizationId: access.tenant.organizationId,
+        actorId: access.userId,
+        useSandbox: useSandboxQbo,
+      });
+    }
 
     revalidatePath("/app/integrations/quickbooks");
     return { status: "success", message: "Configuración guardada exitosamente." };

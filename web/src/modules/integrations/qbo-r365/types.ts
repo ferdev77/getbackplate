@@ -21,7 +21,7 @@ export const qboR365SettingsSchema = z.object({
   taxMode: z.enum(["line", "header", "none"]).default("line"),
   timezone: z.string().trim().min(1).max(80).default("UTC"),
   filePrefix: z.string().trim().min(1).max(80).default("r365_multi_invoice"),
-  incrementalLookbackHours: z.number().int().min(1).max(720).default(24),
+  incrementalLookbackHours: z.number().int().min(0).max(8760).default(24),
   maxRetryAttempts: z.number().int().min(0).max(10).default(3),
   isEnabled: z.boolean().default(false),
 });

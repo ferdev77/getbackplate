@@ -453,6 +453,7 @@ export async function getQboR365Snapshot(
       clientSecret: options?.includeSensitive && globalQbo.clientSecret ? globalQbo.clientSecret : null,
       redirectUri: options?.includeSensitive && globalQbo.redirectUri ? globalQbo.redirectUri : null,
       realmId: ((qboConnection?.config as Record<string, unknown> | undefined)?.realmId as string | undefined) ?? null,
+      useSandbox: Boolean((qboConnection?.config as Record<string, unknown> | undefined)?.useSandbox ?? false),
       tokenExpiresAtEpochSec: qboSecrets?.expiresAtEpochSec ?? null,
       hasRefreshToken: Boolean(qboSecrets?.refreshToken),
       lastError: qboConnection?.last_error ?? null,
@@ -721,6 +722,7 @@ export async function runQboR365Sync(input: {
   actorId?: string | null;
   triggerSource?: "manual" | "scheduled" | "retry";
   dryRun?: boolean;
+  ignoreLookback?: boolean;
 }) {
   const dryRun = input.dryRun === true;
   const settings = await getSettings(input.organizationId);
@@ -748,13 +750,18 @@ export async function runQboR365Sync(input: {
       qboConnection,
     });
 
-    const sinceIso = toIsoLookback(settings.incremental_lookback_hours);
+    const qboConfig = (qboConnection.config ?? {}) as Record<string, unknown>;
+    const useSandbox = Boolean(qboConfig.useSandbox ?? false);
+    const sinceIso = input.ignoreLookback === true || settings.incremental_lookback_hours === 0
+      ? undefined
+      : toIsoLookback(settings.incremental_lookback_hours);
     let qboData;
     try {
       qboData = await fetchQboBillsAndCredits({
         accessToken: qboAuth.accessToken,
         realmId: qboAuth.realmId,
         sinceIso,
+        useSandbox,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Error consultando Bill en QBO";
@@ -774,7 +781,31 @@ export async function runQboR365Sync(input: {
         accessToken: qboAuth.accessToken,
         realmId: qboAuth.realmId,
         sinceIso,
+        useSandbox,
       });
+    }
+
+    // Si el URL de produccion devuelve 0 resultados (QBO cambio de devolver error 3100
+    // a devolver 200+vacio para tokens sandbox), intentar con URL de sandbox automaticamente.
+    if (!useSandbox && qboData.bills.length === 0 && qboData.credits.length === 0) {
+      try {
+        const sandboxData = await fetchQboBillsAndCredits({
+          accessToken: qboAuth.accessToken,
+          realmId: qboAuth.realmId,
+          sinceIso,
+          useSandbox: true,
+        });
+        if (sandboxData.bills.length > 0 || sandboxData.credits.length > 0) {
+          qboData = sandboxData;
+          void updateQboConnectionPublicConfig({
+            organizationId: input.organizationId,
+            actorId,
+            useSandbox: true,
+          }).catch(() => {});
+        }
+      } catch {
+        // Si falla la deteccion de sandbox, continuar con 0 resultados
+      }
     }
 
     const mappings = await getActiveMappings(input.organizationId);
@@ -1148,6 +1179,7 @@ export async function prepareQboR365Batch(input: {
     actorId: input.actorId ?? null,
     triggerSource: input.triggerSource ?? "manual",
     dryRun: true,
+    ignoreLookback: true,
   });
 
   return {
@@ -1381,6 +1413,24 @@ export async function getQboR365RunPreview(input: {
   });
 
   return { mappingMode, rows };
+}
+
+export async function updateQboConnectionPublicConfig(input: {
+  organizationId: string;
+  actorId: string;
+  useSandbox: boolean;
+}) {
+  const previous = await getConnection(input.organizationId, "quickbooks_online");
+  if (!previous) return;
+  await upsertConnection({
+    organizationId: input.organizationId,
+    provider: "quickbooks_online",
+    actorId: input.actorId,
+    config: {
+      ...(previous.config ?? {}),
+      useSandbox: input.useSandbox,
+    },
+  });
 }
 
 export async function getQboR365RunExport(input: {

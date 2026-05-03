@@ -52,6 +52,10 @@ type PreviewRow = {
 type ConfigSnapshot = {
   settings?: {
     template?: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates";
+    incrementalLookbackHours?: number;
+  };
+  qbo?: {
+    useSandbox?: boolean;
   };
 };
 type Props = { organizationId: string; deferredDataUrl: string; className?: string };
@@ -193,6 +197,8 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [isLoadingConfig, setIsLoadingConfig] = useState(false);
   const [configTemplate, setConfigTemplate] = useState<"by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates">("by_item");
+  const [configLookbackHours, setConfigLookbackHours] = useState<number>(24);
+  const [configUseSandbox, setConfigUseSandbox] = useState<boolean>(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fetch data
@@ -239,6 +245,8 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
         if (ctrl.signal.aborted) return;
         const snap = d as ConfigSnapshot;
         setConfigTemplate(snap.settings?.template ?? "by_item");
+        setConfigLookbackHours(snap.settings?.incrementalLookbackHours ?? 24);
+        setConfigUseSandbox(snap.qbo?.useSandbox ?? false);
       })
       .catch(() => {})
       .finally(() => {
@@ -305,13 +313,13 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
       toast.info("Redirigiendo a QuickBooks", {
         description: "Completa el consentimiento en Intuit y volveras automaticamente.",
       });
-      const popup = window.open(payload.authorizeUrl, "_blank", "noopener,noreferrer");
-      if (!popup) {
-        toast.warning("No se pudo abrir una nueva pestana", {
-          description: "Tu navegador bloqueo el popup. Abriremos QuickBooks en esta misma pestana.",
-        });
-        window.location.assign(payload.authorizeUrl);
-      }
+      const a = document.createElement("a");
+      a.href = payload.authorizeUrl;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     } catch (error) {
       presentIntegrationError(normalizeApiError(error, "No se pudo iniciar conexion OAuth"), "oauth");
       setOauthConnecting(false);
@@ -320,16 +328,23 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
 
   async function handlePrepareBatch() {
     setPreparing(true);
+    const loadingToastId = toast.loading("Consultando QuickBooks sandbox", {
+      description: "Trayendo facturas y creditos para preparar el lote...",
+    });
     try {
       const response = await fetch("/api/company/integrations/qbo-r365/prepare", { method: "POST" });
-      const payload = (await response.json().catch(() => ({}))) as { runId?: string; error?: string };
+      const payload = (await response.json().catch(() => ({}))) as { runId?: string; error?: string; detected?: number; skippedDuplicates?: number };
       if (!response.ok) throw new Error(payload.error || "No se pudo preparar lote");
       if (payload.runId) setSelectedRunId(payload.runId);
+      toast.dismiss(loadingToastId);
       toast.success("Lote preparado desde QuickBooks", {
-        description: payload.runId ? `Run ${payload.runId.slice(0, 8)} listo para preview/envio.` : "Ya puedes abrir la vista previa.",
+        description: payload.runId
+          ? `Run ${payload.runId.slice(0, 8)} listo para preview/envio. Detectadas: ${payload.detected ?? 0}.`
+          : `Ya puedes abrir la vista previa. Detectadas: ${payload.detected ?? 0}.`,
       });
       setRefreshKey((p) => p + 1);
     } catch (error) {
+      toast.dismiss(loadingToastId);
       presentIntegrationError(normalizeApiError(error, "No se pudo preparar lote"), "prepare");
     }
     setPreparing(false);
@@ -785,7 +800,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
                 <X className="h-5 w-5" />
               </button>
             </header>
-            <form action={async (fd) => {
+            <form autoComplete="off" action={async (fd) => {
               setIsSavingConfig(true);
               const res = await saveIntegrationConfigAction(fd);
               setIsSavingConfig(false);
@@ -808,6 +823,40 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
                     Las credenciales developer de QuickBooks se administran de forma global por Super Admin.
                     Desde esta pantalla solo necesitas conectar tu empresa con el boton <strong>Conectar QBO</strong>.
                   </p>
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Período de búsqueda de facturas</span>
+                    <select
+                      name="settingsLookbackHours"
+                      value={configLookbackHours}
+                      onChange={(e) => setConfigLookbackHours(Number(e.target.value))}
+                      className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none"
+                    >
+                      <option value={0}>Todas las facturas (sin filtro)</option>
+                      <option value={24}>Últimas 24 horas</option>
+                      <option value={72}>Últimos 3 días</option>
+                      <option value={168}>Últimos 7 días</option>
+                      <option value={336}>Últimos 14 días</option>
+                      <option value={720}>Últimos 30 días</option>
+                    </select>
+                    <p className="mt-1 text-[11px] text-[var(--gbp-muted)]">Qué tan atrás busca QuickBooks al ejecutar una corrida.</p>
+                  </label>
+                  {mode === "developer" && (
+                    <div className="flex items-start gap-3 pt-1">
+                      <input type="hidden" name="__sandboxVisible" value="1" />
+                      <input
+                        name="useSandboxQbo"
+                        type="checkbox"
+                        value="true"
+                        checked={configUseSandbox}
+                        onChange={(e) => setConfigUseSandbox(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 rounded border-[var(--gbp-border)] accent-[var(--gbp-accent)]"
+                      />
+                      <div>
+                        <span className="text-sm font-bold text-[var(--gbp-text)]">Modo Sandbox</span>
+                        <p className="text-[11px] text-[var(--gbp-muted)]">Activa si la cuenta conectada es de prueba (sandbox.quickbooks.api.intuit.com). Desactiva para producción.</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mb-2 space-y-4">
@@ -842,11 +891,26 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
                     </label>
                     <label className="block">
                       <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Usuario</span>
-                      <input name="ftpUsername" type="text" className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />
+                      <input
+                        name="ftpLogin"
+                        type="text"
+                        autoComplete="off"
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                        spellCheck={false}
+                        className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none"
+                      />
                     </label>
                     <label className="block">
                       <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Contraseña</span>
-                      <input name="ftpPassword" type="password" className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />
+                      <input
+                        name="ftpSecret"
+                        type="password"
+                        autoComplete="new-password"
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                        className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none"
+                      />
                     </label>
                     <label className="block">
                       <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Puerto</span>
