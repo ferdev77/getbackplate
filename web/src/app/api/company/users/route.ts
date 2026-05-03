@@ -194,8 +194,11 @@ export async function GET(request: Request) {
     includeUsersTab: true,
   });
 
+  type UserViewRow = { userId: string | null; branchName?: string | null; branchId?: string | null; [key: string]: unknown };
+  const userRows = (viewData.users ?? []) as UserViewRow[];
+
   const userIds = Array.from(
-    new Set((viewData.users ?? []).map((row) => row.userId).filter((value): value is string => Boolean(value))),
+    new Set(userRows.map((row) => row.userId).filter((value): value is string => Boolean(value))),
   );
 
   const { data: profileRows } = userIds.length
@@ -218,7 +221,7 @@ export async function GET(request: Request) {
   const membershipByUserId = new Map((membershipRows ?? []).map((row) => [row.user_id, row]));
   const branchNameById = new Map(mappedBranches.map((row) => [row.id, row.name]));
 
-  const mappedUsers = (viewData.users ?? []).map((row) => {
+  const mappedUsers = userRows.map((row) => {
     const profile = row.userId ? profileByUserId.get(row.userId) : null;
     const membership = row.userId ? membershipByUserId.get(row.userId) : null;
     const allLocations = membership?.all_locations === true || profile?.all_locations === true;
