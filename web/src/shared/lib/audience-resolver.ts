@@ -13,15 +13,6 @@ export type AudienceContacts = {
   userIds: string[];
 };
 
-type SupabaseClient = {
-  from: (table: string) => {
-    select: (columns: string) => {
-      eq: (...args: unknown[]) => unknown;
-      not: (...args: unknown[]) => unknown;
-    };
-  };
-};
-
 type EmployeeRow = {
   user_id: string | null;
   branch_id: string | null;
@@ -43,7 +34,8 @@ type PositionRow = { id: string; name: string };
 type MembershipRow = { user_id: string | null };
 
 export type AudienceResolverInput = {
-  supabase: SupabaseClient;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any;
   organizationId: string;
   scope: AudienceScope;
   templateBranchId?: string | null;
