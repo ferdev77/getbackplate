@@ -168,8 +168,7 @@ export const getEmployeeDirectoryView = cache(async (
   const mappedEmployees = (employees ?? [])
     .map((emp) => {
     let positionName = emp.position;
-    const deptData = Array.isArray(emp.dept) ? emp.dept[0] : emp.dept;
-    let departmentName = deptData?.name || emp.department;
+    let departmentName = emp.dept?.[0]?.name || emp.department;
 
     if (!positionName && emp.department_id) {
       const positionMatches = (positions ?? []).filter(p => p.department_id === emp.department_id);
@@ -217,7 +216,7 @@ export const getEmployeeDirectoryView = cache(async (
       branchId: emp.branch_id,
       allLocations: emp.all_locations === true,
       locationScopeIds: Array.isArray(emp.location_scope_ids) ? emp.location_scope_ids.filter(Boolean) : [],
-      branchName: (emp.branch_id ? branchById.get(emp.branch_id) : undefined) || (Array.isArray(emp.branch) ? emp.branch[0]?.name : emp.branch?.name),
+      branchName: (emp.branch_id ? branchById.get(emp.branch_id) : undefined) || emp.branch?.[0]?.name,
       roleCode: emp.user_id ? roleByUser.get(emp.user_id) : undefined,
       hiredAt: emp.hired_at,
       birthDate: emp.birth_date,
