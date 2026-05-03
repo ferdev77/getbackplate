@@ -128,3 +128,75 @@ Please use "./src/proxy.ts" only.
 4. Cookie de tenant activo
 
 Si Upstash no está configurado, el rate limiting se desactiva silenciosamente.
+
+---
+
+## Tests automáticos — estado actual y pendiente
+
+### Tests unitarios (ya están)
+Correr con `npm test`. Cubren lógica pura sin base de datos ni browser.
+
+| Archivo de test | Qué verifica |
+|---|---|
+| `shared/lib/__tests__/supabase-compat.test.ts` | Detección de errores de columna faltante |
+| `shared/lib/__tests__/audience-resolver.test.ts` | Resolución de audiencias por scope |
+| `shared/lib/__tests__/plan-limits.test.ts` | Errores de límite de plan y mensajes |
+| `shared/lib/__tests__/access.test.ts` | Detección de force_password_change |
+| `shared/lib/__tests__/audit.test.ts` | Sanitización de datos sensibles en auditoría |
+| `shared/ui/__tests__/company-shell-utils.test.ts` | Cache keys, rutas activas, temas, precios de planes |
+| `modules/settings/services/__tests__/org-structure.test.ts` | Generación de slugs (toCode) |
+| `modules/checklists/services/__tests__/checklist-template.test.ts` | Normalización de prioridades |
+| `modules/documents/lib/__tests__/documents-tree-utils.test.ts` | Formateo de fechas, tamaños, MIME, scopes |
+| `modules/employees/ui/__tests__/new-employee-modal-helpers.test.ts` | Formateo de fechas del modal de empleados |
+
+### Tests E2E con Playwright (pendiente implementar)
+
+Los tests E2E abren el browser real y usan la app como un usuario. Ya está instalado Playwright (`npm run e2e:install`).
+
+**Flujos prioritarios para implementar:**
+
+1. **Login / Logout**
+   - Login con credenciales válidas → llega al dashboard
+   - Login con credenciales inválidas → muestra error
+   - Logout → redirige a página pública
+
+2. **Crear empleado**
+   - Abrir modal → completar datos básicos → guardar
+   - Verificar que aparece en la lista
+
+3. **Enviar aviso (announcement)**
+   - Crear aviso con scope de locación
+   - Verificar que aparece en el listado
+
+4. **Cambiar configuración de organización**
+   - Cambiar nombre → guardar → verificar que persiste
+
+**Cómo agregar un test E2E nuevo:**
+
+```typescript
+// web/e2e/login.spec.ts
+import { test, expect } from "@playwright/test";
+
+test("login con credenciales válidas", async ({ page }) => {
+  await page.goto("/login");
+  await page.fill('[name="email"]', process.env.E2E_EMAIL!);
+  await page.fill('[name="password"]', process.env.E2E_PASSWORD!);
+  await page.click('[type="submit"]');
+  await expect(page).toHaveURL(/\/app/);
+});
+```
+
+**Variables de entorno necesarias** (agregar a `.env.local`):
+```
+E2E_EMAIL=tu-usuario-de-prueba@example.com
+E2E_PASSWORD=la-contraseña
+E2E_ORG_ID=el-id-de-la-org-de-prueba
+```
+
+**Comandos disponibles:**
+```bash
+npm run e2e:install          # instalar Playwright (una sola vez)
+npx playwright test          # correr todos los E2E
+npx playwright test --headed # correr con browser visible
+npx playwright show-report   # ver reporte HTML del último run
+```
