@@ -516,14 +516,18 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                 </div>
               </div>
             </div>
-            <div className="grid gap-3 px-6 py-5 sm:grid-cols-3">
+            <div className="grid gap-3 px-6 py-5 sm:grid-cols-2 lg:grid-cols-3">
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Email</p><p className="text-sm text-[var(--gbp-text)]">{selected.email || "-"}</p></div>
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Teléfono</p><p className="text-sm text-[var(--gbp-text)]">{selected.phone || "-"}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Fecha ingreso</p><p className="text-sm text-[var(--gbp-text)]">{formatDate(selected.hiredAt)}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Nacimiento</p><p className="text-sm text-[var(--gbp-text)]">{formatDate(selected.birthDate)}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Dirección</p><p className="text-sm text-[var(--gbp-text)]">{selected.addressLine1 || "-"}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Contrato</p><p className="text-sm text-[var(--gbp-text)]">{selected.contractStatus || "-"}</p></div>
-              <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Firma contrato</p><p className="text-sm text-[var(--gbp-text)]">{formatDate(selected.contractSignedAt)}</p></div>
+              {selected.recordType === "employee" ? (
+                <>
+                  <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Fecha de ingreso</p><p className="text-sm text-[var(--gbp-text)]">{formatDate(selected.hiredAt)}</p></div>
+                  <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Nacimiento</p><p className="text-sm text-[var(--gbp-text)]">{formatDate(selected.birthDate)}</p></div>
+                  <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Dirección</p><p className="text-sm text-[var(--gbp-text)]">{selected.addressLine1 || "-"}</p></div>
+                  <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Contrato</p><p className="text-sm text-[var(--gbp-text)]">{selected.contractStatus || "-"}</p></div>
+                  <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Firma contrato</p><p className="text-sm text-[var(--gbp-text)]">{formatDate(selected.contractSignedAt)}</p></div>
+                </>
+              ) : null}
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Docs</p><p className="text-sm text-[var(--gbp-text)]">{selected.recordType === "employee" ? `${6 - selected.pendingDocuments}/6 · ${selected.docsCompletionStatus === "complete" ? "Completa" : `Incompleta (${selected.pendingDocuments} faltantes)`}` : `${selected.docsUploadedCount ?? 0} cargados`}</p></div>
             </div>
             <div className="mx-6 mb-5 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
