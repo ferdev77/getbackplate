@@ -92,7 +92,7 @@ export const getVendorDirectoryView = cache(async (
       id: v.id,
       organizationId: v.organization_id,
       name: v.name,
-      category: v.category,
+      category: v.category ?? "",
       contactName: v.contact_name,
       contactEmail: v.contact_email,
       contactPhone: v.contact_phone,
@@ -102,7 +102,7 @@ export const getVendorDirectoryView = cache(async (
       notes: v.notes,
       isActive: v.is_active,
       createdAt: v.created_at,
-      updatedAt: v.updated_at,
+      updatedAt: v.updated_at ?? "",
       branchIds,
       branchNames,
     };
