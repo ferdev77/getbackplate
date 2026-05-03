@@ -133,6 +133,18 @@ Si Upstash no está configurado, el rate limiting se desactiva silenciosamente.
 
 ## Tests automáticos — estado actual y pendiente
 
+### Antes de hacer push a producción
+
+Correr esto antes de cada deploy para atrapar errores de TypeScript sin tener que esperar el build de Vercel:
+
+```bash
+npx tsc --noEmit
+```
+
+Si no tira nada, está limpio. Si tira errores, hay que arreglarlos antes de pushear.
+
+---
+
 ### Tests unitarios (ya están)
 Correr con `npm test`. Cubren lógica pura sin base de datos ni browser.
 
