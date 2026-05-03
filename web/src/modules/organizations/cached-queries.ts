@@ -111,24 +111,26 @@ export const getOrganizationSettingsCached = unstable_cache(
 );
 
 /** Enabled module codes for org — 60s TTL. */
-export const getEnabledModulesCached = unstable_cache(
-  async (organizationId: string) => {
-    const supabase = createSupabaseAdminClient();
-    const { data, error } = await supabase
-      .from("organization_modules")
-      .select("module_catalog!inner(code)")
-      .eq("organization_id", organizationId)
-      .eq("is_enabled", true);
-    ensureNoQueryError("getEnabledModulesCached", error);
+export function getEnabledModulesCached(organizationId: string) {
+  return unstable_cache(
+    async () => {
+      const supabase = createSupabaseAdminClient();
+      const { data, error } = await supabase
+        .from("organization_modules")
+        .select("module_catalog!inner(code)")
+        .eq("organization_id", organizationId)
+        .eq("is_enabled", true);
+      ensureNoQueryError("getEnabledModulesCached", error);
 
-    return (data ?? []).map((row) => {
-      const catalog = row.module_catalog as unknown as { code: string } | null;
-      return catalog?.code ?? "";
-    }).filter((code) => code.length > 0);
-  },
-  ["enabled-modules-v1"],
-  { revalidate: 60 },
-);
+      return (data ?? []).map((row) => {
+        const catalog = row.module_catalog as unknown as { code: string } | null;
+        return catalog?.code ?? "";
+      }).filter((code) => code.length > 0);
+    },
+    [`enabled-modules-v1-${organizationId}`],
+    { revalidate: 60, tags: [`org-modules-${organizationId}`] },
+  )();
+}
 
 /** Active branches for org — 60s TTL. */
 export const getActiveBranchesCached = unstable_cache(
