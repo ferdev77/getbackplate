@@ -134,6 +134,7 @@ async function queryQboTable<T>(input: {
   realmId: string;
   table: "Bill" | "VendorCredit";
   sinceIso?: string;
+  useSandbox?: boolean;
 }) {
   const extractFault = (payload: QueryResponse<T> & {
     Fault?: { Error?: QboFaultError[] };
@@ -170,13 +171,14 @@ async function queryQboTable<T>(input: {
   while (true) {
     const query = `select * from ${input.table} startposition ${startPosition} maxresults ${pageSize}`;
 
-    let { response, payload, fault } = await doRequest(QBO_API_BASE_URL, query);
+    const primaryUrl = input.useSandbox ? QBO_SANDBOX_API_BASE_URL : QBO_API_BASE_URL;
+    let { response, payload, fault } = await doRequest(primaryUrl, query);
 
     const code = String(fault?.code ?? "").trim();
     const message = (fault?.Detail ?? fault?.Message ?? fault?.detail ?? fault?.message ?? "").trim();
 
     // Tokens de entorno sandbox pueden responder 3100 contra endpoint de produccion.
-    if (!response.ok && code === "3100") {
+    if (!input.useSandbox && !response.ok && code === "3100") {
       const fallback = await doRequest(QBO_SANDBOX_API_BASE_URL, query);
       response = fallback.response;
       payload = fallback.payload;
@@ -213,6 +215,7 @@ export async function fetchQboBillsAndCredits(input: {
   accessToken: string;
   realmId: string;
   sinceIso?: string;
+  useSandbox?: boolean;
 }) {
   const [bills, credits] = await Promise.all([
     queryQboTable<QboInvoiceLike>({
@@ -220,12 +223,14 @@ export async function fetchQboBillsAndCredits(input: {
       realmId: input.realmId,
       table: "Bill",
       sinceIso: input.sinceIso,
+      useSandbox: input.useSandbox,
     }),
     queryQboTable<QboInvoiceLike>({
       accessToken: input.accessToken,
       realmId: input.realmId,
       table: "VendorCredit",
       sinceIso: input.sinceIso,
+      useSandbox: input.useSandbox,
     }),
   ]);
 
