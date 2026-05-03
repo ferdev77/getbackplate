@@ -40,7 +40,7 @@ export type UpsertChecklistTemplateResult =
 // Helpers
 // ---------------------------------------------------------------------------
 
-function normalizePriority(value: string) {
+export function normalizePriority(value: string) {
   const priority = value.trim().toLowerCase();
   if (["low", "medium", "high"].includes(priority)) {
     return priority;

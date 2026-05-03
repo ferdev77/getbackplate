@@ -191,8 +191,6 @@ export async function POST(request: Request) {
       externalId: `${tenant.organizationId}:${employee.id}:${documentId}`,
     });
 
-    console.log("==> Docuseal Submission Responded:", submission);
-
     const signatureRequestedAt = new Date().toISOString();
     const { error: updateError } = await admin
       .from("employee_documents")

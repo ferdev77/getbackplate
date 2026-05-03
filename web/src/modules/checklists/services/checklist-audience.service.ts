@@ -1,9 +1,9 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { sendTwilioMessage } from "@/infrastructure/twilio/client";
-import { getAuthEmailByUserId } from "@/shared/lib/auth-users";
 import { resolveTenantAppUrlByOrganizationId } from "@/shared/lib/custom-domains";
 import { buildBrandedEmailSubject, getTenantEmailBranding, resolveEmailSenderName } from "@/shared/lib/email-branding";
+import { resolveAudienceContacts } from "@/shared/lib/audience-resolver";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -26,147 +26,19 @@ export type ChecklistAudienceInput = {
 // ---------------------------------------------------------------------------
 
 export async function resolveChecklistAudienceContacts(input: ChecklistAudienceInput) {
-  const scope = input.targetScope ?? {};
-  const locationIds = Array.isArray(scope.locations) ? scope.locations.filter(Boolean) : [];
-  const departmentIds = Array.isArray(scope.department_ids) ? scope.department_ids.filter(Boolean) : [];
-  const positionIds = Array.isArray(scope.position_ids) ? scope.position_ids.filter(Boolean) : [];
-  const scopedUserIds = Array.isArray(scope.users) ? scope.users.filter(Boolean) : [];
-
-  const [{ data: employees }, { data: positionRows }, { data: memberships }, { data: profiles }] = await Promise.all([
-    input.supabase
-      .from("employees")
-      .select("user_id, branch_id, department_id, position, status, phone_country_code, phone")
-      .eq("organization_id", input.organizationId)
-      .eq("status", "active")
-      .not("user_id", "is", null),
-    input.supabase
-      .from("department_positions")
-      .select("id, name")
-      .eq("organization_id", input.organizationId)
-      .eq("is_active", true),
-    input.supabase
-      .from("memberships")
-      .select("user_id")
-      .eq("organization_id", input.organizationId)
-      .eq("status", "active")
-      .not("user_id", "is", null),
-    input.supabase
-      .from("organization_user_profiles")
-      .select("user_id, branch_id, department_id, position_id, phone, status")
-      .eq("organization_id", input.organizationId)
-      .eq("status", "active"),
-  ]);
-
-  const positionIdsByName = new Map<string, string[]>();
-  for (const row of positionRows ?? []) {
-    const key = row.name.trim().toLowerCase();
-    if (!key) continue;
-    const list = positionIdsByName.get(key) ?? [];
-    list.push(row.id);
-    positionIdsByName.set(key, list);
-  }
-
-  const recipientUserIds = new Set<string>();
-  const membershipUserIds = new Set((memberships ?? []).map((row) => row.user_id).filter(Boolean));
-
-  for (const employee of employees ?? []) {
-    if (!employee.user_id) continue;
-    const byTemplateBranch = Boolean(input.templateBranchId) && employee.branch_id === input.templateBranchId;
-    const byLocationScope = locationIds.length > 0 && Boolean(employee.branch_id) && locationIds.includes(employee.branch_id);
-    const byDepartmentScope =
-      departmentIds.length > 0 && Boolean(employee.department_id) && departmentIds.includes(employee.department_id);
-    const employeePositionIds = employee.position
-      ? positionIdsByName.get(employee.position.trim().toLowerCase()) ?? []
-      : [];
-    const byPositionScope =
-      positionIds.length > 0 && employeePositionIds.some((positionId) => positionIds.includes(positionId));
-    const byUserScope = scopedUserIds.length > 0 && scopedUserIds.includes(employee.user_id);
-
-    const hasAnyScope =
-      locationIds.length > 0 || departmentIds.length > 0 || positionIds.length > 0 || scopedUserIds.length > 0;
-
-    const isInAudience = hasAnyScope
-      ? byLocationScope || byDepartmentScope || byPositionScope || byUserScope
-      : byTemplateBranch || !input.templateBranchId;
-
-    if (isInAudience) {
-      recipientUserIds.add(employee.user_id);
-    }
-  }
-
-  const hasAnyScope =
-    locationIds.length > 0 || departmentIds.length > 0 || positionIds.length > 0 || scopedUserIds.length > 0;
-
-  for (const profile of profiles ?? []) {
-    if (!profile.user_id) continue;
-
-    const byTemplateBranch = Boolean(input.templateBranchId) && profile.branch_id === input.templateBranchId;
-    const byLocationScope =
-      locationIds.length > 0 && Boolean(profile.branch_id) && locationIds.includes(profile.branch_id);
-    const byDepartmentScope =
-      departmentIds.length > 0 && Boolean(profile.department_id) && departmentIds.includes(profile.department_id);
-    const byPositionScope =
-      positionIds.length > 0 && Boolean(profile.position_id) && positionIds.includes(profile.position_id);
-    const byUserScope = scopedUserIds.length > 0 && scopedUserIds.includes(profile.user_id);
-
-    const isInAudience = hasAnyScope
-      ? byLocationScope || byDepartmentScope || byPositionScope || byUserScope
-      : byTemplateBranch || !input.templateBranchId;
-
-    if (isInAudience) {
-      recipientUserIds.add(profile.user_id);
-    }
-  }
-
-  if (!hasAnyScope && !input.templateBranchId) {
-    for (const userId of membershipUserIds) {
-      recipientUserIds.add(userId);
-    }
-  }
-
-  for (const scopedUserId of scopedUserIds) {
-    recipientUserIds.add(scopedUserId);
-  }
-
-  const emailByUserId = await getAuthEmailByUserId([...recipientUserIds]);
-  const recipients = [...new Set([...emailByUserId.values()].filter(Boolean))];
-
-  const recipientPhones = new Set<string>();
-  for (const employee of employees ?? []) {
-    if (!employee.user_id || !recipientUserIds.has(employee.user_id) || !employee.phone) {
-      continue;
-    }
-
-    const code = (employee.phone_country_code || "").replace(/[^0-9+]/g, "");
-    const number = employee.phone.replace(/[^0-9]/g, "");
-    if (!number) continue;
-
-    let fullNumber = number;
-    if (code && !number.startsWith(code) && !number.startsWith(code.replace("+", ""))) {
-      fullNumber = `${code}${number}`;
-    } else if (number.startsWith("+")) {
-      fullNumber = number;
-    } else {
-      fullNumber = `+${number}`;
-    }
-
-    recipientPhones.add(fullNumber);
-  }
-
-  for (const profile of profiles ?? []) {
-    if (!profile.user_id || !recipientUserIds.has(profile.user_id) || !profile.phone) {
-      continue;
-    }
-
-    const number = profile.phone.replace(/[^0-9+]/g, "");
-    if (!number) continue;
-    recipientPhones.add(number.startsWith("+") ? number : `+${number}`);
-  }
-
-  return {
-    emails: recipients,
-    phones: [...recipientPhones],
-  };
+  const raw = input.targetScope ?? {};
+  const contacts = await resolveAudienceContacts({
+    supabase: input.supabase,
+    organizationId: input.organizationId,
+    scope: {
+      locations: Array.isArray(raw.locations) ? raw.locations.filter(Boolean) as string[] : [],
+      department_ids: Array.isArray(raw.department_ids) ? raw.department_ids.filter(Boolean) as string[] : [],
+      position_ids: Array.isArray(raw.position_ids) ? raw.position_ids.filter(Boolean) as string[] : [],
+      users: Array.isArray(raw.users) ? raw.users.filter(Boolean) as string[] : [],
+    },
+    templateBranchId: input.templateBranchId,
+  });
+  return { emails: contacts.emails, phones: contacts.phones };
 }
 
 // ---------------------------------------------------------------------------

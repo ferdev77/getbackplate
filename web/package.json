@@ -7,6 +7,9 @@
     "dev:tunnel": "ngrok http --url=earmuff-sulphate-splatter.ngrok-free.dev 3000",
     "build": "next build",
     "start": "next start",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint && npm run verify:layout-guardrails",
     "e2e:install": "playwright install chromium",
     "e2e:setup-documents": "node --env-file=.env.local scripts/setup-e2e-documents.mjs",
@@ -84,12 +87,14 @@
     "@types/pg": "^8.18.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.1.5",
     "docuseal": "^1.0.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "pdf-lib": "^1.17.1",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.5"
   }
 }

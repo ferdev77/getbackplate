@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { cache } from "react";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { getEnabledModules } from "@/modules/organizations/queries";
@@ -108,8 +107,9 @@ export const getEmployeeDirectoryView = cache(async (
   const branchById = new Map(mappedBranchList.map((row) => [row.id, row.name]));
   const departmentById = new Map((departments ?? []).map((row) => [row.id, row.name]));
 
+  type EmpDocEntry = { id: string; title: string; status: string | null; slot_key: string | null; employee_id: string };
   const documentById = new Map((documents ?? []).map((row) => [row.id, row]));
-  const docsByEmployee = new Map<string, any[]>();
+  const docsByEmployee = new Map<string, EmpDocEntry[]>();
   const requiredDocumentSlots = ["photo", "id", "ssn", "rec1", "rec2", "other"] as const;
   const slotFromTitle: Array<{ prefix: string; slot: (typeof requiredDocumentSlots)[number] }> = [
     { prefix: "Foto del Empleado - ", slot: "photo" },
@@ -145,7 +145,8 @@ export const getEmployeeDirectoryView = cache(async (
     });
   }
 
-  const contractsByEmployee = new Map<string, any[]>();
+  type ContractEntry = NonNullable<typeof contracts>[number];
+  const contractsByEmployee = new Map<string, ContractEntry[]>();
   for (const c of contracts ?? []) {
     if (!contractsByEmployee.has(c.employee_id)) {
       contractsByEmployee.set(c.employee_id, []);
@@ -165,7 +166,7 @@ export const getEmployeeDirectoryView = cache(async (
 
   // Pre-process employees for mapping
   const mappedEmployees = (employees ?? [])
-    .map((emp: any) => {
+    .map((emp) => {
     let positionName = emp.position;
     let departmentName = emp.dept?.name || emp.department;
 
@@ -242,14 +243,14 @@ export const getEmployeeDirectoryView = cache(async (
 
   const validEmployeeUserIds = new Set(
     (employees ?? [])
-      .filter((e: any) => e.user_id)
-      .map((e: any) => e.user_id)
+      .filter((e) => e.user_id)
+      .map((e) => e.user_id)
   );
 
   // Pre-process mapped generic system users
   const mappedUsers = (memberships ?? [])
-    .filter((row: any) => !validEmployeeUserIds.has(row.user_id))
-    .map((row: any) => {
+    .filter((row) => !validEmployeeUserIds.has(row.user_id))
+    .map((row) => {
     const roleCode = roleById.get(row.role_id);
     const rpcBranchName = typeof row.branch_name === "string" ? row.branch_name.trim() : "";
     const allLocations = row.all_locations === true || rpcBranchName.toLowerCase() === "todas las locaciones";

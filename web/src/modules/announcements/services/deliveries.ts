@@ -1,13 +1,13 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { sendTwilioMessage } from "@/infrastructure/twilio/client";
-import { getAuthEmailByUserId } from "@/shared/lib/auth-users";
 import {
   buildBrandedEmailSubject,
   getTenantEmailBranding,
   resolveEmailSenderName,
   type TenantEmailBranding,
 } from "@/shared/lib/email-branding";
+import { resolveAudienceContacts } from "@/shared/lib/audience-resolver";
 import { AnnouncementScope, parseAnnouncementScope } from "../lib/scope";
 
 type DeliveryRow = {
@@ -173,11 +173,16 @@ export async function processAnnouncementDeliveries() {
 
       const scope = parseAnnouncementScope(announcement.target_scope);
 
-      const audience = await resolveAnnouncementAudienceContacts(
+      const audience = await resolveAudienceContacts({
         supabase,
-        primary.organization_id,
-        scope,
-      );
+        organizationId: primary.organization_id,
+        scope: {
+          locations: scope.locations,
+          department_ids: scope.department_ids,
+          position_ids: scope.position_ids,
+          users: scope.users,
+        },
+      });
       const targetContacts = primary.channel === "email" ? audience.emails : audience.phones;
 
       if (targetContacts.length === 0) {
@@ -259,137 +264,6 @@ async function sendAnnouncementEmail(email: string, title: string, body: string,
   return result.ok
     ? { success: true as const }
     : { success: false as const, error: result.error };
-}
-
-async function resolveAnnouncementAudienceContacts(
-  supabase: ReturnType<typeof createSupabaseAdminClient>,
-  organizationId: string,
-  scope: AnnouncementScope
-) {
-  const hasSpecificScope = 
-    scope.locations.length > 0 || 
-    scope.department_ids.length > 0 || 
-    scope.position_ids.length > 0 || 
-    scope.users.length > 0;
-
-  const [{ data: employees, error }, { data: positionRows }, { data: profiles }, { data: memberships }] = await Promise.all([
-    supabase
-      .from("employees")
-      .select("user_id, branch_id, department_id, position, phone_country_code, phone, status")
-      .eq("organization_id", organizationId)
-      .eq("status", "active"),
-    supabase
-      .from("department_positions")
-      .select("id, name")
-      .eq("organization_id", organizationId)
-      .eq("is_active", true),
-    supabase
-      .from("organization_user_profiles")
-      .select("user_id, branch_id, department_id, position_id, phone, status")
-      .eq("organization_id", organizationId)
-      .eq("status", "active"),
-    supabase
-      .from("memberships")
-      .select("user_id")
-      .eq("organization_id", organizationId)
-      .eq("status", "active")
-      .not("user_id", "is", null),
-  ]);
-
-  if (error || !employees) {
-    throw new Error(`No se pudo resolver audiencia de aviso: ${error?.message ?? "sin datos"}`);
-  }
-
-  const matchedPhones = new Set<string>();
-  const matchedUserIds = new Set<string>();
-  const membershipUserIds = new Set((memberships ?? []).map((row) => row.user_id).filter(Boolean));
-  const positionIdsByName = new Map<string, string[]>();
-
-  for (const row of positionRows ?? []) {
-    const key = row.name.trim().toLowerCase();
-    if (!key) continue;
-    const list = positionIdsByName.get(key) ?? [];
-    list.push(row.id);
-    positionIdsByName.set(key, list);
-  }
-
-  for (const emp of employees) {
-    if (!emp.user_id) continue;
-    let isMatch = false;
-
-    if (!hasSpecificScope) {
-      isMatch = membershipUserIds.has(emp.user_id);
-    } else {
-      if (emp.branch_id && scope.locations.includes(emp.branch_id)) isMatch = true;
-      if (emp.department_id && scope.department_ids.includes(emp.department_id)) isMatch = true;
-       const employeePositionIds = emp.position
-         ? positionIdsByName.get(emp.position.trim().toLowerCase()) ?? []
-         : [];
-       if (employeePositionIds.some((positionId) => scope.position_ids.includes(positionId))) isMatch = true;
-      if (scope.users.includes(emp.user_id)) isMatch = true;
-    }
-
-    if (isMatch) {
-      matchedUserIds.add(emp.user_id);
-    }
-  }
-
-  for (const profile of profiles ?? []) {
-    if (!profile.user_id) continue;
-
-    let isMatch = false;
-    if (!hasSpecificScope) {
-      isMatch = membershipUserIds.has(profile.user_id);
-    } else {
-      if (profile.branch_id && scope.locations.includes(profile.branch_id)) isMatch = true;
-      if (profile.department_id && scope.department_ids.includes(profile.department_id)) isMatch = true;
-      if (profile.position_id && scope.position_ids.includes(profile.position_id)) isMatch = true;
-      if (scope.users.includes(profile.user_id)) isMatch = true;
-    }
-
-    if (isMatch) {
-      matchedUserIds.add(profile.user_id);
-    }
-  }
-
-  if (!hasSpecificScope) {
-    for (const membershipUserId of membershipUserIds) {
-      matchedUserIds.add(membershipUserId);
-    }
-  } else {
-    for (const userId of scope.users) {
-      matchedUserIds.add(userId);
-    }
-  }
-
-  const emailByUserId = await getAuthEmailByUserId([...matchedUserIds]);
-  const emails = [...emailByUserId.values()].filter(Boolean);
-
-  for (const emp of employees ?? []) {
-    if (!emp.user_id || !matchedUserIds.has(emp.user_id) || !emp.phone) continue;
-
-    const code = (emp.phone_country_code || "").replace(/[^0-9+]/g, "");
-    const number = emp.phone.replace(/[^0-9]/g, "");
-    if (!number) continue;
-
-    if (code && !number.startsWith(code) && !number.startsWith(code.replace("+", ""))) {
-      matchedPhones.add(`${code}${number}`);
-    } else {
-      matchedPhones.add(number.startsWith("+") ? number : `+${number}`);
-    }
-  }
-
-  for (const profile of profiles ?? []) {
-    if (!profile.user_id || !matchedUserIds.has(profile.user_id) || !profile.phone) continue;
-    const number = profile.phone.replace(/[^0-9+]/g, "");
-    if (!number) continue;
-    matchedPhones.add(number.startsWith("+") ? number : `+${number}`);
-  }
-
-  return {
-    phones: Array.from(matchedPhones),
-    emails,
-  };
 }
 
 async function markDeliveryStatuses(

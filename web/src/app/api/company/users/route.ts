@@ -195,7 +195,7 @@ export async function GET(request: Request) {
   });
 
   const userIds = Array.from(
-    new Set((viewData.users ?? []).map((row: any) => row.userId).filter((value: any): value is string => Boolean(value))),
+    new Set((viewData.users ?? []).map((row) => row.userId).filter((value): value is string => Boolean(value))),
   );
 
   const { data: profileRows } = userIds.length
@@ -218,13 +218,13 @@ export async function GET(request: Request) {
   const membershipByUserId = new Map((membershipRows ?? []).map((row) => [row.user_id, row]));
   const branchNameById = new Map(mappedBranches.map((row) => [row.id, row.name]));
 
-  const mappedUsers = (viewData.users ?? []).map((row: any) => {
+  const mappedUsers = (viewData.users ?? []).map((row) => {
     const profile = row.userId ? profileByUserId.get(row.userId) : null;
     const membership = row.userId ? membershipByUserId.get(row.userId) : null;
     const allLocations = membership?.all_locations === true || profile?.all_locations === true;
     const locationScopeNames = ((membership?.location_scope_ids ?? profile?.location_scope_ids ?? []) as string[])
-      .map((id: any) => branchNameById.get(id))
-      .filter((value: any): value is string => Boolean(value));
+      .map((id) => branchNameById.get(id))
+      .filter((value): value is string => Boolean(value));
 
     const branchName = allLocations
       ? "Todas las locaciones"

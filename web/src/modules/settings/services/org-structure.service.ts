@@ -15,7 +15,7 @@ type ServiceResult =
 // Helpers
 // ---------------------------------------------------------------------------
 
-function toCode(value: string) {
+export function toCode(value: string) {
   return value
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")

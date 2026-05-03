@@ -17,6 +17,7 @@ import { SlideUp } from "@/shared/ui/animations";
 import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
 import { OperationHeaderCard } from "@/shared/ui/operation-header-card";
 import { PageContent } from "@/shared/ui/page-content";
+import { hasMissingColumnError } from "@/shared/lib/supabase-compat";
 
 type CompanyChecklistsPageProps = {
   searchParams: Promise<{
@@ -52,11 +53,6 @@ function typeLabel(type: string) {
   if (type === "closing") return "Cierre";
   if (type === "prep") return "Prep";
   return "Custom";
-}
-
-function hasMissingColumnError(error: { message?: string } | null, column: string) {
-  const message = error?.message?.toLowerCase() ?? "";
-  return message.includes("column") && message.includes(column.toLowerCase());
 }
 
 export default async function CompanyChecklistsPage({ searchParams }: CompanyChecklistsPageProps) {

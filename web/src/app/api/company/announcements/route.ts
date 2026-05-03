@@ -4,11 +4,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { extractDisplayName } from "@/shared/lib/user";
-
-function hasMissingColumnError(error: { message?: string } | null, column: string) {
-  const message = error?.message?.toLowerCase() ?? "";
-  return message.includes("column") && message.includes(column.toLowerCase());
-}
+import { hasMissingColumnError } from "@/shared/lib/supabase-compat";
 
 export async function GET(request: Request) {
   const moduleAccess = await assertCompanyAdminModuleApi("announcements");

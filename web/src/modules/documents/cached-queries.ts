@@ -3,14 +3,10 @@ import { unstable_cache } from "next/cache";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { getEmployeeDocumentIdSet } from "@/shared/lib/document-domain";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
+import { hasMissingColumnError } from "@/shared/lib/supabase-compat";
 
 export const DOCUMENTS_WORKSPACE_SEED_TAG = "documents-workspace-seed-v1";
 export const DOCUMENTS_SCOPE_USERS_TAG = "documents-scope-users-v1";
-
-function hasMissingColumnError(error: { message?: string } | null, column: string) {
-  const message = error?.message?.toLowerCase() ?? "";
-  return message.includes("column") && message.includes(column.toLowerCase());
-}
 
 export const getDocumentsWorkspaceSeedCached = unstable_cache(
   async (organizationId: string) => {

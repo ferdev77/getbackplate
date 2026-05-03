@@ -489,14 +489,16 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error(`[Webhook] Unhandled error processing event ${event.type}:`, err);
 
-    // Release reservation so Stripe retries can process the event again.
-    const { error: releaseError } = await supabase
+    // Mark the event as failed so it won't be retried as a duplicate.
+    // Using UPDATE instead of DELETE prevents a race condition where a DELETE failure
+    // could allow the same event to be processed twice (double charge risk).
+    const { error: markFailedError } = await supabase
       .from('stripe_processed_events')
-      .delete()
+      .update({ status: 'failed' })
       .eq('event_id', event.id);
 
-    if (releaseError) {
-      console.error(`[Webhook] Failed to release reservation for event ${event.id}:`, releaseError);
+    if (markFailedError) {
+      console.error(`[Webhook] Failed to mark event ${event.id} as failed:`, markFailedError);
     }
 
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

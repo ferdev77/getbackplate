@@ -11,6 +11,7 @@ import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
 import { getEmployeeDocumentIdSet, isEmployeeLinkedDocument } from "@/shared/lib/document-domain";
+import { hasMissingColumnError } from "@/shared/lib/supabase-compat";
 
 const BUCKET_NAME = "tenant-documents";
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -35,11 +36,6 @@ function parseDocumentScope(scope: unknown): DocumentScope {
       : [],
     users: Array.isArray(value.users) ? value.users.filter((item): item is string => typeof item === "string") : [],
   };
-}
-
-function hasMissingColumnError(error: { message?: string } | null, column: string) {
-  const message = error?.message?.toLowerCase() ?? "";
-  return message.includes("column") && message.includes(column.toLowerCase());
 }
 
 let bucketExistsChecked = false;
