@@ -4,7 +4,7 @@ import { THEMES, THEME_DARK_PRO, THEME_DEFAULT } from "@/shared/ui/company-shell
 
 export type CatalogCacheName = "announcements" | "checklists" | "documents" | "employees" | "users";
 
-const COMPANY_SHELL_CATALOG_CACHE_VERSION = 1;
+export const COMPANY_SHELL_CATALOG_CACHE_VERSION = 1;
 const COMPANY_SHELL_CATALOG_CACHE_PREFIX = "gb.company-shell.catalog";
 
 export function getCatalogCacheKey(tenantId: string, sessionUserEmail: string, catalogName: CatalogCacheName) {

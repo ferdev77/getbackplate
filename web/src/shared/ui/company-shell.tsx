@@ -85,6 +85,7 @@ import {
 import {
   type BillingCycle,
   type CatalogCacheName,
+  COMPANY_SHELL_CATALOG_CACHE_VERSION,
   MODULE_LABELS,
   THEME_PICKER_ORDER,
   getCatalogCacheKey,

@@ -248,7 +248,8 @@ export const getEmployeeDirectoryView = cache(async (
   );
 
   // Pre-process mapped generic system users
-  const mappedUsers = (memberships ?? [])
+  type MembershipRpcRow = { id: string; user_id: string; full_name: string | null; email: string | null; role_id: string | null; branch_id: string | null; branch_name: string | null; all_locations: boolean | null; status: string | null; created_at: string | null };
+  const mappedUsers = (memberships as MembershipRpcRow[] ?? [])
     .filter((row) => !validEmployeeUserIds.has(row.user_id))
     .map((row) => {
     const roleCode = roleById.get(row.role_id);
