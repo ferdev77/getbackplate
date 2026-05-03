@@ -82,6 +82,18 @@ import {
   type SidebarItem,
   type UsersModalCatalog,
 } from "@/shared/ui/company-shell.config";
+import {
+  type BillingCycle,
+  type CatalogCacheName,
+  MODULE_LABELS,
+  THEME_PICKER_ORDER,
+  getCatalogCacheKey,
+  isActive,
+  normalizeTheme,
+  normalizePlanPeriod,
+  getPlanAmountByCycle,
+  formatPlanPrice,
+} from "@/shared/ui/company-shell-utils";
 
 type SettingsSnapshot = {
   billingPlan: string;
@@ -145,64 +157,6 @@ type CompanyShellProps = {
   children: React.ReactNode;
 };
 
-type BillingCycle = "monthly" | "yearly";
-
-const COMPANY_SHELL_CATALOG_CACHE_VERSION = 1;
-const COMPANY_SHELL_CATALOG_CACHE_PREFIX = "gb.company-shell.catalog";
-
-type CatalogCacheName = "announcements" | "checklists" | "documents" | "employees" | "users";
-
-function getCatalogCacheKey(tenantId: string, sessionUserEmail: string, catalogName: CatalogCacheName) {
-  return `${COMPANY_SHELL_CATALOG_CACHE_PREFIX}:v${COMPANY_SHELL_CATALOG_CACHE_VERSION}:${tenantId}:${sessionUserEmail.toLowerCase()}:${catalogName}`;
-}
-
-const MODULE_LABELS: Record<string, string> = {
-  announcements: "Avisos",
-  checklists: "Checklists",
-  documents: "Documentos",
-  employees: "Usuarios y Empleados",
-  reports: "Reportes",
-  settings: "Ajustes",
-  ai_assistant: "Asistente IA",
-  dashboard: "Dashboard",
-  company_portal: "Portal Empresa",
-  vendors: "Proveedores",
-  qbo_r365: "Integración QuickBooks",
-};
-
-function isActive(pathname: string, searchParams: URLSearchParams, href: string) {
-  const cleanHref = href.split("?")[0];
-  if (!(pathname === cleanHref || pathname.startsWith(`${cleanHref}/`))) {
-    return false;
-  }
-
-  const query = href.split("?")[1];
-  if (!query) {
-    return true;
-  }
-
-  const expected = new URLSearchParams(query);
-  for (const [key, value] of expected.entries()) {
-    if (searchParams.get(key) !== value) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-function normalizeTheme(value: string) {
-  const normalized = value.trim().toLowerCase();
-  if (normalized === "dark" || normalized === THEME_DARK_PRO) return THEME_DARK_PRO;
-  if (THEMES.includes(normalized as (typeof THEMES)[number])) return normalized;
-  return THEME_DEFAULT;
-}
-
-const THEME_PICKER_ORDER = [
-  THEME_DEFAULT,
-  THEME_DARK_PRO,
-  ...THEMES.filter((theme) => theme !== THEME_DEFAULT && theme !== THEME_DARK_PRO),
-];
 
 export function CompanyShell({
   organizationLabel,
@@ -1242,18 +1196,6 @@ export function CompanyShell({
     [availablePlans],
   );
 
-  function normalizePlanPeriod(value: string | null | undefined): BillingCycle {
-    return value === "yearly" || value === "annual" ? "yearly" : "monthly";
-  }
-
-  function getPlanAmountByCycle(plan: (typeof availablePlans)[number], cycle: BillingCycle) {
-    if (typeof plan.priceAmount !== "number") return null;
-    const sourcePeriod = normalizePlanPeriod(plan.billingPeriod);
-    if (sourcePeriod === cycle) return plan.priceAmount;
-    if (cycle === "yearly") return plan.priceAmount * 10;
-    return Math.round((plan.priceAmount / 10) * 100) / 100;
-  }
-
   const moduleNameByCode = useMemo(() => {
     const map = new Map<string, string>();
     for (const modules of Object.values(planModulesByPlanId)) {
@@ -1314,14 +1256,6 @@ export function CompanyShell({
 
     return { toEnable, toDisable };
   }, [currentPlan, enabledModules, moduleNameByCode, planChangeTarget, planModulesByPlanId]);
-
-  function formatPlanPrice(plan: (typeof availablePlans)[number], cycle?: BillingCycle) {
-    const selectedCycle = cycle ?? normalizePlanPeriod(plan.billingPeriod);
-    const amount = getPlanAmountByCycle(plan, selectedCycle);
-    if (typeof amount !== "number") return "Precio no definido";
-    const period = selectedCycle === "yearly" ? "ano" : "mes";
-    return `$${amount}/${period}`;
-  }
 
   function toggleSection(label: string) {
     setExpandedSections((prev) => ({
