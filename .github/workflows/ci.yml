@@ -1,3 +1,23 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CI Pipeline — SaasResto
+#
+# Corre en cada PR a main y en cada push a main.
+#
+# Tres jobs que corren así:
+#
+#   lint-build ──┐
+#                ├──► e2e-smoke  (solo si hay secrets de Supabase)
+#   unit-tests ──┘
+#
+# Para habilitar los E2E smoke tests, agregar en:
+#   GitHub → Settings → Secrets and variables → Actions → New repository secret
+#
+#   Secrets requeridos:
+#     NEXT_PUBLIC_SUPABASE_URL        → URL del proyecto Supabase
+#     NEXT_PUBLIC_SUPABASE_ANON_KEY   → Anon key pública de Supabase
+#     SUPABASE_SERVICE_ROLE_KEY       → Service role key (privada)
+# ─────────────────────────────────────────────────────────────────────────────
+
 name: CI
 
 on:
@@ -7,7 +27,9 @@ on:
     branches: [main]
 
 jobs:
-  web-quality:
+  # ─── 1. Lint + Build ────────────────────────────────────────────────────────
+  lint-build:
+    name: Lint & Build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -32,3 +54,107 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # ─── 2. Unit Tests ──────────────────────────────────────────────────────────
+  # Tests unitarios de funciones puras — no necesitan variables de entorno
+  # ni servicios externos. Siempre corren en paralelo con lint-build.
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: web/coverage/
+          retention-days: 14
+
+  # ─── 3. E2E Smoke Tests ─────────────────────────────────────────────────────
+  # Verifica que todos los endpoints protegidos respondan 401 (no 500).
+  # Solo corre cuando lint-build y unit-tests pasan, Y los secrets están configurados.
+  # Si los secrets no están, el job lo informa y se saltea limpiamente.
+  e2e-smoke:
+    name: E2E Smoke (API)
+    runs-on: ubuntu-latest
+    needs: [lint-build, unit-tests]
+    defaults:
+      run:
+        working-directory: web
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      APP_BASE_URL: http://localhost:3000
+      CRON_SECRET: ci-placeholder
+      DOCUMENT_WORKER_SECRET: ci-placeholder
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Check if Supabase secrets are configured
+        id: check
+        run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo ""
+            echo "⚠️  Supabase secrets no configurados — saltando E2E smoke tests."
+            echo "   Para habilitarlos, agregar en GitHub → Settings → Secrets → Actions:"
+            echo "     · NEXT_PUBLIC_SUPABASE_URL"
+            echo "     · NEXT_PUBLIC_SUPABASE_ANON_KEY"
+            echo "     · SUPABASE_SERVICE_ROLE_KEY"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "✓ Supabase secrets encontrados — corriendo E2E smoke tests."
+          fi
+
+      - name: Install dependencies
+        if: steps.check.outputs.skip != 'true'
+        run: npm ci
+
+      - name: Install Playwright (Chromium)
+        if: steps.check.outputs.skip != 'true'
+        run: npx playwright install chromium --with-deps
+
+      - name: Run API smoke tests
+        if: steps.check.outputs.skip != 'true'
+        run: npm run e2e:smoke
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always() && steps.check.outputs.skip != 'true'
+        with:
+          name: playwright-smoke-report
+          path: web/playwright-report/
+          retention-days: 14
