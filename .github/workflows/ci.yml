@@ -110,6 +110,8 @@ jobs:
       APP_BASE_URL: http://localhost:3000
       CRON_SECRET: ci-placeholder
       DOCUMENT_WORKER_SECRET: ci-placeholder
+      INTEGRATIONS_ENCRYPTION_KEY: ci-placeholder-key-32-chars-minimum
+      QBO_OAUTH_STATE_SECRET: ci-placeholder
       NODE_ENV: test
 
     steps:
