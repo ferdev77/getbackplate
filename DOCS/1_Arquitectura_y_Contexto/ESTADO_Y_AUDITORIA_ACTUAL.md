@@ -1,5 +1,5 @@
 # Estado General y Auditoría del Proyecto: GetBackplate SaaS
-**Última Actualización (Auditoría de Seguridad y Calidad):** 28 de Marzo de 2026, 07:20 hs (Hora Local).
+**Última Actualización (Auditoría de Seguridad y Calidad):** 4 de Mayo de 2026.
 
 Este documento sirve como la **Fuente de Verdad (Single Source of Truth) técnica y de estado** para que cualquier nuevo desarrollador del equipo comprenda la arquitectura actual, la madurez del proyecto, y los estándares estrictos implementados tras nuestra Fase de Auditoría y Refactorización Ultra-Profunda.
 
@@ -52,6 +52,12 @@ Actualmente NO HACE FALTA hacer nada apremiante antes de lanzar. Lo que sigue es
    * *Actual:* Server Actions y API Routes retornan modelos de JSON distintos para ciertos errores.
    * *Norte:* Crear un interceptor estandarizado en TS para que la app siempre reciba y pinte la interfaz de fallas en formato unificado (e.g. `{ error: true, code: "...", message: "..." }`).
 3. **Validación de Plan-Limits API:** Considerar extender las comprobaciones contra el módulo "AI" (`api/company/ai`) para interceptar intentos si el Tenant en cuestión quemó su límite del mes del SaaS.
+4. **Habilitación de Cron QBO/R365:**
+   * *Actual:* El trabajo cron de sincronización para Quickbooks/R365 (`/api/internal/cron/qbo-r365-sync`) no está declarado explícitamente en `vercel.json` para evitar ejecuciones en vacío antes de su lanzamiento.
+   * *Norte:* Cuando la integración contable se active oficialmente en producción, agregar la regla de ejecución en `vercel.json`.
+5. **Configuración del Proyecto en Sentry (Observabilidad):**
+   * *Actual:* El archivo `next.config.ts` y `.env.example` asumen un nombre de proyecto estándar (`getbackplate-web` o `javascript-nextjs`).
+   * *Norte:* Al momento del despliegue final, el administrador debe validar en el dashboard de Sentry cuál es el *Project Slug* real y configurarlo adecuadamente en las variables de entorno (`SENTRY_PROJECT`, `SENTRY_ORG`).
 
 ---
 
