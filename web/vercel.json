@@ -8,6 +8,5 @@
       "path": "/api/webhooks/cron/process-recurrence",
       "schedule": "0 9 * * *"
     }
-  ],
-
+  ]
 }
