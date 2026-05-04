@@ -284,6 +284,12 @@ function normalizeQboRows(input: {
     const invoiceNumber = row.data.DocNumber || `QBO-${invoiceId}`;
     const invoiceDate = row.data.TxnDate || new Date().toISOString().slice(0, 10);
     const totalAmount = Number(row.data.TotalAmt ?? 0);
+    const balanceAmount = Number(row.data.Balance ?? Number.NaN);
+    const qboPaymentStatus: "paid" | "unpaid" | "partial" | "not_applicable" | "unknown" = row.kind === "credit"
+      ? "not_applicable"
+      : Number.isFinite(balanceAmount)
+        ? (balanceAmount <= 0 ? "paid" : (Number.isFinite(totalAmount) && balanceAmount < totalAmount ? "partial" : "unpaid"))
+        : "unknown";
     const headerTax = Number(row.data.TxnTaxDetail?.TotalTax ?? 0);
     const baseLines = row.data.Line ?? [];
     const baseAmountSum = baseLines.reduce((sum, line) => sum + Number(line.Amount ?? 0), 0);
@@ -330,6 +336,8 @@ function normalizeQboRows(input: {
         totalAmount: Number.isFinite(lineTotalAmount)
           ? lineTotalAmount
           : (Number.isFinite(totalAmount) ? totalAmount : lineAmount),
+        qboBalance: Number.isFinite(balanceAmount) ? balanceAmount : undefined,
+        qboPaymentStatus,
         location: "",
         memo: row.data.PrivateNote || "",
       };
@@ -817,6 +825,7 @@ export async function runQboR365Sync(input: {
       taxMode: settings.tax_mode,
       mappings,
     });
+    const detectedInvoiceCount = new Set(normalized.map((line) => line.sourceInvoiceId).filter(Boolean)).size;
 
     const dedupeKeys = normalized.map((line) => buildDedupeKey(line));
     const existingKeys = await listDedupeKeys(input.organizationId, dedupeKeys);
@@ -929,6 +938,8 @@ export async function runQboR365Sync(input: {
             lineAmount: entry.line.lineAmount,
             taxAmount: entry.line.taxAmount,
             totalAmount: entry.line.totalAmount,
+            qboBalance: entry.line.qboBalance,
+            qboPaymentStatus: entry.line.qboPaymentStatus,
             location: entry.line.location,
             memo: entry.line.memo,
             rawVendor: entry.line.vendor,
@@ -953,7 +964,7 @@ export async function runQboR365Sync(input: {
         template_used: settings.qbo_r365_template,
         file_name: fileName,
         file_hash: csvBuild.hash,
-        total_detected: normalized.length,
+        total_detected: detectedInvoiceCount,
         total_mapped: uniqueLines.length,
         total_uploaded: dryRun ? 0 : uniqueLines.length,
         total_skipped_duplicates: totalSkipped,
@@ -975,7 +986,7 @@ export async function runQboR365Sync(input: {
       message: dryRun ? "Sync finalizada en modo dry-run" : "Sync finalizada con upload FTP",
       metadata: {
         dry_run: dryRun,
-        detected: normalized.length,
+        detected: detectedInvoiceCount,
         uploaded: dryRun ? 0 : uniqueLines.length,
         skipped_duplicates: duplicateRows.length,
       },
@@ -992,7 +1003,7 @@ export async function runQboR365Sync(input: {
       severity: "medium",
       metadata: {
         dry_run: dryRun,
-        detected: normalized.length,
+        detected: detectedInvoiceCount,
         uploaded: dryRun ? 0 : uniqueLines.length,
       },
     });
@@ -1000,7 +1011,7 @@ export async function runQboR365Sync(input: {
     return {
       runId,
       status: finalStatus,
-      detected: normalized.length,
+      detected: detectedInvoiceCount,
       uploaded: dryRun ? 0 : uniqueLines.length,
       skippedDuplicates: duplicateRows.length,
       fileName,
@@ -1107,6 +1118,13 @@ export async function listQboR365InvoiceHistory(organizationId: string, limit = 
   const byInvoice = new Map<string, {
     sourceInvoiceId: string;
     invoiceNumber: string | null;
+    invoiceDate: string | null;
+    dueDate: string | null;
+    totalAmount: number | null;
+    currency: string | null;
+    transactionTypeCode: "1" | "2" | null;
+    qboBalance: number | null;
+    qboPaymentStatus: "paid" | "unpaid" | "partial" | "not_applicable" | "unknown" | null;
     vendor: string | null;
     mappedCode: string | null;
     lastStatus: string;
@@ -1115,6 +1133,7 @@ export async function listQboR365InvoiceHistory(organizationId: string, limit = 
     templateMode: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates" | null;
     sentToR365: boolean;
     timesSeen: number;
+    runIdsSeen: Set<string>;
   }>();
 
   for (const row of rows) {
@@ -1128,6 +1147,22 @@ export async function listQboR365InvoiceHistory(organizationId: string, limit = 
       byInvoice.set(sourceInvoiceId, {
         sourceInvoiceId,
         invoiceNumber: typeof payload.invoiceNumber === "string" ? payload.invoiceNumber : null,
+        invoiceDate: typeof payload.invoiceDate === "string" ? payload.invoiceDate : null,
+        dueDate: typeof payload.dueDate === "string" ? payload.dueDate : null,
+        totalAmount: typeof payload.totalAmount === "number" ? payload.totalAmount : null,
+        currency: typeof payload.currency === "string" ? payload.currency : null,
+        transactionTypeCode: payload.transactionTypeCode === "1" || payload.transactionTypeCode === "2"
+          ? payload.transactionTypeCode
+          : null,
+        qboBalance: typeof payload.qboBalance === "number" ? payload.qboBalance : null,
+        qboPaymentStatus:
+          payload.qboPaymentStatus === "paid"
+          || payload.qboPaymentStatus === "unpaid"
+          || payload.qboPaymentStatus === "partial"
+          || payload.qboPaymentStatus === "not_applicable"
+          || payload.qboPaymentStatus === "unknown"
+            ? payload.qboPaymentStatus
+            : null,
         vendor: typeof payload.vendor === "string" ? payload.vendor : null,
         mappedCode: typeof payload.targetCode === "string" ? payload.targetCode : null,
         lastStatus: row.status,
@@ -1136,11 +1171,15 @@ export async function listQboR365InvoiceHistory(organizationId: string, limit = 
         templateMode: runMeta?.template_used ?? null,
         sentToR365: row.status === "uploaded" || row.status === "validated",
         timesSeen: 1,
+        runIdsSeen: new Set([row.run_id]),
       });
       continue;
     }
 
-    existing.timesSeen += 1;
+    if (!existing.runIdsSeen.has(row.run_id)) {
+      existing.runIdsSeen.add(row.run_id);
+      existing.timesSeen += 1;
+    }
     if (!existing.sentToR365 && (row.status === "uploaded" || row.status === "validated")) {
       existing.sentToR365 = true;
     }
@@ -1162,9 +1201,76 @@ export async function listQboR365InvoiceHistory(organizationId: string, limit = 
         existing.vendor = payload.vendor;
       }
     }
+    if (!existing.invoiceDate) {
+      const payload = (row.payload ?? {}) as Record<string, unknown>;
+      if (typeof payload.invoiceDate === "string") {
+        existing.invoiceDate = payload.invoiceDate;
+      }
+    }
+    if (!existing.dueDate) {
+      const payload = (row.payload ?? {}) as Record<string, unknown>;
+      if (typeof payload.dueDate === "string") {
+        existing.dueDate = payload.dueDate;
+      }
+    }
+    if (existing.totalAmount === null) {
+      const payload = (row.payload ?? {}) as Record<string, unknown>;
+      if (typeof payload.totalAmount === "number") {
+        existing.totalAmount = payload.totalAmount;
+      }
+    }
+    if (!existing.currency) {
+      const payload = (row.payload ?? {}) as Record<string, unknown>;
+      if (typeof payload.currency === "string") {
+        existing.currency = payload.currency;
+      }
+    }
+    if (!existing.transactionTypeCode) {
+      const payload = (row.payload ?? {}) as Record<string, unknown>;
+      if (payload.transactionTypeCode === "1" || payload.transactionTypeCode === "2") {
+        existing.transactionTypeCode = payload.transactionTypeCode;
+      }
+    }
+    if (existing.qboBalance === null) {
+      const payload = (row.payload ?? {}) as Record<string, unknown>;
+      if (typeof payload.qboBalance === "number") {
+        existing.qboBalance = payload.qboBalance;
+      }
+    }
+    if (!existing.qboPaymentStatus) {
+      const payload = (row.payload ?? {}) as Record<string, unknown>;
+      if (
+        payload.qboPaymentStatus === "paid"
+        || payload.qboPaymentStatus === "unpaid"
+        || payload.qboPaymentStatus === "partial"
+        || payload.qboPaymentStatus === "not_applicable"
+        || payload.qboPaymentStatus === "unknown"
+      ) {
+        existing.qboPaymentStatus = payload.qboPaymentStatus;
+      }
+    }
   }
 
   return Array.from(byInvoice.values())
+    .map((entry) => ({
+      sourceInvoiceId: entry.sourceInvoiceId,
+      invoiceNumber: entry.invoiceNumber,
+      invoiceDate: entry.invoiceDate,
+      dueDate: entry.dueDate,
+      totalAmount: entry.totalAmount,
+      currency: entry.currency,
+      transactionTypeCode: entry.transactionTypeCode,
+      qboBalance: entry.qboBalance,
+      qboPaymentStatus: entry.qboPaymentStatus,
+      vendor: entry.vendor,
+      mappedCode: entry.mappedCode,
+      lastStatus: entry.lastStatus,
+      lastSeenAt: entry.lastSeenAt,
+      lastRunId: entry.lastRunId,
+      templateMode: entry.templateMode,
+      sentToR365: entry.sentToR365,
+      timesSeen: entry.timesSeen,
+    }))
     .sort((a, b) => new Date(b.lastSeenAt).getTime() - new Date(a.lastSeenAt).getTime())
     .slice(0, limit);
 }

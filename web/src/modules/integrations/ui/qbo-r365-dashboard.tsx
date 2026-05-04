@@ -22,6 +22,13 @@ type DashboardData = {
   invoiceHistory: Array<{
     sourceInvoiceId: string;
     invoiceNumber: string | null;
+    invoiceDate: string | null;
+    dueDate: string | null;
+    totalAmount: number | null;
+    currency: string | null;
+    transactionTypeCode: "1" | "2" | null;
+    qboBalance: number | null;
+    qboPaymentStatus: "paid" | "unpaid" | "partial" | "not_applicable" | "unknown" | null;
     vendor: string | null;
     mappedCode: string | null;
     lastStatus: string;
@@ -118,6 +125,33 @@ function connLabel(status: string) {
   return "Desconectado";
 }
 
+function formatQboDate(value: string | null | undefined) {
+  if (!value) return "-";
+  const dateOnly = value.match(/^\d{4}-\d{2}-\d{2}$/);
+  if (dateOnly) {
+    const [year, month, day] = value.split("-").map((part) => Number(part));
+    return new Date(year, month - 1, day).toLocaleDateString("es-AR");
+  }
+  return new Date(value).toLocaleDateString("es-AR");
+}
+
+function formatCurrencyLabel(value: string | null | undefined) {
+  if (!value) return "";
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "usd" || normalized === "us dollar" || normalized === "united states dollar" || normalized === "dolar estadounidense") {
+    return "USD";
+  }
+  return value;
+}
+
+function qboPaymentStatusLabel(status: "paid" | "unpaid" | "partial" | "not_applicable" | "unknown" | null) {
+  if (status === "paid") return "Pagada";
+  if (status === "partial") return "Parcial";
+  if (status === "unpaid") return "Sin pagar";
+  if (status === "not_applicable") return "No aplica";
+  return "Sin dato";
+}
+
 function relativeTime(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -185,6 +219,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [oauthConnecting, setOauthConnecting] = useState(false);
   const [mode, setMode] = useState<"operation" | "developer">("operation");
@@ -267,6 +302,10 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
   }, [data, query, statusFilter]);
 
   const selectedRun = useMemo(() => data?.runs.find((r) => r.id === selectedRunId) ?? null, [data, selectedRunId]);
+  const selectedInvoice = useMemo(
+    () => data?.invoiceHistory.find((item) => item.sourceInvoiceId === selectedInvoiceId) ?? null,
+    [data, selectedInvoiceId],
+  );
 
   const preparedRun = useMemo(() => {
     if (!data?.runs?.length) return null;
@@ -408,6 +447,10 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
 
       const blob = await response.blob();
       const dispo = response.headers.get("content-disposition") ?? "";
+      const invoicesCountHeader = response.headers.get("x-qbo-invoices-count");
+      const linesCountHeader = response.headers.get("x-qbo-lines-count");
+      const invoicesCount = invoicesCountHeader ? Number(invoicesCountHeader) : null;
+      const linesCount = linesCountHeader ? Number(linesCountHeader) : null;
       const fileNameMatch = dispo.match(/filename=\"([^\"]+)\"/i);
       const fileName = fileNameMatch?.[1] || `qbo-r365-export.${format}`;
 
@@ -419,7 +462,9 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
       URL.revokeObjectURL(blobUrl);
 
       toast.success(`Exportacion ${format.toUpperCase()} lista`, {
-        description: `Archivo ${fileName} descargado correctamente.`,
+        description: Number.isFinite(invoicesCount) && Number.isFinite(linesCount)
+          ? `Archivo ${fileName} descargado. Facturas: ${invoicesCount} · Lineas exportadas: ${linesCount}.`
+          : `Archivo ${fileName} descargado correctamente.`,
       });
     } catch (error) {
       toast.error("No se pudo exportar la corrida", {
@@ -622,22 +667,26 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
             <table className="w-full min-w-[980px] border-collapse">
               <thead>
                 <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-left text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">
-                  <th className="px-4 py-3">Factura</th>
+                  <th className="px-4 py-3">Fecha factura</th>
                   <th className="px-4 py-3">Vendor</th>
-                  <th className="px-4 py-3">Estado</th>
+                  <th className="px-4 py-3">Pago QBO</th>
                   <th className="px-4 py-3">Enviada</th>
                   <th className="px-4 py-3">Template</th>
                   <th className="px-4 py-3">Mapped Code</th>
-                  <th className="px-4 py-3">Vistas</th>
+                  <th className="px-4 py-3">Detecciones</th>
                   <th className="px-4 py-3">Ultima vez</th>
                 </tr>
               </thead>
               <tbody>
                 {invoiceHistory.map((item) => (
-                  <tr key={item.sourceInvoiceId} className="border-b border-[var(--gbp-border)]">
-                    <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{item.invoiceNumber ?? item.sourceInvoiceId}</td>
+                  <tr
+                    key={item.sourceInvoiceId}
+                    className="cursor-pointer border-b border-[var(--gbp-border)] transition hover:bg-[var(--gbp-bg)]"
+                    onClick={() => setSelectedInvoiceId(item.sourceInvoiceId)}
+                  >
+                    <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{formatQboDate(item.invoiceDate)}</td>
                     <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{item.vendor ?? "-"}</td>
-                    <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{itemStatusLabel(item.lastStatus)}</td>
+                    <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{qboPaymentStatusLabel(item.qboPaymentStatus)}</td>
                     <td className="px-4 py-3 text-xs">
                       {item.sentToR365
                         ? <span className="rounded-full bg-[var(--gbp-success-soft)] px-2 py-0.5 font-bold text-[var(--gbp-success)]">Si</span>
@@ -785,6 +834,90 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
                 Cerrar
               </button>
             </footer>
+          </aside>
+        </>
+      )}
+
+      {selectedInvoice && (
+        <>
+          <button
+            type="button"
+            onClick={() => setSelectedInvoiceId(null)}
+            className="fixed inset-0 z-[110] bg-black/30"
+            aria-label="Cerrar detalle de factura"
+          />
+          <aside className="fixed right-0 top-0 z-[120] flex h-full w-full max-w-xl flex-col border-l-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-xl)]">
+            <header className="flex items-start justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Detalle de factura</p>
+                <h3 className="mt-1 text-lg font-bold text-[var(--gbp-text)]">{selectedInvoice.invoiceNumber ?? "Sin numero"}</h3>
+                <p className="mt-1 text-xs text-[var(--gbp-text2)]">{selectedInvoice.transactionTypeCode === "2" ? "Vendor Credit" : "Bill"}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedInvoiceId(null)}
+                className="rounded-lg p-1.5 text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg)]"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </header>
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              <section className="rounded-xl border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">Proveedor</p>
+                    <p className="mt-1 text-sm font-semibold text-[var(--gbp-text)]">{selectedInvoice.vendor ?? "-"}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">Importe total</p>
+                    <p className="mt-1 text-base font-bold text-[var(--gbp-text)]">{typeof selectedInvoice.totalAmount === "number" ? `${selectedInvoice.totalAmount.toFixed(2)} ${formatCurrencyLabel(selectedInvoice.currency)}`.trim() : "-"}</p>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-3 border-t border-[var(--gbp-border)] pt-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">Fecha factura</p>
+                    <p className="mt-1 text-sm text-[var(--gbp-text)]">{formatQboDate(selectedInvoice.invoiceDate)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">Vencimiento</p>
+                    <p className="mt-1 text-sm text-[var(--gbp-text)]">{formatQboDate(selectedInvoice.dueDate)}</p>
+                  </div>
+                </div>
+              </section>
+
+              <section className="mt-4 rounded-xl border-[1.5px] border-[var(--gbp-border)]">
+                <dl className="divide-y divide-[var(--gbp-border)] text-sm">
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <dt className="text-[var(--gbp-text2)]">Estado de pago QBO</dt>
+                    <dd className="font-semibold text-[var(--gbp-text)]">{qboPaymentStatusLabel(selectedInvoice.qboPaymentStatus)}</dd>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <dt className="text-[var(--gbp-text2)]">Estado del proceso</dt>
+                    <dd className="font-semibold text-[var(--gbp-text)]">{itemStatusLabel(selectedInvoice.lastStatus)}</dd>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <dt className="text-[var(--gbp-text2)]">Enviada a R365</dt>
+                    <dd className="font-semibold text-[var(--gbp-text)]">{selectedInvoice.sentToR365 ? "Si" : "No"}</dd>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <dt className="text-[var(--gbp-text2)]">Mapped Code</dt>
+                    <dd className="font-semibold text-[var(--gbp-text)]">{selectedInvoice.mappedCode ?? "-"}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 px-4 py-3">
+                    <dt className="text-[var(--gbp-text2)]">QBO ID</dt>
+                    <dd className="break-all text-right font-mono text-xs text-[var(--gbp-text)]">{selectedInvoice.sourceInvoiceId}</dd>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <dt className="text-[var(--gbp-text2)]">Ultima deteccion</dt>
+                    <dd className="font-semibold text-[var(--gbp-text)]">{new Date(selectedInvoice.lastSeenAt).toLocaleString("es-AR")}</dd>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <dt className="text-[var(--gbp-text2)]">Detecciones</dt>
+                    <dd className="font-semibold text-[var(--gbp-text)]">{selectedInvoice.timesSeen}</dd>
+                  </div>
+                </dl>
+              </section>
+            </div>
           </aside>
         </>
       )}

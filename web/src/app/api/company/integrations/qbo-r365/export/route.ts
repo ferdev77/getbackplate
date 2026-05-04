@@ -78,6 +78,8 @@ export async function GET(request: Request) {
       taxAmount: row.mapped.taxAmount,
       totalAmount: row.mapped.totalAmount,
     }));
+    const invoicesCount = new Set(flattenedRows.map((row) => String(row.sourceInvoiceId ?? "")).filter(Boolean)).size;
+    const linesCount = flattenedRows.length;
 
     let body = "";
     let contentType = "application/json; charset=utf-8";
@@ -117,6 +119,8 @@ export async function GET(request: Request) {
         "content-type": contentType,
         "content-disposition": `attachment; filename=\"${fileName}\"`,
         "cache-control": "no-store",
+        "x-qbo-invoices-count": String(invoicesCount),
+        "x-qbo-lines-count": String(linesCount),
       },
     });
   } catch (error) {
