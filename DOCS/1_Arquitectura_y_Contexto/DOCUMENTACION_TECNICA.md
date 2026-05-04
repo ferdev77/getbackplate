@@ -523,37 +523,6 @@ Controlar:
 
 - auditoria avanzada, analytics, hardening
 
-## 20. Estado consolidado de modulos (2026-03-13)
-
-Estado funcional general:
-
-- `empleados`: disponible
-- `onboarding`: disponible (en hardening continuo)
-- `documentos`: disponible (en hardening continuo)
-- `anuncios`: disponible (en hardening continuo)
-- `checklist`: disponible
-- `reportes`: disponible
-- `dashboards`: disponible
-- `configuracion`: disponible
-
-Nota operativa:
-
-- La etapa actual se enfoca en madurez de producto: observabilidad, auditoria avanzada, limites por plan y calidad de release.
-
-## 21. Auditoria avanzada (B1) - estado documental
-
-Se definio la especificacion funcional y tecnica de auditoria avanzada en:
-
-- `web/docs/audit-advanced-spec.md`
-
-Alcance actual:
-
-- solo diseno y criterios de aceptacion
-- sin cambios de UI
-- sin cambios de flujos
-- sin cambios funcionales
-- sin cambios en reglas de base de datos
-
 ## 13. Riesgos iniciales y mitigacion
 
 1. Riesgo: fuga de datos entre tenants.
@@ -1323,7 +1292,7 @@ Variables requeridas en runtime (Vercel):
 - Vista en superadmin:
   - estado `Primer ingreso invitado: Pendiente/Completado` dentro de Radar en `web/src/app/(superadmin)/superadmin/dashboard/page.tsx`
 
-### 34. Correcciones integrales P0-P3 (2026-03-23)
+## 34. Correcciones integrales P0-P3 (2026-03-23)
 
 - Seguridad y tenant en billing:
   - `web/src/app/api/stripe/checkout/route.ts`
@@ -1392,7 +1361,7 @@ QA ejecutado post-implementacion:
 - `npm run verify:audit-coverage` ✅
 - `npm run verify:operational-metrics-consistency` ✅
 
-### 35. Integracion Twilio en modales (avisos + checklists)
+## 35. Integracion Twilio en modales (avisos + checklists)
 
 - Alcance funcional:
   - modal `Nuevo Aviso` con canales: `email`, `sms`, `whatsapp`
@@ -1423,11 +1392,11 @@ QA ejecutado post-implementacion:
 - Documento de referencia:
   - `web/docs/twilio-notifications.md`
 
-### 36. Plan futuro: Twilio/WhatsApp en produccion
+## 36. Plan futuro: Twilio/WhatsApp en produccion
 
 - Se agrega plan maestro paso a paso para migrar de sandbox a produccion:
 
-### 37. Stripe launch branded + retorno tenant-aware (2026-04)
+## 37. Stripe launch branded + retorno tenant-aware (2026-04)
 
 - Objetivo:
   - mejorar UX comercial del salto a Stripe,
@@ -1469,7 +1438,7 @@ QA ejecutado post-implementacion:
   - `npm run verify:smoke-modules` ✅
   - `npm run verify:role-permissions` ✅
 
-### 38. Separacion estricta Documentos Empresa vs Documentos Empleado (2026-04)
+## 38. Separacion estricta Documentos Empresa vs Documentos Empleado (2026-04)
 
 - Objetivo:
   - evitar mezcla entre flujo `Documentos` de empresa y legajo documental de empleados.
@@ -1510,7 +1479,7 @@ QA ejecutado post-implementacion:
   - templates, backend hardening, observabilidad
   - piloto controlado y rollout progresivo por tenant
 
-### 37. Fuente de verdad de notificaciones (Twilio + Email)
+## 39. Fuente de verdad de notificaciones (Twilio + Email)
 
 - Documento canonico operativo:
   - `web/docs/twilio-notifications.md`
@@ -1525,7 +1494,7 @@ QA ejecutado post-implementacion:
   - soporte de telefonos de `organization_user_profiles` para usuarios no-empleado.
   - dependencia explicita de Brevo para canal email.
 
-## 30. Refactorizacion arquitectonica: capa de servicios (2026-03-26)
+## 40. Refactorizacion arquitectonica: capa de servicios (2026-03-26)
 
 Se extrajo la logica de negocio pesada de 3 modulos `actions.ts` hacia archivos `services/` dedicados, siguiendo el patron ya existente en `employees/services.ts` y `announcements/services/deliveries.ts`.
 
@@ -1564,7 +1533,7 @@ Separar responsabilidades: los `actions.ts` quedan como controllers finos (parse
 - Cero cambios en firmas de funciones exportadas (sin impacto en UI).
 - Cero cambios visuales.
 
-## 31. Fase 4: Infraestructura y Producto (2026-03-26)
+## 41. Fase 4: Infraestructura y Producto (2026-03-26)
 
 Se implementaron las siguientes características:
 
@@ -1596,7 +1565,7 @@ Se implementaron las siguientes características:
     - aplica a invitaciones/reenvios y a billing plan-change,
     - fallback automatico a marca plataforma cuando el modulo esta desactivado.
 
-## 32. Reportes de Checklists (2026-03-27)
+## 42. Reportes de Checklists (2026-03-27)
 
 Se modernizó el Dashboard de Reportes de Checklists (`web/src/modules/reports/ui/checklist-reports-dashboard.tsx` y `web/src/app/(company)/app/reports/page.tsx`), estableciendo las siguientes reglas de negocio y arquitectónicas (Fuente de Verdad):
 
@@ -1616,7 +1585,7 @@ Se modernizó el Dashboard de Reportes de Checklists (`web/src/modules/reports/u
 ### Tiempo Real (Supabase Realtime)
 - El Dashboard general se beneficia de canal suscrito permanentemente a PostgreSQL (`auth`/`public`). Escucha inserciones o ediciones en la tabla `checklist_submissions`; cuando sucede alguna para la empresa logueada, dispara de manera autónoma un `router.refresh()` en su contexto que repuebla la tabla principal sin forzar al usuario a refrescar, habilitando control de área sincronizado global.
 
-## 33. Modulo Core Permissions - Delegacion a Employee (2026-04-18)
+## 43. Modulo Core Permissions - Delegacion a Employee (2026-04-18)
 
 - Se incorporo el modulo core `permissions` en catalogo (`module_catalog`) y la tabla `employee_module_permissions` para delegacion por membership.
 - Capabilities soportadas en MVP: `create`, `edit`, `delete` sobre `announcements`, `checklists` y `documents` operativos.

@@ -34,6 +34,43 @@ function extractPreviousPriceId(previousAttributes: Partial<Stripe.Subscription>
   }
 }
 
+/**
+ * Compute the real period end based on subscription interval and trial status.
+ * Stripe API v2026-02-25 removed current_period_start/end — we must derive them.
+ */
+function computePeriodEnd(
+  periodStartSeconds: number,
+  interval: string | null | undefined,
+  trialEnd: number | null | undefined,
+): string {
+  // If there's an active trial, use its end date
+  if (trialEnd && trialEnd > 0) {
+    try { return new Date(trialEnd * 1000).toISOString(); } catch { /* fall through */ }
+  }
+
+  const start = periodStartSeconds > 0
+    ? new Date(periodStartSeconds * 1000)
+    : new Date();
+
+  switch (interval) {
+    case 'year':
+      start.setFullYear(start.getFullYear() + 1);
+      break;
+    case 'week':
+      start.setDate(start.getDate() + 7);
+      break;
+    case 'day':
+      start.setDate(start.getDate() + 1);
+      break;
+    case 'month':
+    default:
+      start.setMonth(start.getMonth() + 1);
+      break;
+  }
+
+  return start.toISOString();
+}
+
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -145,8 +182,9 @@ export async function POST(req: Request) {
         // current_period_start and current_period_end were removed from the API in v2026-02-25
         const periodStartRaw: number = subscription.billing_cycle_anchor ?? subscription.start_date;
         let currentPeriodStart = new Date().toISOString();
-        const currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
         if (periodStartRaw) { try { currentPeriodStart = new Date(periodStartRaw * 1000).toISOString(); } catch {} }
+        const interval = subscription.items.data[0].price.recurring?.interval ?? null;
+        const currentPeriodEnd = computePeriodEnd(periodStartRaw, interval, subscription.trial_end);
 
         console.info(`[Webhook] Subscription status: ${status}, priceId: ${priceId}`);
 
@@ -301,8 +339,9 @@ export async function POST(req: Request) {
         // API v2026-02-25: current_period_start/end removed, use billing_cycle_anchor / start_date
         const periodStartRaw: number = subscription.billing_cycle_anchor ?? subscription.start_date;
         let currentPeriodStart = new Date().toISOString();
-        const currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
         if (periodStartRaw) { try { currentPeriodStart = new Date(periodStartRaw * 1000).toISOString(); } catch {} }
+        const interval = subscription.items.data[0].price.recurring?.interval ?? null;
+        const currentPeriodEnd = computePeriodEnd(periodStartRaw, interval, subscription.trial_end);
 
         const isActive = ['active', 'trialing'].includes(status);
         const isCanceled = ['canceled', 'unpaid', 'incomplete_expired'].includes(status);

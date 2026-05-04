@@ -162,7 +162,7 @@ export default async function CompanyLayout({
         billingPeriod: orgSettings?.billing_period ?? inferredCurrentPlan?.billing_period ?? "monthly",
         billedTo: orgSettings?.billed_to ?? organization?.name ?? "",
         billingEmail: orgSettings?.billing_email ?? user?.email ?? "",
-        paymentLast4: orgSettings?.payment_last4 ?? "4242",
+        paymentLast4: orgSettings?.payment_last4 ?? "",
         invoiceEmailsEnabled: orgSettings?.invoice_emails_enabled ?? true,
         theme: preferences?.theme ?? "default",
         language: preferences?.language ?? "es",
