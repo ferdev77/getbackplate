@@ -33,6 +33,10 @@ export function userMustChangePassword(user: { user_metadata?: unknown } | null 
   return Boolean((user.user_metadata as Record<string, unknown>).force_password_change);
 }
 
+function buildChangePasswordRedirect(nextPath: string) {
+  return `/auth/change-password?reason=first_login&next=${encodeURIComponent(nextPath)}`;
+}
+
 type TenantModuleApiAccessResult =
   | {
       ok: true;
@@ -171,7 +175,7 @@ export async function requireTenantContext() {
   const user = await requireAuthenticatedUser();
 
   if (userMustChangePassword(user)) {
-    redirect("/auth/change-password?reason=first_login");
+    redirect(buildChangePasswordRedirect("/auth/select-organization"));
   }
 
   const isSuperadmin = await isCurrentUserSuperadmin();
@@ -214,7 +218,7 @@ export async function requireTenantModule(moduleCode: string) {
   const isSuperadmin = await isCurrentUserSuperadmin();
 
   if (userMustChangePassword(user)) {
-    redirect("/auth/change-password?reason=first_login");
+    redirect(buildChangePasswordRedirect("/app/dashboard"));
   }
 
   const preferredOrganizationId = await getActiveOrganizationIdFromCookie();
@@ -565,7 +569,7 @@ export async function requireCompanyAccess() {
   const user = await requireAuthenticatedUser();
 
   if (userMustChangePassword(user)) {
-    redirect("/auth/change-password?reason=first_login");
+    redirect(buildChangePasswordRedirect("/app/dashboard"));
   }
 
   const isSuperadmin = await isCurrentUserSuperadmin();
@@ -610,7 +614,7 @@ export async function requireEmployeeAccess() {
   const user = await requireAuthenticatedUser();
 
   if (userMustChangePassword(user)) {
-    redirect("/auth/change-password?reason=first_login");
+    redirect(buildChangePasswordRedirect("/portal/home"));
   }
 
   const preferredOrganizationId = await getActiveOrganizationIdFromCookie();
