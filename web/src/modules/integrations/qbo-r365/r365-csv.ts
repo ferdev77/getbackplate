@@ -18,6 +18,8 @@ export type NormalizedInvoiceLine = {
   lineAmount: number;
   taxAmount: number;
   totalAmount: number;
+  qboBalance?: number;
+  qboPaymentStatus?: "paid" | "unpaid" | "partial" | "not_applicable" | "unknown";
   location: string;
   memo: string;
 };
