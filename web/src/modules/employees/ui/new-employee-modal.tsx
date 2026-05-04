@@ -133,7 +133,7 @@ export function NewEmployeeModal({
   const [allLocationsEnabled, setAllLocationsEnabled] = useState(initialEmployee?.all_locations === true);
   const [selectedBranchIds, setSelectedBranchIds] = useState<string[]>(
     initialEmployee?.all_locations
-      ? []
+      ? branches.map((branch) => branch.id)
       : (Array.isArray(initialEmployee?.location_scope_ids) && initialEmployee.location_scope_ids.length
         ? initialEmployee.location_scope_ids
         : (initialEmployee?.branch_id ? [initialEmployee.branch_id] : [])),
@@ -244,7 +244,7 @@ export function NewEmployeeModal({
     setAllLocationsEnabled(initialEmployee?.all_locations === true);
     setSelectedBranchIds(
       initialEmployee?.all_locations
-        ? []
+        ? branches.map((branch) => branch.id)
         : (Array.isArray(initialEmployee?.location_scope_ids) && initialEmployee.location_scope_ids.length
           ? initialEmployee.location_scope_ids
           : (initialEmployee?.branch_id ? [initialEmployee.branch_id] : [])),
@@ -267,7 +267,12 @@ export function NewEmployeeModal({
     setPaymentFrequency(initialEmployee?.payment_frequency ?? "");
     setContractSignerName(initialEmployee?.contract_signer_name ?? "");
     setContractSignedAt(initialEmployee?.contract_signed_at ?? "");
-  }, [initialEmployee, isEmployeeSelfMode, mode, open]);
+  }, [branches, initialEmployee, isEmployeeSelfMode, mode, open]);
+
+  useEffect(() => {
+    if (!allLocationsEnabled) return;
+    setSelectedBranchIds(branches.map((branch) => branch.id));
+  }, [allLocationsEnabled, branches]);
 
   async function handleInstantDocumentUpload(slot: string, inputName: string, file: File | null, customTitle?: string) {
     if (!file) return;
@@ -1263,27 +1268,16 @@ export function NewEmployeeModal({
                       checked={allLocationsEnabled}
                       onChange={(event) => {
                         setAllLocationsEnabled(event.target.checked);
-                        if (event.target.checked) setSelectedBranchIds([]);
+                        if (event.target.checked) {
+                          setSelectedBranchIds(branches.map((branch) => branch.id));
+                        }
                       }}
                     />
                     Todas las locaciones
                   </label>
                   <div className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3">
-                    <div className="mb-2 flex items-center justify-between">
+                    <div className="mb-2 flex items-center">
                       <span className="text-xs font-semibold text-[var(--gbp-text2)]">Locaciones específicas</span>
-                      <button
-                        type="button"
-                        disabled={allLocationsEnabled}
-                        onClick={() => {
-                          setSelectedBranchIds((prev) => {
-                            if (prev.length === branches.length) return [];
-                            return branches.map((branch) => branch.id);
-                          });
-                        }}
-                        className="text-xs font-semibold text-[var(--gbp-accent)] disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {selectedBranchIds.length === branches.length ? "Quitar todas" : "Seleccionar todas"}
-                      </button>
                     </div>
                     <div className="grid max-h-40 grid-cols-1 gap-2 overflow-y-auto pr-1">
                       {branches.map((branch) => {
