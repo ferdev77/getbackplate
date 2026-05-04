@@ -10,5 +10,4 @@
     }
   ],
 
-  "$comment__cron_architecture": "IMPORTANT: Do NOT add /api/webhooks/cron/purge-trash, /api/internal/cron/deliveries, or /api/internal/cron/documents/process here. The /api/internal/cron/daily route is a MASTER ORCHESTRATOR that already invokes all three internally via direct function imports. Adding them separately would cause double execution. The only cron not covered by the daily orchestrator is /api/webhooks/cron/qbo-r365-sync — add it here when the QBO/R365 integration goes live."
 }
