@@ -805,11 +805,13 @@ export async function runQboR365Sync(input: {
         });
         if (sandboxData.bills.length > 0 || sandboxData.credits.length > 0) {
           qboData = sandboxData;
-          void updateQboConnectionPublicConfig({
-            organizationId: input.organizationId,
-            actorId,
-            useSandbox: true,
-          }).catch(() => {});
+          if (actorId) {
+            void updateQboConnectionPublicConfig({
+              organizationId: input.organizationId,
+              actorId,
+              useSandbox: true,
+            }).catch(() => {});
+          }
         }
       } catch {
         // Si falla la deteccion de sandbox, continuar con 0 resultados
