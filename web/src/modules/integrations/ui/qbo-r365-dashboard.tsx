@@ -236,6 +236,24 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
   const [configUseSandbox, setConfigUseSandbox] = useState<boolean>(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Leer resultado del callback OAuth desde la URL y limpiarla
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get("status");
+    const message = params.get("message");
+    if (!status) return;
+    window.history.replaceState({}, "", "/app/integrations/quickbooks");
+    if (status === "ok") {
+      toast.success("QuickBooks conectado", {
+        description: "La conexión con QuickBooks Online se realizó correctamente.",
+      });
+    } else if (status === "error") {
+      toast.error("Error al conectar QuickBooks", {
+        description: message ?? "No se pudo completar la conexión.",
+      });
+    }
+  }, []);
+
   // Fetch data
   useEffect(() => {
     const ctrl = new AbortController();
@@ -349,16 +367,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
       if (!response.ok || !payload.authorizeUrl) {
         throw new Error(payload.error || "No se pudo iniciar conexion OAuth");
       }
-      toast.info("Redirigiendo a QuickBooks", {
-        description: "Completa el consentimiento en Intuit y volveras automaticamente.",
-      });
-      const a = document.createElement("a");
-      a.href = payload.authorizeUrl;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      window.location.href = payload.authorizeUrl;
     } catch (error) {
       presentIntegrationError(normalizeApiError(error, "No se pudo iniciar conexion OAuth"), "oauth");
       setOauthConnecting(false);
