@@ -82,6 +82,7 @@ type UsageCacheEntry = {
 };
 
 const USAGE_CACHE_TTL_MS = 15 * 1000;
+const USAGE_CACHE_MAX_SIZE = 500;
 const usageCache = new Map<string, UsageCacheEntry>();
 
 type PlanLimits = {
@@ -147,6 +148,12 @@ async function getUsage(orgId: string): Promise<OrganizationUsage> {
     employees: toSafeInt(employees),
     storageBytes,
   };
+
+  // Evict oldest entry if cache is full
+  if (usageCache.size >= USAGE_CACHE_MAX_SIZE) {
+    const oldestKey = usageCache.keys().next().value;
+    if (oldestKey) usageCache.delete(oldestKey);
+  }
 
   usageCache.set(orgId, { usage, fetchedAt: now });
 
