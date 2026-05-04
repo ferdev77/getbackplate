@@ -17,7 +17,8 @@
       "Bash(node -e \"const d = JSON.parse\\(require\\('fs'\\).readFileSync\\('/c/Users/pikachu/AppData/Roaming/com.vercel.cli/Data/config.json', 'utf8'\\)\\); console.log\\('keys:', Object.keys\\(d\\)\\); console.log\\('token prefix:', d.token ? d.token.substring\\(0,12\\)+'...' : 'none'\\);\")",
       "Bash(vercel env *)",
       "PowerShell($vercelBin = \"$env:APPDATA\\\\npm\\\\node_modules\\\\vercel\"; $authFile = Get-ChildItem $vercelBin -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Name -match \"auth\" } | Select-Object -First 5; $authFile.FullName)",
-      "PowerShell($configPath = \"$env:APPDATA\\\\com.vercel.cli\\\\Data\\\\config.json\"; if \\(Test-Path $configPath\\) { Get-Content $configPath -Raw } else { Write-Output \"NOT FOUND at $configPath\" })"
+      "PowerShell($configPath = \"$env:APPDATA\\\\com.vercel.cli\\\\Data\\\\config.json\"; if \\(Test-Path $configPath\\) { Get-Content $configPath -Raw } else { Write-Output \"NOT FOUND at $configPath\" })",
+      "Bash(gh run *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\pikachu\\.claude\\projects\\c--Users-pikachu-Downloads-saasresto\\memory"

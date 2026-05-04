@@ -529,9 +529,18 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
     ((viewData.users ?? []) as DirectoryMembershipUser[]).map((u) => [u.userId, u]),
   );
 
+  const activeBranchIds = new Set((viewData.branches ?? []).map((branch) => branch.id));
+  const hasFullBranchCoverage = (ids: string[] | null | undefined) => {
+    if (!Array.isArray(ids) || ids.length === 0 || activeBranchIds.size === 0) return false;
+    const normalized = Array.from(new Set(ids.filter(Boolean)));
+    if (normalized.length !== activeBranchIds.size) return false;
+    return normalized.every((id) => activeBranchIds.has(id));
+  };
+
   const employeeRows = viewData.employees.map((emp) => {
     const defaultContract = emp.contracts?.[0];
-    const resolvedLocationNames = emp.allLocations
+    const isAllLocations = emp.allLocations || hasFullBranchCoverage(emp.locationScopeIds);
+    const resolvedLocationNames = isAllLocations
       ? ["Todas las locaciones"]
       : (Array.isArray(emp.locationScopeIds) && emp.locationScopeIds.length
         ? emp.locationScopeIds.map((id) => branchNameById.get(id) ?? "Locación")
@@ -579,7 +588,8 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
     const fullName = `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim();
     const membership = profile.user_id ? membershipByUser.get(profile.user_id) : null;
 
-    const resolvedLocationNames = profile.all_locations
+    const isAllLocations = profile.all_locations || hasFullBranchCoverage(profile.location_scope_ids);
+    const resolvedLocationNames = isAllLocations
       ? ["Todas las locaciones"]
       : (Array.isArray(profile.location_scope_ids) && profile.location_scope_ids.length
         ? profile.location_scope_ids.map((id) => branchNameById.get(id) ?? "Locación")
