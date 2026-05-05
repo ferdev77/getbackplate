@@ -59,7 +59,7 @@ type SyncConfigRow = {
   name: string;
   qbo_customer_id: string;
   qbo_customer_name: string;
-  schedule_interval: "manual" | "hourly" | "daily" | "weekly";
+  schedule_interval: "manual" | "daily" | "weekly" | "hourly";
   lookback_hours: number;
   r365_ftp_host: string | null;
   r365_ftp_port: number | null;
@@ -200,7 +200,9 @@ export async function listSyncConfigs(organizationId: string): Promise<SyncConfi
     name: row.name as string,
     qboCustomerId: row.qbo_customer_id as string,
     qboCustomerName: row.qbo_customer_name as string,
-    scheduleInterval: row.schedule_interval as SyncConfigSummary["scheduleInterval"],
+    scheduleInterval: row.schedule_interval === "hourly"
+      ? "daily"
+      : (row.schedule_interval as SyncConfigSummary["scheduleInterval"]),
     lookbackHours: Number(row.lookback_hours ?? 48),
     template: row.template as SyncConfigSummary["template"],
     taxMode: row.tax_mode as SyncConfigSummary["taxMode"],

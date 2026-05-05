@@ -5,7 +5,7 @@ import { runQboR365Sync } from "@/modules/integrations/qbo-r365/service";
 type SyncConfigCronRow = {
   id: string;
   organization_id: string;
-  schedule_interval: "hourly" | "daily" | "weekly";
+  schedule_interval: "daily" | "weekly" | "hourly";
   last_run_at: string | null;
 };
 
@@ -18,9 +18,9 @@ type CronResult = {
 };
 
 const INTERVAL_MS: Record<string, number> = {
-  hourly: 60 * 60 * 1000,
   daily: 24 * 60 * 60 * 1000,
   weekly: 7 * 24 * 60 * 60 * 1000,
+  hourly: 24 * 60 * 60 * 1000,
 };
 
 export async function GET(request: Request) {
@@ -49,7 +49,7 @@ async function processCron(request: Request) {
       .from("qbo_r365_sync_configs")
       .select("id, organization_id, schedule_interval, last_run_at")
       .eq("status", "active")
-      .neq("schedule_interval", "manual")
+      .in("schedule_interval", ["daily", "weekly", "hourly"])
       .limit(200);
 
     if (error) throw new Error(error.message);
