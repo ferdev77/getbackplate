@@ -7,16 +7,23 @@ import { createOAuthStateToken } from "@/modules/integrations/qbo-r365/oauth-sta
 import {
   buildQboAuthorizeUrl,
   exchangeQboOAuthCode,
+  fetchQboCustomers,
   fetchQboSalesTransactions,
   refreshQboAccessToken,
+  type QboCustomer,
   type QboInvoiceLike,
 } from "@/modules/integrations/qbo-r365/qbo-client";
 import { buildR365Csv, type NormalizedInvoiceLine } from "@/modules/integrations/qbo-r365/r365-csv";
 import {
   qboR365ConfigUpsertSchema,
   qboR365SettingsSchema,
+  syncConfigCreateSchema,
+  syncConfigUpdateSchema,
   type FtpStoredSecrets,
   type IntegrationProvider,
+  type SyncConfigCreatePayload,
+  type SyncConfigSummary,
+  type SyncConfigUpdatePayload,
   type QboStoredSecrets,
 } from "@/modules/integrations/qbo-r365/types";
 
@@ -44,6 +51,29 @@ type SettingsRow = {
   max_retry_attempts: number;
   is_enabled: boolean;
   last_run_at: string | null;
+};
+
+type SyncConfigRow = {
+  id: string;
+  organization_id: string;
+  name: string;
+  qbo_customer_id: string;
+  qbo_customer_name: string;
+  schedule_interval: "manual" | "hourly" | "daily" | "weekly";
+  lookback_hours: number;
+  r365_ftp_host: string | null;
+  r365_ftp_port: number | null;
+  r365_ftp_username: string | null;
+  r365_ftp_secrets_ciphertext: string | null;
+  r365_ftp_secrets_iv: string | null;
+  r365_ftp_secrets_tag: string | null;
+  r365_ftp_remote_path: string;
+  r365_ftp_secure: boolean;
+  template: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates";
+  tax_mode: "line" | "header" | "none";
+  status: "active" | "paused";
+  last_run_at: string | null;
+  created_at: string;
 };
 
 type MappingRow = {
@@ -136,6 +166,170 @@ async function upsertConnection(input: {
     throw new Error(error.message);
   }
 }
+
+// ─── Sync Configs CRUD ────────────────────────────────────────────────────────
+
+async function getSyncConfigRow(organizationId: string, id: string): Promise<SyncConfigRow> {
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("qbo_r365_sync_configs")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .eq("id", id)
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message || "Sync config no encontrada");
+  }
+
+  return data as SyncConfigRow;
+}
+
+export async function listSyncConfigs(organizationId: string): Promise<SyncConfigSummary[]> {
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("qbo_r365_sync_configs")
+    .select("id, name, qbo_customer_id, qbo_customer_name, schedule_interval, lookback_hours, template, tax_mode, status, last_run_at, r365_ftp_host, created_at")
+    .eq("organization_id", organizationId)
+    .order("created_at", { ascending: true });
+
+  if (error) throw new Error(error.message);
+
+  return (data ?? []).map((row) => ({
+    id: row.id as string,
+    name: row.name as string,
+    qboCustomerId: row.qbo_customer_id as string,
+    qboCustomerName: row.qbo_customer_name as string,
+    scheduleInterval: row.schedule_interval as SyncConfigSummary["scheduleInterval"],
+    lookbackHours: Number(row.lookback_hours ?? 48),
+    template: row.template as SyncConfigSummary["template"],
+    taxMode: row.tax_mode as SyncConfigSummary["taxMode"],
+    status: row.status as SyncConfigSummary["status"],
+    lastRunAt: (row.last_run_at as string | null) ?? null,
+    hasFtp: Boolean(row.r365_ftp_host),
+    createdAt: row.created_at as string,
+  }));
+}
+
+export async function createSyncConfig(
+  organizationId: string,
+  actorId: string | null,
+  payload: SyncConfigCreatePayload,
+): Promise<string> {
+  const admin = createSupabaseAdminClient();
+
+  const ftpHost = payload.r365FtpHost?.trim() ?? "";
+  const ftpUsername = payload.r365FtpUsername?.trim() ?? "";
+  const ftpPassword = payload.r365FtpPassword?.trim() ?? "";
+  const hasAnyFtpField = Boolean(ftpHost || ftpUsername || ftpPassword);
+  const hasAllFtpFields = Boolean(ftpHost && ftpUsername && ftpPassword);
+
+  if (hasAnyFtpField && !hasAllFtpFields) {
+    throw new Error("Para configurar FTP, completa host, usuario y contrasena.");
+  }
+
+  const encrypted = hasAllFtpFields
+    ? encryptJsonPayload({ password: ftpPassword })
+    : null;
+
+  const { data, error } = await admin
+    .from("qbo_r365_sync_configs")
+    .insert({
+      organization_id: organizationId,
+      name: payload.name,
+      qbo_customer_id: payload.qboCustomerId,
+      qbo_customer_name: payload.qboCustomerName,
+      schedule_interval: payload.scheduleInterval,
+      lookback_hours: payload.lookbackHours,
+      r365_ftp_host: hasAllFtpFields ? ftpHost : null,
+      r365_ftp_port: hasAllFtpFields ? payload.r365FtpPort : null,
+      r365_ftp_username: hasAllFtpFields ? ftpUsername : null,
+      r365_ftp_secrets_ciphertext: encrypted?.ciphertext ?? null,
+      r365_ftp_secrets_iv: encrypted?.iv ?? null,
+      r365_ftp_secrets_tag: encrypted?.tag ?? null,
+      r365_ftp_remote_path: hasAllFtpFields ? payload.r365FtpRemotePath : "/APImports/R365",
+      r365_ftp_secure: hasAllFtpFields ? payload.r365FtpSecure : false,
+      template: payload.template,
+      tax_mode: payload.taxMode,
+      created_by: actorId,
+      updated_by: actorId,
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) throw new Error(error?.message || "No se pudo crear la sync config");
+
+  return data.id as string;
+}
+
+export async function updateSyncConfig(
+  organizationId: string,
+  id: string,
+  actorId: string | null,
+  payload: SyncConfigUpdatePayload,
+): Promise<void> {
+  const admin = createSupabaseAdminClient();
+
+  const patch: Record<string, unknown> = { updated_by: actorId };
+
+  if (payload.name !== undefined) patch.name = payload.name;
+  if (payload.qboCustomerId !== undefined) patch.qbo_customer_id = payload.qboCustomerId;
+  if (payload.qboCustomerName !== undefined) patch.qbo_customer_name = payload.qboCustomerName;
+  if (payload.scheduleInterval !== undefined) patch.schedule_interval = payload.scheduleInterval;
+  if (payload.lookbackHours !== undefined) patch.lookback_hours = payload.lookbackHours;
+  if (payload.r365FtpHost !== undefined) patch.r365_ftp_host = payload.r365FtpHost;
+  if (payload.r365FtpPort !== undefined) patch.r365_ftp_port = payload.r365FtpPort;
+  if (payload.r365FtpUsername !== undefined) patch.r365_ftp_username = payload.r365FtpUsername;
+  if (payload.r365FtpRemotePath !== undefined) patch.r365_ftp_remote_path = payload.r365FtpRemotePath;
+  if (payload.r365FtpSecure !== undefined) patch.r365_ftp_secure = payload.r365FtpSecure;
+  if (payload.template !== undefined) patch.template = payload.template;
+  if (payload.taxMode !== undefined) patch.tax_mode = payload.taxMode;
+  if (payload.status !== undefined) patch.status = payload.status;
+
+  if (payload.r365FtpPassword !== undefined) {
+    const encrypted = encryptJsonPayload({ password: payload.r365FtpPassword });
+    patch.r365_ftp_secrets_ciphertext = encrypted.ciphertext;
+    patch.r365_ftp_secrets_iv = encrypted.iv;
+    patch.r365_ftp_secrets_tag = encrypted.tag;
+  }
+
+  const { error } = await admin
+    .from("qbo_r365_sync_configs")
+    .update(patch)
+    .eq("organization_id", organizationId)
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteSyncConfig(organizationId: string, id: string): Promise<void> {
+  const admin = createSupabaseAdminClient();
+  const { error } = await admin
+    .from("qbo_r365_sync_configs")
+    .delete()
+    .eq("organization_id", organizationId)
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
+}
+
+export async function listQboCustomers(organizationId: string): Promise<QboCustomer[]> {
+  const qboConnection = await getConnection(organizationId, "quickbooks_online");
+  if (!qboConnection || qboConnection.status !== "connected") {
+    throw new Error("QuickBooks Online no esta conectado");
+  }
+
+  const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
+  const useSandbox = Boolean((qboConnection.config as Record<string, unknown>)?.useSandbox ?? false);
+
+  return fetchQboCustomers({
+    accessToken: qboAuth.accessToken,
+    realmId: qboAuth.realmId,
+    useSandbox,
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 async function getSettings(organizationId: string): Promise<SettingsRow> {
   const admin = createSupabaseAdminClient();
@@ -267,13 +461,28 @@ function applyMappings(
 
 function normalizeQboRows(input: {
   invoices: QboInvoiceLike[];
+  salesReceipts: QboInvoiceLike[];
   creditMemos: QboInvoiceLike[];
   template: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates";
   taxMode: "line" | "header" | "none";
   mappings: MappingRow[];
 }) {
+  const getQboStatusRaw = (kind: "invoice" | "sales_receipt" | "credit", row: QboInvoiceLike, paymentStatus: "paid" | "unpaid" | "partial" | "not_applicable" | "unknown") => {
+    const candidate = (row as unknown as Record<string, unknown>).TxnStatus;
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate.trim();
+    }
+    if (kind === "credit") return "Credit Memo";
+    if (kind === "sales_receipt") return "Paid";
+    if (paymentStatus === "paid") return "Paid";
+    if (paymentStatus === "partial") return "Partially Paid";
+    if (paymentStatus === "unpaid") return "Open";
+    return "Unknown";
+  };
+
   const all = [
     ...input.invoices.map((item) => ({ kind: "invoice" as const, data: item })),
+    ...input.salesReceipts.map((item) => ({ kind: "sales_receipt" as const, data: item })),
     ...input.creditMemos.map((item) => ({ kind: "credit" as const, data: item })),
   ];
 
@@ -287,9 +496,12 @@ function normalizeQboRows(input: {
     const balanceAmount = Number(row.data.Balance ?? Number.NaN);
     const qboPaymentStatus: "paid" | "unpaid" | "partial" | "not_applicable" | "unknown" = row.kind === "credit"
       ? "not_applicable"
-      : Number.isFinite(balanceAmount)
-        ? (balanceAmount <= 0 ? "paid" : (Number.isFinite(totalAmount) && balanceAmount < totalAmount ? "partial" : "unpaid"))
-        : "unknown";
+      : row.kind === "sales_receipt"
+        ? "paid"
+        : Number.isFinite(balanceAmount)
+          ? (balanceAmount <= 0 ? "paid" : (Number.isFinite(totalAmount) && balanceAmount < totalAmount ? "partial" : "unpaid"))
+          : "unknown";
+    const qboStatusRaw = getQboStatusRaw(row.kind, row.data, qboPaymentStatus);
     const headerTax = Number(row.data.TxnTaxDetail?.TotalTax ?? 0);
     const baseLines = row.data.Line ?? [];
     const baseAmountSum = baseLines.reduce((sum, line) => sum + Number(line.Amount ?? 0), 0);
@@ -338,6 +550,7 @@ function normalizeQboRows(input: {
           : (Number.isFinite(totalAmount) ? totalAmount : lineAmount),
         qboBalance: Number.isFinite(balanceAmount) ? balanceAmount : undefined,
         qboPaymentStatus,
+        qboStatusRaw,
         location: "",
         memo: row.data.PrivateNote || "",
       };
@@ -387,6 +600,7 @@ async function createRun(
   organizationId: string,
   triggeredByUserId: string | null,
   triggerSource: "manual" | "scheduled" | "retry",
+  syncConfigId?: string | null,
 ) {
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin
@@ -397,6 +611,7 @@ async function createRun(
       trigger_source: triggerSource,
       status: "running",
       started_at: new Date().toISOString(),
+      sync_config_id: syncConfigId ?? null,
     })
     .select("id")
     .single();
@@ -731,24 +946,73 @@ export async function runQboR365Sync(input: {
   triggerSource?: "manual" | "scheduled" | "retry";
   dryRun?: boolean;
   ignoreLookback?: boolean;
+  syncConfigId?: string | null;
 }) {
   const dryRun = input.dryRun === true;
+  const actorId = input.actorId ?? null;
+  const triggerSource = input.triggerSource ?? "manual";
+
+  // Cargar sync config si se especifica
+  let syncConfig: SyncConfigRow | null = null;
+  if (input.syncConfigId) {
+    syncConfig = await getSyncConfigRow(input.organizationId, input.syncConfigId);
+  }
+
   const settings = await getSettings(input.organizationId);
-  const [qboConnection, ftpConnection] = await Promise.all([
-    getConnection(input.organizationId, "quickbooks_online"),
-    getConnection(input.organizationId, "restaurant365_ftp"),
-  ]);
+  const qboConnection = await getConnection(input.organizationId, "quickbooks_online");
+
+  // FTP: viene de la sync config si existe, sino de la conexión global
+  let ftpForUpload: {
+    host: string; port: number; username: string; password: string;
+    secure: boolean; remotePath: string;
+  } | null = null;
+
+  if (syncConfig?.r365_ftp_host) {
+    const ftpSecrets = decryptJsonPayload<FtpStoredSecrets>({
+      ciphertext: syncConfig.r365_ftp_secrets_ciphertext,
+      iv: syncConfig.r365_ftp_secrets_iv,
+      tag: syncConfig.r365_ftp_secrets_tag,
+    });
+    if (ftpSecrets?.password) {
+      ftpForUpload = {
+        host: syncConfig.r365_ftp_host,
+        port: syncConfig.r365_ftp_port ?? 21,
+        username: syncConfig.r365_ftp_username ?? "",
+        password: ftpSecrets.password,
+        secure: syncConfig.r365_ftp_secure,
+        remotePath: syncConfig.r365_ftp_remote_path,
+      };
+    }
+  } else {
+    const ftpConnection = await getConnection(input.organizationId, "restaurant365_ftp");
+    if (ftpConnection?.status === "connected") {
+      const ftpSecrets = parseConnectionSecrets<FtpStoredSecrets>(ftpConnection);
+      const ftpConfig = (ftpConnection.config ?? {}) as Record<string, unknown>;
+      if (ftpSecrets?.password) {
+        ftpForUpload = {
+          host: String(ftpConfig.host ?? ""),
+          port: Number(ftpConfig.port ?? 21),
+          username: String(ftpConfig.username ?? ""),
+          password: ftpSecrets.password,
+          secure: Boolean(ftpConfig.secure ?? true),
+          remotePath: String(ftpConfig.remotePath ?? settings.ftp_remote_path),
+        };
+      }
+    }
+  }
 
   if (!qboConnection || qboConnection.status !== "connected") {
     throw new Error("QuickBooks Online no esta conectado");
   }
-  if (!dryRun && (!ftpConnection || ftpConnection.status !== "connected")) {
+  if (!dryRun && !ftpForUpload) {
     throw new Error("Restaurant365 FTP no esta conectado");
   }
 
-  const actorId = input.actorId ?? null;
-  const triggerSource = input.triggerSource ?? "manual";
-  const runId = await createRun(input.organizationId, actorId, triggerSource);
+  // Template y taxMode: sync config sobrescribe el global
+  const effectiveTemplate = syncConfig?.template ?? settings.qbo_r365_template;
+  const effectiveTaxMode = syncConfig?.tax_mode ?? settings.tax_mode;
+
+  const runId = await createRun(input.organizationId, actorId, triggerSource, syncConfig?.id ?? null);
   const admin = createSupabaseAdminClient();
 
   try {
@@ -760,14 +1024,16 @@ export async function runQboR365Sync(input: {
 
     const qboConfig = (qboConnection.config ?? {}) as Record<string, unknown>;
     const useSandbox = Boolean(qboConfig.useSandbox ?? false);
-    const sinceIso = input.ignoreLookback === true || settings.incremental_lookback_hours === 0
+    const effectiveLookbackHours = syncConfig?.lookback_hours ?? settings.incremental_lookback_hours;
+    const sinceIso = input.ignoreLookback === true || effectiveLookbackHours === 0
       ? undefined
-      : toIsoLookback(settings.incremental_lookback_hours);
+      : toIsoLookback(effectiveLookbackHours);
     let qboData;
     try {
       qboData = await fetchQboSalesTransactions({
         accessToken: qboAuth.accessToken,
         realmId: qboAuth.realmId,
+        customerId: syncConfig?.qbo_customer_id,
         sinceIso,
         useSandbox,
       });
@@ -788,6 +1054,7 @@ export async function runQboR365Sync(input: {
       qboData = await fetchQboSalesTransactions({
         accessToken: qboAuth.accessToken,
         realmId: qboAuth.realmId,
+        customerId: syncConfig?.qbo_customer_id,
         sinceIso,
         useSandbox,
       });
@@ -795,7 +1062,7 @@ export async function runQboR365Sync(input: {
 
     // Si el URL de produccion devuelve 0 resultados (QBO cambio de devolver error 3100
     // a devolver 200+vacio para tokens sandbox), intentar con URL de sandbox automaticamente.
-    if (!useSandbox && qboData.invoices.length === 0 && qboData.creditMemos.length === 0) {
+    if (!useSandbox && qboData.invoices.length === 0 && qboData.salesReceipts.length === 0 && qboData.creditMemos.length === 0) {
       try {
         const sandboxData = await fetchQboSalesTransactions({
           accessToken: qboAuth.accessToken,
@@ -803,7 +1070,7 @@ export async function runQboR365Sync(input: {
           sinceIso,
           useSandbox: true,
         });
-        if (sandboxData.invoices.length > 0 || sandboxData.creditMemos.length > 0) {
+        if (sandboxData.invoices.length > 0 || sandboxData.salesReceipts.length > 0 || sandboxData.creditMemos.length > 0) {
           qboData = sandboxData;
           if (actorId) {
             void updateQboConnectionPublicConfig({
@@ -822,9 +1089,10 @@ export async function runQboR365Sync(input: {
 
     const normalized = normalizeQboRows({
       invoices: qboData.invoices,
+      salesReceipts: qboData.salesReceipts,
       creditMemos: qboData.creditMemos,
-      template: settings.qbo_r365_template,
-      taxMode: settings.tax_mode,
+      template: effectiveTemplate,
+      taxMode: effectiveTaxMode,
       mappings,
     });
     const detectedInvoiceCount = new Set(normalized.map((line) => line.sourceInvoiceId).filter(Boolean)).size;
@@ -868,17 +1136,19 @@ export async function runQboR365Sync(input: {
     }
 
     const csvBuild = buildR365Csv({
-      template: settings.qbo_r365_template,
+      template: effectiveTemplate,
       lines: uniqueLines.map((entry) => entry.line),
     });
 
     const fileName = buildFileName(settings.file_prefix, runId);
 
+    const effectiveRemotePath = ftpForUpload?.remotePath ?? settings.ftp_remote_path;
+
     await admin.from("integration_outbox_files").insert({
       run_id: runId,
       organization_id: input.organizationId,
       storage_provider: "r365_ftp",
-      remote_path: settings.ftp_remote_path,
+      remote_path: effectiveRemotePath,
       file_name: fileName,
       mime_type: "text/csv",
       size_bytes: Buffer.byteLength(csvBuild.csv, "utf8"),
@@ -887,19 +1157,17 @@ export async function runQboR365Sync(input: {
     });
 
     if (!dryRun && uniqueLines.length > 0) {
-      const ftpConfig = (ftpConnection?.config ?? {}) as Record<string, unknown>;
-      const ftpSecrets = parseConnectionSecrets<FtpStoredSecrets>(ftpConnection);
-      if (!ftpSecrets?.password) {
-        throw new Error("Falta password FTP de Restaurant365");
+      if (!ftpForUpload) {
+        throw new Error("Falta configuracion FTP de Restaurant365");
       }
 
       await uploadCsvToFtp({
-        host: String(ftpConfig.host ?? ""),
-        port: Number(ftpConfig.port ?? 21),
-        username: String(ftpConfig.username ?? ""),
-        password: ftpSecrets.password,
-        secure: Boolean(ftpConfig.secure ?? true),
-        remotePath: String(ftpConfig.remotePath ?? settings.ftp_remote_path),
+        host: ftpForUpload.host,
+        port: ftpForUpload.port,
+        username: ftpForUpload.username,
+        password: ftpForUpload.password,
+        secure: ftpForUpload.secure,
+        remotePath: ftpForUpload.remotePath,
         fileName,
         content: csvBuild.csv,
       });
@@ -942,6 +1210,7 @@ export async function runQboR365Sync(input: {
             totalAmount: entry.line.totalAmount,
             qboBalance: entry.line.qboBalance,
             qboPaymentStatus: entry.line.qboPaymentStatus,
+            qboStatusRaw: entry.line.qboStatusRaw,
             location: entry.line.location,
             memo: entry.line.memo,
             rawVendor: entry.line.vendor,
@@ -963,7 +1232,7 @@ export async function runQboR365Sync(input: {
         finished_at: new Date().toISOString(),
         qbo_window_from: sinceIso,
         qbo_window_to: new Date().toISOString(),
-        template_used: settings.qbo_r365_template,
+        template_used: effectiveTemplate,
         file_name: fileName,
         file_hash: csvBuild.hash,
         total_detected: detectedInvoiceCount,
@@ -975,10 +1244,18 @@ export async function runQboR365Sync(input: {
       .eq("id", runId)
       .eq("organization_id", input.organizationId);
 
+    const nowIso = new Date().toISOString();
     await admin
       .from("integration_settings")
-      .update({ last_run_at: new Date().toISOString(), ...(actorId ? { updated_by: actorId } : {}) })
+      .update({ last_run_at: nowIso, ...(actorId ? { updated_by: actorId } : {}) })
       .eq("organization_id", input.organizationId);
+
+    if (syncConfig?.id) {
+      await admin
+        .from("qbo_r365_sync_configs")
+        .update({ last_run_at: nowIso })
+        .eq("id", syncConfig.id);
+    }
 
     await appendIntegrationAudit({
       organizationId: input.organizationId,
@@ -1060,7 +1337,7 @@ export async function listQboR365Runs(organizationId: string, limit = 20) {
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin
     .from("integration_runs")
-    .select("id, status, trigger_source, started_at, finished_at, total_detected, total_mapped, total_uploaded, total_skipped_duplicates, total_failed, file_name, template_used, error_summary")
+    .select("id, status, trigger_source, started_at, finished_at, total_detected, total_mapped, total_uploaded, total_skipped_duplicates, total_failed, file_name, template_used, error_summary, sync_config_id")
     .eq("organization_id", organizationId)
     .order("started_at", { ascending: false })
     .limit(limit);
@@ -1072,14 +1349,31 @@ export async function listQboR365Runs(organizationId: string, limit = 20) {
   return data ?? [];
 }
 
-export async function listQboR365InvoiceHistory(organizationId: string, limit = 200) {
+export async function listQboR365InvoiceHistory(organizationId: string, limit = 200, syncConfigId?: string | null) {
   const admin = createSupabaseAdminClient();
 
-  const { data, error } = await admin
+  let runIdsFilter: string[] | null = null;
+  if (syncConfigId) {
+    const { data: runRows, error: runError } = await admin
+      .from("integration_runs")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .eq("sync_config_id", syncConfigId)
+      .limit(500);
+    if (runError) throw new Error(runError.message);
+    runIdsFilter = (runRows ?? []).map((r) => String(r.id));
+    if (runIdsFilter.length === 0) return [];
+  }
+
+  const baseFilter = admin
     .from("integration_run_items")
     .select("run_id, source_invoice_id, status, payload, created_at")
     .eq("organization_id", organizationId)
-    .not("source_invoice_id", "is", null)
+    .not("source_invoice_id", "is", null);
+
+  const withRunFilter = runIdsFilter ? baseFilter.in("run_id", runIdsFilter) : baseFilter;
+
+  const { data, error } = await withRunFilter
     .order("created_at", { ascending: false })
     .limit(Math.max(limit * 10, 1000));
 
@@ -1127,6 +1421,7 @@ export async function listQboR365InvoiceHistory(organizationId: string, limit = 
     transactionTypeCode: "1" | "2" | null;
     qboBalance: number | null;
     qboPaymentStatus: "paid" | "unpaid" | "partial" | "not_applicable" | "unknown" | null;
+    qboStatusRaw: string | null;
     vendor: string | null;
     mappedCode: string | null;
     lastStatus: string;
@@ -1165,6 +1460,7 @@ export async function listQboR365InvoiceHistory(organizationId: string, limit = 
           || payload.qboPaymentStatus === "unknown"
             ? payload.qboPaymentStatus
             : null,
+        qboStatusRaw: typeof payload.qboStatusRaw === "string" ? payload.qboStatusRaw : null,
         vendor: typeof payload.vendor === "string" ? payload.vendor : null,
         mappedCode: typeof payload.targetCode === "string" ? payload.targetCode : null,
         lastStatus: row.status,
@@ -1251,6 +1547,12 @@ export async function listQboR365InvoiceHistory(organizationId: string, limit = 
         existing.qboPaymentStatus = payload.qboPaymentStatus;
       }
     }
+    if (!existing.qboStatusRaw) {
+      const payload = (row.payload ?? {}) as Record<string, unknown>;
+      if (typeof payload.qboStatusRaw === "string" && payload.qboStatusRaw.trim()) {
+        existing.qboStatusRaw = payload.qboStatusRaw;
+      }
+    }
   }
 
   return Array.from(byInvoice.values())
@@ -1264,6 +1566,7 @@ export async function listQboR365InvoiceHistory(organizationId: string, limit = 
       transactionTypeCode: entry.transactionTypeCode,
       qboBalance: entry.qboBalance,
       qboPaymentStatus: entry.qboPaymentStatus,
+      qboStatusRaw: entry.qboStatusRaw,
       vendor: entry.vendor,
       mappedCode: entry.mappedCode,
       lastStatus: entry.lastStatus,
@@ -1329,7 +1632,7 @@ export async function sendPreparedQboR365Run(input: {
   const [{ data: run, error: runError }, ftpConnection] = await Promise.all([
     admin
       .from("integration_runs")
-      .select("id, organization_id, status, template_used, file_name")
+      .select("id, organization_id, status, template_used, file_name, sync_config_id")
       .eq("organization_id", input.organizationId)
       .eq("id", input.runId)
       .maybeSingle(),
@@ -1342,8 +1645,9 @@ export async function sendPreparedQboR365Run(input: {
   if (!run) {
     throw new Error("No se encontro corrida preparada");
   }
-  if (!ftpConnection || ftpConnection.status !== "connected") {
-    throw new Error("Restaurant365 FTP no esta conectado");
+  let syncConfig: SyncConfigRow | null = null;
+  if (run.sync_config_id) {
+    syncConfig = await getSyncConfigRow(input.organizationId, String(run.sync_config_id));
   }
 
   const { data: runItems, error: itemsError } = await admin
@@ -1373,19 +1677,55 @@ export async function sendPreparedQboR365Run(input: {
     ? run.file_name
     : buildFileName("r365_multi_invoice", run.id);
 
-  const ftpConfig = (ftpConnection.config ?? {}) as Record<string, unknown>;
-  const ftpSecrets = parseConnectionSecrets<FtpStoredSecrets>(ftpConnection);
-  if (!ftpSecrets?.password) {
-    throw new Error("Falta password FTP de Restaurant365");
+  let ftpForUpload: {
+    host: string; port: number; username: string; password: string;
+    secure: boolean; remotePath: string;
+  } | null = null;
+
+  if (syncConfig?.r365_ftp_host) {
+    const syncFtpSecrets = decryptJsonPayload<FtpStoredSecrets>({
+      ciphertext: syncConfig.r365_ftp_secrets_ciphertext,
+      iv: syncConfig.r365_ftp_secrets_iv,
+      tag: syncConfig.r365_ftp_secrets_tag,
+    });
+    if (syncFtpSecrets?.password) {
+      ftpForUpload = {
+        host: syncConfig.r365_ftp_host,
+        port: syncConfig.r365_ftp_port ?? 21,
+        username: syncConfig.r365_ftp_username ?? "",
+        password: syncFtpSecrets.password,
+        secure: syncConfig.r365_ftp_secure,
+        remotePath: syncConfig.r365_ftp_remote_path,
+      };
+    }
+  }
+
+  if (!ftpForUpload && ftpConnection?.status === "connected") {
+    const ftpConfig = (ftpConnection.config ?? {}) as Record<string, unknown>;
+    const ftpSecrets = parseConnectionSecrets<FtpStoredSecrets>(ftpConnection);
+    if (ftpSecrets?.password) {
+      ftpForUpload = {
+        host: String(ftpConfig.host ?? ""),
+        port: Number(ftpConfig.port ?? 21),
+        username: String(ftpConfig.username ?? ""),
+        password: ftpSecrets.password,
+        secure: Boolean(ftpConfig.secure ?? true),
+        remotePath: String(ftpConfig.remotePath ?? "/APImports/R365"),
+      };
+    }
+  }
+
+  if (!ftpForUpload) {
+    throw new Error("Restaurant365 FTP no esta conectado");
   }
 
   await uploadCsvToFtp({
-    host: String(ftpConfig.host ?? ""),
-    port: Number(ftpConfig.port ?? 21),
-    username: String(ftpConfig.username ?? ""),
-    password: ftpSecrets.password,
-    secure: Boolean(ftpConfig.secure ?? true),
-    remotePath: String(ftpConfig.remotePath ?? "/APImports/R365"),
+    host: ftpForUpload.host,
+    port: ftpForUpload.port,
+    username: ftpForUpload.username,
+    password: ftpForUpload.password,
+    secure: ftpForUpload.secure,
+    remotePath: ftpForUpload.remotePath,
     fileName,
     content: csvBuild.csv,
   });
@@ -1398,6 +1738,7 @@ export async function sendPreparedQboR365Run(input: {
       sha256: csvBuild.hash,
       size_bytes: Buffer.byteLength(csvBuild.csv, "utf8"),
       file_name: fileName,
+      remote_path: ftpForUpload.remotePath,
     })
     .eq("organization_id", input.organizationId)
     .eq("run_id", input.runId);

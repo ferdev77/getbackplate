@@ -20,7 +20,10 @@
       "PowerShell($configPath = \"$env:APPDATA\\\\com.vercel.cli\\\\Data\\\\config.json\"; if \\(Test-Path $configPath\\) { Get-Content $configPath -Raw } else { Write-Output \"NOT FOUND at $configPath\" })",
       "Bash(gh run *)",
       "Bash(npm ci *)",
-      "Bash(PGPASSWORD=wfr9Rhcq28L8Dg90 psql \"postgresql://postgres.uubdslmtfxwraszinpao:wfr9Rhcq28L8Dg90@aws-1-us-east-1.pooler.supabase.com:5432/postgres\" -c \"SELECT id, name FROM organizations WHERE name ILIKE '%puntos%cardinales%' OR name ILIKE '%cardinal%';\")"
+      "Bash(PGPASSWORD=wfr9Rhcq28L8Dg90 psql \"postgresql://postgres.uubdslmtfxwraszinpao:wfr9Rhcq28L8Dg90@aws-1-us-east-1.pooler.supabase.com:5432/postgres\" -c \"SELECT id, name FROM organizations WHERE name ILIKE '%puntos%cardinales%' OR name ILIKE '%cardinal%';\")",
+      "Bash(xargs grep *)",
+      "Bash(node -e \"const pg = require\\('pg'\\); console.log\\('pg ok'\\);\")",
+      "Bash(node)"
     ],
     "additionalDirectories": [
       "c:\\Users\\pikachu\\.claude\\projects\\c--Users-pikachu-Downloads-saasresto\\memory"

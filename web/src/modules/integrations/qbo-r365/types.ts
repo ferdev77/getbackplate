@@ -58,3 +58,41 @@ export type FtpStoredSecrets = {
 };
 
 export type IntegrationProvider = "quickbooks_online" | "restaurant365_ftp";
+
+export const syncConfigCreateSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  qboCustomerId: z.string().trim().min(1).max(120),
+  qboCustomerName: z.string().trim().min(1).max(255),
+  scheduleInterval: z.enum(["manual", "hourly", "daily", "weekly"]).default("manual"),
+  lookbackHours: z.number().int().min(0).max(8760).default(48),
+  r365FtpHost: z.string().trim().min(1).max(255),
+  r365FtpPort: z.number().int().min(1).max(65535).default(21),
+  r365FtpUsername: z.string().trim().min(1).max(255),
+  r365FtpPassword: z.string().trim().min(1).max(500),
+  r365FtpRemotePath: z.string().trim().min(1).max(500).default("/APImports/R365"),
+  r365FtpSecure: z.boolean().default(false),
+  template: z.enum(["by_item", "by_item_service_dates", "by_account", "by_account_service_dates"]).default("by_item"),
+  taxMode: z.enum(["line", "header", "none"]).default("none"),
+});
+
+export const syncConfigUpdateSchema = syncConfigCreateSchema.partial().extend({
+  status: z.enum(["active", "paused"]).optional(),
+});
+
+export type SyncConfigCreatePayload = z.infer<typeof syncConfigCreateSchema>;
+export type SyncConfigUpdatePayload = z.infer<typeof syncConfigUpdateSchema>;
+
+export type SyncConfigSummary = {
+  id: string;
+  name: string;
+  qboCustomerId: string;
+  qboCustomerName: string;
+  scheduleInterval: "manual" | "hourly" | "daily" | "weekly";
+  lookbackHours: number;
+  template: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates";
+  taxMode: "line" | "header" | "none";
+  status: "active" | "paused";
+  lastRunAt: string | null;
+  hasFtp: boolean;
+  createdAt: string;
+};

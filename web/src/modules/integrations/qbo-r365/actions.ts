@@ -57,20 +57,24 @@ export async function saveIntegrationConfigAction(formData: FormData) {
       };
     }
 
-    if (!hasAnyFtpField && !hasAnySettingsField) {
+    const hasSandboxField = sandboxFieldVisible;
+
+    if (!hasAnyFtpField && !hasAnySettingsField && !hasSandboxField) {
       return { status: "error", message: "No hay cambios para guardar." };
     }
 
-    const parsed = qboR365ConfigUpsertSchema.safeParse(rawData);
-    if (!parsed.success) {
-      return { status: "error", message: "Los datos de configuración no son válidos." };
-    }
+    if (hasAnyFtpField || hasAnySettingsField) {
+      const parsed = qboR365ConfigUpsertSchema.safeParse(rawData);
+      if (!parsed.success) {
+        return { status: "error", message: "Los datos de configuración no son válidos." };
+      }
 
-    await upsertQboR365Config({
-      organizationId: access.tenant.organizationId,
-      actorId: access.userId,
-      payload: parsed.data,
-    });
+      await upsertQboR365Config({
+        organizationId: access.tenant.organizationId,
+        actorId: access.userId,
+        payload: parsed.data,
+      });
+    }
 
     if (sandboxFieldVisible) {
       await updateQboConnectionPublicConfig({
@@ -81,6 +85,14 @@ export async function saveIntegrationConfigAction(formData: FormData) {
     }
 
     revalidatePath("/app/integrations/quickbooks");
+    if (hasSandboxField && !hasAnyFtpField && !hasAnySettingsField) {
+      return {
+        status: "success",
+        message: useSandboxQbo
+          ? "Modo Sandbox QBO activado."
+          : "Modo QBO real activado.",
+      };
+    }
     return { status: "success", message: "Configuración guardada exitosamente." };
   } catch (error) {
     console.error("[saveIntegrationConfigAction]", error);

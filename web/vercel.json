@@ -7,6 +7,10 @@
     {
       "path": "/api/webhooks/cron/process-recurrence",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/webhooks/cron/qbo-r365-sync",
+      "schedule": "0 * * * *"
     }
   ]
 }
