@@ -4,7 +4,7 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 const BUCKET_NAME = "tenant-documents";
 const RETENTION_DAYS_SUPERADMIN = 30;
 
-// This endpoint is meant to be called by Vercel Cron or a similar scheduler
+// This endpoint is meant to be called by Vercel Cron
 export async function GET(request: Request) {
   // Validate authorization header for cron job security
   const authHeader = request.headers.get("authorization");

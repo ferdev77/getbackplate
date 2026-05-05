@@ -73,7 +73,7 @@ type SyncConfigSummary = {
   name: string;
   qboCustomerId: string;
   qboCustomerName: string;
-  scheduleInterval: "manual" | "hourly" | "daily" | "weekly";
+  scheduleInterval: "manual" | "daily" | "weekly";
   template: string;
   taxMode: string;
   status: "active" | "paused";
@@ -266,7 +266,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
   // Form state for new sync config
   const [newSyncCustomerId, setNewSyncCustomerId] = useState("");
   const [newSyncCustomerName, setNewSyncCustomerName] = useState("");
-  const [newSyncSchedule, setNewSyncSchedule] = useState<"manual" | "hourly" | "daily" | "weekly">("daily");
+  const [newSyncSchedule, setNewSyncSchedule] = useState<"manual" | "daily" | "weekly">("daily");
   const [newSyncLookbackHours, setNewSyncLookbackHours] = useState<number>(48);
   const [newSyncTemplate, setNewSyncTemplate] = useState<"by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates">("by_item");
   const [newSyncTaxMode, setNewSyncTaxMode] = useState<"line" | "header" | "none">("none");
@@ -1082,7 +1082,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
                     <select value={newSyncSchedule} onChange={(e) => setNewSyncSchedule(e.target.value as typeof newSyncSchedule)}
                       className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none">
                       <option value="manual">Manual</option>
-                      <option value="hourly">Cada hora</option>
                       <option value="daily">Diaria</option>
                       <option value="weekly">Semanal</option>
                     </select>

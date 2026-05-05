@@ -63,7 +63,7 @@ export const syncConfigCreateSchema = z.object({
   name: z.string().trim().min(1).max(120),
   qboCustomerId: z.string().trim().min(1).max(120),
   qboCustomerName: z.string().trim().min(1).max(255),
-  scheduleInterval: z.enum(["manual", "hourly", "daily", "weekly"]).default("manual"),
+  scheduleInterval: z.enum(["manual", "daily", "weekly"]).default("manual"),
   lookbackHours: z.number().int().min(0).max(8760).default(48),
   r365FtpHost: z.string().trim().min(1).max(255),
   r365FtpPort: z.number().int().min(1).max(65535).default(21),
@@ -87,7 +87,7 @@ export type SyncConfigSummary = {
   name: string;
   qboCustomerId: string;
   qboCustomerName: string;
-  scheduleInterval: "manual" | "hourly" | "daily" | "weekly";
+  scheduleInterval: "manual" | "daily" | "weekly";
   lookbackHours: number;
   template: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates";
   taxMode: "line" | "header" | "none";
