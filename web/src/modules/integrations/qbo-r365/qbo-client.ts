@@ -64,10 +64,12 @@ export type QboInvoiceLike = {
 type QueryResponse<T> = {
   QueryResponse?: {
     Invoice?: T[];
+    SalesReceipt?: T[];
     CreditMemo?: T[];
   };
   queryResponse?: {
     Invoice?: T[];
+    SalesReceipt?: T[];
     CreditMemo?: T[];
   };
 };
@@ -132,10 +134,29 @@ export async function refreshQboAccessToken(input: RefreshTokenInput) {
 async function queryQboTable<T>(input: {
   accessToken: string;
   realmId: string;
-  table: "Invoice" | "CreditMemo";
+  table: "Invoice" | "SalesReceipt" | "CreditMemo";
+  customerId?: string;
   sinceIso?: string;
   useSandbox?: boolean;
 }) {
+  const sanitizeCustomerId = (value: string) => {
+    const trimmed = value.trim();
+    if (!/^[A-Za-z0-9._-]+$/.test(trimmed)) {
+      throw new Error("customerId invalido para consulta QBO");
+    }
+    return trimmed;
+  };
+
+  const buildSinceClause = (sinceIso?: string) => {
+    if (!sinceIso) return "";
+    const epoch = Date.parse(sinceIso);
+    if (!Number.isFinite(epoch)) {
+      throw new Error("sinceIso invalido para consulta QBO");
+    }
+    const safeSince = new Date(epoch).toISOString().replace(".000", "");
+    return `MetaData.LastUpdatedTime >= '${safeSince}'`;
+  };
+
   const extractFault = (payload: QueryResponse<T> & {
     Fault?: { Error?: QboFaultError[] };
     fault?: { error?: QboFaultError[] };
@@ -169,7 +190,16 @@ async function queryQboTable<T>(input: {
   let startPosition = 1;
 
   while (true) {
-    const query = `select * from ${input.table} startposition ${startPosition} maxresults ${pageSize}`;
+    const clauses: string[] = [];
+    if (input.customerId) {
+      clauses.push(`CustomerRef = '${sanitizeCustomerId(input.customerId)}'`);
+    }
+    const sinceClause = buildSinceClause(input.sinceIso);
+    if (sinceClause) {
+      clauses.push(sinceClause);
+    }
+    const where = clauses.length > 0 ? ` WHERE ${clauses.join(" AND ")}` : "";
+    const query = `select * from ${input.table}${where} startposition ${startPosition} maxresults ${pageSize}`;
 
     const primaryUrl = input.useSandbox ? QBO_SANDBOX_API_BASE_URL : QBO_API_BASE_URL;
     let { response, payload, fault } = await doRequest(primaryUrl, query);
@@ -197,7 +227,9 @@ async function queryQboTable<T>(input: {
     const queryResponse = payload.QueryResponse ?? payload.queryResponse;
     const batch = input.table === "Invoice"
       ? (queryResponse?.Invoice ?? []) as T[]
-      : (queryResponse?.CreditMemo ?? []) as T[];
+      : input.table === "SalesReceipt"
+        ? (queryResponse?.SalesReceipt ?? []) as T[]
+        : (queryResponse?.CreditMemo ?? []) as T[];
 
     output.push(...batch);
 
@@ -214,14 +246,24 @@ async function queryQboTable<T>(input: {
 export async function fetchQboSalesTransactions(input: {
   accessToken: string;
   realmId: string;
+  customerId?: string;
   sinceIso?: string;
   useSandbox?: boolean;
 }) {
-  const [invoices, creditMemos] = await Promise.all([
+  const [invoices, salesReceipts, creditMemos] = await Promise.all([
     queryQboTable<QboInvoiceLike>({
       accessToken: input.accessToken,
       realmId: input.realmId,
       table: "Invoice",
+      customerId: input.customerId,
+      sinceIso: input.sinceIso,
+      useSandbox: input.useSandbox,
+    }),
+    queryQboTable<QboInvoiceLike>({
+      accessToken: input.accessToken,
+      realmId: input.realmId,
+      table: "SalesReceipt",
+      customerId: input.customerId,
       sinceIso: input.sinceIso,
       useSandbox: input.useSandbox,
     }),
@@ -229,6 +271,7 @@ export async function fetchQboSalesTransactions(input: {
       accessToken: input.accessToken,
       realmId: input.realmId,
       table: "CreditMemo",
+      customerId: input.customerId,
       sinceIso: input.sinceIso,
       useSandbox: input.useSandbox,
     }),
@@ -250,6 +293,60 @@ export async function fetchQboSalesTransactions(input: {
 
   return {
     invoices: filterBySince(invoices),
+    salesReceipts: filterBySince(salesReceipts),
     creditMemos: filterBySince(creditMemos),
   };
+}
+
+export type QboCustomer = {
+  id: string;
+  displayName: string;
+};
+
+export async function fetchQboCustomers(input: {
+  accessToken: string;
+  realmId: string;
+  useSandbox?: boolean;
+}): Promise<QboCustomer[]> {
+  const baseUrl = input.useSandbox ? QBO_SANDBOX_API_BASE_URL : QBO_API_BASE_URL;
+  const pageSize = 1000;
+  const output: QboCustomer[] = [];
+  let startPosition = 1;
+
+  while (true) {
+    const query = `select Id, DisplayName from Customer where Active = true startposition ${startPosition} maxresults ${pageSize}`;
+    const response = await fetch(
+      `${baseUrl}/v3/company/${input.realmId}/query?minorversion=75`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${input.accessToken}`,
+          Accept: "application/json",
+          "Content-Type": "application/text",
+        },
+        body: query,
+        cache: "no-store",
+      },
+    );
+
+    const payload = (await response.json().catch(() => ({}))) as {
+      QueryResponse?: { Customer?: Array<{ Id?: string; DisplayName?: string }> };
+    };
+
+    if (!response.ok) {
+      throw new Error("Error consultando clientes en QBO");
+    }
+
+    const batch = payload.QueryResponse?.Customer ?? [];
+    for (const c of batch) {
+      if (c.Id && c.DisplayName) {
+        output.push({ id: c.Id, displayName: c.DisplayName });
+      }
+    }
+
+    if (batch.length < pageSize) break;
+    startPosition += pageSize;
+  }
+
+  return output;
 }

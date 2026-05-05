@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link2, Search, X, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Settings } from "lucide-react";
+import { Link2, Search, X, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Plus, Play, Trash2, Pause, Eye } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { saveIntegrationConfigAction } from "@/modules/integrations/qbo-r365/actions";
@@ -12,12 +12,14 @@ type ConnectionInfo = { status: string; realmId?: string | null; host?: string |
 type RunRow = {
   id: string; startedAt: string; completedAt: string | null; status: string; triggerSource: string;
   invoicesDetected: number; invoicesUploaded: number; invoicesSkipped: number; invoicesFailed: number;
+  syncConfigId?: string | null;
   fileName: string | null; templateMode?: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates" | null; dryRun: boolean; errorMessage: string | null;
 };
 type DashboardData = {
   generatedAt: string;
   connections: { qbo: ConnectionInfo; ftp: ConnectionInfo };
   statCards: StatCard[];
+  statCardsByMode?: { operation: StatCard[]; developer: StatCard[] };
   runs: RunRow[];
   invoiceHistory: Array<{
     sourceInvoiceId: string;
@@ -29,6 +31,7 @@ type DashboardData = {
     transactionTypeCode: "1" | "2" | null;
     qboBalance: number | null;
     qboPaymentStatus: "paid" | "unpaid" | "partial" | "not_applicable" | "unknown" | null;
+    qboStatusRaw: string | null;
     vendor: string | null;
     mappedCode: string | null;
     lastStatus: string;
@@ -65,6 +68,22 @@ type ConfigSnapshot = {
     useSandbox?: boolean;
   };
 };
+type SyncConfigSummary = {
+  id: string;
+  name: string;
+  qboCustomerId: string;
+  qboCustomerName: string;
+  scheduleInterval: "manual" | "hourly" | "daily" | "weekly";
+  template: string;
+  taxMode: string;
+  status: "active" | "paused";
+  lastRunAt: string | null;
+  hasFtp: boolean;
+  createdAt: string;
+};
+
+type QboCustomer = { id: string; displayName: string };
+
 type Props = { organizationId: string; deferredDataUrl: string; className?: string };
 
 function toneClass(tone: StatCard["tone"]) {
@@ -152,6 +171,12 @@ function qboPaymentStatusLabel(status: "paid" | "unpaid" | "partial" | "not_appl
   return "Sin dato";
 }
 
+function invoiceTypeLabel(code: "1" | "2" | null) {
+  if (code === "2") return "Nota de credito";
+  if (code === "1") return "Factura";
+  return "Sin dato";
+}
+
 function relativeTime(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -228,13 +253,43 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
   const [exportingFormat, setExportingFormat] = useState<"raw" | "json" | "csv" | "txt" | null>(null);
   const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [isConfigOpen, setIsConfigOpen] = useState(false);
-  const [isSavingConfig, setIsSavingConfig] = useState(false);
-  const [isLoadingConfig, setIsLoadingConfig] = useState(false);
-  const [configTemplate, setConfigTemplate] = useState<"by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates">("by_item");
-  const [configLookbackHours, setConfigLookbackHours] = useState<number>(24);
+  const [isSavingSandbox, setIsSavingSandbox] = useState(false);
   const [configUseSandbox, setConfigUseSandbox] = useState<boolean>(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync configs
+  const [syncConfigs, setSyncConfigs] = useState<SyncConfigSummary[]>([]);
+  const [syncConfigsLoading, setSyncConfigsLoading] = useState(false);
+  const [isCreateSyncOpen, setIsCreateSyncOpen] = useState(false);
+  const [runningSyncId, setRunningSyncId] = useState<string | null>(null);
+  const [deletingSyncId, setDeletingSyncId] = useState<string | null>(null);
+  // Form state for new sync config
+  const [newSyncCustomerId, setNewSyncCustomerId] = useState("");
+  const [newSyncCustomerName, setNewSyncCustomerName] = useState("");
+  const [newSyncSchedule, setNewSyncSchedule] = useState<"manual" | "hourly" | "daily" | "weekly">("daily");
+  const [newSyncLookbackHours, setNewSyncLookbackHours] = useState<number>(48);
+  const [newSyncTemplate, setNewSyncTemplate] = useState<"by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates">("by_item");
+  const [newSyncTaxMode, setNewSyncTaxMode] = useState<"line" | "header" | "none">("none");
+  const [newSyncFtpHost, setNewSyncFtpHost] = useState("");
+  const [newSyncFtpPort, setNewSyncFtpPort] = useState(21);
+  const [newSyncFtpUser, setNewSyncFtpUser] = useState("");
+  const [newSyncFtpPass, setNewSyncFtpPass] = useState("");
+  const [newSyncFtpPath, setNewSyncFtpPath] = useState("/APImports/R365");
+  const [newSyncFtpSecure, setNewSyncFtpSecure] = useState(false);
+  const [isSavingSync, setIsSavingSync] = useState(false);
+  const [qboCustomers, setQboCustomers] = useState<QboCustomer[]>([]);
+  const [customersLoading, setCustomersLoading] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
+  const customerInputRef = useRef<HTMLInputElement>(null);
+  // Historial filtrado por sync config
+  const [syncHistoryFilter, setSyncHistoryFilter] = useState<{ id: string; name: string } | null>(null);
+  const [syncHistoryItems, setSyncHistoryItems] = useState<DashboardData["invoiceHistory"]>([]);
+  const [syncHistoryLoading, setSyncHistoryLoading] = useState(false);
+  const [developerSyncConfigId, setDeveloperSyncConfigId] = useState<string>("");
+  const [developerRunId, setDeveloperRunId] = useState<string | null>(null);
+  const hasLoadedSyncConfigsRef = useRef(false);
+  const invoiceHistorySectionRef = useRef<HTMLElement>(null);
 
   // Leer resultado del callback OAuth desde la URL y limpiarla
   useEffect(() => {
@@ -289,25 +344,189 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
   }, []);
 
   useEffect(() => {
-    if (!isConfigOpen) return;
+    if (mode !== "developer") return;
     const ctrl = new AbortController();
-    setIsLoadingConfig(true);
     void fetch("/api/company/integrations/qbo-r365/config", { cache: "no-store", signal: ctrl.signal })
       .then((r) => r.json())
       .then((d) => {
         if (ctrl.signal.aborted) return;
         const snap = d as ConfigSnapshot;
-        setConfigTemplate(snap.settings?.template ?? "by_item");
-        setConfigLookbackHours(snap.settings?.incrementalLookbackHours ?? 24);
         setConfigUseSandbox(snap.qbo?.useSandbox ?? false);
       })
-      .catch(() => {})
-      .finally(() => {
-        if (!ctrl.signal.aborted) setIsLoadingConfig(false);
-      });
-
+      .catch(() => {});
     return () => ctrl.abort();
-  }, [isConfigOpen, mode]);
+  }, [mode]);
+
+  // Cargar sync configs al montar
+  useEffect(() => {
+    if (!hasLoadedSyncConfigsRef.current) {
+      setSyncConfigsLoading(true);
+    }
+    void fetch("/api/company/integrations/qbo-r365/sync-configs", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: { configs?: SyncConfigSummary[] }) => {
+        const configs = d.configs ?? [];
+        setSyncConfigs(configs);
+        hasLoadedSyncConfigsRef.current = true;
+        setDeveloperSyncConfigId((prev) => {
+          if (prev && configs.some((c) => c.id === prev)) return prev;
+          return configs[0]?.id ?? "";
+        });
+      })
+      .catch(() => {})
+      .finally(() => setSyncConfigsLoading(false));
+  }, [refreshKey]);
+
+  // Cargar clientes QBO al abrir el modal
+  useEffect(() => {
+    if (!isCreateSyncOpen || qboCustomers.length > 0) return;
+    setCustomersLoading(true);
+    void fetch("/api/company/integrations/qbo-r365/customers", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: { customers?: QboCustomer[] }) => setQboCustomers(d.customers ?? []))
+      .catch(() => {})
+      .finally(() => setCustomersLoading(false));
+  }, [isCreateSyncOpen, qboCustomers.length]);
+
+  async function handleRunSyncConfig(id: string, dryRun = false) {
+    setRunningSyncId(id);
+    try {
+      const response = await fetch(`/api/company/integrations/qbo-r365/sync-configs/${id}/run`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ dryRun }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string; runId?: string };
+      if (!response.ok) throw new Error(payload.error || "Error en sincronizacion");
+      toast.success("Sincronizacion ejecutada", {
+        description: payload.runId ? `Corrida ${payload.runId.slice(0, 8)} completada.` : "Revisa el historial.",
+      });
+      setRefreshKey((p) => p + 1);
+      return payload.runId ?? null;
+    } catch (error) {
+      toast.error("No se pudo ejecutar", { description: error instanceof Error ? error.message : "Error" });
+      return null;
+    } finally {
+      setRunningSyncId(null);
+    }
+  }
+
+  async function handleToggleSyncStatus(config: SyncConfigSummary) {
+    const newStatus = config.status === "active" ? "paused" : "active";
+    try {
+      const response = await fetch(`/api/company/integrations/qbo-r365/sync-configs/${config.id}`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!response.ok) throw new Error("Error al actualizar");
+      setSyncConfigs((prev) => prev.map((c) => c.id === config.id ? { ...c, status: newStatus } : c));
+    } catch {
+      toast.error("No se pudo cambiar el estado");
+    }
+  }
+
+  async function handleDeleteSyncConfig(id: string) {
+    if (!confirm("¿Eliminar esta sincronización? Los runs históricos quedarán sin referencia.")) return;
+    setDeletingSyncId(id);
+    try {
+      const response = await fetch(`/api/company/integrations/qbo-r365/sync-configs/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Error al eliminar");
+      setSyncConfigs((prev) => prev.filter((c) => c.id !== id));
+      toast.success("Sincronización eliminada");
+    } catch {
+      toast.error("No se pudo eliminar");
+    }
+    setDeletingSyncId(null);
+  }
+
+  function handleCustomerPick(customer: QboCustomer) {
+    setNewSyncCustomerId(customer.id);
+    setNewSyncCustomerName(customer.displayName);
+    setCustomerSearch(customer.displayName);
+    setCustomerDropdownOpen(false);
+  }
+
+  const filteredCustomers = useMemo(() => {
+    const q = customerSearch.trim().toLowerCase();
+    if (!q) return qboCustomers;
+    return qboCustomers.filter((c) => c.displayName.toLowerCase().includes(q));
+  }, [qboCustomers, customerSearch]);
+
+  async function handleCreateSync(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newSyncCustomerId) { toast.error("Selecciona un cliente QBO"); return; }
+    setIsSavingSync(true);
+    try {
+      const response = await fetch("/api/company/integrations/qbo-r365/sync-configs", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          developerMode: mode === "developer",
+          name: newSyncCustomerName,
+          qboCustomerId: newSyncCustomerId,
+          qboCustomerName: newSyncCustomerName,
+          scheduleInterval: newSyncSchedule,
+          lookbackHours: newSyncLookbackHours,
+          template: newSyncTemplate,
+          taxMode: newSyncTaxMode,
+          r365FtpHost: newSyncFtpHost,
+          r365FtpPort: newSyncFtpPort,
+          r365FtpUsername: newSyncFtpUser,
+          r365FtpPassword: newSyncFtpPass,
+          r365FtpRemotePath: newSyncFtpPath,
+          r365FtpSecure: newSyncFtpSecure,
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string; id?: string };
+      if (!response.ok) throw new Error(payload.error || "Error al crear");
+      toast.success("Sincronización creada");
+      setIsCreateSyncOpen(false);
+      setNewSyncCustomerId(""); setNewSyncCustomerName("");
+      setCustomerSearch(""); setCustomerDropdownOpen(false);
+      setNewSyncFtpHost(""); setNewSyncFtpUser(""); setNewSyncFtpPass("");
+      setRefreshKey((p) => p + 1);
+    } catch (error) {
+      toast.error("No se pudo crear", { description: error instanceof Error ? error.message : "Error" });
+    }
+    setIsSavingSync(false);
+  }
+
+  async function handleViewSyncHistory(config: SyncConfigSummary) {
+    setSyncHistoryFilter({ id: config.id, name: config.name });
+    setSyncHistoryItems([]);
+    setSyncHistoryLoading(true);
+    try {
+      const response = await fetch(`/api/company/integrations/qbo-r365/sync-configs/${config.id}/invoice-history`, { cache: "no-store" });
+      const payload = (await response.json().catch(() => ({}))) as { items?: DashboardData["invoiceHistory"]; error?: string };
+      if (!response.ok) throw new Error(payload.error || "Error al cargar historial");
+      setSyncHistoryItems(payload.items ?? []);
+    } catch (error) {
+      toast.error("No se pudo cargar el historial", { description: error instanceof Error ? error.message : "Error" });
+      setSyncHistoryFilter(null);
+    }
+    setSyncHistoryLoading(false);
+    setTimeout(() => invoiceHistorySectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+  }
+
+  async function handleSandboxToggle(checked: boolean) {
+    setConfigUseSandbox(checked);
+    setIsSavingSandbox(true);
+    try {
+      const fd = new FormData();
+      fd.append("__sandboxVisible", "1");
+      if (checked) fd.append("useSandboxQbo", "true");
+      const res = await saveIntegrationConfigAction(fd);
+      if (res.status !== "success") {
+        toast.error("No se pudo guardar", { description: res.message });
+      } else {
+        toast.success("Modo QBO actualizado", { description: res.message });
+      }
+    } catch {
+      toast.error("No se pudo guardar el modo sandbox");
+    }
+    setIsSavingSandbox(false);
+  }
 
   const filteredRuns = useMemo(() => {
     if (!data) return [];
@@ -325,16 +544,19 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
     [data, selectedInvoiceId],
   );
 
-  const preparedRun = useMemo(() => {
-    if (!data?.runs?.length) return null;
-    return data.runs.find((r) => r.invoicesUploaded === 0 && r.invoicesDetected > 0 && r.status !== "failed") ?? null;
-  }, [data]);
+  const selectedDeveloperSync = useMemo(
+    () => syncConfigs.find((config) => config.id === developerSyncConfigId) ?? null,
+    [syncConfigs, developerSyncConfigId],
+  );
 
   const developerRunForExport = useMemo(() => {
+    if (developerRunId) {
+      const run = data?.runs?.find((entry) => entry.id === developerRunId);
+      if (run) return run;
+    }
     if (selectedRun) return selectedRun;
-    if (preparedRun) return preparedRun;
     return data?.runs?.[0] ?? null;
-  }, [selectedRun, preparedRun, data]);
+  }, [developerRunId, selectedRun, data]);
 
   async function handleSync(dryRun: boolean) {
     setSyncing(true);
@@ -375,20 +597,26 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
   }
 
   async function handlePrepareBatch() {
+    if (!developerSyncConfigId) {
+      toast.error("Selecciona una sincronizacion", {
+        description: "Primero elige una sincronizacion para traer datos del cliente correcto.",
+      });
+      return;
+    }
     setPreparing(true);
     const loadingToastId = toast.loading("Consultando QuickBooks sandbox", {
-      description: "Trayendo facturas y creditos para preparar el lote...",
+      description: "Ejecutando la sincronizacion seleccionada...",
     });
     try {
-      const response = await fetch("/api/company/integrations/qbo-r365/prepare", { method: "POST" });
-      const payload = (await response.json().catch(() => ({}))) as { runId?: string; error?: string; detected?: number; skippedDuplicates?: number };
-      if (!response.ok) throw new Error(payload.error || "No se pudo preparar lote");
-      if (payload.runId) setSelectedRunId(payload.runId);
+      const runId = await handleRunSyncConfig(developerSyncConfigId, true);
+      if (!runId) {
+        throw new Error("No se pudo ejecutar la sincronizacion seleccionada");
+      }
+      setDeveloperRunId(runId);
+      setSelectedRunId(runId);
       toast.dismiss(loadingToastId);
-      toast.success("Lote preparado desde QuickBooks", {
-        description: payload.runId
-          ? `Run ${payload.runId.slice(0, 8)} listo para preview/envio. Detectadas: ${payload.detected ?? 0}.`
-          : `Ya puedes abrir la vista previa. Detectadas: ${payload.detected ?? 0}.`,
+      toast.success("Sincronizacion ejecutada", {
+        description: `Run ${runId.slice(0, 8)} listo para preview, envio y exportacion.`,
       });
       setRefreshKey((p) => p + 1);
     } catch (error) {
@@ -483,9 +711,10 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
     setExportingFormat(null);
   }
 
-  const statCards = data?.statCards ?? [];
+  const statCards = data?.statCardsByMode?.[mode] ?? data?.statCards ?? [];
   const conns = data?.connections ?? { qbo: { status: "disconnected" }, ftp: { status: "disconnected" } };
   const invoiceHistory = data?.invoiceHistory ?? [];
+  const activeInvoiceHistory = syncHistoryFilter ? syncHistoryItems : invoiceHistory;
 
   return (
     <main className={className}>
@@ -514,10 +743,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
                 Developer
               </button>
             </div>
-            <button type="button" onClick={() => setIsConfigOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:opacity-50">
-              <Settings className="h-3.5 w-3.5" /> Configurar
-            </button>
             <button type="button" disabled={syncing || mode === "developer"} onClick={() => handleSync(true)}
               className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:opacity-50">
               <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} /> Dry Run
@@ -534,26 +759,46 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
         <section className="mb-6 rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 sm:p-5">
           <div className="flex flex-wrap items-center gap-2">
             <p className="mr-auto text-sm font-bold text-[var(--gbp-text)]">Flujo developer (separado por etapas)</p>
+            <label className="inline-flex items-center gap-2 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)]">
+              <span>Sync</span>
+              <select
+                value={developerSyncConfigId}
+                onChange={(e) => setDeveloperSyncConfigId(e.target.value)}
+                className="min-w-[170px] bg-transparent text-xs font-semibold text-[var(--gbp-text)] outline-none"
+                disabled={syncConfigsLoading || syncConfigs.length === 0}
+              >
+                {syncConfigs.length === 0 && <option value="">Sin sincronizaciones</option>}
+                {syncConfigs.map((config) => (
+                  <option key={config.id} value={config.id}>{config.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="inline-flex items-center gap-2 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)] cursor-pointer select-none">
+              {isSavingSandbox
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--gbp-muted)]" />
+                : <input type="checkbox" checked={configUseSandbox} onChange={(e) => { void handleSandboxToggle(e.target.checked); }} className="h-3.5 w-3.5 accent-[var(--gbp-accent)]" />}
+              Sandbox QBO (pruebas)
+            </label>
             <button
               type="button"
-              disabled={preparing}
+              disabled={preparing || !developerSyncConfigId}
               onClick={handlePrepareBatch}
               className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${preparing ? "animate-spin" : ""}`} /> 1) Traer datos QBO
+              <RefreshCw className={`h-3.5 w-3.5 ${preparing ? "animate-spin" : ""}`} /> 1) Ejecutar sync
             </button>
             <button
               type="button"
-              disabled={!preparedRun || previewLoading}
-              onClick={() => preparedRun && handleLoadPreview(preparedRun.id)}
+              disabled={!developerRunForExport || previewLoading}
+              onClick={() => developerRunForExport && handleLoadPreview(developerRunForExport.id)}
               className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
             >
               <Search className="h-3.5 w-3.5" /> 2) Ver preview
             </button>
             <button
               type="button"
-              disabled={!preparedRun || sendingPrepared}
-              onClick={() => preparedRun && handleSendPrepared(preparedRun.id)}
+              disabled={!developerRunForExport || sendingPrepared}
+              onClick={() => developerRunForExport && handleSendPrepared(developerRunForExport.id)}
               className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 py-2 text-xs font-bold text-white transition hover:bg-[var(--gbp-accent)] disabled:opacity-50"
             >
               <Link2 className="h-3.5 w-3.5" /> 3) Enviar a R365
@@ -591,6 +836,15 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
               TXT
             </button>
           </div>
+
+          <p className="mt-2 text-xs text-[var(--gbp-muted)]">
+            {selectedDeveloperSync
+              ? `Sync activa: ${selectedDeveloperSync.name}. Las acciones 2 y 3 usan el run ${developerRunForExport ? developerRunForExport.id.slice(0, 8) : "mas reciente"}.`
+              : "Crea una sincronizacion para poder ejecutar el flujo developer por cliente."}
+          </p>
+          <p className="mt-1 text-xs text-[var(--gbp-muted)]">
+            En Developer, el paso 1 corre en modo prueba (dry run): consulta y mapea datos de QBO sin enviar por FTP.
+          </p>
 
           {previewRows.length > 0 && (
             <div className="mt-4 overflow-hidden rounded-lg border border-[var(--gbp-border)]">
@@ -669,8 +923,272 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
         </article>
       </section>
 
+      {/* Sincronizaciones */}
       <section className="mb-6">
-        <h2 className="mb-3 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Historial de Facturas</h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Sincronizaciones</h2>
+          <button
+            type="button"
+            onClick={() => setIsCreateSyncOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 py-2 text-xs font-bold text-white transition hover:bg-[var(--gbp-accent)]"
+          >
+            <Plus className="h-3.5 w-3.5" /> Crear sincronización
+          </button>
+        </div>
+
+        {syncConfigsLoading && (
+          <p className="text-sm text-[var(--gbp-muted)]">Cargando...</p>
+        )}
+
+        {!syncConfigsLoading && syncConfigs.length === 0 && (
+          <div className="rounded-[14px] border-[1.5px] border-dashed border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-6 py-10 text-center">
+            <p className="text-sm font-semibold text-[var(--gbp-text2)]">No hay sincronizaciones configuradas</p>
+            <p className="mt-1 text-xs text-[var(--gbp-muted)]">Crea una sincronización para enviar facturas de un cliente a R365.</p>
+          </div>
+        )}
+
+        {syncConfigs.length > 0 && (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {syncConfigs.map((config) => (
+              <article key={config.id} className="rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-5 py-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-[var(--gbp-text)]">{config.name}</p>
+                    <p className="mt-0.5 truncate text-xs text-[var(--gbp-text2)]">{config.qboCustomerName}</p>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${config.status === "active" ? "bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]" : "bg-[var(--gbp-bg)] text-[var(--gbp-muted)]"}`}>
+                    {config.status === "active" ? "Activa" : "Pausada"}
+                  </span>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <span className="rounded bg-[var(--gbp-bg)] px-2 py-0.5 text-[10px] text-[var(--gbp-text2)]">{config.scheduleInterval}</span>
+                  <span className="rounded bg-[var(--gbp-bg)] px-2 py-0.5 text-[10px] text-[var(--gbp-text2)]">{config.template}</span>
+                  <span className={`rounded px-2 py-0.5 text-[10px] ${config.hasFtp ? "bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]" : "bg-[var(--gbp-error-soft)] text-[var(--gbp-error)]"}`}>
+                    {config.hasFtp ? "FTP ok" : "Sin FTP"}
+                  </span>
+                </div>
+                {config.lastRunAt && (
+                  <p className="mt-2 text-[11px] text-[var(--gbp-muted)]">Última ejecución: {relativeTime(config.lastRunAt)}</p>
+                )}
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    disabled={runningSyncId === config.id}
+                    onClick={() => handleRunSyncConfig(config.id)}
+                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 py-1.5 text-[11px] font-bold text-white transition hover:bg-[var(--gbp-accent)] disabled:opacity-50"
+                  >
+                    {runningSyncId === config.id
+                      ? <Loader2 className="h-3 w-3 animate-spin" />
+                      : <Play className="h-3 w-3" />}
+                    Ejecutar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { void handleViewSyncHistory(config); }}
+                    title="Ver historial de facturas"
+                    className={`inline-flex items-center justify-center gap-1 rounded-lg border-[1.5px] px-2.5 py-1.5 text-[11px] transition ${syncHistoryFilter?.id === config.id ? "border-[var(--gbp-accent)] bg-[color-mix(in_oklab,var(--gbp-accent)_12%,transparent)] text-[var(--gbp-accent)]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)] hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"}`}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleSyncStatus(config)}
+                    title={config.status === "active" ? "Pausar" : "Activar"}
+                    className="inline-flex items-center justify-center rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2.5 py-1.5 text-[11px] text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
+                  >
+                    <Pause className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={deletingSyncId === config.id}
+                    onClick={() => handleDeleteSyncConfig(config.id)}
+                    className="inline-flex items-center justify-center rounded-lg border-[1.5px] border-[var(--gbp-error-soft)] bg-[var(--gbp-error-soft)] px-2.5 py-1.5 text-[11px] text-[var(--gbp-error)] transition hover:opacity-80 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Modal: Crear sincronización */}
+      {isCreateSyncOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-2xl">
+            <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-4">
+              <h3 className="text-base font-bold text-[var(--gbp-text)]">Crear sincronización</h3>
+              <button type="button" onClick={() => setIsCreateSyncOpen(false)}
+                className="rounded-lg p-1 text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <form onSubmit={(e) => { void handleCreateSync(e); }} className="max-h-[70vh] overflow-y-auto px-6 py-5 space-y-4">
+              {/* Cliente QBO */}
+              <div>
+                <h4 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">Cliente QuickBooks</h4>
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Cliente *</span>
+                  {customersLoading
+                    ? <p className="text-xs text-[var(--gbp-muted)]">Cargando clientes de QBO...</p>
+                    : (
+                      <div className="relative">
+                        <input
+                          ref={customerInputRef}
+                          type="text"
+                          value={customerSearch}
+                          onChange={(e) => {
+                            setCustomerSearch(e.target.value);
+                            setCustomerDropdownOpen(true);
+                            if (!e.target.value) { setNewSyncCustomerId(""); setNewSyncCustomerName(""); }
+                          }}
+                          onFocus={() => setCustomerDropdownOpen(true)}
+                          onBlur={() => setTimeout(() => setCustomerDropdownOpen(false), 150)}
+                          placeholder="Buscar cliente..."
+                          className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none"
+                        />
+                        {newSyncCustomerId && (
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[var(--gbp-success)]">✓</span>
+                        )}
+                        {customerDropdownOpen && filteredCustomers.length > 0 && (
+                          <ul className="absolute z-50 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-lg">
+                            {filteredCustomers.map((c) => (
+                              <li
+                                key={c.id}
+                                onMouseDown={() => handleCustomerPick(c)}
+                                className={`cursor-pointer px-3 py-2 text-sm hover:bg-[var(--gbp-bg)] ${newSyncCustomerId === c.id ? "font-bold text-[var(--gbp-accent)]" : "text-[var(--gbp-text)]"}`}
+                              >
+                                {c.displayName}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {customerDropdownOpen && customerSearch.length > 0 && filteredCustomers.length === 0 && (
+                          <div className="absolute z-50 mt-1 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-muted)] shadow-lg">
+                            Sin resultados
+                          </div>
+                        )}
+                      </div>
+                    )}
+                </label>
+              </div>
+              {/* Frecuencia y template */}
+              <div>
+                <h4 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">Configuración</h4>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Frecuencia</span>
+                    <select value={newSyncSchedule} onChange={(e) => setNewSyncSchedule(e.target.value as typeof newSyncSchedule)}
+                      className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none">
+                      <option value="manual">Manual</option>
+                      <option value="hourly">Cada hora</option>
+                      <option value="daily">Diaria</option>
+                      <option value="weekly">Semanal</option>
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Período de búsqueda</span>
+                    <select value={newSyncLookbackHours} onChange={(e) => setNewSyncLookbackHours(Number(e.target.value))}
+                      className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none">
+                      <option value={0}>Todas (sin filtro)</option>
+                      <option value={24}>Últimas 24 h</option>
+                      <option value={48}>Últimas 48 h</option>
+                      <option value={168}>Últimos 7 días</option>
+                      <option value={336}>Últimos 14 días</option>
+                      <option value={720}>Últimos 30 días</option>
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Template</span>
+                    <select value={newSyncTemplate} onChange={(e) => setNewSyncTemplate(e.target.value as typeof newSyncTemplate)}
+                      className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none">
+                      <option value="by_item">by_item</option>
+                      <option value="by_item_service_dates">by_item_service_dates</option>
+                      <option value="by_account">by_account</option>
+                      <option value="by_account_service_dates">by_account_service_dates</option>
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Tax mode</span>
+                    <select value={newSyncTaxMode} onChange={(e) => setNewSyncTaxMode(e.target.value as typeof newSyncTaxMode)}
+                      className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none">
+                      <option value="none">none</option>
+                      <option value="line">line</option>
+                      <option value="header">header</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+              {/* FTP de R365 */}
+              <div>
+                <h4 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">R365 FTP del cliente *</h4>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block sm:col-span-2">
+                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Host</span>
+                    <input required={mode !== "developer"} type="text" value={newSyncFtpHost} onChange={(e) => setNewSyncFtpHost(e.target.value)}
+                      className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Usuario</span>
+                    <input required={mode !== "developer"} type="text" autoComplete="off" data-lpignore="true" value={newSyncFtpUser} onChange={(e) => setNewSyncFtpUser(e.target.value)}
+                      className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Contraseña</span>
+                    <input required={mode !== "developer"} type="password" autoComplete="new-password" data-lpignore="true" value={newSyncFtpPass} onChange={(e) => setNewSyncFtpPass(e.target.value)}
+                      className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Puerto</span>
+                    <input type="number" value={newSyncFtpPort} onChange={(e) => setNewSyncFtpPort(Number(e.target.value))}
+                      className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Remote Path</span>
+                    <input type="text" value={newSyncFtpPath} onChange={(e) => setNewSyncFtpPath(e.target.value)}
+                      className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />
+                  </label>
+                  <div className="flex items-center gap-2 pt-6">
+                    <input type="checkbox" checked={newSyncFtpSecure} onChange={(e) => setNewSyncFtpSecure(e.target.checked)}
+                      className="h-5 w-5 rounded border-[var(--gbp-border)] accent-[var(--gbp-accent)]" />
+                    <span className="text-sm font-bold text-[var(--gbp-text)]">Conexión segura (FTPS)</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setIsCreateSyncOpen(false)}
+                  className="flex-1 rounded-lg border-[1.5px] border-[var(--gbp-border)] px-4 py-2.5 text-sm font-bold text-[var(--gbp-text)] transition hover:bg-[var(--gbp-bg)]">
+                  Cancelar
+                </button>
+                <button type="submit" disabled={isSavingSync}
+                  className="flex flex-[2] items-center justify-center gap-2 rounded-lg bg-[var(--gbp-accent)] px-4 py-2.5 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50">
+                  {isSavingSync ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear sincronización"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <section className="mb-6" ref={invoiceHistorySectionRef}>
+        <div className="mb-3 flex items-center gap-3">
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Historial de Facturas</h2>
+          {syncHistoryFilter && (
+            <div className="flex items-center gap-1.5 rounded-full border-[1.5px] border-[var(--gbp-accent)] bg-[color-mix(in_oklab,var(--gbp-accent)_10%,transparent)] pl-3 pr-1.5 py-1">
+              <span className="text-[11px] font-bold text-[var(--gbp-accent)]">{syncHistoryFilter.name}</span>
+              <button
+                type="button"
+                onClick={() => { setSyncHistoryFilter(null); setSyncHistoryItems([]); }}
+                className="rounded-full p-0.5 text-[var(--gbp-accent)] hover:bg-[var(--gbp-accent)] hover:text-white transition"
+                title="Ver todo el historial"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+          {syncHistoryLoading && <Loader2 className="h-4 w-4 animate-spin text-[var(--gbp-muted)]" />}
+        </div>
         <div className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[980px] border-collapse">
@@ -678,8 +1196,9 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
                 <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-left text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">
                   <th className="px-4 py-3">Fecha factura</th>
                   <th className="px-4 py-3">Vendor</th>
-                  <th className="px-4 py-3">Pago QBO</th>
-                  <th className="px-4 py-3">Enviada</th>
+                  <th className="px-4 py-3">Tipo de factura</th>
+                  <th className="px-4 py-3">Estado QBO</th>
+                  <th className="px-4 py-3">Estado GBP</th>
                   <th className="px-4 py-3">Template</th>
                   <th className="px-4 py-3">Mapped Code</th>
                   <th className="px-4 py-3">Detecciones</th>
@@ -687,7 +1206,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
                 </tr>
               </thead>
               <tbody>
-                {invoiceHistory.map((item) => (
+                {activeInvoiceHistory.map((item) => (
                   <tr
                     key={item.sourceInvoiceId}
                     className="cursor-pointer border-b border-[var(--gbp-border)] transition hover:bg-[var(--gbp-bg)]"
@@ -695,12 +1214,9 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
                   >
                     <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{formatQboDate(item.invoiceDate)}</td>
                     <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{item.vendor ?? "-"}</td>
-                    <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{qboPaymentStatusLabel(item.qboPaymentStatus)}</td>
-                    <td className="px-4 py-3 text-xs">
-                      {item.sentToR365
-                        ? <span className="rounded-full bg-[var(--gbp-success-soft)] px-2 py-0.5 font-bold text-[var(--gbp-success)]">Si</span>
-                        : <span className="rounded-full bg-[var(--gbp-bg)] px-2 py-0.5 font-bold text-[var(--gbp-text2)]">No</span>}
-                    </td>
+                    <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{invoiceTypeLabel(item.transactionTypeCode)}</td>
+                    <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{item.qboStatusRaw ?? qboPaymentStatusLabel(item.qboPaymentStatus)}</td>
+                    <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{itemStatusLabel(item.lastStatus)}</td>
                     <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{templateLabel(item.templateMode)}</td>
                     <td className="px-4 py-3 text-xs font-semibold text-[var(--gbp-accent)]">{item.mappedCode ?? "-"}</td>
                     <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{item.timesSeen}</td>
@@ -710,8 +1226,12 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
               </tbody>
             </table>
           </div>
-          {!invoiceHistory.length && (
-            <EmptyState icon={Search} title="Sin historial de facturas" description="Aun no hay facturas procesadas para mostrar." />
+          {!activeInvoiceHistory.length && !syncHistoryLoading && (
+            <EmptyState
+              icon={Search}
+              title={syncHistoryFilter ? `Sin facturas para ${syncHistoryFilter.name}` : "Sin historial de facturas"}
+              description={syncHistoryFilter ? "Esta sincronización aún no procesó facturas." : "Aun no hay facturas procesadas para mostrar."}
+            />
           )}
         </div>
       </section>
@@ -760,7 +1280,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
                     <tr key={run.id} onClick={() => setSelectedRunId(run.id)}
                       className="cursor-pointer border-b border-[var(--gbp-border)] transition hover:bg-[var(--gbp-bg)]">
                       <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{dateLabel} · {timeLabel}</td>
-                      <td className="px-4 py-3">{statusBadge(run.status)}{run.dryRun && <span className="ml-1.5 rounded bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold text-blue-500">DRY</span>}</td>
+                      <td className="px-4 py-3">{statusBadge(run.status)}{run.dryRun && <span className="ml-1.5 rounded bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold text-blue-500">DRY</span>}{developerSyncConfigId && run.syncConfigId === developerSyncConfigId && <span className="ml-1.5 rounded bg-[color-mix(in_oklab,var(--gbp-accent)_12%,transparent)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--gbp-accent)]">SYNC ACTIVA</span>}</td>
                       <td className="px-4 py-3 text-xs font-semibold text-[var(--gbp-text2)]">{templateLabel(run.templateMode)}</td>
                       <td className="px-4 py-3"><span className="rounded-full bg-[var(--gbp-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--gbp-text2)]">{triggerLabel(run.triggerSource)}</span></td>
                       <td className="px-4 py-3 text-sm font-semibold text-[var(--gbp-text)]">{run.invoicesDetected}</td>
@@ -897,11 +1417,11 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
               <section className="mt-4 rounded-xl border-[1.5px] border-[var(--gbp-border)]">
                 <dl className="divide-y divide-[var(--gbp-border)] text-sm">
                   <div className="flex items-center justify-between px-4 py-3">
-                    <dt className="text-[var(--gbp-text2)]">Estado de pago QBO</dt>
-                    <dd className="font-semibold text-[var(--gbp-text)]">{qboPaymentStatusLabel(selectedInvoice.qboPaymentStatus)}</dd>
+                    <dt className="text-[var(--gbp-text2)]">Estado QBO</dt>
+                    <dd className="font-semibold text-[var(--gbp-text)]">{selectedInvoice.qboStatusRaw ?? qboPaymentStatusLabel(selectedInvoice.qboPaymentStatus)}</dd>
                   </div>
                   <div className="flex items-center justify-between px-4 py-3">
-                    <dt className="text-[var(--gbp-text2)]">Estado del proceso</dt>
+                    <dt className="text-[var(--gbp-text2)]">Estado GBP</dt>
                     <dd className="font-semibold text-[var(--gbp-text)]">{itemStatusLabel(selectedInvoice.lastStatus)}</dd>
                   </div>
                   <div className="flex items-center justify-between px-4 py-3">
@@ -931,158 +1451,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, className }:
         </>
       )}
 
-      {/* Config Modal */}
-      {isConfigOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <button type="button" onClick={() => setIsConfigOpen(false)} className="absolute inset-0 bg-black/40" />
-          <div className="relative w-full max-w-2xl overflow-hidden rounded-[20px] bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-xl)]">
-            <header className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-4">
-              <h3 className="text-xl font-bold tracking-tight text-[var(--gbp-text)]">Credenciales de Integración</h3>
-              <button type="button" onClick={() => setIsConfigOpen(false)} className="rounded-lg p-1.5 text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]">
-                <X className="h-5 w-5" />
-              </button>
-            </header>
-            <form autoComplete="off" action={async (fd) => {
-              setIsSavingConfig(true);
-              const res = await saveIntegrationConfigAction(fd);
-              setIsSavingConfig(false);
-              if (res.status === "success") {
-                toast.success("Configuracion guardada", {
-                  description: "Credenciales y parametros actualizados correctamente.",
-                });
-                setIsConfigOpen(false);
-              } else {
-                toast.error("No se pudo guardar la configuracion", {
-                  description: res.message,
-                });
-              }
-            }}>
-              <div className="max-h-[70vh] overflow-y-auto px-6 py-5">
-                <div className="mb-6 space-y-4 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4">
-                  <h4 className="text-sm font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">QuickBooks Online</h4>
-                  {isLoadingConfig && <p className="text-[11px] text-[var(--gbp-muted)]">Cargando configuracion guardada...</p>}
-                  <p className="text-xs text-[var(--gbp-text2)]">
-                    Las credenciales developer de QuickBooks se administran de forma global por Super Admin.
-                    Desde esta pantalla solo necesitas conectar tu empresa con el boton <strong>Conectar QBO</strong>.
-                  </p>
-                  <label className="block">
-                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Período de búsqueda de facturas</span>
-                    <select
-                      name="settingsLookbackHours"
-                      value={configLookbackHours}
-                      onChange={(e) => setConfigLookbackHours(Number(e.target.value))}
-                      className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none"
-                    >
-                      <option value={0}>Todas las facturas (sin filtro)</option>
-                      <option value={24}>Últimas 24 horas</option>
-                      <option value={72}>Últimos 3 días</option>
-                      <option value={168}>Últimos 7 días</option>
-                      <option value={336}>Últimos 14 días</option>
-                      <option value={720}>Últimos 30 días</option>
-                    </select>
-                    <p className="mt-1 text-[11px] text-[var(--gbp-muted)]">Qué tan atrás busca QuickBooks al ejecutar una corrida.</p>
-                  </label>
-                  {mode === "developer" && (
-                    <div className="flex items-start gap-3 pt-1">
-                      <input type="hidden" name="__sandboxVisible" value="1" />
-                      <input
-                        name="useSandboxQbo"
-                        type="checkbox"
-                        value="true"
-                        checked={configUseSandbox}
-                        onChange={(e) => setConfigUseSandbox(e.target.checked)}
-                        className="mt-0.5 h-4 w-4 rounded border-[var(--gbp-border)] accent-[var(--gbp-accent)]"
-                      />
-                      <div>
-                        <span className="text-sm font-bold text-[var(--gbp-text)]">Modo Sandbox</span>
-                        <p className="text-[11px] text-[var(--gbp-muted)]">Activa si la cuenta conectada es de prueba (sandbox.quickbooks.api.intuit.com). Desactiva para producción.</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mb-2 space-y-4">
-                  {mode === "developer" && (
-                    <div className="mb-6 space-y-4 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4">
-                      <h4 className="text-sm font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">Parametros de mapeo (Developer)</h4>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <label className="block">
-                          <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Template</span>
-                          <select
-                            name="settingsTemplate"
-                            value={configTemplate}
-                            onChange={(e) => setConfigTemplate(e.target.value as "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates")}
-                            className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none"
-                          >
-                            <option value="by_item">by_item</option>
-                            <option value="by_item_service_dates">by_item_service_dates</option>
-                            <option value="by_account">by_account</option>
-                            <option value="by_account_service_dates">by_account_service_dates</option>
-                          </select>
-                        </label>
-                        <p className="pt-8 text-[11px] text-[var(--gbp-muted)]">Solo cambia como se calcula el <code>Mapped Code</code> (item vs cuenta).</p>
-                      </div>
-                    </div>
-                  )}
-
-                  <h4 className="text-sm font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">Restaurant365 FTP</h4>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="block sm:col-span-2">
-                      <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Host</span>
-                      <input name="ftpHost" type="text" className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />
-                    </label>
-                    <label className="block">
-                      <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Usuario</span>
-                      <input
-                        name="ftpLogin"
-                        type="text"
-                        autoComplete="off"
-                        data-lpignore="true"
-                        data-1p-ignore="true"
-                        spellCheck={false}
-                        className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Contraseña</span>
-                      <input
-                        name="ftpSecret"
-                        type="password"
-                        autoComplete="new-password"
-                        data-lpignore="true"
-                        data-1p-ignore="true"
-                        className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Puerto</span>
-                      <input name="ftpPort" type="number" defaultValue={21} className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />
-                    </label>
-                    <label className="block sm:col-span-2">
-                      <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Remote Path</span>
-                      <input name="ftpRemotePath" type="text" defaultValue="/APImports/R365" className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />
-                    </label>
-                    <div className="flex items-center gap-3 pt-6">
-                      <input name="ftpSecure" type="checkbox" value="true" defaultChecked className="h-5 w-5 rounded border-[var(--gbp-border)] accent-[var(--gbp-accent)]" />
-                      <span className="text-sm font-bold text-[var(--gbp-text)]">Usar conexión segura (FTPS/SFTP)</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <footer className="flex gap-3 border-t-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-6 py-4">
-                <button type="button" onClick={() => setIsConfigOpen(false)}
-                  className="flex-1 rounded-lg border-[1.5px] border-[var(--gbp-border)] px-4 py-2.5 text-sm font-bold text-[var(--gbp-text)] transition hover:bg-[var(--gbp-surface2)]">
-                  Cancelar
-                </button>
-                <button type="submit" disabled={isSavingConfig}
-                  className="flex flex-[2] items-center justify-center gap-2 rounded-lg bg-[var(--gbp-accent)] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[var(--gbp-accent-hover)] disabled:opacity-50">
-                  {isSavingConfig ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar Credenciales"}
-                </button>
-              </footer>
-            </form>
-          </div>
-        </div>
-      )}
     </main>
   );
 }

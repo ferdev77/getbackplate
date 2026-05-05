@@ -20,6 +20,7 @@ export type NormalizedInvoiceLine = {
   totalAmount: number;
   qboBalance?: number;
   qboPaymentStatus?: "paid" | "unpaid" | "partial" | "not_applicable" | "unknown";
+  qboStatusRaw?: string;
   location: string;
   memo: string;
 };
