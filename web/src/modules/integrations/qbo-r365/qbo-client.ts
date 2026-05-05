@@ -34,7 +34,7 @@ export type QboInvoiceLikeLine = {
     AccountRef?: { value?: string; name?: string };
     TaxAmount?: number;
   };
-  ItemBasedExpenseLineDetail?: {
+  SalesItemLineDetail?: {
     ItemRef?: { value?: string; name?: string };
     Qty?: number;
     UnitPrice?: number;
@@ -50,7 +50,7 @@ export type QboInvoiceLike = {
   TotalAmt?: number;
   Balance?: number;
   CurrencyRef?: { value?: string; name?: string };
-  VendorRef?: { value?: string; name?: string };
+  CustomerRef?: { value?: string; name?: string };
   PrivateNote?: string;
   MetaData?: {
     LastUpdatedTime?: string;
@@ -63,12 +63,12 @@ export type QboInvoiceLike = {
 
 type QueryResponse<T> = {
   QueryResponse?: {
-    Bill?: T[];
-    VendorCredit?: T[];
+    Invoice?: T[];
+    CreditMemo?: T[];
   };
   queryResponse?: {
-    Bill?: T[];
-    VendorCredit?: T[];
+    Invoice?: T[];
+    CreditMemo?: T[];
   };
 };
 
@@ -132,7 +132,7 @@ export async function refreshQboAccessToken(input: RefreshTokenInput) {
 async function queryQboTable<T>(input: {
   accessToken: string;
   realmId: string;
-  table: "Bill" | "VendorCredit";
+  table: "Invoice" | "CreditMemo";
   sinceIso?: string;
   useSandbox?: boolean;
 }) {
@@ -195,9 +195,9 @@ async function queryQboTable<T>(input: {
     }
 
     const queryResponse = payload.QueryResponse ?? payload.queryResponse;
-    const batch = input.table === "Bill"
-      ? (queryResponse?.Bill ?? []) as T[]
-      : (queryResponse?.VendorCredit ?? []) as T[];
+    const batch = input.table === "Invoice"
+      ? (queryResponse?.Invoice ?? []) as T[]
+      : (queryResponse?.CreditMemo ?? []) as T[];
 
     output.push(...batch);
 
@@ -211,24 +211,24 @@ async function queryQboTable<T>(input: {
   return output;
 }
 
-export async function fetchQboBillsAndCredits(input: {
+export async function fetchQboSalesTransactions(input: {
   accessToken: string;
   realmId: string;
   sinceIso?: string;
   useSandbox?: boolean;
 }) {
-  const [bills, credits] = await Promise.all([
+  const [invoices, creditMemos] = await Promise.all([
     queryQboTable<QboInvoiceLike>({
       accessToken: input.accessToken,
       realmId: input.realmId,
-      table: "Bill",
+      table: "Invoice",
       sinceIso: input.sinceIso,
       useSandbox: input.useSandbox,
     }),
     queryQboTable<QboInvoiceLike>({
       accessToken: input.accessToken,
       realmId: input.realmId,
-      table: "VendorCredit",
+      table: "CreditMemo",
       sinceIso: input.sinceIso,
       useSandbox: input.useSandbox,
     }),
@@ -249,7 +249,7 @@ export async function fetchQboBillsAndCredits(input: {
   };
 
   return {
-    bills: filterBySince(bills),
-    credits: filterBySince(credits),
+    invoices: filterBySince(invoices),
+    creditMemos: filterBySince(creditMemos),
   };
 }

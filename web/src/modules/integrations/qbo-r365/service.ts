@@ -7,7 +7,7 @@ import { createOAuthStateToken } from "@/modules/integrations/qbo-r365/oauth-sta
 import {
   buildQboAuthorizeUrl,
   exchangeQboOAuthCode,
-  fetchQboBillsAndCredits,
+  fetchQboSalesTransactions,
   refreshQboAccessToken,
   type QboInvoiceLike,
 } from "@/modules/integrations/qbo-r365/qbo-client";
@@ -266,21 +266,21 @@ function applyMappings(
 }
 
 function normalizeQboRows(input: {
-  bills: QboInvoiceLike[];
-  credits: QboInvoiceLike[];
+  invoices: QboInvoiceLike[];
+  creditMemos: QboInvoiceLike[];
   template: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates";
   taxMode: "line" | "header" | "none";
   mappings: MappingRow[];
 }) {
   const all = [
-    ...input.bills.map((item) => ({ kind: "invoice" as const, data: item })),
-    ...input.credits.map((item) => ({ kind: "credit" as const, data: item })),
+    ...input.invoices.map((item) => ({ kind: "invoice" as const, data: item })),
+    ...input.creditMemos.map((item) => ({ kind: "credit" as const, data: item })),
   ];
 
   const lines: NormalizedInvoiceLine[] = [];
   for (const row of all) {
     const invoiceId = row.data.Id ?? "unknown_invoice";
-    const vendor = row.data.VendorRef?.name || row.data.VendorRef?.value || "UNKNOWN_VENDOR";
+    const vendor = row.data.CustomerRef?.name || row.data.CustomerRef?.value || "UNKNOWN_CUSTOMER";
     const invoiceNumber = row.data.DocNumber || `QBO-${invoiceId}`;
     const invoiceDate = row.data.TxnDate || new Date().toISOString().slice(0, 10);
     const totalAmount = Number(row.data.TotalAmt ?? 0);
@@ -297,16 +297,16 @@ function normalizeQboRows(input: {
     for (let index = 0; index < baseLines.length; index += 1) {
       const line = baseLines[index];
       const lineAmount = Number(line.Amount ?? 0);
-      const qty = Number(line.ItemBasedExpenseLineDetail?.Qty ?? 1);
-      const unitPrice = Number(line.ItemBasedExpenseLineDetail?.UnitPrice ?? (qty > 0 ? lineAmount / qty : lineAmount));
+      const qty = Number(line.SalesItemLineDetail?.Qty ?? 1);
+      const unitPrice = Number(line.SalesItemLineDetail?.UnitPrice ?? (qty > 0 ? lineAmount / qty : lineAmount));
       const accountOrItem =
         (input.template === "by_item" || input.template === "by_item_service_dates")
-          ? line.ItemBasedExpenseLineDetail?.ItemRef?.value || line.ItemBasedExpenseLineDetail?.ItemRef?.name || "UNMAPPED_ITEM"
+          ? line.SalesItemLineDetail?.ItemRef?.value || line.SalesItemLineDetail?.ItemRef?.name || "UNMAPPED_ITEM"
           : line.AccountBasedExpenseLineDetail?.AccountRef?.value || line.AccountBasedExpenseLineDetail?.AccountRef?.name || "UNMAPPED_ACCOUNT";
 
       const explicitLineTax = Number(
         line.TaxAmount
-          ?? line.ItemBasedExpenseLineDetail?.TaxAmount
+          ?? line.SalesItemLineDetail?.TaxAmount
           ?? line.AccountBasedExpenseLineDetail?.TaxAmount
           ?? 0,
       );
@@ -765,14 +765,14 @@ export async function runQboR365Sync(input: {
       : toIsoLookback(settings.incremental_lookback_hours);
     let qboData;
     try {
-      qboData = await fetchQboBillsAndCredits({
+      qboData = await fetchQboSalesTransactions({
         accessToken: qboAuth.accessToken,
         realmId: qboAuth.realmId,
         sinceIso,
         useSandbox,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Error consultando Bill en QBO";
+      const message = error instanceof Error ? error.message : "Error consultando Invoice en QBO";
       const looksLikeAuthError = /QBO_3100|ApplicationAuthorizationFailed|401|forbidden|unauthorized/i.test(message);
       if (!looksLikeAuthError) {
         throw error;
@@ -785,7 +785,7 @@ export async function runQboR365Sync(input: {
         forceRefresh: true,
       });
 
-      qboData = await fetchQboBillsAndCredits({
+      qboData = await fetchQboSalesTransactions({
         accessToken: qboAuth.accessToken,
         realmId: qboAuth.realmId,
         sinceIso,
@@ -795,15 +795,15 @@ export async function runQboR365Sync(input: {
 
     // Si el URL de produccion devuelve 0 resultados (QBO cambio de devolver error 3100
     // a devolver 200+vacio para tokens sandbox), intentar con URL de sandbox automaticamente.
-    if (!useSandbox && qboData.bills.length === 0 && qboData.credits.length === 0) {
+    if (!useSandbox && qboData.invoices.length === 0 && qboData.creditMemos.length === 0) {
       try {
-        const sandboxData = await fetchQboBillsAndCredits({
+        const sandboxData = await fetchQboSalesTransactions({
           accessToken: qboAuth.accessToken,
           realmId: qboAuth.realmId,
           sinceIso,
           useSandbox: true,
         });
-        if (sandboxData.bills.length > 0 || sandboxData.credits.length > 0) {
+        if (sandboxData.invoices.length > 0 || sandboxData.creditMemos.length > 0) {
           qboData = sandboxData;
           if (actorId) {
             void updateQboConnectionPublicConfig({
@@ -821,8 +821,8 @@ export async function runQboR365Sync(input: {
     const mappings = await getActiveMappings(input.organizationId);
 
     const normalized = normalizeQboRows({
-      bills: qboData.bills,
-      credits: qboData.credits,
+      invoices: qboData.invoices,
+      creditMemos: qboData.creditMemos,
       template: settings.qbo_r365_template,
       taxMode: settings.tax_mode,
       mappings,
