@@ -108,15 +108,7 @@ export async function POST(request: Request) {
       stripeCustomerId = stripeMapping.stripe_customer_id;
     }
 
-    const { data: orgData } = await adminSupabase
-      .from('organizations')
-      .select('name')
-      .eq('id', organizationId)
-      .maybeSingle();
-
-    // Fetch user email for the session
-    const { data: { user: fullUser } } = await supabase.auth.getUser();
-    const customerEmail = fullUser?.email;
+    const customerEmail = user.email;
 
     const sharedMetadata = {
       organizationId,

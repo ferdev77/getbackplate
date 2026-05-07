@@ -626,21 +626,27 @@ export function CompanyShell({
     const upgraded = searchParams.get('upgraded');
     const success = searchParams.get('success');
     const canceled = searchParams.get('canceled');
+    const addonSuccess = searchParams.get('addon_success');
+    const addonModule = searchParams.get('module');
 
-    if (upgraded !== 'true' && success !== 'true' && canceled !== 'true') return;
+    if (upgraded !== 'true' && success !== 'true' && canceled !== 'true' && addonSuccess !== '1') return;
 
     const toastCode =
-      canceled === 'true'
-        ? 'subscription-canceled'
-        : upgraded === 'true'
-          ? 'plan-updated'
-          : 'subscription-activated';
+      addonSuccess === '1'
+        ? `addon-activated:${addonModule ?? ''}`
+        : canceled === 'true'
+          ? 'subscription-canceled'
+          : upgraded === 'true'
+            ? 'plan-updated'
+            : 'subscription-activated';
     window.sessionStorage.setItem('gb:billing-success-toast', toastCode);
 
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.delete('upgraded');
     nextParams.delete('success');
     nextParams.delete('canceled');
+    nextParams.delete('addon_success');
+    nextParams.delete('module');
 
     if (success === 'true') {
       nextParams.delete('selectPlanId');
@@ -663,11 +669,13 @@ export function CompanyShell({
 
     const timer = setTimeout(() => {
       if (toastCode === 'plan-updated') {
-        toast.success('¡Plan actualizado exitosamente! 🎉');
+        toast.success('¡Plan actualizado exitosamente!');
       } else if (toastCode === 'subscription-canceled') {
-        toast.error('No se completo la activacion de la suscripcion.');
+        toast.error('No se completó la activación de la suscripción.');
+      } else if (toastCode.startsWith('addon-activated:')) {
+        toast.success('¡Add-on activado exitosamente! El módulo ya está disponible en tu cuenta.');
       } else {
-        toast.success('¡Suscripción activada exitosamente! 🎉');
+        toast.success('¡Suscripción activada exitosamente!');
       }
       window.sessionStorage.removeItem('gb:billing-success-toast');
       billingToastHandledRef.current = false;
