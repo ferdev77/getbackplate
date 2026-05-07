@@ -55,9 +55,18 @@ begin
 end;
 $$;
 
-create trigger qbo_r365_sync_configs_updated_at
-  before update on public.qbo_r365_sync_configs
-  for each row execute function public.set_qbo_r365_sync_configs_updated_at();
+do $$
+begin
+  if not exists (
+    select 1 from pg_trigger
+    where tgname = 'qbo_r365_sync_configs_updated_at'
+      and tgrelid = 'public.qbo_r365_sync_configs'::regclass
+  ) then
+    create trigger qbo_r365_sync_configs_updated_at
+      before update on public.qbo_r365_sync_configs
+      for each row execute function public.set_qbo_r365_sync_configs_updated_at();
+  end if;
+end $$;
 
 -- RLS: solo company_admin de la misma org
 alter table public.qbo_r365_sync_configs enable row level security;

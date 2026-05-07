@@ -135,6 +135,63 @@ export async function POST(req: Request) {
 
         console.info(`[Webhook] checkout.session.completed - customer: ${session.customer}, subscription: ${session.subscription}`);
 
+        // ── ADD-ON CHECKOUT ──────────────────────────────────────
+        if (session.metadata?.isAddon === 'true') {
+          const addonOrgId = session.metadata?.organizationId;
+          const addonModuleId = session.metadata?.moduleId;
+          const addonModuleCode = session.metadata?.moduleCode;
+          const addonStripeCustomerId = session.customer as string;
+          const addonStripeSubscriptionId = session.subscription as string;
+
+          if (!addonOrgId || !addonModuleId) {
+            console.error('[Webhook][addon] Missing organizationId or moduleId in session metadata');
+            break;
+          }
+
+          // Ensure stripe_customers mapping exists
+          await supabase.from('stripe_customers').upsert(
+            { organization_id: addonOrgId, stripe_customer_id: addonStripeCustomerId },
+            { onConflict: 'organization_id' },
+          );
+
+          // Upsert the addon subscription record
+          const { error: addonErr } = await supabase.from('organization_addons').upsert(
+            {
+              organization_id: addonOrgId,
+              module_id: addonModuleId,
+              stripe_subscription_id: addonStripeSubscriptionId,
+              stripe_customer_id: addonStripeCustomerId,
+              status: 'active',
+            },
+            { onConflict: 'organization_id,module_id' },
+          );
+          if (addonErr) console.error('[Webhook][addon] Error upserting organization_addons:', addonErr);
+
+          // Enable the module for the organization
+          const { data: moduleRow } = await supabase
+            .from('module_catalog')
+            .select('id')
+            .eq('id', addonModuleId)
+            .maybeSingle();
+
+          if (moduleRow) {
+            const { error: modErr } = await supabase.from('organization_modules').upsert(
+              {
+                organization_id: addonOrgId,
+                module_id: addonModuleId,
+                is_enabled: true,
+                enabled_at: new Date().toISOString(),
+              },
+              { onConflict: 'organization_id,module_id' },
+            );
+            if (modErr) console.error('[Webhook][addon] Error enabling module:', modErr);
+            else console.info(`[Webhook][addon] Module ${addonModuleCode} enabled for org ${addonOrgId}`);
+          }
+
+          break;
+        }
+        // ── END ADD-ON CHECKOUT ──────────────────────────────────
+
         const organizationId = session.metadata?.organizationId || (session.client_reference_id as string | null);
         let planId = session.metadata?.planId || null;
 
@@ -313,6 +370,60 @@ export async function POST(req: Request) {
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
         const stripeCustomerId = subscription.customer as string;
+
+        // ── ADD-ON SUBSCRIPTION LIFECYCLE ───────────────────────
+        if (subscription.metadata?.isAddon === 'true') {
+          const addonOrgId = subscription.metadata?.organizationId;
+          const addonModuleId = subscription.metadata?.moduleId;
+          const addonModuleCode = subscription.metadata?.moduleCode;
+          const addonStatus = subscription.status;
+          const isAddonActive = ['active', 'trialing'].includes(addonStatus);
+          const isAddonCanceled = ['canceled', 'unpaid', 'incomplete_expired'].includes(addonStatus);
+
+          if (!addonOrgId || !addonModuleId) {
+            console.error('[Webhook][addon] Missing metadata on subscription lifecycle event');
+            break;
+          }
+
+          const periodStartRaw: number = subscription.billing_cycle_anchor ?? subscription.start_date;
+          const interval = subscription.items.data[0]?.price?.recurring?.interval ?? null;
+          const currentPeriodEnd = computePeriodEnd(periodStartRaw, interval, subscription.trial_end);
+
+          await supabase.from('organization_addons').upsert(
+            {
+              organization_id: addonOrgId,
+              module_id: addonModuleId,
+              stripe_subscription_id: subscription.id,
+              stripe_customer_id: stripeCustomerId,
+              status: isAddonActive ? 'active' : (isAddonCanceled ? 'canceled' : addonStatus),
+              current_period_end: currentPeriodEnd,
+            },
+            { onConflict: 'organization_id,module_id' },
+          );
+
+          // Sync module enablement
+          const { data: moduleRow } = await supabase
+            .from('module_catalog')
+            .select('id')
+            .eq('id', addonModuleId)
+            .maybeSingle();
+
+          if (moduleRow) {
+            await supabase.from('organization_modules').upsert(
+              {
+                organization_id: addonOrgId,
+                module_id: addonModuleId,
+                is_enabled: isAddonActive,
+                enabled_at: isAddonActive ? new Date().toISOString() : null,
+              },
+              { onConflict: 'organization_id,module_id' },
+            );
+            console.info(`[Webhook][addon] Module ${addonModuleCode} set enabled=${isAddonActive} for org ${addonOrgId}`);
+          }
+
+          break;
+        }
+        // ── END ADD-ON SUBSCRIPTION LIFECYCLE ───────────────────
 
         let organizationId = subscription.metadata?.organizationId;
 

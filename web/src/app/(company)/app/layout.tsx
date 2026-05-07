@@ -9,6 +9,8 @@ import {
   getOrganizationBillingGateCached,
   getUserPreferencesCached,
   getOrganizationByIdCached,
+  getAvailableAddonsCached,
+  getOrganizationAddonsCached,
 } from "@/modules/organizations/cached-queries";
 import { getActiveBranches } from "@/modules/organizations/queries";
 import { requireCompanyAccess } from "@/shared/lib/access";
@@ -81,6 +83,8 @@ export default async function CompanyLayout({
     activeBranches,
     latestSubscription,
     billingGate,
+    availableAddons,
+    organizationAddons,
   ] = await Promise.all([
     getOrganizationSettingsCached(tenant.organizationId),
     user ? getUserPreferencesCached(user.id, tenant.organizationId) : Promise.resolve(null),
@@ -90,6 +94,8 @@ export default async function CompanyLayout({
     getActiveBranches(tenant.organizationId),
     getLatestSubscriptionCached(tenant.organizationId),
     getOrganizationBillingGateCached(tenant.organizationId),
+    getAvailableAddonsCached(),
+    getOrganizationAddonsCached(tenant.organizationId),
   ]);
 
   // ── enabledModuleCodes comes as string[] from cache (Set not serializable) ──
@@ -195,6 +201,20 @@ export default async function CompanyLayout({
       branchOptions={activeBranches}
       impersonationMode={Boolean(impersonationSession)}
       billingGate={billingGate}
+      availableAddons={availableAddons.map((a) => ({
+        moduleId: a.id,
+        moduleCode: a.code,
+        name: a.addon_name ?? a.name,
+        description: a.addon_description ?? "",
+        priceAmount: a.addon_price_amount ?? null,
+        currencyCode: a.addon_currency_code ?? "USD",
+        stripePriceId: a.addon_stripe_price_id ?? null,
+      }))}
+      organizationAddons={organizationAddons.map((a) => ({
+        moduleId: a.module_id,
+        status: a.status,
+        currentPeriodEnd: a.current_period_end ?? null,
+      }))}
       trialStatus={{
         isActive: isTrialActive,
         daysRemaining: trialDaysRemaining,
