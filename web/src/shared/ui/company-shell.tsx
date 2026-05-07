@@ -155,6 +155,20 @@ type CompanyShellProps = {
     daysRemaining: number | null;
     endsAt: string | null;
   };
+  availableAddons?: Array<{
+    moduleId: string;
+    moduleCode: string;
+    name: string;
+    description: string;
+    priceAmount: number | null;
+    currencyCode: string;
+    stripePriceId: string | null;
+  }>;
+  organizationAddons?: Array<{
+    moduleId: string;
+    status: string;
+    currentPeriodEnd: string | null;
+  }>;
   children: React.ReactNode;
 };
 
@@ -179,6 +193,8 @@ export function CompanyShell({
   impersonationMode = false,
   billingGate,
   trialStatus,
+  availableAddons = [],
+  organizationAddons = [],
   children,
 }: CompanyShellProps) {
   const brandingName = customBrandingEnabled ? (organizationLabel || "Empresa") : "GetBackplate";
@@ -209,6 +225,8 @@ export function CompanyShell({
   const [planOpen, setPlanOpen] = useState(false);
   const [planBillingCycle, setPlanBillingCycle] = useState<BillingCycle>("monthly");
   const [planChangeTargetId, setPlanChangeTargetId] = useState<string | null>(null);
+  const [addonOpen, setAddonOpen] = useState(false);
+  const [addonBusy, setAddonBusy] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(SECTIONS.map((section) => [section.label, false])),
   );
@@ -749,6 +767,33 @@ export function CompanyShell({
     });
     router.push(`/app/billing/checkout-launch?${params.toString()}`);
     setTimeout(() => setBusy(false), 2500);
+  }
+
+  async function startAddonCheckout(moduleId: string) {
+    if (impersonationMode) {
+      toast.error("Billing bloqueado en modo impersonación");
+      return;
+    }
+    setAddonBusy(moduleId);
+    try {
+      const res = await fetch("/api/stripe/checkout-addon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ moduleId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.message ?? data.error ?? "Error al iniciar el checkout");
+        return;
+      }
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch {
+      toast.error("Error de conexión. Intenta nuevamente.");
+    } finally {
+      setAddonBusy(null);
+    }
   }
 
   function openPlanChangeDialog(planId: string) {
@@ -1792,7 +1837,7 @@ export function CompanyShell({
                       </button>
                     ))}
                   </div>
-                  <div className="px-3.5 pb-2 pt-4">
+                  <div className="px-3.5 pb-2 pt-4 flex flex-col gap-2">
                     <button
                       type="button"
                       onClick={() => {
@@ -1812,6 +1857,26 @@ export function CompanyShell({
                         {impersonationMode ? "Billing bloqueado" : "Upgrade Plan →"}
                       </p>
                     </button>
+
+                    {availableAddons.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSettingsOpen(false);
+                          setAddonOpen(true);
+                        }}
+                        disabled={impersonationMode}
+                        className={`w-full rounded-lg border-[1.5px] px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-60 ${isDarkTheme ? "bg-white/5 border-white/20" : "bg-white/75 border-[var(--gbp-border2)]"}`}
+                      >
+                        <div className="mb-1 flex items-center gap-2">
+                          <div className={`h-1.5 w-1.5 rounded-full ${isDarkTheme ? "bg-white/40" : "bg-[var(--gbp-muted)]"}`} />
+                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-text)]">Add-ons</p>
+                        </div>
+                        <p className={`text-xs font-bold ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>
+                          {impersonationMode ? "Billing bloqueado" : `${availableAddons.length} módulo${availableAddons.length !== 1 ? "s" : ""} disponible${availableAddons.length !== 1 ? "s" : ""} →`}
+                        </p>
+                      </button>
+                    )}
                   </div>
                 </div>
               </>
@@ -2251,6 +2316,66 @@ export function CompanyShell({
                       : "Subir plan"}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {addonOpen && availableAddons.length > 0 ? (
+        <div className="fixed inset-0 z-[1200]" onClick={() => setAddonOpen(false)}>
+          <div
+            className={`absolute bottom-[72px] left-3 w-[280px] overflow-hidden rounded-[14px] border bg-[var(--gbp-surface)] shadow-[0_12px_40px_rgba(0,0,0,.38)] ${isDarkTheme ? "border-white/10 text-white" : "border-[var(--gbp-border)] text-[var(--gbp-text)]"}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={`flex items-center justify-between border-b px-4 py-3 ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`}>
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Módulos Add-on</p>
+              <button
+                type="button"
+                onClick={() => setAddonOpen(false)}
+                className={`grid h-5 w-5 place-items-center rounded-full text-xs ${isDarkTheme ? "bg-white/10 text-white/60 hover:bg-white/20" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)]"}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2 p-3">
+              {availableAddons.map((addon) => {
+                const orgAddon = organizationAddons.find((a) => a.moduleId === addon.moduleId);
+                const isActive = orgAddon?.status === "active";
+                const formattedPrice = addon.priceAmount != null
+                  ? new Intl.NumberFormat("es-US", { style: "currency", currency: addon.currencyCode, minimumFractionDigits: 0 }).format(addon.priceAmount)
+                  : null;
+
+                return (
+                  <div
+                    key={addon.moduleId}
+                    className={`rounded-xl border p-3 ${isActive ? (isDarkTheme ? "border-white/20 bg-white/[0.06]" : "border-[var(--gbp-accent)]/30 bg-[var(--gbp-accent-glow)]") : (isDarkTheme ? "border-white/8 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]")}`}
+                  >
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <p className="text-[11px] font-bold text-[var(--gbp-text)]">{addon.name}</p>
+                      {isActive && (
+                        <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-500">Activo</span>
+                      )}
+                    </div>
+                    {addon.description && (
+                      <p className={`mb-2 text-[10px] leading-relaxed ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>{addon.description}</p>
+                    )}
+                    <div className="flex items-center justify-between gap-2">
+                      {formattedPrice && (
+                        <p className={`text-[10px] font-semibold ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>{formattedPrice}/mes</p>
+                      )}
+                      <button
+                        type="button"
+                        disabled={addonBusy === addon.moduleId}
+                        onClick={() => startAddonCheckout(addon.moduleId)}
+                        className={`ml-auto rounded-lg px-3 py-1.5 text-[10px] font-bold transition disabled:opacity-50 ${isActive ? (isDarkTheme ? "bg-white/10 text-white/70 hover:bg-white/20" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)]") : "bg-[var(--gbp-accent)] text-white hover:opacity-90"}`}
+                      >
+                        {addonBusy === addon.moduleId ? "..." : isActive ? "Gestionar →" : "Contratar →"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

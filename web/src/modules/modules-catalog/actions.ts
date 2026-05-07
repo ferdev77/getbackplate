@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { requireSuperadmin } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { stripe } from "@/infrastructure/stripe/client";
 
 function normalizeCode(input: string) {
   return input
@@ -164,5 +165,67 @@ export async function updateModuleAction(formData: FormData) {
   redirect(
     "/superadmin/modules?status=success&message=" +
       qs(`Módulo '${name}' actualizado correctamente`),
+  );
+}
+
+export async function updateModuleAddonAction(formData: FormData) {
+  await requireSuperadmin();
+
+  const moduleId = String(formData.get("module_id") ?? "");
+  const isAvailableAsAddon = String(formData.get("is_available_as_addon") ?? "") === "on";
+  const addonName = String(formData.get("addon_name") ?? "").trim() || null;
+  const addonDescription = String(formData.get("addon_description") ?? "").trim() || null;
+  const addonStripePriceId = String(formData.get("addon_stripe_price_id") ?? "").trim() || null;
+
+  if (!moduleId) {
+    redirect("/superadmin/modules?status=error&message=" + qs("Módulo no especificado"));
+  }
+
+  let addonPriceAmount: number | null = null;
+  let addonCurrencyCode = "USD";
+
+  if (addonStripePriceId) {
+    try {
+      const price = await stripe.prices.retrieve(addonStripePriceId);
+      addonPriceAmount = price.unit_amount ? price.unit_amount / 100 : 0;
+      addonCurrencyCode = price.currency.toUpperCase();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error desconocido";
+      redirect("/superadmin/modules?status=error&message=" + qs(`Stripe Price ID inválido: ${message}`));
+    }
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase
+    .from("module_catalog")
+    .update({
+      is_available_as_addon: isAvailableAsAddon,
+      addon_name: addonName,
+      addon_description: addonDescription,
+      addon_stripe_price_id: addonStripePriceId,
+      addon_price_amount: addonPriceAmount,
+      addon_currency_code: addonCurrencyCode,
+    })
+    .eq("id", moduleId);
+
+  if (error) {
+    redirect("/superadmin/modules?status=error&message=" + qs(`Error al actualizar: ${error.message}`));
+  }
+
+  await logAuditEvent({
+    action: "module.addon_config_updated",
+    entityType: "module",
+    entityId: moduleId,
+    eventDomain: "superadmin",
+    outcome: "success",
+    severity: "medium",
+    metadata: { isAvailableAsAddon, addonStripePriceId },
+  });
+
+  revalidatePath("/superadmin/modules");
+
+  redirect(
+    "/superadmin/modules?status=success&message=" +
+      qs("Configuración de add-on actualizada correctamente"),
   );
 }

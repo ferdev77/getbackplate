@@ -178,6 +178,39 @@ export const getOrganizationBillingGateCached = unstable_cache(
   { revalidate: 30 },
 );
 
+/** Available add-on modules — 5 min TTL (rarely changes). */
+export const getAvailableAddonsCached = unstable_cache(
+  async () => {
+    const supabase = createSupabaseAdminClient();
+    const { data, error } = await supabase
+      .from("module_catalog")
+      .select("id, code, name, addon_name, addon_description, addon_stripe_price_id, addon_price_amount, addon_currency_code")
+      .eq("is_available_as_addon", true)
+      .not("addon_stripe_price_id", "is", null);
+    ensureNoQueryError("getAvailableAddonsCached", error);
+    return data ?? [];
+  },
+  ["available-addons-v1"],
+  { revalidate: 300 },
+);
+
+/** Organization add-on subscriptions — 30s TTL. */
+export function getOrganizationAddonsCached(organizationId: string) {
+  return unstable_cache(
+    async () => {
+      const supabase = createSupabaseAdminClient();
+      const { data, error } = await supabase
+        .from("organization_addons")
+        .select("module_id, status, current_period_end, stripe_subscription_id")
+        .eq("organization_id", organizationId);
+      ensureNoQueryError("getOrganizationAddonsCached", error);
+      return data ?? [];
+    },
+    [`org-addons-v1-${organizationId}`],
+    { revalidate: 30 },
+  )();
+}
+
 /** User preferences — 60s TTL. */
 export const getUserPreferencesCached = unstable_cache(
   async (userId: string, organizationId: string) => {

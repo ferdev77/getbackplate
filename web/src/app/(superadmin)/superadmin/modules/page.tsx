@@ -1,9 +1,10 @@
-import { Boxes, ChevronDown, Puzzle, Save, Info, ShieldCheck, Zap } from "lucide-react";
+import { Boxes, ChevronDown, Puzzle, Save, Info, ShieldCheck, Zap, ShoppingBag } from "lucide-react";
 import * as motion from "framer-motion/client";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import {
   updateModuleAction,
+  updateModuleAddonAction,
 } from "@/modules/modules-catalog/actions";
 import { PageContent } from "@/shared/ui/page-content";
 import { SuperadminInputField } from "@/shared/ui/superadmin-form-fields";
@@ -26,7 +27,7 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
   const [{ data: modules }, { count: tenantBindings }] = await Promise.all([
     supabase
       .from("module_catalog")
-      .select("id, code, name, description, is_core, created_at")
+      .select("id, code, name, description, is_core, is_available_as_addon, addon_name, addon_description, addon_stripe_price_id, addon_price_amount, addon_currency_code, created_at")
       .order("name"),
     supabase
       .from("organization_modules")
@@ -123,13 +124,14 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
                   <ChevronDown className="h-5 w-5 text-muted-foreground/40 transition-transform group-open:rotate-180" />
                 </summary>
 
-                <div className="mt-8 border-t border-line/20 pt-8">
+                <div className="mt-8 border-t border-line/20 pt-8 space-y-8">
+                  {/* Core config form */}
                   <form action={updateModuleAction} className="grid gap-6 sm:grid-cols-4 items-end">
                     <input type="hidden" name="module_id" value={module.id} />
                     <SuperadminInputField label="Identificador de Sistema" value={module.code} disabled className="bg-muted/10 opacity-70" />
                     <SuperadminInputField label="Nombre de Módulo" name="name" defaultValue={displayName} spellCheck={false} />
                     <SuperadminInputField label="Descripción Operativa" name="description" defaultValue={module.description ?? ""} className="sm:col-span-2" />
-                    
+
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:col-span-4 mt-2">
                        <label className="flex items-center gap-3 cursor-pointer group/check">
                           <input
@@ -150,6 +152,39 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
                        </button>
                     </div>
                   </form>
+
+                  {/* Add-on config form */}
+                  <div className="rounded-2xl border border-dashed border-brand/30 bg-brand/[0.03] p-6">
+                    <div className="mb-4 flex items-center gap-2">
+                      <ShoppingBag className="h-4 w-4 text-brand" />
+                      <p className="text-sm font-bold text-foreground">Configuración de Add-on</p>
+                    </div>
+                    <form action={updateModuleAddonAction} className="grid gap-4 sm:grid-cols-2 items-end">
+                      <input type="hidden" name="module_id" value={module.id} />
+                      <SuperadminInputField label="Nombre visible del Add-on" name="addon_name" defaultValue={module.addon_name ?? ""} placeholder={displayName} />
+                      <SuperadminInputField label="Stripe Price ID del Add-on" name="addon_stripe_price_id" defaultValue={module.addon_stripe_price_id ?? ""} placeholder="price_..." spellCheck={false} />
+                      <SuperadminInputField label="Descripción para el cliente" name="addon_description" defaultValue={module.addon_description ?? ""} className="sm:col-span-2" />
+                      {module.addon_price_amount != null && (
+                        <p className="text-xs text-muted-foreground sm:col-span-2">
+                          Precio detectado: <strong>{new Intl.NumberFormat("es-US", { style: "currency", currency: module.addon_currency_code ?? "USD" }).format(module.addon_price_amount)}</strong> / mes
+                        </p>
+                      )}
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:col-span-2 mt-2">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            name="is_available_as_addon"
+                            defaultChecked={module.is_available_as_addon}
+                            className="h-5 w-9 rounded-full accent-brand"
+                          />
+                          <span className="text-sm font-bold text-foreground">Disponible como Add-on para empresas</span>
+                        </label>
+                        <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-xl border border-brand/30 bg-brand/10 px-8 py-3 text-xs font-bold text-brand shadow-sm transition-all hover:bg-brand/20">
+                          <Save className="h-4 w-4" /> Guardar Add-on
+                        </button>
+                      </div>
+                    </form>
+                  </div>
                 </div>
               </motion.details>
             );
