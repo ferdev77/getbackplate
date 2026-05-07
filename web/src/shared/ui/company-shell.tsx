@@ -1803,11 +1803,11 @@ export function CompanyShell({
 
       {settingsOpen ? (
         <div className="fixed inset-0 z-[1200]" onClick={() => setSettingsOpen(false)}>
-          <div className={`absolute bottom-[185px] left-4 h-[420px] w-[300px] overflow-hidden rounded-[14px] border bg-[var(--gbp-surface)] text-[var(--gbp-text)] shadow-[0_12px_40px_rgba(0,0,0,.45)] ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`} onClick={(event) => event.stopPropagation()}>
+          <div className={`absolute bottom-[185px] left-4 w-[300px] overflow-hidden rounded-[14px] border bg-[var(--gbp-surface)] text-[var(--gbp-text)] shadow-[0_12px_40px_rgba(0,0,0,.45)] ${availableAddons.length > 0 ? "h-[490px]" : "h-[420px]"} ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`} onClick={(event) => event.stopPropagation()}>
             {settingsView === "main" ? (
               <>
                 <div className={`flex items-center justify-between border-b px-3.5 py-2.5 ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`}><span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--gbp-muted)]">Settings</span><button type="button" onClick={() => setSettingsOpen(false)} className={`grid h-5.5 w-5.5 place-items-center rounded-full text-sm ${isDarkTheme ? "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"}`}><X className="h-3.5 w-3.5" /></button></div>
-                <div className="px-0 py-1">
+                <div className="overflow-y-auto" style={{ maxHeight: availableAddons.length > 0 ? "444px" : "374px" }}>
                   <button type="button" onClick={() => setSettingsView("profile")} className={`flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm ${isDarkTheme ? "text-white/70 hover:bg-white/10 hover:text-white" : "text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"}`}><User className="h-4 w-4 opacity-70" /><span className="flex-1">Profile</span><span className="opacity-40">›</span></button>
                   <div className={`my-1 h-px ${isDarkTheme ? "bg-white/10" : "bg-[var(--gbp-border)]"}`} />
                   <p className="px-3.5 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.09em] text-[var(--gbp-text2)]">Tema</p>
