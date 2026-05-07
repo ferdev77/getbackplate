@@ -42,6 +42,8 @@ type Props = {
   employeesUsage: Array<{ organization_id: string; status: string }>;
   storageUsage: Array<{ organization_id: string; file_size_bytes: number | null }>;
   adminEntries: Array<{ organization_id: string; email: string; status: string }>;
+  orgAddons: Array<{ organization_id: string; module_id: string }>;
+  addonModules: Array<{ id: string; name: string }>;
   initialAction?: string;
   initialOrgId?: string;
   statusMessage?: { status?: string; message?: string };
@@ -69,6 +71,8 @@ export function SuperadminOrganizationsWorkspace({
   employeesUsage,
   storageUsage,
   adminEntries,
+  orgAddons,
+  addonModules,
   initialAction,
   initialOrgId,
   statusMessage,
@@ -86,6 +90,18 @@ export function SuperadminOrganizationsWorkspace({
 
   const limitsMap = useMemo(() => new Map(limits.map((row) => [row.organization_id, row])), [limits]);
   const planById = useMemo(() => new Map(plans.map((plan) => [plan.id, plan])), [plans]);
+  const addonModuleById = useMemo(() => new Map(addonModules.map((m) => [m.id, m.name])), [addonModules]);
+  const addonsByOrg = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const row of orgAddons) {
+      const name = addonModuleById.get(row.module_id);
+      if (!name) continue;
+      const existing = map.get(row.organization_id) ?? [];
+      existing.push(name);
+      map.set(row.organization_id, existing);
+    }
+    return map;
+  }, [orgAddons, addonModuleById]);
 
   const adminCountByOrg = useMemo(() => {
     const map = new Map<string, number>();
@@ -203,13 +219,25 @@ export function SuperadminOrganizationsWorkspace({
             const selectedPlan = org.plan_id ? planById.get(org.plan_id) : null;
             const enabledCount = modules.filter((m) => moduleMap.get(`${org.id}:${m.id}`)).length;
             const adminCount = adminCountByOrg.get(org.id) ?? 0;
+            const activeAddons = addonsByOrg.get(org.id) ?? [];
             return (
               <article key={org.id} className="relative grid items-center gap-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-5 py-4 sm:grid-cols-[2fr_1.5fr_1fr_1fr_auto]">
                 <div className="min-w-0">
                   <p className="truncate text-base font-bold text-foreground">{org.name}</p>
                   <p className="truncate text-[11px] font-semibold uppercase tracking-[0.11em] text-muted-foreground/60">{org.slug}</p>
                 </div>
-                <div><p className="text-sm font-bold text-foreground/80">{selectedPlan ? selectedPlan.name : "Sin plan"}</p></div>
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm font-bold text-foreground/80">{selectedPlan ? selectedPlan.name : "Sin plan"}</p>
+                  {activeAddons.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {activeAddons.map((addonName) => (
+                        <span key={addonName} className="inline-flex items-center rounded-full border border-brand/25 bg-brand/8 px-2 py-0.5 text-[10px] font-semibold text-brand">
+                          + {addonName}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <div><p className="text-sm font-bold text-foreground/80">{enabledCount} activos</p></div>
                 <div className="flex flex-col items-start gap-1">
                   <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.11em] ${statusTone(org.status)}`}>{org.status}</span>

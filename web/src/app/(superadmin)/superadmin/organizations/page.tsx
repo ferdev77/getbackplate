@@ -43,6 +43,8 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
     { data: membershipsUsage },
     { data: employeesUsage },
     { data: storageUsage },
+    { data: orgAddons },
+    { data: addonModules },
   ] = await Promise.all([
     supabase
       .from("organizations")
@@ -61,8 +63,9 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
     supabase.from("branches").select("organization_id, is_active"),
     supabase.from("memberships").select("organization_id, status"),
     supabase.from("employees").select("organization_id, status"),
-    supabase.from("documents").select("organization_id, file_size_bytes")
-.is('deleted_at', null),
+    supabase.from("documents").select("organization_id, file_size_bytes").is("deleted_at", null),
+    supabase.from("organization_addons").select("organization_id, module_id, status").eq("status", "active"),
+    supabase.from("module_catalog").select("id, addon_name, name").eq("is_available_as_addon", true),
   ]);
 
   const companyAdminRoleId = roles?.find((role) => role.code === "company_admin")?.id;
@@ -95,6 +98,8 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
           status: row.status,
         }))
       }
+      orgAddons={(orgAddons ?? []).map((a) => ({ organization_id: a.organization_id, module_id: a.module_id }))}
+      addonModules={(addonModules ?? []).map((m) => ({ id: m.id, name: m.addon_name ?? m.name }))}
       initialAction={action}
       initialOrgId={orgId}
       statusMessage={{ status: params.status, message: params.message }}
