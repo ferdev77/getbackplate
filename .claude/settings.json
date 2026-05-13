@@ -14,7 +14,10 @@
       "Bash(node)",
       "Bash(curl *)",
       "Bash(vercel --prod *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Read(//tmp/**)",
+      "Bash(psql postgresql://postgres.mfhyemwypuzsqjqxtbjf@aws-0-us-west-2.pooler.supabase.com:5432/postgres -c ' *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\pikachu\\.claude\\projects\\c--Users-pikachu-Downloads-saasresto\\memory"
