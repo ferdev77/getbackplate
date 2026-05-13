@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { requireCompanyAccess } from "@/shared/lib/access";
 import { getEnabledModulesCached } from "@/modules/organizations/cached-queries";
 
-const MODULE_PRIORITY = ["dashboard", "settings", "qbo_r365", "employees", "documents", "checklists", "reports", "announcements", "vendors", "ai_assistant"];
+const MODULE_PRIORITY = ["dashboard", "settings", "qbo_r365", "employees", "documents", "checklists", "reports", "announcements", "vendors"];
 const MODULE_PATHS: Record<string, string> = {
   dashboard: "/app/dashboard",
   settings: "/app/settings",
@@ -13,7 +13,6 @@ const MODULE_PATHS: Record<string, string> = {
   reports: "/app/reports",
   announcements: "/app/announcements",
   vendors: "/app/vendors",
-  ai_assistant: "/app/dashboard",
 };
 
 type Props = { searchParams: Promise<Record<string, string | undefined>> };
