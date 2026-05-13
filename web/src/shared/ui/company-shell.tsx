@@ -1480,7 +1480,7 @@ export function CompanyShell({
                         })}
 
                         {/* Reorderable Branches List */}
-                        {!collapsed ? (
+                        {!collapsed && localBranches.length >= 2 ? (
                         <Reorder.Group
                           axis="y"
                           values={localBranches}
