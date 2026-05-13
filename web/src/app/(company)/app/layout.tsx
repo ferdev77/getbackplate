@@ -123,8 +123,8 @@ export default async function CompanyLayout({
 
   const enabledModules = [
     "company_portal",
-    "dashboard",
-    "settings",
+    ...(enabledModuleCodesSet.has("dashboard") ? ["dashboard"] : []),
+    ...(enabledModuleCodesSet.has("settings") ? ["settings"] : []),
     ...(enabledModuleCodesSet.has("employees") ? ["employees"] : []),
     ...(enabledModuleCodesSet.has("documents") ? ["documents"] : []),
     ...(enabledModuleCodesSet.has("announcements") ? ["announcements"] : []),

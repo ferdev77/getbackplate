@@ -258,7 +258,7 @@ export async function requireTenantModule(moduleCode: string) {
             pathHint: "/app/*",
             reasonCode: AUDIT_REASON_CODES.MODULE_DISABLED_FOR_TENANT,
           });
-          redirect("/app/dashboard?status=error&message=" + encodeURIComponent(MODULE_DISABLED_COPY));
+          redirect("/app?message=" + encodeURIComponent(MODULE_DISABLED_COPY));
         }
 
         return {
@@ -290,7 +290,7 @@ export async function requireTenantModule(moduleCode: string) {
       pathHint: "/app/*",
       reasonCode: AUDIT_REASON_CODES.MODULE_DISABLED_FOR_TENANT,
     });
-    redirect("/app/dashboard?status=error&message=" + encodeURIComponent(MODULE_DISABLED_COPY));
+    redirect("/app?message=" + encodeURIComponent(MODULE_DISABLED_COPY));
   }
 
   // Return a MembershipContext-compatible object
@@ -338,7 +338,7 @@ async function requireTenantModuleFallback(
       pathHint: "/app/*",
       reasonCode: AUDIT_REASON_CODES.MODULE_DISABLED_FOR_TENANT,
     });
-    redirect("/app/dashboard?status=error&message=" + encodeURIComponent(MODULE_DISABLED_COPY));
+    redirect("/app?message=" + encodeURIComponent(MODULE_DISABLED_COPY));
   }
 
   return tenant;

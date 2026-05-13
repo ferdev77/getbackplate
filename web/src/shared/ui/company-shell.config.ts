@@ -87,7 +87,7 @@ export const SECTIONS: SidebarSection[] = [
   {
     label: "Operaciones",
     items: [
-      { href: "/app/dashboard", label: "Dashboard", icon: LayoutGrid },
+      { href: "/app/dashboard", label: "Dashboard", icon: LayoutGrid, moduleCode: "dashboard" },
       { href: "/app/settings", label: "Ajustes Empresa", icon: Settings, moduleCode: "settings" },
     ],
   },
