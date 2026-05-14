@@ -13,6 +13,7 @@ export type NormalizedInvoiceLine = {
   serviceEndDate?: string;
   targetCode: string;
   sourceItemCode?: string;
+  sku?: string;
   itemName?: string;
   description: string;
   quantity: number;

@@ -46,6 +46,7 @@ type InvoiceLineDetail = {
   sourceLineId: string;
   targetCode: string | null;
   sourceItemCode: string | null;
+  sku: string | null;
   itemName: string | null;
   description: string | null;
   quantity: number | null;
@@ -785,21 +786,24 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       // Table
       autoTable(doc, {
         startY: tableStartY,
-        head: [["Cant.", "SKU QBO", "Ítem", "Descripción", "Precio", "Importe", "Cód. R365"]],
-        body: inv.lines.map((l) => [
-          l.quantity != null ? String(l.quantity) : "-",
-          l.sourceItemCode ?? "-",
-          l.itemName ?? l.targetCode ?? "-",
-          l.description ?? "-",
-          l.unitPrice != null ? l.unitPrice.toFixed(2) : "-",
-          l.lineAmount != null ? l.lineAmount.toFixed(2) : "-",
-          l.targetCode ?? "-",
-        ]),
+        head: [["Cant.", "SKU", "Ítem", "Descripción", "Precio", "Importe", "Cód. R365"]],
+        body: inv.lines.map((l) => {
+          const shortName = l.itemName ? l.itemName.split(":").pop()!.trim() : (l.targetCode ?? "-");
+          return [
+            l.quantity != null ? String(l.quantity) : "-",
+            l.sku ?? "-",
+            shortName,
+            l.description ?? "-",
+            l.unitPrice != null ? l.unitPrice.toFixed(2) : "-",
+            l.lineAmount != null ? l.lineAmount.toFixed(2) : "-",
+            l.targetCode ?? "-",
+          ];
+        }),
         headStyles: { fillColor: [40, 40, 40], fontSize: 8, fontStyle: "bold" },
         bodyStyles: { fontSize: 8 },
         columnStyles: {
           0: { halign: "right", cellWidth: 11 },
-          1: { halign: "left", cellWidth: 16, textColor: [100, 100, 100], fontSize: 7 },
+          1: { halign: "left", cellWidth: 22, textColor: [80, 80, 80], fontSize: 7 },
           4: { halign: "right", cellWidth: 18 },
           5: { halign: "right", cellWidth: 20 },
           6: { halign: "left", cellWidth: 20, textColor: [140, 140, 140], fontSize: 7 },
@@ -808,24 +812,26 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
         margin: { left: 14, right: 14 },
       });
 
-      // Totales manuales debajo de la tabla
-      const tableEndY = ((doc as unknown as { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 200) + 6;
-      const rightX = pageW - 14;
+      // Totales: debajo de la tabla, separados visualmente, alineados a la derecha
+      const finalY = ((doc as unknown as { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 200);
+      const totalsStartY = finalY + 10;
+      const labelX = pageW - 14 - 35;
+      const valueX = pageW - 14;
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(80, 80, 80);
-      doc.text("Subtotal:", rightX - 32, tableEndY);
-      doc.text(inv.subtotal.toFixed(2) + cur, rightX, tableEndY, { align: "right" });
-      doc.text("Impuesto:", rightX - 32, tableEndY + 6);
-      doc.text(inv.totalTax.toFixed(2) + cur, rightX, tableEndY + 6, { align: "right" });
+      doc.text("Subtotal", labelX, totalsStartY, { align: "right" });
+      doc.text(inv.subtotal.toFixed(2) + cur, valueX, totalsStartY, { align: "right" });
+      doc.text("Impuesto", labelX, totalsStartY + 7, { align: "right" });
+      doc.text(inv.totalTax.toFixed(2) + cur, valueX, totalsStartY + 7, { align: "right" });
       doc.setDrawColor(180, 180, 180);
-      doc.setLineWidth(0.3);
-      doc.line(rightX - 40, tableEndY + 9, rightX, tableEndY + 9);
+      doc.setLineWidth(0.4);
+      doc.line(labelX - 5, totalsStartY + 11, valueX, totalsStartY + 11);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       doc.setTextColor(0, 0, 0);
-      doc.text("TOTAL:", rightX - 32, tableEndY + 15);
-      doc.text(inv.grandTotal.toFixed(2) + cur, rightX, tableEndY + 15, { align: "right" });
+      doc.text("TOTAL", labelX, totalsStartY + 18, { align: "right" });
+      doc.text(inv.grandTotal.toFixed(2) + cur, valueX, totalsStartY + 18, { align: "right" });
 
       doc.save(`factura-${safeName}.pdf`);
       return;
@@ -839,10 +845,11 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
         const s = v == null ? "" : String(v);
         return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
       };
-      const header = ["Cant.", "SKU.QBO", "Item", "Descripcion", "Precio", "Importe", "Impuesto", "Total", "Cod.R365"].map(esc).join(",");
-      const rows = inv.lines.map((l) =>
-        [l.quantity, l.sourceItemCode ?? "", l.itemName ?? l.targetCode, l.description, l.unitPrice?.toFixed(2), l.lineAmount?.toFixed(2), l.taxAmount?.toFixed(2), l.totalAmount?.toFixed(2), l.targetCode].map(esc).join(",")
-      );
+      const header = ["Cant.", "SKU", "Item", "Descripcion", "Precio", "Importe", "Impuesto", "Total", "Cod.R365"].map(esc).join(",");
+      const rows = inv.lines.map((l) => {
+        const shortName = l.itemName ? l.itemName.split(":").pop()!.trim() : (l.targetCode ?? "");
+        return [l.quantity, l.sku ?? "", shortName, l.description, l.unitPrice?.toFixed(2), l.lineAmount?.toFixed(2), l.taxAmount?.toFixed(2), l.totalAmount?.toFixed(2), l.targetCode].map(esc).join(",");
+      });
       rows.push(["", "", "", "SUBTOTAL", inv.subtotal.toFixed(2), "", "", ""].map(esc).join(","));
       rows.push(["", "", "", "IMPUESTO", inv.totalTax.toFixed(2), "", "", ""].map(esc).join(","));
       rows.push(["", "", "", "TOTAL", inv.grandTotal.toFixed(2), "", "", ""].map(esc).join(","));
@@ -859,12 +866,13 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
         ...(inv.poNumber ?? inv.memo ? [`PO#       : ${inv.poNumber ?? inv.memo ?? "-"}`] : []),
         `Estado QBO: ${inv.qboStatusRaw ?? inv.qboPaymentStatus ?? "-"}`,
         sep,
-        `${pad("CANT", 6, true)}  ${pad("SKU QBO", 10)}  ${pad("ÍTEM", 28)}  ${pad("DESCRIPCIÓN", 20)}  ${pad("PRECIO", 9, true)}  ${pad("IMPORTE", 10, true)}  ${pad("CÓD.R365", 10)}`,
+        `${pad("CANT", 6, true)}  ${pad("SKU", 18)}  ${pad("ÍTEM", 28)}  ${pad("DESCRIPCIÓN", 20)}  ${pad("PRECIO", 9, true)}  ${pad("IMPORTE", 10, true)}`,
         sep,
       ];
-      const bodyLines = inv.lines.map((l) =>
-        `${pad(String(l.quantity ?? "-"), 6, true)}  ${pad(l.sourceItemCode ?? "-", 10)}  ${pad(l.itemName ?? l.targetCode ?? "-", 28)}  ${pad(l.description ?? "-", 20)}  ${pad(l.unitPrice?.toFixed(2) ?? "-", 9, true)}  ${pad(l.lineAmount?.toFixed(2) ?? "-", 10, true)}  ${pad(l.targetCode ?? "-", 10)}`
-      );
+      const bodyLines = inv.lines.map((l) => {
+        const shortName = l.itemName ? l.itemName.split(":").pop()!.trim() : (l.targetCode ?? "-");
+        return `${pad(String(l.quantity ?? "-"), 6, true)}  ${pad(l.sku ?? "-", 18)}  ${pad(shortName, 28)}  ${pad(l.description ?? "-", 20)}  ${pad(l.unitPrice?.toFixed(2) ?? "-", 9, true)}  ${pad(l.lineAmount?.toFixed(2) ?? "-", 10, true)}`;
+      });
       const ftr = [
         sep,
         `${pad("", 6)}  ${pad("", 32)}  ${pad("", 22)}  ${pad("SUBTOTAL", 9, true)}  ${pad(inv.subtotal.toFixed(2) + cur, 10, true)}`,
@@ -1729,7 +1737,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                       <thead>
                         <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)]">
                           <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Cant.</th>
-                          <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">SKU QBO</th>
+                          <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">SKU</th>
                           <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Ítem</th>
                           <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Descripción</th>
                           <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Precio</th>
@@ -1738,13 +1746,15 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[var(--gbp-border)]">
-                        {invoiceDetail.lines.map((line) => (
+                        {invoiceDetail.lines.map((line) => {
+                          const shortName = line.itemName ? line.itemName.split(":").pop()!.trim() : null;
+                          return (
                           <tr key={line.sourceLineId} className="hover:bg-[var(--gbp-bg)]">
                             <td className="px-3 py-2.5 text-right font-semibold text-[var(--gbp-text)]">{line.quantity != null ? line.quantity : "-"}</td>
-                            <td className="px-3 py-2.5 font-mono text-[11px] text-[var(--gbp-muted)]">{line.sourceItemCode ?? "-"}</td>
+                            <td className="px-3 py-2.5 font-mono text-[11px] text-[var(--gbp-text2)]">{line.sku ?? "-"}</td>
                             <td className="px-3 py-2.5">
-                              {line.itemName ? (
-                                <span className="font-semibold text-[var(--gbp-text)]">{line.itemName}</span>
+                              {shortName ? (
+                                <span className="font-semibold text-[var(--gbp-text)]">{shortName}</span>
                               ) : (
                                 <span className="text-[var(--gbp-muted)]">{line.targetCode ?? "-"}</span>
                               )}
@@ -1757,7 +1767,8 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                             <td className="px-3 py-2.5 text-right font-semibold text-[var(--gbp-text)]">{line.lineAmount != null ? line.lineAmount.toFixed(2) : "-"}</td>
                             <td className="px-3 py-2.5 font-mono text-[10px] text-[var(--gbp-muted)]">{line.targetCode ?? "-"}</td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

@@ -305,6 +305,52 @@ export type QboCustomer = {
   displayName: string;
 };
 
+export async function fetchQboItemSkus(input: {
+  accessToken: string;
+  realmId: string;
+  useSandbox?: boolean;
+}): Promise<Map<string, string>> {
+  const baseUrl = input.useSandbox ? QBO_SANDBOX_API_BASE_URL : QBO_API_BASE_URL;
+  const skuMap = new Map<string, string>();
+  const pageSize = 1000;
+  let startPosition = 1;
+
+  while (true) {
+    const query = `select Id, Sku from Item startposition ${startPosition} maxresults ${pageSize}`;
+    const response = await fetch(
+      `${baseUrl}/v3/company/${input.realmId}/query?minorversion=75`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${input.accessToken}`,
+          Accept: "application/json",
+          "Content-Type": "application/text",
+        },
+        body: query,
+        cache: "no-store",
+      },
+    );
+
+    const payload = (await response.json().catch(() => ({}))) as {
+      QueryResponse?: { Item?: Array<{ Id?: string; Sku?: string }> };
+    };
+
+    if (!response.ok) break;
+
+    const batch = payload.QueryResponse?.Item ?? [];
+    for (const item of batch) {
+      if (item.Id && item.Sku) {
+        skuMap.set(item.Id, item.Sku);
+      }
+    }
+
+    if (batch.length < pageSize) break;
+    startPosition += pageSize;
+  }
+
+  return skuMap;
+}
+
 export async function fetchQboCustomers(input: {
   accessToken: string;
   realmId: string;

@@ -8,6 +8,7 @@ import {
   buildQboAuthorizeUrl,
   exchangeQboOAuthCode,
   fetchQboCustomers,
+  fetchQboItemSkus,
   fetchQboSalesTransactions,
   refreshQboAccessToken,
   type QboCustomer,
@@ -468,6 +469,7 @@ function normalizeQboRows(input: {
   template: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates";
   taxMode: "line" | "header" | "none";
   mappings: MappingRow[];
+  itemSkuMap?: Map<string, string>;
 }) {
   const getQboStatusRaw = (kind: "invoice" | "sales_receipt" | "credit", row: QboInvoiceLike, paymentStatus: "paid" | "unpaid" | "partial" | "not_applicable" | "unknown") => {
     const candidate = (row as unknown as Record<string, unknown>).TxnStatus;
@@ -547,6 +549,7 @@ function normalizeQboRows(input: {
         currency: row.data.CurrencyRef?.name || row.data.CurrencyRef?.value || "",
         targetCode: accountOrItem,
         sourceItemCode,
+        sku: (sourceItemCode && input.itemSkuMap?.get(sourceItemCode)) || "",
         itemName: line.SalesItemLineDetail?.ItemRef?.name || line.AccountBasedExpenseLineDetail?.AccountRef?.name || "",
         description: line.Description || "",
         quantity: Number.isFinite(qty) ? qty : 1,
@@ -1097,6 +1100,12 @@ export async function runQboR365Sync(input: {
 
     const mappings = await getActiveMappings(input.organizationId);
 
+    const itemSkuMap = await fetchQboItemSkus({
+      accessToken: qboAuth.accessToken,
+      realmId: qboAuth.realmId,
+      useSandbox,
+    }).catch(() => new Map<string, string>());
+
     const normalized = normalizeQboRows({
       invoices: qboData.invoices,
       salesReceipts: qboData.salesReceipts,
@@ -1104,6 +1113,7 @@ export async function runQboR365Sync(input: {
       template: effectiveTemplate,
       taxMode: effectiveTaxMode,
       mappings,
+      itemSkuMap,
     });
     const detectedInvoiceCount = new Set(normalized.map((line) => line.sourceInvoiceId).filter(Boolean)).size;
 
@@ -1213,6 +1223,7 @@ export async function runQboR365Sync(input: {
             currency: entry.line.currency,
             targetCode: entry.line.targetCode,
             sourceItemCode: entry.line.sourceItemCode || "",
+            sku: entry.line.sku || "",
             itemName: entry.line.itemName || "",
             description: entry.line.description,
             quantity: entry.line.quantity,
@@ -1598,6 +1609,7 @@ export type InvoiceLineItem = {
   sourceLineId: string;
   targetCode: string | null;
   sourceItemCode: string | null;
+  sku: string | null;
   itemName: string | null;
   description: string | null;
   quantity: number | null;
@@ -1695,6 +1707,7 @@ export async function getInvoiceDetail(
       sourceLineId: lineId,
       targetCode: typeof p.targetCode === "string" ? p.targetCode : null,
       sourceItemCode: typeof p.sourceItemCode === "string" && p.sourceItemCode ? p.sourceItemCode : null,
+      sku: typeof p.sku === "string" && p.sku ? p.sku : null,
       itemName: typeof p.itemName === "string" && p.itemName ? p.itemName : null,
       description: typeof p.description === "string" ? p.description : null,
       quantity: typeof p.quantity === "number" ? p.quantity : null,
