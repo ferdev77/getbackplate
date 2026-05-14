@@ -506,10 +506,12 @@ function normalizeQboRows(input: {
     const qboStatusRaw = getQboStatusRaw(row.kind, row.data, qboPaymentStatus);
     const headerTax = Number(row.data.TxnTaxDetail?.TotalTax ?? 0);
     const baseLines = row.data.Line ?? [];
-    const baseAmountSum = baseLines.reduce((sum, line) => sum + Number(line.Amount ?? 0), 0);
+    const SKIP_DETAIL_TYPES = new Set(["SubTotalLine", "DescriptionOnlyLine", "DiscountLine"]);
+    const itemLines = baseLines.filter((l) => !SKIP_DETAIL_TYPES.has(l.DetailType ?? ""));
+    const baseAmountSum = itemLines.reduce((sum, line) => sum + Number(line.Amount ?? 0), 0);
 
-    for (let index = 0; index < baseLines.length; index += 1) {
-      const line = baseLines[index];
+    for (let index = 0; index < itemLines.length; index += 1) {
+      const line = itemLines[index];
       const lineAmount = Number(line.Amount ?? 0);
       const qty = Number(line.SalesItemLineDetail?.Qty ?? 1);
       const unitPrice = Number(line.SalesItemLineDetail?.UnitPrice ?? (qty > 0 ? lineAmount / qty : lineAmount));
@@ -1663,6 +1665,14 @@ export async function getInvoiceDetail(
     if (!qboStatusRaw && typeof p.qboStatusRaw === "string") qboStatusRaw = p.qboStatusRaw;
     if (!headerMemo && typeof p.memo === "string" && p.memo) headerMemo = p.memo;
 
+    // Skip lines that were stored before the SubTotalLine filter was added:
+    // a SubTotal line has no description, code UNMAPPED_ITEM, qty 1, and its amount
+    // equals the sum of all other lines — we detect it by description+code combination.
+    const isLegacySubtotalLine =
+      (p.targetCode === "UNMAPPED_ITEM" || p.targetCode === "UNMAPPED_ACCOUNT") &&
+      (typeof p.description !== "string" || (p.description as string).trim() === "");
+    if (isLegacySubtotalLine) continue;
+
     lines.push({
       sourceLineId: lineId,
       targetCode: typeof p.targetCode === "string" ? p.targetCode : null,
@@ -1686,8 +1696,12 @@ export async function getInvoiceDetail(
   });
 
   const subtotal = lines.reduce((s, l) => s + (l.lineAmount ?? 0), 0);
-  const totalTax = lines.reduce((s, l) => s + (l.taxAmount ?? 0), 0);
-  const grandTotal = lines.reduce((s, l) => s + (l.totalAmount ?? 0), 0);
+  // totalTax from stored per-line amounts (may be 0 when taxMode="none")
+  // Fall back to deriving it from qboBalance (QBO Balance ≈ TotalAmt for unpaid invoices)
+  const storedTax = lines.reduce((s, l) => s + (l.taxAmount ?? 0), 0);
+  const derivedTax = qboBalance !== null && qboBalance > subtotal ? parseFloat((qboBalance - subtotal).toFixed(2)) : 0;
+  const totalTax = storedTax > 0 ? storedTax : derivedTax;
+  const grandTotal = parseFloat((subtotal + totalTax).toFixed(2));
 
   return {
     sourceInvoiceId,
