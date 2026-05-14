@@ -68,6 +68,8 @@ type InvoiceDetailData = {
   qboBalance: number | null;
   qboPaymentStatus: string | null;
   qboStatusRaw: string | null;
+  poNumber: string | null;
+  terms: string | null;
   memo: string | null;
   lines: InvoiceLineDetail[];
   subtotal: number;
@@ -740,18 +742,24 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       doc.text(`Vencimiento: ${formatQboDate(inv.dueDate)}`, pageW - 14, 26, { align: "right" });
 
       doc.setFont("helvetica", "bold");
-      doc.text("Proveedor", 14, 30);
+      doc.text("Bill To", 14, 30);
       doc.setFont("helvetica", "normal");
       doc.text(inv.vendor ?? "-", 14, 36);
+      if (inv.poNumber ?? inv.memo) {
+        doc.setFont("helvetica", "bold");
+        doc.text("PO#", 14, 43);
+        doc.setFont("helvetica", "normal");
+        doc.text(inv.poNumber ?? inv.memo ?? "-", 14, 49);
+      }
 
-      doc.setFont("helvetica", "bold");
-      doc.text("Estado QBO", 14, 44);
-      doc.setFont("helvetica", "normal");
-      doc.text(inv.qboStatusRaw ?? inv.qboPaymentStatus ?? "-", 14, 50);
+      const termsY = (inv.poNumber ?? inv.memo) ? 26 : 26;
+      if (inv.terms) {
+        doc.text(`Terms: ${inv.terms}`, pageW - 14, termsY, { align: "right" });
+      }
 
       // Table
       autoTable(doc, {
-        startY: 56,
+        startY: (inv.poNumber ?? inv.memo) ? 56 : 56,
         head: [["Cant.", "Ítem", "Descripción", "Precio", "Importe", "Cód.R365"]],
         body: inv.lines.map((l) => [
           l.quantity != null ? String(l.quantity) : "-",
@@ -766,6 +774,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
           ["", "", "", "Impuesto", inv.totalTax.toFixed(2) + cur, ""],
           ["", "", "", "TOTAL", inv.grandTotal.toFixed(2) + cur, ""],
         ],
+        showFoot: "lastPage",
         headStyles: { fillColor: [40, 40, 40], fontSize: 8, fontStyle: "bold" },
         footStyles: { fillColor: [245, 245, 245], fontSize: 8, fontStyle: "bold" },
         bodyStyles: { fontSize: 8 },
@@ -805,8 +814,10 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       const sep = "-".repeat(90);
       const hdr = [
         `FACTURA N° ${inv.invoiceNumber ?? inv.sourceInvoiceId}`,
-        `Proveedor : ${inv.vendor ?? "-"}`,
+        `Cliente   : ${inv.vendor ?? "-"}`,
         `Fecha     : ${formatQboDate(inv.invoiceDate)}   Vencimiento: ${formatQboDate(inv.dueDate)}`,
+        ...(inv.terms ? [`Terms     : ${inv.terms}`] : []),
+        ...(inv.poNumber ?? inv.memo ? [`PO#       : ${inv.poNumber ?? inv.memo ?? "-"}`] : []),
         `Estado QBO: ${inv.qboStatusRaw ?? inv.qboPaymentStatus ?? "-"}`,
         sep,
         `${pad("CANT", 6, true)}  ${pad("ÍTEM", 32)}  ${pad("DESCRIPCIÓN", 22)}  ${pad("PRECIO", 9, true)}  ${pad("IMPORTE", 10, true)}`,
@@ -1557,8 +1568,8 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   {invoiceDetail?.invoiceNumber ?? selectedInvoice.invoiceNumber ?? "Sin numero"}
                 </h3>
                 <p className="mt-0.5 text-xs text-[var(--gbp-text2)]">
-                  {(invoiceDetail?.transactionTypeCode ?? selectedInvoice.transactionTypeCode) === "2" ? "Vendor Credit" : "Bill"}
-                  {(invoiceDetail?.currency ?? selectedInvoice.currency) ? ` · ${invoiceDetail?.currency ?? selectedInvoice.currency}` : ""}
+                  {invoiceTypeLabel(invoiceDetail?.transactionTypeCode ?? selectedInvoice.transactionTypeCode)}
+                  {(invoiceDetail?.currency ?? selectedInvoice.currency) ? ` · ${formatCurrencyLabel(invoiceDetail?.currency ?? selectedInvoice.currency)}` : ""}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -1587,21 +1598,50 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
             </header>
 
             <div className="flex-1 overflow-y-auto">
-              {/* Info de encabezado */}
-              <div className="border-b border-[var(--gbp-border)] px-6 py-4">
-                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Proveedor</p>
-                    <p className="mt-0.5 font-semibold text-[var(--gbp-text)]">{invoiceDetail?.vendor ?? selectedInvoice.vendor ?? "-"}</p>
+              {/* Encabezado estilo invoice */}
+              <div className="border-b border-[var(--gbp-border)] px-6 py-5 text-sm">
+                {/* Fila 1: Bill To + datos de factura */}
+                <div className="flex items-start justify-between gap-6">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Bill To</p>
+                    <p className="mt-1 text-base font-bold text-[var(--gbp-text)]">{invoiceDetail?.vendor ?? selectedInvoice.vendor ?? "-"}</p>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Fecha factura</p>
-                    <p className="mt-0.5 text-[var(--gbp-text)]">{formatQboDate(invoiceDetail?.invoiceDate ?? selectedInvoice.invoiceDate)}</p>
+                  <div className="shrink-0 text-right">
+                    <div className="grid grid-cols-[auto_auto] gap-x-4 gap-y-1 text-xs">
+                      <span className="font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Invoice</span>
+                      <span className="font-semibold text-[var(--gbp-text)]">{invoiceDetail?.invoiceNumber ?? selectedInvoice.invoiceNumber ?? "-"}</span>
+                      <span className="font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Date</span>
+                      <span className="text-[var(--gbp-text)]">{formatQboDate(invoiceDetail?.invoiceDate ?? selectedInvoice.invoiceDate)}</span>
+                      {(invoiceDetail?.terms) && (
+                        <>
+                          <span className="font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Terms</span>
+                          <span className="text-[var(--gbp-text)]">{invoiceDetail.terms}</span>
+                        </>
+                      )}
+                      <span className="font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Due Date</span>
+                      <span className="text-[var(--gbp-text)]">{formatQboDate(invoiceDetail?.dueDate ?? selectedInvoice.dueDate)}</span>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Vencimiento</p>
-                    <p className="mt-0.5 text-[var(--gbp-text)]">{formatQboDate(invoiceDetail?.dueDate ?? selectedInvoice.dueDate)}</p>
+                </div>
+
+                {/* Fila 2: PO# + moneda */}
+                {(invoiceDetail?.poNumber ?? invoiceDetail?.memo) && (
+                  <div className="mt-3 flex gap-6">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">PO#</p>
+                      <p className="mt-0.5 font-semibold text-[var(--gbp-text)]">{invoiceDetail?.poNumber ?? invoiceDetail?.memo}</p>
+                    </div>
+                    {(invoiceDetail?.currency ?? selectedInvoice.currency) && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Moneda</p>
+                        <p className="mt-0.5 text-[var(--gbp-text)]">{invoiceDetail?.currency ?? selectedInvoice.currency}</p>
+                      </div>
+                    )}
                   </div>
+                )}
+
+                {/* Fila 3: estados en grid compacto */}
+                <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 border-t border-[var(--gbp-border)] pt-4 sm:grid-cols-4">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Estado QBO</p>
                     <p className="mt-0.5 font-semibold text-[var(--gbp-text)]">{invoiceDetail?.qboStatusRaw ?? selectedInvoice.qboStatusRaw ?? qboPaymentStatusLabel(selectedInvoice.qboPaymentStatus)}</p>
@@ -1614,23 +1654,16 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                     <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Enviada a R365</p>
                     <p className="mt-0.5 font-semibold text-[var(--gbp-text)]">{selectedInvoice.sentToR365 ? "Sí" : "No"}</p>
                   </div>
-                  {invoiceDetail?.qboBalance !== null && invoiceDetail?.qboBalance !== undefined && (
+                  {invoiceDetail?.qboBalance != null && (
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Saldo QBO</p>
-                      <p className="mt-0.5 text-[var(--gbp-text)]">{invoiceDetail.qboBalance.toFixed(2)}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Balance Due</p>
+                      <p className="mt-0.5 font-bold text-[var(--gbp-text)]">{invoiceDetail.qboBalance.toFixed(2)}</p>
                     </div>
                   )}
-                  {invoiceDetail?.memo && (
-                    <div className="col-span-2 sm:col-span-3">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Memo</p>
-                      <p className="mt-0.5 text-xs text-[var(--gbp-text2)]">{invoiceDetail.memo}</p>
-                    </div>
-                  )}
-                  <div className="col-span-2 sm:col-span-3">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">QBO ID</p>
-                    <p className="mt-0.5 font-mono text-xs text-[var(--gbp-text2)]">{selectedInvoice.sourceInvoiceId}</p>
-                  </div>
                 </div>
+
+                {/* QBO ID pequeño al fondo */}
+                <p className="mt-3 font-mono text-[10px] text-[var(--gbp-muted)]">QBO ID: {selectedInvoice.sourceInvoiceId}</p>
               </div>
 
               {/* Líneas */}
