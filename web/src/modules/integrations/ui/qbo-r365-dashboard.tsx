@@ -42,6 +42,37 @@ type DashboardData = {
     timesSeen: number;
   }>;
 };
+type InvoiceLineDetail = {
+  sourceLineId: string;
+  targetCode: string | null;
+  description: string | null;
+  quantity: number | null;
+  unitPrice: number | null;
+  lineAmount: number | null;
+  taxAmount: number | null;
+  totalAmount: number | null;
+  location: string | null;
+  memo: string | null;
+  status: string;
+  runId: string;
+};
+type InvoiceDetailData = {
+  sourceInvoiceId: string;
+  invoiceNumber: string | null;
+  invoiceDate: string | null;
+  dueDate: string | null;
+  vendor: string | null;
+  currency: string | null;
+  transactionTypeCode: "1" | "2" | null;
+  qboBalance: number | null;
+  qboPaymentStatus: string | null;
+  qboStatusRaw: string | null;
+  memo: string | null;
+  lines: InvoiceLineDetail[];
+  subtotal: number;
+  totalTax: number;
+  grandTotal: number;
+};
 type PreviewRow = {
   status: string;
   sourceInvoiceId: string | null;
@@ -245,6 +276,8 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [statusFilter, setStatusFilter] = useState("");
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+  const [invoiceDetail, setInvoiceDetail] = useState<InvoiceDetailData | null>(null);
+  const [invoiceDetailLoading, setInvoiceDetailLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [oauthConnecting, setOauthConnecting] = useState(false);
   const [mode, setMode] = useState<"operation" | "developer">("operation");
@@ -543,6 +576,22 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     () => data?.invoiceHistory.find((item) => item.sourceInvoiceId === selectedInvoiceId) ?? null,
     [data, selectedInvoiceId],
   );
+
+  useEffect(() => {
+    if (!selectedInvoiceId) {
+      setInvoiceDetail(null);
+      return;
+    }
+    setInvoiceDetail(null);
+    setInvoiceDetailLoading(true);
+    fetch(`/api/company/integrations/qbo-r365/invoice-detail?sourceInvoiceId=${encodeURIComponent(selectedInvoiceId)}`, { cache: "no-store" })
+      .then((res) => res.json())
+      .then((payload: { detail?: InvoiceDetailData; error?: string }) => {
+        if (payload.detail) setInvoiceDetail(payload.detail);
+      })
+      .catch(() => { /* silencioso */ })
+      .finally(() => setInvoiceDetailLoading(false));
+  }, [selectedInvoiceId]);
 
   const selectedDeveloperSync = useMemo(
     () => syncConfigs.find((config) => config.id === developerSyncConfigId) ?? null,
@@ -1376,12 +1425,18 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
             className="fixed inset-0 z-[110] bg-black/30"
             aria-label="Cerrar detalle de factura"
           />
-          <aside className="fixed right-0 top-0 z-[120] flex h-full w-full max-w-xl flex-col border-l-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-xl)]">
+          <aside className="fixed right-0 top-0 z-[120] flex h-full w-full max-w-2xl flex-col border-l-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-xl)]">
+            {/* Header */}
             <header className="flex items-start justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Detalle de factura</p>
-                <h3 className="mt-1 text-lg font-bold text-[var(--gbp-text)]">{selectedInvoice.invoiceNumber ?? "Sin numero"}</h3>
-                <p className="mt-1 text-xs text-[var(--gbp-text2)]">{selectedInvoice.transactionTypeCode === "2" ? "Vendor Credit" : "Bill"}</p>
+                <h3 className="mt-1 text-lg font-bold text-[var(--gbp-text)]">
+                  {invoiceDetail?.invoiceNumber ?? selectedInvoice.invoiceNumber ?? "Sin numero"}
+                </h3>
+                <p className="mt-0.5 text-xs text-[var(--gbp-text2)]">
+                  {(invoiceDetail?.transactionTypeCode ?? selectedInvoice.transactionTypeCode) === "2" ? "Vendor Credit" : "Bill"}
+                  {(invoiceDetail?.currency ?? selectedInvoice.currency) ? ` · ${invoiceDetail?.currency ?? selectedInvoice.currency}` : ""}
+                </p>
               </div>
               <button
                 type="button"
@@ -1391,62 +1446,137 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                 <X className="h-5 w-5" />
               </button>
             </header>
-            <div className="flex-1 overflow-y-auto px-6 py-5">
-              <section className="rounded-xl border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">Proveedor</p>
-                    <p className="mt-1 text-sm font-semibold text-[var(--gbp-text)]">{selectedInvoice.vendor ?? "-"}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">Importe total</p>
-                    <p className="mt-1 text-base font-bold text-[var(--gbp-text)]">{typeof selectedInvoice.totalAmount === "number" ? `${selectedInvoice.totalAmount.toFixed(2)} ${formatCurrencyLabel(selectedInvoice.currency)}`.trim() : "-"}</p>
-                  </div>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-3 border-t border-[var(--gbp-border)] pt-3">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">Fecha factura</p>
-                    <p className="mt-1 text-sm text-[var(--gbp-text)]">{formatQboDate(selectedInvoice.invoiceDate)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">Vencimiento</p>
-                    <p className="mt-1 text-sm text-[var(--gbp-text)]">{formatQboDate(selectedInvoice.dueDate)}</p>
-                  </div>
-                </div>
-              </section>
 
-              <section className="mt-4 rounded-xl border-[1.5px] border-[var(--gbp-border)]">
-                <dl className="divide-y divide-[var(--gbp-border)] text-sm">
-                  <div className="flex items-center justify-between px-4 py-3">
-                    <dt className="text-[var(--gbp-text2)]">Estado QBO</dt>
-                    <dd className="font-semibold text-[var(--gbp-text)]">{selectedInvoice.qboStatusRaw ?? qboPaymentStatusLabel(selectedInvoice.qboPaymentStatus)}</dd>
+            <div className="flex-1 overflow-y-auto">
+              {/* Info de encabezado */}
+              <div className="border-b border-[var(--gbp-border)] px-6 py-4">
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Proveedor</p>
+                    <p className="mt-0.5 font-semibold text-[var(--gbp-text)]">{invoiceDetail?.vendor ?? selectedInvoice.vendor ?? "-"}</p>
                   </div>
-                  <div className="flex items-center justify-between px-4 py-3">
-                    <dt className="text-[var(--gbp-text2)]">Estado GBP</dt>
-                    <dd className="font-semibold text-[var(--gbp-text)]">{itemStatusLabel(selectedInvoice.lastStatus)}</dd>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Fecha factura</p>
+                    <p className="mt-0.5 text-[var(--gbp-text)]">{formatQboDate(invoiceDetail?.invoiceDate ?? selectedInvoice.invoiceDate)}</p>
                   </div>
-                  <div className="flex items-center justify-between px-4 py-3">
-                    <dt className="text-[var(--gbp-text2)]">Enviada a R365</dt>
-                    <dd className="font-semibold text-[var(--gbp-text)]">{selectedInvoice.sentToR365 ? "Si" : "No"}</dd>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Vencimiento</p>
+                    <p className="mt-0.5 text-[var(--gbp-text)]">{formatQboDate(invoiceDetail?.dueDate ?? selectedInvoice.dueDate)}</p>
                   </div>
-                  <div className="flex items-center justify-between px-4 py-3">
-                    <dt className="text-[var(--gbp-text2)]">Mapped Code</dt>
-                    <dd className="font-semibold text-[var(--gbp-text)]">{selectedInvoice.mappedCode ?? "-"}</dd>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Estado QBO</p>
+                    <p className="mt-0.5 font-semibold text-[var(--gbp-text)]">{invoiceDetail?.qboStatusRaw ?? selectedInvoice.qboStatusRaw ?? qboPaymentStatusLabel(selectedInvoice.qboPaymentStatus)}</p>
                   </div>
-                  <div className="flex items-center justify-between gap-4 px-4 py-3">
-                    <dt className="text-[var(--gbp-text2)]">QBO ID</dt>
-                    <dd className="break-all text-right font-mono text-xs text-[var(--gbp-text)]">{selectedInvoice.sourceInvoiceId}</dd>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Estado GBP</p>
+                    <p className="mt-0.5 font-semibold text-[var(--gbp-text)]">{itemStatusLabel(selectedInvoice.lastStatus)}</p>
                   </div>
-                  <div className="flex items-center justify-between px-4 py-3">
-                    <dt className="text-[var(--gbp-text2)]">Ultima deteccion</dt>
-                    <dd className="font-semibold text-[var(--gbp-text)]">{new Date(selectedInvoice.lastSeenAt).toLocaleString("es-AR")}</dd>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Enviada a R365</p>
+                    <p className="mt-0.5 font-semibold text-[var(--gbp-text)]">{selectedInvoice.sentToR365 ? "Sí" : "No"}</p>
                   </div>
-                  <div className="flex items-center justify-between px-4 py-3">
-                    <dt className="text-[var(--gbp-text2)]">Detecciones</dt>
-                    <dd className="font-semibold text-[var(--gbp-text)]">{selectedInvoice.timesSeen}</dd>
+                  {invoiceDetail?.qboBalance !== null && invoiceDetail?.qboBalance !== undefined && (
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Saldo QBO</p>
+                      <p className="mt-0.5 text-[var(--gbp-text)]">{invoiceDetail.qboBalance.toFixed(2)}</p>
+                    </div>
+                  )}
+                  {invoiceDetail?.memo && (
+                    <div className="col-span-2 sm:col-span-3">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Memo</p>
+                      <p className="mt-0.5 text-xs text-[var(--gbp-text2)]">{invoiceDetail.memo}</p>
+                    </div>
+                  )}
+                  <div className="col-span-2 sm:col-span-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">QBO ID</p>
+                    <p className="mt-0.5 font-mono text-xs text-[var(--gbp-text2)]">{selectedInvoice.sourceInvoiceId}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Líneas */}
+              <div className="px-4 py-4">
+                <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">
+                  Ítems
+                  {invoiceDetail && ` · ${invoiceDetail.lines.length} línea${invoiceDetail.lines.length !== 1 ? "s" : ""}`}
+                </p>
+
+                {invoiceDetailLoading && (
+                  <div className="flex items-center gap-2 py-8 text-sm text-[var(--gbp-muted)]">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Cargando líneas...
+                  </div>
+                )}
+
+                {!invoiceDetailLoading && invoiceDetail && invoiceDetail.lines.length === 0 && (
+                  <p className="py-6 text-center text-sm text-[var(--gbp-muted)]">Sin líneas registradas</p>
+                )}
+
+                {!invoiceDetailLoading && invoiceDetail && invoiceDetail.lines.length > 0 && (
+                  <div className="overflow-x-auto rounded-xl border-[1.5px] border-[var(--gbp-border)]">
+                    <table className="w-full min-w-[640px] text-xs">
+                      <thead>
+                        <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)]">
+                          <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">#</th>
+                          <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Código mapeado</th>
+                          <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Descripción</th>
+                          <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Cant.</th>
+                          <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">P. Unit.</th>
+                          <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Importe</th>
+                          <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Impuesto</th>
+                          <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--gbp-border)]">
+                        {invoiceDetail.lines.map((line, idx) => (
+                          <tr key={line.sourceLineId} className="hover:bg-[var(--gbp-bg)]">
+                            <td className="px-3 py-2 text-[var(--gbp-muted)]">{idx + 1}</td>
+                            <td className="px-3 py-2 font-mono font-semibold text-[var(--gbp-text)]">{line.targetCode ?? "-"}</td>
+                            <td className="max-w-[160px] truncate px-3 py-2 text-[var(--gbp-text2)]" title={line.description ?? undefined}>{line.description || "-"}</td>
+                            <td className="px-3 py-2 text-right text-[var(--gbp-text)]">{line.quantity != null ? line.quantity : "-"}</td>
+                            <td className="px-3 py-2 text-right text-[var(--gbp-text)]">{line.unitPrice != null ? line.unitPrice.toFixed(2) : "-"}</td>
+                            <td className="px-3 py-2 text-right text-[var(--gbp-text)]">{line.lineAmount != null ? line.lineAmount.toFixed(2) : "-"}</td>
+                            <td className="px-3 py-2 text-right text-[var(--gbp-text2)]">{line.taxAmount != null ? line.taxAmount.toFixed(2) : "-"}</td>
+                            <td className="px-3 py-2 text-right font-semibold text-[var(--gbp-text)]">{line.totalAmount != null ? line.totalAmount.toFixed(2) : "-"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Totales */}
+                {!invoiceDetailLoading && invoiceDetail && invoiceDetail.lines.length > 0 && (
+                  <div className="mt-3 flex flex-col items-end gap-1 text-sm">
+                    <div className="flex w-64 items-center justify-between gap-4 border-t border-[var(--gbp-border)] pt-2">
+                      <span className="text-[var(--gbp-text2)]">Subtotal</span>
+                      <span className="font-semibold text-[var(--gbp-text)]">{invoiceDetail.subtotal.toFixed(2)} {invoiceDetail.currency ?? ""}</span>
+                    </div>
+                    <div className="flex w-64 items-center justify-between gap-4">
+                      <span className="text-[var(--gbp-text2)]">Impuestos</span>
+                      <span className="font-semibold text-[var(--gbp-text)]">{invoiceDetail.totalTax.toFixed(2)} {invoiceDetail.currency ?? ""}</span>
+                    </div>
+                    <div className="flex w-64 items-center justify-between gap-4 rounded-lg bg-[var(--gbp-bg)] px-3 py-2">
+                      <span className="font-bold text-[var(--gbp-text)]">Total</span>
+                      <span className="text-base font-bold text-[var(--gbp-text)]">{invoiceDetail.grandTotal.toFixed(2)} {invoiceDetail.currency ?? ""}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Meta */}
+              <div className="border-t border-[var(--gbp-border)] px-6 py-3">
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+                  <div className="flex justify-between gap-2">
+                    <dt className="text-[var(--gbp-muted)]">Última detección</dt>
+                    <dd className="text-[var(--gbp-text)]">{new Date(selectedInvoice.lastSeenAt).toLocaleString("es-AR")}</dd>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <dt className="text-[var(--gbp-muted)]">Detecciones</dt>
+                    <dd className="text-[var(--gbp-text)]">{selectedInvoice.timesSeen}</dd>
                   </div>
                 </dl>
-              </section>
+              </div>
             </div>
           </aside>
         </>

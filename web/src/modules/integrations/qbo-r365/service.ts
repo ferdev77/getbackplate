@@ -1582,6 +1582,132 @@ export async function listQboR365InvoiceHistory(organizationId: string, limit = 
     .slice(0, limit);
 }
 
+export type InvoiceLineItem = {
+  sourceLineId: string;
+  targetCode: string | null;
+  description: string | null;
+  quantity: number | null;
+  unitPrice: number | null;
+  lineAmount: number | null;
+  taxAmount: number | null;
+  totalAmount: number | null;
+  location: string | null;
+  memo: string | null;
+  status: string;
+  runId: string;
+};
+
+export type InvoiceDetail = {
+  sourceInvoiceId: string;
+  invoiceNumber: string | null;
+  invoiceDate: string | null;
+  dueDate: string | null;
+  vendor: string | null;
+  currency: string | null;
+  transactionTypeCode: "1" | "2" | null;
+  qboBalance: number | null;
+  qboPaymentStatus: string | null;
+  qboStatusRaw: string | null;
+  memo: string | null;
+  lines: InvoiceLineItem[];
+  subtotal: number;
+  totalTax: number;
+  grandTotal: number;
+};
+
+export async function getInvoiceDetail(
+  organizationId: string,
+  sourceInvoiceId: string,
+): Promise<InvoiceDetail | null> {
+  const admin = createSupabaseAdminClient();
+
+  const { data, error } = await admin
+    .from("integration_run_items")
+    .select("source_invoice_line_id, run_id, status, payload, created_at")
+    .eq("organization_id", organizationId)
+    .eq("source_invoice_id", sourceInvoiceId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  if (!data || data.length === 0) return null;
+
+  const seenLineIds = new Set<string>();
+  const lines: InvoiceLineItem[] = [];
+  let invoiceNumber: string | null = null;
+  let invoiceDate: string | null = null;
+  let dueDate: string | null = null;
+  let vendor: string | null = null;
+  let currency: string | null = null;
+  let transactionTypeCode: "1" | "2" | null = null;
+  let qboBalance: number | null = null;
+  let qboPaymentStatus: string | null = null;
+  let qboStatusRaw: string | null = null;
+  let headerMemo: string | null = null;
+
+  for (const row of data) {
+    const p = (row.payload ?? {}) as Record<string, unknown>;
+    const lineId = String(row.source_invoice_line_id || p.sourceLineId || "");
+    if (seenLineIds.has(lineId)) continue;
+    seenLineIds.add(lineId);
+
+    if (!invoiceNumber && typeof p.invoiceNumber === "string") invoiceNumber = p.invoiceNumber;
+    if (!invoiceDate && typeof p.invoiceDate === "string") invoiceDate = p.invoiceDate;
+    if (!dueDate && typeof p.dueDate === "string") dueDate = p.dueDate;
+    if (!vendor && typeof p.vendor === "string") vendor = p.vendor;
+    if (!currency && typeof p.currency === "string") currency = p.currency;
+    if (!transactionTypeCode && (p.transactionTypeCode === "1" || p.transactionTypeCode === "2")) {
+      transactionTypeCode = p.transactionTypeCode;
+    }
+    if (qboBalance === null && typeof p.qboBalance === "number") qboBalance = p.qboBalance;
+    if (!qboPaymentStatus && typeof p.qboPaymentStatus === "string") qboPaymentStatus = p.qboPaymentStatus;
+    if (!qboStatusRaw && typeof p.qboStatusRaw === "string") qboStatusRaw = p.qboStatusRaw;
+    if (!headerMemo && typeof p.memo === "string" && p.memo) headerMemo = p.memo;
+
+    lines.push({
+      sourceLineId: lineId,
+      targetCode: typeof p.targetCode === "string" ? p.targetCode : null,
+      description: typeof p.description === "string" ? p.description : null,
+      quantity: typeof p.quantity === "number" ? p.quantity : null,
+      unitPrice: typeof p.unitPrice === "number" ? p.unitPrice : null,
+      lineAmount: typeof p.lineAmount === "number" ? p.lineAmount : null,
+      taxAmount: typeof p.taxAmount === "number" ? p.taxAmount : null,
+      totalAmount: typeof p.totalAmount === "number" ? p.totalAmount : null,
+      location: typeof p.location === "string" ? p.location : null,
+      memo: typeof p.memo === "string" ? p.memo : null,
+      status: String(row.status ?? ""),
+      runId: String(row.run_id ?? ""),
+    });
+  }
+
+  lines.sort((a, b) => {
+    const na = Number(a.sourceLineId) || 0;
+    const nb = Number(b.sourceLineId) || 0;
+    return na - nb || a.sourceLineId.localeCompare(b.sourceLineId);
+  });
+
+  const subtotal = lines.reduce((s, l) => s + (l.lineAmount ?? 0), 0);
+  const totalTax = lines.reduce((s, l) => s + (l.taxAmount ?? 0), 0);
+  const grandTotal = lines.reduce((s, l) => s + (l.totalAmount ?? 0), 0);
+
+  return {
+    sourceInvoiceId,
+    invoiceNumber,
+    invoiceDate,
+    dueDate,
+    vendor,
+    currency,
+    transactionTypeCode,
+    qboBalance,
+    qboPaymentStatus,
+    qboStatusRaw,
+    memo: headerMemo,
+    lines,
+    subtotal,
+    totalTax,
+    grandTotal,
+  };
+}
+
 export async function prepareQboR365Batch(input: {
   organizationId: string;
   actorId?: string | null;
