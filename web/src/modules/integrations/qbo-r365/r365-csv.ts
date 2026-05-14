@@ -24,6 +24,8 @@ export type NormalizedInvoiceLine = {
   qboStatusRaw?: string;
   location: string;
   memo: string;
+  poNumber?: string;
+  terms?: string;
 };
 
 function csvEscape(value: string | number) {

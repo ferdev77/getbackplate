@@ -51,6 +51,8 @@ export type QboInvoiceLike = {
   Balance?: number;
   CurrencyRef?: { value?: string; name?: string };
   CustomerRef?: { value?: string; name?: string };
+  PONumber?: string;
+  SalesTermRef?: { value?: string; name?: string };
   PrivateNote?: string;
   MetaData?: {
     LastUpdatedTime?: string;

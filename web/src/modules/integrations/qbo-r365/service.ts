@@ -558,6 +558,8 @@ function normalizeQboRows(input: {
         qboStatusRaw,
         location: "",
         memo: row.data.PrivateNote || "",
+        poNumber: row.data.PONumber || "",
+        terms: row.data.SalesTermRef?.name || "",
       };
 
       lines.push(applyMappings(normalizedLine, input.mappings, {
@@ -1219,6 +1221,8 @@ export async function runQboR365Sync(input: {
             qboStatusRaw: entry.line.qboStatusRaw,
             location: entry.line.location,
             memo: entry.line.memo,
+            poNumber: entry.line.poNumber || "",
+            terms: entry.line.terms || "",
             rawVendor: entry.line.vendor,
             rawInvoiceNumber: entry.line.invoiceNumber,
             rawDescription: entry.line.description,
@@ -1613,6 +1617,8 @@ export type InvoiceDetail = {
   qboBalance: number | null;
   qboPaymentStatus: string | null;
   qboStatusRaw: string | null;
+  poNumber: string | null;
+  terms: string | null;
   memo: string | null;
   lines: InvoiceLineItem[];
   subtotal: number;
@@ -1648,6 +1654,8 @@ export async function getInvoiceDetail(
   let qboPaymentStatus: string | null = null;
   let qboStatusRaw: string | null = null;
   let headerMemo: string | null = null;
+  let poNumber: string | null = null;
+  let terms: string | null = null;
 
   for (const row of data) {
     const p = (row.payload ?? {}) as Record<string, unknown>;
@@ -1667,6 +1675,8 @@ export async function getInvoiceDetail(
     if (!qboPaymentStatus && typeof p.qboPaymentStatus === "string") qboPaymentStatus = p.qboPaymentStatus;
     if (!qboStatusRaw && typeof p.qboStatusRaw === "string") qboStatusRaw = p.qboStatusRaw;
     if (!headerMemo && typeof p.memo === "string" && p.memo) headerMemo = p.memo;
+    if (!poNumber && typeof p.poNumber === "string" && p.poNumber) poNumber = p.poNumber;
+    if (!terms && typeof p.terms === "string" && p.terms) terms = p.terms;
 
     // Skip lines that were stored before the SubTotalLine filter was added:
     // a SubTotal line has no description, code UNMAPPED_ITEM, qty 1, and its amount
@@ -1718,6 +1728,8 @@ export async function getInvoiceDetail(
     qboBalance,
     qboPaymentStatus,
     qboStatusRaw,
+    poNumber,
+    terms,
     memo: headerMemo,
     lines,
     subtotal,
