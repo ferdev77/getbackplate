@@ -544,6 +544,7 @@ function normalizeQboRows(input: {
         dueDate: row.data.DueDate || invoiceDate,
         currency: row.data.CurrencyRef?.name || row.data.CurrencyRef?.value || "",
         targetCode: accountOrItem,
+        itemName: line.SalesItemLineDetail?.ItemRef?.name || line.AccountBasedExpenseLineDetail?.AccountRef?.name || "",
         description: line.Description || "",
         quantity: Number.isFinite(qty) ? qty : 1,
         unitPrice: Number.isFinite(unitPrice) ? unitPrice : lineAmount,
@@ -1206,6 +1207,7 @@ export async function runQboR365Sync(input: {
             dueDate: entry.line.dueDate,
             currency: entry.line.currency,
             targetCode: entry.line.targetCode,
+            itemName: entry.line.itemName || "",
             description: entry.line.description,
             quantity: entry.line.quantity,
             unitPrice: entry.line.unitPrice,
@@ -1587,6 +1589,7 @@ export async function listQboR365InvoiceHistory(organizationId: string, limit = 
 export type InvoiceLineItem = {
   sourceLineId: string;
   targetCode: string | null;
+  itemName: string | null;
   description: string | null;
   quantity: number | null;
   unitPrice: number | null;
@@ -1676,6 +1679,7 @@ export async function getInvoiceDetail(
     lines.push({
       sourceLineId: lineId,
       targetCode: typeof p.targetCode === "string" ? p.targetCode : null,
+      itemName: typeof p.itemName === "string" && p.itemName ? p.itemName : null,
       description: typeof p.description === "string" ? p.description : null,
       quantity: typeof p.quantity === "number" ? p.quantity : null,
       unitPrice: typeof p.unitPrice === "number" ? p.unitPrice : null,

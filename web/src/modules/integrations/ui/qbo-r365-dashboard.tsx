@@ -45,6 +45,7 @@ type DashboardData = {
 type InvoiceLineDetail = {
   sourceLineId: string;
   targetCode: string | null;
+  itemName: string | null;
   description: string | null;
   quantity: number | null;
   unitPrice: number | null;
@@ -727,9 +728,9 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
         const s = v == null ? "" : String(v);
         return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
       };
-      const header = ["#", "Codigo", "Descripcion", "Cantidad", "Precio Unit.", "Importe", "Impuesto", "Total"].map(esc).join(",");
-      const rows = inv.lines.map((l, i) =>
-        [i + 1, l.targetCode, l.description, l.quantity, l.unitPrice?.toFixed(2), l.lineAmount?.toFixed(2), l.taxAmount?.toFixed(2), l.totalAmount?.toFixed(2)].map(esc).join(",")
+      const header = ["Cant.", "Item", "Descripcion", "Precio", "Importe", "Impuesto", "Total", "Cod.R365"].map(esc).join(",");
+      const rows = inv.lines.map((l) =>
+        [l.quantity, l.itemName ?? l.targetCode, l.description, l.unitPrice?.toFixed(2), l.lineAmount?.toFixed(2), l.taxAmount?.toFixed(2), l.totalAmount?.toFixed(2), l.targetCode].map(esc).join(",")
       );
       rows.push(["", "", "", "", "SUBTOTAL", inv.subtotal.toFixed(2), "", ""].map(esc).join(","));
       rows.push(["", "", "", "", "IMPUESTO", inv.totalTax.toFixed(2), "", ""].map(esc).join(","));
@@ -1573,27 +1574,32 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                     <table className="w-full min-w-[640px] text-xs">
                       <thead>
                         <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)]">
-                          <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">#</th>
-                          <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Código mapeado</th>
-                          <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Descripción</th>
                           <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Cant.</th>
-                          <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">P. Unit.</th>
+                          <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Ítem</th>
+                          <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Descripción</th>
+                          <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Precio</th>
                           <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Importe</th>
-                          <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Impuesto</th>
-                          <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Total</th>
+                          <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Cód. R365</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[var(--gbp-border)]">
-                        {invoiceDetail.lines.map((line, idx) => (
+                        {invoiceDetail.lines.map((line) => (
                           <tr key={line.sourceLineId} className="hover:bg-[var(--gbp-bg)]">
-                            <td className="px-3 py-2 text-[var(--gbp-muted)]">{idx + 1}</td>
-                            <td className="px-3 py-2 font-mono font-semibold text-[var(--gbp-text)]">{line.targetCode ?? "-"}</td>
-                            <td className="max-w-[160px] truncate px-3 py-2 text-[var(--gbp-text2)]" title={line.description ?? undefined}>{line.description || "-"}</td>
-                            <td className="px-3 py-2 text-right text-[var(--gbp-text)]">{line.quantity != null ? line.quantity : "-"}</td>
-                            <td className="px-3 py-2 text-right text-[var(--gbp-text)]">{line.unitPrice != null ? line.unitPrice.toFixed(2) : "-"}</td>
-                            <td className="px-3 py-2 text-right text-[var(--gbp-text)]">{line.lineAmount != null ? line.lineAmount.toFixed(2) : "-"}</td>
-                            <td className="px-3 py-2 text-right text-[var(--gbp-text2)]">{line.taxAmount != null ? line.taxAmount.toFixed(2) : "-"}</td>
-                            <td className="px-3 py-2 text-right font-semibold text-[var(--gbp-text)]">{line.totalAmount != null ? line.totalAmount.toFixed(2) : "-"}</td>
+                            <td className="px-3 py-2.5 text-right font-semibold text-[var(--gbp-text)]">{line.quantity != null ? line.quantity : "-"}</td>
+                            <td className="px-3 py-2.5">
+                              {line.itemName ? (
+                                <span className="font-semibold text-[var(--gbp-text)]">{line.itemName}</span>
+                              ) : (
+                                <span className="text-[var(--gbp-muted)]">{line.targetCode ?? "-"}</span>
+                              )}
+                            </td>
+                            <td className="max-w-[180px] truncate px-3 py-2.5 text-[var(--gbp-text2)]" title={line.description ?? undefined}>
+                              {line.description || "-"}
+                              {(line.taxAmount ?? 0) > 0 && <span className="ml-1 text-[10px] font-bold text-[var(--gbp-accent)]">T</span>}
+                            </td>
+                            <td className="px-3 py-2.5 text-right text-[var(--gbp-text)]">{line.unitPrice != null ? line.unitPrice.toFixed(2) : "-"}</td>
+                            <td className="px-3 py-2.5 text-right font-semibold text-[var(--gbp-text)]">{line.lineAmount != null ? line.lineAmount.toFixed(2) : "-"}</td>
+                            <td className="px-3 py-2.5 font-mono text-[10px] text-[var(--gbp-muted)]">{line.targetCode ?? "-"}</td>
                           </tr>
                         ))}
                       </tbody>
