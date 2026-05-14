@@ -17,7 +17,9 @@
       "Bash(git commit *)",
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
       "Read(//tmp/**)",
-      "Bash(psql postgresql://postgres.mfhyemwypuzsqjqxtbjf@aws-0-us-west-2.pooler.supabase.com:5432/postgres -c ' *)"
+      "Bash(psql postgresql://postgres.mfhyemwypuzsqjqxtbjf@aws-0-us-west-2.pooler.supabase.com:5432/postgres -c ' *)",
+      "Bash(python3 -c ' *)",
+      "Bash(node -e \"const c=[];process.stdin.on\\('data',d=>c.push\\(d\\)\\);process.stdin.on\\('end',\\(\\)=>{const r=JSON.parse\\(Buffer.concat\\(c\\)\\);console.log\\(r.key, r.id ? 'OK' : JSON.stringify\\(r.error\\)\\);}\\)\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\pikachu\\.claude\\projects\\c--Users-pikachu-Downloads-saasresto\\memory"
