@@ -715,13 +715,76 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     setSendingPrepared(false);
   }
 
-  function handleInvoiceExport(format: "csv" | "json") {
+  async function handleInvoiceExport(format: "csv" | "json" | "pdf" | "txt") {
     if (!invoiceDetail) return;
     const inv = invoiceDetail;
     const safeName = (inv.invoiceNumber ?? inv.sourceInvoiceId).replace(/[^a-zA-Z0-9_-]/g, "_");
+    const cur = inv.currency ? ` ${inv.currency}` : "";
+
+    if (format === "pdf") {
+      const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+        import("jspdf"),
+        import("jspdf-autotable"),
+      ]);
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageW = doc.internal.pageSize.getWidth();
+
+      // Header
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text("FACTURA", 14, 18);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(`N° ${inv.invoiceNumber ?? inv.sourceInvoiceId}`, pageW - 14, 14, { align: "right" });
+      doc.text(`Fecha: ${formatQboDate(inv.invoiceDate)}`, pageW - 14, 20, { align: "right" });
+      doc.text(`Vencimiento: ${formatQboDate(inv.dueDate)}`, pageW - 14, 26, { align: "right" });
+
+      doc.setFont("helvetica", "bold");
+      doc.text("Proveedor", 14, 30);
+      doc.setFont("helvetica", "normal");
+      doc.text(inv.vendor ?? "-", 14, 36);
+
+      doc.setFont("helvetica", "bold");
+      doc.text("Estado QBO", 14, 44);
+      doc.setFont("helvetica", "normal");
+      doc.text(inv.qboStatusRaw ?? inv.qboPaymentStatus ?? "-", 14, 50);
+
+      // Table
+      autoTable(doc, {
+        startY: 56,
+        head: [["Cant.", "Ítem", "Descripción", "Precio", "Importe", "Cód.R365"]],
+        body: inv.lines.map((l) => [
+          l.quantity != null ? String(l.quantity) : "-",
+          l.itemName ?? l.targetCode ?? "-",
+          l.description ?? "-",
+          l.unitPrice != null ? l.unitPrice.toFixed(2) : "-",
+          l.lineAmount != null ? l.lineAmount.toFixed(2) : "-",
+          l.targetCode ?? "-",
+        ]),
+        foot: [
+          ["", "", "", "Subtotal", inv.subtotal.toFixed(2) + cur, ""],
+          ["", "", "", "Impuesto", inv.totalTax.toFixed(2) + cur, ""],
+          ["", "", "", "TOTAL", inv.grandTotal.toFixed(2) + cur, ""],
+        ],
+        headStyles: { fillColor: [40, 40, 40], fontSize: 8, fontStyle: "bold" },
+        footStyles: { fillColor: [245, 245, 245], fontSize: 8, fontStyle: "bold" },
+        bodyStyles: { fontSize: 8 },
+        columnStyles: {
+          0: { halign: "right", cellWidth: 12 },
+          3: { halign: "right", cellWidth: 20 },
+          4: { halign: "right", cellWidth: 22 },
+          5: { halign: "left", cellWidth: 22, textColor: [140, 140, 140], fontSize: 7 },
+        },
+        styles: { overflow: "linebreak" },
+        margin: { left: 14, right: 14 },
+      });
+
+      doc.save(`factura-${safeName}.pdf`);
+      return;
+    }
+
     let content = "";
     let mime = "";
-    let ext = format;
 
     if (format === "csv") {
       const esc = (v: string | number | null | undefined) => {
@@ -732,11 +795,34 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       const rows = inv.lines.map((l) =>
         [l.quantity, l.itemName ?? l.targetCode, l.description, l.unitPrice?.toFixed(2), l.lineAmount?.toFixed(2), l.taxAmount?.toFixed(2), l.totalAmount?.toFixed(2), l.targetCode].map(esc).join(",")
       );
-      rows.push(["", "", "", "", "SUBTOTAL", inv.subtotal.toFixed(2), "", ""].map(esc).join(","));
-      rows.push(["", "", "", "", "IMPUESTO", inv.totalTax.toFixed(2), "", ""].map(esc).join(","));
-      rows.push(["", "", "", "", "TOTAL", inv.grandTotal.toFixed(2), "", ""].map(esc).join(","));
+      rows.push(["", "", "", "SUBTOTAL", inv.subtotal.toFixed(2), "", "", ""].map(esc).join(","));
+      rows.push(["", "", "", "IMPUESTO", inv.totalTax.toFixed(2), "", "", ""].map(esc).join(","));
+      rows.push(["", "", "", "TOTAL", inv.grandTotal.toFixed(2), "", "", ""].map(esc).join(","));
       content = [header, ...rows].join("\r\n");
       mime = "text/csv;charset=utf-8;";
+    } else if (format === "txt") {
+      const pad = (s: string, n: number, right = false) => right ? s.slice(0, n).padStart(n) : s.slice(0, n).padEnd(n);
+      const sep = "-".repeat(90);
+      const hdr = [
+        `FACTURA N° ${inv.invoiceNumber ?? inv.sourceInvoiceId}`,
+        `Proveedor : ${inv.vendor ?? "-"}`,
+        `Fecha     : ${formatQboDate(inv.invoiceDate)}   Vencimiento: ${formatQboDate(inv.dueDate)}`,
+        `Estado QBO: ${inv.qboStatusRaw ?? inv.qboPaymentStatus ?? "-"}`,
+        sep,
+        `${pad("CANT", 6, true)}  ${pad("ÍTEM", 32)}  ${pad("DESCRIPCIÓN", 22)}  ${pad("PRECIO", 9, true)}  ${pad("IMPORTE", 10, true)}`,
+        sep,
+      ];
+      const bodyLines = inv.lines.map((l) =>
+        `${pad(String(l.quantity ?? "-"), 6, true)}  ${pad(l.itemName ?? l.targetCode ?? "-", 32)}  ${pad(l.description ?? "-", 22)}  ${pad(l.unitPrice?.toFixed(2) ?? "-", 9, true)}  ${pad(l.lineAmount?.toFixed(2) ?? "-", 10, true)}`
+      );
+      const ftr = [
+        sep,
+        `${pad("", 6)}  ${pad("", 32)}  ${pad("", 22)}  ${pad("SUBTOTAL", 9, true)}  ${pad(inv.subtotal.toFixed(2) + cur, 10, true)}`,
+        `${pad("", 6)}  ${pad("", 32)}  ${pad("", 22)}  ${pad("IMPUESTO", 9, true)}  ${pad(inv.totalTax.toFixed(2) + cur, 10, true)}`,
+        `${pad("", 6)}  ${pad("", 32)}  ${pad("", 22)}  ${pad("TOTAL", 9, true)}  ${pad(inv.grandTotal.toFixed(2) + cur, 10, true)}`,
+      ];
+      content = [...hdr, ...bodyLines, ...ftr].join("\n");
+      mime = "text/plain;charset=utf-8;";
     } else {
       content = JSON.stringify(inv, null, 2);
       mime = "application/json";
@@ -746,7 +832,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `factura-${safeName}.${ext}`;
+    link.download = `factura-${safeName}.${format === "json" ? "json" : format === "txt" ? "txt" : "csv"}`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -1477,22 +1563,18 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
               </div>
               <div className="flex items-center gap-2">
                 {invoiceDetail && invoiceDetail.lines.length > 0 && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => handleInvoiceExport("csv")}
-                      className="rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
-                    >
-                      CSV
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleInvoiceExport("json")}
-                      className="rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
-                    >
-                      JSON
-                    </button>
-                  </>
+                  <div className="flex items-center gap-1">
+                    {(["csv", "txt", "json", "pdf"] as const).map((fmt) => (
+                      <button
+                        key={fmt}
+                        type="button"
+                        onClick={() => handleInvoiceExport(fmt)}
+                        className="rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
+                      >
+                        {fmt}
+                      </button>
+                    ))}
+                  </div>
                 )}
                 <button
                   type="button"
