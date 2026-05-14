@@ -714,6 +714,42 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     setSendingPrepared(false);
   }
 
+  function handleInvoiceExport(format: "csv" | "json") {
+    if (!invoiceDetail) return;
+    const inv = invoiceDetail;
+    const safeName = (inv.invoiceNumber ?? inv.sourceInvoiceId).replace(/[^a-zA-Z0-9_-]/g, "_");
+    let content = "";
+    let mime = "";
+    let ext = format;
+
+    if (format === "csv") {
+      const esc = (v: string | number | null | undefined) => {
+        const s = v == null ? "" : String(v);
+        return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+      const header = ["#", "Codigo", "Descripcion", "Cantidad", "Precio Unit.", "Importe", "Impuesto", "Total"].map(esc).join(",");
+      const rows = inv.lines.map((l, i) =>
+        [i + 1, l.targetCode, l.description, l.quantity, l.unitPrice?.toFixed(2), l.lineAmount?.toFixed(2), l.taxAmount?.toFixed(2), l.totalAmount?.toFixed(2)].map(esc).join(",")
+      );
+      rows.push(["", "", "", "", "SUBTOTAL", inv.subtotal.toFixed(2), "", ""].map(esc).join(","));
+      rows.push(["", "", "", "", "IMPUESTO", inv.totalTax.toFixed(2), "", ""].map(esc).join(","));
+      rows.push(["", "", "", "", "TOTAL", inv.grandTotal.toFixed(2), "", ""].map(esc).join(","));
+      content = [header, ...rows].join("\r\n");
+      mime = "text/csv;charset=utf-8;";
+    } else {
+      content = JSON.stringify(inv, null, 2);
+      mime = "application/json";
+    }
+
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `factura-${safeName}.${ext}`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function handleExport(format: "raw" | "json" | "csv" | "txt") {
     if (!developerRunForExport?.id) {
       toast.error("No hay corrida para exportar", {
@@ -1438,13 +1474,33 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   {(invoiceDetail?.currency ?? selectedInvoice.currency) ? ` · ${invoiceDetail?.currency ?? selectedInvoice.currency}` : ""}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setSelectedInvoiceId(null)}
-                className="rounded-lg p-1.5 text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg)]"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {invoiceDetail && invoiceDetail.lines.length > 0 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleInvoiceExport("csv")}
+                      className="rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
+                    >
+                      CSV
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleInvoiceExport("json")}
+                      className="rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
+                    >
+                      JSON
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSelectedInvoiceId(null)}
+                  className="rounded-lg p-1.5 text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg)]"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </header>
 
             <div className="flex-1 overflow-y-auto">
