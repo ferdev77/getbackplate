@@ -1681,7 +1681,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                     {(invoiceDetail?.currency ?? selectedInvoice.currency) && (
                       <div>
                         <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Moneda</p>
-                        <p className="mt-0.5 text-[var(--gbp-text)]">{invoiceDetail?.currency ?? selectedInvoice.currency}</p>
+                        <p className="mt-0.5 text-[var(--gbp-text)]">{formatCurrencyLabel(invoiceDetail?.currency ?? selectedInvoice.currency)}</p>
                       </div>
                     )}
                   </div>
@@ -1779,15 +1779,15 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   <div className="mt-3 flex flex-col items-end gap-1 text-sm">
                     <div className="flex w-64 items-center justify-between gap-4 border-t border-[var(--gbp-border)] pt-2">
                       <span className="text-[var(--gbp-text2)]">Subtotal</span>
-                      <span className="font-semibold text-[var(--gbp-text)]">{invoiceDetail.subtotal.toFixed(2)} {invoiceDetail.currency ?? ""}</span>
+                      <span className="font-semibold text-[var(--gbp-text)]">{invoiceDetail.subtotal.toFixed(2)} {formatCurrencyLabel(invoiceDetail.currency)}</span>
                     </div>
                     <div className="flex w-64 items-center justify-between gap-4">
                       <span className="text-[var(--gbp-text2)]">Impuestos</span>
-                      <span className="font-semibold text-[var(--gbp-text)]">{invoiceDetail.totalTax.toFixed(2)} {invoiceDetail.currency ?? ""}</span>
+                      <span className="font-semibold text-[var(--gbp-text)]">{invoiceDetail.totalTax.toFixed(2)} {formatCurrencyLabel(invoiceDetail.currency)}</span>
                     </div>
                     <div className="flex w-64 items-center justify-between gap-4 rounded-lg bg-[var(--gbp-bg)] px-3 py-2">
                       <span className="font-bold text-[var(--gbp-text)]">Total</span>
-                      <span className="text-base font-bold text-[var(--gbp-text)]">{invoiceDetail.grandTotal.toFixed(2)} {invoiceDetail.currency ?? ""}</span>
+                      <span className="text-base font-bold text-[var(--gbp-text)]">{invoiceDetail.grandTotal.toFixed(2)} {formatCurrencyLabel(invoiceDetail.currency)}</span>
                     </div>
                   </div>
                 )}
