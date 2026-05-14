@@ -316,7 +316,7 @@ export async function fetchQboItemSkus(input: {
   let startPosition = 1;
 
   while (true) {
-    const query = `select Id, Sku from Item startposition ${startPosition} maxresults ${pageSize}`;
+    const query = `select * from Item startposition ${startPosition} maxresults ${pageSize}`;
     const response = await fetch(
       `${baseUrl}/v3/company/${input.realmId}/query?minorversion=75`,
       {
@@ -332,15 +332,16 @@ export async function fetchQboItemSkus(input: {
     );
 
     const payload = (await response.json().catch(() => ({}))) as {
-      QueryResponse?: { Item?: Array<{ Id?: string; Sku?: string }> };
+      QueryResponse?: { Item?: Array<{ Id?: string; Sku?: string; Name?: string }> };
     };
 
     if (!response.ok) break;
 
     const batch = payload.QueryResponse?.Item ?? [];
     for (const item of batch) {
-      if (item.Id && item.Sku) {
-        skuMap.set(item.Id, item.Sku);
+      if (item.Id) {
+        const sku = item.Sku?.trim() ?? "";
+        if (sku) skuMap.set(item.Id, sku);
       }
     }
 
