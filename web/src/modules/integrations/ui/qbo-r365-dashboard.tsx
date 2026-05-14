@@ -45,6 +45,7 @@ type DashboardData = {
 type InvoiceLineDetail = {
   sourceLineId: string;
   targetCode: string | null;
+  sourceItemCode: string | null;
   itemName: string | null;
   description: string | null;
   quantity: number | null;
@@ -721,7 +722,8 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     if (!invoiceDetail) return;
     const inv = invoiceDetail;
     const safeName = (inv.invoiceNumber ?? inv.sourceInvoiceId).replace(/[^a-zA-Z0-9_-]/g, "_");
-    const cur = inv.currency ? ` ${inv.currency}` : "";
+    const curLabel = formatCurrencyLabel(inv.currency);
+    const cur = curLabel ? ` ${curLabel}` : "";
 
     if (format === "pdf") {
       const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
@@ -731,62 +733,99 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const pageW = doc.internal.pageSize.getWidth();
 
-      // Header
-      doc.setFontSize(18);
+      // Header izquierda
+      doc.setFontSize(20);
       doc.setFont("helvetica", "bold");
       doc.text("FACTURA", 14, 18);
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(`N° ${inv.invoiceNumber ?? inv.sourceInvoiceId}`, pageW - 14, 14, { align: "right" });
-      doc.text(`Fecha: ${formatQboDate(inv.invoiceDate)}`, pageW - 14, 20, { align: "right" });
-      doc.text(`Vencimiento: ${formatQboDate(inv.dueDate)}`, pageW - 14, 26, { align: "right" });
 
+      // Header derecha: N°, Fecha, Terms, Vencimiento
+      doc.setFontSize(9);
       doc.setFont("helvetica", "bold");
-      doc.text("Bill To", 14, 30);
+      let rightY = 13;
+      doc.text(`N°`, pageW - 14 - 30, rightY, { align: "right" });
       doc.setFont("helvetica", "normal");
-      doc.text(inv.vendor ?? "-", 14, 36);
-      if (inv.poNumber ?? inv.memo) {
+      doc.text(`${inv.invoiceNumber ?? inv.sourceInvoiceId}`, pageW - 14, rightY, { align: "right" });
+      rightY += 6;
+      doc.setFont("helvetica", "bold");
+      doc.text("Fecha:", pageW - 14 - 30, rightY, { align: "right" });
+      doc.setFont("helvetica", "normal");
+      doc.text(formatQboDate(inv.invoiceDate), pageW - 14, rightY, { align: "right" });
+      if (inv.terms) {
+        rightY += 6;
         doc.setFont("helvetica", "bold");
-        doc.text("PO#", 14, 43);
+        doc.text("Terms:", pageW - 14 - 30, rightY, { align: "right" });
         doc.setFont("helvetica", "normal");
-        doc.text(inv.poNumber ?? inv.memo ?? "-", 14, 49);
+        doc.text(inv.terms, pageW - 14, rightY, { align: "right" });
+      }
+      rightY += 6;
+      doc.setFont("helvetica", "bold");
+      doc.text("Venc.:", pageW - 14 - 30, rightY, { align: "right" });
+      doc.setFont("helvetica", "normal");
+      doc.text(formatQboDate(inv.dueDate), pageW - 14, rightY, { align: "right" });
+
+      // Header izquierda: Bill To + PO#
+      let leftY = 28;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.text("Bill To", 14, leftY);
+      leftY += 6;
+      doc.setFont("helvetica", "normal");
+      doc.text(inv.vendor ?? "-", 14, leftY);
+      if (inv.poNumber ?? inv.memo) {
+        leftY += 7;
+        doc.setFont("helvetica", "bold");
+        doc.text("PO#", 14, leftY);
+        leftY += 5;
+        doc.setFont("helvetica", "normal");
+        doc.text(inv.poNumber ?? inv.memo ?? "-", 14, leftY);
       }
 
-      const termsY = (inv.poNumber ?? inv.memo) ? 26 : 26;
-      if (inv.terms) {
-        doc.text(`Terms: ${inv.terms}`, pageW - 14, termsY, { align: "right" });
-      }
+      const tableStartY = Math.max(leftY + 8, rightY + 10);
 
       // Table
       autoTable(doc, {
-        startY: (inv.poNumber ?? inv.memo) ? 56 : 56,
-        head: [["Cant.", "Ítem", "Descripción", "Precio", "Importe", "Cód.R365"]],
+        startY: tableStartY,
+        head: [["Cant.", "SKU QBO", "Ítem", "Descripción", "Precio", "Importe", "Cód. R365"]],
         body: inv.lines.map((l) => [
           l.quantity != null ? String(l.quantity) : "-",
+          l.sourceItemCode ?? "-",
           l.itemName ?? l.targetCode ?? "-",
           l.description ?? "-",
           l.unitPrice != null ? l.unitPrice.toFixed(2) : "-",
           l.lineAmount != null ? l.lineAmount.toFixed(2) : "-",
           l.targetCode ?? "-",
         ]),
-        foot: [
-          ["", "", "", "Subtotal", inv.subtotal.toFixed(2) + cur, ""],
-          ["", "", "", "Impuesto", inv.totalTax.toFixed(2) + cur, ""],
-          ["", "", "", "TOTAL", inv.grandTotal.toFixed(2) + cur, ""],
-        ],
-        showFoot: "lastPage",
         headStyles: { fillColor: [40, 40, 40], fontSize: 8, fontStyle: "bold" },
-        footStyles: { fillColor: [245, 245, 245], fontSize: 8, fontStyle: "bold" },
         bodyStyles: { fontSize: 8 },
         columnStyles: {
-          0: { halign: "right", cellWidth: 12 },
-          3: { halign: "right", cellWidth: 20 },
-          4: { halign: "right", cellWidth: 22 },
-          5: { halign: "left", cellWidth: 22, textColor: [140, 140, 140], fontSize: 7 },
+          0: { halign: "right", cellWidth: 11 },
+          1: { halign: "left", cellWidth: 16, textColor: [100, 100, 100], fontSize: 7 },
+          4: { halign: "right", cellWidth: 18 },
+          5: { halign: "right", cellWidth: 20 },
+          6: { halign: "left", cellWidth: 20, textColor: [140, 140, 140], fontSize: 7 },
         },
         styles: { overflow: "linebreak" },
         margin: { left: 14, right: 14 },
       });
+
+      // Totales manuales debajo de la tabla
+      const tableEndY = ((doc as unknown as { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 200) + 6;
+      const rightX = pageW - 14;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(80, 80, 80);
+      doc.text("Subtotal:", rightX - 32, tableEndY);
+      doc.text(inv.subtotal.toFixed(2) + cur, rightX, tableEndY, { align: "right" });
+      doc.text("Impuesto:", rightX - 32, tableEndY + 6);
+      doc.text(inv.totalTax.toFixed(2) + cur, rightX, tableEndY + 6, { align: "right" });
+      doc.setDrawColor(180, 180, 180);
+      doc.setLineWidth(0.3);
+      doc.line(rightX - 40, tableEndY + 9, rightX, tableEndY + 9);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.text("TOTAL:", rightX - 32, tableEndY + 15);
+      doc.text(inv.grandTotal.toFixed(2) + cur, rightX, tableEndY + 15, { align: "right" });
 
       doc.save(`factura-${safeName}.pdf`);
       return;
@@ -800,9 +839,9 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
         const s = v == null ? "" : String(v);
         return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
       };
-      const header = ["Cant.", "Item", "Descripcion", "Precio", "Importe", "Impuesto", "Total", "Cod.R365"].map(esc).join(",");
+      const header = ["Cant.", "SKU.QBO", "Item", "Descripcion", "Precio", "Importe", "Impuesto", "Total", "Cod.R365"].map(esc).join(",");
       const rows = inv.lines.map((l) =>
-        [l.quantity, l.itemName ?? l.targetCode, l.description, l.unitPrice?.toFixed(2), l.lineAmount?.toFixed(2), l.taxAmount?.toFixed(2), l.totalAmount?.toFixed(2), l.targetCode].map(esc).join(",")
+        [l.quantity, l.sourceItemCode ?? "", l.itemName ?? l.targetCode, l.description, l.unitPrice?.toFixed(2), l.lineAmount?.toFixed(2), l.taxAmount?.toFixed(2), l.totalAmount?.toFixed(2), l.targetCode].map(esc).join(",")
       );
       rows.push(["", "", "", "SUBTOTAL", inv.subtotal.toFixed(2), "", "", ""].map(esc).join(","));
       rows.push(["", "", "", "IMPUESTO", inv.totalTax.toFixed(2), "", "", ""].map(esc).join(","));
@@ -820,11 +859,11 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
         ...(inv.poNumber ?? inv.memo ? [`PO#       : ${inv.poNumber ?? inv.memo ?? "-"}`] : []),
         `Estado QBO: ${inv.qboStatusRaw ?? inv.qboPaymentStatus ?? "-"}`,
         sep,
-        `${pad("CANT", 6, true)}  ${pad("ÍTEM", 32)}  ${pad("DESCRIPCIÓN", 22)}  ${pad("PRECIO", 9, true)}  ${pad("IMPORTE", 10, true)}`,
+        `${pad("CANT", 6, true)}  ${pad("SKU QBO", 10)}  ${pad("ÍTEM", 28)}  ${pad("DESCRIPCIÓN", 20)}  ${pad("PRECIO", 9, true)}  ${pad("IMPORTE", 10, true)}  ${pad("CÓD.R365", 10)}`,
         sep,
       ];
       const bodyLines = inv.lines.map((l) =>
-        `${pad(String(l.quantity ?? "-"), 6, true)}  ${pad(l.itemName ?? l.targetCode ?? "-", 32)}  ${pad(l.description ?? "-", 22)}  ${pad(l.unitPrice?.toFixed(2) ?? "-", 9, true)}  ${pad(l.lineAmount?.toFixed(2) ?? "-", 10, true)}`
+        `${pad(String(l.quantity ?? "-"), 6, true)}  ${pad(l.sourceItemCode ?? "-", 10)}  ${pad(l.itemName ?? l.targetCode ?? "-", 28)}  ${pad(l.description ?? "-", 20)}  ${pad(l.unitPrice?.toFixed(2) ?? "-", 9, true)}  ${pad(l.lineAmount?.toFixed(2) ?? "-", 10, true)}  ${pad(l.targetCode ?? "-", 10)}`
       );
       const ftr = [
         sep,
@@ -1690,6 +1729,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                       <thead>
                         <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)]">
                           <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Cant.</th>
+                          <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">SKU QBO</th>
                           <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Ítem</th>
                           <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Descripción</th>
                           <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Precio</th>
@@ -1701,6 +1741,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                         {invoiceDetail.lines.map((line) => (
                           <tr key={line.sourceLineId} className="hover:bg-[var(--gbp-bg)]">
                             <td className="px-3 py-2.5 text-right font-semibold text-[var(--gbp-text)]">{line.quantity != null ? line.quantity : "-"}</td>
+                            <td className="px-3 py-2.5 font-mono text-[11px] text-[var(--gbp-muted)]">{line.sourceItemCode ?? "-"}</td>
                             <td className="px-3 py-2.5">
                               {line.itemName ? (
                                 <span className="font-semibold text-[var(--gbp-text)]">{line.itemName}</span>

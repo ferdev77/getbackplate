@@ -515,6 +515,8 @@ function normalizeQboRows(input: {
       const lineAmount = Number(line.Amount ?? 0);
       const qty = Number(line.SalesItemLineDetail?.Qty ?? 1);
       const unitPrice = Number(line.SalesItemLineDetail?.UnitPrice ?? (qty > 0 ? lineAmount / qty : lineAmount));
+      const sourceItemCode =
+        line.SalesItemLineDetail?.ItemRef?.value || line.AccountBasedExpenseLineDetail?.AccountRef?.value || "";
       const accountOrItem =
         (input.template === "by_item" || input.template === "by_item_service_dates")
           ? line.SalesItemLineDetail?.ItemRef?.value || line.SalesItemLineDetail?.ItemRef?.name || "UNMAPPED_ITEM"
@@ -544,6 +546,7 @@ function normalizeQboRows(input: {
         dueDate: row.data.DueDate || invoiceDate,
         currency: row.data.CurrencyRef?.name || row.data.CurrencyRef?.value || "",
         targetCode: accountOrItem,
+        sourceItemCode,
         itemName: line.SalesItemLineDetail?.ItemRef?.name || line.AccountBasedExpenseLineDetail?.AccountRef?.name || "",
         description: line.Description || "",
         quantity: Number.isFinite(qty) ? qty : 1,
@@ -1209,6 +1212,7 @@ export async function runQboR365Sync(input: {
             dueDate: entry.line.dueDate,
             currency: entry.line.currency,
             targetCode: entry.line.targetCode,
+            sourceItemCode: entry.line.sourceItemCode || "",
             itemName: entry.line.itemName || "",
             description: entry.line.description,
             quantity: entry.line.quantity,
@@ -1593,6 +1597,7 @@ export async function listQboR365InvoiceHistory(organizationId: string, limit = 
 export type InvoiceLineItem = {
   sourceLineId: string;
   targetCode: string | null;
+  sourceItemCode: string | null;
   itemName: string | null;
   description: string | null;
   quantity: number | null;
@@ -1689,6 +1694,7 @@ export async function getInvoiceDetail(
     lines.push({
       sourceLineId: lineId,
       targetCode: typeof p.targetCode === "string" ? p.targetCode : null,
+      sourceItemCode: typeof p.sourceItemCode === "string" && p.sourceItemCode ? p.sourceItemCode : null,
       itemName: typeof p.itemName === "string" && p.itemName ? p.itemName : null,
       description: typeof p.description === "string" ? p.description : null,
       quantity: typeof p.quantity === "number" ? p.quantity : null,
