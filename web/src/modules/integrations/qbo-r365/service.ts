@@ -1075,6 +1075,7 @@ export async function runQboR365Sync(input: {
 
     // Si el URL de produccion devuelve 0 resultados (QBO cambio de devolver error 3100
     // a devolver 200+vacio para tokens sandbox), intentar con URL de sandbox automaticamente.
+    let effectiveUseSandbox = useSandbox;
     if (!useSandbox && qboData.invoices.length === 0 && qboData.salesReceipts.length === 0 && qboData.creditMemos.length === 0) {
       try {
         const sandboxData = await fetchQboSalesTransactions({
@@ -1085,6 +1086,7 @@ export async function runQboR365Sync(input: {
         });
         if (sandboxData.invoices.length > 0 || sandboxData.salesReceipts.length > 0 || sandboxData.creditMemos.length > 0) {
           qboData = sandboxData;
+          effectiveUseSandbox = true;
           if (actorId) {
             void updateQboConnectionPublicConfig({
               organizationId: input.organizationId,
@@ -1103,7 +1105,7 @@ export async function runQboR365Sync(input: {
     const itemSkuMap = await fetchQboItemSkus({
       accessToken: qboAuth.accessToken,
       realmId: qboAuth.realmId,
-      useSandbox,
+      useSandbox: effectiveUseSandbox,
     }).catch(() => new Map<string, string>());
 
     const normalized = normalizeQboRows({
@@ -1659,7 +1661,6 @@ export async function getInvoiceDetail(
   if (error) throw new Error(error.message);
   if (!data || data.length === 0) return null;
 
-  const seenLineIds = new Set<string>();
   const lines: InvoiceLineItem[] = [];
   let invoiceNumber: string | null = null;
   let invoiceDate: string | null = null;
@@ -1674,12 +1675,9 @@ export async function getInvoiceDetail(
   let poNumber: string | null = null;
   let terms: string | null = null;
 
+  // Primero recolectar datos de cabecera de cualquier fila con payload completo
   for (const row of data) {
     const p = (row.payload ?? {}) as Record<string, unknown>;
-    const lineId = String(row.source_invoice_line_id || p.sourceLineId || "");
-    if (seenLineIds.has(lineId)) continue;
-    seenLineIds.add(lineId);
-
     if (!invoiceNumber && typeof p.invoiceNumber === "string") invoiceNumber = p.invoiceNumber;
     if (!invoiceDate && typeof p.invoiceDate === "string") invoiceDate = p.invoiceDate;
     if (!dueDate && typeof p.dueDate === "string") dueDate = p.dueDate;
@@ -1694,6 +1692,30 @@ export async function getInvoiceDetail(
     if (!headerMemo && typeof p.memo === "string" && p.memo) headerMemo = p.memo;
     if (!poNumber && typeof p.poNumber === "string" && p.poNumber) poNumber = p.poNumber;
     if (!terms && typeof p.terms === "string" && p.terms) terms = p.terms;
+  }
+
+  // Agrupar filas por lineId y elegir la mejor (la que tenga payload completo con targetCode)
+  const rowsByLineId = new Map<string, typeof data[number]>();
+  for (const row of data) {
+    const p = (row.payload ?? {}) as Record<string, unknown>;
+    const lineId = String(row.source_invoice_line_id || p.sourceLineId || "");
+    if (!lineId) continue;
+    const existing = rowsByLineId.get(lineId);
+    if (!existing) {
+      rowsByLineId.set(lineId, row);
+    } else {
+      // Preferir fila con payload completo (tiene targetCode real) sobre filas de skip
+      const existingP = (existing.payload ?? {}) as Record<string, unknown>;
+      const hasFullPayload = typeof p.targetCode === "string" && p.targetCode && p.targetCode !== "line_duplicate" && p.targetCode !== "invoice_already_sent_to_r365";
+      const existingHasFull = typeof existingP.targetCode === "string" && existingP.targetCode && existingP.targetCode !== "line_duplicate" && existingP.targetCode !== "invoice_already_sent_to_r365";
+      if (hasFullPayload && !existingHasFull) {
+        rowsByLineId.set(lineId, row);
+      }
+    }
+  }
+
+  for (const [lineId, row] of rowsByLineId.entries()) {
+    const p = (row.payload ?? {}) as Record<string, unknown>;
 
     // Skip lines that were stored before the SubTotalLine filter was added:
     // a SubTotal line has no description, code UNMAPPED_ITEM, qty 1, and its amount
