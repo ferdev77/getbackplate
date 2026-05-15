@@ -1444,7 +1444,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   <th className="px-4 py-3">Estado QBO</th>
                   <th className="px-4 py-3">Estado GBP</th>
                   <th className="px-4 py-3">Template</th>
-                  <th className="px-4 py-3">Mapped Code</th>
                   <th className="px-4 py-3">Detecciones</th>
                   <th className="px-4 py-3">Ultima vez</th>
                 </tr>
@@ -1462,7 +1461,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                     <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{item.qboStatusRaw ?? qboPaymentStatusLabel(item.qboPaymentStatus)}</td>
                     <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{itemStatusLabel(item.lastStatus)}</td>
                     <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{templateLabel(item.templateMode)}</td>
-                    <td className="px-4 py-3 text-xs font-semibold text-[var(--gbp-accent)]">{item.mappedCode ?? "-"}</td>
                     <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{item.timesSeen}</td>
                     <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{new Date(item.lastSeenAt).toLocaleString("es-AR")}</td>
                   </tr>
