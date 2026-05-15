@@ -8,7 +8,8 @@
       "Bash(npm install *)",
       "Bash(node -e \"const p=require\\('./package.json'\\); const deps={...p.dependencies,...p.devDependencies}; console.log\\('jspdf-autotable:', deps['jspdf-autotable']||'NO'\\);\")",
       "Read(//c/Users/pikachu/AppData/Local/Temp/claude/c--Users-pikachu-Downloads-saasresto/4726980b-e70d-4d77-ba50-af3969dd5f60/tasks/**)",
-      "Bash(PGPASSWORD=\"dy.7nci4Mfbfv+v\" psql \"postgresql://postgres.mfhyemwypuzsqjqxtbjf@aws-0-us-west-2.pooler.supabase.com:5432/postgres\" -c \"SELECT id, name FROM public.organizations WHERE name ILIKE '%prodel%';\")"
+      "Bash(PGPASSWORD=\"dy.7nci4Mfbfv+v\" psql \"postgresql://postgres.mfhyemwypuzsqjqxtbjf@aws-0-us-west-2.pooler.supabase.com:5432/postgres\" -c \"SELECT id, name FROM public.organizations WHERE name ILIKE '%prodel%';\")",
+      "Bash(xargs -I {} bash -c 'echo \"=== {} ===\" && head -50 \"{}\"')"
     ]
   }
 }
