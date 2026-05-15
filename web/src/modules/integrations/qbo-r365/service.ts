@@ -2156,6 +2156,8 @@ export async function sendSingleInvoiceFromHistory(input: {
   actorId: string | null;
   sourceInvoiceId: string;
   syncConfigId?: string | null;
+  ftpOverride?: { host: string; port: number; username: string; password: string; remotePath: string; secure: boolean } | null;
+  templateOverride?: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates" | null;
 }): Promise<{ uploaded: number; fileName: string; runId: string }> {
   const admin = createSupabaseAdminClient();
 
@@ -2193,10 +2195,10 @@ export async function sendSingleInvoiceFromHistory(input: {
     .eq("id", firstEntry.runId)
     .maybeSingle();
 
-  const template = (runMeta?.template_used ?? "by_item") as "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates";
+  const template = (input.templateOverride ?? runMeta?.template_used ?? "by_item") as "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates";
   const effectiveSyncConfigId = input.syncConfigId ?? (runMeta?.sync_config_id ? String(runMeta.sync_config_id) : null);
 
-  // Resolve FTP — sync config first, then global connection
+  // Resolve FTP — ftpOverride first, then sync config, then global connection
   let syncConfig: SyncConfigRow | null = null;
   if (effectiveSyncConfigId) {
     syncConfig = await getSyncConfigRow(input.organizationId, effectiveSyncConfigId).catch(() => null);
@@ -2204,7 +2206,16 @@ export async function sendSingleInvoiceFromHistory(input: {
 
   let ftpForUpload: { host: string; port: number; username: string; password: string; secure: boolean; remotePath: string } | null = null;
 
-  if (syncConfig?.r365_ftp_host) {
+  if (input.ftpOverride?.host) {
+    ftpForUpload = {
+      host: input.ftpOverride.host,
+      port: input.ftpOverride.port,
+      username: input.ftpOverride.username,
+      password: input.ftpOverride.password,
+      secure: input.ftpOverride.secure,
+      remotePath: input.ftpOverride.remotePath,
+    };
+  } else if (syncConfig?.r365_ftp_host) {
     const syncFtpSecrets = decryptJsonPayload<FtpStoredSecrets>({
       ciphertext: syncConfig.r365_ftp_secrets_ciphertext,
       iv: syncConfig.r365_ftp_secrets_iv,

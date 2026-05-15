@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link2, Search, X, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Plus, Play, Trash2, Pause, Eye } from "lucide-react";
+import { Link2, Search, X, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Plus, Play, Trash2, Pause, Eye, ChevronDown, ChevronUp, Server } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { saveIntegrationConfigAction } from "@/modules/integrations/qbo-r365/actions";
@@ -274,6 +274,74 @@ function presentIntegrationError(errorMessage: string, context: "sync" | "oauth"
   toast.error("No se pudo enviar a R365", { description: errorMessage });
 }
 
+type TemplateCol = { col: string; r365Name: string; qboSource: string; scope: "header" | "detail"; highlight?: boolean };
+const TEMPLATE_COLS: Record<"by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates", TemplateCol[]> = {
+  by_item: [
+    { col: "A", r365Name: "Vendor", qboSource: "CustomerRef.name", scope: "header" },
+    { col: "B", r365Name: "Location", qboSource: "N° cuenta R365", scope: "header", highlight: true },
+    { col: "C", r365Name: "Document Number", qboSource: "DocNumber", scope: "header" },
+    { col: "D", r365Name: "Date", qboSource: "TxnDate", scope: "header" },
+    { col: "E", r365Name: "Gl Date", qboSource: "TxnDate", scope: "detail" },
+    { col: "F", r365Name: "Vendor Item Number", qboSource: "ItemRef → SKU", scope: "detail", highlight: true },
+    { col: "G", r365Name: "Vendor Item Name", qboSource: "Line.Description", scope: "detail" },
+    { col: "H", r365Name: "UofM", qboSource: "—", scope: "detail" },
+    { col: "I", r365Name: "Qty", qboSource: "SalesItemLineDetail.Qty", scope: "detail" },
+    { col: "J", r365Name: "Unit Price", qboSource: "SalesItemLineDetail.UnitPrice", scope: "detail" },
+    { col: "K", r365Name: "Total", qboSource: "Line.Amount", scope: "detail" },
+    { col: "L", r365Name: "Break Flag", qboSource: "—", scope: "detail" },
+  ],
+  by_item_service_dates: [
+    { col: "A", r365Name: "Vendor", qboSource: "CustomerRef.name", scope: "header" },
+    { col: "B", r365Name: "Location", qboSource: "N° cuenta R365", scope: "header", highlight: true },
+    { col: "C", r365Name: "Document Number", qboSource: "DocNumber", scope: "header" },
+    { col: "D", r365Name: "Date", qboSource: "TxnDate", scope: "header" },
+    { col: "E", r365Name: "Gl Date", qboSource: "TxnDate", scope: "detail" },
+    { col: "F", r365Name: "Vendor Item Number", qboSource: "ItemRef → SKU", scope: "detail", highlight: true },
+    { col: "G", r365Name: "Vendor Item Name", qboSource: "Line.Description", scope: "detail" },
+    { col: "H", r365Name: "UofM", qboSource: "—", scope: "detail" },
+    { col: "I", r365Name: "Qty", qboSource: "SalesItemLineDetail.Qty", scope: "detail" },
+    { col: "J", r365Name: "Unit Price", qboSource: "SalesItemLineDetail.UnitPrice", scope: "detail" },
+    { col: "K", r365Name: "Total", qboSource: "Line.Amount", scope: "detail" },
+    { col: "L", r365Name: "Break Flag", qboSource: "—", scope: "detail" },
+    { col: "M", r365Name: "Start Date of Service", qboSource: "—", scope: "detail" },
+    { col: "N", r365Name: "End Date of Service", qboSource: "—", scope: "detail" },
+  ],
+  by_account: [
+    { col: "A", r365Name: "Type", qboSource: "TransactionType (1/2)", scope: "header" },
+    { col: "B", r365Name: "Location", qboSource: "N° cuenta R365", scope: "header", highlight: true },
+    { col: "C", r365Name: "Vendor", qboSource: "CustomerRef.name", scope: "header" },
+    { col: "D", r365Name: "Number", qboSource: "DocNumber", scope: "header" },
+    { col: "E", r365Name: "Date", qboSource: "TxnDate", scope: "detail" },
+    { col: "F", r365Name: "Gl Date", qboSource: "TxnDate", scope: "detail" },
+    { col: "G", r365Name: "Amount", qboSource: "TotalAmt (invoice total)", scope: "detail" },
+    { col: "H", r365Name: "Payment Terms", qboSource: "—", scope: "detail" },
+    { col: "I", r365Name: "Due Date", qboSource: "DueDate", scope: "detail" },
+    { col: "J", r365Name: "Comment", qboSource: "PrivateNote / Memo", scope: "detail" },
+    { col: "K", r365Name: "Detail Account", qboSource: "AccountRef → R365 code", scope: "detail", highlight: true },
+    { col: "L", r365Name: "Detail Amount", qboSource: "Line.Amount", scope: "detail" },
+    { col: "M", r365Name: "Detail Location", qboSource: "N° cuenta R365", scope: "detail", highlight: true },
+    { col: "N", r365Name: "Detail Comment", qboSource: "Line.Description", scope: "detail" },
+  ],
+  by_account_service_dates: [
+    { col: "A", r365Name: "Type", qboSource: "TransactionType (1/2)", scope: "header" },
+    { col: "B", r365Name: "Location", qboSource: "N° cuenta R365", scope: "header", highlight: true },
+    { col: "C", r365Name: "Vendor", qboSource: "CustomerRef.name", scope: "header" },
+    { col: "D", r365Name: "Number", qboSource: "DocNumber", scope: "header" },
+    { col: "E", r365Name: "Date", qboSource: "TxnDate", scope: "detail" },
+    { col: "F", r365Name: "Gl Date", qboSource: "TxnDate", scope: "detail" },
+    { col: "G", r365Name: "Amount", qboSource: "TotalAmt (invoice total)", scope: "detail" },
+    { col: "H", r365Name: "Payment Terms", qboSource: "—", scope: "detail" },
+    { col: "I", r365Name: "Due Date", qboSource: "DueDate", scope: "detail" },
+    { col: "J", r365Name: "Comment", qboSource: "PrivateNote / Memo", scope: "detail" },
+    { col: "K", r365Name: "Detail Account", qboSource: "AccountRef → R365 code", scope: "detail", highlight: true },
+    { col: "L", r365Name: "Detail Amount", qboSource: "Line.Amount", scope: "detail" },
+    { col: "M", r365Name: "Detail Location", qboSource: "N° cuenta R365", scope: "detail", highlight: true },
+    { col: "N", r365Name: "Detail Comment", qboSource: "Line.Description", scope: "detail" },
+    { col: "O", r365Name: "Start Date of Service", qboSource: "—", scope: "detail" },
+    { col: "P", r365Name: "End Date of Service", qboSource: "—", scope: "detail" },
+  ],
+};
+
 export function QboR365Dashboard({ organizationId, deferredDataUrl, showDeveloperMode = false, className }: Props) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -290,6 +358,15 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [sendingPrepared, setSendingPrepared] = useState(false);
   const [sendingInvoice, setSendingInvoice] = useState(false);
   const [invoiceDetailRefreshKey, setInvoiceDetailRefreshKey] = useState(0);
+  const [invoiceTemplate, setInvoiceTemplate] = useState<"by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates">("by_item");
+  const [showMappingPreview, setShowMappingPreview] = useState(false);
+  const [showInvoiceFtp, setShowInvoiceFtp] = useState(false);
+  const [invoiceFtpHost, setInvoiceFtpHost] = useState("");
+  const [invoiceFtpPort, setInvoiceFtpPort] = useState(21);
+  const [invoiceFtpUser, setInvoiceFtpUser] = useState("");
+  const [invoiceFtpPass, setInvoiceFtpPass] = useState("");
+  const [invoiceFtpPath, setInvoiceFtpPath] = useState("/APImports/R365");
+  const [invoiceFtpSecure, setInvoiceFtpSecure] = useState(false);
   const [exportingFormat, setExportingFormat] = useState<"raw" | "json" | "csv" | "txt" | null>(null);
   const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -600,6 +677,21 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       .finally(() => setInvoiceDetailLoading(false));
   }, [selectedInvoiceId, invoiceDetailRefreshKey]);
 
+  useEffect(() => {
+    if (!selectedInvoiceId) return;
+    const inv = data?.invoiceHistory.find((i) => i.sourceInvoiceId === selectedInvoiceId)
+      ?? syncHistoryItems.find((i) => i.sourceInvoiceId === selectedInvoiceId);
+    setInvoiceTemplate(inv?.templateMode ?? "by_item");
+    setShowMappingPreview(false);
+    setShowInvoiceFtp(false);
+    setInvoiceFtpHost("");
+    setInvoiceFtpPort(21);
+    setInvoiceFtpUser("");
+    setInvoiceFtpPass("");
+    setInvoiceFtpPath("/APImports/R365");
+    setInvoiceFtpSecure(false);
+  }, [selectedInvoiceId]);
+
   const selectedDeveloperSync = useMemo(
     () => syncConfigs.find((config) => config.id === developerSyncConfigId) ?? null,
     [syncConfigs, developerSyncConfigId],
@@ -721,14 +813,24 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     setSendingPrepared(false);
   }
 
-  async function handleSendSingleInvoice(sourceInvoiceId: string, syncConfigId?: string | null) {
+  async function handleSendSingleInvoice(
+    sourceInvoiceId: string,
+    syncConfigId?: string | null,
+    ftpOverride?: { host: string; port: number; username: string; password: string; remotePath: string; secure: boolean } | null,
+    templateOverride?: string | null,
+  ) {
     setSendingInvoice(true);
     const loadingToastId = toast.loading("Enviando factura a R365...");
     try {
       const response = await fetch("/api/company/integrations/qbo-r365/send-invoice", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ sourceInvoiceId, syncConfigId: syncConfigId ?? null }),
+        body: JSON.stringify({
+          sourceInvoiceId,
+          syncConfigId: syncConfigId ?? null,
+          ftp: ftpOverride ?? null,
+          template: templateOverride ?? null,
+        }),
       });
       const payload = (await response.json().catch(() => ({}))) as { error?: string; uploaded?: number; fileName?: string };
       if (!response.ok) throw new Error(payload.error || "No se pudo enviar la factura");
@@ -1754,7 +1856,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                 <p className="mt-3 font-mono text-[10px] text-[var(--gbp-muted)]">QBO ID: {selectedInvoice.sourceInvoiceId}</p>
               </div>
 
-              {/* ── Timeline de pipeline (solo modo Developer) ── */}
+              {/* ── Developer pipeline panel (solo modo Developer) ── */}
               {showDeveloperMode && (() => {
                 const isMapped =
                   selectedInvoice.sentToR365 ||
@@ -1805,18 +1907,225 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   },
                 ];
 
+                const hasFtpOverride = showInvoiceFtp && invoiceFtpHost.trim().length > 0;
+                const templateCols = TEMPLATE_COLS[invoiceTemplate];
+
                 return (
-                  <div className="border-b border-[var(--gbp-border)] px-6 py-5">
-                    <div className="mb-4 flex items-center justify-between">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-muted)]">
+                  <div className="divide-y divide-[var(--gbp-border)] border-b border-[var(--gbp-border)]">
+
+                    {/* ── 1. Pipeline steps ── */}
+                    <div className="px-6 py-5">
+                      <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-muted)]">
                         Pipeline de procesamiento
                       </p>
+                      <div className="relative grid grid-cols-3">
+                        <div
+                          className="absolute top-4 h-0.5 bg-[var(--gbp-border)]"
+                          style={{ left: "calc(100% / 6)", right: "calc(100% / 6)" }}
+                        />
+                        {isMapped && (
+                          <div
+                            className="absolute top-4 h-0.5 bg-[var(--gbp-success)] transition-all duration-500"
+                            style={{ left: "calc(100% / 6)", width: "calc(100% / 3)" }}
+                          />
+                        )}
+                        {isSent && (
+                          <div
+                            className="absolute top-4 h-0.5 bg-[var(--gbp-success)] transition-all duration-500"
+                            style={{ left: "50%", width: "calc(100% / 3)" }}
+                          />
+                        )}
+                        {steps.map((step) => (
+                          <div key={step.key} className="flex flex-col items-center gap-1 text-center">
+                            <div
+                              className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors duration-300 ${
+                                step.done
+                                  ? "border-[var(--gbp-success)] bg-[color-mix(in_oklab,var(--gbp-success)_15%,transparent)]"
+                                  : "border-[var(--gbp-border)] bg-[var(--gbp-surface)]"
+                              }`}
+                            >
+                              {step.done
+                                ? <CheckCircle2 className="h-4 w-4 text-[var(--gbp-success)]" />
+                                : <Clock className="h-3.5 w-3.5 text-[var(--gbp-muted)]" />
+                              }
+                            </div>
+                            <span className={`mt-1 text-[10px] font-extrabold uppercase tracking-[0.12em] ${step.done ? "text-[var(--gbp-text)]" : "text-[var(--gbp-muted)]"}`}>
+                              {step.label}
+                            </span>
+                            <span
+                              className={`max-w-[90px] truncate text-[11px] font-semibold ${step.done ? "text-[var(--gbp-text)]" : "text-[var(--gbp-text2)]"}`}
+                              title={step.meta}
+                            >
+                              {step.meta}
+                            </span>
+                            {step.sub && (
+                              <span className="text-[10px] text-[var(--gbp-text2)]">{step.sub}</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* ── 2. Template selector + mapping preview ── */}
+                    <div className="px-6 py-4">
+                      <div className="mb-3 flex items-center justify-between">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-muted)]">
+                          Template R365
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setShowMappingPreview((p) => !p)}
+                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg)] hover:text-[var(--gbp-accent)]"
+                        >
+                          {showMappingPreview ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                          {showMappingPreview ? "Ocultar columnas" : "Ver columnas"}
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(["by_item", "by_item_service_dates", "by_account", "by_account_service_dates"] as const).map((tmpl) => (
+                          <button
+                            key={tmpl}
+                            type="button"
+                            onClick={() => setInvoiceTemplate(tmpl)}
+                            className={`rounded-full px-3 py-1 text-[10px] font-bold transition ${
+                              invoiceTemplate === tmpl
+                                ? "bg-[var(--gbp-accent)] text-white"
+                                : "border-[1.5px] border-[var(--gbp-border)] text-[var(--gbp-text2)] hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
+                            }`}
+                          >
+                            {tmpl}
+                          </button>
+                        ))}
+                      </div>
+                      {showMappingPreview && (
+                        <div className="mt-3 overflow-x-auto rounded-xl border border-[var(--gbp-border)]">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)]">
+                                <th className="px-2 py-1.5 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Col</th>
+                                <th className="px-2 py-1.5 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">R365</th>
+                                <th className="px-2 py-1.5 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">QBO Fuente</th>
+                                <th className="px-2 py-1.5 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Alcance</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[var(--gbp-border)]">
+                              {templateCols.map((col) => (
+                                <tr
+                                  key={col.col}
+                                  className={col.highlight ? "bg-[color-mix(in_oklab,var(--gbp-accent)_8%,transparent)]" : ""}
+                                >
+                                  <td className="px-2 py-1.5 font-mono font-bold text-[var(--gbp-text)]">{col.col}</td>
+                                  <td className="px-2 py-1.5 text-[var(--gbp-text)]">
+                                    {col.r365Name}
+                                    {col.highlight && (
+                                      <span className="ml-1.5 rounded-sm bg-[var(--gbp-accent)] px-1 py-0.5 text-[9px] font-bold uppercase text-white">
+                                        clave
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="px-2 py-1.5 font-mono text-[10px] text-[var(--gbp-text2)]">{col.qboSource}</td>
+                                  <td className="px-2 py-1.5">
+                                    <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${
+                                      col.scope === "header"
+                                        ? "bg-blue-50 text-blue-600"
+                                        : "bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"
+                                    }`}>
+                                      {col.scope === "header" ? "Cabecera" : "Detalle"}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ── 3. FTP personalizado (colapsable) ── */}
+                    <div className="px-6 py-4">
+                      <button
+                        type="button"
+                        onClick={() => setShowInvoiceFtp((p) => !p)}
+                        className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)] transition hover:text-[var(--gbp-accent)]"
+                      >
+                        <Server className="h-3 w-3" />
+                        FTP personalizado
+                        {!showInvoiceFtp && (
+                          <span className="font-normal normal-case tracking-normal text-[var(--gbp-muted)]">
+                            — opcional
+                          </span>
+                        )}
+                        {showInvoiceFtp ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                      </button>
+                      {showInvoiceFtp && (
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          <input
+                            className="col-span-2 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:outline-none"
+                            placeholder="Host (ej. ftp.r365.com)"
+                            value={invoiceFtpHost}
+                            onChange={(e) => setInvoiceFtpHost(e.target.value)}
+                          />
+                          <input
+                            type="number"
+                            className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:outline-none"
+                            placeholder="Puerto"
+                            value={invoiceFtpPort}
+                            onChange={(e) => setInvoiceFtpPort(Number(e.target.value))}
+                          />
+                          <input
+                            className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:outline-none"
+                            placeholder="Usuario"
+                            value={invoiceFtpUser}
+                            onChange={(e) => setInvoiceFtpUser(e.target.value)}
+                          />
+                          <input
+                            type="password"
+                            className="col-span-2 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:outline-none"
+                            placeholder="Contraseña"
+                            value={invoiceFtpPass}
+                            onChange={(e) => setInvoiceFtpPass(e.target.value)}
+                          />
+                          <input
+                            className="col-span-2 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:outline-none"
+                            placeholder="Ruta remota (ej. /APImports/R365)"
+                            value={invoiceFtpPath}
+                            onChange={(e) => setInvoiceFtpPath(e.target.value)}
+                          />
+                          <label className="col-span-2 flex items-center gap-2 text-xs text-[var(--gbp-text2)]">
+                            <input
+                              type="checkbox"
+                              checked={invoiceFtpSecure}
+                              onChange={(e) => setInvoiceFtpSecure(e.target.checked)}
+                              className="h-3.5 w-3.5"
+                            />
+                            SFTP / TLS seguro
+                          </label>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ── 4. Enviar ── */}
+                    <div className="flex items-center justify-between px-6 py-4">
+                      <span className={`text-[10px] ${hasFtpOverride ? "font-bold text-[var(--gbp-accent)]" : "text-[var(--gbp-muted)]"}`}>
+                        {hasFtpOverride ? `FTP: ${invoiceFtpHost.trim()}` : "Usando FTP configurado"}
+                      </span>
                       <button
                         type="button"
                         disabled={sendingInvoice}
                         onClick={() => handleSendSingleInvoice(
                           selectedInvoice.sourceInvoiceId,
                           syncHistoryFilter?.id ?? null,
+                          hasFtpOverride
+                            ? {
+                                host: invoiceFtpHost.trim(),
+                                port: invoiceFtpPort,
+                                username: invoiceFtpUser,
+                                password: invoiceFtpPass,
+                                remotePath: invoiceFtpPath || "/APImports/R365",
+                                secure: invoiceFtpSecure,
+                              }
+                            : null,
+                          invoiceTemplate,
                         )}
                         className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-bold transition disabled:opacity-50 ${
                           isSent
@@ -1832,62 +2141,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                         }
                         {sendingInvoice ? "Enviando..." : isSent ? "Reenviar" : "Enviar a R365"}
                       </button>
-                    </div>
-                    <div className="relative grid grid-cols-3">
-                      {/* Línea base gris */}
-                      <div
-                        className="absolute top-4 h-0.5 bg-[var(--gbp-border)]"
-                        style={{ left: "calc(100% / 6)", right: "calc(100% / 6)" }}
-                      />
-                      {/* Segmento Lectura → Mapeo */}
-                      {isMapped && (
-                        <div
-                          className="absolute top-4 h-0.5 bg-[var(--gbp-success)] transition-all duration-500"
-                          style={{ left: "calc(100% / 6)", width: "calc(100% / 3)" }}
-                        />
-                      )}
-                      {/* Segmento Mapeo → Envío */}
-                      {isSent && (
-                        <div
-                          className="absolute top-4 h-0.5 bg-[var(--gbp-success)] transition-all duration-500"
-                          style={{ left: "50%", width: "calc(100% / 3)" }}
-                        />
-                      )}
-
-                      {steps.map((step) => (
-                        <div key={step.key} className="flex flex-col items-center gap-1 text-center">
-                          <div
-                            className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors duration-300 ${
-                              step.done
-                                ? "border-[var(--gbp-success)] bg-[color-mix(in_oklab,var(--gbp-success)_15%,transparent)]"
-                                : "border-[var(--gbp-border)] bg-[var(--gbp-surface)]"
-                            }`}
-                          >
-                            {step.done
-                              ? <CheckCircle2 className="h-4 w-4 text-[var(--gbp-success)]" />
-                              : <Clock className="h-3.5 w-3.5 text-[var(--gbp-muted)]" />
-                            }
-                          </div>
-                          <span
-                            className={`mt-1 text-[10px] font-extrabold uppercase tracking-[0.12em] ${
-                              step.done ? "text-[var(--gbp-text)]" : "text-[var(--gbp-muted)]"
-                            }`}
-                          >
-                            {step.label}
-                          </span>
-                          <span
-                            className={`max-w-[90px] truncate text-[11px] font-semibold ${
-                              step.done ? "text-[var(--gbp-text)]" : "text-[var(--gbp-text2)]"
-                            }`}
-                            title={step.meta}
-                          >
-                            {step.meta}
-                          </span>
-                          {step.sub && (
-                            <span className="text-[10px] text-[var(--gbp-text2)]">{step.sub}</span>
-                          )}
-                        </div>
-                      ))}
                     </div>
                   </div>
                 );
