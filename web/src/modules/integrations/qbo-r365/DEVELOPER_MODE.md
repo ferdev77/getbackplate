@@ -44,6 +44,53 @@ Si no existe ninguna de las dos configuraciones válidas, el envío falla con me
 
 ---
 
+## Qué controla el fetch de QBO vs qué es post-procesamiento
+
+Esta distinción es importante: cambiar la configuración de una sync no cambia **cómo** se
+consulta QBO — solo cambia cómo se procesa y exporta la data que ya llegó.
+
+### Lo que SÍ afecta la consulta a QBO
+
+Estos cuatro parámetros determinan exactamente qué datos trae la API de QuickBooks:
+
+| Parámetro | Campo en BD | Efecto en la query a QBO |
+|---|---|---|
+| **Cliente QBO** | `qbo_r365_sync_configs.qbo_customer_id` | Agrega `WHERE CustomerRef = 'X'` — filtra facturas por cliente |
+| **Lookback** | `qbo_r365_sync_configs.lookback_hours` | Agrega `WHERE MetaData.LastUpdatedTime >= 'X'` — ventana de tiempo |
+| **Sandbox** | `integration_connections.config.useSandbox` | Cambia el endpoint base (`sandbox-quickbooks.api.intuit.com` vs `quickbooks.api.intuit.com`) |
+| **RealmId** | `integration_connections.config.realmId` | Identifica la empresa en QBO (se obtiene en el OAuth callback) |
+
+> Si `lookback_hours = 0` o se ejecuta con `ignoreLookback = true`, se traen **todas** las
+> transacciones del cliente sin filtro de fecha (full sync).
+
+### Lo que NO afecta la consulta a QBO (solo post-procesamiento)
+
+**Template** (`by_item` / `by_item_service_dates` / `by_account` / `by_account_service_dates`):
+
+Solo cambia dos cosas, ambas **después** de que los datos ya llegaron de QBO:
+
+1. Qué campo de QBO se usa como `targetCode` por línea — ver `normalizeQboRows()` en `service.ts`:
+   - `by_item` / `by_item_service_dates` → `SalesItemLineDetail.ItemRef.value` (ID del ítem)
+   - `by_account` / `by_account_service_dates` → `AccountBasedExpenseLineDetail.AccountRef.value` (cuenta contable)
+
+2. El formato y columnas del CSV que se envía a R365 (ver `buildR365Csv()` en `r365-csv.ts`).
+
+**Tax Mode** (`line` / `header` / `none`):
+
+Solo cambia cómo se calcula el `taxAmount` de cada línea — ver `normalizeQboRows()` en `service.ts`:
+
+| Valor | Comportamiento |
+|---|---|
+| `none` | `taxAmount = 0` en todas las líneas |
+| `line` | Usa el campo `TaxAmount` explícito de cada línea; si no existe, distribuye el total de impuesto de la factura proporcionalmente |
+| `header` | Siempre distribuye `TxnTaxDetail.TotalTax` proporcionalmente entre las líneas según su `Amount` |
+
+**Conclusión:** podés cambiar template o tax mode y hacer un nuevo sync — las facturas
+que llegan de QBO son exactamente las mismas. Solo varía cómo se estructuran en el
+CSV que va a R365 y cómo se asignan los impuestos por línea.
+
+---
+
 ## Cambios funcionales recientes
 
 ### SKU real desde QBO (mayo 2026)
