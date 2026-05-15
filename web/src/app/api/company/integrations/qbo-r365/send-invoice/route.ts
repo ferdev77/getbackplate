@@ -14,6 +14,25 @@ export async function POST(request: Request) {
     ? body.syncConfigId.trim()
     : null;
 
+  const validTemplates = ["by_item", "by_item_service_dates", "by_account", "by_account_service_dates"] as const;
+  type ValidTemplate = typeof validTemplates[number];
+  const templateOverride: ValidTemplate | null = validTemplates.includes(body?.template)
+    ? (body.template as ValidTemplate)
+    : null;
+
+  const ftpBody = body?.ftp;
+  const ftpOverride: { host: string; port: number; username: string; password: string; remotePath: string; secure: boolean } | null =
+    ftpBody && typeof ftpBody.host === "string" && ftpBody.host.trim()
+      ? {
+          host: String(ftpBody.host).trim(),
+          port: Number(ftpBody.port ?? 21),
+          username: String(ftpBody.username ?? ""),
+          password: String(ftpBody.password ?? ""),
+          remotePath: String(ftpBody.remotePath ?? "/APImports/R365"),
+          secure: Boolean(ftpBody.secure ?? false),
+        }
+      : null;
+
   if (!sourceInvoiceId) {
     return NextResponse.json({ error: "sourceInvoiceId requerido" }, { status: 400 });
   }
@@ -24,6 +43,8 @@ export async function POST(request: Request) {
       actorId: access.userId,
       sourceInvoiceId,
       syncConfigId,
+      ftpOverride,
+      templateOverride,
     });
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
