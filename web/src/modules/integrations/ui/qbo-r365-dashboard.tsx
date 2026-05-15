@@ -786,7 +786,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       // Table
       autoTable(doc, {
         startY: tableStartY,
-        head: [["Cant.", "SKU", "Ítem", "Descripción", "Precio", "Importe", "Cód. R365"]],
+        head: [["Cant.", "SKU", "Ítem", "Descripción", "Precio", "Importe", "ID QBO"]],
         body: inv.lines.map((l) => {
           const shortName = l.itemName ? l.itemName.split(":").pop()!.trim() : (l.targetCode ?? "-");
           return [
@@ -845,7 +845,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
         const s = v == null ? "" : String(v);
         return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
       };
-      const header = ["Cant.", "SKU", "Item", "Descripcion", "Precio", "Importe", "Impuesto", "Total", "Cod.R365"].map(esc).join(",");
+      const header = ["Cant.", "SKU", "Item", "Descripcion", "Precio", "Importe", "Impuesto", "Total", "ID.QBO"].map(esc).join(",");
       const rows = inv.lines.map((l) => {
         const shortName = l.itemName ? l.itemName.split(":").pop()!.trim() : (l.targetCode ?? "");
         return [l.quantity, l.sku ?? "", shortName, l.description, l.unitPrice?.toFixed(2), l.lineAmount?.toFixed(2), l.taxAmount?.toFixed(2), l.totalAmount?.toFixed(2), l.targetCode].map(esc).join(",");
@@ -1742,7 +1742,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                           <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Descripción</th>
                           <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Precio</th>
                           <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Importe</th>
-                          <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Cód. R365</th>
+                          <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">ID QBO</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[var(--gbp-border)]">
