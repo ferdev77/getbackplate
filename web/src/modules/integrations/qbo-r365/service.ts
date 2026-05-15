@@ -2166,6 +2166,90 @@ export async function getQboR365RunExport(input: {
   };
 }
 
+export async function previewSingleInvoiceCsv(input: {
+  organizationId: string;
+  sourceInvoiceId: string;
+  syncConfigId?: string | null;
+  templateOverride?: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates" | null;
+}): Promise<{ headers: string[]; rows: string[][]; csv: string; rowCount: number; templateUsed: string }> {
+  const admin = createSupabaseAdminClient();
+
+  const { data: rawItems, error: itemsError } = await admin
+    .from("integration_run_items")
+    .select("run_id, source_invoice_line_id, status, payload, created_at")
+    .eq("organization_id", input.organizationId)
+    .eq("source_invoice_id", input.sourceInvoiceId)
+    .neq("status", "skipped_duplicate")
+    .order("created_at", { ascending: false });
+
+  if (itemsError) throw new Error(itemsError.message);
+
+  const lineMap = new Map<string, { runId: string; payload: Record<string, unknown> }>();
+  for (const row of rawItems ?? []) {
+    const lineId = String(row.source_invoice_line_id ?? "");
+    if (!lineMap.has(lineId)) {
+      lineMap.set(lineId, {
+        runId: String(row.run_id),
+        payload: (row.payload ?? {}) as Record<string, unknown>,
+      });
+    }
+  }
+
+  if (lineMap.size === 0) throw new Error("No se encontraron líneas para esta factura en el historial");
+
+  const [firstEntry] = lineMap.values();
+  const { data: runMeta } = await admin
+    .from("integration_runs")
+    .select("template_used")
+    .eq("organization_id", input.organizationId)
+    .eq("id", firstEntry.runId)
+    .maybeSingle();
+
+  const template = (input.templateOverride ?? runMeta?.template_used ?? "by_item") as "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates";
+
+  const lines = [...lineMap.values()]
+    .map(({ payload }) => payloadToLine(payload))
+    .filter((line) => Boolean(line.vendor && line.invoiceNumber));
+
+  if (lines.length === 0) throw new Error("Las líneas de la factura no tienen datos suficientes para previsualizar");
+
+  const { csv, rowCount } = buildR365Csv({ template, lines });
+
+  const csvLines = csv.split("\n").filter(Boolean);
+  const parseRow = (line: string): string[] => {
+    const result: string[] = [];
+    let i = 0;
+    while (i < line.length) {
+      if (line[i] === '"') {
+        i++;
+        let field = "";
+        while (i < line.length) {
+          if (line[i] === '"' && line[i + 1] === '"') { field += '"'; i += 2; }
+          else if (line[i] === '"') { i++; break; }
+          else { field += line[i]; i++; }
+        }
+        result.push(field);
+        if (line[i] === ",") i++;
+      } else {
+        const end = line.indexOf(",", i);
+        if (end === -1) { result.push(line.slice(i)); break; }
+        result.push(line.slice(i, end));
+        i = end + 1;
+      }
+    }
+    return result;
+  };
+
+  const [headerLine, ...dataLines] = csvLines;
+  return {
+    headers: parseRow(headerLine ?? ""),
+    rows: dataLines.map(parseRow),
+    csv,
+    rowCount,
+    templateUsed: template,
+  };
+}
+
 export async function sendSingleInvoiceFromHistory(input: {
   organizationId: string;
   actorId: string | null;
