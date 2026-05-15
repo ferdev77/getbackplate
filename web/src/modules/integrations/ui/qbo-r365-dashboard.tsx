@@ -360,9 +360,10 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [invoiceDetailRefreshKey, setInvoiceDetailRefreshKey] = useState(0);
   const [invoiceTemplate, setInvoiceTemplate] = useState<"by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates">("by_item");
   const [showMappingPreview, setShowMappingPreview] = useState(false);
+  const [csvPreview, setCsvPreview] = useState<{ headers: string[]; rows: string[][]; rowCount: number } | null>(null);
+  const [previewingCsv, setPreviewingCsv] = useState(false);
   const [showInvoiceFtp, setShowInvoiceFtp] = useState(false);
   const [invoiceFtpHost, setInvoiceFtpHost] = useState("");
-  const [invoiceFtpPort, setInvoiceFtpPort] = useState(21);
   const [invoiceFtpUser, setInvoiceFtpUser] = useState("");
   const [invoiceFtpPass, setInvoiceFtpPass] = useState("");
   const [invoiceFtpPath, setInvoiceFtpPath] = useState("/APImports/R365");
@@ -388,7 +389,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [newSyncTemplate, setNewSyncTemplate] = useState<"by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates">("by_item");
   const [newSyncTaxMode, setNewSyncTaxMode] = useState<"line" | "header" | "none">("none");
   const [newSyncFtpHost, setNewSyncFtpHost] = useState("");
-  const [newSyncFtpPort, setNewSyncFtpPort] = useState(21);
   const [newSyncFtpUser, setNewSyncFtpUser] = useState("");
   const [newSyncFtpPass, setNewSyncFtpPass] = useState("");
   const [newSyncFtpPath, setNewSyncFtpPath] = useState("/APImports/R365");
@@ -588,7 +588,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
           template: newSyncTemplate,
           taxMode: newSyncTaxMode,
           r365FtpHost: newSyncFtpHost,
-          r365FtpPort: newSyncFtpPort,
+          r365FtpPort: 21,
           r365FtpUsername: newSyncFtpUser,
           r365FtpPassword: newSyncFtpPass,
           r365FtpRemotePath: newSyncFtpPath,
@@ -683,9 +683,10 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       ?? syncHistoryItems.find((i) => i.sourceInvoiceId === selectedInvoiceId);
     setInvoiceTemplate(inv?.templateMode ?? "by_item");
     setShowMappingPreview(false);
+    setCsvPreview(null);
+    setPreviewingCsv(false);
     setShowInvoiceFtp(false);
     setInvoiceFtpHost("");
-    setInvoiceFtpPort(21);
     setInvoiceFtpUser("");
     setInvoiceFtpPass("");
     setInvoiceFtpPath("/APImports/R365");
@@ -849,6 +850,31 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       });
     }
     setSendingInvoice(false);
+  }
+
+  async function handlePreviewCsv(sourceInvoiceId: string, syncConfigId: string | null, template: string) {
+    setPreviewingCsv(true);
+    setCsvPreview(null);
+    try {
+      const response = await fetch("/api/company/integrations/qbo-r365/preview-invoice-csv", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sourceInvoiceId, syncConfigId, template }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        headers?: string[];
+        rows?: string[][];
+        rowCount?: number;
+      };
+      if (!response.ok) throw new Error(payload.error || "No se pudo generar la previsualización");
+      setCsvPreview({ headers: payload.headers ?? [], rows: payload.rows ?? [], rowCount: payload.rowCount ?? 0 });
+    } catch (error) {
+      toast.error("No se pudo previsualizar", {
+        description: error instanceof Error ? error.message : "Error",
+      });
+    }
+    setPreviewingCsv(false);
   }
 
   async function handleInvoiceExport(format: "csv" | "json" | "pdf" | "txt") {
@@ -1516,11 +1542,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                       className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />
                   </label>
                   <label className="block">
-                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Puerto</span>
-                    <input type="number" value={newSyncFtpPort} onChange={(e) => setNewSyncFtpPort(Number(e.target.value))}
-                      className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />
-                  </label>
-                  <label className="block">
                     <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Remote Path</span>
                     <input type="text" value={newSyncFtpPath} onChange={(e) => setNewSyncFtpPath(e.target.value)}
                       className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />
@@ -1966,27 +1987,49 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                       </div>
                     </div>
 
-                    {/* ── 2. Template selector + mapping preview ── */}
+                    {/* ── 2. Template selector + mapping preview + csv preview ── */}
                     <div className="px-6 py-4">
                       <div className="mb-3 flex items-center justify-between">
                         <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-muted)]">
                           Template R365
                         </p>
-                        <button
-                          type="button"
-                          onClick={() => setShowMappingPreview((p) => !p)}
-                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg)] hover:text-[var(--gbp-accent)]"
-                        >
-                          {showMappingPreview ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                          {showMappingPreview ? "Ocultar columnas" : "Ver columnas"}
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => { setShowMappingPreview((p) => !p); setCsvPreview(null); }}
+                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg)] hover:text-[var(--gbp-accent)]"
+                          >
+                            {showMappingPreview ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                            {showMappingPreview ? "Ocultar columnas" : "Ver columnas"}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={previewingCsv}
+                            onClick={() => {
+                              setCsvPreview(null);
+                              setShowMappingPreview(false);
+                              handlePreviewCsv(
+                                selectedInvoice.sourceInvoiceId,
+                                syncHistoryFilter?.id ?? null,
+                                invoiceTemplate,
+                              );
+                            }}
+                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
+                          >
+                            {previewingCsv
+                              ? <Loader2 className="h-3 w-3 animate-spin" />
+                              : <Eye className="h-3 w-3" />
+                            }
+                            {previewingCsv ? "Generando..." : csvPreview ? "Ocultar datos" : "Previsualizar"}
+                          </button>
+                        </div>
                       </div>
                       <div className="flex flex-wrap gap-1.5">
                         {(["by_item", "by_item_service_dates", "by_account", "by_account_service_dates"] as const).map((tmpl) => (
                           <button
                             key={tmpl}
                             type="button"
-                            onClick={() => setInvoiceTemplate(tmpl)}
+                            onClick={() => { setInvoiceTemplate(tmpl); setCsvPreview(null); }}
                             className={`rounded-full px-3 py-1 text-[10px] font-bold transition ${
                               invoiceTemplate === tmpl
                                 ? "bg-[var(--gbp-accent)] text-white"
@@ -1997,6 +2040,8 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                           </button>
                         ))}
                       </div>
+
+                      {/* Tabla de columnas abstracta */}
                       {showMappingPreview && (
                         <div className="mt-3 overflow-x-auto rounded-xl border border-[var(--gbp-border)]">
                           <table className="w-full text-xs">
@@ -2039,6 +2084,53 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                           </table>
                         </div>
                       )}
+
+                      {/* Previsualización de datos reales en CSV */}
+                      {csvPreview && (
+                        <div className="mt-3">
+                          <div className="mb-1.5 flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-[var(--gbp-muted)]">
+                              {csvPreview.rowCount} fila{csvPreview.rowCount !== 1 ? "s" : ""} · {invoiceTemplate}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(
+                                  [csvPreview.headers, ...csvPreview.rows].map((r) => r.join(",")).join("\n"),
+                                );
+                                toast.success("CSV copiado al portapapeles");
+                              }}
+                              className="text-[10px] font-bold text-[var(--gbp-text2)] underline-offset-2 hover:text-[var(--gbp-accent)] hover:underline"
+                            >
+                              Copiar CSV
+                            </button>
+                          </div>
+                          <div className="overflow-x-auto rounded-xl border border-[var(--gbp-border)]">
+                            <table className="w-full text-[10px]">
+                              <thead>
+                                <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)]">
+                                  {csvPreview.headers.map((h, i) => (
+                                    <th key={i} className="whitespace-nowrap px-2 py-1.5 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">
+                                      {h}
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-[var(--gbp-border)]">
+                                {csvPreview.rows.map((row, ri) => (
+                                  <tr key={ri} className="hover:bg-[var(--gbp-bg)]">
+                                    {row.map((cell, ci) => (
+                                      <td key={ci} className="max-w-[140px] truncate whitespace-nowrap px-2 py-1.5 font-mono text-[var(--gbp-text)]" title={cell}>
+                                        {cell || <span className="text-[var(--gbp-muted)]">—</span>}
+                                      </td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* ── 3. FTP personalizado (colapsable) ── */}
@@ -2064,13 +2156,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                             placeholder="Host (ej. ftp.r365.com)"
                             value={invoiceFtpHost}
                             onChange={(e) => setInvoiceFtpHost(e.target.value)}
-                          />
-                          <input
-                            type="number"
-                            className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:outline-none"
-                            placeholder="Puerto"
-                            value={invoiceFtpPort}
-                            onChange={(e) => setInvoiceFtpPort(Number(e.target.value))}
                           />
                           <input
                             className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:outline-none"
@@ -2118,7 +2203,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                           hasFtpOverride
                             ? {
                                 host: invoiceFtpHost.trim(),
-                                port: invoiceFtpPort,
+                                port: 21,
                                 username: invoiceFtpUser,
                                 password: invoiceFtpPass,
                                 remotePath: invoiceFtpPath || "/APImports/R365",
