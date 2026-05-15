@@ -288,6 +288,8 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [mode, setMode] = useState<"operation" | "developer">("operation");
   const [preparing, setPreparing] = useState(false);
   const [sendingPrepared, setSendingPrepared] = useState(false);
+  const [sendingInvoice, setSendingInvoice] = useState(false);
+  const [invoiceDetailRefreshKey, setInvoiceDetailRefreshKey] = useState(0);
   const [exportingFormat, setExportingFormat] = useState<"raw" | "json" | "csv" | "txt" | null>(null);
   const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -596,7 +598,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       })
       .catch(() => { /* silencioso */ })
       .finally(() => setInvoiceDetailLoading(false));
-  }, [selectedInvoiceId]);
+  }, [selectedInvoiceId, invoiceDetailRefreshKey]);
 
   const selectedDeveloperSync = useMemo(
     () => syncConfigs.find((config) => config.id === developerSyncConfigId) ?? null,
@@ -717,6 +719,34 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       presentIntegrationError(normalizeApiError(error, "No se pudo enviar lote"), "send");
     }
     setSendingPrepared(false);
+  }
+
+  async function handleSendSingleInvoice(sourceInvoiceId: string, syncConfigId?: string | null) {
+    setSendingInvoice(true);
+    const loadingToastId = toast.loading("Enviando factura a R365...");
+    try {
+      const response = await fetch("/api/company/integrations/qbo-r365/send-invoice", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sourceInvoiceId, syncConfigId: syncConfigId ?? null }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string; uploaded?: number; fileName?: string };
+      if (!response.ok) throw new Error(payload.error || "No se pudo enviar la factura");
+      toast.dismiss(loadingToastId);
+      toast.success("Factura enviada a R365", {
+        description: payload.fileName
+          ? `Archivo ${payload.fileName} subido (${payload.uploaded ?? 0} líneas).`
+          : "Enviado correctamente.",
+      });
+      setRefreshKey((p) => p + 1);
+      setInvoiceDetailRefreshKey((p) => p + 1);
+    } catch (error) {
+      toast.dismiss(loadingToastId);
+      toast.error("No se pudo enviar la factura", {
+        description: error instanceof Error ? error.message : "Error",
+      });
+    }
+    setSendingInvoice(false);
   }
 
   async function handleInvoiceExport(format: "csv" | "json" | "pdf" | "txt") {
@@ -1777,9 +1807,32 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
 
                 return (
                   <div className="border-b border-[var(--gbp-border)] px-6 py-5">
-                    <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-muted)]">
-                      Pipeline de procesamiento
-                    </p>
+                    <div className="mb-4 flex items-center justify-between">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-muted)]">
+                        Pipeline de procesamiento
+                      </p>
+                      <button
+                        type="button"
+                        disabled={sendingInvoice}
+                        onClick={() => handleSendSingleInvoice(
+                          selectedInvoice.sourceInvoiceId,
+                          syncHistoryFilter?.id ?? null,
+                        )}
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-bold transition disabled:opacity-50 ${
+                          isSent
+                            ? "border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)] hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
+                            : "bg-[var(--gbp-accent)] text-white hover:opacity-90"
+                        }`}
+                      >
+                        {sendingInvoice
+                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          : isSent
+                            ? <RefreshCw className="h-3.5 w-3.5" />
+                            : <Play className="h-3.5 w-3.5" />
+                        }
+                        {sendingInvoice ? "Enviando..." : isSent ? "Reenviar" : "Enviar a R365"}
+                      </button>
+                    </div>
                     <div className="relative grid grid-cols-3">
                       {/* Línea base gris */}
                       <div

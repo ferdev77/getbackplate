@@ -2150,3 +2150,189 @@ export async function getQboR365RunExport(input: {
     rows,
   };
 }
+
+export async function sendSingleInvoiceFromHistory(input: {
+  organizationId: string;
+  actorId: string | null;
+  sourceInvoiceId: string;
+  syncConfigId?: string | null;
+}): Promise<{ uploaded: number; fileName: string; runId: string }> {
+  const admin = createSupabaseAdminClient();
+
+  // Fetch all non-skipped items for this invoice, most recent first
+  const { data: rawItems, error: itemsError } = await admin
+    .from("integration_run_items")
+    .select("run_id, source_invoice_line_id, status, payload, created_at")
+    .eq("organization_id", input.organizationId)
+    .eq("source_invoice_id", input.sourceInvoiceId)
+    .neq("status", "skipped_duplicate")
+    .order("created_at", { ascending: false });
+
+  if (itemsError) throw new Error(itemsError.message);
+
+  // Dedupe by line ID — keep the most recent item per line
+  const lineMap = new Map<string, { runId: string; payload: Record<string, unknown> }>();
+  for (const row of rawItems ?? []) {
+    const lineId = String(row.source_invoice_line_id ?? "");
+    if (!lineMap.has(lineId)) {
+      lineMap.set(lineId, {
+        runId: String(row.run_id),
+        payload: (row.payload ?? {}) as Record<string, unknown>,
+      });
+    }
+  }
+
+  if (lineMap.size === 0) throw new Error("No se encontraron líneas para esta factura en el historial");
+
+  // Resolve template and sync config from the originating run
+  const [firstEntry] = lineMap.values();
+  const { data: runMeta } = await admin
+    .from("integration_runs")
+    .select("template_used, sync_config_id")
+    .eq("organization_id", input.organizationId)
+    .eq("id", firstEntry.runId)
+    .maybeSingle();
+
+  const template = (runMeta?.template_used ?? "by_item") as "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates";
+  const effectiveSyncConfigId = input.syncConfigId ?? (runMeta?.sync_config_id ? String(runMeta.sync_config_id) : null);
+
+  // Resolve FTP — sync config first, then global connection
+  let syncConfig: SyncConfigRow | null = null;
+  if (effectiveSyncConfigId) {
+    syncConfig = await getSyncConfigRow(input.organizationId, effectiveSyncConfigId).catch(() => null);
+  }
+
+  let ftpForUpload: { host: string; port: number; username: string; password: string; secure: boolean; remotePath: string } | null = null;
+
+  if (syncConfig?.r365_ftp_host) {
+    const syncFtpSecrets = decryptJsonPayload<FtpStoredSecrets>({
+      ciphertext: syncConfig.r365_ftp_secrets_ciphertext,
+      iv: syncConfig.r365_ftp_secrets_iv,
+      tag: syncConfig.r365_ftp_secrets_tag,
+    });
+    if (syncFtpSecrets?.password) {
+      ftpForUpload = {
+        host: syncConfig.r365_ftp_host,
+        port: syncConfig.r365_ftp_port ?? 21,
+        username: syncConfig.r365_ftp_username ?? "",
+        password: syncFtpSecrets.password,
+        secure: syncConfig.r365_ftp_secure,
+        remotePath: syncConfig.r365_ftp_remote_path,
+      };
+    }
+  }
+
+  if (!ftpForUpload) {
+    const ftpConnection = await getConnection(input.organizationId, "restaurant365_ftp");
+    if (ftpConnection?.status === "connected") {
+      const ftpConfig = (ftpConnection.config ?? {}) as Record<string, unknown>;
+      const ftpSecrets = parseConnectionSecrets<FtpStoredSecrets>(ftpConnection);
+      if (ftpSecrets?.password) {
+        ftpForUpload = {
+          host: String(ftpConfig.host ?? ""),
+          port: Number(ftpConfig.port ?? 21),
+          username: String(ftpConfig.username ?? ""),
+          password: ftpSecrets.password,
+          secure: Boolean(ftpConfig.secure ?? true),
+          remotePath: String(ftpConfig.remotePath ?? "/APImports/R365"),
+        };
+      }
+    }
+  }
+
+  if (!ftpForUpload) throw new Error("Restaurant365 FTP no está conectado");
+
+  // Build NormalizedInvoiceLine[] from stored payloads
+  const lines = [...lineMap.values()]
+    .map(({ payload }) => payloadToLine(payload))
+    .filter((line) => Boolean(line.vendor && line.invoiceNumber));
+
+  if (lines.length === 0) throw new Error("Las líneas de la factura no tienen datos suficientes para enviar");
+
+  const csvBuild = buildR365Csv({ template, lines });
+  const runId = await createRun(input.organizationId, input.actorId, "manual", effectiveSyncConfigId);
+  const fileName = buildFileName("r365_single_inv", runId);
+
+  await uploadCsvToFtp({
+    host: ftpForUpload.host,
+    port: ftpForUpload.port,
+    username: ftpForUpload.username,
+    password: ftpForUpload.password,
+    secure: ftpForUpload.secure,
+    remotePath: ftpForUpload.remotePath,
+    fileName,
+    content: csvBuild.csv,
+  });
+
+  await admin.from("integration_outbox_files").insert({
+    run_id: runId,
+    organization_id: input.organizationId,
+    storage_provider: "r365_ftp",
+    remote_path: ftpForUpload.remotePath,
+    file_name: fileName,
+    mime_type: "text/csv",
+    size_bytes: Buffer.byteLength(csvBuild.csv, "utf8"),
+    sha256: csvBuild.hash,
+    status: "uploaded",
+    uploaded_at: new Date().toISOString(),
+  });
+
+  await admin.from("integration_run_items").insert(
+    lines.map((line) => ({
+      run_id: runId,
+      organization_id: input.organizationId,
+      source_invoice_id: line.sourceInvoiceId,
+      source_invoice_line_id: line.sourceLineId,
+      dedupe_key: buildDedupeKey(line),
+      status: "uploaded",
+      payload: {
+        ...line,
+        rawVendor: line.vendor,
+        rawInvoiceNumber: line.invoiceNumber,
+        rawDescription: line.description,
+        rawLineAmount: line.lineAmount,
+      },
+    })),
+  );
+
+  const nowIso = new Date().toISOString();
+  await admin
+    .from("integration_runs")
+    .update({
+      status: "completed",
+      finished_at: nowIso,
+      template_used: template,
+      file_name: fileName,
+      file_hash: csvBuild.hash,
+      total_detected: 1,
+      total_mapped: lines.length,
+      total_uploaded: lines.length,
+      total_failed: 0,
+      total_skipped_duplicates: 0,
+    })
+    .eq("id", runId)
+    .eq("organization_id", input.organizationId);
+
+  await appendIntegrationAudit({
+    organizationId: input.organizationId,
+    runId,
+    level: "info",
+    code: "single_invoice_sent",
+    message: `Factura ${input.sourceInvoiceId} enviada individualmente a R365`,
+    metadata: { source_invoice_id: input.sourceInvoiceId, uploaded: lines.length, file_name: fileName },
+  });
+
+  await logAuditEvent({
+    action: "integration.qbo_r365.invoice.send_single",
+    entityType: "integration_run",
+    entityId: runId,
+    organizationId: input.organizationId,
+    actorId: input.actorId,
+    eventDomain: "settings",
+    outcome: "success",
+    severity: "medium",
+    metadata: { source_invoice_id: input.sourceInvoiceId, uploaded: lines.length },
+  });
+
+  return { uploaded: lines.length, fileName, runId };
+}
