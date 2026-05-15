@@ -1724,6 +1724,122 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                 <p className="mt-3 font-mono text-[10px] text-[var(--gbp-muted)]">QBO ID: {selectedInvoice.sourceInvoiceId}</p>
               </div>
 
+              {/* ── Timeline de pipeline (solo modo Developer) ── */}
+              {showDeveloperMode && (() => {
+                const isMapped =
+                  selectedInvoice.sentToR365 ||
+                  selectedInvoice.mappedCode != null ||
+                  selectedInvoice.lastStatus === "exported" ||
+                  selectedInvoice.lastStatus === "uploaded" ||
+                  selectedInvoice.lastStatus === "validated" ||
+                  selectedInvoice.lastStatus === "skipped_duplicate";
+                const isSent = selectedInvoice.sentToR365;
+
+                const mappedLabel = (() => {
+                  if (!isMapped) return "Pendiente";
+                  const code = selectedInvoice.mappedCode;
+                  if (!code) return "Mapeada";
+                  return code.length > 18 ? `${code.slice(0, 18)}…` : code;
+                })();
+
+                const mappedSub = (() => {
+                  if (!isMapped) return "";
+                  const tmpl = selectedInvoice.templateMode ? templateLabel(selectedInvoice.templateMode) : "";
+                  if (!invoiceDetail) return tmpl;
+                  const linesCount = invoiceDetail.lines.length;
+                  const lineStr = `${linesCount} línea${linesCount !== 1 ? "s" : ""}`;
+                  return tmpl ? `${tmpl} · ${lineStr}` : lineStr;
+                })();
+
+                const steps: Array<{ key: string; done: boolean; label: string; meta: string; sub: string }> = [
+                  {
+                    key: "detected",
+                    done: true,
+                    label: "Lectura",
+                    meta: `${selectedInvoice.timesSeen} detección${selectedInvoice.timesSeen !== 1 ? "es" : ""}`,
+                    sub: relativeTime(selectedInvoice.lastSeenAt),
+                  },
+                  {
+                    key: "mapped",
+                    done: isMapped,
+                    label: "Mapeo",
+                    meta: mappedLabel,
+                    sub: mappedSub,
+                  },
+                  {
+                    key: "sent",
+                    done: isSent,
+                    label: "Envío",
+                    meta: isSent ? "Enviada a R365" : "Pendiente",
+                    sub: isSent ? relativeTime(selectedInvoice.lastSeenAt) : "",
+                  },
+                ];
+
+                return (
+                  <div className="border-b border-[var(--gbp-border)] px-6 py-5">
+                    <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-muted)]">
+                      Pipeline de procesamiento
+                    </p>
+                    <div className="relative grid grid-cols-3">
+                      {/* Línea base gris */}
+                      <div
+                        className="absolute top-4 h-0.5 bg-[var(--gbp-border)]"
+                        style={{ left: "calc(100% / 6)", right: "calc(100% / 6)" }}
+                      />
+                      {/* Segmento Lectura → Mapeo */}
+                      {isMapped && (
+                        <div
+                          className="absolute top-4 h-0.5 bg-[var(--gbp-success)] transition-all duration-500"
+                          style={{ left: "calc(100% / 6)", width: "calc(100% / 3)" }}
+                        />
+                      )}
+                      {/* Segmento Mapeo → Envío */}
+                      {isSent && (
+                        <div
+                          className="absolute top-4 h-0.5 bg-[var(--gbp-success)] transition-all duration-500"
+                          style={{ left: "50%", width: "calc(100% / 3)" }}
+                        />
+                      )}
+
+                      {steps.map((step) => (
+                        <div key={step.key} className="flex flex-col items-center gap-1 text-center">
+                          <div
+                            className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors duration-300 ${
+                              step.done
+                                ? "border-[var(--gbp-success)] bg-[color-mix(in_oklab,var(--gbp-success)_15%,transparent)]"
+                                : "border-[var(--gbp-border)] bg-[var(--gbp-surface)]"
+                            }`}
+                          >
+                            {step.done
+                              ? <CheckCircle2 className="h-4 w-4 text-[var(--gbp-success)]" />
+                              : <Clock className="h-3.5 w-3.5 text-[var(--gbp-muted)]" />
+                            }
+                          </div>
+                          <span
+                            className={`mt-1 text-[10px] font-extrabold uppercase tracking-[0.12em] ${
+                              step.done ? "text-[var(--gbp-text)]" : "text-[var(--gbp-muted)]"
+                            }`}
+                          >
+                            {step.label}
+                          </span>
+                          <span
+                            className={`max-w-[90px] truncate text-[11px] font-semibold ${
+                              step.done ? "text-[var(--gbp-text)]" : "text-[var(--gbp-text2)]"
+                            }`}
+                            title={step.meta}
+                          >
+                            {step.meta}
+                          </span>
+                          {step.sub && (
+                            <span className="text-[10px] text-[var(--gbp-text2)]">{step.sub}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Líneas */}
               <div className="px-4 py-4">
                 <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">
