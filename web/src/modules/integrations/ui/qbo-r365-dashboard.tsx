@@ -845,6 +845,19 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
         const s = v == null ? "" : String(v);
         return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
       };
+      const curLabel = formatCurrencyLabel(inv.currency);
+      const metaRows = [
+        ["Factura N°", inv.invoiceNumber ?? inv.sourceInvoiceId ?? ""].map(esc).join(","),
+        ["Cliente", inv.vendor ?? ""].map(esc).join(","),
+        ["Fecha", formatQboDate(inv.invoiceDate) ?? ""].map(esc).join(","),
+        ["Vencimiento", formatQboDate(inv.dueDate) ?? ""].map(esc).join(","),
+        ...(inv.terms ? [["Terminos", inv.terms].map(esc).join(",")] : []),
+        ...(inv.poNumber ? [["PO#", inv.poNumber].map(esc).join(",")] : []),
+        ...(inv.memo ? [["Memo", inv.memo].map(esc).join(",")] : []),
+        ["Moneda", curLabel || inv.currency || ""].map(esc).join(","),
+        ["Estado QBO", inv.qboStatusRaw ?? inv.qboPaymentStatus ?? ""].map(esc).join(","),
+        ["", ""].join(","),
+      ];
       const header = ["Cant.", "SKU", "Item", "Descripcion", "Precio", "Importe", "Impuesto", "Total", "ID.QBO"].map(esc).join(",");
       const rows = inv.lines.map((l) => {
         const shortName = l.itemName ? l.itemName.split(":").pop()!.trim() : (l.targetCode ?? "");
@@ -853,7 +866,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       rows.push(["", "", "", "SUBTOTAL", inv.subtotal.toFixed(2), "", "", ""].map(esc).join(","));
       rows.push(["", "", "", "IMPUESTO", inv.totalTax.toFixed(2), "", "", ""].map(esc).join(","));
       rows.push(["", "", "", "TOTAL", inv.grandTotal.toFixed(2), "", "", ""].map(esc).join(","));
-      content = [header, ...rows].join("\r\n");
+      content = [...metaRows, header, ...rows].join("\r\n");
       mime = "text/csv;charset=utf-8;";
     } else if (format === "txt") {
       const pad = (s: string, n: number, right = false) => right ? s.slice(0, n).padStart(n) : s.slice(0, n).padEnd(n);
