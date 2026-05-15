@@ -303,6 +303,7 @@ export async function fetchQboSalesTransactions(input: {
 export type QboCustomer = {
   id: string;
   displayName: string;
+  acctNum?: string;
 };
 
 export async function fetchQboItemSkus(input: {
@@ -363,7 +364,7 @@ export async function fetchQboCustomers(input: {
   let startPosition = 1;
 
   while (true) {
-    const query = `select Id, DisplayName from Customer where Active = true startposition ${startPosition} maxresults ${pageSize}`;
+    const query = `select Id, DisplayName, AcctNum from Customer where Active = true startposition ${startPosition} maxresults ${pageSize}`;
     const response = await fetch(
       `${baseUrl}/v3/company/${input.realmId}/query?minorversion=75`,
       {
@@ -379,7 +380,7 @@ export async function fetchQboCustomers(input: {
     );
 
     const payload = (await response.json().catch(() => ({}))) as {
-      QueryResponse?: { Customer?: Array<{ Id?: string; DisplayName?: string }> };
+      QueryResponse?: { Customer?: Array<{ Id?: string; DisplayName?: string; AcctNum?: string }> };
     };
 
     if (!response.ok) {
@@ -389,7 +390,11 @@ export async function fetchQboCustomers(input: {
     const batch = payload.QueryResponse?.Customer ?? [];
     for (const c of batch) {
       if (c.Id && c.DisplayName) {
-        output.push({ id: c.Id, displayName: c.DisplayName });
+        output.push({
+          id: c.Id,
+          displayName: c.DisplayName,
+          acctNum: c.AcctNum?.trim() || undefined,
+        });
       }
     }
 

@@ -470,6 +470,7 @@ function normalizeQboRows(input: {
   taxMode: "line" | "header" | "none";
   mappings: MappingRow[];
   itemSkuMap?: Map<string, string>;
+  customerAcctNumMap?: Map<string, string>;
 }) {
   const getQboStatusRaw = (kind: "invoice" | "sales_receipt" | "credit", row: QboInvoiceLike, paymentStatus: "paid" | "unpaid" | "partial" | "not_applicable" | "unknown") => {
     const candidate = (row as unknown as Record<string, unknown>).TxnStatus;
@@ -562,7 +563,7 @@ function normalizeQboRows(input: {
         qboBalance: Number.isFinite(balanceAmount) ? balanceAmount : undefined,
         qboPaymentStatus,
         qboStatusRaw,
-        location: "",
+        location: input.customerAcctNumMap?.get(String(row.data.CustomerRef?.value ?? "")) ?? "",
         memo: row.data.PrivateNote || "",
         poNumber: row.data.PONumber || "",
         terms: row.data.SalesTermRef?.name || "",
@@ -1102,11 +1103,24 @@ export async function runQboR365Sync(input: {
 
     const mappings = await getActiveMappings(input.organizationId);
 
-    const itemSkuMap = await fetchQboItemSkus({
-      accessToken: qboAuth.accessToken,
-      realmId: qboAuth.realmId,
-      useSandbox: effectiveUseSandbox,
-    }).catch(() => new Map<string, string>());
+    const [itemSkuMap, customerAcctNumMap] = await Promise.all([
+      fetchQboItemSkus({
+        accessToken: qboAuth.accessToken,
+        realmId: qboAuth.realmId,
+        useSandbox: effectiveUseSandbox,
+      }).catch(() => new Map<string, string>()),
+      fetchQboCustomers({
+        accessToken: qboAuth.accessToken,
+        realmId: qboAuth.realmId,
+        useSandbox: effectiveUseSandbox,
+      }).then((customers) => {
+        const map = new Map<string, string>();
+        for (const c of customers) {
+          if (c.acctNum) map.set(c.id, c.acctNum);
+        }
+        return map;
+      }).catch(() => new Map<string, string>()),
+    ]);
 
     const normalized = normalizeQboRows({
       invoices: qboData.invoices,
@@ -1116,6 +1130,7 @@ export async function runQboR365Sync(input: {
       taxMode: effectiveTaxMode,
       mappings,
       itemSkuMap,
+      customerAcctNumMap,
     });
     const detectedInvoiceCount = new Set(normalized.map((line) => line.sourceInvoiceId).filter(Boolean)).size;
 
