@@ -970,35 +970,43 @@ async function ensureFreshQboToken(input: {
 async function listDedupeKeys(organizationId: string, keys: string[]) {
   if (keys.length === 0) return new Set<string>();
   const admin = createSupabaseAdminClient();
-  const { data, error } = await admin
-    .from("integration_run_items")
-    .select("dedupe_key")
-    .eq("organization_id", organizationId)
-    .in("dedupe_key", keys)
-    .in("status", ["uploaded", "validated"]);
-
-  if (error) {
-    throw new Error(error.message);
+  const found = new Set<string>();
+  const batchSize = 50;
+  for (let i = 0; i < keys.length; i += batchSize) {
+    const batch = keys.slice(i, i + batchSize);
+    const { data, error } = await admin
+      .from("integration_run_items")
+      .select("dedupe_key")
+      .eq("organization_id", organizationId)
+      .in("dedupe_key", batch)
+      .in("status", ["uploaded", "validated"]);
+    if (error) throw new Error(error.message);
+    for (const row of data ?? []) {
+      if (row.dedupe_key) found.add(row.dedupe_key);
+    }
   }
-
-  return new Set((data ?? []).map((row) => row.dedupe_key).filter(Boolean));
+  return found;
 }
 
 async function listSentInvoiceIds(organizationId: string, sourceInvoiceIds: string[]) {
   if (sourceInvoiceIds.length === 0) return new Set<string>();
   const admin = createSupabaseAdminClient();
-  const { data, error } = await admin
-    .from("integration_run_items")
-    .select("source_invoice_id")
-    .eq("organization_id", organizationId)
-    .in("source_invoice_id", sourceInvoiceIds)
-    .in("status", ["uploaded", "validated"]);
-
-  if (error) {
-    throw new Error(error.message);
+  const found = new Set<string>();
+  const batchSize = 50;
+  for (let i = 0; i < sourceInvoiceIds.length; i += batchSize) {
+    const batch = sourceInvoiceIds.slice(i, i + batchSize);
+    const { data, error } = await admin
+      .from("integration_run_items")
+      .select("source_invoice_id")
+      .eq("organization_id", organizationId)
+      .in("source_invoice_id", batch)
+      .in("status", ["uploaded", "validated"]);
+    if (error) throw new Error(error.message);
+    for (const row of data ?? []) {
+      if (row.source_invoice_id) found.add(row.source_invoice_id);
+    }
   }
-
-  return new Set((data ?? []).map((row) => row.source_invoice_id).filter(Boolean));
+  return found;
 }
 
 function buildFileName(prefix: string, runId: string) {
