@@ -56,3 +56,5 @@ errors-*.json
 
 # Local AI bridge files (do not commit)
 AI_BRIDGE_*
+scripts/vercel_envs.json
+.claude/settings.local.json
