@@ -73,6 +73,7 @@ export const syncConfigCreateSchema = z.object({
   r365FtpSecure: z.boolean().default(false),
   template: z.enum(["by_item", "by_item_service_dates", "by_account", "by_account_service_dates"]).default("by_item"),
   taxMode: z.enum(["line", "header", "none"]).default("none"),
+  r365VendorName: z.string().trim().max(255).optional(),
 });
 
 export const syncConfigUpdateSchema = syncConfigCreateSchema.partial().extend({
