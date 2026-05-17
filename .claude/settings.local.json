@@ -12,7 +12,9 @@
       "Bash(xargs -I {} bash -c 'echo \"=== {} ===\" && head -50 \"{}\"')",
       "WebSearch",
       "WebFetch(domain:docs.restaurant365.com)",
-      "WebFetch(domain:help.restaurant365.net)"
+      "WebFetch(domain:help.restaurant365.net)",
+      "Bash(psql \"postgresql://postgres.uubdslmtfxwraszinpao:wfr9Rhcq28L8Dg90@aws-1-us-east-1.pooler.supabase.com:5432/postgres\" -c \"ALTER TABLE public.qbo_r365_sync_configs ADD COLUMN IF NOT EXISTS r365_vendor_name TEXT;\")",
+      "Bash(where psql *)"
     ]
   }
 }
