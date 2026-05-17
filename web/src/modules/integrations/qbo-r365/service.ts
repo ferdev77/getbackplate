@@ -75,6 +75,7 @@ type SyncConfigRow = {
   status: "active" | "paused";
   last_run_at: string | null;
   created_at: string;
+  r365_vendor_name: string | null;
 };
 
 type MappingRow = {
@@ -190,7 +191,7 @@ export async function listSyncConfigs(organizationId: string): Promise<SyncConfi
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin
     .from("qbo_r365_sync_configs")
-    .select("id, name, qbo_customer_id, qbo_customer_name, schedule_interval, lookback_hours, template, tax_mode, status, last_run_at, r365_ftp_host, created_at")
+    .select("id, name, qbo_customer_id, qbo_customer_name, schedule_interval, lookback_hours, template, tax_mode, status, last_run_at, r365_ftp_host, r365_vendor_name, created_at")
     .eq("organization_id", organizationId)
     .order("created_at", { ascending: true });
 
@@ -254,6 +255,7 @@ export async function createSyncConfig(
       r365_ftp_secure: hasAllFtpFields ? payload.r365FtpSecure : false,
       template: payload.template,
       tax_mode: payload.taxMode,
+      r365_vendor_name: payload.r365VendorName || null,
       created_by: actorId,
       updated_by: actorId,
     })
@@ -288,6 +290,7 @@ export async function updateSyncConfig(
   if (payload.template !== undefined) patch.template = payload.template;
   if (payload.taxMode !== undefined) patch.tax_mode = payload.taxMode;
   if (payload.status !== undefined) patch.status = payload.status;
+  if (payload.r365VendorName !== undefined) patch.r365_vendor_name = payload.r365VendorName || null;
 
   if (payload.r365FtpPassword !== undefined) {
     const encrypted = encryptJsonPayload({ password: payload.r365FtpPassword });
@@ -471,6 +474,9 @@ function normalizeQboRows(input: {
   mappings: MappingRow[];
   itemSkuMap?: Map<string, string>;
   customerAcctNumMap?: Map<string, string>;
+  r365VendorName?: string;
+  taxItemNumber?: string;
+  invoiceTotalsOut?: Map<string, number>;
 }) {
   const getQboStatusRaw = (kind: "invoice" | "sales_receipt" | "credit", row: QboInvoiceLike, paymentStatus: "paid" | "unpaid" | "partial" | "not_applicable" | "unknown") => {
     const candidate = (row as unknown as Record<string, unknown>).TxnStatus;
@@ -494,10 +500,11 @@ function normalizeQboRows(input: {
   const lines: NormalizedInvoiceLine[] = [];
   for (const row of all) {
     const invoiceId = row.data.Id ?? "unknown_invoice";
-    const vendor = row.data.CustomerRef?.name || row.data.CustomerRef?.value || "UNKNOWN_CUSTOMER";
+    const vendor = input.r365VendorName?.trim() || row.data.CustomerRef?.name || row.data.CustomerRef?.value || "UNKNOWN_CUSTOMER";
     const invoiceNumber = row.data.DocNumber || `QBO-${invoiceId}`;
     const invoiceDate = row.data.TxnDate || new Date().toISOString().slice(0, 10);
     const totalAmount = Number(row.data.TotalAmt ?? 0);
+    input.invoiceTotalsOut?.set(invoiceId, Number(row.data.TotalAmt ?? 0));
     const balanceAmount = Number(row.data.Balance ?? Number.NaN);
     const qboPaymentStatus: "paid" | "unpaid" | "partial" | "not_applicable" | "unknown" = row.kind === "credit"
       ? "not_applicable"
@@ -509,8 +516,8 @@ function normalizeQboRows(input: {
     const qboStatusRaw = getQboStatusRaw(row.kind, row.data, qboPaymentStatus);
     const headerTax = Number(row.data.TxnTaxDetail?.TotalTax ?? 0);
     const baseLines = row.data.Line ?? [];
-    const SKIP_DETAIL_TYPES = new Set(["SubTotalLine", "DescriptionOnlyLine", "DiscountLine"]);
-    const itemLines = baseLines.filter((l) => !SKIP_DETAIL_TYPES.has(l.DetailType ?? ""));
+    const INCLUDE_DETAIL_TYPES = new Set(["SalesItemLineDetail", "AccountBasedExpenseLineDetail"]);
+    const itemLines = baseLines.filter((l) => INCLUDE_DETAIL_TYPES.has(l.DetailType ?? ""));
     const baseAmountSum = itemLines.reduce((sum, line) => sum + Number(line.Amount ?? 0), 0);
 
     for (let index = 0; index < itemLines.length; index += 1) {
@@ -522,7 +529,7 @@ function normalizeQboRows(input: {
         line.SalesItemLineDetail?.ItemRef?.value || line.AccountBasedExpenseLineDetail?.AccountRef?.value || "";
       const accountOrItem =
         (input.template === "by_item" || input.template === "by_item_service_dates")
-          ? line.SalesItemLineDetail?.ItemRef?.value || line.SalesItemLineDetail?.ItemRef?.name || "UNMAPPED_ITEM"
+          ? (sourceItemCode && input.itemSkuMap?.get(sourceItemCode)) || line.SalesItemLineDetail?.ItemRef?.name || `UNMAPPED-${sourceItemCode || "ITEM"}`
           : line.AccountBasedExpenseLineDetail?.AccountRef?.value || line.AccountBasedExpenseLineDetail?.AccountRef?.name || "UNMAPPED_ACCOUNT";
 
       const explicitLineTax = Number(
@@ -574,6 +581,37 @@ function normalizeQboRows(input: {
         line: line as unknown as Record<string, unknown>,
       }));
     }
+
+    const totalTax = Number(row.data.TxnTaxDetail?.TotalTax ?? 0);
+    if (totalTax > 0) {
+      lines.push(applyMappings({
+        sourceInvoiceId: invoiceId,
+        sourceLineId: "tax",
+        transactionTypeCode: row.kind === "credit" ? "2" : "1",
+        vendor,
+        invoiceNumber,
+        invoiceDate,
+        dueDate: row.data.DueDate || invoiceDate,
+        currency: row.data.CurrencyRef?.name || row.data.CurrencyRef?.value || "",
+        targetCode: input.taxItemNumber || "999999",
+        sourceItemCode: "",
+        sku: "",
+        itemName: "Tax",
+        description: "Tax",
+        quantity: 1,
+        unitPrice: totalTax,
+        lineAmount: totalTax,
+        taxAmount: 0,
+        totalAmount: totalTax,
+        qboBalance: undefined,
+        qboPaymentStatus: "not_applicable" as const,
+        qboStatusRaw: undefined,
+        location: input.customerAcctNumMap?.get(String(row.data.CustomerRef?.value ?? "")) ?? "",
+        memo: "",
+        poNumber: "",
+        terms: "",
+      }, input.mappings, { invoice: row.data as unknown as Record<string, unknown>, line: {} }));
+    }
   }
 
   return lines;
@@ -581,6 +619,20 @@ function normalizeQboRows(input: {
 
 function buildDedupeKey(line: NormalizedInvoiceLine) {
   return `${line.sourceInvoiceId}:${line.sourceLineId}:${line.transactionTypeCode}:${line.lineAmount}:${line.targetCode}`;
+}
+
+function validateCsvVsInvoiceTotal(lines: NormalizedInvoiceLine[], invoiceTotals: Map<string, number>) {
+  for (const [invoiceId, qboTotal] of invoiceTotals) {
+    const csvTotal = lines
+      .filter((l) => l.sourceInvoiceId === invoiceId)
+      .reduce((sum, l) => sum + l.lineAmount, 0);
+    const diff = Math.abs(Math.round((csvTotal - qboTotal) * 100) / 100);
+    if (diff > 0.01) {
+      throw new Error(
+        `Factura ${invoiceId}: total CSV ${csvTotal.toFixed(2)} no coincide con QBO TotalAmt ${qboTotal.toFixed(2)} (diferencia: ${diff.toFixed(2)})`
+      );
+    }
+  }
 }
 
 async function uploadCsvToFtp(input: {
@@ -1122,6 +1174,7 @@ export async function runQboR365Sync(input: {
       }).catch(() => new Map<string, string>()),
     ]);
 
+    const invoiceTotalsMap = new Map<string, number>();
     const normalized = normalizeQboRows({
       invoices: qboData.invoices,
       salesReceipts: qboData.salesReceipts,
@@ -1131,6 +1184,8 @@ export async function runQboR365Sync(input: {
       mappings,
       itemSkuMap,
       customerAcctNumMap,
+      r365VendorName: syncConfig?.r365_vendor_name || undefined,
+      invoiceTotalsOut: invoiceTotalsMap,
     });
     const detectedInvoiceCount = new Set(normalized.map((line) => line.sourceInvoiceId).filter(Boolean)).size;
 
@@ -1171,6 +1226,8 @@ export async function runQboR365Sync(input: {
         })),
       );
     }
+
+    validateCsvVsInvoiceTotal(uniqueLines.map((entry) => entry.line), invoiceTotalsMap);
 
     const csvBuild = buildR365Csv({
       template: effectiveTemplate,

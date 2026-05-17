@@ -388,6 +388,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [newSyncLookbackHours, setNewSyncLookbackHours] = useState<number>(48);
   const [newSyncTemplate, setNewSyncTemplate] = useState<"by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates">("by_item");
   const [newSyncTaxMode, setNewSyncTaxMode] = useState<"line" | "header" | "none">("none");
+  const [newSyncVendorName, setNewSyncVendorName] = useState("");
   const [newSyncFtpHost, setNewSyncFtpHost] = useState("");
   const [newSyncFtpUser, setNewSyncFtpUser] = useState("");
   const [newSyncFtpPass, setNewSyncFtpPass] = useState("");
@@ -587,6 +588,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
           lookbackHours: newSyncLookbackHours,
           template: newSyncTemplate,
           taxMode: newSyncTaxMode,
+          r365VendorName: newSyncVendorName,
           r365FtpHost: newSyncFtpHost,
           r365FtpPort: 21,
           r365FtpUsername: newSyncFtpUser,
@@ -601,6 +603,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       setIsCreateSyncOpen(false);
       setNewSyncCustomerId(""); setNewSyncCustomerName("");
       setCustomerSearch(""); setCustomerDropdownOpen(false);
+      setNewSyncVendorName("");
       setNewSyncFtpHost(""); setNewSyncFtpUser(""); setNewSyncFtpPass("");
       setRefreshKey((p) => p + 1);
     } catch (error) {
@@ -1522,6 +1525,21 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   </label>
                 </div>
               </div>
+              {/* Nombre del proveedor en R365 */}
+              <div>
+                <h4 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">Proveedor en R365</h4>
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Nombre del proveedor en R365</span>
+                  <input
+                    type="text"
+                    placeholder="Ej: PRODEL DISTRIBUTION INC"
+                    value={newSyncVendorName}
+                    onChange={(e) => setNewSyncVendorName(e.target.value)}
+                    className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none"
+                  />
+                  <span className="mt-1 block text-[10px] text-[var(--gbp-muted)]">Exactamente como aparece en R365 (case-sensitive)</span>
+                </label>
+              </div>
               {/* FTP de R365 */}
               <div>
                 <h4 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">R365 FTP del cliente *</h4>
@@ -2183,7 +2201,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                               onChange={(e) => setInvoiceFtpSecure(e.target.checked)}
                               className="h-3.5 w-3.5"
                             />
-                            SFTP / TLS seguro
+                            Conexión segura (FTPS)
                           </label>
                         </div>
                       )}
