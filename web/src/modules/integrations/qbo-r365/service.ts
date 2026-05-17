@@ -1227,7 +1227,12 @@ export async function runQboR365Sync(input: {
       );
     }
 
-    validateCsvVsInvoiceTotal(uniqueLines.map((entry) => entry.line), invoiceTotalsMap);
+    const invoiceIdsWithSkippedLines = new Set([
+      ...duplicateRows.map((r) => r.sourceInvoiceId),
+      ...alreadySentRows.map((r) => r.sourceInvoiceId),
+    ]);
+    const totalsToValidate = new Map([...invoiceTotalsMap].filter(([id]) => !invoiceIdsWithSkippedLines.has(id)));
+    validateCsvVsInvoiceTotal(uniqueLines.map((entry) => entry.line), totalsToValidate);
 
     const csvBuild = buildR365Csv({
       template: effectiveTemplate,
