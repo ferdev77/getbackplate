@@ -1195,6 +1195,19 @@ export async function runQboR365Sync(input: {
       }).catch(() => new Map<string, string>()),
     ]);
 
+    // Si el sync config no tiene r365_location, intentar resolverlo del mapa y guardarlo
+    let effectiveR365Location = syncConfig?.r365_location || undefined;
+    if (!effectiveR365Location && syncConfig?.qbo_customer_id) {
+      const resolved = customerAcctNumMap.get(syncConfig.qbo_customer_id);
+      if (resolved) {
+        effectiveR365Location = resolved;
+        void createSupabaseAdminClient()
+          .from("qbo_r365_sync_configs")
+          .update({ r365_location: resolved })
+          .eq("id", syncConfig.id);
+      }
+    }
+
     const invoiceTotalsMap = new Map<string, number>();
     const normalized = normalizeQboRows({
       invoices: qboData.invoices,
@@ -1207,7 +1220,7 @@ export async function runQboR365Sync(input: {
       customerAcctNumMap,
       syncConfigCustomerId: syncConfig?.qbo_customer_id || undefined,
       r365VendorName: syncConfig?.r365_vendor_name || undefined,
-      r365Location: syncConfig?.r365_location || undefined,
+      r365Location: effectiveR365Location,
       invoiceTotalsOut: invoiceTotalsMap,
     });
     const detectedInvoiceCount = new Set(normalized.map((line) => line.sourceInvoiceId).filter(Boolean)).size;
