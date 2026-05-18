@@ -1347,53 +1347,66 @@ export async function runQboR365Sync(input: {
     const totalsToValidate = new Map([...invoiceTotalsMap].filter(([id]) => !invoiceIdsWithSkippedLines.has(id)));
     validateCsvVsInvoiceTotal(uniqueLines.map((entry) => entry.line), totalsToValidate);
 
-    const csvBuild = buildR365Csv({
-      template: effectiveTemplate,
-      lines: uniqueLines.map((entry) => entry.line),
-    });
-
-    const fileName = buildFileName(settings.file_prefix);
-
     const effectiveRemotePath = ftpForUpload?.remotePath ?? settings.ftp_remote_path;
 
-    await admin.from("integration_outbox_files").insert({
-      run_id: runId,
-      organization_id: input.organizationId,
-      storage_provider: "r365_ftp",
-      remote_path: effectiveRemotePath,
-      file_name: fileName,
-      mime_type: "text/csv",
-      size_bytes: Buffer.byteLength(csvBuild.csv, "utf8"),
-      sha256: csvBuild.hash,
-      status: "generated",
-    });
+    if (!dryRun && uniqueLines.length > 0 && !ftpForUpload) {
+      throw new Error("Falta configuracion FTP de Restaurant365");
+    }
 
-    if (!dryRun && uniqueLines.length > 0) {
-      if (!ftpForUpload) {
-        throw new Error("Falta configuracion FTP de Restaurant365");
-      }
+    // Group unique lines by invoice — one CSV per invoice
+    const linesByInvoice = new Map<string, Array<{ line: NormalizedInvoiceLine; dedupeKey: string }>>();
+    for (const entry of uniqueLines) {
+      const inv = entry.line.sourceInvoiceId;
+      if (!linesByInvoice.has(inv)) linesByInvoice.set(inv, []);
+      linesByInvoice.get(inv)!.push(entry);
+    }
 
-      await uploadCsvToFtp({
-        host: ftpForUpload.host,
-        port: ftpForUpload.port,
-        username: ftpForUpload.username,
-        password: ftpForUpload.password,
-        secure: ftpForUpload.secure,
-        remotePath: ftpForUpload.remotePath,
-        fileName,
-        content: csvBuild.csv,
+    const uploadedFileNames: string[] = [];
+
+    for (const invoiceEntries of linesByInvoice.values()) {
+      const invoiceLines = invoiceEntries.map((e) => e.line);
+      const csvBuild = buildR365Csv({ template: effectiveTemplate, lines: invoiceLines });
+      const invoiceNumber = invoiceLines[0]?.invoiceNumber;
+      const vendorSlug = (invoiceLines[0]?.vendor ?? settings.file_prefix)
+        .replace(/[^a-zA-Z0-9_\-]/g, "_").slice(0, 20);
+      const fileName = buildFileName(vendorSlug, invoiceNumber);
+
+      await admin.from("integration_outbox_files").insert({
+        run_id: runId,
+        organization_id: input.organizationId,
+        storage_provider: "r365_ftp",
+        remote_path: effectiveRemotePath,
+        file_name: fileName,
+        mime_type: "text/csv",
+        size_bytes: Buffer.byteLength(csvBuild.csv, "utf8"),
+        sha256: csvBuild.hash,
+        status: "generated",
       });
 
-      await admin
-        .from("integration_outbox_files")
-        .update({
-          status: "uploaded",
-          uploaded_at: new Date().toISOString(),
-        })
-        .eq("run_id", runId)
-        .eq("organization_id", input.organizationId)
-        .eq("file_name", fileName);
+      if (!dryRun && ftpForUpload) {
+        await uploadCsvToFtp({
+          host: ftpForUpload.host,
+          port: ftpForUpload.port,
+          username: ftpForUpload.username,
+          password: ftpForUpload.password,
+          secure: ftpForUpload.secure,
+          remotePath: ftpForUpload.remotePath,
+          fileName,
+          content: csvBuild.csv,
+        });
+
+        await admin
+          .from("integration_outbox_files")
+          .update({ status: "uploaded", uploaded_at: new Date().toISOString() })
+          .eq("run_id", runId)
+          .eq("organization_id", input.organizationId)
+          .eq("file_name", fileName);
+      }
+
+      uploadedFileNames.push(fileName);
     }
+
+    const representativeFileName = uploadedFileNames[0] ?? buildFileName(settings.file_prefix);
 
     if (uniqueLines.length > 0) {
       await admin.from("integration_run_items").insert(
@@ -1450,8 +1463,8 @@ export async function runQboR365Sync(input: {
         qbo_window_from: sinceIso,
         qbo_window_to: new Date().toISOString(),
         template_used: effectiveTemplate,
-        file_name: fileName,
-        file_hash: csvBuild.hash,
+        file_name: representativeFileName,
+        file_hash: null,
         total_detected: detectedInvoiceCount,
         total_mapped: uniqueLines.length,
         total_uploaded: dryRun ? 0 : uniqueLines.length,
@@ -1510,7 +1523,7 @@ export async function runQboR365Sync(input: {
       detected: detectedInvoiceCount,
       uploaded: dryRun ? 0 : uniqueLines.length,
       skippedDuplicates: duplicateRows.length,
-      fileName,
+      fileName: representativeFileName,
       dryRun,
     };
   } catch (error) {
