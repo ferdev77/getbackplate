@@ -1681,7 +1681,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
               <thead>
                 <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-left text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">
                   <th className="px-4 py-3">Fecha factura</th>
-                  <th className="px-4 py-3">Vendor</th>
+                  <th className="px-4 py-3">Cliente QBO</th>
                   <th className="px-4 py-3">Tipo de factura</th>
                   <th className="px-4 py-3">Estado QBO</th>
                   <th className="px-4 py-3">Estado GBP</th>
@@ -1698,7 +1698,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                     onClick={() => setSelectedInvoiceId(item.sourceInvoiceId)}
                   >
                     <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{formatQboDate(item.invoiceDate)}</td>
-                    <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{item.vendor ?? "-"}</td>
+                    <td className="px-4 py-3 text-xs font-medium text-[var(--gbp-text)]">{syncHistoryFilter?.name ?? item.vendor ?? "-"}</td>
                     <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{invoiceTypeLabel(item.transactionTypeCode)}</td>
                     <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{item.qboStatusRaw ?? qboPaymentStatusLabel(item.qboPaymentStatus)}</td>
                     <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{itemStatusLabel(item.lastStatus)}</td>
