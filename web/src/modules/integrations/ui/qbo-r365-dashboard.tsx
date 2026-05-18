@@ -120,7 +120,7 @@ type SyncConfigSummary = {
   createdAt: string;
 };
 
-type QboCustomer = { id: string; displayName: string; acctNum?: string };
+type QboCustomer = { id: string; displayName: string; acctNum?: string; raw?: Record<string, unknown> };
 
 type Props = { organizationId: string; deferredDataUrl: string; showDeveloperMode?: boolean; className?: string };
 
@@ -1471,8 +1471,8 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                                 className={`cursor-pointer px-3 py-2 text-sm hover:bg-[var(--gbp-bg)] ${newSyncCustomerId === c.id ? "font-bold text-[var(--gbp-accent)]" : "text-[var(--gbp-text)]"}`}
                               >
                                 {c.displayName}
-                                {mode === "developer" && c.acctNum && (
-                                  <span className="ml-1.5 text-xs text-[var(--gbp-muted)]">({c.acctNum})</span>
+                                {mode === "developer" && c.raw && (
+                                  <span className="ml-1.5 text-[10px] text-[var(--gbp-muted)]">({JSON.stringify(c.raw)})</span>
                                 )}
                               </li>
                             ))}

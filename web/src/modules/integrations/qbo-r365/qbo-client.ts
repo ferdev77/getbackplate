@@ -289,6 +289,7 @@ export type QboCustomer = {
   id: string;
   displayName: string;
   acctNum?: string;
+  raw?: Record<string, unknown>;
 };
 
 export async function fetchQboItemSkus(input: {
@@ -393,7 +394,7 @@ export async function fetchQboCustomers(input: {
 
   for (const c of raw) {
     if (c.Id && c.DisplayName) {
-      output.push({ id: c.Id, displayName: c.DisplayName, acctNum: resolveAcctNum(c) });
+      output.push({ id: c.Id, displayName: c.DisplayName, acctNum: resolveAcctNum(c), raw: c as Record<string, unknown> });
     }
   }
 
