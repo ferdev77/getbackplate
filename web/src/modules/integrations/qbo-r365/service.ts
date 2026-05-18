@@ -2232,6 +2232,7 @@ export async function getQboR365RunPreview(input: {
         vendor: payload.vendor ?? null,
         invoiceNumber: payload.invoiceNumber ?? null,
         targetCode: payload.targetCode ?? payload.target_code ?? null,
+        itemName: payload.itemName ?? null,
         description: payload.description ?? null,
         quantity: payload.quantity ?? null,
         unitPrice: payload.unitPrice ?? null,

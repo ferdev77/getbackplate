@@ -50,7 +50,7 @@ function toByItemRow(line: NormalizedInvoiceLine) {
     line.invoiceDate,
     line.targetCode,
     line.itemName ?? line.description,
-    "EACH",
+    line.sourceLineId === "tax" ? "EACH" : (line.description || "EACH"),
     round(line.quantity),
     round(line.unitPrice),
     round(line.lineAmount),

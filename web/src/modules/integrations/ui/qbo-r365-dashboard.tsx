@@ -87,6 +87,7 @@ type PreviewRow = {
     vendor: string | null;
     invoiceNumber: string | null;
     targetCode: string | null;
+    itemName: string | null;
     description: string | null;
     quantity: number | null;
     unitPrice: number | null;
@@ -1323,7 +1324,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                       <th className="px-3 py-2">Raw Vendor</th>
                       <th className="px-3 py-2">Raw Invoice</th>
                       <th className="px-3 py-2">Mapped Code</th>
-                      <th className="px-3 py-2">Descripcion</th>
+                      <th className="px-3 py-2">Vendor Item Name</th>
                       <th className="px-3 py-2">Monto</th>
                       <th className="px-3 py-2">Tax</th>
                       <th className="px-3 py-2">Total</th>
@@ -1336,7 +1337,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                         <td className="px-3 py-2 text-xs text-[var(--gbp-text)]">{row.raw.vendor ?? "-"}</td>
                         <td className="px-3 py-2 text-xs text-[var(--gbp-text)]">{row.raw.invoiceNumber ?? "-"}</td>
                         <td className="px-3 py-2 text-xs font-semibold text-[var(--gbp-accent)]">{row.mapped.targetCode ?? "-"}</td>
-                        <td className="px-3 py-2 text-xs text-[var(--gbp-text2)]">{row.mapped.description ?? "-"}</td>
+                        <td className="px-3 py-2 text-xs text-[var(--gbp-text2)]">{row.mapped.itemName ?? row.mapped.description ?? "-"}</td>
                         <td className="px-3 py-2 text-xs text-[var(--gbp-text)]">{row.mapped.lineAmount ?? "-"}</td>
                         <td className="px-3 py-2 text-xs text-[var(--gbp-text)]">{row.mapped.taxAmount ?? "-"}</td>
                         <td className="px-3 py-2 text-xs text-[var(--gbp-text)]">{row.mapped.totalAmount ?? "-"}</td>
