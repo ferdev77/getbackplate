@@ -96,5 +96,7 @@ export type SyncConfigSummary = {
   status: "active" | "paused";
   lastRunAt: string | null;
   hasFtp: boolean;
+  r365Location: string | null;
+  r365VendorName: string | null;
   createdAt: string;
 };
