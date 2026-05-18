@@ -1471,6 +1471,9 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                                 className={`cursor-pointer px-3 py-2 text-sm hover:bg-[var(--gbp-bg)] ${newSyncCustomerId === c.id ? "font-bold text-[var(--gbp-accent)]" : "text-[var(--gbp-text)]"}`}
                               >
                                 {c.displayName}
+                                {mode === "developer" && c.acctNum && (
+                                  <span className="ml-1.5 text-xs text-[var(--gbp-muted)]">({c.acctNum})</span>
+                                )}
                               </li>
                             ))}
                           </ul>
