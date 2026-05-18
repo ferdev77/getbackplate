@@ -1621,16 +1621,31 @@ export async function listQboR365InvoiceHistory(organizationId: string, limit = 
 
   const runIds = Array.from(new Set(rows.map((row) => row.run_id).filter(Boolean)));
   const runsById = new Map<string, { template_used: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates" | null; started_at: string | null }>();
+  const qboCustomerByRunId = new Map<string, string>();
 
   if (runIds.length > 0) {
     const { data: runs, error: runsError } = await admin
       .from("integration_runs")
-      .select("id, template_used, started_at")
+      .select("id, template_used, started_at, sync_config_id")
       .eq("organization_id", organizationId)
       .in("id", runIds);
 
-    if (runsError) {
-      throw new Error(runsError.message);
+    if (runsError) throw new Error(runsError.message);
+
+    const syncConfigIds = Array.from(new Set(
+      (runs ?? []).map((r) => r.sync_config_id).filter((id): id is string => typeof id === "string")
+    ));
+
+    const syncConfigNameById = new Map<string, string>();
+    if (syncConfigIds.length > 0) {
+      const { data: configs } = await admin
+        .from("qbo_r365_sync_configs")
+        .select("id, name")
+        .eq("organization_id", organizationId)
+        .in("id", syncConfigIds);
+      for (const cfg of configs ?? []) {
+        if (cfg.id && cfg.name) syncConfigNameById.set(String(cfg.id), String(cfg.name));
+      }
     }
 
     for (const run of runs ?? []) {
@@ -1638,6 +1653,10 @@ export async function listQboR365InvoiceHistory(organizationId: string, limit = 
         template_used: (run.template_used as "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates" | null) ?? null,
         started_at: (run.started_at as string | null) ?? null,
       });
+      if (typeof run.sync_config_id === "string") {
+        const customerName = syncConfigNameById.get(run.sync_config_id);
+        if (customerName) qboCustomerByRunId.set(String(run.id), customerName);
+      }
     }
   }
 
@@ -1653,6 +1672,7 @@ export async function listQboR365InvoiceHistory(organizationId: string, limit = 
     qboPaymentStatus: "paid" | "unpaid" | "partial" | "not_applicable" | "unknown" | null;
     qboStatusRaw: string | null;
     vendor: string | null;
+    qboCustomerName: string | null;
     mappedCode: string | null;
     lastStatus: string;
     lastSeenAt: string;
@@ -1692,6 +1712,7 @@ export async function listQboR365InvoiceHistory(organizationId: string, limit = 
             : null,
         qboStatusRaw: typeof payload.qboStatusRaw === "string" ? payload.qboStatusRaw : null,
         vendor: typeof payload.vendor === "string" ? payload.vendor : null,
+        qboCustomerName: qboCustomerByRunId.get(row.run_id) ?? null,
         mappedCode: typeof payload.targetCode === "string" ? payload.targetCode : null,
         lastStatus: row.status,
         lastSeenAt: row.created_at,
@@ -1798,6 +1819,7 @@ export async function listQboR365InvoiceHistory(organizationId: string, limit = 
       qboPaymentStatus: entry.qboPaymentStatus,
       qboStatusRaw: entry.qboStatusRaw,
       vendor: entry.vendor,
+      qboCustomerName: entry.qboCustomerName,
       mappedCode: entry.mappedCode,
       lastStatus: entry.lastStatus,
       lastSeenAt: entry.lastSeenAt,
