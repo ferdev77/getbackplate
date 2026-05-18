@@ -1992,6 +1992,7 @@ function payloadToLine(payload: Record<string, unknown>) {
     dueDate: String(payload.dueDate ?? payload.invoiceDate ?? ""),
     currency: String(payload.currency ?? ""),
     targetCode: String(payload.targetCode ?? ""),
+    itemName: payload.itemName ? String(payload.itemName) : undefined,
     description: String(payload.description ?? ""),
     quantity: Number(payload.quantity ?? 1),
     unitPrice: Number(payload.unitPrice ?? 0),
