@@ -363,8 +363,11 @@ export async function fetchQboCustomers(input: {
   const output: QboCustomer[] = [];
   let startPosition = 1;
 
+  type RawCustomer = { Id?: string; DisplayName?: string; AcctNum?: string; ParentRef?: { value?: string } };
+  const raw: RawCustomer[] = [];
+
   while (true) {
-    const query = `select Id, DisplayName, AcctNum from Customer where Active = true startposition ${startPosition} maxresults ${pageSize}`;
+    const query = `select Id, DisplayName, AcctNum, ParentRef from Customer where Active = true startposition ${startPosition} maxresults ${pageSize}`;
     const response = await fetch(
       `${baseUrl}/v3/company/${input.realmId}/query?minorversion=75`,
       {
@@ -380,7 +383,7 @@ export async function fetchQboCustomers(input: {
     );
 
     const payload = (await response.json().catch(() => ({}))) as {
-      QueryResponse?: { Customer?: Array<{ Id?: string; DisplayName?: string; AcctNum?: string }> };
+      QueryResponse?: { Customer?: RawCustomer[] };
     };
 
     if (!response.ok) {
@@ -388,18 +391,27 @@ export async function fetchQboCustomers(input: {
     }
 
     const batch = payload.QueryResponse?.Customer ?? [];
-    for (const c of batch) {
-      if (c.Id && c.DisplayName) {
-        output.push({
-          id: c.Id,
-          displayName: c.DisplayName,
-          acctNum: c.AcctNum?.trim() || undefined,
-        });
-      }
-    }
-
+    raw.push(...batch);
     if (batch.length < pageSize) break;
     startPosition += pageSize;
+  }
+
+  // Build AcctNum map — sub-customers inherit parent's AcctNum if they lack their own
+  const acctNumById = new Map<string, string>();
+  for (const c of raw) {
+    if (c.Id && c.AcctNum?.trim()) acctNumById.set(c.Id, c.AcctNum.trim());
+  }
+  const resolveAcctNum = (c: RawCustomer): string | undefined => {
+    if (c.AcctNum?.trim()) return c.AcctNum.trim();
+    const parentId = c.ParentRef?.value;
+    if (parentId) return acctNumById.get(parentId);
+    return undefined;
+  };
+
+  for (const c of raw) {
+    if (c.Id && c.DisplayName) {
+      output.push({ id: c.Id, displayName: c.DisplayName, acctNum: resolveAcctNum(c) });
+    }
   }
 
   return output;
