@@ -16,9 +16,6 @@ export async function GET(request: Request) {
 
   try {
     const result = await fetchCrudoQboInvoice(access.tenant.organizationId, invoiceId);
-    if (!result) {
-      return NextResponse.json({ error: "Factura no encontrada en QBO" }, { status: 404 });
-    }
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
     return NextResponse.json(
