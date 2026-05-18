@@ -7,6 +7,7 @@ import { createOAuthStateToken } from "@/modules/integrations/qbo-r365/oauth-sta
 import {
   buildQboAuthorizeUrl,
   exchangeQboOAuthCode,
+  fetchQboCustomerById,
   fetchQboCustomers,
   fetchQboItemSkus,
   fetchQboRawTransaction,
@@ -336,6 +337,19 @@ export async function listQboCustomers(organizationId: string): Promise<QboCusto
   return fetchQboCustomers({
     accessToken: qboAuth.accessToken,
     realmId: qboAuth.realmId,
+  });
+}
+
+export async function getQboCustomerById(organizationId: string, customerId: string): Promise<QboCustomer | null> {
+  const qboConnection = await getConnection(organizationId, "quickbooks_online");
+  if (!qboConnection || qboConnection.status !== "connected") {
+    throw new Error("QuickBooks Online no esta conectado");
+  }
+  const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
+  return fetchQboCustomerById({
+    accessToken: qboAuth.accessToken,
+    realmId: qboAuth.realmId,
+    customerId,
   });
 }
 

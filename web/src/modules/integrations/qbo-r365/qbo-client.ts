@@ -369,6 +369,34 @@ export async function fetchQboItemSkus(input: {
   return skuMap;
 }
 
+export async function fetchQboCustomerById(input: {
+  accessToken: string;
+  realmId: string;
+  customerId: string;
+}): Promise<QboCustomer | null> {
+  const baseUrl = QBO_API_BASE_URL;
+  const response = await fetch(
+    `${baseUrl}/v3/company/${input.realmId}/customer/${input.customerId}?minorversion=75`,
+    {
+      headers: {
+        Authorization: `Bearer ${input.accessToken}`,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    },
+  );
+  if (!response.ok) return null;
+  const payload = (await response.json().catch(() => null)) as { Customer?: Record<string, unknown> } | null;
+  const c = payload?.Customer;
+  if (!c || typeof c.Id !== "string" || typeof c.DisplayName !== "string") return null;
+  return {
+    id: c.Id,
+    displayName: c.DisplayName,
+    acctNum: typeof c.AcctNum === "string" && c.AcctNum.trim() ? c.AcctNum.trim() : undefined,
+    raw: c,
+  };
+}
+
 export async function fetchQboCustomers(input: {
   accessToken: string;
   realmId: string;

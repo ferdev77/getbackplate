@@ -561,12 +561,25 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     setDeletingSyncId(null);
   }
 
-  function handleCustomerPick(customer: QboCustomer) {
+  async function handleCustomerPick(customer: QboCustomer) {
     setNewSyncCustomerId(customer.id);
     setNewSyncCustomerName(customer.displayName);
     setNewSyncLocation(customer.acctNum ?? "");
     setCustomerSearch(customer.displayName);
     setCustomerDropdownOpen(false);
+
+    // Fetch full customer by ID to get AcctNum (SELECT query doesn't always return it)
+    try {
+      const res = await fetch(`/api/company/integrations/qbo-r365/customers/${customer.id}`);
+      if (res.ok) {
+        const data = (await res.json()) as { customer?: QboCustomer };
+        if (data.customer?.acctNum) {
+          setNewSyncLocation(data.customer.acctNum);
+        }
+      }
+    } catch {
+      // Silently fallback to what the SELECT already returned
+    }
   }
 
   const filteredCustomers = useMemo(() => {
