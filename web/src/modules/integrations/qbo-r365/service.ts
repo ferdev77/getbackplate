@@ -1934,12 +1934,10 @@ export async function getInvoiceDetail(
     return a.sourceLineId.localeCompare(b.sourceLineId);
   });
 
-  const subtotal = lines.reduce((s, l) => s + (l.lineAmount ?? 0), 0);
-  // totalTax from stored per-line amounts (may be 0 when taxMode="none")
-  // Fall back to deriving it from qboBalance (QBO Balance ≈ TotalAmt for unpaid invoices)
-  const storedTax = lines.reduce((s, l) => s + (l.taxAmount ?? 0), 0);
-  const derivedTax = qboBalance !== null && qboBalance > subtotal ? parseFloat((qboBalance - subtotal).toFixed(2)) : 0;
-  const totalTax = storedTax > 0 ? storedTax : derivedTax;
+  const taxLine = lines.find((l) => l.sourceLineId === "tax");
+  const itemLines = lines.filter((l) => l.sourceLineId !== "tax");
+  const subtotal = itemLines.reduce((s, l) => s + (l.lineAmount ?? 0), 0);
+  const totalTax = taxLine?.lineAmount ?? 0;
   const grandTotal = parseFloat((subtotal + totalTax).toFixed(2));
 
   return {
