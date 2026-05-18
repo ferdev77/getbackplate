@@ -74,6 +74,7 @@ export const syncConfigCreateSchema = z.object({
   template: z.enum(["by_item", "by_item_service_dates", "by_account", "by_account_service_dates"]).default("by_item"),
   taxMode: z.enum(["line", "header", "none"]).default("none"),
   r365VendorName: z.string().trim().max(255).optional(),
+  r365Location: z.string().trim().max(120).optional(),
 });
 
 export const syncConfigUpdateSchema = syncConfigCreateSchema.partial().extend({
