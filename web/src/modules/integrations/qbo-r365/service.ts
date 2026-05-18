@@ -1125,9 +1125,16 @@ async function listSentInvoiceIds(organizationId: string, sourceInvoiceIds: stri
   return found;
 }
 
-function buildFileName(prefix: string, runId: string) {
-  const stamp = new Date().toISOString().replaceAll(":", "").replaceAll("-", "").replace(".", "_").slice(0, 15);
-  return `${prefix}_${stamp}_${runId.slice(0, 8)}.csv`;
+function buildFileName(prefix: string, invoiceNumber?: string) {
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10).replaceAll("-", "");
+  const time = now.toISOString().slice(11, 19).replaceAll(":", "");
+  const safePrefix = prefix.replace(/[^a-zA-Z0-9_\-]/g, "_").slice(0, 30);
+  if (invoiceNumber) {
+    const safeInv = invoiceNumber.replace(/[^a-zA-Z0-9_\-]/g, "_").slice(0, 20);
+    return `${safePrefix}_INV${safeInv}_${date}_${time}.csv`;
+  }
+  return `${safePrefix}_${date}_${time}.csv`;
 }
 
 export async function runQboR365Sync(input: {
@@ -1345,7 +1352,7 @@ export async function runQboR365Sync(input: {
       lines: uniqueLines.map((entry) => entry.line),
     });
 
-    const fileName = buildFileName(settings.file_prefix, runId);
+    const fileName = buildFileName(settings.file_prefix);
 
     const effectiveRemotePath = ftpForUpload?.remotePath ?? settings.ftp_remote_path;
 
@@ -2057,7 +2064,7 @@ export async function sendPreparedQboR365Run(input: {
   const csvBuild = buildR365Csv({ template, lines });
   const fileName = typeof run.file_name === "string" && run.file_name
     ? run.file_name
-    : buildFileName("r365_multi_invoice", run.id);
+    : buildFileName("r365_multi_invoice");
 
   let ftpForUpload: {
     host: string; port: number; username: string; password: string;
@@ -2527,7 +2534,9 @@ export async function sendSingleInvoiceFromHistory(input: {
 
   const csvBuild = buildR365Csv({ template, lines });
   const runId = await createRun(input.organizationId, input.actorId, "manual", effectiveSyncConfigId);
-  const fileName = buildFileName("r365_single_inv", runId);
+  const invoiceNumber = lines[0]?.invoiceNumber;
+  const vendorPrefix = lines[0]?.vendor?.replace(/[^a-zA-Z0-9_\-]/g, "_").slice(0, 20) ?? "r365_single_inv";
+  const fileName = buildFileName(vendorPrefix, invoiceNumber);
 
   await uploadCsvToFtp({
     host: ftpForUpload.host,
