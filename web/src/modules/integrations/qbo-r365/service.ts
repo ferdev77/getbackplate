@@ -76,6 +76,7 @@ type SyncConfigRow = {
   last_run_at: string | null;
   created_at: string;
   r365_vendor_name: string | null;
+  r365_location: string | null;
 };
 
 type MappingRow = {
@@ -256,6 +257,7 @@ export async function createSyncConfig(
       template: payload.template,
       tax_mode: payload.taxMode,
       r365_vendor_name: payload.r365VendorName || null,
+      r365_location: payload.r365Location || null,
       created_by: actorId,
       updated_by: actorId,
     })
@@ -291,6 +293,7 @@ export async function updateSyncConfig(
   if (payload.taxMode !== undefined) patch.tax_mode = payload.taxMode;
   if (payload.status !== undefined) patch.status = payload.status;
   if (payload.r365VendorName !== undefined) patch.r365_vendor_name = payload.r365VendorName || null;
+  if (payload.r365Location !== undefined) patch.r365_location = payload.r365Location || null;
 
   if (payload.r365FtpPassword !== undefined) {
     const encrypted = encryptJsonPayload({ password: payload.r365FtpPassword });
@@ -475,6 +478,7 @@ function normalizeQboRows(input: {
   itemSkuMap?: Map<string, string>;
   customerAcctNumMap?: Map<string, string>;
   r365VendorName?: string;
+  r365Location?: string;
   taxItemNumber?: string;
   invoiceTotalsOut?: Map<string, number>;
 }) {
@@ -570,7 +574,7 @@ function normalizeQboRows(input: {
         qboBalance: Number.isFinite(balanceAmount) ? balanceAmount : undefined,
         qboPaymentStatus,
         qboStatusRaw,
-        location: input.customerAcctNumMap?.get(String(row.data.CustomerRef?.value ?? "")) ?? "",
+        location: input.r365Location?.trim() || input.customerAcctNumMap?.get(String(row.data.CustomerRef?.value ?? "")) || "",
         memo: row.data.PrivateNote || "",
         poNumber: row.data.PONumber || "",
         terms: row.data.SalesTermRef?.name || "",
@@ -606,7 +610,7 @@ function normalizeQboRows(input: {
         qboBalance: undefined,
         qboPaymentStatus: "not_applicable" as const,
         qboStatusRaw: undefined,
-        location: input.customerAcctNumMap?.get(String(row.data.CustomerRef?.value ?? "")) ?? "",
+        location: input.r365Location?.trim() || input.customerAcctNumMap?.get(String(row.data.CustomerRef?.value ?? "")) || "",
         memo: "",
         poNumber: "",
         terms: "",
@@ -1193,6 +1197,7 @@ export async function runQboR365Sync(input: {
       itemSkuMap,
       customerAcctNumMap,
       r365VendorName: syncConfig?.r365_vendor_name || undefined,
+      r365Location: syncConfig?.r365_location || undefined,
       invoiceTotalsOut: invoiceTotalsMap,
     });
     const detectedInvoiceCount = new Set(normalized.map((line) => line.sourceInvoiceId).filter(Boolean)).size;

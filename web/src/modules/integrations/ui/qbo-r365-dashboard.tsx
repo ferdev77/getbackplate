@@ -118,7 +118,7 @@ type SyncConfigSummary = {
   createdAt: string;
 };
 
-type QboCustomer = { id: string; displayName: string };
+type QboCustomer = { id: string; displayName: string; acctNum?: string };
 
 type Props = { organizationId: string; deferredDataUrl: string; showDeveloperMode?: boolean; className?: string };
 
@@ -389,6 +389,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [newSyncTemplate, setNewSyncTemplate] = useState<"by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates">("by_item");
   const [newSyncTaxMode, setNewSyncTaxMode] = useState<"line" | "header" | "none">("none");
   const [newSyncVendorName, setNewSyncVendorName] = useState("");
+  const [newSyncLocation, setNewSyncLocation] = useState("");
   const [newSyncFtpHost, setNewSyncFtpHost] = useState("");
   const [newSyncFtpUser, setNewSyncFtpUser] = useState("");
   const [newSyncFtpPass, setNewSyncFtpPass] = useState("");
@@ -561,6 +562,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   function handleCustomerPick(customer: QboCustomer) {
     setNewSyncCustomerId(customer.id);
     setNewSyncCustomerName(customer.displayName);
+    setNewSyncLocation(customer.acctNum ?? "");
     setCustomerSearch(customer.displayName);
     setCustomerDropdownOpen(false);
   }
@@ -589,6 +591,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
           template: newSyncTemplate,
           taxMode: newSyncTaxMode,
           r365VendorName: newSyncVendorName,
+          r365Location: newSyncLocation,
           r365FtpHost: newSyncFtpHost,
           r365FtpPort: 21,
           r365FtpUsername: newSyncFtpUser,
@@ -603,7 +606,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       setIsCreateSyncOpen(false);
       setNewSyncCustomerId(""); setNewSyncCustomerName("");
       setCustomerSearch(""); setCustomerDropdownOpen(false);
-      setNewSyncVendorName("");
+      setNewSyncVendorName(""); setNewSyncLocation("");
       setNewSyncFtpHost(""); setNewSyncFtpUser(""); setNewSyncFtpPass("");
       setRefreshKey((p) => p + 1);
     } catch (error) {
