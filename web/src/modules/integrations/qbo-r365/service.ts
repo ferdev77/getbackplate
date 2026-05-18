@@ -2242,6 +2242,15 @@ export async function getQboR365RunPreview(input: {
     };
   });
 
+  rows.sort((a, b) => {
+    if (a.sourceInvoiceId !== b.sourceInvoiceId) {
+      return String(a.sourceInvoiceId ?? "").localeCompare(String(b.sourceInvoiceId ?? ""));
+    }
+    const na = a.sourceLineId === "tax" ? Number.POSITIVE_INFINITY : (Number(a.sourceLineId) || 0);
+    const nb = b.sourceLineId === "tax" ? Number.POSITIVE_INFINITY : (Number(b.sourceLineId) || 0);
+    return na - nb;
+  });
+
   return { mappingMode, rows };
 }
 
