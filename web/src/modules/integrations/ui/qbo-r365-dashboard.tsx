@@ -383,8 +383,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [isCreateSyncOpen, setIsCreateSyncOpen] = useState(false);
   const [runningSyncId, setRunningSyncId] = useState<string | null>(null);
   const [deletingSyncId, setDeletingSyncId] = useState<string | null>(null);
-  const [editingLocationId, setEditingLocationId] = useState<string | null>(null);
-  const [editingLocationValue, setEditingLocationValue] = useState("");
   // Form state for new sync config
   const [newSyncCustomerId, setNewSyncCustomerId] = useState("");
   const [newSyncCustomerName, setNewSyncCustomerName] = useState("");
@@ -561,22 +559,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       toast.error("No se pudo eliminar");
     }
     setDeletingSyncId(null);
-  }
-
-  async function handleSaveLocation(id: string) {
-    try {
-      const response = await fetch(`/api/company/integrations/qbo-r365/sync-configs/${id}`, {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ r365Location: editingLocationValue.trim() || "" }),
-      });
-      if (!response.ok) throw new Error("Error al guardar");
-      setSyncConfigs((prev) => prev.map((c) => c.id === id ? { ...c, r365Location: editingLocationValue.trim() || null } : c));
-      setEditingLocationId(null);
-      toast.success("Location actualizada");
-    } catch {
-      toast.error("No se pudo guardar");
-    }
   }
 
   function handleCustomerPick(customer: QboCustomer) {
@@ -1395,35 +1377,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   <span className={`rounded px-2 py-0.5 text-[10px] ${config.hasFtp ? "bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]" : "bg-[var(--gbp-error-soft)] text-[var(--gbp-error)]"}`}>
                     {config.hasFtp ? "FTP ok" : "Sin FTP"}
                   </span>
-                </div>
-                {/* Location R365 editable */}
-                <div className="mt-2">
-                  {editingLocationId === config.id ? (
-                    <div className="flex items-center gap-1">
-                      <input
-                        autoFocus
-                        type="text"
-                        value={editingLocationValue}
-                        onChange={(e) => setEditingLocationValue(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === "Enter") { void handleSaveLocation(config.id); } if (e.key === "Escape") setEditingLocationId(null); }}
-                        placeholder="Account number R365"
-                        className="h-7 flex-1 rounded border border-[var(--gbp-accent)] bg-[var(--gbp-bg)] px-2 text-xs focus:outline-none"
-                      />
-                      <button type="button" onClick={() => { void handleSaveLocation(config.id); }} className="rounded bg-[var(--gbp-accent)] px-2 py-1 text-[10px] font-bold text-white">OK</button>
-                      <button type="button" onClick={() => setEditingLocationId(null)} className="rounded px-1 py-1 text-[10px] text-[var(--gbp-muted)]">✕</button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => { setEditingLocationId(config.id); setEditingLocationValue(config.r365Location ?? ""); }}
-                      className="flex items-center gap-1 text-[11px] text-[var(--gbp-text2)] hover:text-[var(--gbp-accent)]"
-                    >
-                      <span className="font-bold">Location:</span>
-                      <span className={config.r365Location ? "text-[var(--gbp-text)]" : "italic text-[var(--gbp-muted)]"}>
-                        {config.r365Location ?? "sin definir — clic para editar"}
-                      </span>
-                    </button>
-                  )}
                 </div>
                 {config.lastRunAt && (
                   <p className="mt-2 text-[11px] text-[var(--gbp-muted)]">Última ejecución: {relativeTime(config.lastRunAt)}</p>
