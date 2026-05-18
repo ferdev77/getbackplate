@@ -1364,7 +1364,11 @@ export async function runQboR365Sync(input: {
     const uploadedFileNames: string[] = [];
 
     for (const invoiceEntries of linesByInvoice.values()) {
-      const invoiceLines = invoiceEntries.map((e) => e.line);
+      const invoiceLines = invoiceEntries.map((e) => e.line).sort((a, b) => {
+        const aId = a.sourceLineId === "tax" ? Number.POSITIVE_INFINITY : (Number(a.sourceLineId) || 0);
+        const bId = b.sourceLineId === "tax" ? Number.POSITIVE_INFINITY : (Number(b.sourceLineId) || 0);
+        return aId - bId;
+      });
       const csvBuild = buildR365Csv({ template: effectiveTemplate, lines: invoiceLines });
       const invoiceNumber = invoiceLines[0]?.invoiceNumber;
       const vendorSlug = (invoiceLines[0]?.vendor ?? settings.file_prefix)
