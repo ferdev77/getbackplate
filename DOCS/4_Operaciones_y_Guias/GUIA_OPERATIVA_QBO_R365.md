@@ -198,7 +198,35 @@ npm run build
 - accion aplicada
 - resultado final
 
+## 12) Convencion de nombre de archivo CSV (R365)
+
+Segun la documentacion oficial de Restaurant365 para archivos Multi-Invoice:
+
+**Incluir:**
+- Nombre del vendor (completo o abreviado)
+- Numero de invoice/CM (cuando aplica)
+- Fecha y hora
+
+**No incluir:**
+- Informacion de location — si hay multiples invoices, hay multiples locations representadas
+
+**Formato implementado en el sistema:**
+
+| Tipo de envio | Formato del archivo |
+|---|---|
+| Sync batch (multiples invoices) | `{file_prefix}_{YYYYMMDD}_{HHMMSS}.csv` |
+| Invoice individual | `{vendor}_{INV}{numero}_{YYYYMMDD}_{HHMMSS}.csv` |
+
+**Ejemplos:**
+- `PRODEL_20260518_143022.csv`
+- `PRODEL_DISTRIBUTION_INV50589_20260518_143022.csv`
+
+El `file_prefix` se configura por organizacion en los settings de la integracion. Debe ser el nombre o abreviacion del vendor tal como aparece en R365.
+
+**Referencia:** "File Name Considerations on the Restaurant365 Multi-Invoice file" — documentacion interna R365.
+
 ## Control de cambios
 
 - v1: runbook operativo inicial.
 - v2: incluye modo developer por etapas, exportes, 4 templates oficiales y dedupe por factura.
+- v3: agrega convencion de nombre de archivo segun estandar R365 (seccion 12).
