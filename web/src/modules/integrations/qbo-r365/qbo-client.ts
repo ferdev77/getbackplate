@@ -1,7 +1,6 @@
 const QBO_AUTHORIZE_URL = "https://appcenter.intuit.com/connect/oauth2";
 const QBO_TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer";
 const QBO_API_BASE_URL = "https://quickbooks.api.intuit.com";
-const QBO_SANDBOX_API_BASE_URL = "https://sandbox-quickbooks.api.intuit.com";
 
 type ExchangeTokenInput = {
   clientId: string;
@@ -139,7 +138,6 @@ async function queryQboTable<T>(input: {
   table: "Invoice" | "SalesReceipt" | "CreditMemo";
   customerId?: string;
   sinceIso?: string;
-  useSandbox?: boolean;
 }) {
   const sanitizeCustomerId = (value: string) => {
     const trimmed = value.trim();
@@ -203,19 +201,10 @@ async function queryQboTable<T>(input: {
     const where = clauses.length > 0 ? ` WHERE ${clauses.join(" AND ")}` : "";
     const query = `select * from ${input.table}${where} startposition ${startPosition} maxresults ${pageSize}`;
 
-    const primaryUrl = input.useSandbox ? QBO_SANDBOX_API_BASE_URL : QBO_API_BASE_URL;
-    let { response, payload, fault } = await doRequest(primaryUrl, query);
+    let { response, payload, fault } = await doRequest(QBO_API_BASE_URL, query);
 
     const code = String(fault?.code ?? "").trim();
     const message = (fault?.Detail ?? fault?.Message ?? fault?.detail ?? fault?.message ?? "").trim();
-
-    // Tokens de entorno sandbox pueden responder 3100 contra endpoint de produccion.
-    if (!input.useSandbox && !response.ok && code === "3100") {
-      const fallback = await doRequest(QBO_SANDBOX_API_BASE_URL, query);
-      response = fallback.response;
-      payload = fallback.payload;
-      fault = fallback.fault;
-    }
 
     if (!response.ok) {
       const errorCode = String(fault?.code ?? "").trim();
@@ -250,7 +239,6 @@ export async function fetchQboSalesTransactions(input: {
   realmId: string;
   customerId?: string;
   sinceIso?: string;
-  useSandbox?: boolean;
 }) {
   const [invoices, salesReceipts, creditMemos] = await Promise.all([
     queryQboTable<QboInvoiceLike>({
@@ -259,7 +247,6 @@ export async function fetchQboSalesTransactions(input: {
       table: "Invoice",
       customerId: input.customerId,
       sinceIso: input.sinceIso,
-      useSandbox: input.useSandbox,
     }),
     queryQboTable<QboInvoiceLike>({
       accessToken: input.accessToken,
@@ -267,7 +254,6 @@ export async function fetchQboSalesTransactions(input: {
       table: "SalesReceipt",
       customerId: input.customerId,
       sinceIso: input.sinceIso,
-      useSandbox: input.useSandbox,
     }),
     queryQboTable<QboInvoiceLike>({
       accessToken: input.accessToken,
@@ -275,7 +261,6 @@ export async function fetchQboSalesTransactions(input: {
       table: "CreditMemo",
       customerId: input.customerId,
       sinceIso: input.sinceIso,
-      useSandbox: input.useSandbox,
     }),
   ]);
 
@@ -309,9 +294,8 @@ export type QboCustomer = {
 export async function fetchQboItemSkus(input: {
   accessToken: string;
   realmId: string;
-  useSandbox?: boolean;
 }): Promise<Map<string, string>> {
-  const baseUrl = input.useSandbox ? QBO_SANDBOX_API_BASE_URL : QBO_API_BASE_URL;
+  const baseUrl = QBO_API_BASE_URL;
   const skuMap = new Map<string, string>();
   const pageSize = 1000;
   let startPosition = 1;
@@ -356,9 +340,8 @@ export async function fetchQboItemSkus(input: {
 export async function fetchQboCustomers(input: {
   accessToken: string;
   realmId: string;
-  useSandbox?: boolean;
 }): Promise<QboCustomer[]> {
-  const baseUrl = input.useSandbox ? QBO_SANDBOX_API_BASE_URL : QBO_API_BASE_URL;
+  const baseUrl = QBO_API_BASE_URL;
   const pageSize = 1000;
   const output: QboCustomer[] = [];
   let startPosition = 1;

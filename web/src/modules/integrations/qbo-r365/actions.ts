@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
-import { getQboR365Snapshot, upsertQboR365Config, updateQboConnectionPublicConfig } from "@/modules/integrations/qbo-r365/service";
+import { getQboR365Snapshot, upsertQboR365Config } from "@/modules/integrations/qbo-r365/service";
 import { qboR365ConfigUpsertSchema } from "@/modules/integrations/qbo-r365/types";
 
 export async function saveIntegrationConfigAction(formData: FormData) {
@@ -20,8 +20,6 @@ export async function saveIntegrationConfigAction(formData: FormData) {
     const settingsTemplate = String(formData.get("settingsTemplate") ?? "").trim();
     const settingsLookbackRaw = formData.get("settingsLookbackHours");
     const settingsLookbackHours = settingsLookbackRaw ? Number(settingsLookbackRaw) : null;
-    const sandboxFieldVisible = formData.get("__sandboxVisible") === "1";
-    const useSandboxQbo = formData.get("useSandboxQbo") === "true";
 
     const rawData: Record<string, unknown> = {};
 
@@ -57,42 +55,22 @@ export async function saveIntegrationConfigAction(formData: FormData) {
       };
     }
 
-    const hasSandboxField = sandboxFieldVisible;
-
-    if (!hasAnyFtpField && !hasAnySettingsField && !hasSandboxField) {
+    if (!hasAnyFtpField && !hasAnySettingsField) {
       return { status: "error", message: "No hay cambios para guardar." };
     }
 
-    if (hasAnyFtpField || hasAnySettingsField) {
-      const parsed = qboR365ConfigUpsertSchema.safeParse(rawData);
-      if (!parsed.success) {
-        return { status: "error", message: "Los datos de configuración no son válidos." };
-      }
-
-      await upsertQboR365Config({
-        organizationId: access.tenant.organizationId,
-        actorId: access.userId,
-        payload: parsed.data,
-      });
+    const parsed = qboR365ConfigUpsertSchema.safeParse(rawData);
+    if (!parsed.success) {
+      return { status: "error", message: "Los datos de configuración no son válidos." };
     }
 
-    if (sandboxFieldVisible) {
-      await updateQboConnectionPublicConfig({
-        organizationId: access.tenant.organizationId,
-        actorId: access.userId,
-        useSandbox: useSandboxQbo,
-      });
-    }
+    await upsertQboR365Config({
+      organizationId: access.tenant.organizationId,
+      actorId: access.userId,
+      payload: parsed.data,
+    });
 
     revalidatePath("/app/integrations/quickbooks");
-    if (hasSandboxField && !hasAnyFtpField && !hasAnySettingsField) {
-      return {
-        status: "success",
-        message: useSandboxQbo
-          ? "Modo Sandbox QBO activado."
-          : "Modo QBO real activado.",
-      };
-    }
     return { status: "success", message: "Configuración guardada exitosamente." };
   } catch (error) {
     console.error("[saveIntegrationConfigAction]", error);
