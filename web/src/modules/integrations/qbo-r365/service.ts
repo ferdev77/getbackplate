@@ -9,6 +9,7 @@ import {
   exchangeQboOAuthCode,
   fetchQboCustomers,
   fetchQboItemSkus,
+  fetchQboRawTransaction,
   fetchQboSalesTransactions,
   refreshQboAccessToken,
   type QboCustomer,
@@ -335,6 +336,19 @@ export async function listQboCustomers(organizationId: string): Promise<QboCusto
   return fetchQboCustomers({
     accessToken: qboAuth.accessToken,
     realmId: qboAuth.realmId,
+  });
+}
+
+export async function fetchRawQboInvoice(organizationId: string, invoiceId: string) {
+  const qboConnection = await getConnection(organizationId, "quickbooks_online");
+  if (!qboConnection || qboConnection.status !== "connected") {
+    throw new Error("QuickBooks Online no esta conectado");
+  }
+  const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
+  return fetchQboRawTransaction({
+    accessToken: qboAuth.accessToken,
+    realmId: qboAuth.realmId,
+    invoiceId,
   });
 }
 
