@@ -8,6 +8,7 @@ import {
   buildQboAuthorizeUrl,
   exchangeQboOAuthCode,
   fetchQboCustomerById,
+  fetchQboCrudoTransaction,
   fetchQboCustomers,
   fetchQboItemSkus,
   fetchQboRawTransaction,
@@ -360,6 +361,19 @@ export async function fetchRawQboInvoice(organizationId: string, invoiceId: stri
   }
   const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
   return fetchQboRawTransaction({
+    accessToken: qboAuth.accessToken,
+    realmId: qboAuth.realmId,
+    invoiceId,
+  });
+}
+
+export async function fetchCrudoQboInvoice(organizationId: string, invoiceId: string) {
+  const qboConnection = await getConnection(organizationId, "quickbooks_online");
+  if (!qboConnection || qboConnection.status !== "connected") {
+    throw new Error("QuickBooks Online no esta conectado");
+  }
+  const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
+  return fetchQboCrudoTransaction({
     accessToken: qboAuth.accessToken,
     realmId: qboAuth.realmId,
     invoiceId,

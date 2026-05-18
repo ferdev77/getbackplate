@@ -316,6 +316,37 @@ export async function fetchQboRawTransaction(input: {
   return null;
 }
 
+export async function fetchQboCrudoTransaction(input: {
+  accessToken: string;
+  realmId: string;
+  invoiceId: string;
+}): Promise<{ type: string; query: string; response: unknown } | null> {
+  const types = ["Invoice", "SalesReceipt", "CreditMemo"] as const;
+  for (const type of types) {
+    const query = `select * from ${type} where Id = '${input.invoiceId}'`;
+    const response = await fetch(
+      `${QBO_API_BASE_URL}/v3/company/${input.realmId}/query?minorversion=75`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${input.accessToken}`,
+          Accept: "application/json",
+          "Content-Type": "application/text",
+        },
+        body: query,
+        cache: "no-store",
+      },
+    );
+    const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+    const qr = (payload.QueryResponse ?? payload.queryResponse) as Record<string, unknown> | undefined;
+    const items = (qr?.[type] ?? []) as unknown[];
+    if (items.length > 0) {
+      return { type, query, response: payload };
+    }
+  }
+  return null;
+}
+
 export type QboCustomer = {
   id: string;
   displayName: string;
