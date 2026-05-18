@@ -1845,9 +1845,10 @@ export async function getInvoiceDetail(
   }
 
   lines.sort((a, b) => {
-    const na = Number(a.sourceLineId) || 0;
-    const nb = Number(b.sourceLineId) || 0;
-    return na - nb || a.sourceLineId.localeCompare(b.sourceLineId);
+    const na = a.sourceLineId === "tax" ? Number.POSITIVE_INFINITY : (Number(a.sourceLineId) || 0);
+    const nb = b.sourceLineId === "tax" ? Number.POSITIVE_INFINITY : (Number(b.sourceLineId) || 0);
+    if (na !== nb) return na - nb;
+    return a.sourceLineId.localeCompare(b.sourceLineId);
   });
 
   const subtotal = lines.reduce((s, l) => s + (l.lineAmount ?? 0), 0);
