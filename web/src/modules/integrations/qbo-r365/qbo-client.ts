@@ -469,12 +469,18 @@ export async function fetchQboCustomerById(input: {
   const payload = (await response.json().catch(() => null)) as { Customer?: Record<string, unknown> } | null;
   const c = payload?.Customer;
   if (!c || typeof c.Id !== "string" || typeof c.DisplayName !== "string") return null;
-  return {
-    id: c.Id,
-    displayName: c.DisplayName,
-    acctNum: typeof c.AcctNum === "string" && c.AcctNum.trim() ? c.AcctNum.trim() : undefined,
-    raw: c,
-  };
+
+  // "Account Number" is stored as a CustomField, not in AcctNum
+  let acctNum: string | undefined;
+  const customFields = Array.isArray(c.CustomField) ? (c.CustomField as Array<Record<string, unknown>>) : [];
+  const acctField = customFields.find((f) => typeof f.Name === "string" && f.Name.toLowerCase() === "account number");
+  if (acctField && typeof acctField.StringValue === "string" && acctField.StringValue.trim()) {
+    acctNum = acctField.StringValue.trim();
+  } else if (typeof c.AcctNum === "string" && c.AcctNum.trim()) {
+    acctNum = c.AcctNum.trim();
+  }
+
+  return { id: c.Id, displayName: c.DisplayName, acctNum, raw: c };
 }
 
 export async function fetchQboCustomers(input: {
