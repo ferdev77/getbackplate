@@ -1806,7 +1806,11 @@ export async function listQboR365InvoiceHistory(organizationId: string, limit = 
       sentToR365: entry.sentToR365,
       timesSeen: entry.timesSeen,
     }))
-    .sort((a, b) => new Date(b.lastSeenAt).getTime() - new Date(a.lastSeenAt).getTime())
+    .sort((a, b) => {
+      const da = a.invoiceDate ? new Date(a.invoiceDate).getTime() : 0;
+      const db = b.invoiceDate ? new Date(b.invoiceDate).getTime() : 0;
+      return db - da;
+    })
     .slice(0, limit);
 }
 
