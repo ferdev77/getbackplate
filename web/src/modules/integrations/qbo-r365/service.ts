@@ -331,12 +331,10 @@ export async function listQboCustomers(organizationId: string): Promise<QboCusto
   }
 
   const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
-  const useSandbox = Boolean((qboConnection.config as Record<string, unknown>)?.useSandbox ?? false);
 
   return fetchQboCustomers({
     accessToken: qboAuth.accessToken,
     realmId: qboAuth.realmId,
-    useSandbox,
   });
 }
 
@@ -755,7 +753,6 @@ export async function getQboR365Snapshot(
       clientSecret: options?.includeSensitive && globalQbo.clientSecret ? globalQbo.clientSecret : null,
       redirectUri: options?.includeSensitive && globalQbo.redirectUri ? globalQbo.redirectUri : null,
       realmId: ((qboConnection?.config as Record<string, unknown> | undefined)?.realmId as string | undefined) ?? null,
-      useSandbox: Boolean((qboConnection?.config as Record<string, unknown> | undefined)?.useSandbox ?? false),
       tokenExpiresAtEpochSec: qboSecrets?.expiresAtEpochSec ?? null,
       hasRefreshToken: Boolean(qboSecrets?.refreshToken),
       lastError: qboConnection?.last_error ?? null,
@@ -1109,8 +1106,6 @@ export async function runQboR365Sync(input: {
       qboConnection,
     });
 
-    const qboConfig = (qboConnection.config ?? {}) as Record<string, unknown>;
-    const useSandbox = Boolean(qboConfig.useSandbox ?? false);
     const effectiveLookbackHours = syncConfig?.lookback_hours ?? settings.incremental_lookback_hours;
     const sinceIso = input.ignoreLookback === true || effectiveLookbackHours === 0
       ? undefined
@@ -1122,7 +1117,6 @@ export async function runQboR365Sync(input: {
         realmId: qboAuth.realmId,
         customerId: syncConfig?.qbo_customer_id,
         sinceIso,
-        useSandbox,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Error consultando Invoice en QBO";
@@ -1143,35 +1137,7 @@ export async function runQboR365Sync(input: {
         realmId: qboAuth.realmId,
         customerId: syncConfig?.qbo_customer_id,
         sinceIso,
-        useSandbox,
       });
-    }
-
-    // Si el URL de produccion devuelve 0 resultados (QBO cambio de devolver error 3100
-    // a devolver 200+vacio para tokens sandbox), intentar con URL de sandbox automaticamente.
-    let effectiveUseSandbox = useSandbox;
-    if (!useSandbox && qboData.invoices.length === 0 && qboData.salesReceipts.length === 0 && qboData.creditMemos.length === 0) {
-      try {
-        const sandboxData = await fetchQboSalesTransactions({
-          accessToken: qboAuth.accessToken,
-          realmId: qboAuth.realmId,
-          sinceIso,
-          useSandbox: true,
-        });
-        if (sandboxData.invoices.length > 0 || sandboxData.salesReceipts.length > 0 || sandboxData.creditMemos.length > 0) {
-          qboData = sandboxData;
-          effectiveUseSandbox = true;
-          if (actorId) {
-            void updateQboConnectionPublicConfig({
-              organizationId: input.organizationId,
-              actorId,
-              useSandbox: true,
-            }).catch(() => {});
-          }
-        }
-      } catch {
-        // Si falla la deteccion de sandbox, continuar con 0 resultados
-      }
     }
 
     const mappings = await getActiveMappings(input.organizationId);
@@ -1180,12 +1146,10 @@ export async function runQboR365Sync(input: {
       fetchQboItemSkus({
         accessToken: qboAuth.accessToken,
         realmId: qboAuth.realmId,
-        useSandbox: effectiveUseSandbox,
       }).catch(() => new Map<string, string>()),
       fetchQboCustomers({
         accessToken: qboAuth.accessToken,
         realmId: qboAuth.realmId,
-        useSandbox: effectiveUseSandbox,
       }).then((customers) => {
         const map = new Map<string, string>();
         for (const c of customers) {
@@ -2177,23 +2141,6 @@ export async function getQboR365RunPreview(input: {
   return { mappingMode, rows };
 }
 
-export async function updateQboConnectionPublicConfig(input: {
-  organizationId: string;
-  actorId: string;
-  useSandbox: boolean;
-}) {
-  const previous = await getConnection(input.organizationId, "quickbooks_online");
-  if (!previous) return;
-  await upsertConnection({
-    organizationId: input.organizationId,
-    provider: "quickbooks_online",
-    actorId: input.actorId,
-    config: {
-      ...(previous.config ?? {}),
-      useSandbox: input.useSandbox,
-    },
-  });
-}
 
 export async function getQboR365RunExport(input: {
   organizationId: string;
