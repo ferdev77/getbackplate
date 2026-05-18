@@ -33,6 +33,7 @@ type DashboardData = {
     qboPaymentStatus: "paid" | "unpaid" | "partial" | "not_applicable" | "unknown" | null;
     qboStatusRaw: string | null;
     vendor: string | null;
+    qboCustomerName: string | null;
     mappedCode: string | null;
     lastStatus: string;
     lastSeenAt: string;
@@ -1698,7 +1699,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                     onClick={() => setSelectedInvoiceId(item.sourceInvoiceId)}
                   >
                     <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{formatQboDate(item.invoiceDate)}</td>
-                    <td className="px-4 py-3 text-xs font-medium text-[var(--gbp-text)]">{syncHistoryFilter?.name ?? item.vendor ?? "-"}</td>
+                    <td className="px-4 py-3 text-xs font-medium text-[var(--gbp-text)]">{item.qboCustomerName ?? syncHistoryFilter?.name ?? "-"}</td>
                     <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{invoiceTypeLabel(item.transactionTypeCode)}</td>
                     <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{item.qboStatusRaw ?? qboPaymentStatusLabel(item.qboPaymentStatus)}</td>
                     <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{itemStatusLabel(item.lastStatus)}</td>
