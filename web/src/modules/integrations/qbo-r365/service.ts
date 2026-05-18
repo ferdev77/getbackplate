@@ -477,6 +477,7 @@ function normalizeQboRows(input: {
   mappings: MappingRow[];
   itemSkuMap?: Map<string, string>;
   customerAcctNumMap?: Map<string, string>;
+  syncConfigCustomerId?: string;
   r365VendorName?: string;
   r365Location?: string;
   taxItemNumber?: string;
@@ -574,7 +575,10 @@ function normalizeQboRows(input: {
         qboBalance: Number.isFinite(balanceAmount) ? balanceAmount : undefined,
         qboPaymentStatus,
         qboStatusRaw,
-        location: input.r365Location?.trim() || input.customerAcctNumMap?.get(String(row.data.CustomerRef?.value ?? "")) || "",
+        location: input.r365Location?.trim()
+          || input.customerAcctNumMap?.get(String(row.data.CustomerRef?.value ?? ""))
+          || (input.syncConfigCustomerId ? input.customerAcctNumMap?.get(input.syncConfigCustomerId) : undefined)
+          || "",
         memo: row.data.PrivateNote || "",
         poNumber: row.data.PONumber || "",
         terms: row.data.SalesTermRef?.name || "",
@@ -610,7 +614,10 @@ function normalizeQboRows(input: {
         qboBalance: undefined,
         qboPaymentStatus: "not_applicable" as const,
         qboStatusRaw: undefined,
-        location: input.r365Location?.trim() || input.customerAcctNumMap?.get(String(row.data.CustomerRef?.value ?? "")) || "",
+        location: input.r365Location?.trim()
+          || input.customerAcctNumMap?.get(String(row.data.CustomerRef?.value ?? ""))
+          || (input.syncConfigCustomerId ? input.customerAcctNumMap?.get(input.syncConfigCustomerId) : undefined)
+          || "",
         memo: "",
         poNumber: "",
         terms: "",
@@ -1196,6 +1203,7 @@ export async function runQboR365Sync(input: {
       mappings,
       itemSkuMap,
       customerAcctNumMap,
+      syncConfigCustomerId: syncConfig?.qbo_customer_id || undefined,
       r365VendorName: syncConfig?.r365_vendor_name || undefined,
       r365Location: syncConfig?.r365_location || undefined,
       invoiceTotalsOut: invoiceTotalsMap,
