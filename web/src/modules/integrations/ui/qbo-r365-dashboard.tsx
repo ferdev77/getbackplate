@@ -885,6 +885,24 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     setPreviewingCsv(false);
   }
 
+  async function handleDownloadRawQbo(invoiceId: string | null) {
+    if (!invoiceId) return;
+    try {
+      const response = await fetch(`/api/company/integrations/qbo-r365/invoice-raw?invoiceId=${encodeURIComponent(invoiceId)}`);
+      const data = await response.json() as unknown;
+      if (!response.ok) { toast.error((data as { error?: string }).error ?? "Error"); return; }
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `qbo_raw_${invoiceId}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("No se pudo descargar el raw de QBO");
+    }
+  }
+
   async function handleInvoiceExport(format: "csv" | "json" | "pdf" | "txt") {
     if (!invoiceDetail) return;
     const inv = invoiceDetail;
@@ -1822,6 +1840,15 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                         {fmt}
                       </button>
                     ))}
+                    {mode === "developer" && (
+                      <button
+                        type="button"
+                        onClick={() => void handleDownloadRawQbo(selectedInvoice.sourceInvoiceId)}
+                        className="rounded-lg border-[1.5px] border-[var(--gbp-warning,#f59e0b)] bg-[var(--gbp-bg)] px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--gbp-warning,#f59e0b)] transition hover:bg-[color-mix(in_oklab,#f59e0b_10%,transparent)]"
+                      >
+                        raw qbo
+                      </button>
+                    )}
                   </div>
                 )}
                 <button
