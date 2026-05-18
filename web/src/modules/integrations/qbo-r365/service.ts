@@ -379,7 +379,14 @@ export async function fetchCrudoQboInvoice(organizationId: string, invoiceId: st
     invoiceId,
   });
 
-  let selectedCustomer: {
+  let syncCustomer: {
+    id: string;
+    displayName: string;
+    acctNum?: string;
+    raw?: Record<string, unknown>;
+  } | null = null;
+
+  let invoiceCustomer: {
     id: string;
     displayName: string;
     acctNum?: string;
@@ -399,7 +406,7 @@ export async function fetchCrudoQboInvoice(organizationId: string, invoiceId: st
 
     const qboCustomerId = typeof syncConfig?.qbo_customer_id === "string" ? syncConfig.qbo_customer_id : null;
     if (qboCustomerId) {
-      selectedCustomer = await fetchQboCustomerById({
+      syncCustomer = await fetchQboCustomerById({
         accessToken: qboAuth.accessToken,
         realmId: qboAuth.realmId,
         customerId: qboCustomerId,
@@ -407,10 +414,33 @@ export async function fetchCrudoQboInvoice(organizationId: string, invoiceId: st
     }
   }
 
+  const foundAttempt = transactionCrudo.attempts.find((attempt) => attempt.type === transactionCrudo.foundType);
+  const foundResponse = (foundAttempt?.response ?? {}) as Record<string, unknown>;
+  const foundQueryResponse = (foundResponse.QueryResponse ?? foundResponse.queryResponse ?? {}) as Record<string, unknown>;
+  const foundTypeItems = transactionCrudo.foundType
+    ? (foundQueryResponse[transactionCrudo.foundType] as unknown[] | undefined)
+    : undefined;
+  const invoiceData = (foundTypeItems && foundTypeItems.length > 0 ? foundTypeItems[0] : null) as Record<string, unknown> | null;
+  const customerRef = (invoiceData?.CustomerRef ?? {}) as Record<string, unknown>;
+  const invoiceCustomerId = typeof customerRef.value === "string" ? customerRef.value : null;
+
+  if (invoiceCustomerId) {
+    invoiceCustomer = await fetchQboCustomerById({
+      accessToken: qboAuth.accessToken,
+      realmId: qboAuth.realmId,
+      customerId: invoiceCustomerId,
+    });
+  }
+
   return {
     ...transactionCrudo,
     syncConfigId: syncConfigId ?? null,
-    selectedCustomer,
+    syncCustomer,
+    invoiceCustomer,
+    customerAcctNumMatch:
+      Boolean(syncCustomer?.acctNum)
+      && Boolean(invoiceCustomer?.acctNum)
+      && syncCustomer?.acctNum === invoiceCustomer?.acctNum,
   };
 }
 

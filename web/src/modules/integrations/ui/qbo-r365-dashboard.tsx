@@ -392,6 +392,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [newSyncTaxMode, setNewSyncTaxMode] = useState<"line" | "header" | "none">("none");
   const [newSyncVendorName, setNewSyncVendorName] = useState("");
   const [newSyncLocation, setNewSyncLocation] = useState("");
+  const [pickedCustomerRaw, setPickedCustomerRaw] = useState<Record<string, unknown> | null>(null);
   const [newSyncFtpHost, setNewSyncFtpHost] = useState("");
   const [newSyncFtpUser, setNewSyncFtpUser] = useState("");
   const [newSyncFtpPass, setNewSyncFtpPass] = useState("");
@@ -567,12 +568,14 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     setNewSyncLocation(customer.acctNum ?? "");
     setCustomerSearch(customer.displayName);
     setCustomerDropdownOpen(false);
+    setPickedCustomerRaw(null);
 
-    // Fetch full customer by ID to get AcctNum (SELECT query doesn't always return it)
+    // Fetch full customer by ID to get AcctNum + CustomField (SELECT query doesn't return these)
     try {
       const res = await fetch(`/api/company/integrations/qbo-r365/customers/${customer.id}`);
       if (res.ok) {
         const data = (await res.json()) as { customer?: QboCustomer };
+        if (data.customer?.raw) setPickedCustomerRaw(data.customer.raw);
         if (data.customer?.acctNum) {
           setNewSyncLocation(data.customer.acctNum);
         }
@@ -1539,6 +1542,12 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                       </div>
                     )}
                 </label>
+                {mode === "developer" && pickedCustomerRaw && (
+                  <div className="mt-2 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
+                    <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[var(--gbp-accent)]">GET /Customer/{String(pickedCustomerRaw.Id ?? "")} — raw</p>
+                    <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all text-[10px] text-[var(--gbp-text2)]">{JSON.stringify(pickedCustomerRaw, null, 2)}</pre>
+                  </div>
+                )}
               </div>
               {/* Frecuencia y template */}
               <div>

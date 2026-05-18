@@ -456,7 +456,7 @@ export async function fetchQboCustomerById(input: {
 }): Promise<QboCustomer | null> {
   const baseUrl = QBO_API_BASE_URL;
   const response = await fetch(
-    `${baseUrl}/v3/company/${input.realmId}/customer/${input.customerId}?minorversion=75`,
+    `${baseUrl}/v3/company/${input.realmId}/customer/${input.customerId}?minorversion=75&include=enhancedAllCustomFields`,
     {
       headers: {
         Authorization: `Bearer ${input.accessToken}`,
