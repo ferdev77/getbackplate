@@ -2368,7 +2368,12 @@ export async function previewSingleInvoiceCsv(input: {
 
   const lines = [...lineMap.values()]
     .map(({ payload }) => payloadToLine(payload))
-    .filter((line) => Boolean(line.vendor && line.invoiceNumber));
+    .filter((line) => Boolean(line.vendor && line.invoiceNumber))
+    .sort((a, b) => {
+      const na = a.sourceLineId === "tax" ? Number.POSITIVE_INFINITY : (Number(a.sourceLineId) || 0);
+      const nb = b.sourceLineId === "tax" ? Number.POSITIVE_INFINITY : (Number(b.sourceLineId) || 0);
+      return na - nb;
+    });
 
   if (lines.length === 0) throw new Error("Las líneas de la factura no tienen datos suficientes para previsualizar");
 
