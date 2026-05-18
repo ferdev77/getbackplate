@@ -211,9 +211,9 @@ function qboPaymentStatusLabel(status: "paid" | "unpaid" | "partial" | "not_appl
 }
 
 function invoiceTypeLabel(code: "1" | "2" | null) {
-  if (code === "2") return "Nota de credito";
-  if (code === "1") return "Factura";
-  return "Sin dato";
+  if (code === "2") return "Credit Memo";
+  if (code === "1") return "Invoice";
+  return "-";
 }
 
 function relativeTime(iso: string) {
