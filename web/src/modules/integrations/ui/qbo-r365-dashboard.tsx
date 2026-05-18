@@ -919,7 +919,11 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   async function handleDownloadCrudoQbo(invoiceId: string | null) {
     if (!invoiceId) return;
     try {
-      const response = await fetch(`/api/company/integrations/qbo-r365/invoice-crudo?invoiceId=${encodeURIComponent(invoiceId)}`);
+      const syncConfigId = syncHistoryFilter?.id ?? "";
+      const query = syncConfigId
+        ? `invoiceId=${encodeURIComponent(invoiceId)}&syncConfigId=${encodeURIComponent(syncConfigId)}`
+        : `invoiceId=${encodeURIComponent(invoiceId)}`;
+      const response = await fetch(`/api/company/integrations/qbo-r365/invoice-crudo?${query}`);
       const data = await response.json() as unknown;
       if (!response.ok) { toast.error((data as { error?: string }).error ?? "Error"); return; }
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });

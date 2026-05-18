@@ -367,17 +367,51 @@ export async function fetchRawQboInvoice(organizationId: string, invoiceId: stri
   });
 }
 
-export async function fetchCrudoQboInvoice(organizationId: string, invoiceId: string) {
+export async function fetchCrudoQboInvoice(organizationId: string, invoiceId: string, syncConfigId?: string | null) {
   const qboConnection = await getConnection(organizationId, "quickbooks_online");
   if (!qboConnection || qboConnection.status !== "connected") {
     throw new Error("QuickBooks Online no esta conectado");
   }
   const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
-  return fetchQboCrudoTransaction({
+  const transactionCrudo = await fetchQboCrudoTransaction({
     accessToken: qboAuth.accessToken,
     realmId: qboAuth.realmId,
     invoiceId,
   });
+
+  let selectedCustomer: {
+    id: string;
+    displayName: string;
+    acctNum?: string;
+    raw?: Record<string, unknown>;
+  } | null = null;
+
+  if (syncConfigId) {
+    const admin = createSupabaseAdminClient();
+    const { data: syncConfig, error } = await admin
+      .from("qbo_r365_sync_configs")
+      .select("qbo_customer_id")
+      .eq("organization_id", organizationId)
+      .eq("id", syncConfigId)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+
+    const qboCustomerId = typeof syncConfig?.qbo_customer_id === "string" ? syncConfig.qbo_customer_id : null;
+    if (qboCustomerId) {
+      selectedCustomer = await fetchQboCustomerById({
+        accessToken: qboAuth.accessToken,
+        realmId: qboAuth.realmId,
+        customerId: qboCustomerId,
+      });
+    }
+  }
+
+  return {
+    ...transactionCrudo,
+    syncConfigId: syncConfigId ?? null,
+    selectedCustomer,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
