@@ -320,12 +320,38 @@ export async function fetchQboCrudoTransaction(input: {
   accessToken: string;
   realmId: string;
   invoiceId: string;
-}): Promise<{ type: string; query: string; response: unknown } | null> {
+}): Promise<{
+  foundType: string | null;
+  invoiceId: string;
+  attempts: Array<{
+    type: string;
+    query: string;
+    url: string;
+    status: number;
+    ok: boolean;
+    headers: Record<string, string>;
+    response: unknown;
+    matchedCount: number;
+  }>;
+}> {
   const types = ["Invoice", "SalesReceipt", "CreditMemo"] as const;
+  const attempts: Array<{
+    type: string;
+    query: string;
+    url: string;
+    status: number;
+    ok: boolean;
+    headers: Record<string, string>;
+    response: unknown;
+    matchedCount: number;
+  }> = [];
+  let foundType: string | null = null;
+
   for (const type of types) {
     const query = `select * from ${type} where Id = '${input.invoiceId}'`;
+    const url = `${QBO_API_BASE_URL}/v3/company/${input.realmId}/query?minorversion=75`;
     const response = await fetch(
-      `${QBO_API_BASE_URL}/v3/company/${input.realmId}/query?minorversion=75`,
+      url,
       {
         method: "POST",
         headers: {
@@ -337,14 +363,37 @@ export async function fetchQboCrudoTransaction(input: {
         cache: "no-store",
       },
     );
+
     const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
     const qr = (payload.QueryResponse ?? payload.queryResponse) as Record<string, unknown> | undefined;
     const items = (qr?.[type] ?? []) as unknown[];
-    if (items.length > 0) {
-      return { type, query, response: payload };
+
+    const headerRecord: Record<string, string> = {};
+    response.headers.forEach((value, key) => {
+      headerRecord[key] = value;
+    });
+
+    attempts.push({
+      type,
+      query,
+      url,
+      status: response.status,
+      ok: response.ok,
+      headers: headerRecord,
+      response: payload,
+      matchedCount: items.length,
+    });
+
+    if (!foundType && items.length > 0) {
+      foundType = type;
     }
   }
-  return null;
+
+  return {
+    foundType,
+    invoiceId: input.invoiceId,
+    attempts,
+  };
 }
 
 export type QboCustomer = {
