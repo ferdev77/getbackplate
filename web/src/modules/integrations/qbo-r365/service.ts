@@ -2956,7 +2956,7 @@ export type UnifiedInvoiceRow = {
   webhookEventId: string | null;
   entityId: string;
   entityType: "Invoice" | "CreditMemo";
-  importSource: "sync" | "webhook";
+  importSource: "sync" | "webhook" | "manual";
   pipelineStatus: "en_cola" | "capturada" | "mapeada" | "enviada";
   docNumber: string | null;
   txnDate: string | null;
@@ -3060,7 +3060,7 @@ export async function fetchInvoiceByDocNumber(
     sync_config_id: syncConfigId,
     entity_id: entityId,
     entity_type: entityType,
-    import_source: "webhook",
+    import_source: "manual",
     pipeline_status: "capturada",
     raw_entity: rawEntity,
     fetched_at: nowIso,
@@ -3102,7 +3102,7 @@ export async function listUnifiedHistory(
     webhookEventId: row.webhook_event_id ? String(row.webhook_event_id) : null,
     entityId: String(row.entity_id),
     entityType: row.entity_type as "Invoice" | "CreditMemo",
-    importSource: row.import_source as "sync" | "webhook",
+    importSource: row.import_source as "sync" | "webhook" | "manual",
     pipelineStatus: row.pipeline_status as "en_cola" | "capturada" | "mapeada" | "enviada",
     docNumber: row.doc_number ? String(row.doc_number) : null,
     txnDate: row.txn_date ? String(row.txn_date) : null,
@@ -3118,6 +3118,211 @@ export async function listUnifiedHistory(
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   }));
+}
+
+export async function backfillFromQboSinceDate(
+  organizationId: string,
+  syncConfigId: string,
+  sinceIso: string,
+): Promise<{ upserted: number }> {
+  const admin = createSupabaseAdminClient();
+
+  const qboConnection = await getConnection(organizationId, "quickbooks_online");
+  if (!qboConnection || qboConnection.status !== "connected") {
+    throw new Error("QuickBooks no está conectado");
+  }
+
+  const syncConfigRow = await getSyncConfigRow(organizationId, syncConfigId);
+  const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
+
+  const txnDateFrom = sinceIso.trim().slice(0, 10);
+  const { invoices, creditMemos } = await fetchQboSalesTransactions({
+    accessToken: qboAuth.accessToken,
+    realmId: qboAuth.realmId,
+    customerId: syncConfigRow.qbo_customer_id,
+    txnDateFrom,
+    skipSalesReceipts: true,
+  });
+
+  const nowIso = new Date().toISOString();
+
+  const toUpsert = [
+    ...invoices.map((data) => ({ type: "Invoice" as const, data })),
+    ...creditMemos.map((data) => ({ type: "CreditMemo" as const, data })),
+  ]
+    .filter((item) => Boolean(item.data.Id))
+    .map(({ type, data }) => ({
+      organization_id: organizationId,
+      sync_config_id: syncConfigId,
+      entity_id: String(data.Id),
+      entity_type: type,
+      import_source: "sync" as const,
+      pipeline_status: "capturada" as const,
+      raw_entity: data as Record<string, unknown>,
+      fetched_at: nowIso,
+      doc_number: data.DocNumber ?? null,
+      txn_date: data.TxnDate ?? null,
+      due_date: data.DueDate ?? null,
+      total_amount: data.TotalAmt !== undefined && data.TotalAmt !== null ? Number(data.TotalAmt) : null,
+      currency: data.CurrencyRef?.value ?? null,
+      customer_name: data.CustomerRef?.name ?? null,
+      vendor_name: data.CustomerRef?.name ?? null,
+    }));
+
+  if (toUpsert.length === 0) return { upserted: 0 };
+
+  const batchSize = 100;
+  let upserted = 0;
+  for (let i = 0; i < toUpsert.length; i += batchSize) {
+    const batch = toUpsert.slice(i, i + batchSize);
+    const { error } = await admin.from("qbo_unified_invoices").upsert(batch, {
+      onConflict: "organization_id,entity_id,entity_type",
+      ignoreDuplicates: false,
+    });
+    if (error) throw new Error(error.message);
+    upserted += batch.length;
+  }
+
+  return { upserted };
+}
+
+export async function sendSingleUnifiedInvoice(input: {
+  organizationId: string;
+  actorId: string | null;
+  unifiedInvoiceId: string;
+}): Promise<{ uploaded: number; fileName: string; runId: string }> {
+  const admin = createSupabaseAdminClient();
+
+  const { data: row, error: rowError } = await admin
+    .from("qbo_unified_invoices")
+    .select("id, entity_id, entity_type, raw_entity, sync_config_id")
+    .eq("organization_id", input.organizationId)
+    .eq("id", input.unifiedInvoiceId)
+    .maybeSingle();
+
+  if (rowError) throw new Error(rowError.message);
+  if (!row) throw new Error("Factura no encontrada en el historial");
+  if (!row.raw_entity) throw new Error("La factura no tiene datos QBO almacenados — no se puede enviar");
+
+  const syncConfigId = row.sync_config_id ? String(row.sync_config_id) : null;
+  if (!syncConfigId) throw new Error("Esta factura no tiene sincronización asociada");
+
+  const [syncConfig, mappings] = await Promise.all([
+    getSyncConfigRow(input.organizationId, syncConfigId),
+    getActiveMappings(input.organizationId),
+  ]);
+
+  const entityType = row.entity_type as "Invoice" | "CreditMemo";
+  const rawEntity = row.raw_entity as QboInvoiceLike;
+
+  const lines = normalizeQboRows({
+    invoices: entityType === "Invoice" ? [rawEntity] : [],
+    salesReceipts: [],
+    creditMemos: entityType === "CreditMemo" ? [rawEntity] : [],
+    template: syncConfig.template,
+    taxMode: syncConfig.tax_mode,
+    mappings,
+    r365VendorName: syncConfig.r365_vendor_name || undefined,
+    r365Location: syncConfig.r365_location || undefined,
+    syncConfigCustomerId: syncConfig.qbo_customer_id,
+  });
+
+  if (lines.length === 0) throw new Error("La factura no tiene líneas válidas para enviar a R365");
+
+  if (!syncConfig.r365_ftp_host) throw new Error("Restaurant365 FTP no está configurado en esta sincronización");
+  const ftpSecrets = decryptJsonPayload<FtpStoredSecrets>({
+    ciphertext: syncConfig.r365_ftp_secrets_ciphertext,
+    iv: syncConfig.r365_ftp_secrets_iv,
+    tag: syncConfig.r365_ftp_secrets_tag,
+  });
+  if (!ftpSecrets?.password) throw new Error("Credenciales FTP no disponibles");
+
+  const ftpForUpload = {
+    host: syncConfig.r365_ftp_host,
+    port: syncConfig.r365_ftp_port ?? 21,
+    username: syncConfig.r365_ftp_username ?? "",
+    password: ftpSecrets.password,
+    secure: syncConfig.r365_ftp_secure,
+    remotePath: syncConfig.r365_ftp_remote_path,
+  };
+
+  const csvBuild = buildR365Csv({ template: syncConfig.template, lines });
+  const runId = await createRun(input.organizationId, input.actorId, "manual", syncConfigId);
+  const invoiceNumber = lines[0]?.invoiceNumber;
+  const vendorPrefix = (lines[0]?.vendor ?? "r365_inv").replace(/[^a-zA-Z0-9_\-]/g, "_").slice(0, 20);
+  const fileName = buildFileName(vendorPrefix, invoiceNumber);
+
+  await uploadCsvToFtp({
+    host: ftpForUpload.host,
+    port: ftpForUpload.port,
+    username: ftpForUpload.username,
+    password: ftpForUpload.password,
+    secure: ftpForUpload.secure,
+    remotePath: ftpForUpload.remotePath,
+    fileName,
+    content: csvBuild.csv,
+  });
+
+  await admin.from("integration_outbox_files").insert({
+    run_id: runId,
+    organization_id: input.organizationId,
+    storage_provider: "r365_ftp",
+    remote_path: ftpForUpload.remotePath,
+    file_name: fileName,
+    mime_type: "text/csv",
+    size_bytes: Buffer.byteLength(csvBuild.csv, "utf8"),
+    sha256: csvBuild.hash,
+    status: "uploaded",
+    uploaded_at: new Date().toISOString(),
+  });
+
+  const nowIso = new Date().toISOString();
+
+  await admin
+    .from("qbo_unified_invoices")
+    .update({ pipeline_status: "enviada", sent_at: nowIso })
+    .eq("id", input.unifiedInvoiceId)
+    .eq("organization_id", input.organizationId);
+
+  await admin
+    .from("integration_runs")
+    .update({
+      status: "completed",
+      finished_at: nowIso,
+      template_used: syncConfig.template,
+      file_name: fileName,
+      file_hash: csvBuild.hash,
+      total_detected: 1,
+      total_mapped: lines.length,
+      total_uploaded: lines.length,
+      total_failed: 0,
+      total_skipped_duplicates: 0,
+    })
+    .eq("id", runId)
+    .eq("organization_id", input.organizationId);
+
+  await appendIntegrationAudit({
+    organizationId: input.organizationId,
+    runId,
+    level: "info",
+    code: "unified_invoice_sent",
+    message: `Factura ${String(row.entity_id)} (${entityType}) enviada individualmente a R365 desde historial unificado`,
+    metadata: { unified_id: input.unifiedInvoiceId, entity_id: String(row.entity_id), uploaded: lines.length, file_name: fileName },
+  });
+
+  await logAuditEvent({
+    action: "integration.qbo_r365.invoice.send_unified",
+    entityType: "integration_run",
+    entityId: runId,
+    organizationId: input.organizationId,
+    actorId: input.actorId,
+    eventDomain: "settings",
+    outcome: "success",
+    severity: "medium",
+    metadata: { unified_id: input.unifiedInvoiceId, entity_id: String(row.entity_id), uploaded: lines.length },
+  });
+
+  return { uploaded: lines.length, fileName, runId };
 }
 
 export async function backfillSyncConfigToUnified(

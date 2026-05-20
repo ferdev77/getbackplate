@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
-import { backfillSyncConfigToUnified, createSyncConfig, listSyncConfigs } from "@/modules/integrations/qbo-r365/service";
+import { backfillFromQboSinceDate, createSyncConfig, listSyncConfigs } from "@/modules/integrations/qbo-r365/service";
 import { syncConfigCreateSchema } from "@/modules/integrations/qbo-r365/types";
 
 const syncConfigCreateDeveloperSchema = syncConfigCreateSchema.extend({
@@ -43,6 +43,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Payload invalido", details: parsed.error.flatten() }, { status: 400 });
   }
 
+  const backfillFromDate: string | null =
+    typeof body?.backfillFromDate === "string" && body.backfillFromDate.trim()
+      ? body.backfillFromDate.trim()
+      : null;
+
+  if (backfillFromDate && !Number.isFinite(Date.parse(backfillFromDate))) {
+    return NextResponse.json({ error: "Fecha de importación inválida" }, { status: 400 });
+  }
+
   try {
     const existing = await listSyncConfigs(access.tenant.organizationId);
     if (existing.length > 0) {
@@ -58,9 +67,14 @@ export async function POST(request: Request) {
       r365FtpSecure: true,
     };
     const id = await createSyncConfig(access.tenant.organizationId, access.userId, payload);
-    // Backfill histórico en background — no bloquea la respuesta
-    void backfillSyncConfigToUnified(access.tenant.organizationId, id).catch(() => {});
-    return NextResponse.json({ id }, { status: 201 });
+
+    if (backfillFromDate) {
+      void backfillFromQboSinceDate(access.tenant.organizationId, id, backfillFromDate).catch((err: unknown) => {
+        console.error("[qbo-backfill]", err instanceof Error ? err.message : err);
+      });
+    }
+
+    return NextResponse.json({ id, backfilling: Boolean(backfillFromDate) }, { status: 201 });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "No se pudo crear la sincronizacion" },
