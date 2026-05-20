@@ -44,6 +44,11 @@ export async function POST(request: Request) {
   }
 
   try {
+    const existing = await listSyncConfigs(access.tenant.organizationId);
+    if (existing.length > 0) {
+      return NextResponse.json({ error: "Esta empresa ya tiene una sincronización configurada" }, { status: 409 });
+    }
+
     const payload = {
       ...parsed.data,
       scheduleInterval: "daily" as const,
