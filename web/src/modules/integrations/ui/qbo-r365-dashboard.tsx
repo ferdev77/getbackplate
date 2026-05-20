@@ -1475,6 +1475,15 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                               >
                                 {importingWebhookId === event.id ? "Importando..." : "Importar manual"}
                               </button>
+                              {event.fetched_entity != null && (event.entity === "Invoice" || event.entity === "CreditMemo") && (
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedInvoiceId(event.entity_id)}
+                                  className="rounded-md border border-[var(--gbp-accent)]/40 bg-[var(--gbp-accent-glow)] px-2 py-1 text-[10px] font-bold text-[var(--gbp-accent)] hover:bg-[var(--gbp-accent)] hover:text-white"
+                                >
+                                  Ver factura
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
