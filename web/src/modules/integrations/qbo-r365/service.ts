@@ -2723,7 +2723,7 @@ export async function insertQboWebhookEvents(input: QboWebhookEventInsert[]) {
 
   for (const event of input) {
     const organizationId = await getOrganizationIdByRealmId(event.realmId).catch(() => null);
-    const { error } = await admin.from("qbo_webhook_events").insert({
+    const { data: insertedRow, error } = await admin.from("qbo_webhook_events").insert({
       signature_valid: event.signatureValid,
       intuit_event_id: event.intuitEventId,
       realm_id: event.realmId,
@@ -2739,7 +2739,7 @@ export async function insertQboWebhookEvents(input: QboWebhookEventInsert[]) {
       ignore_reason: event.signatureValid ? null : "invalid_signature",
       last_error: event.signatureValid ? null : "Firma de webhook invalida",
       processed_at: event.signatureValid ? new Date().toISOString() : new Date().toISOString(),
-    });
+    }).select("id").single();
     if (error) {
       if (error.code === "23505") {
         duplicates += 1;
@@ -2748,6 +2748,29 @@ export async function insertQboWebhookEvents(input: QboWebhookEventInsert[]) {
       throw new Error(error.message);
     }
     inserted += 1;
+
+    // Si la firma es válida, la org fue identificada y es Invoice/CreditMemo:
+    // insertar en tabla unificada como 'en_cola' y disparar fetch en background
+    const isActionable = event.signatureValid && organizationId &&
+      (event.entity === "Invoice" || event.entity === "CreditMemo");
+    if (isActionable && insertedRow?.id) {
+      const webhookEventId = insertedRow.id as string;
+      void admin.from("qbo_unified_invoices").upsert({
+        organization_id: organizationId,
+        webhook_event_id: webhookEventId,
+        entity_id: event.entityId,
+        entity_type: event.entity,
+        import_source: "webhook",
+        pipeline_status: "en_cola",
+      }, { onConflict: "organization_id,entity_id,entity_type", ignoreDuplicates: true });
+      // Fetch inmediato en background (sin await — el resultado actualiza a 'capturada')
+      void fetchAndCaptureWebhookInvoice({
+        organizationId,
+        entityId: event.entityId,
+        entityType: event.entity,
+        webhookEventId,
+      }).catch(() => { /* silently fail — queda en 'en_cola' */ });
+    }
   }
 
   return { inserted, duplicates };
@@ -2823,4 +2846,234 @@ export async function importQboWebhookEventManually(input: { organizationId: str
     entityId: data.entity_id,
     fetchedEntity: raw.data ?? {},
   };
+}
+
+// ─── Unified Invoice Pipeline ─────────────────────────────────────────────────
+
+async function fetchAndCaptureWebhookInvoice(input: {
+  organizationId: string;
+  entityId: string;
+  entityType: string;
+  webhookEventId: string;
+}): Promise<void> {
+  const admin = createSupabaseAdminClient();
+
+  const qboConnection = await getConnection(input.organizationId, "quickbooks_online");
+  if (!qboConnection || qboConnection.status !== "connected") return;
+
+  const qboAuth = await ensureFreshQboToken({ organizationId: input.organizationId, actorId: null, qboConnection });
+  const raw = await fetchQboRawTransaction({
+    accessToken: qboAuth.accessToken,
+    realmId: qboAuth.realmId,
+    invoiceId: input.entityId,
+  });
+
+  if (!raw?.data) return;
+
+  const entity = raw.data as Record<string, unknown>;
+  const docNumber = typeof entity.DocNumber === "string" ? entity.DocNumber : null;
+  const txnDate = typeof entity.TxnDate === "string" ? entity.TxnDate : null;
+  const dueDate = typeof entity.DueDate === "string" ? entity.DueDate : null;
+  const totalAmount = entity.TotalAmt !== null && entity.TotalAmt !== undefined ? Number(entity.TotalAmt) : null;
+  const currencyRef = (entity.CurrencyRef ?? {}) as Record<string, unknown>;
+  const currency = typeof currencyRef.value === "string" ? currencyRef.value : null;
+  const customerRef = (entity.CustomerRef ?? {}) as Record<string, unknown>;
+  const customerName = typeof customerRef.name === "string" ? customerRef.name : null;
+  const customerId = typeof customerRef.value === "string" ? customerRef.value : null;
+
+  let r365Location: string | null = null;
+  let syncConfigId: string | null = null;
+
+  if (customerId) {
+    const { data: syncConfigs } = await admin
+      .from("qbo_r365_sync_configs")
+      .select("id, r365_location")
+      .eq("organization_id", input.organizationId)
+      .eq("qbo_customer_id", customerId)
+      .limit(1);
+
+    const syncConfig = syncConfigs?.[0] ?? null;
+    if (syncConfig) {
+      syncConfigId = String(syncConfig.id);
+      r365Location = typeof syncConfig.r365_location === "string" ? syncConfig.r365_location : null;
+
+      if (!r365Location) {
+        const customers = await fetchQboCustomers({ accessToken: qboAuth.accessToken, realmId: qboAuth.realmId }).catch(() => [] as QboCustomer[]);
+        const found = customers.find((c) => c.id === customerId);
+        if (found?.acctNum) {
+          r365Location = found.acctNum;
+          void admin.from("qbo_r365_sync_configs")
+            .update({ r365_location: found.acctNum })
+            .eq("id", syncConfig.id);
+        }
+      }
+    }
+  }
+
+  const nowIso = new Date().toISOString();
+
+  await admin.from("qbo_unified_invoices").update({
+    pipeline_status: "capturada",
+    raw_entity: entity,
+    fetched_at: nowIso,
+    doc_number: docNumber,
+    txn_date: txnDate,
+    due_date: dueDate,
+    total_amount: totalAmount,
+    currency,
+    customer_name: customerName,
+    sync_config_id: syncConfigId,
+  })
+    .eq("organization_id", input.organizationId)
+    .eq("entity_id", input.entityId)
+    .eq("entity_type", input.entityType);
+
+  await admin.from("qbo_webhook_events").update({
+    status: "imported_manual",
+    fetched_entity: entity,
+    imported_at: nowIso,
+    last_error: null,
+    processed_at: nowIso,
+  }).eq("id", input.webhookEventId);
+}
+
+export type UnifiedInvoiceRow = {
+  id: string;
+  organizationId: string;
+  syncConfigId: string | null;
+  webhookEventId: string | null;
+  entityId: string;
+  entityType: "Invoice" | "CreditMemo";
+  importSource: "sync" | "webhook";
+  pipelineStatus: "en_cola" | "capturada" | "mapeada" | "enviada";
+  docNumber: string | null;
+  txnDate: string | null;
+  dueDate: string | null;
+  totalAmount: number | null;
+  currency: string | null;
+  customerName: string | null;
+  vendorName: string | null;
+  rawEntity: Record<string, unknown> | null;
+  fetchedAt: string | null;
+  mappedAt: string | null;
+  sentAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function listUnifiedHistory(
+  organizationId: string,
+  limit = 100,
+  syncConfigId?: string | null,
+): Promise<UnifiedInvoiceRow[]> {
+  const admin = createSupabaseAdminClient();
+
+  const baseQuery = admin
+    .from("qbo_unified_invoices")
+    .select("id, organization_id, sync_config_id, webhook_event_id, entity_id, entity_type, import_source, pipeline_status, doc_number, txn_date, due_date, total_amount, currency, customer_name, vendor_name, raw_entity, fetched_at, mapped_at, sent_at, created_at, updated_at")
+    .eq("organization_id", organizationId)
+    .order("created_at", { ascending: false })
+    .limit(Math.max(1, Math.min(limit, 500)));
+
+  const { data, error } = await (syncConfigId ? baseQuery.eq("sync_config_id", syncConfigId) : baseQuery);
+  if (error) throw new Error(error.message);
+
+  return (data ?? []).map((row) => ({
+    id: String(row.id),
+    organizationId: String(row.organization_id),
+    syncConfigId: row.sync_config_id ? String(row.sync_config_id) : null,
+    webhookEventId: row.webhook_event_id ? String(row.webhook_event_id) : null,
+    entityId: String(row.entity_id),
+    entityType: row.entity_type as "Invoice" | "CreditMemo",
+    importSource: row.import_source as "sync" | "webhook",
+    pipelineStatus: row.pipeline_status as "en_cola" | "capturada" | "mapeada" | "enviada",
+    docNumber: row.doc_number ? String(row.doc_number) : null,
+    txnDate: row.txn_date ? String(row.txn_date) : null,
+    dueDate: row.due_date ? String(row.due_date) : null,
+    totalAmount: row.total_amount !== null && row.total_amount !== undefined ? Number(row.total_amount) : null,
+    currency: row.currency ? String(row.currency) : null,
+    customerName: row.customer_name ? String(row.customer_name) : null,
+    vendorName: row.vendor_name ? String(row.vendor_name) : null,
+    rawEntity: (row.raw_entity as Record<string, unknown> | null) ?? null,
+    fetchedAt: row.fetched_at ? String(row.fetched_at) : null,
+    mappedAt: row.mapped_at ? String(row.mapped_at) : null,
+    sentAt: row.sent_at ? String(row.sent_at) : null,
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  }));
+}
+
+export async function backfillSyncConfigToUnified(
+  organizationId: string,
+  syncConfigId: string,
+): Promise<{ upserted: number }> {
+  const admin = createSupabaseAdminClient();
+
+  const { data: runRows, error: runError } = await admin
+    .from("integration_runs")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("sync_config_id", syncConfigId)
+    .limit(1000);
+
+  if (runError) throw new Error(runError.message);
+  const runIds = (runRows ?? []).map((r) => String(r.id));
+  if (runIds.length === 0) return { upserted: 0 };
+
+  const { data: itemRows, error: itemsError } = await admin
+    .from("integration_run_items")
+    .select("source_invoice_id, status, payload, created_at")
+    .eq("organization_id", organizationId)
+    .in("run_id", runIds)
+    .not("source_invoice_id", "is", null)
+    .neq("status", "skipped_duplicate")
+    .order("created_at", { ascending: false })
+    .limit(5000);
+
+  if (itemsError) throw new Error(itemsError.message);
+
+  const byInvoiceId = new Map<string, typeof itemRows[number]>();
+  for (const row of itemRows ?? []) {
+    const key = String(row.source_invoice_id);
+    if (!byInvoiceId.has(key)) byInvoiceId.set(key, row);
+  }
+
+  if (byInvoiceId.size === 0) return { upserted: 0 };
+
+  const toUpsert = [...byInvoiceId.values()].map((row) => {
+    const p = (row.payload ?? {}) as Record<string, unknown>;
+    const isSent = row.status === "uploaded" || row.status === "validated";
+    const entityType = p.transactionTypeCode === "2" ? "CreditMemo" : "Invoice";
+    return {
+      organization_id: organizationId,
+      sync_config_id: syncConfigId,
+      entity_id: String(row.source_invoice_id),
+      entity_type: entityType,
+      import_source: "sync",
+      pipeline_status: isSent ? "enviada" : "mapeada",
+      doc_number: typeof p.invoiceNumber === "string" ? p.invoiceNumber : null,
+      txn_date: typeof p.invoiceDate === "string" ? p.invoiceDate : null,
+      due_date: typeof p.dueDate === "string" ? p.dueDate : null,
+      total_amount: typeof p.totalAmount === "number" ? p.totalAmount : null,
+      currency: typeof p.currency === "string" ? p.currency : null,
+      customer_name: typeof p.vendor === "string" ? p.vendor : null,
+      vendor_name: typeof p.vendor === "string" ? p.vendor : null,
+      mapped_at: String(row.created_at),
+      sent_at: isSent ? String(row.created_at) : null,
+    };
+  });
+
+  const batchSize = 100;
+  let upserted = 0;
+  for (let i = 0; i < toUpsert.length; i += batchSize) {
+    const batch = toUpsert.slice(i, i + batchSize);
+    const { error } = await admin.from("qbo_unified_invoices").upsert(batch, {
+      onConflict: "organization_id,entity_id,entity_type",
+      ignoreDuplicates: false,
+    });
+    if (error) throw new Error(error.message);
+    upserted += batch.length;
+  }
+
+  return { upserted };
 }
