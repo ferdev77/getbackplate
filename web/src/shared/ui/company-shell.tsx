@@ -1804,6 +1804,90 @@ export function CompanyShell({
                   Cerrar sesión
                 </Link>
               </div>
+
+              {/* Sección de add-ons: solo visible cuando hay módulos disponibles para contratar.
+                  Permite que una empresa contrate un módulo individual sin necesitar un plan
+                  completo. Al pagar, el webhook activa el módulo del add-on más los módulos
+                  compañeros definidos en addon_companion_module_codes (ej: settings + custom_branding
+                  para qbo_r365). */}
+              {availableAddons.length > 0 && (
+                <div className="mt-2 border-t border-[var(--gbp-border)] pt-5">
+                  <div className="mb-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--gbp-muted)]">
+                      ¿Sin plan? Contrata solo lo que necesitas
+                    </p>
+                    <p className={`mt-1 text-xs ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-text2)]"}`}>
+                      Contrata un módulo individual y empieza a operar sin un plan completo.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+                    {availableAddons.map((addon) => {
+                      const orgAddon = organizationAddons.find((a) => a.moduleId === addon.moduleId);
+                      const isActive = orgAddon?.status === "active";
+                      const formattedPrice = addon.priceAmount != null
+                        ? new Intl.NumberFormat("es-US", {
+                            style: "currency",
+                            currency: addon.currencyCode,
+                            minimumFractionDigits: 0,
+                          }).format(addon.priceAmount)
+                        : null;
+
+                      return (
+                        <article
+                          key={addon.moduleId}
+                          className={`rounded-xl border p-4 ${
+                            isActive
+                              ? isDarkTheme
+                                ? "border-white/20 bg-white/[0.06]"
+                                : "border-[var(--gbp-accent)]/30 bg-[var(--gbp-accent-glow)]"
+                              : isDarkTheme
+                              ? "border-white/10 bg-white/[0.03]"
+                              : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"
+                          }`}
+                        >
+                          <div className="mb-1 flex items-start justify-between gap-2">
+                            <p className="text-[11px] font-bold uppercase tracking-[0.07em] text-[var(--gbp-text)]">
+                              {addon.name}
+                            </p>
+                            {isActive && (
+                              <span className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-500">
+                                Activo
+                              </span>
+                            )}
+                          </div>
+                          {addon.description && (
+                            <p className={`mb-3 text-[10px] leading-relaxed ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>
+                              {addon.description}
+                            </p>
+                          )}
+                          <div className="flex items-center justify-between gap-2">
+                            {formattedPrice && (
+                              <p className={`text-[11px] font-semibold ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-muted)]"}`}>
+                                {formattedPrice}/mes
+                              </p>
+                            )}
+                            <button
+                              type="button"
+                              disabled={addonBusy === addon.moduleId || impersonationMode}
+                              onClick={() => startAddonCheckout(addon.moduleId)}
+                              className={`ml-auto rounded-lg px-3 py-1.5 text-[10px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                                isActive
+                                  ? isDarkTheme
+                                    ? "bg-white/10 text-white/70 hover:bg-white/20"
+                                    : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)]"
+                                  : "bg-[var(--gbp-accent)] text-white hover:opacity-90"
+                              }`}
+                            >
+                              {addonBusy === addon.moduleId ? "..." : isActive ? "Gestionar →" : "Contratar →"}
+                            </button>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
