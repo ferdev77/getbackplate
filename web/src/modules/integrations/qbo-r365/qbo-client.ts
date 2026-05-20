@@ -138,6 +138,7 @@ async function queryQboTable<T>(input: {
   table: "Invoice" | "SalesReceipt" | "CreditMemo";
   customerId?: string;
   sinceIso?: string;
+  txnDateFrom?: string;
 }) {
   const sanitizeCustomerId = (value: string) => {
     const trimmed = value.trim();
@@ -155,6 +156,15 @@ async function queryQboTable<T>(input: {
     }
     const safeSince = new Date(epoch).toISOString().replace(".000", "");
     return `MetaData.LastUpdatedTime >= '${safeSince}'`;
+  };
+
+  const buildTxnDateFromClause = (txnDateFrom?: string) => {
+    if (!txnDateFrom) return "";
+    const safe = txnDateFrom.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(safe)) {
+      throw new Error("txnDateFrom invalido para consulta QBO (debe ser YYYY-MM-DD)");
+    }
+    return `TxnDate >= '${safe}'`;
   };
 
   const extractFault = (payload: QueryResponse<T> & {
@@ -198,6 +208,10 @@ async function queryQboTable<T>(input: {
     if (sinceClause) {
       clauses.push(sinceClause);
     }
+    const txnClause = buildTxnDateFromClause(input.txnDateFrom);
+    if (txnClause) {
+      clauses.push(txnClause);
+    }
     const where = clauses.length > 0 ? ` WHERE ${clauses.join(" AND ")}` : "";
     const query = `select * from ${input.table}${where} startposition ${startPosition} maxresults ${pageSize}`;
 
@@ -237,37 +251,48 @@ export async function fetchQboSalesTransactions(input: {
   realmId: string;
   customerId?: string;
   sinceIso?: string;
+  txnDateFrom?: string;
+  skipSalesReceipts?: boolean;
 }) {
-  const [invoices, salesReceipts, creditMemos] = await Promise.all([
-    queryQboTable<QboInvoiceLike>({
-      accessToken: input.accessToken,
-      realmId: input.realmId,
-      table: "Invoice",
-      customerId: input.customerId,
-      sinceIso: input.sinceIso,
-    }),
-    queryQboTable<QboInvoiceLike>({
-      accessToken: input.accessToken,
-      realmId: input.realmId,
-      table: "SalesReceipt",
-      customerId: input.customerId,
-      sinceIso: input.sinceIso,
-    }),
-    queryQboTable<QboInvoiceLike>({
-      accessToken: input.accessToken,
-      realmId: input.realmId,
-      table: "CreditMemo",
-      customerId: input.customerId,
-      sinceIso: input.sinceIso,
-    }),
-  ]);
+  const invoiceQuery = queryQboTable<QboInvoiceLike>({
+    accessToken: input.accessToken,
+    realmId: input.realmId,
+    table: "Invoice",
+    customerId: input.customerId,
+    sinceIso: input.sinceIso,
+    txnDateFrom: input.txnDateFrom,
+  });
+  const salesReceiptQuery = input.skipSalesReceipts
+    ? Promise.resolve([] as QboInvoiceLike[])
+    : queryQboTable<QboInvoiceLike>({
+        accessToken: input.accessToken,
+        realmId: input.realmId,
+        table: "SalesReceipt",
+        customerId: input.customerId,
+        sinceIso: input.sinceIso,
+        txnDateFrom: input.txnDateFrom,
+      });
+  const creditMemoQuery = queryQboTable<QboInvoiceLike>({
+    accessToken: input.accessToken,
+    realmId: input.realmId,
+    table: "CreditMemo",
+    customerId: input.customerId,
+    sinceIso: input.sinceIso,
+    txnDateFrom: input.txnDateFrom,
+  });
+  const [invoices, salesReceipts, creditMemos] = await Promise.all([invoiceQuery, salesReceiptQuery, creditMemoQuery]);
+
+  // When filtering by TxnDate (SQL-level), no in-memory post-filter needed.
+  // When filtering by sinceIso (MetaData), apply in-memory secondary filter.
+  if (input.txnDateFrom) {
+    return { invoices, salesReceipts, creditMemos };
+  }
 
   const sinceEpoch = input.sinceIso ? Date.parse(input.sinceIso) : Number.NaN;
   const filterBySince = (rows: QboInvoiceLike[]) => {
     if (!Number.isFinite(sinceEpoch)) {
       return rows;
     }
-
     return rows.filter((row) => {
       const updatedAt = row.MetaData?.LastUpdatedTime;
       if (!updatedAt) return false;
