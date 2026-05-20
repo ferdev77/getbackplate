@@ -397,7 +397,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [sendingPrepared, setSendingPrepared] = useState(false);
   const [sendingInvoice, setSendingInvoice] = useState(false);
   const [invoiceDetailRefreshKey, setInvoiceDetailRefreshKey] = useState(0);
-  const [invoiceTemplate, setInvoiceTemplate] = useState<"by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates">("by_item");
   const [showMappingPreview, setShowMappingPreview] = useState(false);
   const [csvPreview, setCsvPreview] = useState<{ headers: string[]; rows: string[][]; rowCount: number } | null>(null);
   const [previewingCsv, setPreviewingCsv] = useState(false);
@@ -413,6 +412,8 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [isSavingSandbox, setIsSavingSandbox] = useState(false);
   const [configUseSandbox, setConfigUseSandbox] = useState<boolean>(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const unifiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [unifiedHistoryKey, setUnifiedHistoryKey] = useState(0);
 
   // Sync configs
   const [syncConfigs, setSyncConfigs] = useState<SyncConfigSummary[]>([]);
@@ -494,8 +495,16 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
         if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
         refreshTimerRef.current = setTimeout(() => setRefreshKey((p) => p + 1), 500);
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "qbo_unified_invoices", filter: orgFilter }, () => {
+        if (unifiedTimerRef.current) clearTimeout(unifiedTimerRef.current);
+        unifiedTimerRef.current = setTimeout(() => setUnifiedHistoryKey((p) => p + 1), 500);
+      })
       .subscribe();
-    return () => { if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current); supabase.removeChannel(channel); };
+    return () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      if (unifiedTimerRef.current) clearTimeout(unifiedTimerRef.current);
+      supabase.removeChannel(channel);
+    };
   }, [organizationId]);
 
   // Polling
@@ -567,7 +576,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       .then((d: { rows?: UnifiedInvoiceRow[] }) => setUnifiedHistory(d.rows ?? []))
       .catch(() => {})
       .finally(() => setUnifiedHistoryLoading(false));
-  }, [refreshKey, syncHistoryFilter]);
+  }, [unifiedHistoryKey, syncHistoryFilter]);
 
   // Cargar sync configs al montar
   useEffect(() => {
@@ -794,7 +803,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     if (!selectedInvoiceId) return;
     const inv = data?.invoiceHistory.find((i) => i.sourceInvoiceId === selectedInvoiceId)
       ?? syncHistoryItems.find((i) => i.sourceInvoiceId === selectedInvoiceId);
-    setInvoiceTemplate(inv?.templateMode ?? "by_item");
     setShowMappingPreview(false);
     setCsvPreview(null);
     setPreviewingCsv(false);
@@ -2241,7 +2249,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                 ];
 
                 const hasFtpOverride = showInvoiceFtp && invoiceFtpHost.trim().length > 0;
-                const templateCols = TEMPLATE_COLS[invoiceTemplate];
+                const templateCols = TEMPLATE_COLS["by_item"];
 
                 return (
                   <div className="divide-y divide-[var(--gbp-border)] border-b border-[var(--gbp-border)]">
@@ -2292,7 +2300,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                               handlePreviewCsv(
                                 selectedInvoice.sourceInvoiceId,
                                 syncHistoryFilter?.id ?? null,
-                                invoiceTemplate,
+                                "by_item",
                               );
                             }}
                             className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
@@ -2305,23 +2313,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                           </button>
                         </div>
                       </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {(["by_item", "by_item_service_dates", "by_account", "by_account_service_dates"] as const).map((tmpl) => (
-                          <button
-                            key={tmpl}
-                            type="button"
-                            onClick={() => { setInvoiceTemplate(tmpl); setCsvPreview(null); }}
-                            className={`rounded-full px-3 py-1 text-[10px] font-bold transition ${
-                              invoiceTemplate === tmpl
-                                ? "bg-[var(--gbp-accent)] text-white"
-                                : "border-[1.5px] border-[var(--gbp-border)] text-[var(--gbp-text2)] hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
-                            }`}
-                          >
-                            {tmpl}
-                          </button>
-                        ))}
-                      </div>
-
                       {/* Tabla de columnas abstracta */}
                       {showMappingPreview && (
                         <div className="mt-3 overflow-x-auto rounded-xl border border-[var(--gbp-border)]">
@@ -2385,7 +2376,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                         <div className="mt-3">
                           <div className="mb-1.5 flex items-center justify-between">
                             <span className="text-[10px] font-bold text-[var(--gbp-muted)]">
-                              {csvPreview.rowCount} fila{csvPreview.rowCount !== 1 ? "s" : ""} · {invoiceTemplate}
+                              {csvPreview.rowCount} fila{csvPreview.rowCount !== 1 ? "s" : ""} · by_item
                             </span>
                             <button
                               type="button"
@@ -2438,7 +2429,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                           selectedInvoice.sourceInvoiceId,
                           syncHistoryFilter?.id ?? selectedUnifiedRow?.syncConfigId ?? null,
                           null,
-                          invoiceTemplate,
+                          "by_item",
                         )}
                         className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-bold transition disabled:opacity-50 ${
                           isSent
