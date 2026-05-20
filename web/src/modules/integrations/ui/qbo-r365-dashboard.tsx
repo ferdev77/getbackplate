@@ -404,6 +404,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   // Fetch manual por DocNumber
   const [fetchDocNumber, setFetchDocNumber] = useState("");
   const [fetchDocNumberLoading, setFetchDocNumberLoading] = useState(false);
+  const [fetchDocNumberResult, setFetchDocNumberResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   // Leer resultado del callback OAuth desde la URL y limpiarla
   useEffect(() => {
@@ -640,6 +641,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     const doc = fetchDocNumber.trim();
     if (!doc) return;
     setFetchDocNumberLoading(true);
+    setFetchDocNumberResult(null);
     try {
       const res = await fetch("/api/company/integrations/qbo-r365/fetch-by-docnumber", {
         method: "POST",
@@ -648,18 +650,17 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       });
       const data = (await res.json()) as { entityId?: string; entityType?: string; docNumber?: string; alreadyExisted?: boolean; error?: string };
       if (!res.ok) {
-        toast.error("No se pudo traer la factura", { description: data.error });
+        setFetchDocNumberResult({ ok: false, message: data.error ?? "No se pudo traer la factura" });
       } else {
         const label = data.entityType === "CreditMemo" ? "Nota de crédito" : "Factura";
-        toast.success(`${label} traída`, {
-          description: data.alreadyExisted
-            ? `DocNumber ${data.docNumber} actualizado en el historial.`
-            : `DocNumber ${data.docNumber} agregado al historial.`,
-        });
+        const msg = data.alreadyExisted
+          ? `${label} ${data.docNumber} ya estaba en el historial — datos actualizados.`
+          : `${label} ${data.docNumber} agregada al historial.`;
+        setFetchDocNumberResult({ ok: true, message: msg });
         setFetchDocNumber("");
       }
     } catch {
-      toast.error("Error de red al traer la factura");
+      setFetchDocNumberResult({ ok: false, message: "Error de red — revisá la conexión e intentá de nuevo." });
     } finally {
       setFetchDocNumberLoading(false);
     }
@@ -1239,7 +1240,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                     type="text"
                     placeholder="Doc Number"
                     value={fetchDocNumber}
-                    onChange={(e) => setFetchDocNumber(e.target.value)}
+                    onChange={(e) => { setFetchDocNumber(e.target.value); setFetchDocNumberResult(null); }}
                     className="min-w-0 flex-1 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2.5 py-1.5 text-[11px] text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:outline-none"
                   />
                   <button
@@ -1251,6 +1252,11 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                     Traer
                   </button>
                 </form>
+                {fetchDocNumberResult && (
+                  <p className={`mt-1.5 text-[10px] font-medium leading-snug ${fetchDocNumberResult.ok ? "text-[var(--gbp-success)]" : "text-[var(--gbp-error)]"}`}>
+                    {fetchDocNumberResult.ok ? "✓" : "✗"} {fetchDocNumberResult.message}
+                  </p>
+                )}
               </article>
             ))}
           </div>
