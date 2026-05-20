@@ -2664,3 +2664,163 @@ export async function sendSingleInvoiceFromHistory(input: {
 
   return { uploaded: lines.length, fileName, runId };
 }
+
+type QboWebhookEventInsert = {
+  signatureValid: boolean;
+  intuitEventId: string | null;
+  realmId: string;
+  entity: string;
+  entityId: string;
+  operation: string;
+  lastUpdatedAt: string | null;
+  rawPayload: Record<string, unknown>;
+  rawNotification?: Record<string, unknown>;
+  rawHeaders?: Record<string, unknown>;
+};
+
+export type QboWebhookEventRow = {
+  id: string;
+  received_at: string;
+  signature_valid: boolean;
+  realm_id: string;
+  entity: string;
+  entity_id: string;
+  operation: string;
+  last_updated_at: string | null;
+  status: "captured" | "imported_manual" | "ignored" | "failed";
+  ignore_reason: string | null;
+  attempts: number;
+  organization_id: string | null;
+  sync_config_id: string | null;
+  run_id: string | null;
+  raw_notification: Record<string, unknown>;
+  raw_headers: Record<string, unknown>;
+  fetched_entity: Record<string, unknown> | null;
+  imported_at: string | null;
+  imported_by: string | null;
+  last_error: string | null;
+  processed_at: string | null;
+  created_at: string;
+};
+
+async function getOrganizationIdByRealmId(realmId: string): Promise<string | null> {
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("integration_connections")
+    .select("organization_id")
+    .eq("provider", "quickbooks_online")
+    .contains("config", { realmId })
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data?.organization_id as string | undefined) ?? null;
+}
+
+export async function insertQboWebhookEvents(input: QboWebhookEventInsert[]) {
+  if (input.length === 0) return { inserted: 0, duplicates: 0 };
+  const admin = createSupabaseAdminClient();
+  let inserted = 0;
+  let duplicates = 0;
+
+  for (const event of input) {
+    const organizationId = await getOrganizationIdByRealmId(event.realmId).catch(() => null);
+    const { error } = await admin.from("qbo_webhook_events").insert({
+      signature_valid: event.signatureValid,
+      intuit_event_id: event.intuitEventId,
+      realm_id: event.realmId,
+      entity: event.entity,
+      entity_id: event.entityId,
+      operation: event.operation,
+      last_updated_at: event.lastUpdatedAt,
+      raw_payload: event.rawPayload,
+      raw_notification: event.rawNotification ?? {},
+      raw_headers: event.rawHeaders ?? {},
+      organization_id: organizationId,
+      status: event.signatureValid ? "captured" : "failed",
+      ignore_reason: event.signatureValid ? null : "invalid_signature",
+      last_error: event.signatureValid ? null : "Firma de webhook invalida",
+      processed_at: event.signatureValid ? new Date().toISOString() : new Date().toISOString(),
+    });
+    if (error) {
+      if (error.code === "23505") {
+        duplicates += 1;
+        continue;
+      }
+      throw new Error(error.message);
+    }
+    inserted += 1;
+  }
+
+  return { inserted, duplicates };
+}
+
+export async function processPendingQboWebhookEvents() {
+  return {
+    processed: 0,
+    results: [],
+    disabled: true,
+    message: "Procesamiento automatico deshabilitado: modo captura manual activo",
+  };
+}
+
+export async function listQboWebhookEvents(organizationId: string, limit = 100) {
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("qbo_webhook_events")
+    .select("id, received_at, signature_valid, realm_id, entity, entity_id, operation, last_updated_at, status, ignore_reason, attempts, organization_id, sync_config_id, run_id, raw_notification, raw_headers, fetched_entity, imported_at, imported_by, last_error, processed_at, created_at")
+    .eq("organization_id", organizationId)
+    .order("received_at", { ascending: false })
+    .limit(Math.max(1, Math.min(limit, 300)));
+  if (error) throw new Error(error.message);
+  return (data ?? []) as QboWebhookEventRow[];
+}
+
+export async function importQboWebhookEventManually(input: { organizationId: string; actorId: string | null; eventId: string }) {
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("qbo_webhook_events")
+    .select("id, organization_id, entity, entity_id, realm_id")
+    .eq("id", input.eventId)
+    .eq("organization_id", input.organizationId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Evento no encontrado");
+
+  if (!["Invoice", "CreditMemo"].includes(String(data.entity ?? ""))) {
+    throw new Error("Solo se soporta importacion manual de Invoice/CreditMemo");
+  }
+
+  const qboConnection = await getConnection(input.organizationId, "quickbooks_online");
+  if (!qboConnection || qboConnection.status !== "connected") {
+    throw new Error("QuickBooks Online no esta conectado");
+  }
+
+  const qboAuth = await ensureFreshQboToken({ organizationId: input.organizationId, actorId: input.actorId, qboConnection, forceRefresh: true });
+  const raw = await fetchQboRawTransaction({
+    accessToken: qboAuth.accessToken,
+    realmId: qboAuth.realmId,
+    invoiceId: String(data.entity_id ?? ""),
+  });
+  if (!raw || raw.type !== data.entity) {
+    throw new Error("No se pudo obtener la entidad desde QBO para este webhook");
+  }
+
+  await admin
+    .from("qbo_webhook_events")
+    .update({
+      status: "imported_manual",
+      fetched_entity: raw.data ?? {},
+      imported_at: new Date().toISOString(),
+      imported_by: input.actorId,
+      last_error: null,
+      processed_at: new Date().toISOString(),
+    })
+    .eq("id", input.eventId);
+
+  return {
+    id: input.eventId,
+    status: "imported_manual",
+    entity: data.entity,
+    entityId: data.entity_id,
+    fetchedEntity: raw.data ?? {},
+  };
+}
