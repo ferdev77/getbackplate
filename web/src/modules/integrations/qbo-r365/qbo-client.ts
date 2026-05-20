@@ -447,6 +447,45 @@ export async function fetchQboItemSkus(input: {
   return skuMap;
 }
 
+export async function fetchQboTransactionByDocNumber(input: {
+  accessToken: string;
+  realmId: string;
+  docNumber: string;
+}): Promise<{ type: "Invoice" | "CreditMemo"; data: QboInvoiceLike } | null> {
+  const safeDocNumber = input.docNumber.replace(/'/g, "''");
+  const types = ["Invoice", "CreditMemo"] as const;
+
+  for (const type of types) {
+    const query = `select * from ${type} where DocNumber = '${safeDocNumber}'`;
+    const response = await fetch(
+      `${QBO_API_BASE_URL}/v3/company/${input.realmId}/query?minorversion=75`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${input.accessToken}`,
+          Accept: "application/json",
+          "Content-Type": "application/text",
+        },
+        body: query,
+        cache: "no-store",
+      },
+    );
+    const payload = (await response.json().catch(() => ({}))) as QueryResponse<QboInvoiceLike> & {
+      Fault?: { Error?: QboFaultError[] };
+    };
+    if (!response.ok) {
+      const fault = payload.Fault?.Error?.[0];
+      throw new Error(fault?.Detail ?? fault?.Message ?? `Error consultando ${type} por DocNumber en QBO`);
+    }
+    const qr = payload.QueryResponse ?? payload.queryResponse;
+    const items = (type === "Invoice" ? qr?.Invoice : qr?.CreditMemo) ?? [];
+    if (items.length > 0) {
+      return { type, data: items[0] };
+    }
+  }
+  return null;
+}
+
 export async function fetchQboCustomerById(input: {
   accessToken: string;
   realmId: string;

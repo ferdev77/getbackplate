@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link2, Search, X, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Plus, Play, Trash2, Pause, Eye, ChevronDown, ChevronUp, Server } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { EmptyState } from "@/shared/ui/empty-state";
@@ -79,24 +79,6 @@ type InvoiceDetailData = {
   totalTax: number;
   grandTotal: number;
 };
-type PreviewRow = {
-  status: string;
-  sourceInvoiceId: string | null;
-  sourceLineId: string | null;
-  raw: { vendor: string | null; invoiceNumber: string | null; description: string | null; amount: number | null };
-  mapped: {
-    vendor: string | null;
-    invoiceNumber: string | null;
-    targetCode: string | null;
-    itemName: string | null;
-    description: string | null;
-    quantity: number | null;
-    unitPrice: number | null;
-    lineAmount: number | null;
-    taxAmount: number | null;
-    totalAmount: number | null;
-  };
-};
 type ConfigSnapshot = {
   settings?: {
     template?: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates";
@@ -123,20 +105,6 @@ type SyncConfigSummary = {
 };
 
 type QboCustomer = { id: string; displayName: string; acctNum?: string; raw?: Record<string, unknown> };
-type WebhookEventRow = {
-  id: string;
-  received_at: string;
-  signature_valid: boolean;
-  realm_id: string;
-  entity: string;
-  entity_id: string;
-  operation: string;
-  status: "captured" | "imported_manual" | "ignored" | "failed";
-  imported_at: string | null;
-  last_error: string | null;
-  raw_notification?: Record<string, unknown>;
-  fetched_entity?: Record<string, unknown> | null;
-};
 type UnifiedInvoiceRow = {
   id: string;
   entityId: string;
@@ -387,28 +355,16 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [statusFilter, setStatusFilter] = useState("");
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
-  const [webhookInvoicePreview, setWebhookInvoicePreview] = useState<WebhookEventRow | null>(null);
   const [invoiceDetail, setInvoiceDetail] = useState<InvoiceDetailData | null>(null);
   const [invoiceDetailLoading, setInvoiceDetailLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [oauthConnecting, setOauthConnecting] = useState(false);
   const [mode, setMode] = useState<"operation" | "developer">("operation");
-  const [preparing, setPreparing] = useState(false);
-  const [sendingPrepared, setSendingPrepared] = useState(false);
   const [sendingInvoice, setSendingInvoice] = useState(false);
   const [invoiceDetailRefreshKey, setInvoiceDetailRefreshKey] = useState(0);
   const [showMappingPreview, setShowMappingPreview] = useState(false);
   const [csvPreview, setCsvPreview] = useState<{ headers: string[]; rows: string[][]; rowCount: number } | null>(null);
   const [previewingCsv, setPreviewingCsv] = useState(false);
-  const [showInvoiceFtp, setShowInvoiceFtp] = useState(false);
-  const [invoiceFtpHost, setInvoiceFtpHost] = useState("");
-  const [invoiceFtpUser, setInvoiceFtpUser] = useState("");
-  const [invoiceFtpPass, setInvoiceFtpPass] = useState("");
-  const [invoiceFtpPath, setInvoiceFtpPath] = useState("/APImports/R365");
-  const [invoiceFtpSecure, setInvoiceFtpSecure] = useState(false);
-  const [exportingFormat, setExportingFormat] = useState<"raw" | "json" | "csv" | "txt" | null>(null);
-  const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
-  const [previewLoading, setPreviewLoading] = useState(false);
   const [isSavingSandbox, setIsSavingSandbox] = useState(false);
   const [configUseSandbox, setConfigUseSandbox] = useState<boolean>(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -440,18 +396,14 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const customerInputRef = useRef<HTMLInputElement>(null);
   // Historial filtrado por sync config
   const [syncHistoryFilter, setSyncHistoryFilter] = useState<{ id: string; name: string } | null>(null);
-  const [syncHistoryItems, setSyncHistoryItems] = useState<DashboardData["invoiceHistory"]>([]);
-  const [syncHistoryLoading, setSyncHistoryLoading] = useState(false);
-  const [developerSyncConfigId, setDeveloperSyncConfigId] = useState<string>("");
-  const [developerRunId, setDeveloperRunId] = useState<string | null>(null);
-  const [webhookEvents, setWebhookEvents] = useState<WebhookEventRow[]>([]);
-  const [webhookLoading, setWebhookLoading] = useState(false);
-  const [importingWebhookId, setImportingWebhookId] = useState<string | null>(null);
-  const [expandedWebhookId, setExpandedWebhookId] = useState<string | null>(null);
   const [unifiedHistory, setUnifiedHistory] = useState<UnifiedInvoiceRow[]>([]);
   const [unifiedHistoryLoading, setUnifiedHistoryLoading] = useState(false);
+  const [unifiedPage, setUnifiedPage] = useState(1);
   const hasLoadedSyncConfigsRef = useRef(false);
   const invoiceHistorySectionRef = useRef<HTMLElement>(null);
+  // Fetch manual por DocNumber
+  const [fetchDocNumber, setFetchDocNumber] = useState("");
+  const [fetchDocNumberLoading, setFetchDocNumberLoading] = useState(false);
 
   // Leer resultado del callback OAuth desde la URL y limpiarla
   useEffect(() => {
@@ -527,48 +479,8 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     return () => ctrl.abort();
   }, [mode]);
 
-  async function loadWebhookEvents() {
-    setWebhookLoading(true);
-    try {
-      const response = await fetch("/api/company/integrations/qbo-r365/webhook-events?limit=120", { cache: "no-store" });
-      const payload = (await response.json().catch(() => ({}))) as { events?: WebhookEventRow[]; error?: string };
-      if (!response.ok) throw new Error(payload.error || "No se pudieron cargar webhooks");
-      setWebhookEvents(payload.events ?? []);
-    } catch (error) {
-      toast.error("No se pudo cargar historial de webhooks", {
-        description: error instanceof Error ? error.message : "Error",
-      });
-    }
-    setWebhookLoading(false);
-  }
-
-  async function handleManualImportWebhook(eventId: string) {
-    setImportingWebhookId(eventId);
-    try {
-      const response = await fetch(`/api/company/integrations/qbo-r365/webhook-events/${eventId}/replay`, {
-        method: "POST",
-      });
-      const payload = (await response.json().catch(() => ({}))) as { error?: string; status?: string };
-      if (!response.ok) throw new Error(payload.error || "No se pudo importar manualmente");
-      toast.success("Importación manual completada", {
-        description: "La entidad se obtuvo desde QBO y quedó guardada en este evento.",
-      });
-      await loadWebhookEvents();
-      setRefreshKey((p) => p + 1);
-    } catch (error) {
-      toast.error("No se pudo importar el webhook", {
-        description: error instanceof Error ? error.message : "Error",
-      });
-    }
-    setImportingWebhookId(null);
-  }
-
   useEffect(() => {
-    if (mode !== "developer") return;
-    void loadWebhookEvents();
-  }, [mode, refreshKey]);
-
-  useEffect(() => {
+    setUnifiedPage(1);
     setUnifiedHistoryLoading(true);
     const syncConfigParam = syncHistoryFilter ? `&syncConfigId=${encodeURIComponent(syncHistoryFilter.id)}` : "";
     void fetch(`/api/company/integrations/qbo-r365/unified-history?limit=200${syncConfigParam}`, { cache: "no-store" })
@@ -589,10 +501,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
         const configs = d.configs ?? [];
         setSyncConfigs(configs);
         hasLoadedSyncConfigsRef.current = true;
-        setDeveloperSyncConfigId((prev) => {
-          if (prev && configs.some((c) => c.id === prev)) return prev;
-          return configs[0]?.id ?? "";
-        });
       })
       .catch(() => {})
       .finally(() => setSyncConfigsLoading(false));
@@ -727,20 +635,38 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     setIsSavingSync(false);
   }
 
-  async function handleViewSyncHistory(config: SyncConfigSummary) {
-    setSyncHistoryFilter({ id: config.id, name: config.name });
-    setSyncHistoryItems([]);
-    setSyncHistoryLoading(true);
+  async function handleFetchByDocNumber(e: React.FormEvent) {
+    e.preventDefault();
+    const doc = fetchDocNumber.trim();
+    if (!doc) return;
+    setFetchDocNumberLoading(true);
     try {
-      const response = await fetch(`/api/company/integrations/qbo-r365/sync-configs/${config.id}/invoice-history`, { cache: "no-store" });
-      const payload = (await response.json().catch(() => ({}))) as { items?: DashboardData["invoiceHistory"]; error?: string };
-      if (!response.ok) throw new Error(payload.error || "Error al cargar historial");
-      setSyncHistoryItems(payload.items ?? []);
-    } catch (error) {
-      toast.error("No se pudo cargar el historial", { description: error instanceof Error ? error.message : "Error" });
-      setSyncHistoryFilter(null);
+      const res = await fetch("/api/company/integrations/qbo-r365/fetch-by-docnumber", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ docNumber: doc }),
+      });
+      const data = (await res.json()) as { entityId?: string; entityType?: string; docNumber?: string; alreadyExisted?: boolean; error?: string };
+      if (!res.ok) {
+        toast.error("No se pudo traer la factura", { description: data.error });
+      } else {
+        const label = data.entityType === "CreditMemo" ? "Nota de crédito" : "Factura";
+        toast.success(`${label} traída`, {
+          description: data.alreadyExisted
+            ? `DocNumber ${data.docNumber} actualizado en el historial.`
+            : `DocNumber ${data.docNumber} agregado al historial.`,
+        });
+        setFetchDocNumber("");
+      }
+    } catch {
+      toast.error("Error de red al traer la factura");
+    } finally {
+      setFetchDocNumberLoading(false);
     }
-    setSyncHistoryLoading(false);
+  }
+
+  function handleViewSyncHistory(config: SyncConfigSummary) {
+    setSyncHistoryFilter({ id: config.id, name: config.name });
     setTimeout(() => invoiceHistorySectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
   }
 
@@ -801,32 +727,11 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
 
   useEffect(() => {
     if (!selectedInvoiceId) return;
-    const inv = data?.invoiceHistory.find((i) => i.sourceInvoiceId === selectedInvoiceId)
-      ?? syncHistoryItems.find((i) => i.sourceInvoiceId === selectedInvoiceId);
     setShowMappingPreview(false);
     setCsvPreview(null);
     setPreviewingCsv(false);
-    setShowInvoiceFtp(false);
-    setInvoiceFtpHost("");
-    setInvoiceFtpUser("");
-    setInvoiceFtpPass("");
-    setInvoiceFtpPath("/APImports/R365");
-    setInvoiceFtpSecure(false);
   }, [selectedInvoiceId]);
 
-  const selectedDeveloperSync = useMemo(
-    () => syncConfigs.find((config) => config.id === developerSyncConfigId) ?? null,
-    [syncConfigs, developerSyncConfigId],
-  );
-
-  const developerRunForExport = useMemo(() => {
-    if (developerRunId) {
-      const run = data?.runs?.find((entry) => entry.id === developerRunId);
-      if (run) return run;
-    }
-    if (selectedRun) return selectedRun;
-    return data?.runs?.[0] ?? null;
-  }, [developerRunId, selectedRun, data]);
 
   async function handleSync(dryRun: boolean) {
     setSyncing(true);
@@ -864,75 +769,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       presentIntegrationError(normalizeApiError(error, "No se pudo iniciar conexion OAuth"), "oauth");
       setOauthConnecting(false);
     }
-  }
-
-  async function handlePrepareBatch() {
-    if (!developerSyncConfigId) {
-      toast.error("Selecciona una sincronizacion", {
-        description: "Primero elige una sincronizacion para traer datos del cliente correcto.",
-      });
-      return;
-    }
-    setPreparing(true);
-    const loadingToastId = toast.loading("Consultando QuickBooks sandbox", {
-      description: "Ejecutando la sincronizacion seleccionada...",
-    });
-    try {
-      const runId = await handleRunSyncConfig(developerSyncConfigId, true);
-      if (!runId) {
-        throw new Error("No se pudo ejecutar la sincronizacion seleccionada");
-      }
-      setDeveloperRunId(runId);
-      setSelectedRunId(runId);
-      toast.dismiss(loadingToastId);
-      toast.success("Sincronizacion ejecutada", {
-        description: `Run ${runId.slice(0, 8)} listo para preview, envio y exportacion.`,
-      });
-      setRefreshKey((p) => p + 1);
-    } catch (error) {
-      toast.dismiss(loadingToastId);
-      presentIntegrationError(normalizeApiError(error, "No se pudo preparar lote"), "prepare");
-    }
-    setPreparing(false);
-  }
-
-  async function handleLoadPreview(runId: string) {
-    setPreviewLoading(true);
-    try {
-      const response = await fetch(`/api/company/integrations/qbo-r365/preview?runId=${encodeURIComponent(runId)}&limit=40`, { cache: "no-store" });
-      const payload = (await response.json().catch(() => ({}))) as { rows?: PreviewRow[]; error?: string };
-      if (!response.ok) throw new Error(payload.error || "No se pudo cargar preview");
-      setPreviewRows(payload.rows ?? []);
-      toast.success("Vista previa cargada", {
-        description: `Mostrando ${payload.rows?.length ?? 0} filas de ejemplo para validar mapeo.`,
-      });
-    } catch (error) {
-      presentIntegrationError(normalizeApiError(error, "No se pudo cargar preview"), "preview");
-      setPreviewRows([]);
-    }
-    setPreviewLoading(false);
-  }
-
-  async function handleSendPrepared(runId: string) {
-    setSendingPrepared(true);
-    try {
-      const response = await fetch("/api/company/integrations/qbo-r365/send", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ runId }),
-      });
-      const payload = (await response.json().catch(() => ({}))) as { error?: string; uploaded?: number; fileName?: string };
-      if (!response.ok) throw new Error(payload.error || "No se pudo enviar lote");
-      toast.success("Archivo enviado a R365", {
-        description: payload.fileName
-          ? `Archivo ${payload.fileName} subido (${payload.uploaded ?? 0} lineas).`
-          : "El lote se envio correctamente.",
-      });
-      setRefreshKey((p) => p + 1);
-    } catch (error) {
-      presentIntegrationError(normalizeApiError(error, "No se pudo enviar lote"), "send");
-    }
-    setSendingPrepared(false);
   }
 
   async function handleSendSingleInvoice(
@@ -1227,56 +1063,9 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     URL.revokeObjectURL(url);
   }
 
-  async function handleExport(format: "raw" | "json" | "csv" | "txt") {
-    if (!developerRunForExport?.id) {
-      toast.error("No hay corrida para exportar", {
-        description: "Primero ejecuta 'Traer datos QBO' para generar una corrida.",
-      });
-      return;
-    }
-
-    setExportingFormat(format);
-    try {
-      const url = `/api/company/integrations/qbo-r365/export?runId=${encodeURIComponent(developerRunForExport.id)}&format=${format}`;
-      const response = await fetch(url, { cache: "no-store" });
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => ({}))) as { error?: string };
-        throw new Error(payload.error || "No se pudo exportar");
-      }
-
-      const blob = await response.blob();
-      const dispo = response.headers.get("content-disposition") ?? "";
-      const invoicesCountHeader = response.headers.get("x-qbo-invoices-count");
-      const linesCountHeader = response.headers.get("x-qbo-lines-count");
-      const invoicesCount = invoicesCountHeader ? Number(invoicesCountHeader) : null;
-      const linesCount = linesCountHeader ? Number(linesCountHeader) : null;
-      const fileNameMatch = dispo.match(/filename=\"([^\"]+)\"/i);
-      const fileName = fileNameMatch?.[1] || `qbo-r365-export.${format}`;
-
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = fileName;
-      link.click();
-      URL.revokeObjectURL(blobUrl);
-
-      toast.success(`Exportacion ${format.toUpperCase()} lista`, {
-        description: Number.isFinite(invoicesCount) && Number.isFinite(linesCount)
-          ? `Archivo ${fileName} descargado. Facturas: ${invoicesCount} · Lineas exportadas: ${linesCount}.`
-          : `Archivo ${fileName} descargado correctamente.`,
-      });
-    } catch (error) {
-      toast.error("No se pudo exportar la corrida", {
-        description: normalizeApiError(error, "Error de exportacion"),
-      });
-    }
-    setExportingFormat(null);
-  }
-
   const statCards = data?.statCardsByMode?.[mode] ?? data?.statCards ?? [];
   const conns = data?.connections ?? { qbo: { status: "disconnected" }, ftp: { status: "disconnected" } };
   const invoiceHistory = data?.invoiceHistory ?? [];
-  const activeInvoiceHistory = syncHistoryFilter ? syncHistoryItems : invoiceHistory;
 
   return (
     <main className={className}>
@@ -1318,236 +1107,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
           </div>
         </div>
       </section>
-
-      {mode === "developer" && (
-        <section className="mb-6 rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 sm:p-5">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="mr-auto text-sm font-bold text-[var(--gbp-text)]">Flujo developer (separado por etapas)</p>
-            <label className="inline-flex items-center gap-2 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)]">
-              <span>Sync</span>
-              <select
-                value={developerSyncConfigId}
-                onChange={(e) => setDeveloperSyncConfigId(e.target.value)}
-                className="min-w-[170px] bg-transparent text-xs font-semibold text-[var(--gbp-text)] outline-none"
-                disabled={syncConfigsLoading || syncConfigs.length === 0}
-              >
-                {syncConfigs.length === 0 && <option value="">Sin sincronizaciones</option>}
-                {syncConfigs.map((config) => (
-                  <option key={config.id} value={config.id}>{config.name}</option>
-                ))}
-              </select>
-            </label>
-            <label className="inline-flex items-center gap-2 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)] cursor-pointer select-none">
-              {isSavingSandbox
-                ? <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--gbp-muted)]" />
-                : <input type="checkbox" checked={configUseSandbox} onChange={(e) => { void handleSandboxToggle(e.target.checked); }} className="h-3.5 w-3.5 accent-[var(--gbp-accent)]" />}
-              Sandbox QBO (pruebas)
-            </label>
-            <button
-              type="button"
-              disabled={preparing || !developerSyncConfigId}
-              onClick={handlePrepareBatch}
-              className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${preparing ? "animate-spin" : ""}`} /> 1) Ejecutar sync
-            </button>
-            <button
-              type="button"
-              disabled={!developerRunForExport || previewLoading}
-              onClick={() => developerRunForExport && handleLoadPreview(developerRunForExport.id)}
-              className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
-            >
-              <Search className="h-3.5 w-3.5" /> 2) Ver preview
-            </button>
-            <button
-              type="button"
-              disabled={!developerRunForExport || sendingPrepared}
-              onClick={() => developerRunForExport && handleSendPrepared(developerRunForExport.id)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 py-2 text-xs font-bold text-white transition hover:bg-[var(--gbp-accent)] disabled:opacity-50"
-            >
-              <Link2 className="h-3.5 w-3.5" /> 3) Enviar a R365
-            </button>
-            <button
-              type="button"
-              disabled={!developerRunForExport || exportingFormat !== null}
-              onClick={() => handleExport("raw")}
-              className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
-            >
-              RAW
-            </button>
-            <button
-              type="button"
-              disabled={!developerRunForExport || exportingFormat !== null}
-              onClick={() => handleExport("json")}
-              className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
-            >
-              JSON
-            </button>
-            <button
-              type="button"
-              disabled={!developerRunForExport || exportingFormat !== null}
-              onClick={() => handleExport("csv")}
-              className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
-            >
-              CSV
-            </button>
-            <button
-              type="button"
-              disabled={!developerRunForExport || exportingFormat !== null}
-              onClick={() => handleExport("txt")}
-              className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
-            >
-              TXT
-            </button>
-          </div>
-
-          <p className="mt-2 text-xs text-[var(--gbp-muted)]">
-            {selectedDeveloperSync
-              ? `Sync activa: ${selectedDeveloperSync.name}. Las acciones 2 y 3 usan el run ${developerRunForExport ? developerRunForExport.id.slice(0, 8) : "mas reciente"}.`
-              : "Crea una sincronizacion para poder ejecutar el flujo developer por cliente."}
-          </p>
-          <p className="mt-1 text-xs text-[var(--gbp-muted)]">
-            En Developer, el paso 1 corre en modo prueba (dry run): consulta y mapea datos de QBO sin enviar por FTP.
-          </p>
-
-          {previewRows.length > 0 && (
-            <div className="mt-4 overflow-hidden rounded-lg border border-[var(--gbp-border)]">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[980px] border-collapse">
-                  <thead>
-                    <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-left text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">
-                      <th className="px-3 py-2">Estado</th>
-                      <th className="px-3 py-2">Raw Vendor</th>
-                      <th className="px-3 py-2">Raw Invoice</th>
-                      <th className="px-3 py-2">Mapped Code</th>
-                      <th className="px-3 py-2">Vendor Item Name</th>
-                      <th className="px-3 py-2">Monto</th>
-                      <th className="px-3 py-2">Tax</th>
-                      <th className="px-3 py-2">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {previewRows.map((row, idx) => (
-                      <tr key={`${row.sourceInvoiceId ?? "x"}-${row.sourceLineId ?? "y"}-${idx}`} className="border-b border-[var(--gbp-border)]">
-                        <td className="px-3 py-2 text-xs text-[var(--gbp-text2)]">{row.status}</td>
-                        <td className="px-3 py-2 text-xs text-[var(--gbp-text)]">{row.raw.vendor ?? "-"}</td>
-                        <td className="px-3 py-2 text-xs text-[var(--gbp-text)]">{row.raw.invoiceNumber ?? "-"}</td>
-                        <td className="px-3 py-2 text-xs font-semibold text-[var(--gbp-accent)]">{row.mapped.targetCode ?? "-"}</td>
-                        <td className="px-3 py-2 text-xs text-[var(--gbp-text2)]">{row.mapped.itemName ?? row.mapped.description ?? "-"}</td>
-                        <td className="px-3 py-2 text-xs text-[var(--gbp-text)]">{row.mapped.lineAmount ?? "-"}</td>
-                        <td className="px-3 py-2 text-xs text-[var(--gbp-text)]">{row.mapped.taxAmount ?? "-"}</td>
-                        <td className="px-3 py-2 text-xs text-[var(--gbp-text)]">{row.mapped.totalAmount ?? "-"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </section>
-      )}
-
-      {mode === "developer" && (
-        <section className="mb-6 rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 sm:p-5">
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <p className="mr-auto text-sm font-bold text-[var(--gbp-text)]">Webhook History (captura developer)</p>
-            <button
-              type="button"
-              onClick={() => { void loadWebhookEvents(); }}
-              disabled={webhookLoading}
-              className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${webhookLoading ? "animate-spin" : ""}`} /> Refrescar
-            </button>
-          </div>
-
-          {webhookEvents.length === 0 && !webhookLoading && (
-            <p className="text-xs text-[var(--gbp-muted)]">Aún no hay webhooks capturados para esta organización.</p>
-          )}
-
-          {webhookEvents.length > 0 && (
-            <div className="overflow-x-auto rounded-xl border border-[var(--gbp-border)]">
-              <table className="w-full min-w-[980px] text-xs">
-                <thead>
-                  <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-left text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">
-                    <th className="px-3 py-2">Recibido</th>
-                    <th className="px-3 py-2">Entidad</th>
-                    <th className="px-3 py-2">Entity ID</th>
-                    <th className="px-3 py-2">Operación</th>
-                    <th className="px-3 py-2">Estado</th>
-                    <th className="px-3 py-2">Firma</th>
-                    <th className="px-3 py-2">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {webhookEvents.map((event) => {
-                    const expanded = expandedWebhookId === event.id;
-                    return (
-                      <Fragment key={event.id}>
-                        <tr key={event.id} className="border-b border-[var(--gbp-border)]">
-                          <td className="px-3 py-2 text-[var(--gbp-text2)]">{relativeTime(event.received_at)}</td>
-                          <td className="px-3 py-2 font-semibold text-[var(--gbp-text)]">{event.entity}</td>
-                          <td className="px-3 py-2 font-mono text-[11px] text-[var(--gbp-text2)]">{event.entity_id}</td>
-                          <td className="px-3 py-2 text-[var(--gbp-text2)]">{event.operation}</td>
-                          <td className="px-3 py-2">
-                            <span className="rounded-full bg-[var(--gbp-bg)] px-2 py-0.5 text-[10px] font-bold uppercase text-[var(--gbp-text2)]">
-                              {event.status}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 text-[var(--gbp-text2)]">{event.signature_valid ? "OK" : "Inválida"}</td>
-                          <td className="px-3 py-2">
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => setExpandedWebhookId((prev) => prev === event.id ? null : event.id)}
-                                className="rounded-md border border-[var(--gbp-border)] px-2 py-1 text-[10px] font-bold text-[var(--gbp-text2)] hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
-                              >
-                                {expanded ? "Ocultar raw" : "Ver raw"}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => { void handleManualImportWebhook(event.id); }}
-                                disabled={importingWebhookId === event.id || !event.signature_valid || (event.entity !== "Invoice" && event.entity !== "CreditMemo")}
-                                className="rounded-md bg-[var(--gbp-text)] px-2 py-1 text-[10px] font-bold text-white hover:bg-[var(--gbp-accent)] disabled:opacity-50"
-                              >
-                                {importingWebhookId === event.id ? "Importando..." : "Importar manual"}
-                              </button>
-                              {event.fetched_entity != null && (event.entity === "Invoice" || event.entity === "CreditMemo") && (
-                                <button
-                                  type="button"
-                                  onClick={() => setWebhookInvoicePreview(event)}
-                                  className="rounded-md border border-[var(--gbp-accent)]/40 bg-[var(--gbp-accent-glow)] px-2 py-1 text-[10px] font-bold text-[var(--gbp-accent)] hover:bg-[var(--gbp-accent)] hover:text-white"
-                                >
-                                  Ver factura
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                        {expanded && (
-                          <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)]/40">
-                            <td colSpan={7} className="px-3 py-3">
-                              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Raw notification</p>
-                              <pre className="max-h-52 overflow-auto rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-2 text-[10px] text-[var(--gbp-text2)]">{JSON.stringify(event.raw_notification ?? {}, null, 2)}</pre>
-                              {event.fetched_entity && (
-                                <>
-                                  <p className="mb-1 mt-3 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Fetched entity (manual import)</p>
-                                  <pre className="max-h-52 overflow-auto rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-2 text-[10px] text-[var(--gbp-text2)]">{JSON.stringify(event.fetched_entity, null, 2)}</pre>
-                                </>
-                              )}
-                              {event.last_error && <p className="mt-2 text-[10px] text-[var(--gbp-error)]">Error: {event.last_error}</p>}
-                            </td>
-                          </tr>
-                        )}
-                      </Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-      )}
 
       {/* Stat Cards */}
       <section className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -1593,13 +1152,15 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       <section className="mb-6">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Sincronizaciones</h2>
-          <button
-            type="button"
-            onClick={() => setIsCreateSyncOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 py-2 text-xs font-bold text-white transition hover:bg-[var(--gbp-accent)]"
-          >
-            <Plus className="h-3.5 w-3.5" /> Crear sincronización
-          </button>
+          {syncConfigs.length === 0 && (
+            <button
+              type="button"
+              onClick={() => setIsCreateSyncOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 py-2 text-xs font-bold text-white transition hover:bg-[var(--gbp-accent)]"
+            >
+              <Plus className="h-3.5 w-3.5" /> Crear sincronización
+            </button>
+          )}
         </div>
 
         {syncConfigsLoading && (
@@ -1673,6 +1234,23 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
+                <form onSubmit={(e) => { void handleFetchByDocNumber(e); }} className="mt-3 flex gap-1.5">
+                  <input
+                    type="text"
+                    placeholder="Doc Number"
+                    value={fetchDocNumber}
+                    onChange={(e) => setFetchDocNumber(e.target.value)}
+                    className="min-w-0 flex-1 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2.5 py-1.5 text-[11px] text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:outline-none"
+                  />
+                  <button
+                    type="submit"
+                    disabled={fetchDocNumberLoading || !fetchDocNumber.trim()}
+                    className="inline-flex items-center justify-center gap-1 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
+                  >
+                    {fetchDocNumberLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}
+                    Traer
+                  </button>
+                </form>
               </article>
             ))}
           </div>
@@ -1819,7 +1397,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
               <span className="text-[11px] font-bold text-[var(--gbp-accent)]">{syncHistoryFilter.name}</span>
               <button
                 type="button"
-                onClick={() => { setSyncHistoryFilter(null); setSyncHistoryItems([]); }}
+                onClick={() => { setSyncHistoryFilter(null); }}
                 className="rounded-full p-0.5 text-[var(--gbp-accent)] hover:bg-[var(--gbp-accent)] hover:text-white transition"
                 title="Ver todo el historial"
               >
@@ -1829,66 +1407,110 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
           )}
           {unifiedHistoryLoading && <Loader2 className="h-4 w-4 animate-spin text-[var(--gbp-muted)]" />}
         </div>
-        <div className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] border-collapse">
-              <thead>
-                <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-left text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">
-                  <th className="px-4 py-3">Fecha</th>
-                  <th className="px-4 py-3">Doc #</th>
-                  <th className="px-4 py-3">Tipo</th>
-                  <th className="px-4 py-3">Cliente</th>
-                  <th className="px-4 py-3">Monto</th>
-                  <th className="px-4 py-3">Fuente</th>
-                  <th className="px-4 py-3">Pipeline</th>
-                  <th className="px-4 py-3">Recibida</th>
-                </tr>
-              </thead>
-              <tbody>
-                {unifiedHistory.map((item) => {
-                  const pipelineColors: Record<string, string> = {
-                    en_cola: "bg-[var(--gbp-bg)] text-[var(--gbp-text2)]",
-                    capturada: "bg-blue-50 text-blue-600",
-                    mapeada: "bg-[color-mix(in_oklab,var(--gbp-accent)_15%,transparent)] text-[var(--gbp-accent)]",
-                    enviada: "bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]",
-                  };
-                  const pipelineLabels: Record<string, string> = { en_cola: "En cola", capturada: "Capturada", mapeada: "Mapeada", enviada: "Enviada" };
-                  return (
-                    <tr
-                      key={item.id}
-                      className="cursor-pointer border-b border-[var(--gbp-border)] transition hover:bg-[var(--gbp-bg)]"
-                      onClick={() => setSelectedInvoiceId(item.entityId)}
-                    >
-                      <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{formatQboDate(item.txnDate)}</td>
-                      <td className="px-4 py-3 text-xs font-medium text-[var(--gbp-text)]">{item.docNumber ?? item.entityId.slice(0, 10)}</td>
-                      <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{item.entityType}</td>
-                      <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{item.customerName ?? "-"}</td>
-                      <td className="px-4 py-3 text-xs font-semibold text-[var(--gbp-text)]">{item.totalAmount != null ? item.totalAmount.toFixed(2) : "-"}</td>
-                      <td className="px-4 py-3">
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${item.importSource === "webhook" ? "bg-purple-50 text-purple-600" : "bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"}`}>
-                          {item.importSource === "webhook" ? "Webhook" : "Sync"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] ${pipelineColors[item.pipelineStatus] ?? ""}`}>
-                          {pipelineLabels[item.pipelineStatus] ?? item.pipelineStatus}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-[var(--gbp-muted)]">{relativeTime(item.createdAt)}</td>
+        {(() => {
+          const PAGE_SIZE = 15;
+          const totalPages = Math.max(1, Math.ceil(unifiedHistory.length / PAGE_SIZE));
+          const pageRows = unifiedHistory.slice((unifiedPage - 1) * PAGE_SIZE, unifiedPage * PAGE_SIZE);
+          const pipelineColors: Record<string, string> = {
+            en_cola: "bg-[var(--gbp-bg)] text-[var(--gbp-text2)]",
+            capturada: "bg-blue-50 text-blue-600",
+            mapeada: "bg-[color-mix(in_oklab,var(--gbp-accent)_15%,transparent)] text-[var(--gbp-accent)]",
+            enviada: "bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]",
+          };
+          const pipelineLabels: Record<string, string> = { en_cola: "En cola", capturada: "Capturada", mapeada: "Mapeada", enviada: "Enviada" };
+          return (
+            <div className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[860px] border-collapse">
+                  <thead>
+                    <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-left text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">
+                      <th className="px-4 py-3">Fecha</th>
+                      <th className="px-4 py-3">Doc #</th>
+                      <th className="px-4 py-3">Tipo</th>
+                      <th className="px-4 py-3">Cliente</th>
+                      <th className="px-4 py-3">Monto</th>
+                      <th className="px-4 py-3">Fuente</th>
+                      <th className="px-4 py-3">Pipeline</th>
+                      <th className="px-4 py-3">Recibida</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          {!unifiedHistory.length && !unifiedHistoryLoading && (
-            <EmptyState
-              icon={Search}
-              title={syncHistoryFilter ? `Sin facturas para ${syncHistoryFilter.name}` : "Sin historial de facturas"}
-              description="Las facturas aparecen aquí cuando llegan por webhook o sync."
-            />
-          )}
-        </div>
+                  </thead>
+                  <tbody>
+                    {pageRows.map((item) => (
+                      <tr
+                        key={item.id}
+                        className="cursor-pointer border-b border-[var(--gbp-border)] transition hover:bg-[var(--gbp-bg)]"
+                        onClick={() => setSelectedInvoiceId(item.entityId)}
+                      >
+                        <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{formatQboDate(item.txnDate)}</td>
+                        <td className="px-4 py-3 text-xs font-medium text-[var(--gbp-text)]">{item.docNumber ?? item.entityId.slice(0, 10)}</td>
+                        <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{item.entityType}</td>
+                        <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{item.customerName ?? "-"}</td>
+                        <td className="px-4 py-3 text-xs font-semibold text-[var(--gbp-text)]">{item.totalAmount != null ? item.totalAmount.toFixed(2) : "-"}</td>
+                        <td className="px-4 py-3">
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${item.importSource === "webhook" ? "bg-purple-50 text-purple-600" : "bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"}`}>
+                            {item.importSource === "webhook" ? "Webhook" : "Sync"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] ${pipelineColors[item.pipelineStatus] ?? ""}`}>
+                            {pipelineLabels[item.pipelineStatus] ?? item.pipelineStatus}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-[var(--gbp-muted)]">{relativeTime(item.createdAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {!unifiedHistory.length && !unifiedHistoryLoading && (
+                <EmptyState
+                  icon={Search}
+                  title={syncHistoryFilter ? `Sin facturas para ${syncHistoryFilter.name}` : "Sin historial de facturas"}
+                  description="Las facturas aparecen aquí cuando llegan por webhook o sync."
+                />
+              )}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between border-t border-[var(--gbp-border)] px-4 py-3">
+                  <span className="text-[11px] text-[var(--gbp-muted)]">
+                    {(unifiedPage - 1) * PAGE_SIZE + 1}–{Math.min(unifiedPage * PAGE_SIZE, unifiedHistory.length)} de {unifiedHistory.length}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={unifiedPage === 1}
+                      onClick={() => setUnifiedPage((p) => p - 1)}
+                      className="rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2.5 py-1 text-[11px] font-bold text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:opacity-40"
+                    >
+                      ‹ Anterior
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setUnifiedPage(p)}
+                        className={`rounded-lg border-[1.5px] px-2.5 py-1 text-[11px] font-bold transition ${
+                          p === unifiedPage
+                            ? "border-[var(--gbp-accent)] bg-[color-mix(in_oklab,var(--gbp-accent)_12%,transparent)] text-[var(--gbp-accent)]"
+                            : "border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)] hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      disabled={unifiedPage === totalPages}
+                      onClick={() => setUnifiedPage((p) => p + 1)}
+                      className="rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2.5 py-1 text-[11px] font-bold text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:opacity-40"
+                    >
+                      Siguiente ›
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </section>
 
       {/* Runs Table */}
@@ -1935,7 +1557,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                     <tr key={run.id} onClick={() => setSelectedRunId(run.id)}
                       className="cursor-pointer border-b border-[var(--gbp-border)] transition hover:bg-[var(--gbp-bg)]">
                       <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{dateLabel} · {timeLabel}</td>
-                      <td className="px-4 py-3">{statusBadge(run.status)}{run.dryRun && <span className="ml-1.5 rounded bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold text-blue-500">DRY</span>}{developerSyncConfigId && run.syncConfigId === developerSyncConfigId && <span className="ml-1.5 rounded bg-[color-mix(in_oklab,var(--gbp-accent)_12%,transparent)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--gbp-accent)]">SYNC ACTIVA</span>}</td>
+                      <td className="px-4 py-3">{statusBadge(run.status)}{run.dryRun && <span className="ml-1.5 rounded bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold text-blue-500">DRY</span>}</td>
                       <td className="px-4 py-3 text-xs font-semibold text-[var(--gbp-text2)]">{templateLabel(run.templateMode)}</td>
                       <td className="px-4 py-3"><span className="rounded-full bg-[var(--gbp-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--gbp-text2)]">{triggerLabel(run.triggerSource)}</span></td>
                       <td className="px-4 py-3 text-sm font-semibold text-[var(--gbp-text)]">{run.invoicesDetected}</td>
@@ -2248,7 +1870,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   { key: "sent", done: isSent, label: "Enviada", sub: isSent ? "R365 FTP" : "" },
                 ];
 
-                const hasFtpOverride = showInvoiceFtp && invoiceFtpHost.trim().length > 0;
                 const templateCols = TEMPLATE_COLS["by_item"];
 
                 return (
@@ -2548,176 +2169,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
         </>
       )}
 
-      {/* Panel lateral: preview de factura desde import manual de webhook.
-          Usa fetched_entity (QBO raw) que ya está cargado en el evento,
-          sin depender de integration_run_items ni invoiceHistory. */}
-      {webhookInvoicePreview && (() => {
-        const fe = (webhookInvoicePreview.fetched_entity ?? {}) as Record<string, unknown>;
-        const lines = Array.isArray(fe.Line) ? (fe.Line as Record<string, unknown>[]) : [];
-        const customer = (fe.CustomerRef as Record<string, unknown> | undefined);
-        const currency = (fe.CurrencyRef as Record<string, unknown> | undefined);
-        const taxDetail = (fe.TxnTaxDetail as Record<string, unknown> | undefined);
-        const totalAmt = typeof fe.TotalAmt === "number" ? fe.TotalAmt : null;
-        const balance = typeof fe.Balance === "number" ? fe.Balance : null;
-        const totalTax = typeof taxDetail?.TotalTax === "number" ? taxDetail.TotalTax : null;
-        const subtotal = totalAmt != null && totalTax != null ? totalAmt - totalTax : totalAmt;
-        const currencyCode = typeof currency?.value === "string" ? currency.value : "USD";
-        const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: currencyCode }).format(n);
-        const dataLines = lines.filter((l) => l.DetailType !== "SubTotalLineDetail");
-        return (
-          <>
-            <button
-              type="button"
-              onClick={() => setWebhookInvoicePreview(null)}
-              className="fixed inset-0 z-[110] bg-black/30"
-              aria-label="Cerrar preview de factura"
-            />
-            <aside className="fixed right-0 top-0 z-[120] flex h-full w-full max-w-2xl flex-col border-l-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-xl)]">
-              <header className="flex items-start justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">
-                    Factura importada · {webhookInvoicePreview.entity}
-                  </p>
-                  <h3 className="mt-1 text-lg font-bold text-[var(--gbp-text)]">
-                    {typeof fe.DocNumber === "string" ? `#${fe.DocNumber}` : `QBO-${webhookInvoicePreview.entity_id}`}
-                  </h3>
-                  <p className="mt-0.5 text-xs text-[var(--gbp-text2)]">
-                    {currencyCode}
-                    {typeof fe.TxnDate === "string" ? ` · ${fe.TxnDate}` : ""}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setWebhookInvoicePreview(null)}
-                  className="rounded-lg p-1.5 text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg)]"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </header>
-
-              <div className="flex-1 overflow-y-auto">
-                {/* Encabezado factura */}
-                <div className="border-b border-[var(--gbp-border)] px-6 py-5 text-sm">
-                  <div className="flex items-start justify-between gap-6">
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Bill To</p>
-                      <p className="mt-1 text-base font-bold text-[var(--gbp-text)]">
-                        {typeof customer?.name === "string" ? customer.name : "-"}
-                      </p>
-                    </div>
-                    <div className="shrink-0 text-right text-xs text-[var(--gbp-text2)]">
-                      <div className="flex justify-between gap-6">
-                        <span className="text-[var(--gbp-muted)]">Fecha</span>
-                        <span className="text-[var(--gbp-text)]">{typeof fe.TxnDate === "string" ? fe.TxnDate : "-"}</span>
-                      </div>
-                      {typeof fe.DueDate === "string" && (
-                        <div className="flex justify-between gap-6">
-                          <span className="text-[var(--gbp-muted)]">Vencimiento</span>
-                          <span className="text-[var(--gbp-text)]">{fe.DueDate}</span>
-                        </div>
-                      )}
-                      {typeof fe.PONumber === "string" && (
-                        <div className="flex justify-between gap-6">
-                          <span className="text-[var(--gbp-muted)]">PO#</span>
-                          <span className="text-[var(--gbp-text)]">{fe.PONumber}</span>
-                        </div>
-                      )}
-                      {balance != null && (
-                        <div className="flex justify-between gap-6">
-                          <span className="text-[var(--gbp-muted)]">Balance</span>
-                          <span className="font-semibold text-[var(--gbp-text)]">{fmt(balance)}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <p className="mt-2 font-mono text-[10px] text-[var(--gbp-muted)]">QBO ID: {webhookInvoicePreview.entity_id}</p>
-                </div>
-
-                {/* Líneas */}
-                <div className="px-6 py-5">
-                  <p className="mb-3 text-xs font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">
-                    Líneas · {dataLines.length}
-                  </p>
-                  {dataLines.length === 0 ? (
-                    <p className="text-xs text-[var(--gbp-muted)]">Sin líneas de detalle.</p>
-                  ) : (
-                    <div className="overflow-hidden rounded-xl border border-[var(--gbp-border)]">
-                      <table className="w-full border-collapse text-xs">
-                        <thead>
-                          <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-left text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">
-                            <th className="px-3 py-2">Descripción</th>
-                            <th className="px-3 py-2 text-right">Cant.</th>
-                            <th className="px-3 py-2 text-right">P. Unit.</th>
-                            <th className="px-3 py-2 text-right">Importe</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {dataLines.map((line, idx) => {
-                            const sild = line.SalesItemLineDetail as Record<string, unknown> | undefined;
-                            const abed = line.AccountBasedExpenseLineDetail as Record<string, unknown> | undefined;
-                            const itemRef = (sild?.ItemRef ?? abed?.AccountRef) as Record<string, unknown> | undefined;
-                            const qty = typeof sild?.Qty === "number" ? sild.Qty : null;
-                            const unitPrice = typeof sild?.UnitPrice === "number" ? sild.UnitPrice : null;
-                            const amount = typeof line.Amount === "number" ? line.Amount : null;
-                            const desc = typeof line.Description === "string" ? line.Description
-                              : typeof itemRef?.name === "string" ? itemRef.name : "-";
-                            return (
-                              <tr key={idx} className="border-b border-[var(--gbp-border)] last:border-0">
-                                <td className="px-3 py-2 text-[var(--gbp-text)]">{desc}</td>
-                                <td className="px-3 py-2 text-right text-[var(--gbp-text2)]">{qty ?? "-"}</td>
-                                <td className="px-3 py-2 text-right text-[var(--gbp-text2)]">{unitPrice != null ? fmt(unitPrice) : "-"}</td>
-                                <td className="px-3 py-2 text-right font-semibold text-[var(--gbp-text)]">{amount != null ? fmt(amount) : "-"}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-
-                  {/* Totales */}
-                  {totalAmt != null && (
-                    <div className="mt-4 space-y-1 border-t border-[var(--gbp-border)] pt-3 text-xs">
-                      {subtotal != null && subtotal !== totalAmt && (
-                        <div className="flex justify-between">
-                          <span className="text-[var(--gbp-muted)]">Subtotal</span>
-                          <span className="text-[var(--gbp-text)]">{fmt(subtotal)}</span>
-                        </div>
-                      )}
-                      {totalTax != null && totalTax > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-[var(--gbp-muted)]">Impuestos</span>
-                          <span className="text-[var(--gbp-text)]">{fmt(totalTax)}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between text-sm font-bold">
-                        <span className="text-[var(--gbp-text)]">Total</span>
-                        <span className="text-[var(--gbp-text)]">{fmt(totalAmt)}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <footer className="border-t border-[var(--gbp-border)] px-6 py-4">
-                <p className="mb-3 text-[10px] text-[var(--gbp-muted)]">
-                  Datos obtenidos desde QBO en el import manual del{" "}
-                  {webhookInvoicePreview.imported_at
-                    ? new Date(webhookInvoicePreview.imported_at).toLocaleString("es-AR")
-                    : "webhook"}. No incluye historial de sync.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setWebhookInvoicePreview(null)}
-                  className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2.5 text-sm font-semibold text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-surface2)]"
-                >
-                  Cerrar
-                </button>
-              </footer>
-            </aside>
-          </>
-        );
-      })()}
 
     </main>
   );

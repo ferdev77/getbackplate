@@ -13,6 +13,7 @@ import {
   fetchQboItemSkus,
   fetchQboRawTransaction,
   fetchQboSalesTransactions,
+  fetchQboTransactionByDocNumber,
   refreshQboAccessToken,
   type QboCustomer,
   type QboInvoiceLike,
@@ -2912,6 +2913,17 @@ async function fetchAndCaptureWebhookInvoice(input: {
 
   const nowIso = new Date().toISOString();
 
+  // Si el cliente no tiene sync config → el webhook no pertenece a ningún cliente
+  // configurado, eliminamos la fila de unified para que no aparezca en el historial.
+  if (!syncConfigId) {
+    await admin.from("qbo_unified_invoices")
+      .delete()
+      .eq("organization_id", input.organizationId)
+      .eq("entity_id", input.entityId)
+      .eq("entity_type", input.entityType);
+    return;
+  }
+
   await admin.from("qbo_unified_invoices").update({
     pipeline_status: "capturada",
     raw_entity: entity,
@@ -2961,6 +2973,109 @@ export type UnifiedInvoiceRow = {
   updatedAt: string;
 };
 
+export async function fetchInvoiceByDocNumber(
+  organizationId: string,
+  docNumber: string,
+): Promise<{ entityId: string; entityType: string; docNumber: string; alreadyExisted: boolean }> {
+  const admin = createSupabaseAdminClient();
+
+  const qboConnection = await getConnection(organizationId, "quickbooks_online");
+  if (!qboConnection || qboConnection.status !== "connected") {
+    throw new Error("QuickBooks no está conectado");
+  }
+
+  const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
+
+  const result = await fetchQboTransactionByDocNumber({
+    accessToken: qboAuth.accessToken,
+    realmId: qboAuth.realmId,
+    docNumber: docNumber.trim(),
+  });
+
+  if (!result) {
+    throw new Error(`No se encontró ninguna factura o nota de crédito con DocNumber "${docNumber}" en QBO`);
+  }
+
+  const { type: entityType, data: entity } = result;
+  const entityId = typeof entity.Id === "string" ? entity.Id : null;
+  if (!entityId) throw new Error("La factura encontrada no tiene Id válido");
+
+  const customerRef = (entity as Record<string, unknown>).CustomerRef as Record<string, unknown> | undefined;
+  const customerId = typeof customerRef?.value === "string" ? customerRef.value : null;
+
+  let syncConfigId: string | null = null;
+  let r365Location: string | null = null;
+
+  if (customerId) {
+    const { data: syncConfigs } = await admin
+      .from("qbo_r365_sync_configs")
+      .select("id, r365_location")
+      .eq("organization_id", organizationId)
+      .eq("qbo_customer_id", customerId)
+      .limit(1);
+
+    const syncConfig = syncConfigs?.[0] ?? null;
+    if (syncConfig) {
+      syncConfigId = String(syncConfig.id);
+      r365Location = typeof syncConfig.r365_location === "string" ? syncConfig.r365_location : null;
+
+      if (!r365Location) {
+        const customers = await fetchQboCustomers({ accessToken: qboAuth.accessToken, realmId: qboAuth.realmId }).catch(() => [] as QboCustomer[]);
+        const found = customers.find((c) => c.id === customerId);
+        if (found?.acctNum) {
+          r365Location = found.acctNum;
+          void admin.from("qbo_r365_sync_configs")
+            .update({ r365_location: found.acctNum })
+            .eq("id", syncConfig.id);
+        }
+      }
+    }
+  }
+
+  if (!syncConfigId) {
+    throw new Error("El cliente de esta factura no tiene una sincronización configurada en esta empresa");
+  }
+
+  const rawEntity = entity as Record<string, unknown>;
+  const nowIso = new Date().toISOString();
+  const txnDate = typeof rawEntity.TxnDate === "string" ? rawEntity.TxnDate : null;
+  const dueDate = typeof rawEntity.DueDate === "string" ? rawEntity.DueDate : null;
+  const totalAmount = rawEntity.TotalAmt !== null && rawEntity.TotalAmt !== undefined ? Number(rawEntity.TotalAmt) : null;
+  const currencyRef = (rawEntity.CurrencyRef ?? {}) as Record<string, unknown>;
+  const currency = typeof currencyRef.value === "string" ? currencyRef.value : null;
+  const customerName = typeof customerRef?.name === "string" ? customerRef.name : null;
+
+  const { data: existing } = await admin
+    .from("qbo_unified_invoices")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("entity_id", entityId)
+    .eq("entity_type", entityType)
+    .maybeSingle();
+
+  const alreadyExisted = Boolean(existing);
+
+  await admin.from("qbo_unified_invoices").upsert({
+    organization_id: organizationId,
+    sync_config_id: syncConfigId,
+    entity_id: entityId,
+    entity_type: entityType,
+    import_source: "webhook",
+    pipeline_status: "capturada",
+    raw_entity: rawEntity,
+    fetched_at: nowIso,
+    doc_number: docNumber.trim(),
+    txn_date: txnDate,
+    due_date: dueDate,
+    total_amount: totalAmount,
+    currency,
+    customer_name: customerName,
+    vendor_name: customerName,
+  }, { onConflict: "organization_id,entity_id,entity_type", ignoreDuplicates: false });
+
+  return { entityId, entityType, docNumber: docNumber.trim(), alreadyExisted };
+}
+
 export async function listUnifiedHistory(
   organizationId: string,
   limit = 100,
@@ -2975,7 +3090,9 @@ export async function listUnifiedHistory(
     .order("created_at", { ascending: false })
     .limit(Math.max(1, Math.min(limit, 500)));
 
-  const { data, error } = await (syncConfigId ? baseQuery.eq("sync_config_id", syncConfigId) : baseQuery);
+  const { data, error } = await (syncConfigId
+    ? baseQuery.eq("sync_config_id", syncConfigId)
+    : baseQuery.not("sync_config_id", "is", null));
   if (error) throw new Error(error.message);
 
   return (data ?? []).map((row) => ({
