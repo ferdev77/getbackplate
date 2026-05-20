@@ -526,6 +526,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
         description: "La entidad se obtuvo desde QBO y quedó guardada en este evento.",
       });
       await loadWebhookEvents();
+      setRefreshKey((p) => p + 1);
     } catch (error) {
       toast.error("No se pudo importar el webhook", {
         description: error instanceof Error ? error.message : "Error",
