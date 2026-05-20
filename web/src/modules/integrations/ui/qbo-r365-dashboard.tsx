@@ -375,7 +375,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [syncConfigs, setSyncConfigs] = useState<SyncConfigSummary[]>([]);
   const [syncConfigsLoading, setSyncConfigsLoading] = useState(false);
   const [isCreateSyncOpen, setIsCreateSyncOpen] = useState(false);
-  const [runningSyncId, setRunningSyncId] = useState<string | null>(null);
   const [deletingSyncId, setDeletingSyncId] = useState<string | null>(null);
   // Form state for new sync config
   const [newSyncCustomerId, setNewSyncCustomerId] = useState("");
@@ -517,29 +516,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       .catch(() => {})
       .finally(() => setCustomersLoading(false));
   }, [isCreateSyncOpen, qboCustomers.length]);
-
-  async function handleRunSyncConfig(id: string, dryRun = false) {
-    setRunningSyncId(id);
-    try {
-      const response = await fetch(`/api/company/integrations/qbo-r365/sync-configs/${id}/run`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ dryRun }),
-      });
-      const payload = (await response.json().catch(() => ({}))) as { error?: string; runId?: string };
-      if (!response.ok) throw new Error(payload.error || "Error en sincronizacion");
-      toast.success("Sincronizacion ejecutada", {
-        description: payload.runId ? `Corrida ${payload.runId.slice(0, 8)} completada.` : "Revisa el historial.",
-      });
-      setRefreshKey((p) => p + 1);
-      return payload.runId ?? null;
-    } catch (error) {
-      toast.error("No se pudo ejecutar", { description: error instanceof Error ? error.message : "Error" });
-      return null;
-    } finally {
-      setRunningSyncId(null);
-    }
-  }
 
   async function handleToggleSyncStatus(config: SyncConfigSummary) {
     const newStatus = config.status === "active" ? "paused" : "active";
@@ -1189,7 +1165,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   </span>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <span className="rounded bg-[var(--gbp-bg)] px-2 py-0.5 text-[10px] text-[var(--gbp-text2)]">{config.scheduleInterval}</span>
                   <span className="rounded bg-[var(--gbp-bg)] px-2 py-0.5 text-[10px] text-[var(--gbp-text2)]">{config.template}</span>
                   <span className={`rounded px-2 py-0.5 text-[10px] ${config.hasFtp ? "bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]" : "bg-[var(--gbp-error-soft)] text-[var(--gbp-error)]"}`}>
                     {config.hasFtp ? "FTP ok" : "Sin FTP"}
@@ -1199,17 +1174,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   <p className="mt-2 text-[11px] text-[var(--gbp-muted)]">Última ejecución: {relativeTime(config.lastRunAt)}</p>
                 )}
                 <div className="mt-3 flex gap-2">
-                  <button
-                    type="button"
-                    disabled={runningSyncId === config.id}
-                    onClick={() => handleRunSyncConfig(config.id)}
-                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 py-1.5 text-[11px] font-bold text-white transition hover:bg-[var(--gbp-accent)] disabled:opacity-50"
-                  >
-                    {runningSyncId === config.id
-                      ? <Loader2 className="h-3 w-3 animate-spin" />
-                      : <Play className="h-3 w-3" />}
-                    Ejecutar
-                  </button>
                   <button
                     type="button"
                     onClick={() => { void handleViewSyncHistory(config); }}
