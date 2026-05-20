@@ -367,6 +367,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [statusFilter, setStatusFilter] = useState("");
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+  const [webhookInvoicePreview, setWebhookInvoicePreview] = useState<WebhookEventRow | null>(null);
   const [invoiceDetail, setInvoiceDetail] = useState<InvoiceDetailData | null>(null);
   const [invoiceDetailLoading, setInvoiceDetailLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -1479,7 +1480,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                               {event.fetched_entity != null && (event.entity === "Invoice" || event.entity === "CreditMemo") && (
                                 <button
                                   type="button"
-                                  onClick={() => setSelectedInvoiceId(event.entity_id)}
+                                  onClick={() => setWebhookInvoicePreview(event)}
                                   className="rounded-md border border-[var(--gbp-accent)]/40 bg-[var(--gbp-accent-glow)] px-2 py-1 text-[10px] font-bold text-[var(--gbp-accent)] hover:bg-[var(--gbp-accent)] hover:text-white"
                                 >
                                   Ver factura
@@ -2597,6 +2598,177 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
           </aside>
         </>
       )}
+
+      {/* Panel lateral: preview de factura desde import manual de webhook.
+          Usa fetched_entity (QBO raw) que ya está cargado en el evento,
+          sin depender de integration_run_items ni invoiceHistory. */}
+      {webhookInvoicePreview && (() => {
+        const fe = (webhookInvoicePreview.fetched_entity ?? {}) as Record<string, unknown>;
+        const lines = Array.isArray(fe.Line) ? (fe.Line as Record<string, unknown>[]) : [];
+        const customer = (fe.CustomerRef as Record<string, unknown> | undefined);
+        const currency = (fe.CurrencyRef as Record<string, unknown> | undefined);
+        const taxDetail = (fe.TxnTaxDetail as Record<string, unknown> | undefined);
+        const totalAmt = typeof fe.TotalAmt === "number" ? fe.TotalAmt : null;
+        const balance = typeof fe.Balance === "number" ? fe.Balance : null;
+        const totalTax = typeof taxDetail?.TotalTax === "number" ? taxDetail.TotalTax : null;
+        const subtotal = totalAmt != null && totalTax != null ? totalAmt - totalTax : totalAmt;
+        const currencyCode = typeof currency?.value === "string" ? currency.value : "USD";
+        const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: currencyCode }).format(n);
+        const dataLines = lines.filter((l) => l.DetailType !== "SubTotalLineDetail");
+        return (
+          <>
+            <button
+              type="button"
+              onClick={() => setWebhookInvoicePreview(null)}
+              className="fixed inset-0 z-[110] bg-black/30"
+              aria-label="Cerrar preview de factura"
+            />
+            <aside className="fixed right-0 top-0 z-[120] flex h-full w-full max-w-2xl flex-col border-l-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-xl)]">
+              <header className="flex items-start justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">
+                    Factura importada · {webhookInvoicePreview.entity}
+                  </p>
+                  <h3 className="mt-1 text-lg font-bold text-[var(--gbp-text)]">
+                    {typeof fe.DocNumber === "string" ? `#${fe.DocNumber}` : `QBO-${webhookInvoicePreview.entity_id}`}
+                  </h3>
+                  <p className="mt-0.5 text-xs text-[var(--gbp-text2)]">
+                    {currencyCode}
+                    {typeof fe.TxnDate === "string" ? ` · ${fe.TxnDate}` : ""}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setWebhookInvoicePreview(null)}
+                  className="rounded-lg p-1.5 text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg)]"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </header>
+
+              <div className="flex-1 overflow-y-auto">
+                {/* Encabezado factura */}
+                <div className="border-b border-[var(--gbp-border)] px-6 py-5 text-sm">
+                  <div className="flex items-start justify-between gap-6">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Bill To</p>
+                      <p className="mt-1 text-base font-bold text-[var(--gbp-text)]">
+                        {typeof customer?.name === "string" ? customer.name : "-"}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right text-xs text-[var(--gbp-text2)]">
+                      <div className="flex justify-between gap-6">
+                        <span className="text-[var(--gbp-muted)]">Fecha</span>
+                        <span className="text-[var(--gbp-text)]">{typeof fe.TxnDate === "string" ? fe.TxnDate : "-"}</span>
+                      </div>
+                      {typeof fe.DueDate === "string" && (
+                        <div className="flex justify-between gap-6">
+                          <span className="text-[var(--gbp-muted)]">Vencimiento</span>
+                          <span className="text-[var(--gbp-text)]">{fe.DueDate}</span>
+                        </div>
+                      )}
+                      {typeof fe.PONumber === "string" && (
+                        <div className="flex justify-between gap-6">
+                          <span className="text-[var(--gbp-muted)]">PO#</span>
+                          <span className="text-[var(--gbp-text)]">{fe.PONumber}</span>
+                        </div>
+                      )}
+                      {balance != null && (
+                        <div className="flex justify-between gap-6">
+                          <span className="text-[var(--gbp-muted)]">Balance</span>
+                          <span className="font-semibold text-[var(--gbp-text)]">{fmt(balance)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <p className="mt-2 font-mono text-[10px] text-[var(--gbp-muted)]">QBO ID: {webhookInvoicePreview.entity_id}</p>
+                </div>
+
+                {/* Líneas */}
+                <div className="px-6 py-5">
+                  <p className="mb-3 text-xs font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">
+                    Líneas · {dataLines.length}
+                  </p>
+                  {dataLines.length === 0 ? (
+                    <p className="text-xs text-[var(--gbp-muted)]">Sin líneas de detalle.</p>
+                  ) : (
+                    <div className="overflow-hidden rounded-xl border border-[var(--gbp-border)]">
+                      <table className="w-full border-collapse text-xs">
+                        <thead>
+                          <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-left text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">
+                            <th className="px-3 py-2">Descripción</th>
+                            <th className="px-3 py-2 text-right">Cant.</th>
+                            <th className="px-3 py-2 text-right">P. Unit.</th>
+                            <th className="px-3 py-2 text-right">Importe</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {dataLines.map((line, idx) => {
+                            const sild = line.SalesItemLineDetail as Record<string, unknown> | undefined;
+                            const abed = line.AccountBasedExpenseLineDetail as Record<string, unknown> | undefined;
+                            const itemRef = (sild?.ItemRef ?? abed?.AccountRef) as Record<string, unknown> | undefined;
+                            const qty = typeof sild?.Qty === "number" ? sild.Qty : null;
+                            const unitPrice = typeof sild?.UnitPrice === "number" ? sild.UnitPrice : null;
+                            const amount = typeof line.Amount === "number" ? line.Amount : null;
+                            const desc = typeof line.Description === "string" ? line.Description
+                              : typeof itemRef?.name === "string" ? itemRef.name : "-";
+                            return (
+                              <tr key={idx} className="border-b border-[var(--gbp-border)] last:border-0">
+                                <td className="px-3 py-2 text-[var(--gbp-text)]">{desc}</td>
+                                <td className="px-3 py-2 text-right text-[var(--gbp-text2)]">{qty ?? "-"}</td>
+                                <td className="px-3 py-2 text-right text-[var(--gbp-text2)]">{unitPrice != null ? fmt(unitPrice) : "-"}</td>
+                                <td className="px-3 py-2 text-right font-semibold text-[var(--gbp-text)]">{amount != null ? fmt(amount) : "-"}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Totales */}
+                  {totalAmt != null && (
+                    <div className="mt-4 space-y-1 border-t border-[var(--gbp-border)] pt-3 text-xs">
+                      {subtotal != null && subtotal !== totalAmt && (
+                        <div className="flex justify-between">
+                          <span className="text-[var(--gbp-muted)]">Subtotal</span>
+                          <span className="text-[var(--gbp-text)]">{fmt(subtotal)}</span>
+                        </div>
+                      )}
+                      {totalTax != null && totalTax > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-[var(--gbp-muted)]">Impuestos</span>
+                          <span className="text-[var(--gbp-text)]">{fmt(totalTax)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-sm font-bold">
+                        <span className="text-[var(--gbp-text)]">Total</span>
+                        <span className="text-[var(--gbp-text)]">{fmt(totalAmt)}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <footer className="border-t border-[var(--gbp-border)] px-6 py-4">
+                <p className="mb-3 text-[10px] text-[var(--gbp-muted)]">
+                  Datos obtenidos desde QBO en el import manual del{" "}
+                  {webhookInvoicePreview.imported_at
+                    ? new Date(webhookInvoicePreview.imported_at).toLocaleString("es-AR")
+                    : "webhook"}. No incluye historial de sync.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setWebhookInvoicePreview(null)}
+                  className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2.5 text-sm font-semibold text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-surface2)]"
+                >
+                  Cerrar
+                </button>
+              </footer>
+            </aside>
+          </>
+        );
+      })()}
 
     </main>
   );
