@@ -26,7 +26,8 @@ export default async function CompanyHomePage({ searchParams }: Props) {
 
   if (firstAvailable) {
     const target = MODULE_PATHS[firstAvailable];
-    const qs = params?.message ? `?status=error&message=${encodeURIComponent(params.message)}` : "";
+    const isModuleDisabledError = params?.type === "module_disabled";
+    const qs = (params?.message && !isModuleDisabledError) ? `?status=error&message=${encodeURIComponent(params.message)}` : "";
     redirect(`${target}${qs}`);
   }
 

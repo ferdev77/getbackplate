@@ -28,6 +28,24 @@ import {
 
 export const MODULE_DISABLED_COPY = "Este módulo no está incluido en tu plan actual.";
 
+const MODULE_DISPLAY_NAMES: Record<string, string> = {
+  dashboard: "Dashboard",
+  settings: "Ajustes de Empresa",
+  employees: "Empleados",
+  documents: "Documentos",
+  checklists: "Checklists",
+  reports: "Reportes",
+  announcements: "Comunicados",
+  vendors: "Proveedores",
+  qbo_r365: "QuickBooks / R365",
+  custom_branding: "Branding Personalizado",
+};
+
+function moduleDisabledMessage(moduleCode: string): string {
+  const name = MODULE_DISPLAY_NAMES[moduleCode] ?? moduleCode;
+  return `El módulo "${name}" no está habilitado en esta empresa.`;
+}
+
 export function userMustChangePassword(user: { user_metadata?: unknown } | null | undefined) {
   if (!user || typeof user.user_metadata !== "object" || !user.user_metadata) return false;
   return Boolean((user.user_metadata as Record<string, unknown>).force_password_change);
@@ -258,7 +276,7 @@ export async function requireTenantModule(moduleCode: string) {
             pathHint: "/app/*",
             reasonCode: AUDIT_REASON_CODES.MODULE_DISABLED_FOR_TENANT,
           });
-          redirect("/app?message=" + encodeURIComponent(MODULE_DISABLED_COPY));
+          redirect("/app?type=module_disabled&message=" + encodeURIComponent(moduleDisabledMessage(moduleCode)));
         }
 
         return {
@@ -290,7 +308,7 @@ export async function requireTenantModule(moduleCode: string) {
       pathHint: "/app/*",
       reasonCode: AUDIT_REASON_CODES.MODULE_DISABLED_FOR_TENANT,
     });
-    redirect("/app?message=" + encodeURIComponent(MODULE_DISABLED_COPY));
+    redirect("/app?type=module_disabled&message=" + encodeURIComponent(moduleDisabledMessage(moduleCode)));
   }
 
   // Return a MembershipContext-compatible object
@@ -338,7 +356,7 @@ async function requireTenantModuleFallback(
       pathHint: "/app/*",
       reasonCode: AUDIT_REASON_CODES.MODULE_DISABLED_FOR_TENANT,
     });
-    redirect("/app?message=" + encodeURIComponent(MODULE_DISABLED_COPY));
+    redirect("/app?type=module_disabled&message=" + encodeURIComponent(moduleDisabledMessage(moduleCode)));
   }
 
   return tenant;
@@ -357,8 +375,8 @@ export async function requireEmployeeModule(moduleCode: string) {
       reasonCode: AUDIT_REASON_CODES.MODULE_DISABLED_FOR_TENANT,
     });
     redirect(
-      "/portal/home?status=error&message=" +
-        encodeURIComponent(MODULE_DISABLED_COPY),
+      "/portal/home?status=error&type=module_disabled&message=" +
+        encodeURIComponent(moduleDisabledMessage(moduleCode)),
     );
   }
 
