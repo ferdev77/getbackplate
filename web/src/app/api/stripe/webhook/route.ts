@@ -167,10 +167,12 @@ export async function POST(req: Request) {
           );
           if (addonErr) console.error('[Webhook][addon] Error upserting organization_addons:', addonErr);
 
-          // Enable the module for the organization
+          // Enable the module for the organization.
+          // Also fetch addon_companion_module_codes so we can provision companion
+          // modules when the org has no active plan (see below).
           const { data: moduleRow } = await supabase
             .from('module_catalog')
-            .select('id')
+            .select('id, addon_companion_module_codes')
             .eq('id', addonModuleId)
             .maybeSingle();
 
@@ -186,6 +188,52 @@ export async function POST(req: Request) {
             );
             if (modErr) console.error('[Webhook][addon] Error enabling module:', modErr);
             else console.info(`[Webhook][addon] Module ${addonModuleCode} enabled for org ${addonOrgId}`);
+
+            // ── COMPANION MODULES (sin plan activo) ───────────────────────────
+            // Si la organización no tiene un plan asignado (plan_id IS NULL) y el
+            // add-on define módulos compañeros, los provisionamos ahora.
+            // Esto replica el comportamiento manual que se hizo para empresas como
+            // Prodel, permitiendo que settings y custom_branding queden activos
+            // sin necesidad de intervención del superadmin.
+            const companionCodes: string[] = (moduleRow as { addon_companion_module_codes?: string[] }).addon_companion_module_codes ?? [];
+
+            if (companionCodes.length > 0) {
+              const { data: orgRow } = await supabase
+                .from('organizations')
+                .select('plan_id')
+                .eq('id', addonOrgId)
+                .maybeSingle();
+
+              if (!orgRow?.plan_id) {
+                // Org without a plan: resolve companion module IDs and activate them
+                const { data: companionModules, error: companionLookupErr } = await supabase
+                  .from('module_catalog')
+                  .select('id, code')
+                  .in('code', companionCodes);
+
+                if (companionLookupErr) {
+                  console.error('[Webhook][addon] Error looking up companion modules:', companionLookupErr);
+                } else if (companionModules && companionModules.length > 0) {
+                  for (const companion of companionModules) {
+                    const { error: companionErr } = await supabase.from('organization_modules').upsert(
+                      {
+                        organization_id: addonOrgId,
+                        module_id: companion.id,
+                        is_enabled: true,
+                        enabled_at: new Date().toISOString(),
+                      },
+                      { onConflict: 'organization_id,module_id' },
+                    );
+                    if (companionErr) {
+                      console.error(`[Webhook][addon] Error enabling companion module ${companion.code}:`, companionErr);
+                    } else {
+                      console.info(`[Webhook][addon] Companion module "${companion.code}" enabled for org ${addonOrgId} (no active plan)`);
+                    }
+                  }
+                }
+              }
+            }
+            // ── END COMPANION MODULES ─────────────────────────────────────────
           }
 
           break;
