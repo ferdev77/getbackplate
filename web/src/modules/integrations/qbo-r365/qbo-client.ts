@@ -201,9 +201,7 @@ async function queryQboTable<T>(input: {
     const where = clauses.length > 0 ? ` WHERE ${clauses.join(" AND ")}` : "";
     const query = `select * from ${input.table}${where} startposition ${startPosition} maxresults ${pageSize}`;
 
-    let { response, payload, fault } = await doRequest(QBO_API_BASE_URL, query);
-
-    const code = String(fault?.code ?? "").trim();
+    const { response, payload, fault } = await doRequest(QBO_API_BASE_URL, query);
     const message = (fault?.Detail ?? fault?.Message ?? fault?.detail ?? fault?.message ?? "").trim();
 
     if (!response.ok) {
