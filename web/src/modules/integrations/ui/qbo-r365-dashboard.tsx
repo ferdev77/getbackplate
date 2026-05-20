@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Link2, Search, X, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Plus, Play, Trash2, Pause, Eye, ChevronDown, ChevronUp, Server } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { EmptyState } from "@/shared/ui/empty-state";
@@ -123,6 +123,20 @@ type SyncConfigSummary = {
 };
 
 type QboCustomer = { id: string; displayName: string; acctNum?: string; raw?: Record<string, unknown> };
+type WebhookEventRow = {
+  id: string;
+  received_at: string;
+  signature_valid: boolean;
+  realm_id: string;
+  entity: string;
+  entity_id: string;
+  operation: string;
+  status: "captured" | "imported_manual" | "ignored" | "failed";
+  imported_at: string | null;
+  last_error: string | null;
+  raw_notification?: Record<string, unknown>;
+  fetched_entity?: Record<string, unknown> | null;
+};
 
 type Props = { organizationId: string; deferredDataUrl: string; showDeveloperMode?: boolean; className?: string };
 
@@ -412,6 +426,10 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [syncHistoryLoading, setSyncHistoryLoading] = useState(false);
   const [developerSyncConfigId, setDeveloperSyncConfigId] = useState<string>("");
   const [developerRunId, setDeveloperRunId] = useState<string | null>(null);
+  const [webhookEvents, setWebhookEvents] = useState<WebhookEventRow[]>([]);
+  const [webhookLoading, setWebhookLoading] = useState(false);
+  const [importingWebhookId, setImportingWebhookId] = useState<string | null>(null);
+  const [expandedWebhookId, setExpandedWebhookId] = useState<string | null>(null);
   const hasLoadedSyncConfigsRef = useRef(false);
   const invoiceHistorySectionRef = useRef<HTMLElement>(null);
 
@@ -480,6 +498,46 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       .catch(() => {});
     return () => ctrl.abort();
   }, [mode]);
+
+  async function loadWebhookEvents() {
+    setWebhookLoading(true);
+    try {
+      const response = await fetch("/api/company/integrations/qbo-r365/webhook-events?limit=120", { cache: "no-store" });
+      const payload = (await response.json().catch(() => ({}))) as { events?: WebhookEventRow[]; error?: string };
+      if (!response.ok) throw new Error(payload.error || "No se pudieron cargar webhooks");
+      setWebhookEvents(payload.events ?? []);
+    } catch (error) {
+      toast.error("No se pudo cargar historial de webhooks", {
+        description: error instanceof Error ? error.message : "Error",
+      });
+    }
+    setWebhookLoading(false);
+  }
+
+  async function handleManualImportWebhook(eventId: string) {
+    setImportingWebhookId(eventId);
+    try {
+      const response = await fetch(`/api/company/integrations/qbo-r365/webhook-events/${eventId}/replay`, {
+        method: "POST",
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string; status?: string };
+      if (!response.ok) throw new Error(payload.error || "No se pudo importar manualmente");
+      toast.success("Importación manual completada", {
+        description: "La entidad se obtuvo desde QBO y quedó guardada en este evento.",
+      });
+      await loadWebhookEvents();
+    } catch (error) {
+      toast.error("No se pudo importar el webhook", {
+        description: error instanceof Error ? error.message : "Error",
+      });
+    }
+    setImportingWebhookId(null);
+  }
+
+  useEffect(() => {
+    if (mode !== "developer") return;
+    void loadWebhookEvents();
+  }, [mode, refreshKey]);
 
   // Cargar sync configs al montar
   useEffect(() => {
@@ -1347,6 +1405,99 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {mode === "developer" && (
+        <section className="mb-6 rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 sm:p-5">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <p className="mr-auto text-sm font-bold text-[var(--gbp-text)]">Webhook History (captura developer)</p>
+            <button
+              type="button"
+              onClick={() => { void loadWebhookEvents(); }}
+              disabled={webhookLoading}
+              className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${webhookLoading ? "animate-spin" : ""}`} /> Refrescar
+            </button>
+          </div>
+
+          {webhookEvents.length === 0 && !webhookLoading && (
+            <p className="text-xs text-[var(--gbp-muted)]">Aún no hay webhooks capturados para esta organización.</p>
+          )}
+
+          {webhookEvents.length > 0 && (
+            <div className="overflow-x-auto rounded-xl border border-[var(--gbp-border)]">
+              <table className="w-full min-w-[980px] text-xs">
+                <thead>
+                  <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-left text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">
+                    <th className="px-3 py-2">Recibido</th>
+                    <th className="px-3 py-2">Entidad</th>
+                    <th className="px-3 py-2">Entity ID</th>
+                    <th className="px-3 py-2">Operación</th>
+                    <th className="px-3 py-2">Estado</th>
+                    <th className="px-3 py-2">Firma</th>
+                    <th className="px-3 py-2">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {webhookEvents.map((event) => {
+                    const expanded = expandedWebhookId === event.id;
+                    return (
+                      <Fragment key={event.id}>
+                        <tr key={event.id} className="border-b border-[var(--gbp-border)]">
+                          <td className="px-3 py-2 text-[var(--gbp-text2)]">{relativeTime(event.received_at)}</td>
+                          <td className="px-3 py-2 font-semibold text-[var(--gbp-text)]">{event.entity}</td>
+                          <td className="px-3 py-2 font-mono text-[11px] text-[var(--gbp-text2)]">{event.entity_id}</td>
+                          <td className="px-3 py-2 text-[var(--gbp-text2)]">{event.operation}</td>
+                          <td className="px-3 py-2">
+                            <span className="rounded-full bg-[var(--gbp-bg)] px-2 py-0.5 text-[10px] font-bold uppercase text-[var(--gbp-text2)]">
+                              {event.status}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-[var(--gbp-text2)]">{event.signature_valid ? "OK" : "Inválida"}</td>
+                          <td className="px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setExpandedWebhookId((prev) => prev === event.id ? null : event.id)}
+                                className="rounded-md border border-[var(--gbp-border)] px-2 py-1 text-[10px] font-bold text-[var(--gbp-text2)] hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
+                              >
+                                {expanded ? "Ocultar raw" : "Ver raw"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => { void handleManualImportWebhook(event.id); }}
+                                disabled={importingWebhookId === event.id || !event.signature_valid || (event.entity !== "Invoice" && event.entity !== "CreditMemo")}
+                                className="rounded-md bg-[var(--gbp-text)] px-2 py-1 text-[10px] font-bold text-white hover:bg-[var(--gbp-accent)] disabled:opacity-50"
+                              >
+                                {importingWebhookId === event.id ? "Importando..." : "Importar manual"}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        {expanded && (
+                          <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)]/40">
+                            <td colSpan={7} className="px-3 py-3">
+                              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Raw notification</p>
+                              <pre className="max-h-52 overflow-auto rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-2 text-[10px] text-[var(--gbp-text2)]">{JSON.stringify(event.raw_notification ?? {}, null, 2)}</pre>
+                              {event.fetched_entity && (
+                                <>
+                                  <p className="mb-1 mt-3 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Fetched entity (manual import)</p>
+                                  <pre className="max-h-52 overflow-auto rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-2 text-[10px] text-[var(--gbp-text2)]">{JSON.stringify(event.fetched_entity, null, 2)}</pre>
+                                </>
+                              )}
+                              {event.last_error && <p className="mt-2 text-[10px] text-[var(--gbp-error)]">Error: {event.last_error}</p>}
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </section>
