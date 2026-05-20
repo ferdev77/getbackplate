@@ -137,6 +137,24 @@ type WebhookEventRow = {
   raw_notification?: Record<string, unknown>;
   fetched_entity?: Record<string, unknown> | null;
 };
+type UnifiedInvoiceRow = {
+  id: string;
+  entityId: string;
+  entityType: "Invoice" | "CreditMemo";
+  importSource: "sync" | "webhook";
+  pipelineStatus: "en_cola" | "capturada" | "mapeada" | "enviada";
+  docNumber: string | null;
+  txnDate: string | null;
+  dueDate: string | null;
+  totalAmount: number | null;
+  currency: string | null;
+  customerName: string | null;
+  vendorName: string | null;
+  rawEntity: Record<string, unknown> | null;
+  fetchedAt: string | null;
+  syncConfigId: string | null;
+  createdAt: string;
+};
 
 type Props = { organizationId: string; deferredDataUrl: string; showDeveloperMode?: boolean; className?: string };
 
@@ -292,71 +310,73 @@ function presentIntegrationError(errorMessage: string, context: "sync" | "oauth"
   toast.error("No se pudo enviar a R365", { description: errorMessage });
 }
 
-type TemplateCol = { col: string; r365Name: string; qboSource: string; scope: "header" | "detail"; highlight?: boolean };
+type TemplateCol = { col: string; r365Name: string; qboSource: string; scope: "header" | "detail"; highlight?: boolean; note?: boolean };
 const TEMPLATE_COLS: Record<"by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates", TemplateCol[]> = {
   by_item: [
-    { col: "A", r365Name: "Vendor", qboSource: "CustomerRef.name", scope: "header" },
-    { col: "B", r365Name: "Location", qboSource: "N° cuenta R365", scope: "header", highlight: true },
+    { col: "A", r365Name: "Vendor", qboSource: "CustomerRef.name (nombre del proveedor configurado en el sync)", scope: "header" },
+    { col: "B", r365Name: "Location", qboSource: "Customer.AcctNum en QBO — el campo «Account No.» del cliente, que contiene el código de ubicación en R365. Se cachea en el sync config.", scope: "header", highlight: true },
     { col: "C", r365Name: "Document Number", qboSource: "DocNumber", scope: "header" },
     { col: "D", r365Name: "Date", qboSource: "TxnDate", scope: "header" },
-    { col: "E", r365Name: "Gl Date", qboSource: "TxnDate", scope: "detail" },
-    { col: "F", r365Name: "Vendor Item Number", qboSource: "ItemRef → SKU", scope: "detail", highlight: true },
-    { col: "G", r365Name: "Vendor Item Name", qboSource: "Line.Description", scope: "detail" },
-    { col: "H", r365Name: "UofM", qboSource: "—", scope: "detail" },
-    { col: "I", r365Name: "Qty", qboSource: "SalesItemLineDetail.Qty", scope: "detail" },
-    { col: "J", r365Name: "Unit Price", qboSource: "SalesItemLineDetail.UnitPrice", scope: "detail" },
-    { col: "K", r365Name: "Total", qboSource: "Line.Amount", scope: "detail" },
-    { col: "L", r365Name: "Break Flag", qboSource: "—", scope: "detail" },
+    { col: "E", r365Name: "Vendor Item Number", qboSource: "ItemRef.Value → buscado en tabla de SKUs; fallback: ItemRef.Name si no hay mapeo", scope: "detail", highlight: true },
+    { col: "F", r365Name: "Vendor Item Name", qboSource: "ItemRef.Name — solo la parte final (después del último «:» si hay categorías)", scope: "detail" },
+    { col: "G", r365Name: "UofM", qboSource: "Line.Description de la línea (o «EACH» cuando es la fila de impuesto)", scope: "detail" },
+    { col: "H", r365Name: "Qty", qboSource: "SalesItemLineDetail.Qty", scope: "detail" },
+    { col: "I", r365Name: "Unit Price", qboSource: "SalesItemLineDetail.UnitPrice", scope: "detail" },
+    { col: "J", r365Name: "Total", qboSource: "Line.Amount", scope: "detail" },
+    { col: "K", r365Name: "Break Flag", qboSource: "Siempre vacío", scope: "detail" },
+    { col: "★", r365Name: "Fila impuesto (si TxnTaxDetail.TotalTax > 0)", qboSource: "Item 999999 · Vendor Item Name «Tax» · UofM «EACH» · Qty 1 · Unit Price = TxnTaxDetail.TotalTax", scope: "detail", note: true },
   ],
   by_item_service_dates: [
-    { col: "A", r365Name: "Vendor", qboSource: "CustomerRef.name", scope: "header" },
-    { col: "B", r365Name: "Location", qboSource: "N° cuenta R365", scope: "header", highlight: true },
+    { col: "A", r365Name: "Vendor", qboSource: "CustomerRef.name (nombre del proveedor configurado en el sync)", scope: "header" },
+    { col: "B", r365Name: "Location", qboSource: "Customer.AcctNum en QBO — el campo «Account No.» del cliente, que contiene el código de ubicación en R365. Se cachea en el sync config.", scope: "header", highlight: true },
     { col: "C", r365Name: "Document Number", qboSource: "DocNumber", scope: "header" },
     { col: "D", r365Name: "Date", qboSource: "TxnDate", scope: "header" },
-    { col: "E", r365Name: "Gl Date", qboSource: "TxnDate", scope: "detail" },
-    { col: "F", r365Name: "Vendor Item Number", qboSource: "ItemRef → SKU", scope: "detail", highlight: true },
-    { col: "G", r365Name: "Vendor Item Name", qboSource: "Line.Description", scope: "detail" },
-    { col: "H", r365Name: "UofM", qboSource: "—", scope: "detail" },
-    { col: "I", r365Name: "Qty", qboSource: "SalesItemLineDetail.Qty", scope: "detail" },
-    { col: "J", r365Name: "Unit Price", qboSource: "SalesItemLineDetail.UnitPrice", scope: "detail" },
-    { col: "K", r365Name: "Total", qboSource: "Line.Amount", scope: "detail" },
-    { col: "L", r365Name: "Break Flag", qboSource: "—", scope: "detail" },
-    { col: "M", r365Name: "Start Date of Service", qboSource: "—", scope: "detail" },
-    { col: "N", r365Name: "End Date of Service", qboSource: "—", scope: "detail" },
+    { col: "E", r365Name: "Vendor Item Number", qboSource: "ItemRef.Value → buscado en tabla de SKUs; fallback: ItemRef.Name si no hay mapeo", scope: "detail", highlight: true },
+    { col: "F", r365Name: "Vendor Item Name", qboSource: "ItemRef.Name — solo la parte final (después del último «:» si hay categorías)", scope: "detail" },
+    { col: "G", r365Name: "UofM", qboSource: "Line.Description de la línea (o «EACH» cuando es la fila de impuesto)", scope: "detail" },
+    { col: "H", r365Name: "Qty", qboSource: "SalesItemLineDetail.Qty", scope: "detail" },
+    { col: "I", r365Name: "Unit Price", qboSource: "SalesItemLineDetail.UnitPrice", scope: "detail" },
+    { col: "J", r365Name: "Total", qboSource: "Line.Amount", scope: "detail" },
+    { col: "K", r365Name: "Break Flag", qboSource: "Siempre vacío", scope: "detail" },
+    { col: "L", r365Name: "Start Date of Service", qboSource: "serviceStartDate (no mapeado desde QBO actualmente — queda vacío)", scope: "detail" },
+    { col: "M", r365Name: "End Date of Service", qboSource: "serviceEndDate (no mapeado desde QBO actualmente — queda vacío)", scope: "detail" },
+    { col: "★", r365Name: "Fila impuesto (si TxnTaxDetail.TotalTax > 0)", qboSource: "Item 999999 · Vendor Item Name «Tax» · UofM «EACH» · Qty 1 · Unit Price = TxnTaxDetail.TotalTax", scope: "detail", note: true },
   ],
   by_account: [
-    { col: "A", r365Name: "Type", qboSource: "TransactionType (1/2)", scope: "header" },
-    { col: "B", r365Name: "Location", qboSource: "N° cuenta R365", scope: "header", highlight: true },
-    { col: "C", r365Name: "Vendor", qboSource: "CustomerRef.name", scope: "header" },
+    { col: "A", r365Name: "Type", qboSource: "«1» = Invoice / «2» = Credit Memo", scope: "header" },
+    { col: "B", r365Name: "Location", qboSource: "Customer.AcctNum en QBO — el campo «Account No.» del cliente, que contiene el código de ubicación en R365. Se cachea en el sync config.", scope: "header", highlight: true },
+    { col: "C", r365Name: "Vendor", qboSource: "CustomerRef.name (nombre del proveedor configurado en el sync)", scope: "header" },
     { col: "D", r365Name: "Number", qboSource: "DocNumber", scope: "header" },
     { col: "E", r365Name: "Date", qboSource: "TxnDate", scope: "detail" },
-    { col: "F", r365Name: "Gl Date", qboSource: "TxnDate", scope: "detail" },
-    { col: "G", r365Name: "Amount", qboSource: "TotalAmt (invoice total)", scope: "detail" },
-    { col: "H", r365Name: "Payment Terms", qboSource: "—", scope: "detail" },
-    { col: "I", r365Name: "Due Date", qboSource: "DueDate", scope: "detail" },
-    { col: "J", r365Name: "Comment", qboSource: "PrivateNote / Memo", scope: "detail" },
-    { col: "K", r365Name: "Detail Account", qboSource: "AccountRef → R365 code", scope: "detail", highlight: true },
+    { col: "F", r365Name: "Gl Date", qboSource: "TxnDate (igual que Date)", scope: "detail" },
+    { col: "G", r365Name: "Amount", qboSource: "Suma del total de todas las líneas de la factura (no el monto de la línea individual)", scope: "detail" },
+    { col: "H", r365Name: "Payment Terms", qboSource: "Siempre vacío", scope: "detail" },
+    { col: "I", r365Name: "Due Date", qboSource: "DueDate (fallback: TxnDate si no hay fecha de vencimiento)", scope: "detail" },
+    { col: "J", r365Name: "Comment", qboSource: "PrivateNote / Memo de la factura", scope: "detail" },
+    { col: "K", r365Name: "Detail Account", qboSource: "AccountBasedExpenseLineDetail.AccountRef.Value (código de cuenta contable)", scope: "detail", highlight: true },
     { col: "L", r365Name: "Detail Amount", qboSource: "Line.Amount", scope: "detail" },
-    { col: "M", r365Name: "Detail Location", qboSource: "N° cuenta R365", scope: "detail", highlight: true },
+    { col: "M", r365Name: "Detail Location", qboSource: "Customer.AcctNum en QBO (mismo valor que Location — col B)", scope: "detail", highlight: true },
     { col: "N", r365Name: "Detail Comment", qboSource: "Line.Description", scope: "detail" },
+    { col: "★", r365Name: "Fila impuesto (si TxnTaxDetail.TotalTax > 0)", qboSource: "Item 999999 · Amount = TxnTaxDetail.TotalTax · Detail Account = 999999", scope: "detail", note: true },
   ],
   by_account_service_dates: [
-    { col: "A", r365Name: "Type", qboSource: "TransactionType (1/2)", scope: "header" },
-    { col: "B", r365Name: "Location", qboSource: "N° cuenta R365", scope: "header", highlight: true },
-    { col: "C", r365Name: "Vendor", qboSource: "CustomerRef.name", scope: "header" },
+    { col: "A", r365Name: "Type", qboSource: "«1» = Invoice / «2» = Credit Memo", scope: "header" },
+    { col: "B", r365Name: "Location", qboSource: "Customer.AcctNum en QBO — el campo «Account No.» del cliente, que contiene el código de ubicación en R365. Se cachea en el sync config.", scope: "header", highlight: true },
+    { col: "C", r365Name: "Vendor", qboSource: "CustomerRef.name (nombre del proveedor configurado en el sync)", scope: "header" },
     { col: "D", r365Name: "Number", qboSource: "DocNumber", scope: "header" },
     { col: "E", r365Name: "Date", qboSource: "TxnDate", scope: "detail" },
-    { col: "F", r365Name: "Gl Date", qboSource: "TxnDate", scope: "detail" },
-    { col: "G", r365Name: "Amount", qboSource: "TotalAmt (invoice total)", scope: "detail" },
-    { col: "H", r365Name: "Payment Terms", qboSource: "—", scope: "detail" },
-    { col: "I", r365Name: "Due Date", qboSource: "DueDate", scope: "detail" },
-    { col: "J", r365Name: "Comment", qboSource: "PrivateNote / Memo", scope: "detail" },
-    { col: "K", r365Name: "Detail Account", qboSource: "AccountRef → R365 code", scope: "detail", highlight: true },
+    { col: "F", r365Name: "Gl Date", qboSource: "TxnDate (igual que Date)", scope: "detail" },
+    { col: "G", r365Name: "Amount", qboSource: "Suma del total de todas las líneas de la factura (no el monto de la línea individual)", scope: "detail" },
+    { col: "H", r365Name: "Payment Terms", qboSource: "Siempre vacío", scope: "detail" },
+    { col: "I", r365Name: "Due Date", qboSource: "DueDate (fallback: TxnDate si no hay fecha de vencimiento)", scope: "detail" },
+    { col: "J", r365Name: "Comment", qboSource: "PrivateNote / Memo de la factura", scope: "detail" },
+    { col: "K", r365Name: "Detail Account", qboSource: "AccountBasedExpenseLineDetail.AccountRef.Value (código de cuenta contable)", scope: "detail", highlight: true },
     { col: "L", r365Name: "Detail Amount", qboSource: "Line.Amount", scope: "detail" },
-    { col: "M", r365Name: "Detail Location", qboSource: "N° cuenta R365", scope: "detail", highlight: true },
+    { col: "M", r365Name: "Detail Location", qboSource: "Customer.AcctNum en QBO (mismo valor que Location — col B)", scope: "detail", highlight: true },
     { col: "N", r365Name: "Detail Comment", qboSource: "Line.Description", scope: "detail" },
-    { col: "O", r365Name: "Start Date of Service", qboSource: "—", scope: "detail" },
-    { col: "P", r365Name: "End Date of Service", qboSource: "—", scope: "detail" },
+    { col: "O", r365Name: "Start Date of Service", qboSource: "serviceStartDate (no mapeado desde QBO actualmente — queda vacío)", scope: "detail" },
+    { col: "P", r365Name: "End Date of Service", qboSource: "serviceEndDate (no mapeado desde QBO actualmente — queda vacío)", scope: "detail" },
+    { col: "★", r365Name: "Fila impuesto (si TxnTaxDetail.TotalTax > 0)", qboSource: "Item 999999 · Amount = TxnTaxDetail.TotalTax · Detail Account = 999999", scope: "detail", note: true },
   ],
 };
 
@@ -403,18 +423,14 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   // Form state for new sync config
   const [newSyncCustomerId, setNewSyncCustomerId] = useState("");
   const [newSyncCustomerName, setNewSyncCustomerName] = useState("");
-  const [newSyncSchedule, setNewSyncSchedule] = useState<"manual" | "daily" | "weekly">("daily");
-  const [newSyncLookbackHours, setNewSyncLookbackHours] = useState<number>(48);
-  const [newSyncTemplate, setNewSyncTemplate] = useState<"by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates">("by_item");
-  const [newSyncTaxMode, setNewSyncTaxMode] = useState<"line" | "header" | "none">("none");
   const [newSyncVendorName, setNewSyncVendorName] = useState("");
   const [newSyncLocation, setNewSyncLocation] = useState("");
   const [pickedCustomerRaw, setPickedCustomerRaw] = useState<Record<string, unknown> | null>(null);
   const [newSyncFtpHost, setNewSyncFtpHost] = useState("");
   const [newSyncFtpUser, setNewSyncFtpUser] = useState("");
   const [newSyncFtpPass, setNewSyncFtpPass] = useState("");
+  const [showNewSyncFtpPass, setShowNewSyncFtpPass] = useState(false);
   const [newSyncFtpPath, setNewSyncFtpPath] = useState("/APImports/R365");
-  const [newSyncFtpSecure, setNewSyncFtpSecure] = useState(false);
   const [isSavingSync, setIsSavingSync] = useState(false);
   const [qboCustomers, setQboCustomers] = useState<QboCustomer[]>([]);
   const [customersLoading, setCustomersLoading] = useState(false);
@@ -431,6 +447,8 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [webhookLoading, setWebhookLoading] = useState(false);
   const [importingWebhookId, setImportingWebhookId] = useState<string | null>(null);
   const [expandedWebhookId, setExpandedWebhookId] = useState<string | null>(null);
+  const [unifiedHistory, setUnifiedHistory] = useState<UnifiedInvoiceRow[]>([]);
+  const [unifiedHistoryLoading, setUnifiedHistoryLoading] = useState(false);
   const hasLoadedSyncConfigsRef = useRef(false);
   const invoiceHistorySectionRef = useRef<HTMLElement>(null);
 
@@ -540,6 +558,16 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     if (mode !== "developer") return;
     void loadWebhookEvents();
   }, [mode, refreshKey]);
+
+  useEffect(() => {
+    setUnifiedHistoryLoading(true);
+    const syncConfigParam = syncHistoryFilter ? `&syncConfigId=${encodeURIComponent(syncHistoryFilter.id)}` : "";
+    void fetch(`/api/company/integrations/qbo-r365/unified-history?limit=200${syncConfigParam}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: { rows?: UnifiedInvoiceRow[] }) => setUnifiedHistory(d.rows ?? []))
+      .catch(() => {})
+      .finally(() => setUnifiedHistoryLoading(false));
+  }, [refreshKey, syncHistoryFilter]);
 
   // Cargar sync configs al montar
   useEffect(() => {
@@ -666,10 +694,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
           name: newSyncCustomerName,
           qboCustomerId: newSyncCustomerId,
           qboCustomerName: newSyncCustomerName,
-          scheduleInterval: newSyncSchedule,
-          lookbackHours: newSyncLookbackHours,
-          template: newSyncTemplate,
-          taxMode: newSyncTaxMode,
           r365VendorName: newSyncVendorName,
           r365Location: newSyncLocation,
           r365FtpHost: newSyncFtpHost,
@@ -677,7 +701,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
           r365FtpUsername: newSyncFtpUser,
           r365FtpPassword: newSyncFtpPass,
           r365FtpRemotePath: newSyncFtpPath,
-          r365FtpSecure: newSyncFtpSecure,
         }),
       });
       const payload = (await response.json().catch(() => ({}))) as { error?: string; id?: string };
@@ -687,7 +710,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       setNewSyncCustomerId(""); setNewSyncCustomerName("");
       setCustomerSearch(""); setCustomerDropdownOpen(false);
       setNewSyncVendorName(""); setNewSyncLocation("");
-      setNewSyncFtpHost(""); setNewSyncFtpUser(""); setNewSyncFtpPass("");
+      setNewSyncFtpHost(""); setNewSyncFtpUser(""); setNewSyncFtpPass(""); setShowNewSyncFtpPass(false);
       setRefreshKey((p) => p + 1);
     } catch (error) {
       toast.error("No se pudo crear", { description: error instanceof Error ? error.message : "Error" });
@@ -745,6 +768,10 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const selectedInvoice = useMemo(
     () => data?.invoiceHistory.find((item) => item.sourceInvoiceId === selectedInvoiceId) ?? null,
     [data, selectedInvoiceId],
+  );
+  const selectedUnifiedRow = useMemo(
+    () => unifiedHistory.find((item) => item.entityId === selectedInvoiceId) ?? null,
+    [unifiedHistory, selectedInvoiceId],
   );
 
   useEffect(() => {
@@ -1713,52 +1740,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   </div>
                 )}
               </div>
-              {/* Frecuencia y template */}
-              <div>
-                <h4 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">Configuración</h4>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="block">
-                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Frecuencia</span>
-                    <select value={newSyncSchedule} onChange={(e) => setNewSyncSchedule(e.target.value as typeof newSyncSchedule)}
-                      className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none">
-                      <option value="manual">Manual</option>
-                      <option value="daily">Diaria</option>
-                      <option value="weekly">Semanal</option>
-                    </select>
-                  </label>
-                  <label className="block">
-                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Período de búsqueda</span>
-                    <select value={newSyncLookbackHours} onChange={(e) => setNewSyncLookbackHours(Number(e.target.value))}
-                      className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none">
-                      <option value={0}>Todas (sin filtro)</option>
-                      <option value={24}>Últimas 24 h</option>
-                      <option value={48}>Últimas 48 h</option>
-                      <option value={168}>Últimos 7 días</option>
-                      <option value={336}>Últimos 14 días</option>
-                      <option value={720}>Últimos 30 días</option>
-                    </select>
-                  </label>
-                  <label className="block">
-                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Template</span>
-                    <select value={newSyncTemplate} onChange={(e) => setNewSyncTemplate(e.target.value as typeof newSyncTemplate)}
-                      className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none">
-                      <option value="by_item">by_item</option>
-                      <option value="by_item_service_dates">by_item_service_dates</option>
-                      <option value="by_account">by_account</option>
-                      <option value="by_account_service_dates">by_account_service_dates</option>
-                    </select>
-                  </label>
-                  <label className="block">
-                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Tax mode</span>
-                    <select value={newSyncTaxMode} onChange={(e) => setNewSyncTaxMode(e.target.value as typeof newSyncTaxMode)}
-                      className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none">
-                      <option value="none">none</option>
-                      <option value="line">line</option>
-                      <option value="header">header</option>
-                    </select>
-                  </label>
-                </div>
-              </div>
               {/* Nombre del proveedor en R365 */}
               <div>
                 <h4 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">Proveedor en R365</h4>
@@ -1790,19 +1771,20 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   </label>
                   <label className="block">
                     <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Contraseña</span>
-                    <input required={mode !== "developer"} type="password" autoComplete="new-password" data-lpignore="true" value={newSyncFtpPass} onChange={(e) => setNewSyncFtpPass(e.target.value)}
-                      className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />
+                    <div className="relative">
+                      <input required={mode !== "developer"} type={showNewSyncFtpPass ? "text" : "password"} autoComplete="new-password" data-lpignore="true" value={newSyncFtpPass} onChange={(e) => setNewSyncFtpPass(e.target.value)}
+                        className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 pr-9 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />
+                      <button type="button" onClick={() => setShowNewSyncFtpPass((v) => !v)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--gbp-muted)] hover:text-[var(--gbp-text2)]">
+                        <Eye className="h-4 w-4" />
+                      </button>
+                    </div>
                   </label>
                   <label className="block">
                     <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Remote Path</span>
                     <input type="text" value={newSyncFtpPath} onChange={(e) => setNewSyncFtpPath(e.target.value)}
                       className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />
                   </label>
-                  <div className="flex items-center gap-2 pt-6">
-                    <input type="checkbox" checked={newSyncFtpSecure} onChange={(e) => setNewSyncFtpSecure(e.target.checked)}
-                      className="h-5 w-5 rounded border-[var(--gbp-border)] accent-[var(--gbp-accent)]" />
-                    <span className="text-sm font-bold text-[var(--gbp-text)]">Conexión segura (FTPS)</span>
-                  </div>
                 </div>
               </div>
               <div className="flex gap-3 pt-2">
@@ -1820,6 +1802,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
         </div>
       )}
 
+      {/* ─── Historial Unificado ─── */}
       <section className="mb-6" ref={invoiceHistorySectionRef}>
         <div className="mb-3 flex items-center gap-3">
           <h2 className="text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Historial de Facturas</h2>
@@ -1836,48 +1819,65 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
               </button>
             </div>
           )}
-          {syncHistoryLoading && <Loader2 className="h-4 w-4 animate-spin text-[var(--gbp-muted)]" />}
+          {unifiedHistoryLoading && <Loader2 className="h-4 w-4 animate-spin text-[var(--gbp-muted)]" />}
         </div>
         <div className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] border-collapse">
+            <table className="w-full min-w-[860px] border-collapse">
               <thead>
                 <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-left text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">
-                  <th className="px-4 py-3">Fecha factura</th>
-                  <th className="px-4 py-3">Cliente QBO</th>
-                  <th className="px-4 py-3">Tipo de factura</th>
-                  <th className="px-4 py-3">Estado QBO</th>
-                  <th className="px-4 py-3">Estado GBP</th>
-                  <th className="px-4 py-3">Template</th>
-                  <th className="px-4 py-3">Detecciones</th>
-                  <th className="px-4 py-3">Ultima vez</th>
+                  <th className="px-4 py-3">Fecha</th>
+                  <th className="px-4 py-3">Doc #</th>
+                  <th className="px-4 py-3">Tipo</th>
+                  <th className="px-4 py-3">Cliente</th>
+                  <th className="px-4 py-3">Monto</th>
+                  <th className="px-4 py-3">Fuente</th>
+                  <th className="px-4 py-3">Pipeline</th>
+                  <th className="px-4 py-3">Recibida</th>
                 </tr>
               </thead>
               <tbody>
-                {activeInvoiceHistory.map((item) => (
-                  <tr
-                    key={item.sourceInvoiceId}
-                    className="cursor-pointer border-b border-[var(--gbp-border)] transition hover:bg-[var(--gbp-bg)]"
-                    onClick={() => setSelectedInvoiceId(item.sourceInvoiceId)}
-                  >
-                    <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{formatQboDate(item.invoiceDate)}</td>
-                    <td className="px-4 py-3 text-xs font-medium text-[var(--gbp-text)]">{item.qboCustomerName ?? syncHistoryFilter?.name ?? "-"}</td>
-                    <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{invoiceTypeLabel(item.transactionTypeCode)}</td>
-                    <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{item.qboStatusRaw ?? qboPaymentStatusLabel(item.qboPaymentStatus)}</td>
-                    <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{itemStatusLabel(item.lastStatus)}</td>
-                    <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{templateLabel(item.templateMode)}</td>
-                    <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{item.timesSeen}</td>
-                    <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{new Date(item.lastSeenAt).toLocaleString("es-AR")}</td>
-                  </tr>
-                ))}
+                {unifiedHistory.map((item) => {
+                  const pipelineColors: Record<string, string> = {
+                    en_cola: "bg-[var(--gbp-bg)] text-[var(--gbp-text2)]",
+                    capturada: "bg-blue-50 text-blue-600",
+                    mapeada: "bg-[color-mix(in_oklab,var(--gbp-accent)_15%,transparent)] text-[var(--gbp-accent)]",
+                    enviada: "bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]",
+                  };
+                  const pipelineLabels: Record<string, string> = { en_cola: "En cola", capturada: "Capturada", mapeada: "Mapeada", enviada: "Enviada" };
+                  return (
+                    <tr
+                      key={item.id}
+                      className="cursor-pointer border-b border-[var(--gbp-border)] transition hover:bg-[var(--gbp-bg)]"
+                      onClick={() => setSelectedInvoiceId(item.entityId)}
+                    >
+                      <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{formatQboDate(item.txnDate)}</td>
+                      <td className="px-4 py-3 text-xs font-medium text-[var(--gbp-text)]">{item.docNumber ?? item.entityId.slice(0, 10)}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{item.entityType}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{item.customerName ?? "-"}</td>
+                      <td className="px-4 py-3 text-xs font-semibold text-[var(--gbp-text)]">{item.totalAmount != null ? item.totalAmount.toFixed(2) : "-"}</td>
+                      <td className="px-4 py-3">
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${item.importSource === "webhook" ? "bg-purple-50 text-purple-600" : "bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"}`}>
+                          {item.importSource === "webhook" ? "Webhook" : "Sync"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] ${pipelineColors[item.pipelineStatus] ?? ""}`}>
+                          {pipelineLabels[item.pipelineStatus] ?? item.pipelineStatus}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-[var(--gbp-muted)]">{relativeTime(item.createdAt)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-          {!activeInvoiceHistory.length && !syncHistoryLoading && (
+          {!unifiedHistory.length && !unifiedHistoryLoading && (
             <EmptyState
               icon={Search}
               title={syncHistoryFilter ? `Sin facturas para ${syncHistoryFilter.name}` : "Sin historial de facturas"}
-              description={syncHistoryFilter ? "Esta sincronización aún no procesó facturas." : "Aun no hay facturas procesadas para mostrar."}
+              description="Las facturas aparecen aquí cuando llegan por webhook o sync."
             />
           )}
         </div>
@@ -2006,6 +2006,69 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
             </div>
             <footer className="flex gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
               <button type="button" onClick={() => setSelectedRunId(null)}
+                className="flex-1 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2.5 text-sm font-semibold text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-surface2)]">
+                Cerrar
+              </button>
+            </footer>
+          </aside>
+        </>
+      )}
+
+      {/* Panel minimal para filas de webhook que no están en el historial legacy */}
+      {!selectedInvoice && selectedUnifiedRow && (
+        <>
+          <button type="button" onClick={() => setSelectedInvoiceId(null)} className="fixed inset-0 z-[110] bg-black/30" />
+          <aside className="fixed right-0 top-0 z-[120] flex h-full w-full max-w-md flex-col border-l-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-xl)]">
+            <header className="flex items-start justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">
+                  {selectedUnifiedRow.importSource === "webhook" ? "Webhook" : "Sync"} · {selectedUnifiedRow.entityType}
+                </p>
+                <h3 className="mt-1 text-lg font-bold text-[var(--gbp-text)]">{selectedUnifiedRow.docNumber ?? selectedUnifiedRow.entityId}</h3>
+                <p className="mt-0.5 text-xs text-[var(--gbp-text2)]">{formatQboDate(selectedUnifiedRow.txnDate)}{selectedUnifiedRow.customerName ? ` · ${selectedUnifiedRow.customerName}` : ""}</p>
+              </div>
+              <button type="button" onClick={() => setSelectedInvoiceId(null)} className="rounded-lg p-1.5 text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]">
+                <X className="h-5 w-5" />
+              </button>
+            </header>
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              {/* Pipeline 4 pasos */}
+              <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-muted)]">Pipeline</p>
+              {(() => {
+                const STATUS_ORDER = ["en_cola", "capturada", "mapeada", "enviada"] as const;
+                const LABELS: Record<string, string> = { en_cola: "En cola", capturada: "Capturada", mapeada: "Mapeada", enviada: "Enviada" };
+                const currentIdx = STATUS_ORDER.indexOf(selectedUnifiedRow.pipelineStatus as typeof STATUS_ORDER[number]);
+                return (
+                  <div className="relative grid grid-cols-4 gap-1">
+                    <div className="absolute top-4 h-0.5 bg-[var(--gbp-border)]" style={{ left: "12.5%", right: "12.5%" }} />
+                    {currentIdx >= 1 && <div className="absolute top-4 h-0.5 bg-[var(--gbp-success)] transition-all" style={{ left: "12.5%", width: `${currentIdx * 25}%` }} />}
+                    {STATUS_ORDER.map((step, idx) => {
+                      const done = idx <= currentIdx;
+                      return (
+                        <div key={step} className="flex flex-col items-center gap-1 text-center">
+                          <div className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 ${done ? "border-[var(--gbp-success)] bg-[color-mix(in_oklab,var(--gbp-success)_15%,transparent)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)]"}`}>
+                            {done ? <CheckCircle2 className="h-4 w-4 text-[var(--gbp-success)]" /> : <Clock className="h-3.5 w-3.5 text-[var(--gbp-muted)]" />}
+                          </div>
+                          <span className={`text-[9px] font-extrabold uppercase tracking-[0.1em] ${done ? "text-[var(--gbp-text)]" : "text-[var(--gbp-muted)]"}`}>{LABELS[step]}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+              {selectedUnifiedRow.totalAmount != null && (
+                <div className="mt-5 rounded-[10px] border border-[var(--gbp-border)] px-4 py-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Total</p>
+                  <p className="mt-1 text-lg font-bold text-[var(--gbp-text)]">{selectedUnifiedRow.totalAmount.toFixed(2)} {selectedUnifiedRow.currency ?? ""}</p>
+                </div>
+              )}
+              <div className="mt-3 rounded-[10px] border border-[var(--gbp-border)] px-4 py-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Entity ID (QBO)</p>
+                <p className="mt-1 font-mono text-xs text-[var(--gbp-text2)]">{selectedUnifiedRow.entityId}</p>
+              </div>
+            </div>
+            <footer className="flex gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
+              <button type="button" onClick={() => setSelectedInvoiceId(null)}
                 className="flex-1 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2.5 text-sm font-semibold text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-surface2)]">
                 Cerrar
               </button>
@@ -2147,23 +2210,19 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                 <p className="mt-3 font-mono text-[10px] text-[var(--gbp-muted)]">QBO ID: {selectedInvoice.sourceInvoiceId}</p>
               </div>
 
-              {/* ── Developer pipeline panel (solo modo Developer) ── */}
+              {/* ── Pipeline panel (siempre visible) ── */}
               {showDeveloperMode && (() => {
-                const isMapped =
-                  selectedInvoice.sentToR365 ||
-                  selectedInvoice.mappedCode != null ||
-                  selectedInvoice.lastStatus === "exported" ||
-                  selectedInvoice.lastStatus === "uploaded" ||
-                  selectedInvoice.lastStatus === "validated" ||
-                  selectedInvoice.lastStatus === "skipped_duplicate";
-                const isSent = selectedInvoice.sentToR365;
-
-                const mappedLabel = (() => {
-                  if (!isMapped) return "Pendiente";
-                  const code = selectedInvoice.mappedCode;
-                  if (!code) return "Mapeada";
-                  return code.length > 18 ? `${code.slice(0, 18)}…` : code;
-                })();
+                // Derivar estado pipeline del unified row si existe, sino del historial legacy
+                const unifiedStatus = selectedUnifiedRow?.pipelineStatus;
+                const isCapturada = unifiedStatus
+                  ? ["capturada", "mapeada", "enviada"].includes(unifiedStatus)
+                  : (selectedInvoice.mappedCode != null || selectedInvoice.lastStatus === "exported" || selectedInvoice.lastStatus === "uploaded" || selectedInvoice.lastStatus === "validated");
+                const isMapped = unifiedStatus
+                  ? ["mapeada", "enviada"].includes(unifiedStatus)
+                  : (selectedInvoice.sentToR365 || selectedInvoice.mappedCode != null || selectedInvoice.lastStatus === "exported" || selectedInvoice.lastStatus === "uploaded" || selectedInvoice.lastStatus === "validated" || selectedInvoice.lastStatus === "skipped_duplicate");
+                const isSent = unifiedStatus
+                  ? unifiedStatus === "enviada"
+                  : selectedInvoice.sentToR365;
 
                 const mappedSub = (() => {
                   if (!isMapped) return "";
@@ -2174,28 +2233,11 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   return tmpl ? `${tmpl} · ${lineStr}` : lineStr;
                 })();
 
-                const steps: Array<{ key: string; done: boolean; label: string; meta: string; sub: string }> = [
-                  {
-                    key: "detected",
-                    done: true,
-                    label: "Lectura",
-                    meta: `${selectedInvoice.timesSeen} detección${selectedInvoice.timesSeen !== 1 ? "es" : ""}`,
-                    sub: relativeTime(selectedInvoice.lastSeenAt),
-                  },
-                  {
-                    key: "mapped",
-                    done: isMapped,
-                    label: "Mapeo",
-                    meta: mappedLabel,
-                    sub: mappedSub,
-                  },
-                  {
-                    key: "sent",
-                    done: isSent,
-                    label: "Envío",
-                    meta: isSent ? "Enviada a R365" : "Pendiente",
-                    sub: isSent ? relativeTime(selectedInvoice.lastSeenAt) : "",
-                  },
+                const steps: Array<{ key: string; done: boolean; label: string; sub: string }> = [
+                  { key: "en_cola", done: true, label: "En cola", sub: relativeTime(selectedInvoice.lastSeenAt) },
+                  { key: "capturada", done: isCapturada, label: "Capturada", sub: isCapturada ? "Datos QBO" : "" },
+                  { key: "mapeada", done: isMapped, label: "Mapeada", sub: mappedSub },
+                  { key: "sent", done: isSent, label: "Enviada", sub: isSent ? "R365 FTP" : "" },
                 ];
 
                 const hasFtpOverride = showInvoiceFtp && invoiceFtpHost.trim().length > 0;
@@ -2209,49 +2251,18 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                       <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-muted)]">
                         Pipeline de procesamiento
                       </p>
-                      <div className="relative grid grid-cols-3">
-                        <div
-                          className="absolute top-4 h-0.5 bg-[var(--gbp-border)]"
-                          style={{ left: "calc(100% / 6)", right: "calc(100% / 6)" }}
-                        />
-                        {isMapped && (
-                          <div
-                            className="absolute top-4 h-0.5 bg-[var(--gbp-success)] transition-all duration-500"
-                            style={{ left: "calc(100% / 6)", width: "calc(100% / 3)" }}
-                          />
-                        )}
-                        {isSent && (
-                          <div
-                            className="absolute top-4 h-0.5 bg-[var(--gbp-success)] transition-all duration-500"
-                            style={{ left: "50%", width: "calc(100% / 3)" }}
-                          />
-                        )}
+                      <div className="relative grid grid-cols-4 gap-1">
+                        <div className="absolute top-4 h-0.5 bg-[var(--gbp-border)]" style={{ left: "12.5%", right: "12.5%" }} />
+                        {isCapturada && <div className="absolute top-4 h-0.5 bg-[var(--gbp-success)] transition-all duration-500" style={{ left: "12.5%", width: "25%" }} />}
+                        {isMapped && <div className="absolute top-4 h-0.5 bg-[var(--gbp-success)] transition-all duration-500" style={{ left: "37.5%", width: "25%" }} />}
+                        {isSent && <div className="absolute top-4 h-0.5 bg-[var(--gbp-success)] transition-all duration-500" style={{ left: "62.5%", width: "25%" }} />}
                         {steps.map((step) => (
                           <div key={step.key} className="flex flex-col items-center gap-1 text-center">
-                            <div
-                              className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors duration-300 ${
-                                step.done
-                                  ? "border-[var(--gbp-success)] bg-[color-mix(in_oklab,var(--gbp-success)_15%,transparent)]"
-                                  : "border-[var(--gbp-border)] bg-[var(--gbp-surface)]"
-                              }`}
-                            >
-                              {step.done
-                                ? <CheckCircle2 className="h-4 w-4 text-[var(--gbp-success)]" />
-                                : <Clock className="h-3.5 w-3.5 text-[var(--gbp-muted)]" />
-                              }
+                            <div className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors duration-300 ${step.done ? "border-[var(--gbp-success)] bg-[color-mix(in_oklab,var(--gbp-success)_15%,transparent)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)]"}`}>
+                              {step.done ? <CheckCircle2 className="h-4 w-4 text-[var(--gbp-success)]" /> : <Clock className="h-3.5 w-3.5 text-[var(--gbp-muted)]" />}
                             </div>
-                            <span className={`mt-1 text-[10px] font-extrabold uppercase tracking-[0.12em] ${step.done ? "text-[var(--gbp-text)]" : "text-[var(--gbp-muted)]"}`}>
-                              {step.label}
-                            </span>
-                            <span
-                              className={`max-w-[90px] truncate text-[11px] font-semibold ${step.done ? "text-[var(--gbp-text)]" : "text-[var(--gbp-text2)]"}`}
-                              title={step.meta}
-                            >
-                              {step.meta}
-                            </span>
-                            {step.sub && (
-                              <span className="text-[10px] text-[var(--gbp-text2)]">{step.sub}</span>
-                            )}
+                            <span className={`mt-1 text-[9px] font-extrabold uppercase tracking-[0.1em] ${step.done ? "text-[var(--gbp-text)]" : "text-[var(--gbp-muted)]"}`}>{step.label}</span>
+                            {step.sub && <span className="text-[9px] text-[var(--gbp-text2)]">{step.sub}</span>}
                           </div>
                         ))}
                       </div>
@@ -2327,12 +2338,18 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                               {templateCols.map((col) => (
                                 <tr
                                   key={col.col}
-                                  className={col.highlight ? "bg-[color-mix(in_oklab,var(--gbp-accent)_8%,transparent)]" : ""}
+                                  className={
+                                    col.note
+                                      ? "bg-[color-mix(in_oklab,var(--gbp-accent)_5%,transparent)]"
+                                      : col.highlight
+                                        ? "bg-[color-mix(in_oklab,var(--gbp-accent)_8%,transparent)]"
+                                        : ""
+                                  }
                                 >
-                                  <td className="px-2 py-1.5 font-mono font-bold text-[var(--gbp-text)]">{col.col}</td>
+                                  <td className={`px-2 py-1.5 font-mono font-bold ${col.note ? "text-[var(--gbp-accent)]" : "text-[var(--gbp-text)]"}`}>{col.col}</td>
                                   <td className="px-2 py-1.5 text-[var(--gbp-text)]">
                                     {col.r365Name}
-                                    {col.highlight && (
+                                    {col.highlight && !col.note && (
                                       <span className="ml-1.5 rounded-sm bg-[var(--gbp-accent)] px-1 py-0.5 text-[9px] font-bold uppercase text-white">
                                         clave
                                       </span>
@@ -2340,13 +2357,21 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                                   </td>
                                   <td className="px-2 py-1.5 font-mono text-[10px] text-[var(--gbp-text2)]">{col.qboSource}</td>
                                   <td className="px-2 py-1.5">
-                                    <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${
-                                      col.scope === "header"
-                                        ? "bg-blue-50 text-blue-600"
-                                        : "bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"
-                                    }`}>
-                                      {col.scope === "header" ? "Cabecera" : "Detalle"}
-                                    </span>
+                                    {col.note
+                                      ? (
+                                        <span className="rounded-full bg-[color-mix(in_oklab,var(--gbp-accent)_15%,transparent)] px-1.5 py-0.5 text-[9px] font-bold uppercase text-[var(--gbp-accent)]">
+                                          Fila extra
+                                        </span>
+                                      ) : (
+                                        <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${
+                                          col.scope === "header"
+                                            ? "bg-blue-50 text-blue-600"
+                                            : "bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"
+                                        }`}>
+                                          {col.scope === "header" ? "Cabecera" : "Detalle"}
+                                        </span>
+                                      )
+                                    }
                                   </td>
                                 </tr>
                               ))}
@@ -2403,83 +2428,16 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                       )}
                     </div>
 
-                    {/* ── 3. FTP personalizado (colapsable) ── */}
-                    <div className="px-6 py-4">
-                      <button
-                        type="button"
-                        onClick={() => setShowInvoiceFtp((p) => !p)}
-                        className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)] transition hover:text-[var(--gbp-accent)]"
-                      >
-                        <Server className="h-3 w-3" />
-                        FTP personalizado
-                        {!showInvoiceFtp && (
-                          <span className="font-normal normal-case tracking-normal text-[var(--gbp-muted)]">
-                            — opcional
-                          </span>
-                        )}
-                        {showInvoiceFtp ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                      </button>
-                      {showInvoiceFtp && (
-                        <div className="mt-3 grid grid-cols-2 gap-2">
-                          <input
-                            className="col-span-2 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:outline-none"
-                            placeholder="Host (ej. ftp.r365.com)"
-                            value={invoiceFtpHost}
-                            onChange={(e) => setInvoiceFtpHost(e.target.value)}
-                          />
-                          <input
-                            className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:outline-none"
-                            placeholder="Usuario"
-                            value={invoiceFtpUser}
-                            onChange={(e) => setInvoiceFtpUser(e.target.value)}
-                          />
-                          <input
-                            type="password"
-                            className="col-span-2 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:outline-none"
-                            placeholder="Contraseña"
-                            value={invoiceFtpPass}
-                            onChange={(e) => setInvoiceFtpPass(e.target.value)}
-                          />
-                          <input
-                            className="col-span-2 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:outline-none"
-                            placeholder="Ruta remota (ej. /APImports/R365)"
-                            value={invoiceFtpPath}
-                            onChange={(e) => setInvoiceFtpPath(e.target.value)}
-                          />
-                          <label className="col-span-2 flex items-center gap-2 text-xs text-[var(--gbp-text2)]">
-                            <input
-                              type="checkbox"
-                              checked={invoiceFtpSecure}
-                              onChange={(e) => setInvoiceFtpSecure(e.target.checked)}
-                              className="h-3.5 w-3.5"
-                            />
-                            Conexión segura (FTPS)
-                          </label>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* ── 4. Enviar ── */}
+                    {/* ── 3. Enviar ── */}
                     <div className="flex items-center justify-between px-6 py-4">
-                      <span className={`text-[10px] ${hasFtpOverride ? "font-bold text-[var(--gbp-accent)]" : "text-[var(--gbp-muted)]"}`}>
-                        {hasFtpOverride ? `FTP: ${invoiceFtpHost.trim()}` : "Usando FTP configurado"}
-                      </span>
+                      <span className="text-[10px] text-[var(--gbp-muted)]">Usando FTP configurado en sync config</span>
                       <button
                         type="button"
                         disabled={sendingInvoice}
                         onClick={() => handleSendSingleInvoice(
                           selectedInvoice.sourceInvoiceId,
-                          syncHistoryFilter?.id ?? null,
-                          hasFtpOverride
-                            ? {
-                                host: invoiceFtpHost.trim(),
-                                port: 21,
-                                username: invoiceFtpUser,
-                                password: invoiceFtpPass,
-                                remotePath: invoiceFtpPath || "/APImports/R365",
-                                secure: invoiceFtpSecure,
-                              }
-                            : null,
+                          syncHistoryFilter?.id ?? selectedUnifiedRow?.syncConfigId ?? null,
+                          null,
                           invoiceTemplate,
                         )}
                         className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-bold transition disabled:opacity-50 ${

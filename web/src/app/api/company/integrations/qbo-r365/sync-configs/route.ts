@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
-import { createSyncConfig, listSyncConfigs } from "@/modules/integrations/qbo-r365/service";
+import { backfillSyncConfigToUnified, createSyncConfig, listSyncConfigs } from "@/modules/integrations/qbo-r365/service";
 import { syncConfigCreateSchema } from "@/modules/integrations/qbo-r365/types";
 
 const syncConfigCreateDeveloperSchema = syncConfigCreateSchema.extend({
@@ -44,7 +44,17 @@ export async function POST(request: Request) {
   }
 
   try {
-    const id = await createSyncConfig(access.tenant.organizationId, access.userId, parsed.data);
+    const payload = {
+      ...parsed.data,
+      scheduleInterval: "daily" as const,
+      lookbackHours: 0,
+      template: "by_item" as const,
+      taxMode: "none" as const,
+      r365FtpSecure: true,
+    };
+    const id = await createSyncConfig(access.tenant.organizationId, access.userId, payload);
+    // Backfill histórico en background — no bloquea la respuesta
+    void backfillSyncConfigToUnified(access.tenant.organizationId, id).catch(() => {});
     return NextResponse.json({ id }, { status: 201 });
   } catch (error) {
     return NextResponse.json(
