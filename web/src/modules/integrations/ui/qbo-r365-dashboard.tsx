@@ -1897,8 +1897,8 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                 );
               })()}
 
-              {/* ── Pipeline + Template (modo developer) ── */}
-              {showDeveloperMode && (() => {
+              {/* ── Pipeline (siempre visible) ── */}
+              {(() => {
                 const unifiedStatus = selectedUnifiedRow?.pipelineStatus;
                 const isCapturada = unifiedStatus
                   ? ["capturada", "mapeada", "enviada"].includes(unifiedStatus)
@@ -1926,156 +1926,156 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   { key: "sent", done: isSent, label: "Enviada", sub: isSent ? "R365 FTP" : "" },
                 ];
 
-                const templateCols = TEMPLATE_COLS["by_item"];
-
                 return (
-                  <div className="divide-y divide-[var(--gbp-border)] border-b border-[var(--gbp-border)]">
-                    {/* ── 1. Pipeline steps ── */}
-                    <div className="px-6 py-5">
-                      <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-muted)]">
-                        Pipeline de procesamiento
-                      </p>
-                      <div className="relative grid grid-cols-4 gap-1">
-                        <div className="absolute top-4 h-0.5 bg-[var(--gbp-border)]" style={{ left: "12.5%", right: "12.5%" }} />
-                        {isCapturada && <div className="absolute top-4 h-0.5 bg-[var(--gbp-success)] transition-all duration-500" style={{ left: "12.5%", width: "25%" }} />}
-                        {isMapped && <div className="absolute top-4 h-0.5 bg-[var(--gbp-success)] transition-all duration-500" style={{ left: "37.5%", width: "25%" }} />}
-                        {isSent && <div className="absolute top-4 h-0.5 bg-[var(--gbp-success)] transition-all duration-500" style={{ left: "62.5%", width: "25%" }} />}
-                        {steps.map((step) => (
-                          <div key={step.key} className="flex flex-col items-center gap-1 text-center">
-                            <div className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors duration-300 ${step.done ? "border-[var(--gbp-success)] bg-[color-mix(in_oklab,var(--gbp-success)_15%,transparent)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)]"}`}>
-                              {step.done ? <CheckCircle2 className="h-4 w-4 text-[var(--gbp-success)]" /> : <Clock className="h-3.5 w-3.5 text-[var(--gbp-muted)]" />}
-                            </div>
-                            <span className={`mt-1 text-[9px] font-extrabold uppercase tracking-[0.1em] ${step.done ? "text-[var(--gbp-text)]" : "text-[var(--gbp-muted)]"}`}>{step.label}</span>
-                            {step.sub && <span className="text-[9px] text-[var(--gbp-text2)]">{step.sub}</span>}
+                  <div className="border-b border-[var(--gbp-border)] px-6 py-5">
+                    <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-muted)]">
+                      Pipeline de procesamiento
+                    </p>
+                    <div className="relative grid grid-cols-4 gap-1">
+                      <div className="absolute top-4 h-0.5 bg-[var(--gbp-border)]" style={{ left: "12.5%", right: "12.5%" }} />
+                      {isCapturada && <div className="absolute top-4 h-0.5 bg-[var(--gbp-success)] transition-all duration-500" style={{ left: "12.5%", width: "25%" }} />}
+                      {isMapped && <div className="absolute top-4 h-0.5 bg-[var(--gbp-success)] transition-all duration-500" style={{ left: "37.5%", width: "25%" }} />}
+                      {isSent && <div className="absolute top-4 h-0.5 bg-[var(--gbp-success)] transition-all duration-500" style={{ left: "62.5%", width: "25%" }} />}
+                      {steps.map((step) => (
+                        <div key={step.key} className="flex flex-col items-center gap-1 text-center">
+                          <div className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors duration-300 ${step.done ? "border-[var(--gbp-success)] bg-[color-mix(in_oklab,var(--gbp-success)_15%,transparent)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)]"}`}>
+                            {step.done ? <CheckCircle2 className="h-4 w-4 text-[var(--gbp-success)]" /> : <Clock className="h-3.5 w-3.5 text-[var(--gbp-muted)]" />}
                           </div>
-                        ))}
+                          <span className={`mt-1 text-[9px] font-extrabold uppercase tracking-[0.1em] ${step.done ? "text-[var(--gbp-text)]" : "text-[var(--gbp-muted)]"}`}>{step.label}</span>
+                          {step.sub && <span className="text-[9px] text-[var(--gbp-text2)]">{step.sub}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* ── Template + columnas + csv preview (solo developer) ── */}
+              {showDeveloperMode && (() => {
+                const templateCols = TEMPLATE_COLS["by_item"];
+                return (
+                  <div className="border-b border-[var(--gbp-border)] px-6 py-4">
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-muted)]">
+                        Template R365
+                      </p>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => { setShowMappingPreview((p) => !p); setCsvPreview(null); }}
+                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg)] hover:text-[var(--gbp-accent)]"
+                        >
+                          {showMappingPreview ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                          {showMappingPreview ? "Ocultar columnas" : "Ver columnas"}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={previewingCsv}
+                          onClick={() => {
+                            setCsvPreview(null);
+                            setShowMappingPreview(false);
+                            handlePreviewCsv(
+                              selectedInvoice.sourceInvoiceId,
+                              syncHistoryFilter?.id ?? null,
+                              "by_item",
+                            );
+                          }}
+                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
+                        >
+                          {previewingCsv ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
+                          {previewingCsv ? "Generando..." : csvPreview ? "Ocultar datos" : "Previsualizar"}
+                        </button>
                       </div>
                     </div>
-
-                    {/* ── 2. Template + mapping preview + csv preview ── */}
-                    <div className="px-6 py-4">
-                      <div className="mb-3 flex items-center justify-between">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-muted)]">
-                          Template R365
-                        </p>
-                        <div className="flex items-center gap-1">
+                    {showMappingPreview && (
+                      <div className="mt-3 overflow-x-auto rounded-xl border border-[var(--gbp-border)]">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)]">
+                              <th className="px-2 py-1.5 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Col</th>
+                              <th className="px-2 py-1.5 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">R365</th>
+                              <th className="px-2 py-1.5 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">QBO Fuente</th>
+                              <th className="px-2 py-1.5 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Alcance</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[var(--gbp-border)]">
+                            {templateCols.map((col) => (
+                              <tr
+                                key={col.col}
+                                className={
+                                  col.note
+                                    ? "bg-[color-mix(in_oklab,var(--gbp-accent)_5%,transparent)]"
+                                    : col.highlight
+                                      ? "bg-[color-mix(in_oklab,var(--gbp-accent)_8%,transparent)]"
+                                      : ""
+                                }
+                              >
+                                <td className={`px-2 py-1.5 font-mono font-bold ${col.note ? "text-[var(--gbp-accent)]" : "text-[var(--gbp-text)]"}`}>{col.col}</td>
+                                <td className="px-2 py-1.5 text-[var(--gbp-text)]">
+                                  {col.r365Name}
+                                  {col.highlight && !col.note && (
+                                    <span className="ml-1.5 rounded-sm bg-[var(--gbp-accent)] px-1 py-0.5 text-[9px] font-bold uppercase text-white">clave</span>
+                                  )}
+                                </td>
+                                <td className="px-2 py-1.5 font-mono text-[10px] text-[var(--gbp-text2)]">{col.qboSource}</td>
+                                <td className="px-2 py-1.5">
+                                  {col.note ? (
+                                    <span className="rounded-full bg-[color-mix(in_oklab,var(--gbp-accent)_15%,transparent)] px-1.5 py-0.5 text-[9px] font-bold uppercase text-[var(--gbp-accent)]">Fila extra</span>
+                                  ) : (
+                                    <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${col.scope === "header" ? "bg-blue-50 text-blue-600" : "bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"}`}>
+                                      {col.scope === "header" ? "Cabecera" : "Detalle"}
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                    {csvPreview && (
+                      <div className="mt-3">
+                        <div className="mb-1.5 flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-[var(--gbp-muted)]">
+                            {csvPreview.rowCount} fila{csvPreview.rowCount !== 1 ? "s" : ""} · by_item
+                          </span>
                           <button
                             type="button"
-                            onClick={() => { setShowMappingPreview((p) => !p); setCsvPreview(null); }}
-                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg)] hover:text-[var(--gbp-accent)]"
-                          >
-                            {showMappingPreview ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                            {showMappingPreview ? "Ocultar columnas" : "Ver columnas"}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={previewingCsv}
                             onClick={() => {
-                              setCsvPreview(null);
-                              setShowMappingPreview(false);
-                              handlePreviewCsv(
-                                selectedInvoice.sourceInvoiceId,
-                                syncHistoryFilter?.id ?? null,
-                                "by_item",
+                              navigator.clipboard.writeText(
+                                [csvPreview.headers, ...csvPreview.rows].map((r) => r.join(",")).join("\n"),
                               );
+                              toast.success("CSV copiado al portapapeles");
                             }}
-                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
+                            className="text-[10px] font-bold text-[var(--gbp-text2)] underline-offset-2 hover:text-[var(--gbp-accent)] hover:underline"
                           >
-                            {previewingCsv ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
-                            {previewingCsv ? "Generando..." : csvPreview ? "Ocultar datos" : "Previsualizar"}
+                            Copiar CSV
                           </button>
                         </div>
-                      </div>
-                      {showMappingPreview && (
-                        <div className="mt-3 overflow-x-auto rounded-xl border border-[var(--gbp-border)]">
-                          <table className="w-full text-xs">
+                        <div className="overflow-x-auto rounded-xl border border-[var(--gbp-border)]">
+                          <table className="w-full text-[10px]">
                             <thead>
                               <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)]">
-                                <th className="px-2 py-1.5 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Col</th>
-                                <th className="px-2 py-1.5 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">R365</th>
-                                <th className="px-2 py-1.5 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">QBO Fuente</th>
-                                <th className="px-2 py-1.5 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Alcance</th>
+                                {csvPreview.headers.map((h, i) => (
+                                  <th key={i} className="whitespace-nowrap px-2 py-1.5 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">{h}</th>
+                                ))}
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-[var(--gbp-border)]">
-                              {templateCols.map((col) => (
-                                <tr
-                                  key={col.col}
-                                  className={
-                                    col.note
-                                      ? "bg-[color-mix(in_oklab,var(--gbp-accent)_5%,transparent)]"
-                                      : col.highlight
-                                        ? "bg-[color-mix(in_oklab,var(--gbp-accent)_8%,transparent)]"
-                                        : ""
-                                  }
-                                >
-                                  <td className={`px-2 py-1.5 font-mono font-bold ${col.note ? "text-[var(--gbp-accent)]" : "text-[var(--gbp-text)]"}`}>{col.col}</td>
-                                  <td className="px-2 py-1.5 text-[var(--gbp-text)]">
-                                    {col.r365Name}
-                                    {col.highlight && !col.note && (
-                                      <span className="ml-1.5 rounded-sm bg-[var(--gbp-accent)] px-1 py-0.5 text-[9px] font-bold uppercase text-white">clave</span>
-                                    )}
-                                  </td>
-                                  <td className="px-2 py-1.5 font-mono text-[10px] text-[var(--gbp-text2)]">{col.qboSource}</td>
-                                  <td className="px-2 py-1.5">
-                                    {col.note ? (
-                                      <span className="rounded-full bg-[color-mix(in_oklab,var(--gbp-accent)_15%,transparent)] px-1.5 py-0.5 text-[9px] font-bold uppercase text-[var(--gbp-accent)]">Fila extra</span>
-                                    ) : (
-                                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${col.scope === "header" ? "bg-blue-50 text-blue-600" : "bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"}`}>
-                                        {col.scope === "header" ? "Cabecera" : "Detalle"}
-                                      </span>
-                                    )}
-                                  </td>
+                              {csvPreview.rows.map((row, ri) => (
+                                <tr key={ri} className="hover:bg-[var(--gbp-bg)]">
+                                  {row.map((cell, ci) => (
+                                    <td key={ci} className="max-w-[140px] truncate whitespace-nowrap px-2 py-1.5 font-mono text-[var(--gbp-text)]" title={cell}>
+                                      {cell || <span className="text-[var(--gbp-muted)]">—</span>}
+                                    </td>
+                                  ))}
                                 </tr>
                               ))}
                             </tbody>
                           </table>
                         </div>
-                      )}
-                      {csvPreview && (
-                        <div className="mt-3">
-                          <div className="mb-1.5 flex items-center justify-between">
-                            <span className="text-[10px] font-bold text-[var(--gbp-muted)]">
-                              {csvPreview.rowCount} fila{csvPreview.rowCount !== 1 ? "s" : ""} · by_item
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(
-                                  [csvPreview.headers, ...csvPreview.rows].map((r) => r.join(",")).join("\n"),
-                                );
-                                toast.success("CSV copiado al portapapeles");
-                              }}
-                              className="text-[10px] font-bold text-[var(--gbp-text2)] underline-offset-2 hover:text-[var(--gbp-accent)] hover:underline"
-                            >
-                              Copiar CSV
-                            </button>
-                          </div>
-                          <div className="overflow-x-auto rounded-xl border border-[var(--gbp-border)]">
-                            <table className="w-full text-[10px]">
-                              <thead>
-                                <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)]">
-                                  {csvPreview.headers.map((h, i) => (
-                                    <th key={i} className="whitespace-nowrap px-2 py-1.5 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">{h}</th>
-                                  ))}
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-[var(--gbp-border)]">
-                                {csvPreview.rows.map((row, ri) => (
-                                  <tr key={ri} className="hover:bg-[var(--gbp-bg)]">
-                                    {row.map((cell, ci) => (
-                                      <td key={ci} className="max-w-[140px] truncate whitespace-nowrap px-2 py-1.5 font-mono text-[var(--gbp-text)]" title={cell}>
-                                        {cell || <span className="text-[var(--gbp-muted)]">—</span>}
-                                      </td>
-                                    ))}
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 );
               })()}
