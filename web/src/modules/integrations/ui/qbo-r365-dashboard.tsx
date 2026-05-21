@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link2, Search, X, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Plus, Play, Trash2, Eye, ChevronDown, ChevronUp, Server, Layers } from "lucide-react";
+import { Link2, Search, X, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Plus, Play, Trash2, Eye, ChevronDown, ChevronUp, ChevronsUpDown, Server, Layers } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { saveIntegrationConfigAction } from "@/modules/integrations/qbo-r365/actions";
@@ -372,6 +372,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unifiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [unifiedHistoryKey, setUnifiedHistoryKey] = useState(0);
+  const [unifiedSort, setUnifiedSort] = useState<{ col: "txnDate" | "createdAt"; dir: "asc" | "desc" }>({ col: "createdAt", dir: "desc" });
 
   // Sync configs
   const [syncConfigs, setSyncConfigs] = useState<SyncConfigSummary[]>([]);
@@ -779,6 +780,14 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     () => data?.invoiceHistory.find((item) => item.sourceInvoiceId === selectedInvoiceId) ?? null,
     [data, selectedInvoiceId],
   );
+  const sortedUnifiedHistory = useMemo(() => {
+    return [...unifiedHistory].sort((a, b) => {
+      const aVal = unifiedSort.col === "txnDate" ? (a.txnDate ?? "") : a.createdAt;
+      const bVal = unifiedSort.col === "txnDate" ? (b.txnDate ?? "") : b.createdAt;
+      return unifiedSort.dir === "desc" ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
+    });
+  }, [unifiedHistory, unifiedSort]);
+
   const selectedUnifiedRow = useMemo(
     () => unifiedHistory.find((item) => item.entityId === selectedInvoiceId) ?? null,
     [unifiedHistory, selectedInvoiceId],
@@ -1519,8 +1528,16 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
         </div>
         {(() => {
           const PAGE_SIZE = 15;
-          const totalPages = Math.max(1, Math.ceil(unifiedHistory.length / PAGE_SIZE));
-          const pageRows = unifiedHistory.slice((unifiedPage - 1) * PAGE_SIZE, unifiedPage * PAGE_SIZE);
+          const totalPages = Math.max(1, Math.ceil(sortedUnifiedHistory.length / PAGE_SIZE));
+          const pageRows = sortedUnifiedHistory.slice((unifiedPage - 1) * PAGE_SIZE, unifiedPage * PAGE_SIZE);
+          function handleUnifiedSort(col: "txnDate" | "createdAt") {
+            setUnifiedSort((prev) => prev.col === col ? { col, dir: prev.dir === "desc" ? "asc" : "desc" } : { col, dir: "desc" });
+            setUnifiedPage(1);
+          }
+          function SortIcon({ col }: { col: "txnDate" | "createdAt" }) {
+            if (unifiedSort.col !== col) return <ChevronsUpDown className="h-3 w-3 opacity-30" />;
+            return unifiedSort.dir === "desc" ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />;
+          }
           const pipelineColors: Record<string, string> = {
             en_cola: "bg-[var(--gbp-bg)] text-[var(--gbp-text2)]",
             capturada: "bg-blue-50 text-blue-600",
@@ -1534,14 +1551,18 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                 <table className="w-full min-w-[860px] border-collapse">
                   <thead>
                     <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-left text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">
-                      <th className="px-4 py-3">Fecha</th>
+                      <th className="cursor-pointer select-none px-4 py-3 hover:text-[var(--gbp-text)]" onClick={() => handleUnifiedSort("txnDate")}>
+                        <span className="inline-flex items-center gap-1">Fecha <SortIcon col="txnDate" /></span>
+                      </th>
                       <th className="px-4 py-3">Doc #</th>
                       <th className="px-4 py-3">Tipo</th>
                       <th className="px-4 py-3">Cliente</th>
                       <th className="px-4 py-3">Monto</th>
                       <th className="px-4 py-3">Fuente</th>
                       <th className="px-4 py-3">Pipeline</th>
-                      <th className="px-4 py-3">Recibida</th>
+                      <th className="cursor-pointer select-none px-4 py-3 hover:text-[var(--gbp-text)]" onClick={() => handleUnifiedSort("createdAt")}>
+                        <span className="inline-flex items-center gap-1">Recibida <SortIcon col="createdAt" /></span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1586,7 +1607,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
               {totalPages > 1 && (
                 <div className="flex items-center justify-between border-t border-[var(--gbp-border)] px-4 py-3">
                   <span className="text-[11px] text-[var(--gbp-muted)]">
-                    {(unifiedPage - 1) * PAGE_SIZE + 1}–{Math.min(unifiedPage * PAGE_SIZE, unifiedHistory.length)} de {unifiedHistory.length}
+                    {(unifiedPage - 1) * PAGE_SIZE + 1}–{Math.min(unifiedPage * PAGE_SIZE, sortedUnifiedHistory.length)} de {sortedUnifiedHistory.length}
                   </span>
                   <div className="flex items-center gap-1">
                     <button
