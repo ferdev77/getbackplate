@@ -22,6 +22,11 @@ export default async function CompanyHomePage({ searchParams }: Props) {
   const params = await searchParams;
 
   const enabledModules = new Set(await getEnabledModulesCached(tenant.organizationId));
+
+  if (enabledModules.has("qbo_r365") && !enabledModules.has("dashboard")) {
+    redirect(MODULE_PATHS["qbo_r365"]);
+  }
+
   const firstAvailable = MODULE_PRIORITY.find((m) => enabledModules.has(m));
 
   if (firstAvailable) {
