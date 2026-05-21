@@ -2,6 +2,7 @@ import { Client as FtpClient } from "basic-ftp";
 import { Readable } from "stream";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { getCanonicalAppUrl } from "@/shared/lib/app-url";
 import { decryptJsonPayload, encryptJsonPayload } from "@/modules/integrations/qbo-r365/crypto";
 import { createOAuthStateToken } from "@/modules/integrations/qbo-r365/oauth-state";
 import {
@@ -2938,13 +2939,26 @@ export async function insertQboWebhookEvents(input: QboWebhookEventInsert[]) {
         import_source: "webhook",
         pipeline_status: "en_cola",
       }, { onConflict: "organization_id,entity_id,entity_type", ignoreDuplicates: true });
-      // Fetch en background — si no completa, el cron diario de recovery lo reintenta
+      // Camino rápido: fetch + map + send en el mismo contexto (best effort)
       void fetchAndCaptureWebhookInvoice({
         organizationId,
         entityId: event.entityId,
         entityType: event.entity,
         webhookEventId,
       }).catch(() => { /* silently fail — queda en 'en_cola' */ });
+      // Camino confiable: self-trigger al cron como invocación serverless independiente.
+      // Si fetchAndCaptureWebhookInvoice no completa, el cron procesa lo que quedó pendiente.
+      // Si ya llegó a 'enviada', el cron lo saltea sin hacer nada.
+      const cronSecret = process.env.CRON_SECRET?.trim();
+      try {
+        const appUrl = getCanonicalAppUrl();
+        if (cronSecret) {
+          void fetch(`${appUrl}/api/webhooks/cron/qbo-r365-sync`, {
+            method: "POST",
+            headers: { authorization: `Bearer ${cronSecret}` },
+          }).catch(() => { /* no bloquear si el self-trigger falla */ });
+        }
+      } catch { /* NEXT_PUBLIC_APP_URL no configurado — se omite el self-trigger */ }
     }
   }
 
