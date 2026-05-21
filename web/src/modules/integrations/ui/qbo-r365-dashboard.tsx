@@ -563,10 +563,12 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   }
 
   const filteredCustomers = useMemo(() => {
+    const usedIds = new Set(syncConfigs.map((s) => s.qboCustomerId));
+    const available = qboCustomers.filter((c) => !usedIds.has(c.id));
     const q = customerSearch.trim().toLowerCase();
-    if (!q) return qboCustomers;
-    return qboCustomers.filter((c) => c.displayName.toLowerCase().includes(q));
-  }, [qboCustomers, customerSearch]);
+    if (!q) return available;
+    return available.filter((c) => c.displayName.toLowerCase().includes(q));
+  }, [qboCustomers, customerSearch, syncConfigs]);
 
   async function handleCreateSync(e: React.FormEvent) {
     e.preventDefault();
@@ -1211,15 +1213,13 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       <section className="mb-6">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Sincronizaciones</h2>
-          {syncConfigs.length === 0 && (
-            <button
-              type="button"
-              onClick={() => setIsCreateSyncOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 py-2 text-xs font-bold text-white transition hover:bg-[var(--gbp-accent)]"
-            >
-              <Plus className="h-3.5 w-3.5" /> Crear sincronización
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setIsCreateSyncOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 py-2 text-xs font-bold text-white transition hover:bg-[var(--gbp-accent)]"
+          >
+            <Plus className="h-3.5 w-3.5" /> Crear sincronización
+          </button>
         </div>
 
         {syncConfigsLoading && (
