@@ -25,6 +25,9 @@ const COMPANY_GET = [
   "/api/company/custom-domains",
   "/api/company/integrations/qbo-r365/config",
   "/api/company/integrations/qbo-r365/runs",
+  "/api/company/integrations/qbo-r365/dashboard",
+  "/api/company/integrations/qbo-r365/unified-history",
+  "/api/company/integrations/qbo-r365/sync-configs",
 ];
 
 // ─── Company: rutas POST ──────────────────────────────────────────────────────
@@ -35,9 +38,12 @@ const COMPANY_POST = [
   "/api/company/vendors",
   "/api/company/vendors/categories",
   "/api/company/custom-domains",
-  "/api/company/document-folders",  // solo POST/PATCH/DELETE, sin GET
-  "/api/company/feedback",          // solo POST, sin GET
-  "/api/company/settings",          // solo POST, sin GET
+  "/api/company/document-folders",               // solo POST/PATCH/DELETE, sin GET
+  "/api/company/feedback",                       // solo POST, sin GET
+  "/api/company/settings",                       // solo POST, sin GET
+  "/api/company/integrations/qbo-r365/sync-configs",
+  "/api/company/integrations/qbo-r365/send-unified-invoice",
+  "/api/company/integrations/qbo-r365/fetch-by-docnumber",
 ];
 
 // ─── Employee: rutas GET ──────────────────────────────────────────────────────
@@ -149,6 +155,20 @@ test.describe("API Smoke: Webhooks internos — requieren secret header, no 500"
     expect(response.status()).toBeGreaterThanOrEqual(400);
     expect(response.status()).toBeLessThan(500);
   });
+
+  test("GET /api/webhooks/cron/qbo-r365-sync sin header devuelve 4xx", async ({ request }) => {
+    const response = await request.get("/api/webhooks/cron/qbo-r365-sync");
+    expect(response.status()).not.toBe(500);
+    expect(response.status()).toBeGreaterThanOrEqual(400);
+    expect(response.status()).toBeLessThan(500);
+  });
+
+  test("POST /api/webhooks/cron/qbo-r365-sync sin header devuelve 4xx", async ({ request }) => {
+    const response = await request.post("/api/webhooks/cron/qbo-r365-sync", { data: {} });
+    expect(response.status()).not.toBe(500);
+    expect(response.status()).toBeGreaterThanOrEqual(400);
+    expect(response.status()).toBeLessThan(500);
+  });
 });
 
 test.describe("API Smoke: Stripe — requieren auth o signature, no 500", () => {
@@ -163,24 +183,3 @@ test.describe("API Smoke: Stripe — requieren auth o signature, no 500", () => 
   });
 });
 
-// ─── Bug conocido: QBO dashboard crashea sin sesión ──────────────────────────
-// BUG: /api/company/integrations/qbo-r365/dashboard usa requireTenantModule()
-// (diseñado para páginas, llama a redirect()) dentro de un API route handler.
-// Esto hace que devuelva 500 en lugar de 401 cuando no hay sesión activa.
-// Debería usar assertCompanyAdminModuleApi() o assertTenantModuleApi() en su lugar.
-//
-// test.fixme() = el test se corre, se espera que falle, y CI pasa.
-// Cuando alguien arregle el bug, Playwright avisa que hay que sacar el fixme.
-test.describe("API Smoke: QBO integration (bug conocido)", () => {
-  test.fixme(
-    true,
-    "BUG: route usa requireTenantModule() en lugar de assertCompanyAdminModuleApi() — devuelve 500 en vez de 401",
-  );
-  test("GET /api/company/integrations/qbo-r365/dashboard no devuelve 500", async ({ request }) => {
-    const response = await request.get("/api/company/integrations/qbo-r365/dashboard");
-    expect(
-      response.status(),
-      "Usar assertCompanyAdminModuleApi() para que devuelva 401 sin sesión",
-    ).not.toBe(500);
-  });
-});

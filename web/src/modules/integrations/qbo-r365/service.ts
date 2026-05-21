@@ -3431,6 +3431,17 @@ export async function backfillSyncConfigToUnified(
 ): Promise<{ upserted: number }> {
   const admin = createSupabaseAdminClient();
 
+  // Use qbo_customer_name from the sync config — NOT p.vendor (the R365 vendor name).
+  // Backfill payload.vendor = r365VendorName (e.g. "PRODEL DISTRIBUTION INC"), which is the
+  // R365 accounting vendor, not the QBO billing customer. They are different fields.
+  const { data: configRow, error: configError } = await admin
+    .from("qbo_r365_sync_configs")
+    .select("qbo_customer_name")
+    .eq("id", syncConfigId)
+    .single();
+  if (configError) throw new Error(configError.message);
+  const qboCustomerName = (configRow?.qbo_customer_name as string | null) ?? null;
+
   const { data: runRows, error: runError } = await admin
     .from("integration_runs")
     .select("id")
@@ -3478,7 +3489,7 @@ export async function backfillSyncConfigToUnified(
       due_date: typeof p.dueDate === "string" ? p.dueDate : null,
       total_amount: typeof p.totalAmount === "number" ? p.totalAmount : null,
       currency: typeof p.currency === "string" ? p.currency : null,
-      customer_name: typeof p.vendor === "string" ? p.vendor : null,
+      customer_name: qboCustomerName,
       vendor_name: typeof p.vendor === "string" ? p.vendor : null,
       mapped_at: String(row.created_at),
       sent_at: isSent ? String(row.created_at) : null,
