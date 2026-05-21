@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link2, Search, X, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Plus, Play, Trash2, Pause, Eye, ChevronDown, ChevronUp, Server } from "lucide-react";
+import { Link2, Search, X, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Plus, Play, Trash2, Eye, ChevronDown, ChevronUp, Server } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { saveIntegrationConfigAction } from "@/modules/integrations/qbo-r365/actions";
+import { resolveHistoryCustomerName } from "@/modules/integrations/qbo-r365/lib/resolve-customer-name";
 import { toast } from "sonner";
 
 type StatCard = { label: string; value: string; subLabel: string; tone: "default" | "success" | "warning" | "muted" };
@@ -518,21 +519,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       .catch(() => {})
       .finally(() => setCustomersLoading(false));
   }, [isCreateSyncOpen, qboCustomers.length]);
-
-  async function handleToggleSyncStatus(config: SyncConfigSummary) {
-    const newStatus = config.status === "active" ? "paused" : "active";
-    try {
-      const response = await fetch(`/api/company/integrations/qbo-r365/sync-configs/${config.id}`, {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      if (!response.ok) throw new Error("Error al actualizar");
-      setSyncConfigs((prev) => prev.map((c) => c.id === config.id ? { ...c, status: newStatus } : c));
-    } catch {
-      toast.error("No se pudo cambiar el estado");
-    }
-  }
 
   async function handleDeleteSyncConfig(id: string) {
     if (!confirm("¿Eliminar esta sincronización? Los runs históricos quedarán sin referencia.")) return;
@@ -1186,14 +1172,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   >
                     <Eye className="h-3.5 w-3.5" />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleToggleSyncStatus(config)}
-                    title={config.status === "active" ? "Pausar" : "Activar"}
-                    className="inline-flex items-center justify-center rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2.5 py-1.5 text-[11px] text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
-                  >
-                    <Pause className="h-3.5 w-3.5" />
-                  </button>
+
                   <button
                     type="button"
                     disabled={deletingSyncId === config.id}
@@ -1455,7 +1434,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                         <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{formatQboDate(item.txnDate)}</td>
                         <td className="px-4 py-3 text-xs font-medium text-[var(--gbp-text)]">{item.docNumber ?? item.entityId.slice(0, 10)}</td>
                         <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{item.entityType}</td>
-                        <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{item.customerName ?? "-"}</td>
+                        <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{resolveHistoryCustomerName(item, syncConfigs)}</td>
                         <td className="px-4 py-3 text-xs font-semibold text-[var(--gbp-text)]">{item.totalAmount != null ? item.totalAmount.toFixed(2) : "-"}</td>
                         <td className="px-4 py-3">
                           <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
