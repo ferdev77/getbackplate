@@ -3430,6 +3430,37 @@ export async function fetchInvoiceByDocNumber(
   return { entityId, entityType, docNumber: docNumber.trim(), alreadyExisted };
 }
 
+export async function getUnifiedInvoiceStats(organizationId: string): Promise<{
+  total: number;
+  enviadas: number;
+  atascadas: number;
+}> {
+  const admin = createSupabaseAdminClient();
+  // Webhooks en 'en_cola' por más de 24h = no se procesaron → requieren atención.
+  const stuckThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+  const [totalRes, enviadasRes, atascadasRes] = await Promise.all([
+    admin.from("qbo_unified_invoices")
+      .select("*", { count: "exact", head: true })
+      .eq("organization_id", organizationId),
+    admin.from("qbo_unified_invoices")
+      .select("*", { count: "exact", head: true })
+      .eq("organization_id", organizationId)
+      .eq("pipeline_status", "enviada"),
+    admin.from("qbo_unified_invoices")
+      .select("*", { count: "exact", head: true })
+      .eq("organization_id", organizationId)
+      .eq("pipeline_status", "en_cola")
+      .lte("created_at", stuckThreshold),
+  ]);
+
+  return {
+    total: totalRes.count ?? 0,
+    enviadas: enviadasRes.count ?? 0,
+    atascadas: atascadasRes.count ?? 0,
+  };
+}
+
 export async function listUnifiedHistory(
   organizationId: string,
   limit = 100,
