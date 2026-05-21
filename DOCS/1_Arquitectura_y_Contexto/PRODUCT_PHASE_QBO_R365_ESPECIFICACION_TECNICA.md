@@ -1,4 +1,4 @@
-# DOC_ID: PRODUCT_PHASE_QBO_R365_TECH_SPEC_V3
+# DOC_ID: PRODUCT_PHASE_QBO_R365_TECH_SPEC_V4
 # DOC_LEVEL: ARQUITECTURA_TECNICA
 # PHASE_NAMESPACE: PRODUCT_PHASE
 # SOURCE_OF_TRUTH_FOR: arquitectura, modelo de datos y contratos tecnicos de integracion QBO -> R365
@@ -30,14 +30,21 @@ Definir una arquitectura multi-tenant, auditable y resiliente para capturar fact
 ### 3.1 Flujo de datos general
 
 ```
-QBO Webhooks ──► qbo_webhook_events ──► pipeline diario ──────► R365 FTP
-                                                │
-                                                ▼
-Busqueda DocNumber ──────────────────► qbo_unified_invoices ◄── Backfill historico
-                                       (historial unificado)
-                                                │
-                                                ▼
-                                      Envio individual ──────► R365 FTP
+QBO Webhook (evento Emailed)
+        │
+        ├─► qbo_webhook_events
+        │
+        ├─► await upsert: qbo_unified_invoices (en_cola)
+        │
+        ├─► Ruta rapida (background): fetch QBO → raw_entity → mapping → FTP → enviada
+        │
+        └─► Ruta confiable (self-trigger): POST /cron/qbo-r365-sync (nueva invocacion serverless)
+
+Cron diario ──► processQboUnifiedQueue (red de seguridad para facturas atascadas)
+
+Busqueda DocNumber ──► qbo_unified_invoices (import_source='manual') ──► Envio individual ──► R365 FTP
+
+Backfill historico ──► qbo_unified_invoices (import_source='sync') ──► Envio individual ──► R365 FTP
 ```
 
 ### 3.2 Componentes
@@ -64,15 +71,16 @@ Busqueda DocNumber ──────────────────► qbo
 
 ### 3.3 Flujo tecnico end-to-end (webhook-based)
 
-1. QBO notifica cambio de factura via webhook;
-2. sistema captura y guarda en `qbo_webhook_events`;
-3. pipeline diario procesa la cola de webhooks;
-4. por cada evento: consulta entidad completa a QBO, guarda `raw_entity` en `qbo_unified_invoices`;
-5. normalizacion con sync config activa → `normalizeQboRows`;
-6. generacion de CSV → `buildR365Csv`;
-7. upload FTP → `uploadCsvToFtp`;
-8. actualiza `pipeline_status='enviada'` en `qbo_unified_invoices`;
-9. registra corrida completa en `integration_runs` + `integration_run_items`.
+Solo el evento `Emailed` de QBO esta configurado (Invoice y CreditMemo). Los eventos Create y Update estan desactivados intencionalmente.
+
+1. QBO notifica evento `Emailed` via webhook a `POST /api/webhooks/qbo`;
+2. sistema valida firma `intuit-signature` y persiste en `qbo_webhook_events`;
+3. `await upsert` en `qbo_unified_invoices` con `pipeline_status='en_cola'` e `import_source='webhook'`; el `await` garantiza que la fila exista antes de iniciar cualquier procesamiento (fix de race condition);
+4. sin bloquear la respuesta HTTP, se disparan dos rutas en paralelo:
+   - **Ruta rapida**: `void fetchAndCaptureWebhookInvoice(...)` — consulta entidad completa a QBO, guarda `raw_entity` (`capturada`), busca sync config activa para ese customer, ejecuta `mapAndSendUnifiedRow` → `normalizeQboRows` → `buildR365Csv` → `uploadCsvToFtp` → `pipeline_status='enviada'`;
+   - **Ruta confiable**: `void fetch(.../cron/qbo-r365-sync, { method: 'POST' })` — invocacion serverless nueva e independiente; procesa cualquier factura que la ruta rapida no haya podido completar;
+5. si no hay sync config activa para el customer de esa factura, la fila queda en `en_cola` hasta que se configure;
+6. el cron diario (`processQboUnifiedQueue`) actua como ultima red de seguridad para facturas que no avanzaron.
 
 ### 3.4 Flujo manual (DocNumber)
 
@@ -97,7 +105,7 @@ Busqueda DocNumber ──────────────────► qbo
 
 #### `qbo_r365_sync_configs`
 
-Una fila por organizacion (1:1 enforced a nivel de aplicacion).
+Una fila por QBO customer por organizacion. Una organizacion puede tener multiples sync configs, una por cada customer de QBO a sincronizar.
 
 | columna | tipo | descripcion |
 |---|---|---|
@@ -141,7 +149,7 @@ Historial unificado de todas las facturas procesadas, independientemente del can
 | created_at | timestamptz | |
 | updated_at | timestamptz | |
 
-UNIQUE: `(organization_id, entity_id, entity_type)` — garantiza idempotencia.
+UNIQUE: `(organization_id, entity_id, entity_type)` — garantiza idempotencia entre ruta rapida y ruta confiable (ambas hacen upsert con `ignoreDuplicates: true`).
 
 #### `qbo_webhook_events`
 
@@ -152,7 +160,7 @@ Almacena los payloads crudos de notificaciones push de QBO.
 | id | uuid | PK |
 | organization_id | uuid | FK |
 | payload | jsonb | payload crudo del webhook de Intuit |
-| processed | bool | si ya fue procesado por el pipeline |
+| status | text | `captured` = recibido sin procesar; `imported_manual` = procesado por fetchAndCaptureWebhookInvoice |
 | created_at | timestamptz | |
 
 #### `integration_runs`
@@ -238,7 +246,8 @@ Reglas de mapping QBO → R365 por organizacion.
 ### 5.1 Nivel factura (qbo_unified_invoices)
 
 - UNIQUE `(organization_id, entity_id, entity_type)`.
-- Upserts no crean filas duplicadas; actualizan `raw_entity` y timestamps.
+- Upserts con `ignoreDuplicates: true` no crean filas duplicadas ni sobrescriben filas existentes.
+- El `await upsert` inicial garantiza que la fila exista antes de que la ruta rapida intente actualizarla (fix de race condition).
 - Una factura con `pipeline_status='enviada'` muestra el boton de envio deshabilitado en UI.
 
 ### 5.2 Nivel linea (integration_run_items)
@@ -296,11 +305,12 @@ Lineamientos aplicados:
 
 - archivo CSV compatible con `EDI 810`;
 - upload en FTP dedicado de R365;
-- soporte de `AP Invoice` y `AP Credit Memo`;
+- soporte de `AP Invoice` y `AP Credit Memo` (los Credit Memos se mapean con montos negativos; `transactionTypeCode: "2"`);
 - consistencia de columnas de cabecera por linea;
 - detalle por item/cuenta segun template acordado;
 - soporte de variantes con service dates;
-- procedimientos de troubleshooting en `APImports/R365/Processed` y `APImports/R365/ErrorLog`.
+- R365 consume y elimina los archivos del FTP despues de importarlos — no buscarlos en el directorio FTP post-envio;
+- procedimientos de troubleshooting en `APImports/R365/ErrorLog` (Processed puede estar vacio si R365 ya proceso todo).
 
 ---
 
@@ -310,7 +320,8 @@ Lineamientos aplicados:
 2. drift entre sandbox y prod — mitigacion: bateria de pruebas en ambos entornos.
 3. datos incompletos en QBO — mitigacion: `raw_entity` almacenado; se puede re-mapear en cualquier momento.
 4. credenciales expiradas — mitigacion: health checks y alertas tempranas.
-5. webhook no recibido — mitigacion: flujo manual por DocNumber como fallback.
+5. fallo en procesamiento de webhook — mitigacion: doble ruta (ruta rapida + self-trigger cron independiente) + cron diario como ultima red de seguridad; si todo falla, flujo manual por DocNumber como fallback final.
+6. no hay sync config para un customer — mitigacion: factura queda en `en_cola`; se procesa automaticamente cuando se cree la sync config del customer.
 
 ---
 
@@ -318,10 +329,11 @@ Lineamientos aplicados:
 
 ### 11.1 Flujos activos
 
-- Captura automatica: QBO Webhooks → `qbo_webhook_events` → pipeline diario → R365 FTP.
+- Captura automatica: QBO Webhooks (solo evento `Emailed`) → `qbo_webhook_events` → doble ruta inmediata (ruta rapida + self-trigger cron) → R365 FTP. El cron diario actua como ultima red de seguridad.
 - Captura manual: busqueda por DocNumber → `qbo_unified_invoices` → envio individual.
-- Backfill historico: al crear sync config con `backfillFromDate` → filtra por `TxnDate`.
+- Backfill historico: al crear sync config con `backfillFromDate` → filtra por `TxnDate` → `import_source='sync'`.
 - Envio individual: cualquier factura en historial unificado → `send-unified-invoice`.
+- Multiples sync configs: cada organizacion puede tener una sync config por QBO customer.
 
 ### 11.2 Idempotencia activa
 
@@ -342,3 +354,4 @@ Lineamientos aplicados:
 - v1: especificacion tecnica inicial para construccion del modulo.
 - v2: incorpora templates con service dates, estado implementado y dedupe por factura.
 - v3: reescritura para arquitectura webhook-first con historial unificado; agrega `qbo_unified_invoices`, `qbo_r365_sync_configs`, `qbo_webhook_events`; documenta pipeline de estados, import_source, filtros de fecha TxnDate vs MetaData, flujo manual por DocNumber y backfill historico.
+- v4: procesamiento por doble ruta (ruta rapida background + self-trigger cron independiente); `await upsert` como fix de race condition; multiples sync configs por organizacion (una por customer); solo evento `Emailed` configurado; esquema actualizado de `qbo_webhook_events` (campo `status`); comportamiento FTP de R365 (consume y elimina archivos); CreditMemo con montos negativos; riesgos actualizados.

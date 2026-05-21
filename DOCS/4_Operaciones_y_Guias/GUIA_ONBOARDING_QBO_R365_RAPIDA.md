@@ -1,4 +1,4 @@
-# DOC_ID: OPERATIONS_RUNBOOK_QBO_R365_ONBOARDING_FAST_V2
+# DOC_ID: OPERATIONS_RUNBOOK_QBO_R365_ONBOARDING_FAST_V3
 # DOC_LEVEL: GUIA_OPERATIVA
 # PHASE_NAMESPACE: OPERATIONS_RUNBOOK
 # SOURCE_OF_TRUTH_FOR: onboarding rapido por rol para modulo QBO -> R365
@@ -26,12 +26,16 @@ Checklist rapido:
 
 - entender el historial unificado (`qbo_unified_invoices`) y los tres `import_source` (webhook, manual, sync);
 - entender los estados del pipeline: `en_cola → capturada → mapeada → enviada`;
-- crear sync config con `POST /api/company/integrations/qbo-r365/sync-configs`;
+- entender la doble ruta de procesamiento de webhooks: ruta rapida (background) + self-trigger cron (invocacion serverless independiente);
+- entender por que el `await upsert` inicial es critico (fix de race condition);
+- entender que solo el evento `Emailed` de QBO esta activo (no Create ni Update);
+- crear sync config con `POST /api/company/integrations/qbo-r365/sync-configs` (puede haber multiples, una por customer);
 - probar backfill con `backfillFromDate` y verificar facturas en historial;
 - probar fetch manual con `POST /api/company/integrations/qbo-r365/fetch-by-docnumber`;
 - probar envio individual con `POST /api/company/integrations/qbo-r365/send-unified-invoice`;
 - entender los 4 templates y cuando usar cada uno;
-- entender diferencia entre `txnDateFrom` (backfill) y `sinceIso` (incremental).
+- entender diferencia entre `txnDateFrom` (backfill) y `sinceIso` (incremental);
+- saber que R365 elimina archivos del FTP despues de importarlos (comportamiento esperado).
 
 ### 2) Si sos Operaciones
 
@@ -82,8 +86,8 @@ Checklist rapido:
 - `QBO_3100`: reconectar QBO (sandbox/prod correcto).
 - `UNMAPPED_ITEM` / `UNMAPPED_ACCOUNT`: cambiar template o completar mapping en la tabla `integration_mappings`.
 - `FTP no conectado`: cargar host/user/password/secure/path en sync config.
-- `Esta empresa ya tiene una sincronizacion configurada` (409): una organizacion solo puede tener una sync config.
-- Factura no aparece en historial: verificar que webhook este activo o hacer fetch manual por DocNumber.
+- Factura no aparece en historial: verificar que webhook este activo en Intuit (evento `Emailed`) o hacer fetch manual por DocNumber.
+- Factura en `en_cola` sin avanzar: verificar que el customer de esa factura tenga sync config configurada en el dashboard.
 - Boton "Enviar a R365" aparece como "Ya enviada": `pipeline_status` ya es `enviada`; se puede verificar en la tabla.
 
 ---
@@ -91,4 +95,5 @@ Checklist rapido:
 ## Control de cambios
 
 - v1: guia de onboarding rapido por rol.
-- v2: actualizada para arquitectura webhook-first con historial unificado; elimina referencias a Sync Now / Dry Run; agrega checklist para sync config, fetch manual, backfill y envio individual.
+- v2: arquitectura webhook-first con historial unificado; elimina referencias a Sync Now / Dry Run; agrega checklist para sync config, fetch manual, backfill y envio individual.
+- v3: doble ruta de procesamiento (ruta rapida + self-trigger cron); multiples sync configs por customer; solo evento `Emailed` activo; comportamiento FTP de R365 (consume y elimina archivos); error comun de factura en `en_cola` sin sync config.

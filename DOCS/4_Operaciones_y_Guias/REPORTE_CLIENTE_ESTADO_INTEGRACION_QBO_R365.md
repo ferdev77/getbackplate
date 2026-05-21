@@ -1,7 +1,7 @@
 # REPORTE PARA CLIENTE
 # Estado actual - Integracion QuickBooks -> Restaurant365
 
-Fecha: 2026-05-20
+Fecha: 2026-05-21
 Proyecto: Modulo de integracion QuickBooks (QBO) con Restaurant365 (R365)
 Estado general: Implementado y operativo en produccion
 
@@ -12,14 +12,14 @@ Estado general: Implementado y operativo en produccion
 La integracion ya esta funcionando de forma automatica y completa:
 
 - la cuenta de QuickBooks esta conectada via OAuth;
-- las facturas llegan solas al sistema via webhook (notificacion automatica de QuickBooks);
-- el sistema las almacena en un historial unificado;
-- el pipeline diario las procesa y las envia automaticamente a Restaurant365 por FTP;
+- las facturas llegan solas al sistema via webhook en tiempo casi real (QuickBooks avisa cada vez que una factura se envia al cliente, evento `Emailed`);
+- al llegar el webhook, el sistema las procesa de forma inmediata por dos rutas paralelas; si alguna ruta falla, el cron de recovery las atiende como red de seguridad;
+- el sistema las almacena en un historial unificado y las envia a Restaurant365 por FTP automaticamente;
 - si una factura no llega sola, se puede buscar manualmente por numero de documento;
 - cualquier factura del historial se puede enviar a R365 con un click desde el dashboard;
 - el historial unificado muestra el estado de cada factura en tiempo real.
 
-En resumen: la integracion esta en produccion y operando en modo automatico diario.
+En resumen: la integracion esta en produccion y operando en modo automatico, con procesamiento en tiempo casi real y multiples redes de seguridad.
 
 ---
 
@@ -31,14 +31,15 @@ En resumen: la integracion esta en produccion y operando en modo automatico diar
 - [x] Estado visual de conexion en pantalla.
 - [x] Manejo de reconexion cuando QuickBooks lo requiere.
 - [x] Credenciales guardadas de forma segura (cifradas con AES-256).
-- [x] Configuracion por organizacion (sync config, una por cliente).
+- [x] Configuracion por organizacion: multiples sync configs, una por cada proveedor/customer de QuickBooks.
 
 ### B. Captura automatica de facturas (webhooks)
 
-- [x] Recepcion de notificaciones push de QuickBooks (webhooks).
-- [x] Almacenamiento inmediato en historial unificado.
-- [x] Pipeline diario automatico: captura → mapeo → envio FTP.
-- [x] Soporte de Invoices y Credit Memos.
+- [x] Recepcion de notificaciones push de QuickBooks (solo evento `Emailed` — facturas enviadas al cliente).
+- [x] Procesamiento inmediato en tiempo casi real: doble ruta (procesamiento background + invocacion independiente del cron de recovery).
+- [x] Cron de recovery diario como ultima red de seguridad para facturas que no avanzaron.
+- [x] Almacenamiento inmediato en historial unificado con estado en tiempo real.
+- [x] Soporte de Invoices y Credit Memos (CreditMemos con montos negativos segun estandar R365).
 
 ### C. Historial unificado de facturas
 
@@ -83,10 +84,10 @@ En resumen: la integracion esta en produccion y operando en modo automatico diar
 
 ### I. Documentacion del repositorio
 
-- [x] Guia operativa actualizada a arquitectura actual (v4).
-- [x] Especificacion tecnica actualizada con modelo de datos actual (v3).
-- [x] Guia sandbox actualizada con nuevos endpoints (v3).
-- [x] Guia de onboarding por rol actualizada (v2).
+- [x] Guia operativa actualizada a arquitectura actual (v5).
+- [x] Especificacion tecnica actualizada con modelo de datos actual (v4).
+- [x] Guia de developer webhooks actualizada a doble ruta y eventos (v3).
+- [x] Guia de onboarding por rol actualizada (v3).
 - [x] Este reporte actualizado.
 
 ---
@@ -129,7 +130,8 @@ En resumen: la integracion esta en produccion y operando en modo automatico diar
 - Si una factura no tiene codigo de item/cuenta reconocible, puede quedar como "sin mapear" hasta ajustar la regla.
 - Si cambian las reglas de importacion de R365, hay que ajustar el formato CSV.
 - Si se vencen credenciales OAuth o FTP, la integracion se frena hasta reconectar.
-- Si QBO no envia el webhook (fallo de red en su lado), la factura no llega sola — se puede recuperar manualmente por DocNumber.
+- Si QBO no envia el webhook (fallo de red en su lado), la factura no llega sola — se puede recuperar manualmente por DocNumber (busqueda en el dashboard).
+- Si R365 importa los archivos correctamente, los elimina del FTP — es comportamiento esperado, no indica un error.
 
 ---
 
@@ -137,7 +139,7 @@ En resumen: la integracion esta en produccion y operando en modo automatico diar
 
 Con lo implementado y activo hoy, el cliente tiene:
 
-- automatizacion completa del flujo diario de facturas QBO → R365;
+- automatizacion completa del flujo de facturas QBO → R365 en tiempo casi real (segundos desde que la factura se envia al cliente en QuickBooks);
 - visibilidad en tiempo real del estado de cada factura;
 - capacidad de recuperar cualquier factura manualmente por numero de documento;
 - historial unificado sin importar como llego la factura;
