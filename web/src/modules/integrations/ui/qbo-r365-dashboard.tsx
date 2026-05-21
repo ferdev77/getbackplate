@@ -754,6 +754,12 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     () => unifiedHistory.find((item) => item.entityId === selectedInvoiceId) ?? null,
     [unifiedHistory, selectedInvoiceId],
   );
+  const isCreditMemoSelected = useMemo(() => {
+    if (invoiceDetail?.transactionTypeCode === "2") return true;
+    if (selectedInvoice?.transactionTypeCode === "2") return true;
+    if (selectedUnifiedRow?.entityType === "CreditMemo") return true;
+    return false;
+  }, [invoiceDetail, selectedInvoice, selectedUnifiedRow]);
 
   useEffect(() => {
     if (!selectedInvoiceId) {
@@ -1754,10 +1760,70 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   </div>
                 );
               })()}
-              {selectedUnifiedRow.totalAmount != null && (
+              {/* Ítems — disponibles cuando raw_entity fue cargado (webhook, manual, sync) */}
+              {invoiceDetailLoading && (
+                <div className="mt-5 flex items-center gap-2 text-xs text-[var(--gbp-muted)]">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Cargando ítems...
+                </div>
+              )}
+              {!invoiceDetailLoading && invoiceDetail && invoiceDetail.lines.length > 0 && (
+                <div className="mt-5">
+                  <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">
+                    Ítems · {invoiceDetail.lines.length} línea{invoiceDetail.lines.length !== 1 ? "s" : ""}
+                  </p>
+                  <div className="overflow-x-auto rounded-xl border-[1.5px] border-[var(--gbp-border)]">
+                    <table className="w-full min-w-[400px] text-xs">
+                      <thead>
+                        <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)]">
+                          <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Ítem</th>
+                          <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Cant.</th>
+                          <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Precio</th>
+                          <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Importe</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--gbp-border)]">
+                        {invoiceDetail.lines.map((line) => {
+                          const sign = isCreditMemoSelected ? -1 : 1;
+                          const shortName = line.itemName ? line.itemName.split(":").pop()!.trim() : null;
+                          return (
+                            <tr key={line.sourceLineId} className="hover:bg-[var(--gbp-bg)]">
+                              <td className="px-3 py-2.5">
+                                {shortName
+                                  ? <span className="font-semibold text-[var(--gbp-text)]">{shortName}</span>
+                                  : <span className="text-[var(--gbp-muted)]">{line.description || "-"}</span>}
+                              </td>
+                              <td className="px-3 py-2.5 text-right text-[var(--gbp-text)]">{line.quantity ?? "-"}</td>
+                              <td className="px-3 py-2.5 text-right text-[var(--gbp-text)]">{line.unitPrice != null ? (sign * line.unitPrice).toFixed(2) : "-"}</td>
+                              <td className="px-3 py-2.5 text-right font-semibold text-[var(--gbp-text)]">{line.lineAmount != null ? (sign * line.lineAmount).toFixed(2) : "-"}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="mt-3 flex flex-col items-end gap-1 text-sm">
+                    {!isCreditMemoSelected && invoiceDetail.totalTax > 0 && (
+                      <div className="flex w-56 items-center justify-between gap-4">
+                        <span className="text-[var(--gbp-text2)]">Impuestos</span>
+                        <span className="font-semibold text-[var(--gbp-text)]">{invoiceDetail.totalTax.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex w-56 items-center justify-between gap-4 rounded-lg bg-[var(--gbp-bg)] px-3 py-2">
+                      <span className="font-bold text-[var(--gbp-text)]">Total</span>
+                      <span className="font-bold text-[var(--gbp-text)]">
+                        {(isCreditMemoSelected ? -invoiceDetail.grandTotal : invoiceDetail.grandTotal).toFixed(2)} {selectedUnifiedRow.currency ?? ""}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {!invoiceDetailLoading && selectedUnifiedRow.totalAmount != null && (!invoiceDetail || invoiceDetail.lines.length === 0) && (
                 <div className="mt-5 rounded-[10px] border border-[var(--gbp-border)] px-4 py-3">
                   <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Total</p>
-                  <p className="mt-1 text-lg font-bold text-[var(--gbp-text)]">{selectedUnifiedRow.totalAmount.toFixed(2)} {selectedUnifiedRow.currency ?? ""}</p>
+                  <p className="mt-1 text-lg font-bold text-[var(--gbp-text)]">
+                    {(isCreditMemoSelected ? -selectedUnifiedRow.totalAmount : selectedUnifiedRow.totalAmount).toFixed(2)} {selectedUnifiedRow.currency ?? ""}
+                  </p>
                 </div>
               )}
               <div className="mt-3 rounded-[10px] border border-[var(--gbp-border)] px-4 py-3">
@@ -1800,7 +1866,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
             {/* Header */}
             <header className="flex items-start justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Detalle de factura</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">{isCreditMemoSelected ? "Detalle de nota de crédito" : "Detalle de factura"}</p>
                 <h3 className="mt-1 text-lg font-bold text-[var(--gbp-text)]">
                   {invoiceDetail?.invoiceNumber ?? selectedInvoice.invoiceNumber ?? "Sin numero"}
                 </h3>
@@ -1863,7 +1929,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   </div>
                   <div className="shrink-0 text-right">
                     <div className="grid grid-cols-[auto_auto] gap-x-4 gap-y-1 text-xs">
-                      <span className="font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Invoice</span>
+                      <span className="font-bold uppercase tracking-wide text-[var(--gbp-muted)]">{isCreditMemoSelected ? "Credit Memo" : "Invoice"}</span>
                       <span className="font-semibold text-[var(--gbp-text)]">{invoiceDetail?.invoiceNumber ?? selectedInvoice.invoiceNumber ?? "-"}</span>
                       <span className="font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Date</span>
                       <span className="text-[var(--gbp-text)]">{formatQboDate(invoiceDetail?.invoiceDate ?? selectedInvoice.invoiceDate)}</span>
@@ -1873,8 +1939,12 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                           <span className="text-[var(--gbp-text)]">{invoiceDetail.terms}</span>
                         </>
                       )}
-                      <span className="font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Due Date</span>
-                      <span className="text-[var(--gbp-text)]">{formatQboDate(invoiceDetail?.dueDate ?? selectedInvoice.dueDate)}</span>
+                      {!isCreditMemoSelected && (
+                        <>
+                          <span className="font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Due Date</span>
+                          <span className="text-[var(--gbp-text)]">{formatQboDate(invoiceDetail?.dueDate ?? selectedInvoice.dueDate)}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2183,8 +2253,8 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                               {line.description || "-"}
                               {(line.taxAmount ?? 0) > 0 && <span className="ml-1 text-[10px] font-bold text-[var(--gbp-accent)]">T</span>}
                             </td>
-                            <td className="px-3 py-2.5 text-right text-[var(--gbp-text)]">{line.unitPrice != null ? line.unitPrice.toFixed(2) : "-"}</td>
-                            <td className="px-3 py-2.5 text-right font-semibold text-[var(--gbp-text)]">{line.lineAmount != null ? line.lineAmount.toFixed(2) : "-"}</td>
+                            <td className="px-3 py-2.5 text-right text-[var(--gbp-text)]">{line.unitPrice != null ? (isCreditMemoSelected ? -line.unitPrice : line.unitPrice).toFixed(2) : "-"}</td>
+                            <td className="px-3 py-2.5 text-right font-semibold text-[var(--gbp-text)]">{line.lineAmount != null ? (isCreditMemoSelected ? -line.lineAmount : line.lineAmount).toFixed(2) : "-"}</td>
                             <td className="px-3 py-2.5 font-mono text-[10px] text-[var(--gbp-muted)]">{line.targetCode ?? "-"}</td>
                           </tr>
                           );
@@ -2199,15 +2269,17 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   <div className="mt-3 flex flex-col items-end gap-1 text-sm">
                     <div className="flex w-64 items-center justify-between gap-4 border-t border-[var(--gbp-border)] pt-2">
                       <span className="text-[var(--gbp-text2)]">Subtotal</span>
-                      <span className="font-semibold text-[var(--gbp-text)]">{invoiceDetail.subtotal.toFixed(2)} {formatCurrencyLabel(invoiceDetail.currency)}</span>
+                      <span className="font-semibold text-[var(--gbp-text)]">{(isCreditMemoSelected ? -invoiceDetail.subtotal : invoiceDetail.subtotal).toFixed(2)} {formatCurrencyLabel(invoiceDetail.currency)}</span>
                     </div>
-                    <div className="flex w-64 items-center justify-between gap-4">
-                      <span className="text-[var(--gbp-text2)]">Impuestos</span>
-                      <span className="font-semibold text-[var(--gbp-text)]">{invoiceDetail.totalTax.toFixed(2)} {formatCurrencyLabel(invoiceDetail.currency)}</span>
-                    </div>
+                    {!isCreditMemoSelected && (
+                      <div className="flex w-64 items-center justify-between gap-4">
+                        <span className="text-[var(--gbp-text2)]">Impuestos</span>
+                        <span className="font-semibold text-[var(--gbp-text)]">{invoiceDetail.totalTax.toFixed(2)} {formatCurrencyLabel(invoiceDetail.currency)}</span>
+                      </div>
+                    )}
                     <div className="flex w-64 items-center justify-between gap-4 rounded-lg bg-[var(--gbp-bg)] px-3 py-2">
                       <span className="font-bold text-[var(--gbp-text)]">Total</span>
-                      <span className="text-base font-bold text-[var(--gbp-text)]">{invoiceDetail.grandTotal.toFixed(2)} {formatCurrencyLabel(invoiceDetail.currency)}</span>
+                      <span className="text-base font-bold text-[var(--gbp-text)]">{(isCreditMemoSelected ? -invoiceDetail.grandTotal : invoiceDetail.grandTotal).toFixed(2)} {formatCurrencyLabel(invoiceDetail.currency)}</span>
                     </div>
                   </div>
                 )}
