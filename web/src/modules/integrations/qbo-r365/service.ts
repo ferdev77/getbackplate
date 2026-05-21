@@ -2450,6 +2450,90 @@ export async function getQboR365RunExport(input: {
   };
 }
 
+/**
+ * Genera la previsualización del CSV R365 a partir del raw_entity almacenado
+ * en qbo_unified_invoices — sin tocar integration_run_items.
+ *
+ * Usada para facturas y credit memos del pipeline unificado (webhook, manual, sync)
+ * donde el CSV aún no fue enviado o no existe en el historial legacy.
+ */
+export async function previewUnifiedInvoiceCsv(input: {
+  organizationId: string;
+  unifiedInvoiceId: string;
+}): Promise<{ headers: string[]; rows: string[][]; csv: string; rowCount: number; templateUsed: string }> {
+  const admin = createSupabaseAdminClient();
+
+  const { data: row, error } = await admin
+    .from("qbo_unified_invoices")
+    .select("id, entity_id, entity_type, raw_entity, sync_config_id")
+    .eq("organization_id", input.organizationId)
+    .eq("id", input.unifiedInvoiceId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!row) throw new Error("Factura no encontrada en el historial");
+  if (!row.raw_entity) throw new Error("La factura no tiene datos QBO almacenados — no se puede previsualizar");
+
+  const syncConfigId = row.sync_config_id ? String(row.sync_config_id) : null;
+  if (!syncConfigId) throw new Error("Esta factura no tiene sincronización asociada");
+
+  const syncConfig = await getSyncConfigRow(input.organizationId, syncConfigId);
+  const mappings = await getActiveMappings(input.organizationId);
+
+  const entityType = row.entity_type as "Invoice" | "CreditMemo";
+  const rawEntity = row.raw_entity as QboInvoiceLike;
+
+  const lines = normalizeQboRows({
+    invoices: entityType === "Invoice" ? [rawEntity] : [],
+    salesReceipts: [],
+    creditMemos: entityType === "CreditMemo" ? [rawEntity] : [],
+    template: syncConfig.template,
+    taxMode: syncConfig.tax_mode,
+    mappings,
+    r365VendorName: syncConfig.r365_vendor_name || undefined,
+    r365Location: syncConfig.r365_location || undefined,
+    syncConfigCustomerId: syncConfig.qbo_customer_id,
+  });
+
+  if (lines.length === 0) throw new Error("La factura no tiene líneas válidas para previsualizar — revisá los mappings del sync config");
+
+  const { csv, rowCount } = buildR365Csv({ template: syncConfig.template, lines });
+
+  const csvLines = csv.split("\n").filter(Boolean);
+  const parseRow = (line: string): string[] => {
+    const result: string[] = [];
+    let i = 0;
+    while (i < line.length) {
+      if (line[i] === '"') {
+        i++;
+        let field = "";
+        while (i < line.length) {
+          if (line[i] === '"' && line[i + 1] === '"') { field += '"'; i += 2; }
+          else if (line[i] === '"') { i++; break; }
+          else { field += line[i]; i++; }
+        }
+        result.push(field);
+        if (line[i] === ",") i++;
+      } else {
+        const end = line.indexOf(",", i);
+        if (end === -1) { result.push(line.slice(i)); break; }
+        result.push(line.slice(i, end));
+        i = end + 1;
+      }
+    }
+    return result;
+  };
+
+  const [headerLine, ...dataLines] = csvLines;
+  return {
+    headers: parseRow(headerLine ?? ""),
+    rows: dataLines.map(parseRow),
+    csv,
+    rowCount,
+    templateUsed: syncConfig.template,
+  };
+}
+
 export async function previewSingleInvoiceCsv(input: {
   organizationId: string;
   sourceInvoiceId: string;
