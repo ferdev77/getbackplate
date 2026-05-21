@@ -2467,9 +2467,22 @@ export async function previewSingleInvoiceCsv(input: {
   };
 }
 
+/**
+ * Envía individualmente a R365 FTP una factura del historial LEGACY (integration_run_items).
+ *
+ * Solo funciona para facturas que pasaron por el pipeline de sync completo y tienen
+ * líneas ya mapeadas en integration_run_items. Para facturas de webhook, backfill
+ * o traídas manualmente por DocNumber, usar sendSingleUnifiedInvoice en su lugar.
+ *
+ * Resolución de FTP: ftpOverride → sync config → conexión global restaurant365_ftp.
+ * Resolución de template: templateOverride → template del run original → "by_item".
+ *
+ * Deduplica las líneas por source_invoice_line_id, conservando la más reciente.
+ */
 export async function sendSingleInvoiceFromHistory(input: {
   organizationId: string;
   actorId: string | null;
+  /** QBO entity ID tal como aparece en integration_run_items.source_invoice_id */
   sourceInvoiceId: string;
   syncConfigId?: string | null;
   ftpOverride?: { host: string; port: number; username: string; password: string; remotePath: string; secure: boolean } | null;
@@ -2973,6 +2986,21 @@ export type UnifiedInvoiceRow = {
   updatedAt: string;
 };
 
+/**
+ * Trae una factura o nota de crédito de QBO por su DocNumber y la persiste
+ * en qbo_unified_invoices con import_source='manual'.
+ *
+ * Flujo:
+ *   1. Busca en QBO por DocNumber (Invoice → CreditMemo).
+ *   2. Resuelve la sync config por CustomerRef.value — si el cliente no tiene
+ *      sync config configurada en esta organización, lanza error.
+ *   3. Si r365_location está vacío en la sync config, lo obtiene del AcctNum
+ *      del Customer en QBO y lo guarda en la sync config (cache lazy).
+ *   4. Upsert en qbo_unified_invoices: si ya existía, actualiza el raw_entity;
+ *      si es nuevo, lo crea en pipeline_status='capturada'.
+ *
+ * alreadyExisted=true indica que la factura ya estaba en el historial (se actualizó).
+ */
 export async function fetchInvoiceByDocNumber(
   organizationId: string,
   docNumber: string,
@@ -3120,6 +3148,22 @@ export async function listUnifiedHistory(
   }));
 }
 
+/**
+ * Importa históricamente todas las Invoices y CreditMemos de QBO para el cliente
+ * configurado en la sync config, a partir de la fecha indicada.
+ *
+ * Filtra por TxnDate (fecha real de la factura), NO por MetaData.LastUpdatedTime.
+ * Usar MetaData traería facturas modificadas recientemente pero con fecha anterior
+ * al rango deseado — incorrecto para importación histórica.
+ *
+ * Los SalesReceipts se omiten: no son soportados en el pipeline de R365.
+ *
+ * El parámetro `sinceIso` puede ser fecha YYYY-MM-DD o ISO completo; solo se usa
+ * el segmento de fecha (primeros 10 caracteres).
+ *
+ * Upserta en lotes de 100 sobre (organization_id, entity_id, entity_type).
+ * Si una factura ya existía en el historial unificado, actualiza su raw_entity.
+ */
 export async function backfillFromQboSinceDate(
   organizationId: string,
   syncConfigId: string,
@@ -3186,9 +3230,29 @@ export async function backfillFromQboSinceDate(
   return { upserted };
 }
 
+/**
+ * Envía individualmente a R365 FTP una factura del historial unificado
+ * (qbo_unified_invoices), independientemente de cómo llegó (webhook, manual, backfill).
+ *
+ * A diferencia de sendSingleInvoiceFromHistory, que requiere integration_run_items
+ * con líneas ya mapeadas, esta función lee el raw_entity guardado en qbo_unified_invoices
+ * y ejecuta el mapping completo en tiempo real usando normalizeQboRows.
+ *
+ * Flujo:
+ *   1. Lee qbo_unified_invoices por id — requiere raw_entity y sync_config_id.
+ *   2. Carga sync config (template, tax_mode, FTP, vendor/location) y mappings activos.
+ *   3. Normaliza el raw_entity a NormalizedInvoiceLine[].
+ *   4. Construye el CSV con buildR365Csv y lo sube al FTP de la sync config.
+ *   5. Actualiza pipeline_status='enviada' en qbo_unified_invoices.
+ *   6. Registra el run en integration_runs con trigger_source='manual'.
+ *
+ * Requiere que la sync config tenga FTP configurado; no usa el FTP global de la conexión
+ * porque cada sync config tiene sus propias credenciales por cliente.
+ */
 export async function sendSingleUnifiedInvoice(input: {
   organizationId: string;
   actorId: string | null;
+  /** UUID de la fila en qbo_unified_invoices */
   unifiedInvoiceId: string;
 }): Promise<{ uploaded: number; fileName: string; runId: string }> {
   const admin = createSupabaseAdminClient();

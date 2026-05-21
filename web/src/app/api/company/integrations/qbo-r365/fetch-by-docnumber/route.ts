@@ -1,3 +1,13 @@
+/**
+ * POST /api/company/integrations/qbo-r365/fetch-by-docnumber
+ *
+ * Trae una factura o nota de crédito de QBO por su DocNumber y la persiste
+ * en qbo_unified_invoices con import_source='manual'.
+ *
+ * Body: { docNumber: string }
+ * Response: { entityId, entityType, docNumber, alreadyExisted: boolean }
+ *   alreadyExisted=true → la factura ya estaba en el historial; se actualizó el raw_entity.
+ */
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";

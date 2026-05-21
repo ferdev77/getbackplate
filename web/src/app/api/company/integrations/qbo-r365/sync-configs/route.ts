@@ -1,3 +1,15 @@
+/**
+ * GET  /api/company/integrations/qbo-r365/sync-configs
+ *   Lista las sync configs de la organización.
+ *
+ * POST /api/company/integrations/qbo-r365/sync-configs
+ *   Crea una sync config. Solo se permite una por organización (409 si ya existe).
+ *
+ *   Body opcional: backfillFromDate (YYYY-MM-DD) → dispara backfillFromQboSinceDate
+ *   en segundo plano. El backfill filtra por TxnDate, no por MetaData.LastUpdatedTime.
+ *
+ *   developerMode=true → relaja las validaciones de FTP para entornos de desarrollo.
+ */
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
