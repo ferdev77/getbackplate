@@ -632,6 +632,10 @@ function normalizeQboRows(input: {
     const itemLines = baseLines.filter((l) => INCLUDE_DETAIL_TYPES.has(l.DetailType ?? ""));
     const baseAmountSum = itemLines.reduce((sum, line) => sum + Number(line.Amount ?? 0), 0);
 
+    // R365 usa el signo de los montos para distinguir AP Invoice (positivo) de AP Credit Memo (negativo).
+    // QBO entrega siempre valores positivos — aplicamos el signo aquí antes de escribir al CSV.
+    const csvSign = row.kind === "credit" ? -1 : 1;
+
     for (let index = 0; index < itemLines.length; index += 1) {
       const line = itemLines[index];
       const lineAmount = Number(line.Amount ?? 0);
@@ -673,12 +677,12 @@ function normalizeQboRows(input: {
         itemName: line.SalesItemLineDetail?.ItemRef?.name || line.AccountBasedExpenseLineDetail?.AccountRef?.name || "",
         description: line.Description || "",
         quantity: Number.isFinite(qty) ? qty : 1,
-        unitPrice: Number.isFinite(unitPrice) ? unitPrice : lineAmount,
-        lineAmount,
+        unitPrice: csvSign * (Number.isFinite(unitPrice) ? unitPrice : lineAmount),
+        lineAmount: csvSign * lineAmount,
         taxAmount,
-        totalAmount: Number.isFinite(lineTotalAmount)
+        totalAmount: csvSign * (Number.isFinite(lineTotalAmount)
           ? lineTotalAmount
-          : (Number.isFinite(totalAmount) ? totalAmount : lineAmount),
+          : (Number.isFinite(totalAmount) ? totalAmount : lineAmount)),
         qboBalance: Number.isFinite(balanceAmount) ? balanceAmount : undefined,
         qboPaymentStatus,
         qboStatusRaw,
@@ -714,10 +718,10 @@ function normalizeQboRows(input: {
         itemName: "Tax",
         description: "Tax",
         quantity: 1,
-        unitPrice: totalTax,
-        lineAmount: totalTax,
+        unitPrice: csvSign * totalTax,
+        lineAmount: csvSign * totalTax,
         taxAmount: 0,
-        totalAmount: totalTax,
+        totalAmount: csvSign * totalTax,
         qboBalance: undefined,
         qboPaymentStatus: "not_applicable" as const,
         qboStatusRaw: undefined,
