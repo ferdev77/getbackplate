@@ -1,7 +1,7 @@
-# DOC_ID: OPERATIONS_RUNBOOK_QBO_R365_V2
+# DOC_ID: OPERATIONS_RUNBOOK_QBO_R365_V4
 # DOC_LEVEL: GUIA_OPERATIVA
 # PHASE_NAMESPACE: OPERATIONS_RUNBOOK
-# SOURCE_OF_TRUTH_FOR: operacion diaria, troubleshooting y soporte de integracion QBO -> R365
+# SOURCE_OF_TRUTH_FOR: operacion diaria, flujo de datos, endpoints y troubleshooting de integracion QBO -> R365
 
 # Guia Operativa
 
@@ -9,57 +9,98 @@
 
 ## 1) Objetivo
 
-Definir operacion diaria, flujo operativo y flujo developer del modulo QBO -> R365 con trazabilidad por corrida y por factura.
+Definir la operacion diaria del modulo QBO -> R365: configuracion de sync, flujo de datos por webhooks, historial unificado, envio individual de facturas, backfill historico y troubleshooting.
 
-## 2) Modos de uso en UI
+---
 
-### 2.1 Modo Operacion
+## 2) Arquitectura actual (flujo de datos)
 
-- pensado para uso diario de negocio;
-- acciones principales:
-  - `Sync Now` (corrida real con envio FTP);
-  - `Dry Run` (simulacion sin envio FTP);
-- incluye historial de corridas e historial de facturas.
+```
+QBO Webhooks ──► qbo_webhook_events ──► pipeline diario ──► R365 FTP
+                                                │
+DocNumber manual ────────────────────────────►  │
+                                                ▼
+                                  qbo_unified_invoices
+                                  (historial unificado)
+```
 
-### 2.2 Modo Developer
+### 2.1 Fuentes de datos (import_source)
 
-- pensado para validar etapas separadas;
-- acciones principales:
-  - `1) Traer datos QBO` (prepare, sin envio);
-  - `2) Ver preview` (raw + mapped);
-  - `3) Enviar a R365` (envio explicito de corrida preparada);
-- exportes por corrida: `RAW`, `JSON`, `CSV`, `TXT`.
+- `webhook` — factura capturada automaticamente via webhook de QBO;
+- `manual` — factura traida individualmente por DocNumber desde el dashboard;
+- `sync` — factura ingresada por el pipeline de sync (backfill o corrida diaria).
 
-## 3) Endpoints operativos del modulo
+### 2.2 Pipeline de estados por factura
 
-- `GET /api/company/integrations/qbo-r365/config`
-  - snapshot de configuracion.
-- `PUT /api/company/integrations/qbo-r365/config`
-  - guarda credenciales y settings.
+```
+en_cola → capturada → mapeada → enviada
+```
+
+- `en_cola` — webhook recibido, pendiente de procesar;
+- `capturada` — datos traidos desde QBO y almacenados en `raw_entity`;
+- `mapeada` — transformacion R365 completada;
+- `enviada` — archivo CSV subido al FTP de R365.
+
+### 2.3 Sync config
+
+Cada organizacion tiene **una sola sync config** que concentra:
+- credenciales FTP de R365 (cifradas);
+- QBO customer ID (filtro de facturas);
+- vendor y location para R365;
+- template CSV (`by_item`, `by_item_service_dates`, `by_account`, `by_account_service_dates`);
+- tax mode (`none`, `line`, `summary`).
+
+---
+
+## 3) Endpoints operativos
+
+### 3.1 Configuracion
+
+- `GET /api/company/integrations/qbo-r365/sync-configs`
+  - lista sync configs de la organizacion.
+- `POST /api/company/integrations/qbo-r365/sync-configs`
+  - crea sync config (409 si ya existe).
+  - body opcional: `backfillFromDate` (YYYY-MM-DD) → importa facturas historicas por TxnDate en segundo plano.
+  - body opcional: `developerMode=true` → relaja validaciones FTP para desarrollo.
+
+### 3.2 OAuth QBO
+
 - `GET /api/company/integrations/qbo-r365/oauth/start`
-  - inicia OAuth con Intuit.
+  - inicia OAuth con Intuit. Devuelve `authorizeUrl`.
 - `GET /api/company/integrations/qbo-r365/oauth/callback`
-  - callback OAuth.
-- `POST /api/company/integrations/qbo-r365/sync`
-  - corrida manual (`dryRun=true|false`).
-- `POST /api/company/integrations/qbo-r365/prepare`
-  - etapa 1 developer (trae y prepara).
-- `GET /api/company/integrations/qbo-r365/preview?runId=...`
-  - etapa 2 developer (vista previa).
-- `POST /api/company/integrations/qbo-r365/send`
-  - etapa 3 developer (envio FTP).
-- `GET /api/company/integrations/qbo-r365/export?runId=...&format=raw|json|csv|txt`
-  - export de corrida.
+  - callback OAuth. Persiste access + refresh token.
+
+### 3.3 Facturas
+
+- `POST /api/company/integrations/qbo-r365/fetch-by-docnumber`
+  - body: `{ docNumber: string }`
+  - trae una factura o nota de credito de QBO por su numero de documento;
+  - la persiste en `qbo_unified_invoices` con `import_source='manual'`;
+  - si ya existia, actualiza `raw_entity`;
+  - response: `{ entityId, entityType, docNumber, alreadyExisted: boolean }`.
+- `POST /api/company/integrations/qbo-r365/send-unified-invoice`
+  - body: `{ unifiedInvoiceId: string (UUID) }`
+  - envia al FTP de R365 cualquier factura del historial unificado (webhook, manual o sync);
+  - lee `raw_entity` y ejecuta el mapping en tiempo real;
+  - response: `{ uploaded, fileName, runId }`.
+
+### 3.4 Dashboard
+
 - `GET /api/company/integrations/qbo-r365/dashboard`
-  - cards, corridas e historial de facturas.
-- `GET /api/company/integrations/qbo-r365/runs`
-  - historial de corridas (API).
+  - retorna cards de estado, corridas e historial unificado de facturas.
+
+### 3.5 Webhooks y cron
+
+- `POST /api/webhooks/qbo` (o equivalente configurado en Intuit)
+  - recibe notificaciones push de QBO.
 - `GET /api/webhooks/cron/qbo-r365-sync`
-  - scheduler/reintentos (requiere `Authorization: Bearer <CRON_SECRET>`).
+  - scheduler/cron diario (requiere `Authorization: Bearer <CRON_SECRET>`).
+
+---
 
 ## 4) Templates soportados
 
-`integration_settings.qbo_r365_template` soporta:
+`template` en sync config soporta:
 
 - `by_item`
 - `by_item_service_dates`
@@ -84,101 +125,135 @@ Definir operacion diaria, flujo operativo y flujo developer del modulo QBO -> R3
 
 `Type,Location,Vendor,Number,Date,Gl Date,Amount,Payment Terms,Due Date,Comment,Detail Account,Detail Amount,Detail Location,Detail Comment,Start Date of Service,End Date of Service`
 
-## 5) Duplicados e idempotencia
+---
 
-### 5.1 Dedupe por linea
+## 5) Operaciones desde el dashboard
 
-- se usa `dedupe_key` por linea normalizada;
-- lineas ya enviadas/validadas se marcan `skipped_duplicate`.
+### 5.1 Buscar factura por DocNumber (flujo manual)
 
-### 5.2 Dedupe por factura (regla activa)
+1. Ir a la seccion de busqueda del dashboard.
+2. Ingresar el DocNumber de la factura en QBO.
+3. El sistema la trae, la almacena como `import_source='manual'` y la muestra en el historial unificado.
+4. Hacer click en la factura → panel lateral → `Enviar a R365`.
 
-- si `source_invoice_id` ya fue enviada (`uploaded` o `validated`), no se reenvia en corridas nuevas;
-- se registra como `skipped_duplicate` con razon de factura ya enviada;
-- objetivo: evitar doble envio de una misma factura a R365.
+### 5.2 Enviar factura individual
 
-## 6) Historial de Facturas
+- Disponible para cualquier factura en el historial unificado (webhook, manual o sync).
+- Si `pipeline_status` ya es `enviada`, el boton aparece como "Ya enviada" y queda deshabilitado.
+- El sistema ejecuta el mapping completo en tiempo real desde `raw_entity` y sube el CSV al FTP.
 
-El panel muestra una tabla consolidada por `source_invoice_id` con:
+### 5.3 Backfill historico
 
-- factura (`invoiceNumber` o `sourceInvoiceId`);
-- vendor;
-- estado mas reciente;
-- enviada a R365 (`Si/No`);
-- template usado;
-- mapped code;
-- veces vista;
-- ultima vez.
+- Al crear la sync config, enviar `backfillFromDate: "YYYY-MM-DD"` en el body.
+- El sistema importa facturas cuyo `TxnDate` sea mayor o igual a esa fecha.
+- El backfill corre en segundo plano; las facturas aparecen en el historial con `import_source='sync'`.
 
-## 7) Checklist de credenciales requeridas
+---
 
-Aplicacion:
+## 6) Deduplica e idempotencia
+
+- `qbo_unified_invoices` tiene UNIQUE por `(organization_id, entity_id, entity_type)`.
+- Si una factura ya existe, `fetch-by-docnumber` actualiza el `raw_entity` y retorna `alreadyExisted=true`.
+- El pipeline de sync no crea filas duplicadas gracias al UPSERT con la misma constraint.
+
+---
+
+## 7) Convencion de nombre de archivo CSV (R365)
+
+| Tipo de envio | Formato del archivo |
+|---|---|
+| Sync batch (multiples invoices) | `{file_prefix}_{YYYYMMDD}_{HHMMSS}.csv` |
+| Invoice individual | `{vendor}_{INV}{numero}_{YYYYMMDD}_{HHMMSS}.csv` |
+
+Ejemplos:
+- `PRODEL_20260518_143022.csv`
+- `PRODEL_DISTRIBUTION_INV50589_20260518_143022.csv`
+
+---
+
+## 8) Checklist de credenciales requeridas
+
+Variables de entorno:
 
 - `INTEGRATIONS_ENCRYPTION_KEY`
 - `QBO_OAUTH_STATE_SECRET`
-- `CRON_SECRET` (si se usa scheduler)
+- `CRON_SECRET` (para el scheduler)
 
-QuickBooks Online:
+En sync config (por organizacion):
 
-- `clientId`
-- `clientSecret`
-- `redirectUri` registrada exactamente en Intuit
-- OAuth completado con refresh token persistido
-- `realmId`
+- QBO: `clientId`, `clientSecret`, `redirectUri`, OAuth completado, `realmId`
+- R365 FTP: `host`, `port`, `username`, `password`, `remotePath`, `secure`
+- R365 config: `r365VendorName`, `r365Location`, `qboCustomerId`, `template`, `taxMode`
 
-Restaurant365 FTP:
+---
 
-- `host`
-- `port`
-- `username`
-- `password`
-- `remotePath`
-- `secure`
+## 9) Estados y accion recomendada
 
-## 8) Estados y accion recomendada
+### 9.1 Estado de pipeline por factura
 
-### 8.1 Estado de corrida
+- `en_cola` — webhook pendiente; esperar corrida diaria.
+- `capturada` — datos en DB; lista para mapear y enviar.
+- `mapeada` — lista para enviar.
+- `enviada` — ya en R365; no reenviar.
 
-- `completed`: sin accion.
-- `completed_with_errors`: revisar detalles, mapping o duplicados.
-- `failed`: revisar error y ejecutar reintento controlado.
+### 9.2 Estado de corrida (integration_runs)
 
-### 8.2 Estado de item
+- `completed` — sin accion.
+- `completed_with_errors` — revisar detalles, mapping o duplicados.
+- `failed` — revisar error y ejecutar reintento controlado.
 
-- `uploaded` / `validated`: enviado.
-- `exported`: preparado sin envio (dry run o etapa developer).
-- `skipped_duplicate`: saltado por dedupe (linea o factura).
-- `failed_validation`: corregir mapping/dato origen.
-- `failed_delivery`: revisar FTP/red.
+### 9.3 Estado de item (integration_run_items)
 
-## 9) Troubleshooting rapido
+- `uploaded` / `validated` — enviado correctamente.
+- `exported` — preparado sin envio.
+- `skipped_duplicate` — saltado por dedupe.
+- `failed_validation` — corregir mapping/dato origen.
+- `failed_delivery` — revisar FTP/red.
 
-### Caso A - QBO conectado pero detectadas = 0
+---
 
-1. validar lookback (`incrementalLookbackHours`);
-2. confirmar que existan Bills/Credits dentro de ventana por `LastUpdatedTime`;
-3. ejecutar `Traer datos QBO` y revisar preview.
+## 10) Troubleshooting rapido
+
+### Caso A - Factura no aparece en historial unificado
+
+1. Si viene de webhook: verificar que el webhook este configurado en Intuit con la URL correcta.
+2. Si es manual: usar `fetch-by-docnumber` con el DocNumber exacto de QBO.
+3. Si es backfill: verificar que `backfillFromDate` sea anterior a la fecha de la factura.
 
 ### Caso B - `UNMAPPED_ITEM` o `UNMAPPED_ACCOUNT`
 
-1. revisar template activo;
-2. en `by_item`, validar `ItemRef` en linea de QBO;
-3. en `by_account`, validar `AccountRef` en linea de QBO;
-4. completar mapping por tenant si aplica.
+1. Revisar template activo en sync config.
+2. En `by_item`, validar `ItemRef` en la linea de QBO.
+3. En `by_account`, validar `AccountRef` en la linea de QBO.
+4. Completar mapping por tenant si aplica.
 
-### Caso C - archivo sube pero R365 no importa
+### Caso C - Archivo sube pero R365 no importa
 
-1. revisar `APImports/R365/Processed` y `APImports/R365/ErrorLog`;
-2. descargar CSV desde ErrorLog;
-3. validar orden exacto de columnas segun template;
-4. corregir y reenviar.
+1. Revisar `APImports/R365/Processed` y `APImports/R365/ErrorLog`.
+2. Descargar CSV desde ErrorLog.
+3. Validar orden exacto de columnas segun template.
+4. Corregir y reenviar usando `send-unified-invoice`.
 
-### Caso D - OAuth redirige mal a auth/recovery
+### Caso D - OAuth redirige mal
 
-- validar middleware/proxy y callback del modulo;
-- confirmar `redirectUri` exacta y en entorno correcto (Development/Production).
+- Validar `proxy.ts` y callback del modulo.
+- Confirmar `redirectUri` exacta y en entorno correcto (Development/Production).
 
-## 10) Comandos de soporte recomendados
+### Caso E - FTP rechaza upload
+
+- Validar `host`, `port`, `username`, `password`, `remotePath`, `secure`.
+- Confirmar que el remote path exista en el servidor FTP.
+- Intentar conexion manual desde herramienta FTP externa.
+
+### Caso F - Backfill no importa las facturas esperadas
+
+- Verificar que la fecha en `backfillFromDate` sea en formato `YYYY-MM-DD`.
+- El backfill filtra por `TxnDate` (fecha de la factura), no por fecha de modificacion.
+- Confirmar que las facturas en QBO tengan un `TxnDate` >= la fecha indicada.
+
+---
+
+## 11) Comandos de soporte recomendados
 
 Desde `web/`:
 
@@ -188,45 +263,25 @@ npm run lint
 npm run build
 ```
 
-## 11) Evidencia minima por incidente
+---
 
-- `run_id`
-- tenant
-- template usado
-- archivo generado
+## 12) Evidencia minima por incidente
+
+- `run_id` o `unified_invoice_id`
+- tenant / organization_id
+- import_source de la factura afectada
+- pipeline_status al momento del error
+- template y tax_mode usados
+- archivo generado (si aplica)
 - error detalle
 - accion aplicada
 - resultado final
 
-## 12) Convencion de nombre de archivo CSV (R365)
-
-Segun la documentacion oficial de Restaurant365 para archivos Multi-Invoice:
-
-**Incluir:**
-- Nombre del vendor (completo o abreviado)
-- Numero de invoice/CM (cuando aplica)
-- Fecha y hora
-
-**No incluir:**
-- Informacion de location — si hay multiples invoices, hay multiples locations representadas
-
-**Formato implementado en el sistema:**
-
-| Tipo de envio | Formato del archivo |
-|---|---|
-| Sync batch (multiples invoices) | `{file_prefix}_{YYYYMMDD}_{HHMMSS}.csv` |
-| Invoice individual | `{vendor}_{INV}{numero}_{YYYYMMDD}_{HHMMSS}.csv` |
-
-**Ejemplos:**
-- `PRODEL_20260518_143022.csv`
-- `PRODEL_DISTRIBUTION_INV50589_20260518_143022.csv`
-
-El `file_prefix` se configura por organizacion en los settings de la integracion. Debe ser el nombre o abreviacion del vendor tal como aparece en R365.
-
-**Referencia:** "File Name Considerations on the Restaurant365 Multi-Invoice file" — documentacion interna R365.
+---
 
 ## Control de cambios
 
 - v1: runbook operativo inicial.
 - v2: incluye modo developer por etapas, exportes, 4 templates oficiales y dedupe por factura.
 - v3: agrega convencion de nombre de archivo segun estandar R365 (seccion 12).
+- v4: arquitectura reescrita para flujo webhook-first con historial unificado (`qbo_unified_invoices`); elimina referencias a Sync Now / Dry Run; agrega sync configs por organizacion, flujo manual por DocNumber, envio individual desde historial, backfill por TxnDate y nuevos endpoints.

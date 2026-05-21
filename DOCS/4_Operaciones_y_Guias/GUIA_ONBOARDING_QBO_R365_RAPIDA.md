@@ -1,4 +1,4 @@
-# DOC_ID: OPERATIONS_RUNBOOK_QBO_R365_ONBOARDING_FAST_V1
+# DOC_ID: OPERATIONS_RUNBOOK_QBO_R365_ONBOARDING_FAST_V2
 # DOC_LEVEL: GUIA_OPERATIVA
 # PHASE_NAMESPACE: OPERATIONS_RUNBOOK
 # SOURCE_OF_TRUTH_FOR: onboarding rapido por rol para modulo QBO -> R365
@@ -8,6 +8,8 @@
 ## Objetivo
 
 Dar una ruta de lectura corta, por rol, para entrar rapido al modulo QuickBooks -> Restaurant365.
+
+---
 
 ## Lectura por rol
 
@@ -22,10 +24,14 @@ Leer en este orden:
 
 Checklist rapido:
 
-- entender 4 templates (`by_item`, `by_item_service_dates`, `by_account`, `by_account_service_dates`);
-- validar dedupe por linea y por factura;
-- correr flujo developer (`prepare -> preview -> send`);
-- validar exportes (`raw/json/csv/txt`).
+- entender el historial unificado (`qbo_unified_invoices`) y los tres `import_source` (webhook, manual, sync);
+- entender los estados del pipeline: `en_cola → capturada → mapeada → enviada`;
+- crear sync config con `POST /api/company/integrations/qbo-r365/sync-configs`;
+- probar backfill con `backfillFromDate` y verificar facturas en historial;
+- probar fetch manual con `POST /api/company/integrations/qbo-r365/fetch-by-docnumber`;
+- probar envio individual con `POST /api/company/integrations/qbo-r365/send-unified-invoice`;
+- entender los 4 templates y cuando usar cada uno;
+- entender diferencia entre `txnDateFrom` (backfill) y `sinceIso` (incremental).
 
 ### 2) Si sos Operaciones
 
@@ -36,11 +42,12 @@ Leer en este orden:
 
 Checklist rapido:
 
-- revisar estado de conexiones QBO/FTP;
-- usar `Dry Run` para validar sin impacto;
-- usar `Sync Now` para corrida real;
-- revisar historial de corridas e historial de facturas;
-- revisar `APImports/R365/Processed` y `APImports/R365/ErrorLog`.
+- revisar estado de conexion QBO (OAuth conectado);
+- revisar estado de sync config (FTP configurado, vendor, location, template);
+- revisar historial unificado: estados del pipeline por factura;
+- buscar facturas por DocNumber cuando no aparecen automaticamente;
+- usar "Enviar a R365" para envio individual de facturas capturadas;
+- revisar `APImports/R365/Processed` y `APImports/R365/ErrorLog` en FTP.
 
 ### 3) Si sos Soporte
 
@@ -51,26 +58,37 @@ Leer en este orden:
 
 Checklist rapido:
 
-- identificar si el problema es OAuth, mapping, FTP o template;
-- revisar `run_id`, estado de corrida y estado de item/factura;
-- confirmar si aplica dedupe (factura ya enviada);
-- pedir evidencia minima (archivo, error, accion, resultado).
+- identificar si el problema es OAuth, sync config, mapping, FTP o webhook;
+- identificar el `import_source` de la factura afectada (webhook / manual / sync);
+- revisar `pipeline_status` actual de la factura;
+- pedir `run_id` o `unified_invoice_id` para investigar;
+- confirmar si ya fue enviada (`enviada`) o si quedó bloqueada (`capturada` o `mapeada`).
 
-## Primeras 5 pruebas recomendadas
+---
 
-1. OAuth QBO conectado y `realmId` visible.
-2. `Dry Run` con detectadas > 0.
-3. `Preview` sin errores de formato.
-4. Export `CSV` y validacion de encabezados del template seleccionado.
-5. Corrida real con archivo en `Processed` o diagnostico en `ErrorLog`.
+## Primeras 5 pruebas recomendadas (nuevo dev)
+
+1. Crear sync config con `developerMode=true` y verificar que retorna `{ id }`.
+2. OAuth QBO conectado y `realmId` visible en dashboard.
+3. Backfill con fecha historica → verificar facturas en historial unificado con `import_source='sync'`.
+4. Fetch manual de un DocNumber conocido → verificar `import_source='manual'` en historial.
+5. Envio individual desde historial → verificar `pipeline_status='enviada'` y archivo en FTP.
+
+---
 
 ## Errores comunes y accion inmediata
 
-- `redirect_uri invalid`: corregir URI exacta en Intuit y app.
+- `redirect_uri invalid`: corregir URI exacta en Intuit y app (debe coincidir exactamente).
 - `QBO_3100`: reconectar QBO (sandbox/prod correcto).
-- `UNMAPPED_ITEM` / `UNMAPPED_ACCOUNT`: cambiar template o mapping.
-- `FTP no conectado`: cargar host/user/password/secure/path.
+- `UNMAPPED_ITEM` / `UNMAPPED_ACCOUNT`: cambiar template o completar mapping en la tabla `integration_mappings`.
+- `FTP no conectado`: cargar host/user/password/secure/path en sync config.
+- `Esta empresa ya tiene una sincronizacion configurada` (409): una organizacion solo puede tener una sync config.
+- Factura no aparece en historial: verificar que webhook este activo o hacer fetch manual por DocNumber.
+- Boton "Enviar a R365" aparece como "Ya enviada": `pipeline_status` ya es `enviada`; se puede verificar en la tabla.
+
+---
 
 ## Control de cambios
 
 - v1: guia de onboarding rapido por rol.
+- v2: actualizada para arquitectura webhook-first con historial unificado; elimina referencias a Sync Now / Dry Run; agrega checklist para sync config, fetch manual, backfill y envio individual.
