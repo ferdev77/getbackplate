@@ -1,27 +1,22 @@
+/**
+ * GET|POST /api/webhooks/cron/qbo-r365-sync
+ *
+ * Cron de recovery del pipeline unificado QBO → R365.
+ * Se dispara una vez al día (vercel.json: "0 10 * * *").
+ *
+ * Propósito: procesar facturas que quedaron atascadas en el pipeline
+ * porque el background call del webhook falló (timeout, FTP caído, token vencido).
+ *
+ * No hace fetch de nuevas facturas desde QBO — eso ocurre en tiempo real
+ * cuando llega el webhook (fetchAndCaptureWebhookInvoice + mapAndSendUnifiedRow).
+ *
+ * Facturas que procesa:
+ *   - en_cola   → re-fetch desde QBO, luego map + send
+ *   - capturada → map + send
+ *   - mapeada   → reintento de FTP send
+ */
 import { NextResponse } from "next/server";
-import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { runQboR365Sync } from "@/modules/integrations/qbo-r365/service";
-
-type SyncConfigCronRow = {
-  id: string;
-  organization_id: string;
-  schedule_interval: "daily" | "weekly" | "hourly";
-  last_run_at: string | null;
-};
-
-type CronResult = {
-  syncConfigId: string;
-  organizationId: string;
-  status: "completed" | "failed" | "skipped";
-  attempts: number;
-  error?: string;
-};
-
-const INTERVAL_MS: Record<string, number> = {
-  daily: 24 * 60 * 60 * 1000,
-  weekly: 7 * 24 * 60 * 60 * 1000,
-  hourly: 24 * 60 * 60 * 1000,
-};
+import { processQboUnifiedQueue } from "@/modules/integrations/qbo-r365/service";
 
 export async function GET(request: Request) {
   return processCron(request);
@@ -44,67 +39,8 @@ async function processCron(request: Request) {
   }
 
   try {
-    const admin = createSupabaseAdminClient();
-    const { data: rows, error } = await admin
-      .from("qbo_r365_sync_configs")
-      .select("id, organization_id, schedule_interval, last_run_at")
-      .eq("status", "active")
-      .in("schedule_interval", ["daily", "weekly", "hourly"])
-      .limit(200);
-
-    if (error) throw new Error(error.message);
-
-    const configs = (rows ?? []) as SyncConfigCronRow[];
-    const now = Date.now();
-    const results: CronResult[] = [];
-
-    for (const config of configs) {
-      const intervalMs = INTERVAL_MS[config.schedule_interval];
-      const lastRun = config.last_run_at ? Date.parse(config.last_run_at) : 0;
-      const elapsed = now - lastRun;
-
-      if (elapsed < intervalMs) {
-        results.push({ syncConfigId: config.id, organizationId: config.organization_id, status: "skipped", attempts: 0 });
-        continue;
-      }
-
-      let completed = false;
-      let lastError = "";
-      const maxAttempts = 3;
-
-      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-        try {
-          await runQboR365Sync({
-            organizationId: config.organization_id,
-            actorId: null,
-            triggerSource: attempt === 1 ? "scheduled" : "retry",
-            syncConfigId: config.id,
-          });
-
-          results.push({ syncConfigId: config.id, organizationId: config.organization_id, status: "completed", attempts: attempt });
-          completed = true;
-          break;
-        } catch (err) {
-          lastError = err instanceof Error ? err.message : "sync_failed";
-        }
-      }
-
-      if (!completed) {
-        results.push({ syncConfigId: config.id, organizationId: config.organization_id, status: "failed", attempts: maxAttempts, error: lastError });
-      }
-    }
-
-    return NextResponse.json(
-      {
-        success: true,
-        processed: configs.length,
-        completed: results.filter((r) => r.status === "completed").length,
-        skipped: results.filter((r) => r.status === "skipped").length,
-        failed: results.filter((r) => r.status === "failed").length,
-        results,
-      },
-      { status: 200 },
-    );
+    const result = await processQboUnifiedQueue();
+    return NextResponse.json({ success: true, ...result }, { status: 200 });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Internal Server Error" },

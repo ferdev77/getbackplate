@@ -2864,6 +2864,121 @@ export async function importQboWebhookEventManually(input: { organizationId: str
 
 // ─── Unified Invoice Pipeline ─────────────────────────────────────────────────
 
+/**
+ * Ejecuta los pasos 3 y 4 del pipeline unificado: capturada → mapeada → enviada.
+ * Usada por el flujo de webhook (background), el envío manual y el cron de recovery.
+ */
+async function mapAndSendUnifiedRow(input: {
+  organizationId: string;
+  unifiedInvoiceId: string;
+  entityId: string;
+  entityType: "Invoice" | "CreditMemo";
+  rawEntity: QboInvoiceLike;
+  syncConfig: SyncConfigRow;
+  actorId: string | null;
+  triggerSource: "manual" | "scheduled" | "retry";
+}): Promise<{ fileName: string; runId: string; uploaded: number }> {
+  const admin = createSupabaseAdminClient();
+
+  const mappings = await getActiveMappings(input.organizationId);
+
+  const lines = normalizeQboRows({
+    invoices: input.entityType === "Invoice" ? [input.rawEntity] : [],
+    salesReceipts: [],
+    creditMemos: input.entityType === "CreditMemo" ? [input.rawEntity] : [],
+    template: input.syncConfig.template,
+    taxMode: input.syncConfig.tax_mode,
+    mappings,
+    r365VendorName: input.syncConfig.r365_vendor_name || undefined,
+    r365Location: input.syncConfig.r365_location || undefined,
+    syncConfigCustomerId: input.syncConfig.qbo_customer_id,
+  });
+
+  if (lines.length === 0) throw new Error("La factura no tiene líneas válidas para enviar a R365");
+
+  const nowMapped = new Date().toISOString();
+  await admin
+    .from("qbo_unified_invoices")
+    .update({ pipeline_status: "mapeada", mapped_at: nowMapped })
+    .eq("id", input.unifiedInvoiceId)
+    .eq("organization_id", input.organizationId);
+
+  if (!input.syncConfig.r365_ftp_host) throw new Error("FTP no configurado en la sync config");
+  const ftpSecrets = decryptJsonPayload<FtpStoredSecrets>({
+    ciphertext: input.syncConfig.r365_ftp_secrets_ciphertext,
+    iv: input.syncConfig.r365_ftp_secrets_iv,
+    tag: input.syncConfig.r365_ftp_secrets_tag,
+  });
+  if (!ftpSecrets?.password) throw new Error("Credenciales FTP no disponibles");
+
+  const ftp = {
+    host: input.syncConfig.r365_ftp_host,
+    port: input.syncConfig.r365_ftp_port ?? 21,
+    username: input.syncConfig.r365_ftp_username ?? "",
+    password: ftpSecrets.password,
+    secure: input.syncConfig.r365_ftp_secure,
+    remotePath: input.syncConfig.r365_ftp_remote_path,
+  };
+
+  const csvBuild = buildR365Csv({ template: input.syncConfig.template, lines });
+  const invoiceNumber = lines[0]?.invoiceNumber;
+  const vendorSlug = (lines[0]?.vendor ?? "r365_inv").replace(/[^a-zA-Z0-9_\-]/g, "_").slice(0, 20);
+  const fileName = buildFileName(vendorSlug, invoiceNumber);
+
+  const runId = await createRun(input.organizationId, input.actorId, input.triggerSource, input.syncConfig.id);
+
+  await uploadCsvToFtp({ ...ftp, fileName, content: csvBuild.csv });
+
+  const nowIso = new Date().toISOString();
+
+  await admin.from("integration_outbox_files").insert({
+    run_id: runId,
+    organization_id: input.organizationId,
+    storage_provider: "r365_ftp",
+    remote_path: ftp.remotePath,
+    file_name: fileName,
+    mime_type: "text/csv",
+    size_bytes: Buffer.byteLength(csvBuild.csv, "utf8"),
+    sha256: csvBuild.hash,
+    status: "uploaded",
+    uploaded_at: nowIso,
+  });
+
+  await admin
+    .from("qbo_unified_invoices")
+    .update({ pipeline_status: "enviada", sent_at: nowIso })
+    .eq("id", input.unifiedInvoiceId)
+    .eq("organization_id", input.organizationId);
+
+  await admin
+    .from("integration_runs")
+    .update({
+      status: "completed",
+      finished_at: nowIso,
+      template_used: input.syncConfig.template,
+      file_name: fileName,
+      file_hash: csvBuild.hash,
+      total_detected: 1,
+      total_mapped: lines.length,
+      total_uploaded: lines.length,
+      total_failed: 0,
+      total_skipped_duplicates: 0,
+    })
+    .eq("id", runId)
+    .eq("organization_id", input.organizationId);
+
+  await appendIntegrationAudit({
+    organizationId: input.organizationId,
+    runId,
+    level: "info",
+    code: "invoice_sent",
+    message: `Factura ${input.entityId} (${input.entityType}) enviada a R365 — trigger: ${input.triggerSource}`,
+    metadata: { fileName, entityId: input.entityId, entityType: input.entityType },
+  });
+
+  return { fileName, runId, uploaded: lines.length };
+}
+
 async function fetchAndCaptureWebhookInvoice(input: {
   organizationId: string;
   entityId: string;
@@ -2937,7 +3052,7 @@ async function fetchAndCaptureWebhookInvoice(input: {
     return;
   }
 
-  await admin.from("qbo_unified_invoices").update({
+  const { data: updatedRow } = await admin.from("qbo_unified_invoices").update({
     pipeline_status: "capturada",
     raw_entity: entity,
     fetched_at: nowIso,
@@ -2951,7 +3066,9 @@ async function fetchAndCaptureWebhookInvoice(input: {
   })
     .eq("organization_id", input.organizationId)
     .eq("entity_id", input.entityId)
-    .eq("entity_type", input.entityType);
+    .eq("entity_type", input.entityType)
+    .select("id")
+    .maybeSingle();
 
   await admin.from("qbo_webhook_events").update({
     status: "imported_manual",
@@ -2960,6 +3077,29 @@ async function fetchAndCaptureWebhookInvoice(input: {
     last_error: null,
     processed_at: nowIso,
   }).eq("id", input.webhookEventId);
+
+  // Continuar pipeline: mapeada → enviada en el mismo background call
+  const unifiedInvoiceId = updatedRow?.id ? String(updatedRow.id) : null;
+  if (unifiedInvoiceId && syncConfigId) {
+    try {
+      const fullSyncConfig = await getSyncConfigRow(input.organizationId, syncConfigId);
+      if (fullSyncConfig.r365_ftp_host) {
+        await mapAndSendUnifiedRow({
+          organizationId: input.organizationId,
+          unifiedInvoiceId,
+          entityId: input.entityId,
+          entityType: input.entityType as "Invoice" | "CreditMemo",
+          rawEntity: entity as QboInvoiceLike,
+          syncConfig: fullSyncConfig,
+          actorId: null,
+          triggerSource: "scheduled",
+        });
+      }
+    } catch (err) {
+      // La factura queda en 'capturada' — el cron de recovery la reintentará
+      console.error("[qbo-webhook-pipeline]", input.entityId, err instanceof Error ? err.message : err);
+    }
+  }
 }
 
 export type UnifiedInvoiceRow = {
@@ -3271,122 +3411,18 @@ export async function sendSingleUnifiedInvoice(input: {
   const syncConfigId = row.sync_config_id ? String(row.sync_config_id) : null;
   if (!syncConfigId) throw new Error("Esta factura no tiene sincronización asociada");
 
-  const [syncConfig, mappings] = await Promise.all([
-    getSyncConfigRow(input.organizationId, syncConfigId),
-    getActiveMappings(input.organizationId),
-  ]);
+  const syncConfig = await getSyncConfigRow(input.organizationId, syncConfigId);
 
-  const entityType = row.entity_type as "Invoice" | "CreditMemo";
-  const rawEntity = row.raw_entity as QboInvoiceLike;
-
-  const lines = normalizeQboRows({
-    invoices: entityType === "Invoice" ? [rawEntity] : [],
-    salesReceipts: [],
-    creditMemos: entityType === "CreditMemo" ? [rawEntity] : [],
-    template: syncConfig.template,
-    taxMode: syncConfig.tax_mode,
-    mappings,
-    r365VendorName: syncConfig.r365_vendor_name || undefined,
-    r365Location: syncConfig.r365_location || undefined,
-    syncConfigCustomerId: syncConfig.qbo_customer_id,
-  });
-
-  if (lines.length === 0) throw new Error("La factura no tiene líneas válidas para enviar a R365");
-
-  if (!syncConfig.r365_ftp_host) throw new Error("Restaurant365 FTP no está configurado en esta sincronización");
-  const ftpSecrets = decryptJsonPayload<FtpStoredSecrets>({
-    ciphertext: syncConfig.r365_ftp_secrets_ciphertext,
-    iv: syncConfig.r365_ftp_secrets_iv,
-    tag: syncConfig.r365_ftp_secrets_tag,
-  });
-  if (!ftpSecrets?.password) throw new Error("Credenciales FTP no disponibles");
-
-  const ftpForUpload = {
-    host: syncConfig.r365_ftp_host,
-    port: syncConfig.r365_ftp_port ?? 21,
-    username: syncConfig.r365_ftp_username ?? "",
-    password: ftpSecrets.password,
-    secure: syncConfig.r365_ftp_secure,
-    remotePath: syncConfig.r365_ftp_remote_path,
-  };
-
-  const csvBuild = buildR365Csv({ template: syncConfig.template, lines });
-  const runId = await createRun(input.organizationId, input.actorId, "manual", syncConfigId);
-  const invoiceNumber = lines[0]?.invoiceNumber;
-  const vendorPrefix = (lines[0]?.vendor ?? "r365_inv").replace(/[^a-zA-Z0-9_\-]/g, "_").slice(0, 20);
-  const fileName = buildFileName(vendorPrefix, invoiceNumber);
-
-  await uploadCsvToFtp({
-    host: ftpForUpload.host,
-    port: ftpForUpload.port,
-    username: ftpForUpload.username,
-    password: ftpForUpload.password,
-    secure: ftpForUpload.secure,
-    remotePath: ftpForUpload.remotePath,
-    fileName,
-    content: csvBuild.csv,
-  });
-
-  await admin.from("integration_outbox_files").insert({
-    run_id: runId,
-    organization_id: input.organizationId,
-    storage_provider: "r365_ftp",
-    remote_path: ftpForUpload.remotePath,
-    file_name: fileName,
-    mime_type: "text/csv",
-    size_bytes: Buffer.byteLength(csvBuild.csv, "utf8"),
-    sha256: csvBuild.hash,
-    status: "uploaded",
-    uploaded_at: new Date().toISOString(),
-  });
-
-  const nowIso = new Date().toISOString();
-
-  await admin
-    .from("qbo_unified_invoices")
-    .update({ pipeline_status: "enviada", sent_at: nowIso })
-    .eq("id", input.unifiedInvoiceId)
-    .eq("organization_id", input.organizationId);
-
-  await admin
-    .from("integration_runs")
-    .update({
-      status: "completed",
-      finished_at: nowIso,
-      template_used: syncConfig.template,
-      file_name: fileName,
-      file_hash: csvBuild.hash,
-      total_detected: 1,
-      total_mapped: lines.length,
-      total_uploaded: lines.length,
-      total_failed: 0,
-      total_skipped_duplicates: 0,
-    })
-    .eq("id", runId)
-    .eq("organization_id", input.organizationId);
-
-  await appendIntegrationAudit({
+  return mapAndSendUnifiedRow({
     organizationId: input.organizationId,
-    runId,
-    level: "info",
-    code: "unified_invoice_sent",
-    message: `Factura ${String(row.entity_id)} (${entityType}) enviada individualmente a R365 desde historial unificado`,
-    metadata: { unified_id: input.unifiedInvoiceId, entity_id: String(row.entity_id), uploaded: lines.length, file_name: fileName },
-  });
-
-  await logAuditEvent({
-    action: "integration.qbo_r365.invoice.send_unified",
-    entityType: "integration_run",
-    entityId: runId,
-    organizationId: input.organizationId,
+    unifiedInvoiceId: input.unifiedInvoiceId,
+    entityId: String(row.entity_id),
+    entityType: row.entity_type as "Invoice" | "CreditMemo",
+    rawEntity: row.raw_entity as QboInvoiceLike,
+    syncConfig,
     actorId: input.actorId,
-    eventDomain: "settings",
-    outcome: "success",
-    severity: "medium",
-    metadata: { unified_id: input.unifiedInvoiceId, entity_id: String(row.entity_id), uploaded: lines.length },
+    triggerSource: "manual",
   });
-
-  return { uploaded: lines.length, fileName, runId };
 }
 
 export async function backfillSyncConfigToUnified(
@@ -3462,4 +3498,106 @@ export async function backfillSyncConfigToUnified(
   }
 
   return { upserted };
+}
+
+type QueueResult = {
+  unifiedInvoiceId: string;
+  status: "completed" | "failed";
+  error?: string;
+};
+
+/**
+ * Procesa la cola de facturas atascadas en el pipeline unificado.
+ * Usado exclusivamente por el cron diario como mecanismo de recovery.
+ *
+ * Facturas objetivo:
+ *   - en_cola   → re-fetch desde QBO, luego map + send
+ *   - capturada → map + send (raw_entity ya disponible)
+ *   - mapeada   → reintento de send (FTP falló en intento anterior)
+ */
+export async function processQboUnifiedQueue(): Promise<{
+  processed: number;
+  completed: number;
+  failed: number;
+  results: QueueResult[];
+}> {
+  const admin = createSupabaseAdminClient();
+
+  const { data: stuck, error } = await admin
+    .from("qbo_unified_invoices")
+    .select("id, organization_id, entity_id, entity_type, raw_entity, sync_config_id, pipeline_status")
+    .in("pipeline_status", ["en_cola", "capturada", "mapeada"])
+    .limit(100);
+
+  if (error) throw new Error(error.message);
+
+  const rows = stuck ?? [];
+  const results: QueueResult[] = [];
+
+  for (const row of rows) {
+    const unifiedInvoiceId = String(row.id);
+    const organizationId = String(row.organization_id);
+
+    try {
+      let rawEntity = row.raw_entity as QboInvoiceLike | null;
+
+      // Para en_cola o sin raw_entity: re-fetch desde QBO
+      if (row.pipeline_status === "en_cola" || !rawEntity) {
+        const qboConnection = await getConnection(organizationId, "quickbooks_online");
+        if (!qboConnection || qboConnection.status !== "connected") {
+          results.push({ unifiedInvoiceId, status: "failed", error: "QBO no conectado" });
+          continue;
+        }
+        const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
+        const raw = await fetchQboRawTransaction({
+          accessToken: qboAuth.accessToken,
+          realmId: qboAuth.realmId,
+          invoiceId: String(row.entity_id),
+        });
+        if (!raw?.data) {
+          results.push({ unifiedInvoiceId, status: "failed", error: "Entidad no encontrada en QBO" });
+          continue;
+        }
+        rawEntity = raw.data as QboInvoiceLike;
+        const nowIso = new Date().toISOString();
+        await admin
+          .from("qbo_unified_invoices")
+          .update({ pipeline_status: "capturada", raw_entity: rawEntity, fetched_at: nowIso })
+          .eq("id", unifiedInvoiceId);
+      }
+
+      if (!row.sync_config_id) {
+        results.push({ unifiedInvoiceId, status: "failed", error: "Sin sync config asociada" });
+        continue;
+      }
+
+      const syncConfig = await getSyncConfigRow(organizationId, String(row.sync_config_id));
+
+      await mapAndSendUnifiedRow({
+        organizationId,
+        unifiedInvoiceId,
+        entityId: String(row.entity_id),
+        entityType: row.entity_type as "Invoice" | "CreditMemo",
+        rawEntity,
+        syncConfig,
+        actorId: null,
+        triggerSource: "retry",
+      });
+
+      results.push({ unifiedInvoiceId, status: "completed" });
+    } catch (err) {
+      results.push({
+        unifiedInvoiceId,
+        status: "failed",
+        error: err instanceof Error ? err.message : "error desconocido",
+      });
+    }
+  }
+
+  return {
+    processed: rows.length,
+    completed: results.filter((r) => r.status === "completed").length,
+    failed: results.filter((r) => r.status === "failed").length,
+    results,
+  };
 }
