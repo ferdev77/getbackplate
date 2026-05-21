@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link2, Search, X, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Plus, Play, Trash2, Eye, ChevronDown, ChevronUp, Server } from "lucide-react";
+import { Link2, Search, X, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Plus, Play, Trash2, Eye, ChevronDown, ChevronUp, Server, Layers } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { saveIntegrationConfigAction } from "@/modules/integrations/qbo-r365/actions";
@@ -362,6 +362,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [mode, setMode] = useState<"operation" | "developer">("operation");
   const [sendingInvoice, setSendingInvoice] = useState(false);
   const [sendingUnifiedInvoice, setSendingUnifiedInvoice] = useState(false);
+  const [mappingUnifiedInvoice, setMappingUnifiedInvoice] = useState(false);
   const [invoiceDetailRefreshKey, setInvoiceDetailRefreshKey] = useState(0);
   const [showMappingPreview, setShowMappingPreview] = useState(false);
   const [csvPreview, setCsvPreview] = useState<{ headers: string[]; rows: string[][]; rowCount: number } | null>(null);
@@ -685,6 +686,31 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     }
   }
 
+  async function handleMapUnifiedInvoice(unifiedInvoiceId: string) {
+    setMappingUnifiedInvoice(true);
+    const loadingToastId = toast.loading("Mapeando factura...");
+    try {
+      const response = await fetch("/api/company/integrations/qbo-r365/map-unified-invoice", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ unifiedInvoiceId }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string; mapped?: number };
+      if (!response.ok) throw new Error(payload.error || "No se pudo mapear la factura");
+      toast.dismiss(loadingToastId);
+      toast.success("Factura mapeada", {
+        description: `${payload.mapped ?? 0} línea(s) listas para enviar a R365.`,
+      });
+      setUnifiedHistoryKey((p) => p + 1);
+    } catch (error) {
+      toast.dismiss(loadingToastId);
+      toast.error("No se pudo mapear la factura", {
+        description: error instanceof Error ? error.message : "Error",
+      });
+    }
+    setMappingUnifiedInvoice(false);
+  }
+
   async function handleSendUnifiedInvoice(unifiedInvoiceId: string) {
     setSendingUnifiedInvoice(true);
     const loadingToastId = toast.loading("Enviando factura a R365...");
@@ -702,6 +728,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
           ? `Archivo ${payload.fileName} subido (${payload.uploaded ?? 0} líneas).`
           : "Enviado correctamente.",
       });
+      setUnifiedHistoryKey((p) => p + 1);
     } catch (error) {
       toast.dismiss(loadingToastId);
       toast.error("No se pudo enviar la factura", {
@@ -1836,19 +1863,31 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                 className="rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2.5 text-sm font-semibold text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-surface2)]">
                 Cerrar
               </button>
-              <button
-                type="button"
-                disabled={sendingUnifiedInvoice || selectedUnifiedRow.pipelineStatus === "enviada"}
-                onClick={() => void handleSendUnifiedInvoice(selectedUnifiedRow.id)}
-                className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-bold transition disabled:opacity-50 ${
-                  selectedUnifiedRow.pipelineStatus === "enviada"
-                    ? "border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"
-                    : "bg-[var(--gbp-accent)] text-white hover:opacity-90"
-                }`}
-              >
-                {sendingUnifiedInvoice ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-                {sendingUnifiedInvoice ? "Enviando..." : selectedUnifiedRow.pipelineStatus === "enviada" ? "Ya enviada" : "Enviar a R365"}
-              </button>
+              {(selectedUnifiedRow.pipelineStatus === "capturada" || selectedUnifiedRow.pipelineStatus === "en_cola") ? (
+                <button
+                  type="button"
+                  disabled={mappingUnifiedInvoice}
+                  onClick={() => void handleMapUnifiedInvoice(selectedUnifiedRow.id)}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[var(--gbp-accent)] px-3 py-2.5 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
+                >
+                  {mappingUnifiedInvoice ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Layers className="h-3.5 w-3.5" />}
+                  {mappingUnifiedInvoice ? "Mapeando..." : "Mapear"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={sendingUnifiedInvoice || selectedUnifiedRow.pipelineStatus === "enviada"}
+                  onClick={() => void handleSendUnifiedInvoice(selectedUnifiedRow.id)}
+                  className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-bold transition disabled:opacity-50 ${
+                    selectedUnifiedRow.pipelineStatus === "enviada"
+                      ? "border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"
+                      : "bg-[var(--gbp-accent)] text-white hover:opacity-90"
+                  }`}
+                >
+                  {sendingUnifiedInvoice ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+                  {sendingUnifiedInvoice ? "Enviando..." : selectedUnifiedRow.pipelineStatus === "enviada" ? "Ya enviada" : "Enviar a R365"}
+                </button>
+              )}
             </footer>
           </aside>
         </>

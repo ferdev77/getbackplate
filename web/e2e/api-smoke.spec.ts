@@ -44,6 +44,7 @@ const COMPANY_POST = [
   "/api/company/integrations/qbo-r365/sync-configs",
   "/api/company/integrations/qbo-r365/send-unified-invoice",
   "/api/company/integrations/qbo-r365/fetch-by-docnumber",
+  "/api/company/integrations/qbo-r365/map-unified-invoice",
 ];
 
 // ─── Employee: rutas GET ──────────────────────────────────────────────────────

@@ -3319,7 +3319,7 @@ export async function fetchInvoiceByDocNumber(
     };
   }
 
-  await admin.from("qbo_unified_invoices").upsert({
+  const { error: upsertError } = await admin.from("qbo_unified_invoices").upsert({
     organization_id: organizationId,
     sync_config_id: syncConfigId,
     entity_id: entityId,
@@ -3336,6 +3336,8 @@ export async function fetchInvoiceByDocNumber(
     customer_name: customerName,
     vendor_name: customerName,
   }, { onConflict: "organization_id,entity_id,entity_type", ignoreDuplicates: false });
+
+  if (upsertError) throw new Error(upsertError.message);
 
   return { entityId, entityType, docNumber: docNumber.trim(), alreadyExisted };
 }
@@ -3464,6 +3466,66 @@ export async function backfillFromQboSinceDate(
   }
 
   return { upserted };
+}
+
+/**
+ * Ejecuta solo el paso de mapping sobre una fila del historial unificado:
+ * lee el raw_entity, normaliza a NormalizedInvoiceLine[], y avanza
+ * pipeline_status a 'mapeada'. No toca el FTP.
+ *
+ * Útil cuando la factura está en 'capturada' o 'en_cola' y el usuario
+ * quiere validar el mapeo antes de enviar.
+ */
+export async function mapOnlyUnifiedInvoice(input: {
+  organizationId: string;
+  unifiedInvoiceId: string;
+}): Promise<{ mapped: number }> {
+  const admin = createSupabaseAdminClient();
+
+  const { data: row, error: rowError } = await admin
+    .from("qbo_unified_invoices")
+    .select("id, entity_id, entity_type, raw_entity, sync_config_id, pipeline_status")
+    .eq("organization_id", input.organizationId)
+    .eq("id", input.unifiedInvoiceId)
+    .maybeSingle();
+
+  if (rowError) throw new Error(rowError.message);
+  if (!row) throw new Error("Factura no encontrada en el historial");
+  if (!row.raw_entity) throw new Error("La factura no tiene datos QBO almacenados — no se puede mapear");
+  if (row.pipeline_status === "enviada") throw new Error("La factura ya fue enviada a R365 y no se puede remapear");
+
+  const syncConfigId = row.sync_config_id ? String(row.sync_config_id) : null;
+  if (!syncConfigId) throw new Error("Esta factura no tiene sincronización asociada");
+
+  const syncConfig = await getSyncConfigRow(input.organizationId, syncConfigId);
+  const mappings = await getActiveMappings(input.organizationId);
+
+  const entityType = row.entity_type as "Invoice" | "CreditMemo";
+  const rawEntity = row.raw_entity as QboInvoiceLike;
+
+  const lines = normalizeQboRows({
+    invoices: entityType === "Invoice" ? [rawEntity] : [],
+    salesReceipts: [],
+    creditMemos: entityType === "CreditMemo" ? [rawEntity] : [],
+    template: syncConfig.template,
+    taxMode: syncConfig.tax_mode,
+    mappings,
+    r365VendorName: syncConfig.r365_vendor_name || undefined,
+    r365Location: syncConfig.r365_location || undefined,
+    syncConfigCustomerId: syncConfig.qbo_customer_id,
+  });
+
+  if (lines.length === 0) throw new Error("La factura no tiene líneas válidas para mapear — revisá los mappings del sync config");
+
+  const { error: updateError } = await admin
+    .from("qbo_unified_invoices")
+    .update({ pipeline_status: "mapeada", mapped_at: new Date().toISOString() })
+    .eq("id", input.unifiedInvoiceId)
+    .eq("organization_id", input.organizationId);
+
+  if (updateError) throw new Error(updateError.message);
+
+  return { mapped: lines.length };
 }
 
 /**
