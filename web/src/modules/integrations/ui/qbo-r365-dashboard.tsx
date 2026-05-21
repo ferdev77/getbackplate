@@ -890,6 +890,31 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     setPreviewingCsv(false);
   }
 
+  async function handlePreviewUnifiedCsv(unifiedInvoiceId: string) {
+    setPreviewingCsv(true);
+    setCsvPreview(null);
+    try {
+      const response = await fetch("/api/company/integrations/qbo-r365/preview-unified-invoice-csv", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ unifiedInvoiceId }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        headers?: string[];
+        rows?: string[][];
+        rowCount?: number;
+      };
+      if (!response.ok) throw new Error(payload.error || "No se pudo generar la previsualización");
+      setCsvPreview({ headers: payload.headers ?? [], rows: payload.rows ?? [], rowCount: payload.rowCount ?? 0 });
+    } catch (error) {
+      toast.error("No se pudo previsualizar", {
+        description: error instanceof Error ? error.message : "Error",
+      });
+    }
+    setPreviewingCsv(false);
+  }
+
   async function handleDownloadRawQbo(invoiceId: string | null) {
     if (!invoiceId) return;
     try {
@@ -1757,6 +1782,32 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                 </p>
                 <h3 className="mt-1 text-lg font-bold text-[var(--gbp-text)]">{selectedUnifiedRow.docNumber ?? selectedUnifiedRow.entityId}</h3>
                 <p className="mt-0.5 text-xs text-[var(--gbp-text2)]">{formatQboDate(selectedUnifiedRow.txnDate)}{selectedUnifiedRow.customerName ? ` · ${selectedUnifiedRow.customerName}` : ""}</p>
+                {invoiceDetail && invoiceDetail.lines.length > 0 && (
+                  <div className="mt-2 flex flex-wrap items-center gap-1">
+                    {(["csv", "txt", "json", "pdf"] as const).map((fmt) => (
+                      <button
+                        key={fmt}
+                        type="button"
+                        onClick={() => handleInvoiceExport(fmt)}
+                        className="rounded-md border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
+                      >
+                        {fmt}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      disabled={previewingCsv}
+                      onClick={() => {
+                        setCsvPreview(null);
+                        void handlePreviewUnifiedCsv(selectedUnifiedRow.id);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
+                    >
+                      {previewingCsv ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
+                      {previewingCsv ? "Generando..." : csvPreview ? "Ocultar CSV" : "Previsualizar CSV"}
+                    </button>
+                  </div>
+                )}
               </div>
               <button type="button" onClick={() => setSelectedInvoiceId(null)} className="rounded-lg p-1.5 text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]">
                 <X className="h-5 w-5" />
@@ -1851,6 +1902,49 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   <p className="mt-1 text-lg font-bold text-[var(--gbp-text)]">
                     {(isCreditMemoSelected ? -selectedUnifiedRow.totalAmount : selectedUnifiedRow.totalAmount).toFixed(2)} {selectedUnifiedRow.currency ?? ""}
                   </p>
+                </div>
+              )}
+              {csvPreview && (
+                <div className="mt-4">
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-[var(--gbp-muted)]">
+                      {csvPreview.rowCount} fila{csvPreview.rowCount !== 1 ? "s" : ""} · CSV R365
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(
+                          [csvPreview.headers, ...csvPreview.rows].map((r) => r.join(",")).join("\n"),
+                        );
+                        toast.success("CSV copiado al portapapeles");
+                      }}
+                      className="text-[10px] font-bold text-[var(--gbp-text2)] underline-offset-2 hover:text-[var(--gbp-accent)] hover:underline"
+                    >
+                      Copiar
+                    </button>
+                  </div>
+                  <div className="overflow-x-auto rounded-xl border border-[var(--gbp-border)]">
+                    <table className="w-full text-[10px]">
+                      <thead>
+                        <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)]">
+                          {csvPreview.headers.map((h, i) => (
+                            <th key={i} className="whitespace-nowrap px-2 py-1.5 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--gbp-border)]">
+                        {csvPreview.rows.map((row, ri) => (
+                          <tr key={ri} className="hover:bg-[var(--gbp-bg)]">
+                            {row.map((cell, ci) => (
+                              <td key={ci} className="max-w-[120px] truncate whitespace-nowrap px-2 py-1.5 font-mono text-[var(--gbp-text)]" title={cell}>
+                                {cell || <span className="text-[var(--gbp-muted)]">—</span>}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
               <div className="mt-3 rounded-[10px] border border-[var(--gbp-border)] px-4 py-3">
