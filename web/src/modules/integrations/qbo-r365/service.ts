@@ -1879,6 +1879,76 @@ export type InvoiceDetail = {
   grandTotal: number;
 };
 
+async function getInvoiceDetailFromRawEntity(
+  organizationId: string,
+  entityId: string,
+): Promise<InvoiceDetail | null> {
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("qbo_unified_invoices")
+    .select("raw_entity, entity_type")
+    .eq("organization_id", organizationId)
+    .eq("entity_id", entityId)
+    .maybeSingle();
+  if (error || !data?.raw_entity) return null;
+
+  const entity = data.raw_entity as Record<string, unknown>;
+  const entityType = data.entity_type as "Invoice" | "CreditMemo";
+
+  const customerRef = (entity.CustomerRef ?? {}) as Record<string, unknown>;
+  const currencyRef = (entity.CurrencyRef ?? {}) as Record<string, unknown>;
+  const txnTaxDetail = (entity.TxnTaxDetail ?? {}) as Record<string, unknown>;
+  const grandTotal = typeof entity.TotalAmt === "number" ? entity.TotalAmt : 0;
+  const totalTax = typeof txnTaxDetail.TotalTax === "number" ? txnTaxDetail.TotalTax : 0;
+
+  const rawLines = Array.isArray(entity.Line) ? (entity.Line as Record<string, unknown>[]) : [];
+  const lines: InvoiceLineItem[] = rawLines
+    .filter((line) => line.DetailType === "SalesItemLineDetail")
+    .map((line) => {
+      const detail = (line.SalesItemLineDetail ?? {}) as Record<string, unknown>;
+      const itemRef = (detail.ItemRef ?? {}) as Record<string, unknown>;
+      return {
+        sourceLineId: typeof line.Id === "string" ? line.Id : String(Math.random()),
+        targetCode: null,
+        sourceItemCode: typeof itemRef.value === "string" ? itemRef.value : null,
+        sku: null,
+        itemName: typeof itemRef.name === "string" ? itemRef.name : null,
+        description: typeof line.Description === "string" ? line.Description : null,
+        quantity: typeof detail.Qty === "number" ? detail.Qty : null,
+        unitPrice: typeof detail.UnitPrice === "number" ? detail.UnitPrice : null,
+        lineAmount: typeof line.Amount === "number" ? line.Amount : null,
+        taxAmount: null,
+        totalAmount: typeof line.Amount === "number" ? line.Amount : null,
+        location: null,
+        memo: null,
+        status: "from_raw",
+        runId: "",
+      };
+    });
+
+  const subtotal = lines.reduce((s, l) => s + (l.lineAmount ?? 0), 0);
+
+  return {
+    sourceInvoiceId: entityId,
+    invoiceNumber: typeof entity.DocNumber === "string" ? entity.DocNumber : null,
+    invoiceDate: typeof entity.TxnDate === "string" ? entity.TxnDate : null,
+    dueDate: entityType === "CreditMemo" ? null : (typeof entity.DueDate === "string" ? entity.DueDate : null),
+    vendor: typeof customerRef.name === "string" ? customerRef.name : null,
+    currency: typeof currencyRef.value === "string" ? currencyRef.value : null,
+    transactionTypeCode: entityType === "CreditMemo" ? "2" : "1",
+    qboBalance: typeof entity.Balance === "number" ? entity.Balance : null,
+    qboPaymentStatus: null,
+    qboStatusRaw: null,
+    poNumber: null,
+    terms: null,
+    memo: typeof entity.PrivateNote === "string" ? entity.PrivateNote : null,
+    lines,
+    subtotal,
+    totalTax,
+    grandTotal,
+  };
+}
+
 export async function getInvoiceDetail(
   organizationId: string,
   sourceInvoiceId: string,
@@ -1893,7 +1963,9 @@ export async function getInvoiceDetail(
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
-  if (!data || data.length === 0) return null;
+  if (!data || data.length === 0) {
+    return getInvoiceDetailFromRawEntity(organizationId, sourceInvoiceId);
+  }
 
   const lines: InvoiceLineItem[] = [];
   let invoiceNumber: string | null = null;
