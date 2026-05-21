@@ -1179,7 +1179,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
         </div>
       </section>
 
-      {/* Stat Cards */}
+      {/* Stat Cards + QBO connection en la misma fila */}
       <section className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {statCards.map((card) => (
           <article key={card.label} className="rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-5 py-4 transition hover:shadow-[var(--gbp-shadow-md)]">
@@ -1188,18 +1188,14 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
             <p className="mt-1 text-xs text-[var(--gbp-muted)]">{card.subLabel}</p>
           </article>
         ))}
-      </section>
-
-      {/* Connection Cards */}
-      <section className="mb-6">
-        <article className="max-w-sm rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-5 py-4">
-          <div className="flex items-center gap-2.5">
-            <span className={`h-2.5 w-2.5 rounded-full ${connDot(conns.qbo.status)}`} />
-            <p className="text-sm font-bold text-[var(--gbp-text)]">QuickBooks Online</p>
+        <article className="rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-5 py-4 transition hover:shadow-[var(--gbp-shadow-md)]">
+          <div className="flex items-center gap-2">
+            <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${connDot(conns.qbo.status)}`} />
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">QuickBooks Online</p>
             <span className="ml-auto rounded-full bg-[var(--gbp-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--gbp-text2)]">{connLabel(conns.qbo.status)}</span>
           </div>
           {conns.qbo.realmId && <p className="mt-2 text-xs text-[var(--gbp-text2)]">Realm: {String(conns.qbo.realmId).slice(0, 12)}...</p>}
-          {conns.qbo.lastRefreshed && <p className="mt-1 text-[11px] text-[var(--gbp-muted)]">Última actualización: {relativeTime(conns.qbo.lastRefreshed)}</p>}
+          {conns.qbo.lastRefreshed && <p className="mt-1 text-[11px] text-[var(--gbp-muted)]">Actualizado: {relativeTime(conns.qbo.lastRefreshed)}</p>}
           <button
             type="button"
             disabled={oauthConnecting}
