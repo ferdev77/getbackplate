@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
-import { getQboR365Snapshot, listQboR365InvoiceHistory, listQboR365Runs } from "@/modules/integrations/qbo-r365/service";
+import { getQboR365Snapshot, getUnifiedInvoiceStats, listQboR365Runs, listQboR365InvoiceHistory } from "@/modules/integrations/qbo-r365/service";
 
 export const dynamic = "force-dynamic";
 
@@ -19,87 +19,39 @@ export async function GET() {
     }
     const organizationId = access.tenant.organizationId;
 
-    const [snapshot, runs, invoiceHistory] = await Promise.all([
+    const [snapshot, runs, invoiceHistory, unifiedStats] = await Promise.all([
       getQboR365Snapshot(organizationId),
       listQboR365Runs(organizationId, 50),
       listQboR365InvoiceHistory(organizationId, 120),
+      getUnifiedInvoiceStats(organizationId),
     ]);
 
-    const totalRuns = runs.length;
-    const totalInvoicesProcessed = runs.reduce((sum, r) => sum + Number(r.total_detected ?? 0), 0);
-    const totalLinesUploaded = runs.reduce((sum, r) => sum + Number(r.total_uploaded ?? 0), 0);
-    const totalLinesMapped = runs.reduce((sum, r) => sum + Number(r.total_mapped ?? 0), 0);
-    const totalFailed = runs.reduce((sum, r) => sum + Number(r.total_failed ?? 0), 0);
     const lastRun = runs[0] ?? null;
+    const totalFailed = runs.reduce((sum, r) => sum + Number(r.total_failed ?? 0), 0);
 
-    const totalInvoicesSent = invoiceHistory.filter((row) => row.sentToR365).length;
-    const totalInvoicesPrepared = invoiceHistory.filter((row) => row.mappedCode && !row.sentToR365).length;
-
-    const statCardsOperation: StatCard[] = [
+    const statCards: StatCard[] = [
       {
-        label: "Corridas Totales",
-        value: String(totalRuns),
-        subLabel: "Sincronizaciones ejecutadas",
-        tone: "default",
-      },
-      {
-        label: "Facturas Procesadas",
-        value: String(totalInvoicesProcessed),
-        subLabel: "Facturas unicas detectadas en QBO",
-        tone: totalInvoicesProcessed > 0 ? "success" : "muted",
-      },
-      {
-        label: "Facturas Preparadas",
-        value: String(totalInvoicesPrepared),
-        subLabel: "Facturas mapeadas listas para enviar",
-        tone: totalInvoicesPrepared > 0 ? "success" : "muted",
+        label: "Facturas Importadas",
+        value: String(unifiedStats.total),
+        subLabel: "Sync · webhook · manual",
+        tone: unifiedStats.total > 0 ? "success" : "muted",
       },
       {
         label: "Facturas Enviadas",
-        value: String(totalInvoicesSent),
-        subLabel: "Facturas completas entregadas via FTP",
-        tone: totalInvoicesSent > 0 ? "success" : "muted",
+        value: String(unifiedStats.enviadas),
+        subLabel: "Entregadas a R365 vía FTP",
+        tone: unifiedStats.enviadas > 0 ? "success" : "muted",
       },
       {
         label: "Errores",
-        value: String(totalFailed),
-        subLabel: totalFailed > 0 ? "Requieren atencion" : "Sin errores",
-        tone: totalFailed > 0 ? "warning" : "muted",
+        value: String(unifiedStats.atascadas),
+        subLabel: unifiedStats.atascadas > 0 ? "En cola más de 24h sin procesar" : "Sin errores",
+        tone: unifiedStats.atascadas > 0 ? "warning" : "muted",
       },
     ];
 
-    const statCardsDeveloper: StatCard[] = [
-      {
-        label: "Corridas Totales",
-        value: String(totalRuns),
-        subLabel: "Sincronizaciones ejecutadas",
-        tone: "default",
-      },
-      {
-        label: "Facturas Procesadas",
-        value: String(totalInvoicesProcessed),
-        subLabel: "Facturas unicas detectadas en QBO",
-        tone: totalInvoicesProcessed > 0 ? "success" : "muted",
-      },
-      {
-        label: "Lineas Mapeadas",
-        value: String(totalLinesMapped),
-        subLabel: "Renglones listos para exportar",
-        tone: totalLinesMapped > 0 ? "success" : "muted",
-      },
-      {
-        label: "Lineas Enviadas",
-        value: String(totalLinesUploaded),
-        subLabel: "Renglones entregados via FTP",
-        tone: totalLinesUploaded > 0 ? "success" : "muted",
-      },
-      {
-        label: "Errores",
-        value: String(totalFailed),
-        subLabel: totalFailed > 0 ? "Requieren atencion" : "Sin errores",
-        tone: totalFailed > 0 ? "warning" : "muted",
-      },
-    ];
+    const statCardsOperation = statCards;
+    const statCardsDeveloper = statCards;
 
     const formattedRuns = runs.map((run) => ({
       id: run.id,
@@ -137,15 +89,12 @@ export async function GET() {
         },
       },
       stats: {
-        totalRuns,
-        totalInvoicesProcessed,
-        totalLinesMapped,
-        totalLinesUploaded,
+        totalRuns: runs.length,
         totalFailed,
         lastRunAt: lastRun?.started_at ?? null,
         lastRunStatus: lastRun?.status ?? null,
       },
-      statCards: statCardsOperation,
+      statCards,
       statCardsByMode: {
         operation: statCardsOperation,
         developer: statCardsDeveloper,

@@ -1191,8 +1191,8 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       </section>
 
       {/* Connection Cards */}
-      <section className="mb-6 grid gap-3 sm:grid-cols-2">
-        <article className="rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-5 py-4">
+      <section className="mb-6">
+        <article className="max-w-sm rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-5 py-4">
           <div className="flex items-center gap-2.5">
             <span className={`h-2.5 w-2.5 rounded-full ${connDot(conns.qbo.status)}`} />
             <p className="text-sm font-bold text-[var(--gbp-text)]">QuickBooks Online</p>
@@ -1208,14 +1208,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
           >
             <Link2 className="h-3.5 w-3.5" /> {oauthConnecting ? "Conectando..." : (conns.qbo.status === "connected" ? "Reconectar QBO" : "Conectar QBO")}
           </button>
-        </article>
-        <article className="rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-5 py-4">
-          <div className="flex items-center gap-2.5">
-            <span className={`h-2.5 w-2.5 rounded-full ${connDot(conns.ftp.status)}`} />
-            <p className="text-sm font-bold text-[var(--gbp-text)]">Restaurant365 FTP</p>
-            <span className="ml-auto rounded-full bg-[var(--gbp-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--gbp-text2)]">{connLabel(conns.ftp.status)}</span>
-          </div>
-          {conns.ftp.host && <p className="mt-2 text-xs text-[var(--gbp-text2)]">Host: {String(conns.ftp.host)}</p>}
         </article>
       </section>
 
