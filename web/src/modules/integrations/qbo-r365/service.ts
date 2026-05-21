@@ -2929,7 +2929,8 @@ export async function insertQboWebhookEvents(input: QboWebhookEventInsert[]) {
       (event.entity === "Invoice" || event.entity === "CreditMemo");
     if (isActionable && insertedRow?.id) {
       const webhookEventId = insertedRow.id as string;
-      void admin.from("qbo_unified_invoices").upsert({
+      // Await garantiza que la fila exista antes de que fetchAndCaptureWebhookInvoice intente actualizarla
+      await admin.from("qbo_unified_invoices").upsert({
         organization_id: organizationId,
         webhook_event_id: webhookEventId,
         entity_id: event.entityId,
@@ -2937,7 +2938,7 @@ export async function insertQboWebhookEvents(input: QboWebhookEventInsert[]) {
         import_source: "webhook",
         pipeline_status: "en_cola",
       }, { onConflict: "organization_id,entity_id,entity_type", ignoreDuplicates: true });
-      // Fetch inmediato en background (sin await — el resultado actualiza a 'capturada')
+      // Fetch en background — si no completa, el cron diario de recovery lo reintenta
       void fetchAndCaptureWebhookInvoice({
         organizationId,
         entityId: event.entityId,

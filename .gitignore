@@ -41,6 +41,10 @@ yarn-error.log*
 
 # supabase
 supabase/.temp/
+web/supabase/.temp/
+
+# maqueta / archivos locales de diseño
+maqueta/
 
 .vercel
 
