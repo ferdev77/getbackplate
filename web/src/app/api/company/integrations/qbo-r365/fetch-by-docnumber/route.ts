@@ -15,6 +15,7 @@ import { fetchInvoiceByDocNumber } from "@/modules/integrations/qbo-r365/service
 
 const bodySchema = z.object({
   docNumber: z.string().trim().min(1).max(100),
+  force: z.boolean().optional().default(false),
 });
 
 export async function POST(request: Request) {
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await fetchInvoiceByDocNumber(access.tenant.organizationId, parsed.data.docNumber);
+    const result = await fetchInvoiceByDocNumber(access.tenant.organizationId, parsed.data.docNumber, { force: parsed.data.force });
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
     return NextResponse.json(

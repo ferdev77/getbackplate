@@ -407,6 +407,10 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [fetchDocNumber, setFetchDocNumber] = useState("");
   const [fetchDocNumberLoading, setFetchDocNumberLoading] = useState(false);
   const [fetchDocNumberResult, setFetchDocNumberResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [pendingConfirm, setPendingConfirm] = useState<{
+    docNumber: string; entityType: string;
+    pipelineStatus: string; importSource: string; sentAt: string | null;
+  } | null>(null);
 
   // Leer resultado del callback OAuth desde la URL y limpiarla
   useEffect(() => {
@@ -618,22 +622,61 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     if (!doc) return;
     setFetchDocNumberLoading(true);
     setFetchDocNumberResult(null);
+    setPendingConfirm(null);
     try {
       const res = await fetch("/api/company/integrations/qbo-r365/fetch-by-docnumber", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ docNumber: doc }),
+        body: JSON.stringify({ docNumber: doc, force: false }),
       });
-      const data = (await res.json()) as { entityId?: string; entityType?: string; docNumber?: string; alreadyExisted?: boolean; error?: string };
+      const data = (await res.json()) as {
+        entityId?: string; entityType?: string; docNumber?: string;
+        alreadyExisted?: boolean; error?: string;
+        existing?: { pipelineStatus: string; importSource: string; sentAt: string | null };
+      };
       if (!res.ok) {
         setFetchDocNumberResult({ ok: false, message: data.error ?? "No se pudo traer la factura" });
+      } else if (data.alreadyExisted && data.existing) {
+        // La factura ya existe — pedir confirmación antes de reemplazar
+        setPendingConfirm({
+          docNumber: data.docNumber ?? doc,
+          entityType: data.entityType ?? "Invoice",
+          pipelineStatus: data.existing.pipelineStatus,
+          importSource: data.existing.importSource,
+          sentAt: data.existing.sentAt,
+        });
       } else {
         const label = data.entityType === "CreditMemo" ? "Nota de crédito" : "Factura";
-        const msg = data.alreadyExisted
-          ? `${label} ${data.docNumber} ya estaba en el historial — datos actualizados.`
-          : `${label} ${data.docNumber} agregada al historial.`;
-        setFetchDocNumberResult({ ok: true, message: msg });
+        setFetchDocNumberResult({ ok: true, message: `${label} ${data.docNumber} agregada al historial.` });
         setFetchDocNumber("");
+        setUnifiedHistoryKey((p) => p + 1);
+      }
+    } catch {
+      setFetchDocNumberResult({ ok: false, message: "Error de red — revisá la conexión e intentá de nuevo." });
+    } finally {
+      setFetchDocNumberLoading(false);
+    }
+  }
+
+  async function handleConfirmReplace() {
+    if (!pendingConfirm) return;
+    setFetchDocNumberLoading(true);
+    setPendingConfirm(null);
+    setFetchDocNumberResult(null);
+    try {
+      const res = await fetch("/api/company/integrations/qbo-r365/fetch-by-docnumber", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ docNumber: pendingConfirm.docNumber, force: true }),
+      });
+      const data = (await res.json()) as { entityType?: string; docNumber?: string; error?: string };
+      if (!res.ok) {
+        setFetchDocNumberResult({ ok: false, message: data.error ?? "No se pudo reemplazar la factura" });
+      } else {
+        const label = data.entityType === "CreditMemo" ? "Nota de crédito" : "Factura";
+        setFetchDocNumberResult({ ok: true, message: `${label} ${data.docNumber} reemplazada en el historial.` });
+        setFetchDocNumber("");
+        setUnifiedHistoryKey((p) => p + 1);
       }
     } catch {
       setFetchDocNumberResult({ ok: false, message: "Error de red — revisá la conexión e intentá de nuevo." });
@@ -1187,7 +1230,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                     type="text"
                     placeholder="Doc Number"
                     value={fetchDocNumber}
-                    onChange={(e) => { setFetchDocNumber(e.target.value); setFetchDocNumberResult(null); }}
+                    onChange={(e) => { setFetchDocNumber(e.target.value); setFetchDocNumberResult(null); setPendingConfirm(null); }}
                     className="min-w-0 flex-1 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2.5 py-1.5 text-[11px] text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:outline-none"
                   />
                   <button
@@ -1199,6 +1242,37 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                     Traer
                   </button>
                 </form>
+                {pendingConfirm && (
+                  <div className="mt-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+                    <p className="text-[10px] font-bold text-amber-800">
+                      {pendingConfirm.entityType === "CreditMemo" ? "Nota de crédito" : "Factura"} {pendingConfirm.docNumber} ya existe en el historial
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-amber-700">
+                      {"Estado: "}
+                      {{ en_cola: "En cola", capturada: "Capturada", mapeada: "Mapeada", enviada: "Enviada" }[pendingConfirm.pipelineStatus] ?? pendingConfirm.pipelineStatus}
+                      {" · Fuente: "}
+                      {{ sync: "Sync", webhook: "Webhook", manual: "Manual" }[pendingConfirm.importSource] ?? pendingConfirm.importSource}
+                      {pendingConfirm.sentAt ? ` · Enviada ${formatQboDate(pendingConfirm.sentAt.slice(0, 10))}` : ""}
+                    </p>
+                    <div className="mt-2 flex gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => { void handleConfirmReplace(); }}
+                        disabled={fetchDocNumberLoading}
+                        className="rounded-md bg-amber-600 px-2.5 py-1 text-[10px] font-bold text-white transition hover:bg-amber-700 disabled:opacity-50"
+                      >
+                        Reemplazar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setPendingConfirm(null); setFetchDocNumber(""); }}
+                        className="rounded-md border border-amber-200 px-2.5 py-1 text-[10px] font-bold text-amber-700 transition hover:bg-amber-100"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {fetchDocNumberResult && (
                   <p className={`mt-1.5 text-[10px] font-medium leading-snug ${fetchDocNumberResult.ok ? "text-[var(--gbp-success)]" : "text-[var(--gbp-error)]"}`}>
                     {fetchDocNumberResult.ok ? "✓" : "✗"} {fetchDocNumberResult.message}

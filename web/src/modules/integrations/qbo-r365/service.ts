@@ -3144,7 +3144,14 @@ export type UnifiedInvoiceRow = {
 export async function fetchInvoiceByDocNumber(
   organizationId: string,
   docNumber: string,
-): Promise<{ entityId: string; entityType: string; docNumber: string; alreadyExisted: boolean }> {
+  options: { force?: boolean } = {},
+): Promise<{
+  entityId: string;
+  entityType: string;
+  docNumber: string;
+  alreadyExisted: boolean;
+  existing?: { pipelineStatus: string; importSource: string; sentAt: string | null; txnDate: string | null };
+}> {
   const admin = createSupabaseAdminClient();
 
   const qboConnection = await getConnection(organizationId, "quickbooks_online");
@@ -3215,13 +3222,30 @@ export async function fetchInvoiceByDocNumber(
 
   const { data: existing } = await admin
     .from("qbo_unified_invoices")
-    .select("id")
+    .select("id, pipeline_status, import_source, sent_at, txn_date")
     .eq("organization_id", organizationId)
     .eq("entity_id", entityId)
     .eq("entity_type", entityType)
     .maybeSingle();
 
   const alreadyExisted = Boolean(existing);
+
+  // Si ya existe y no se forzó el reemplazo → devolver los datos actuales sin tocar nada.
+  // El frontend mostrará confirmación al usuario antes de re-llamar con force=true.
+  if (alreadyExisted && !options.force) {
+    return {
+      entityId,
+      entityType,
+      docNumber: docNumber.trim(),
+      alreadyExisted: true,
+      existing: {
+        pipelineStatus: String(existing!.pipeline_status ?? ""),
+        importSource: String(existing!.import_source ?? ""),
+        sentAt: existing!.sent_at ? String(existing!.sent_at) : null,
+        txnDate: existing!.txn_date ? String(existing!.txn_date) : null,
+      },
+    };
+  }
 
   await admin.from("qbo_unified_invoices").upsert({
     organization_id: organizationId,
@@ -3361,7 +3385,7 @@ export async function backfillFromQboSinceDate(
     const batch = toUpsert.slice(i, i + batchSize);
     const { error } = await admin.from("qbo_unified_invoices").upsert(batch, {
       onConflict: "organization_id,entity_id,entity_type",
-      ignoreDuplicates: false,
+      ignoreDuplicates: true,
     });
     if (error) throw new Error(error.message);
     upserted += batch.length;
@@ -3538,6 +3562,7 @@ export async function processQboUnifiedQueue(): Promise<{
     .from("qbo_unified_invoices")
     .select("id, organization_id, entity_id, entity_type, raw_entity, sync_config_id, pipeline_status")
     .in("pipeline_status", ["en_cola", "capturada", "mapeada"])
+    .eq("import_source", "webhook")
     .limit(100);
 
   if (error) throw new Error(error.message);
