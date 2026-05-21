@@ -132,12 +132,26 @@ export async function refreshQboAccessToken(input: RefreshTokenInput) {
   return fetchToken(form, input.clientId, input.clientSecret);
 }
 
+/**
+ * Ejecuta un SELECT paginado sobre una tabla QBO usando la Query API.
+ *
+ * Modos de filtro de fecha (mutuamente excluyentes; usar uno a la vez):
+ *   - `sinceIso`    → WHERE MetaData.LastUpdatedTime >= '...'  (webhook/sync incremental)
+ *   - `txnDateFrom` → WHERE TxnDate >= 'YYYY-MM-DD'           (backfill histórico por fecha de factura)
+ *
+ * La paginación usa STARTPOSITION / MAXRESULTS de 1000 en 1000 hasta agotar resultados.
+ * El error code QBO 3100 indica que la app ya no está autorizada para la company —
+ * se re-lanza con prefijo "QBO_3100:" para que la UI lo traduzca a un mensaje claro.
+ */
 async function queryQboTable<T>(input: {
   accessToken: string;
   realmId: string;
   table: "Invoice" | "SalesReceipt" | "CreditMemo";
+  /** Filtra por CustomerRef = customerId (solo caracteres alfanuméricos/._-) */
   customerId?: string;
+  /** Filtra por MetaData.LastUpdatedTime >= ISO (modo incremental / webhook) */
   sinceIso?: string;
+  /** Filtra por TxnDate >= 'YYYY-MM-DD' (modo backfill histórico) */
   txnDateFrom?: string;
 }) {
   const sanitizeCustomerId = (value: string) => {
@@ -246,12 +260,28 @@ async function queryQboTable<T>(input: {
   return output;
 }
 
+/**
+ * Trae Invoices, SalesReceipts y CreditMemos de QBO para un cliente dado.
+ *
+ * Modos de filtro (usar uno a la vez):
+ *   - `sinceIso`    → filtra por MetaData.LastUpdatedTime en SQL + post-filtro in-memory.
+ *                     Usado para sync incremental y procesamiento de webhooks.
+ *   - `txnDateFrom` → filtra por TxnDate en SQL (YYYY-MM-DD), sin post-filtro.
+ *                     Usado para importación histórica (backfill), donde lo que importa
+ *                     es la fecha real de la factura, no cuándo fue modificada.
+ *
+ * `skipSalesReceipts`: pasar true en backfill — los SalesReceipts no se usan en R365
+ * y evita una API call innecesaria a QBO.
+ */
 export async function fetchQboSalesTransactions(input: {
   accessToken: string;
   realmId: string;
   customerId?: string;
+  /** Filtra por MetaData.LastUpdatedTime >= ISO (sync incremental) */
   sinceIso?: string;
+  /** Filtra por TxnDate >= 'YYYY-MM-DD' (backfill histórico) */
   txnDateFrom?: string;
+  /** Si true, omite la query de SalesReceipts (no aplican a R365) */
   skipSalesReceipts?: boolean;
 }) {
   const invoiceQuery = queryQboTable<QboInvoiceLike>({
@@ -472,6 +502,14 @@ export async function fetchQboItemSkus(input: {
   return skuMap;
 }
 
+/**
+ * Busca una factura o nota de crédito en QBO por su DocNumber.
+ * Prueba Invoice primero; si no hay resultado, prueba CreditMemo.
+ * Devuelve null si no existe en ninguna de las dos tablas.
+ *
+ * Las comillas simples en docNumber se escapan con '' (estándar SQL) para evitar
+ * inyección en la QBO Query API.
+ */
 export async function fetchQboTransactionByDocNumber(input: {
   accessToken: string;
   realmId: string;

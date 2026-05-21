@@ -1,3 +1,13 @@
+/**
+ * POST /api/company/integrations/qbo-r365/send-unified-invoice
+ *
+ * Envía a R365 FTP una factura del historial unificado (qbo_unified_invoices).
+ * Funciona con cualquier import_source: webhook, manual o sync.
+ * Lee el raw_entity almacenado y ejecuta el mapping completo en tiempo real.
+ *
+ * Body: { unifiedInvoiceId: string (UUID) }
+ * Response: { uploaded: number, fileName: string, runId: string }
+ */
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
