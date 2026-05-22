@@ -11,7 +11,7 @@ const replaysOnErrorSampleRate = Number(process.env.NEXT_PUBLIC_SENTRY_REPLAY_ON
 const sendDefaultPii = process.env.NEXT_PUBLIC_SENTRY_SEND_DEFAULT_PII === "true";
 
 Sentry.init({
-  dsn: "https://74f0ea8623d403c700e08452caf07962@o4511040677281792.ingest.us.sentry.io/4511040686260224",
+  dsn: process.env.NEXT_PUBLIC_VERCEL_ENV === "preview" ? undefined : "https://74f0ea8623d403c700e08452caf07962@o4511040677281792.ingest.us.sentry.io/4511040686260224",
 
   // Add optional integrations for additional features
   integrations: [Sentry.replayIntegration()],
