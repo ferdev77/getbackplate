@@ -283,20 +283,20 @@ export function LandingExperience({ plans }: Props) {
     () =>
       lang === "es"
         ? [
-            ["01", "Operaciones y Cumplimiento", "Checklist digitales, incidentes, controles y trazabilidad de ejecución por turno."],
-            ["02", "People & RRHH", "Onboarding, documentos, estado laboral, evaluaciones y seguimiento por rol."],
-            ["03", "Cocina y Menú", "Estandarización operativa de recetas, seguridad alimentaria y control por locación."],
-            ["04", "Comunicación", "Avisos, alertas y coordinación interna sin depender de chats externos."],
-            ["05", "Reportes", "Visión operativa por locación, fechas y estado con métricas accionables."],
-            ["06", "Permisos", "Jerarquía clara por rol: owners, managers y staff con acceso controlado."],
+            ["01", "Operaciones y Cumplimiento", "Checklist digitales, procedimientos de apertura y cierre, registros de incidentes, seguridad alimentaria y mantenimiento de equipos — todo con firma de responsable y trazabilidad incorporada."],
+            ["02", "People & RRHH", "Onboarding, turnos, solicitudes de ausencia, historial de capacitación, evaluaciones de desempeño, registros disciplinarios y firmas digitales de contratos — toda tu capa de personas, organizada."],
+            ["03", "Cocina y Menú", "Archivo de recetas con escalado automático de porciones, costeo de menú vinculado directamente a las recetas, y directorio completo de proveedores con historial de pedidos y contactos."],
+            ["04", "Comunicación", "Notificaciones en plataforma, alertas por SMS y mensajería por WhatsApp mantienen a tu equipo conectado en tiempo real — sin el caos de una app de terceros que nadie usa."],
+            ["05", "Marketing y Calidad", "Gestioná tu ficha de Google My Business, organizá concursos de reseñas dentro de la plataforma y hacé seguimiento de evaluaciones de mystery shopper con puntuación ponderada e informes de tendencia."],
+            ["06", "Roles y Permisos", "Cada módulo está controlado por una capa unificada de roles y permisos. Los dueños ven todo. Los managers ven lo que necesitan. El staff ve lo relevante para su turno."],
           ]
         : [
-            ["01", "Operations & Compliance", "Digital checklists, incidents, controls, and shift-level traceability."],
-            ["02", "People & HR", "Onboarding, files, employment status, reviews, and role-based workflows."],
-            ["03", "Kitchen & Menu", "Operational standardization for recipes, food safety, and location control."],
-            ["04", "Communication", "Announcements, alerts, and team coordination without external chat chaos."],
-            ["05", "Reporting", "Operational visibility by branch, date, and status with actionable metrics."],
-            ["06", "Permissions", "Clear role hierarchy: owners, managers, and staff with scoped access."],
+            ["01", "Operations & Compliance", "Digital checklists, opening and closing procedures, incident logs, food safety records, and equipment maintenance — all with sign-off and accountability tracking built in."],
+            ["02", "People & HR", "Onboarding, scheduling, time-off requests, training records, performance reviews, disciplinary logs, and digital contract signatures — your entire people layer, organized."],
+            ["03", "Kitchen & Menu", "Recipe archive with automatic portion scaling, menu costing tied directly to recipes, and a full supplier and vendor directory with order history and contacts."],
+            ["04", "Communication", "Platform notifications, SMS alerts, and WhatsApp messaging keep your team connected in real time — without the chaos of a third-party app nobody actually uses."],
+            ["05", "Marketing & Quality", "Manage your Google My Business listing, run in-platform review contests, and track mystery shopper evaluations with weighted scoring and trend reports."],
+            ["06", "Roles & Permissions", "Every module is controlled by a unified roles and permissions layer. Owners see everything. Managers see what they need. Staff see what's relevant to their shift."],
           ],
     [lang],
   );
@@ -888,8 +888,8 @@ export function LandingExperience({ plans }: Props) {
             </h3>
             <p className={`mx-auto mt-4 max-w-4xl text-[15px] leading-[1.75] ${darkMode ? "text-[var(--gbp-text2)]" : "text-white/55"}`}>
               {lang === "es"
-                ? "Trabaja junto a tu POS y cubre lo que el POS no resuelve: ejecución diaria, gestión de equipo, documentación y consistencia operativa."
-                : "Works next to your POS and covers what POS does not solve: daily execution, team management, documentation, and operational consistency."}
+                ? "Toast, Waycloud, Square y Clover corren tus transacciones. GetBackplate corre todo lo demás — tu gente, tus procesos, tus estándares, tu comunicación. No reemplazamos tu POS. Lo completamos."
+                : "Toast, Waycloud, Square, and Clover run your transactions. GetBackplate runs everything else — your people, your processes, your standards, your communication. We don't replace your POS. We complete it."}
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-2.5">
               {notPosTags.yes.map((item) => (
@@ -1171,7 +1171,7 @@ export function LandingExperience({ plans }: Props) {
                     <motion.div key="ask" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.22 }}>
                       <div className="mb-3 flex items-center gap-2">
                         <span className="inline-flex rounded-full border border-[var(--gbp-violet)]/20 bg-[var(--gbp-violet-soft)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-violet)]">Pro Plan</span>
-                        <p className="text-[14px] font-semibold text-[var(--gbp-text2)]">{lang === "es" ? "Tus datos en español o inglés — vos decidís." : "Your data in plain English or Spanish — your choice."}</p>
+                        <p className="text-[14px] font-semibold text-[var(--gbp-text2)]">{lang === "es" ? "Tus datos en español o inglés — tú decidís." : "Your data in plain English or Spanish — tú decides."}</p>
                       </div>
                       <div className="overflow-hidden rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg2)]">
                         <div className="flex items-center gap-1.5 border-b border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-3 py-2">
@@ -1235,7 +1235,7 @@ export function LandingExperience({ plans }: Props) {
           <div className="mx-auto grid max-w-[980px] gap-12 md:grid-cols-[150px_1fr] md:items-center">
             <div className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-[24px_20px] text-center">
               <p className="text-[52px] font-extrabold leading-none text-[var(--gbp-accent)]">7</p>
-              <p className="mt-2 text-[11px] font-bold uppercase leading-[1.5] tracking-[0.08em] text-[var(--gbp-muted)]">
+              <p className="mt-2 whitespace-pre-line text-[11px] font-bold uppercase leading-[1.5] tracking-[0.08em] text-[var(--gbp-muted)]">
                 {lang === "es" ? "Restaurantes\nLocaciones\n2 Estados" : "Restaurant\nLocations\n2 States"}
               </p>
               <p className="mt-2.5 text-[18px]">⭐⭐⭐⭐⭐</p>
@@ -1269,9 +1269,9 @@ export function LandingExperience({ plans }: Props) {
               </p>
               <h2 className={`mt-3.5 text-[clamp(34px,4.5vw,56px)] font-bold leading-[1.0] tracking-[-0.03em] ${darkMode ? "text-[var(--gbp-text)]" : "text-white"}`}>
                 {lang === "es" ? (
-                  <>La Primera Mesa<br />está reservada para<br />los correctos <em className="not-italic text-[var(--gbp-accent)]">pocos.</em></>
+                  <>La Primera Mesa<br />está reservada para<br />los correctos <em>pocos.</em></>
                 ) : (
-                  <>The First Table<br />is reserved for<br />the right <em className="not-italic text-[var(--gbp-accent)]">few.</em></>
+                  <>The First Table<br />is reserved for<br />the right <em>few.</em></>
                 )}
               </h2>
               <p className={`mb-9 mt-[18px] text-[15px] leading-[1.8] ${darkMode ? "text-[var(--gbp-text2)]" : "text-white/55"}`}>
@@ -1553,6 +1553,43 @@ export function LandingExperience({ plans }: Props) {
           </div>
         </section>
 
+        {/* ═══ FAQ ═══ */}
+        <section className="border-t border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-6 py-24 md:py-28" id="faq">
+          <div className="mx-auto max-w-[1000px]">
+            <div className="mb-[60px] text-center">
+              <span className="inline-flex rounded-full border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[var(--gbp-muted)]">FAQ</span>
+              <h2 className="text-[clamp(34px,4vw,52px)] font-bold tracking-[-0.03em] text-[var(--gbp-text)]">{copy.sections.faqTitle}</h2>
+            </div>
+            <div className="grid gap-x-[60px] md:grid-cols-2">
+              {faqs.map(([q, a], idx) => {
+                const open = faqOpen === idx;
+                return (
+                  <motion.div
+                    key={q}
+                    initial={{ opacity: 0, y: 10 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, ease: "easeOut", delay: idx * 0.04 }}
+                    viewport={{ once: true, amount: 0.3 }}
+                    className="border-b border-[var(--gbp-border)]"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setFaqOpen(open ? null : idx)}
+                      className={`flex w-full items-center justify-between gap-4 py-[22px] text-left text-[15px] font-bold transition-colors hover:text-[var(--gbp-accent)] ${open ? "text-[var(--gbp-accent)]" : "text-[var(--gbp-text)]"}`}
+                    >
+                      <span>{q}</span>
+                      <span className={`text-[20px] font-light leading-none text-[var(--gbp-muted)] transition-all ${open ? "rotate-45 text-[var(--gbp-accent)]" : ""}`}>+</span>
+                    </button>
+                    {open && (
+                      <p className="pb-[22px] text-[14px] leading-[1.8] text-[var(--gbp-text2)]">{a}</p>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
         {/* ═══ VALUES ═══ */}
         <section className="border-t border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-6 py-24 md:py-28">
           <div className="mx-auto max-w-[1240px]">
@@ -1587,43 +1624,6 @@ export function LandingExperience({ plans }: Props) {
                   <p className="mt-3 text-[13px] leading-[1.75] text-[var(--gbp-text2)]">{body}</p>
                 </motion.article>
               ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ═══ FAQ ═══ */}
-        <section className="border-t border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-6 py-24 md:py-28" id="faq">
-          <div className="mx-auto max-w-[1000px]">
-            <div className="mb-[60px] text-center">
-              <span className="inline-flex rounded-full border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[var(--gbp-muted)]">FAQ</span>
-              <h2 className="text-[clamp(34px,4vw,52px)] font-bold tracking-[-0.03em] text-[var(--gbp-text)]">{copy.sections.faqTitle}</h2>
-            </div>
-            <div className="grid gap-x-[60px] md:grid-cols-2">
-              {faqs.map(([q, a], idx) => {
-                const open = faqOpen === idx;
-                return (
-                  <motion.div
-                    key={q}
-                    initial={{ opacity: 0, y: 10 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, ease: "easeOut", delay: idx * 0.04 }}
-                    viewport={{ once: true, amount: 0.3 }}
-                    className="border-b border-[var(--gbp-border)]"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setFaqOpen(open ? null : idx)}
-                      className={`flex w-full items-center justify-between gap-4 py-[22px] text-left text-[15px] font-bold transition-colors hover:text-[var(--gbp-accent)] ${open ? "text-[var(--gbp-accent)]" : "text-[var(--gbp-text)]"}`}
-                    >
-                      <span>{q}</span>
-                      <span className={`text-[20px] font-light leading-none text-[var(--gbp-muted)] transition-all ${open ? "rotate-45 text-[var(--gbp-accent)]" : ""}`}>+</span>
-                    </button>
-                    {open && (
-                      <p className="pb-[22px] text-[14px] leading-[1.8] text-[var(--gbp-text2)]">{a}</p>
-                    )}
-                  </motion.div>
-                );
-              })}
             </div>
           </div>
         </section>
