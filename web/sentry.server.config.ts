@@ -9,7 +9,7 @@ const tracesSampleRate = Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? (isProd
 const sendDefaultPii = process.env.SENTRY_SEND_DEFAULT_PII === "true";
 
 Sentry.init({
-  dsn: "https://74f0ea8623d403c700e08452caf07962@o4511040677281792.ingest.us.sentry.io/4511040686260224",
+  dsn: process.env.VERCEL_ENV === "preview" ? undefined : "https://74f0ea8623d403c700e08452caf07962@o4511040677281792.ingest.us.sentry.io/4511040686260224",
 
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
   tracesSampleRate,
