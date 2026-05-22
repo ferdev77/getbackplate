@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/webhooks/cron/qbo-r365-sync",
-      "schedule": "0 10 * * *"
+      "schedule": "0 4,10,14,16,18,20,22 * * *"
     }
   ]
 }
