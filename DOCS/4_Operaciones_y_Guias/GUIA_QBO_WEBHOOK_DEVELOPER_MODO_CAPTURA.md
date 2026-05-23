@@ -143,6 +143,8 @@ en_cola → capturada → mapeada → enviada
 
 Si no se encuentra sync config activa para el customer de esa factura, la fila queda en `en_cola` hasta que se configure una sync config o se envie manualmente.
 
+Nota operativa actual: la creacion de sync config esta restringida a una por organizacion (segunda alta devuelve `409`).
+
 ---
 
 ## Operacion diaria

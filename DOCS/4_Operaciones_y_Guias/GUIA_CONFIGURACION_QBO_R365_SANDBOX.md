@@ -20,8 +20,11 @@ Migraciones relevantes:
 
 - `20260426150000_qbo_r365_integration_foundation.sql`
 - `20260427010000_qbo_r365_template_variants.sql`
-- `20260520000001_qbo_unified_invoices.sql`
-- `20260520000002_qbo_r365_sync_configs.sql`
+- `20260505000001_qbo_r365_sync_configs.sql`
+- `20260517000001_qbo_r365_sync_configs_vendor_name.sql`
+- `20260517000002_qbo_r365_sync_configs_location.sql`
+- `20260519000001_qbo_webhook_events.sql`
+- `20260520000002_qbo_unified_invoices.sql`
 - `20260520000003_qbo_unified_invoices_import_source_manual.sql`
 
 Generacion rapida de secrets (dev):
@@ -36,11 +39,11 @@ Reiniciar servidor local (`npm run dev`) luego de editar `.env.local`.
 
 ## 2) Credenciales necesarias
 
-QuickBooks Online sandbox:
+QuickBooks Online sandbox (credenciales globales de plataforma):
 
-- `clientId`
-- `clientSecret`
-- `redirectUri`
+- `QBO_CLIENT_ID`
+- `QBO_CLIENT_SECRET`
+- `QBO_REDIRECT_URI`
 
 Restaurant365 FTP:
 
@@ -57,7 +60,7 @@ R365 configuracion por org:
 - `r365Location` — location de R365
 - `qboCustomerId` — ID del customer en QBO (para filtrar facturas)
 - `template` — `by_item` / `by_account` / variantes
-- `taxMode` — `none` / `line` / `summary`
+- `taxMode` — `none` / `line` / `header`
 
 ---
 
@@ -202,3 +205,4 @@ Si hay error en import:
 - v1: setup inicial.
 - v2: incorpora flujo developer por etapas, exportes y 4 templates.
 - v3: reescritura completa para arquitectura con sync configs; elimina endpoints obsoletos (`/sync`, `/prepare`, `/preview`, `/send`); agrega `fetch-by-docnumber`, `send-unified-invoice`, flujo backfill y nuevas migraciones.
+- v4: alineacion a codigo actual: credenciales QBO globales (`QBO_CLIENT_ID`, `QBO_CLIENT_SECRET`, `QBO_REDIRECT_URI`), tax mode `line|header|none` y listado de migraciones actualizado.

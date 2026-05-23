@@ -29,7 +29,7 @@ Checklist rapido:
 - entender la doble ruta de procesamiento de webhooks: ruta rapida (background) + self-trigger cron (invocacion serverless independiente);
 - entender por que el `await upsert` inicial es critico (fix de race condition);
 - entender que solo el evento `Emailed` de QBO esta activo (no Create ni Update);
-- crear sync config con `POST /api/company/integrations/qbo-r365/sync-configs` (puede haber multiples, una por customer);
+- crear sync config con `POST /api/company/integrations/qbo-r365/sync-configs` (hoy solo se permite una por organizacion; segunda alta responde `409`);
 - probar backfill con `backfillFromDate` y verificar facturas en historial;
 - probar fetch manual con `POST /api/company/integrations/qbo-r365/fetch-by-docnumber`;
 - probar envio individual con `POST /api/company/integrations/qbo-r365/send-unified-invoice`;
@@ -70,6 +70,12 @@ Checklist rapido:
 
 ---
 
+## Nota de modos (operativo vs developer)
+
+- Modo operativo normal: es el flujo por defecto para `company_admin` del tenant.
+- Modo developer en UI: solo se muestra cuando hay impersonacion superadmin activa sobre esa organizacion.
+- `developerMode=true` en `POST /sync-configs` relaja validaciones FTP en backend, pero no cambia permisos base del modulo.
+
 ## Primeras 5 pruebas recomendadas (nuevo dev)
 
 1. Crear sync config con `developerMode=true` y verificar que retorna `{ id }`.
@@ -96,4 +102,5 @@ Checklist rapido:
 
 - v1: guia de onboarding rapido por rol.
 - v2: arquitectura webhook-first con historial unificado; elimina referencias a Sync Now / Dry Run; agrega checklist para sync config, fetch manual, backfill y envio individual.
-- v3: doble ruta de procesamiento (ruta rapida + self-trigger cron); multiples sync configs por customer; solo evento `Emailed` activo; comportamiento FTP de R365 (consume y elimina archivos); error comun de factura en `en_cola` sin sync config.
+- v3: doble ruta de procesamiento (ruta rapida + self-trigger cron); solo evento `Emailed` activo; comportamiento FTP de R365 (consume y elimina archivos); error comun de factura en `en_cola` sin sync config.
+- v4: alineacion a codigo actual: sync config unica por organizacion y nota explicita de modo developer UI via impersonacion superadmin.

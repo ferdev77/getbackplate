@@ -57,14 +57,14 @@ en_cola → capturada → mapeada → enviada
 
 ### 2.3 Sync configs
 
-Cada organizacion puede tener **multiples sync configs**, una por cada QBO customer a sincronizar. Cada sync config concentra:
+Cada organizacion puede tener **una sola sync config activa** (el endpoint devuelve `409` si ya existe una). Esa sync config concentra:
 - credenciales FTP de R365 (cifradas);
 - QBO customer ID (filtro de facturas de ese cliente especifico);
 - vendor y location para R365;
 - template CSV (`by_item`, `by_item_service_dates`, `by_account`, `by_account_service_dates`);
-- tax mode (`none`, `line`, `summary`).
+- tax mode (`none`, `line`, `header`).
 
-El boton "Crear sincronizacion" en el dashboard siempre esta visible; el formulario filtra automaticamente los customers de QBO que ya tienen una sync config configurada, permitiendo agregar nuevos sin afectar los existentes.
+El boton "Crear sincronizacion" en el dashboard crea la unica config permitida por organizacion en el comportamiento actual.
 
 ---
 
@@ -120,6 +120,12 @@ El boton "Crear sincronizacion" en el dashboard siempre esta visible; el formula
   - mapea en tiempo real una factura del historial sin enviarla al FTP.
 - `GET /api/company/integrations/qbo-r365/preview-unified-invoice-csv`
   - devuelve el CSV generado para una factura del historial unificado (preview).
+
+### 3.7 Modos de uso
+
+- Modo operativo normal: disponible para `company_admin` con modulo habilitado; es el flujo de produccion.
+- Modo developer (UI): solo visible cuando hay impersonacion superadmin activa sobre esa organizacion.
+- `developerMode=true` en `POST /sync-configs`: relaja validaciones FTP al crear la config, pero no reemplaza controles base de acceso del modulo.
 
 ---
 
@@ -204,9 +210,13 @@ Variables de entorno:
 - `QBO_OAUTH_STATE_SECRET`
 - `CRON_SECRET` (para el scheduler)
 
+Credenciales globales de plataforma (no por organizacion):
+
+- QBO: `QBO_CLIENT_ID`, `QBO_CLIENT_SECRET`, `QBO_REDIRECT_URI`
+
 En sync config (por organizacion):
 
-- QBO: `clientId`, `clientSecret`, `redirectUri`, OAuth completado, `realmId`
+- QBO: OAuth completado y `realmId` conectado
 - R365 FTP: `host`, `port`, `username`, `password`, `remotePath`, `secure`
 - R365 config: `r365VendorName`, `r365Location`, `qboCustomerId`, `template`, `taxMode`
 
@@ -320,4 +330,5 @@ npm run build
 - v2: incluye modo developer por etapas, exportes, 4 templates oficiales y dedupe por factura.
 - v3: agrega convencion de nombre de archivo segun estandar R365.
 - v4: arquitectura reescrita para flujo webhook-first con historial unificado (`qbo_unified_invoices`); elimina referencias a Sync Now / Dry Run; agrega sync configs por organizacion, flujo manual por DocNumber, envio individual desde historial, backfill por TxnDate y nuevos endpoints.
-- v5: procesamiento por doble ruta (ruta rapida + self-trigger cron); `await upsert` como fix de race condition; multiples sync configs por organizacion (una por customer); solo evento `Emailed` activo en Intuit; nuevos endpoints `map-unified-invoice` y `preview-unified-invoice-csv`; comportamiento FTP de R365 (consume y elimina archivos); convencion CreditMemo con montos negativos; caso G (factura en cola sin sync config); caso H (CreditMemo montos).
+- v5: procesamiento por doble ruta (ruta rapida + self-trigger cron); `await upsert` como fix de race condition; solo evento `Emailed` activo en Intuit; nuevos endpoints `map-unified-invoice` y `preview-unified-invoice-csv`; comportamiento FTP de R365 (consume y elimina archivos); convencion CreditMemo con montos negativos; caso G (factura en cola sin sync config); caso H (CreditMemo montos).
+- v6: alineacion a comportamiento actual en codigo: una sola sync config por organizacion, tax mode `line|header|none`, y credenciales QBO globales de plataforma (`QBO_CLIENT_ID`, `QBO_CLIENT_SECRET`, `QBO_REDIRECT_URI`).

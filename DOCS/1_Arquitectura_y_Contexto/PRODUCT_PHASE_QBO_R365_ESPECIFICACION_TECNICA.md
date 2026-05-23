@@ -105,7 +105,7 @@ Solo el evento `Emailed` de QBO esta configurado (Invoice y CreditMemo). Los eve
 
 #### `qbo_r365_sync_configs`
 
-Una fila por QBO customer por organizacion. Una organizacion puede tener multiples sync configs, una por cada customer de QBO a sincronizar.
+En el comportamiento actual del endpoint de alta, se permite una sola sync config por organizacion (si ya existe, responde `409`).
 
 | columna | tipo | descripcion |
 |---|---|---|
@@ -115,7 +115,7 @@ Una fila por QBO customer por organizacion. Una organizacion puede tener multipl
 | r365_vendor_name | text | nombre del vendor tal como aparece en R365 |
 | r365_location | text | location de R365 para el template |
 | template | text | `by_item` / `by_account` / variantes service_dates |
-| tax_mode | text | `none` / `line` / `summary` |
+| tax_mode | text | `none` / `line` / `header` |
 | r365_ftp_host | text | host FTP de R365 (cifrado) |
 | r365_ftp_port | int | puerto FTP |
 | r365_ftp_username | text | usuario FTP (cifrado) |
@@ -333,7 +333,7 @@ Lineamientos aplicados:
 - Captura manual: busqueda por DocNumber → `qbo_unified_invoices` → envio individual.
 - Backfill historico: al crear sync config con `backfillFromDate` → filtra por `TxnDate` → `import_source='sync'`.
 - Envio individual: cualquier factura en historial unificado → `send-unified-invoice`.
-- Multiples sync configs: cada organizacion puede tener una sync config por QBO customer.
+- Sync config unica: cada organizacion hoy opera con una sola sync config (restriccion efectiva del endpoint de alta).
 
 ### 11.2 Idempotencia activa
 
@@ -354,4 +354,5 @@ Lineamientos aplicados:
 - v1: especificacion tecnica inicial para construccion del modulo.
 - v2: incorpora templates con service dates, estado implementado y dedupe por factura.
 - v3: reescritura para arquitectura webhook-first con historial unificado; agrega `qbo_unified_invoices`, `qbo_r365_sync_configs`, `qbo_webhook_events`; documenta pipeline de estados, import_source, filtros de fecha TxnDate vs MetaData, flujo manual por DocNumber y backfill historico.
-- v4: procesamiento por doble ruta (ruta rapida background + self-trigger cron independiente); `await upsert` como fix de race condition; multiples sync configs por organizacion (una por customer); solo evento `Emailed` configurado; esquema actualizado de `qbo_webhook_events` (campo `status`); comportamiento FTP de R365 (consume y elimina archivos); CreditMemo con montos negativos; riesgos actualizados.
+- v4: procesamiento por doble ruta (ruta rapida background + self-trigger cron independiente); `await upsert` como fix de race condition; solo evento `Emailed` configurado; esquema actualizado de `qbo_webhook_events` (campo `status`); comportamiento FTP de R365 (consume y elimina archivos); CreditMemo con montos negativos; riesgos actualizados.
+- v5: alineacion a comportamiento actual en codigo: sync config unica por organizacion y tax mode `line|header|none`.

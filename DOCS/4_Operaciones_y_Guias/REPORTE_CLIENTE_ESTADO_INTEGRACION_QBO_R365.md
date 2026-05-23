@@ -31,7 +31,7 @@ En resumen: la integracion esta en produccion y operando en modo automatico, con
 - [x] Estado visual de conexion en pantalla.
 - [x] Manejo de reconexion cuando QuickBooks lo requiere.
 - [x] Credenciales guardadas de forma segura (cifradas con AES-256).
-- [x] Configuracion por organizacion: multiples sync configs, una por cada proveedor/customer de QuickBooks.
+- [x] Configuracion por organizacion: una sync config activa por organizacion (segunda alta devuelve `409`).
 
 ### B. Captura automatica de facturas (webhooks)
 
@@ -84,8 +84,8 @@ En resumen: la integracion esta en produccion y operando en modo automatico, con
 
 ### I. Documentacion del repositorio
 
-- [x] Guia operativa actualizada a arquitectura actual (v5).
-- [x] Especificacion tecnica actualizada con modelo de datos actual (v4).
+- [x] Guia operativa actualizada a arquitectura actual (v6).
+- [x] Especificacion tecnica actualizada con modelo de datos actual (v5).
 - [x] Guia de developer webhooks actualizada a doble ruta y eventos (v3).
 - [x] Guia de onboarding por rol actualizada (v3).
 - [x] Este reporte actualizado.
