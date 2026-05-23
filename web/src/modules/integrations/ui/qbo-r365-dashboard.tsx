@@ -1881,7 +1881,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                 <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-left text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">
                   <th className="px-4 py-3">Fecha</th>
                   <th className="px-4 py-3">Estado</th>
-                  <th className="px-4 py-3">Template</th>
                   <th className="px-4 py-3">Trigger</th>
                   <th className="px-4 py-3">Detectadas</th>
                   <th className="px-4 py-3">Enviadas</th>
@@ -1899,7 +1898,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                       className="cursor-pointer border-b border-[var(--gbp-border)] transition hover:bg-[var(--gbp-bg)]">
                       <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{dateLabel} · {timeLabel}</td>
                       <td className="px-4 py-3">{statusBadge(run.status)}{run.dryRun && <span className="ml-1.5 rounded bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold text-blue-500">DRY</span>}</td>
-                      <td className="px-4 py-3 text-xs font-semibold text-[var(--gbp-text2)]">{templateLabel(run.templateMode)}</td>
                       <td className="px-4 py-3"><span className="rounded-full bg-[var(--gbp-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--gbp-text2)]">{triggerLabel(run.triggerSource)}</span></td>
                       <td className="px-4 py-3 text-sm font-semibold text-[var(--gbp-text)]">{run.invoicesDetected}</td>
                       <td className="px-4 py-3 text-sm font-semibold text-[var(--gbp-success)]">{run.invoicesUploaded}</td>
