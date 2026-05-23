@@ -968,7 +968,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
 
   async function handleInvoiceExport(
     format: "csv" | "json" | "pdf" | "txt",
-    unifiedContext?: { id: string; docNumber: string | null; entityType: string; rawEntity: Record<string, unknown> | null },
+    unifiedContext?: { id: string; docNumber: string | null; entityType: string; rawEntity: Record<string, unknown> | null; customerName: string | null },
   ) {
     if (!invoiceDetail) return;
     const inv = invoiceDetail;
@@ -1041,7 +1041,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(0, 0, 0);
-        doc.text(inv.vendor ?? "-", 14, leftY);
+        doc.text(unifiedContext?.customerName ?? inv.vendor ?? "-", 14, leftY);
 
         // Right: CREDIT # and DATE
         let rightY = 36;
@@ -1183,7 +1183,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      doc.text(inv.vendor ?? "-", 14, leftY);
+      doc.text(unifiedContext?.customerName ?? inv.vendor ?? "-", 14, leftY);
 
       // PO Number if available
       if (inv.poNumber) {
@@ -2003,7 +2003,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                       <button
                         key={fmt}
                         type="button"
-                        onClick={() => handleInvoiceExport(fmt, { id: selectedUnifiedRow.id, docNumber: selectedUnifiedRow.docNumber, entityType: selectedUnifiedRow.entityType, rawEntity: selectedUnifiedRow.rawEntity })}
+                        onClick={() => handleInvoiceExport(fmt, { id: selectedUnifiedRow.id, docNumber: selectedUnifiedRow.docNumber, entityType: selectedUnifiedRow.entityType, rawEntity: selectedUnifiedRow.rawEntity, customerName: selectedUnifiedRow.customerName })}
                         className="rounded-md border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
                       >
                         {fmt}
