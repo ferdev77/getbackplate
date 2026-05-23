@@ -3826,6 +3826,20 @@ export async function processQboUnifiedQueue(): Promise<{
 }> {
   const admin = createSupabaseAdminClient();
 
+  // Mark zombie integration_runs (stuck in "running" for more than 15 minutes) as failed.
+  // This happens when Vercel kills a serverless function mid-execution before it can
+  // update the run status to "completed".
+  const zombieCutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+  await admin
+    .from("integration_runs")
+    .update({
+      status: "failed",
+      finished_at: new Date().toISOString(),
+      error_summary: { error: "Timed out — cleaned up by next cron run" },
+    })
+    .eq("status", "running")
+    .lt("started_at", zombieCutoff);
+
   const { data: stuck, error } = await admin
     .from("qbo_unified_invoices")
     .select("id, organization_id, entity_id, entity_type, raw_entity, sync_config_id, pipeline_status")
