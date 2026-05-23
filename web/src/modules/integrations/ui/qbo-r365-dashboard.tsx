@@ -125,7 +125,7 @@ type UnifiedInvoiceRow = {
   createdAt: string;
 };
 
-type Props = { organizationId: string; deferredDataUrl: string; showDeveloperMode?: boolean; className?: string };
+type Props = { organizationId: string; deferredDataUrl: string; showDeveloperMode?: boolean; className?: string; orgName?: string; orgLogoUrl?: string };
 
 function toneClass(tone: StatCard["tone"]) {
   if (tone === "success") return "text-[var(--gbp-success)]";
@@ -349,7 +349,7 @@ const TEMPLATE_COLS: Record<"by_item" | "by_item_service_dates" | "by_account" |
   ],
 };
 
-export function QboR365Dashboard({ organizationId, deferredDataUrl, showDeveloperMode = false, className }: Props) {
+export function QboR365Dashboard({ organizationId, deferredDataUrl, showDeveloperMode = false, className, orgName, orgLogoUrl }: Props) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [query, setQuery] = useState("");
@@ -966,10 +966,15 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     }
   }
 
-  async function handleInvoiceExport(format: "csv" | "json" | "pdf" | "txt") {
+  async function handleInvoiceExport(
+    format: "csv" | "json" | "pdf" | "txt",
+    unifiedContext?: { id: string; docNumber: string | null; entityType: string; rawEntity: Record<string, unknown> | null },
+  ) {
     if (!invoiceDetail) return;
     const inv = invoiceDetail;
     const safeName = (inv.invoiceNumber ?? inv.sourceInvoiceId).replace(/[^a-zA-Z0-9_-]/g, "_");
+    const typeSlug = unifiedContext ? (unifiedContext.entityType === "CreditMemo" ? "CM" : "INV") : null;
+    const docSlug = unifiedContext ? (unifiedContext.docNumber ?? unifiedContext.id).replace(/[^a-zA-Z0-9_-]/g, "_") : null;
     const curLabel = formatCurrencyLabel(inv.currency);
     const cur = curLabel ? ` ${curLabel}` : "";
 
@@ -980,60 +985,225 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       ]);
       const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const pageW = doc.internal.pageSize.getWidth();
+      const isCreditMemo = unifiedContext?.entityType === "CreditMemo";
 
-      // Header izquierda
-      doc.setFontSize(20);
-      doc.setFont("helvetica", "bold");
-      doc.text("FACTURA", 14, 18);
+      // Load logo if available
+      let logoDataUrl: string | null = null;
+      if (orgLogoUrl) {
+        try {
+          const resp = await fetch(orgLogoUrl);
+          if (resp.ok) {
+            const blob = await resp.blob();
+            logoDataUrl = await new Promise<string | null>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = () => resolve(null);
+              reader.readAsDataURL(blob);
+            });
+          }
+        } catch { /* fall back to text */ }
+      }
 
-      // Header derecha: N°, Fecha, Terms, Vencimiento
-      doc.setFontSize(9);
+      const QBO_BLUE_R = 45, QBO_BLUE_G = 101, QBO_BLUE_B = 188;
+      const imgFormat = logoDataUrl ? (logoDataUrl.split(";")[0].split("/")[1]?.toUpperCase() ?? "PNG") : "PNG";
+
+      if (isCreditMemo) {
+        // ── CREDIT MEMO LAYOUT ──
+
+        // Top-left: logo or company name
+        if (logoDataUrl) {
+          doc.addImage(logoDataUrl, imgFormat, 14, 8, 45, 16);
+        } else {
+          doc.setFontSize(11);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(0, 0, 0);
+          doc.text(orgName ?? "Company", 14, 18);
+        }
+
+        // Top-right: "Credit Memo" in blue
+        doc.setFontSize(22);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(QBO_BLUE_R, QBO_BLUE_G, QBO_BLUE_B);
+        doc.text("Credit Memo", pageW - 14, 18, { align: "right" });
+
+        // Separator
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.3);
+        doc.line(14, 27, pageW - 14, 27);
+
+        // Left: CREDIT TO
+        let leftY = 36;
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(120, 120, 120);
+        doc.text("CREDIT TO", 14, leftY);
+        leftY += 5;
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(0, 0, 0);
+        doc.text(inv.vendor ?? "-", 14, leftY);
+
+        // Right: CREDIT # and DATE
+        let rightY = 36;
+        const labelRX = pageW - 14 - 38;
+        const valueRX = pageW - 14;
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(120, 120, 120);
+        doc.text("CREDIT #", labelRX, rightY, { align: "right" });
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(0, 0, 0);
+        doc.text(inv.invoiceNumber ?? inv.sourceInvoiceId, valueRX, rightY, { align: "right" });
+        rightY += 6;
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(120, 120, 120);
+        doc.text("DATE", labelRX, rightY, { align: "right" });
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(0, 0, 0);
+        doc.text(formatQboDate(inv.invoiceDate), valueRX, rightY, { align: "right" });
+
+        const cmTableY = Math.max(leftY + 14, rightY + 14);
+
+        autoTable(doc, {
+          startY: cmTableY,
+          head: [["QTY", "DESCRIPTION", "UNIT PRICE", "AMOUNT"]],
+          body: inv.lines.map((l) => {
+            const shortName = l.itemName ? l.itemName.split(":").pop()!.trim() : (l.description ?? "-");
+            return [
+              l.quantity != null ? String(l.quantity) : "-",
+              shortName,
+              l.unitPrice != null ? l.unitPrice.toFixed(2) : "-",
+              l.lineAmount != null ? l.lineAmount.toFixed(2) : "-",
+            ];
+          }),
+          headStyles: { fillColor: [QBO_BLUE_R, QBO_BLUE_G, QBO_BLUE_B], fontSize: 8, fontStyle: "bold" },
+          bodyStyles: { fontSize: 8 },
+          columnStyles: {
+            0: { halign: "right", cellWidth: 14 },
+            2: { halign: "right", cellWidth: 26 },
+            3: { halign: "right", cellWidth: 28 },
+          },
+          styles: { overflow: "linebreak" },
+          margin: { left: 14, right: 14 },
+        });
+
+        const cmFinalY = ((doc as unknown as { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 200);
+        const cmTotY = cmFinalY + 10;
+        const cmLabelX = pageW - 14 - 42;
+        const cmValueX = pageW - 14;
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(80, 80, 80);
+        doc.text("Subtotal", cmLabelX, cmTotY, { align: "right" });
+        doc.text(inv.subtotal.toFixed(2) + cur, cmValueX, cmTotY, { align: "right" });
+        doc.text("Tax", cmLabelX, cmTotY + 7, { align: "right" });
+        doc.text(inv.totalTax.toFixed(2) + cur, cmValueX, cmTotY + 7, { align: "right" });
+        doc.text("Total", cmLabelX, cmTotY + 14, { align: "right" });
+        doc.text(inv.grandTotal.toFixed(2) + cur, cmValueX, cmTotY + 14, { align: "right" });
+        doc.setDrawColor(180, 180, 180);
+        doc.setLineWidth(0.4);
+        doc.line(cmLabelX - 5, cmTotY + 18, cmValueX, cmTotY + 18);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(QBO_BLUE_R, QBO_BLUE_G, QBO_BLUE_B);
+        doc.text("TOTAL CREDIT", cmLabelX, cmTotY + 26, { align: "right" });
+        doc.setTextColor(0, 0, 0);
+        doc.text(inv.grandTotal.toFixed(2) + cur, cmValueX, cmTotY + 26, { align: "right" });
+
+        const cmName = unifiedContext && typeSlug && docSlug ? `credit_memo_${docSlug}.pdf` : `credit_memo_${safeName}.pdf`;
+        doc.save(cmName);
+        return;
+      }
+
+      // ── INVOICE LAYOUT ──
+
+      // Top-left: logo or company name
+      if (logoDataUrl) {
+        doc.addImage(logoDataUrl, imgFormat, 14, 8, 45, 16);
+      } else {
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(0, 0, 0);
+        doc.text(orgName ?? "Company", 14, 18);
+      }
+
+      // Top-right: "INVOICE" in blue
+      doc.setFontSize(26);
       doc.setFont("helvetica", "bold");
-      let rightY = 13;
-      doc.text(`N°`, pageW - 14 - 30, rightY, { align: "right" });
+      doc.setTextColor(QBO_BLUE_R, QBO_BLUE_G, QBO_BLUE_B);
+      doc.text("INVOICE", pageW - 14, 18, { align: "right" });
+
+      // Separator
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.3);
+      doc.line(14, 27, pageW - 14, 27);
+
+      // Right column: INVOICE #, DATE, TERMS, DUE DATE
+      const labelRX = pageW - 14 - 38;
+      const valueRX = pageW - 14;
+      let rightY = 36;
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(120, 120, 120);
+      doc.text("INVOICE #", labelRX, rightY, { align: "right" });
       doc.setFont("helvetica", "normal");
-      doc.text(`${inv.invoiceNumber ?? inv.sourceInvoiceId}`, pageW - 14, rightY, { align: "right" });
+      doc.setTextColor(0, 0, 0);
+      doc.text(inv.invoiceNumber ?? inv.sourceInvoiceId, valueRX, rightY, { align: "right" });
       rightY += 6;
       doc.setFont("helvetica", "bold");
-      doc.text("Fecha:", pageW - 14 - 30, rightY, { align: "right" });
+      doc.setTextColor(120, 120, 120);
+      doc.text("DATE", labelRX, rightY, { align: "right" });
       doc.setFont("helvetica", "normal");
-      doc.text(formatQboDate(inv.invoiceDate), pageW - 14, rightY, { align: "right" });
+      doc.setTextColor(0, 0, 0);
+      doc.text(formatQboDate(inv.invoiceDate), valueRX, rightY, { align: "right" });
       if (inv.terms) {
         rightY += 6;
         doc.setFont("helvetica", "bold");
-        doc.text("Terms:", pageW - 14 - 30, rightY, { align: "right" });
+        doc.setTextColor(120, 120, 120);
+        doc.text("TERMS", labelRX, rightY, { align: "right" });
         doc.setFont("helvetica", "normal");
-        doc.text(inv.terms, pageW - 14, rightY, { align: "right" });
+        doc.setTextColor(0, 0, 0);
+        doc.text(inv.terms, valueRX, rightY, { align: "right" });
       }
       rightY += 6;
       doc.setFont("helvetica", "bold");
-      doc.text("Venc.:", pageW - 14 - 30, rightY, { align: "right" });
+      doc.setTextColor(120, 120, 120);
+      doc.text("DUE DATE", labelRX, rightY, { align: "right" });
       doc.setFont("helvetica", "normal");
-      doc.text(formatQboDate(inv.dueDate), pageW - 14, rightY, { align: "right" });
+      doc.setTextColor(0, 0, 0);
+      doc.text(formatQboDate(inv.dueDate), valueRX, rightY, { align: "right" });
 
-      // Header izquierda: Bill To + PO#
-      let leftY = 28;
-      doc.setFontSize(9);
+      // Left: BILL TO
+      let leftY = 36;
+      doc.setFontSize(7);
       doc.setFont("helvetica", "bold");
-      doc.text("Bill To", 14, leftY);
-      leftY += 6;
+      doc.setTextColor(120, 120, 120);
+      doc.text("BILL TO", 14, leftY);
+      leftY += 5;
+      doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
+      doc.setTextColor(0, 0, 0);
       doc.text(inv.vendor ?? "-", 14, leftY);
-      if (inv.poNumber ?? inv.memo) {
-        leftY += 7;
+
+      // PO Number if available
+      if (inv.poNumber) {
+        leftY += 10;
+        doc.setFontSize(7);
         doc.setFont("helvetica", "bold");
-        doc.text("PO#", 14, leftY);
+        doc.setTextColor(120, 120, 120);
+        doc.text("PO NUMBER", 14, leftY);
         leftY += 5;
+        doc.setFontSize(9);
         doc.setFont("helvetica", "normal");
-        doc.text(inv.poNumber ?? inv.memo ?? "-", 14, leftY);
+        doc.setTextColor(0, 0, 0);
+        doc.text(inv.poNumber, 14, leftY);
       }
 
-      const tableStartY = Math.max(leftY + 8, rightY + 10);
+      const tableStartY = Math.max(leftY + 12, rightY + 12);
 
-      // Table
       autoTable(doc, {
         startY: tableStartY,
-        head: [["Cant.", "SKU", "Ítem", "Descripción", "Precio", "Importe", "ID QBO"]],
+        head: [["QTY", "SKU", "ITEM / SERVICE", "DESCRIPTION", "RATE", "AMOUNT"]],
         body: inv.lines.map((l) => {
           const shortName = l.itemName ? l.itemName.split(":").pop()!.trim() : (l.targetCode ?? "-");
           return [
@@ -1043,44 +1213,58 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
             l.description ?? "-",
             l.unitPrice != null ? l.unitPrice.toFixed(2) : "-",
             l.lineAmount != null ? l.lineAmount.toFixed(2) : "-",
-            l.targetCode ?? "-",
           ];
         }),
-        headStyles: { fillColor: [40, 40, 40], fontSize: 8, fontStyle: "bold" },
+        headStyles: { fillColor: [QBO_BLUE_R, QBO_BLUE_G, QBO_BLUE_B], fontSize: 8, fontStyle: "bold" },
         bodyStyles: { fontSize: 8 },
         columnStyles: {
-          0: { halign: "right", cellWidth: 11 },
-          1: { halign: "left", cellWidth: 22, textColor: [80, 80, 80], fontSize: 7 },
-          4: { halign: "right", cellWidth: 18 },
-          5: { halign: "right", cellWidth: 20 },
-          6: { halign: "left", cellWidth: 20, textColor: [140, 140, 140], fontSize: 7 },
+          0: { halign: "right", cellWidth: 12 },
+          1: { halign: "left", cellWidth: 22, textColor: [80, 80, 80] as [number, number, number], fontSize: 7 },
+          4: { halign: "right", cellWidth: 22 },
+          5: { halign: "right", cellWidth: 24 },
         },
         styles: { overflow: "linebreak" },
         margin: { left: 14, right: 14 },
       });
 
-      // Totales: debajo de la tabla, separados visualmente, alineados a la derecha
       const finalY = ((doc as unknown as { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 200);
-      const totalsStartY = finalY + 10;
-      const labelX = pageW - 14 - 35;
+      const totY = finalY + 10;
+      const labelX = pageW - 14 - 42;
       const valueX = pageW - 14;
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(80, 80, 80);
-      doc.text("Subtotal", labelX, totalsStartY, { align: "right" });
-      doc.text(inv.subtotal.toFixed(2) + cur, valueX, totalsStartY, { align: "right" });
-      doc.text("Impuesto", labelX, totalsStartY + 7, { align: "right" });
-      doc.text(inv.totalTax.toFixed(2) + cur, valueX, totalsStartY + 7, { align: "right" });
+      doc.text("Subtotal", labelX, totY, { align: "right" });
+      doc.text(inv.subtotal.toFixed(2) + cur, valueX, totY, { align: "right" });
+      doc.text("Tax", labelX, totY + 7, { align: "right" });
+      doc.text(inv.totalTax.toFixed(2) + cur, valueX, totY + 7, { align: "right" });
+      doc.text("Total", labelX, totY + 14, { align: "right" });
+      doc.text(inv.grandTotal.toFixed(2) + cur, valueX, totY + 14, { align: "right" });
       doc.setDrawColor(180, 180, 180);
       doc.setLineWidth(0.4);
-      doc.line(labelX - 5, totalsStartY + 11, valueX, totalsStartY + 11);
+      doc.line(labelX - 5, totY + 18, valueX, totY + 18);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
+      doc.setFontSize(11);
+      doc.setTextColor(QBO_BLUE_R, QBO_BLUE_G, QBO_BLUE_B);
+      doc.text("BALANCE DUE", labelX, totY + 26, { align: "right" });
+      doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
-      doc.text("TOTAL", labelX, totalsStartY + 18, { align: "right" });
-      doc.text(inv.grandTotal.toFixed(2) + cur, valueX, totalsStartY + 18, { align: "right" });
+      doc.text(inv.grandTotal.toFixed(2) + cur, valueX, totY + 26, { align: "right" });
 
-      doc.save(`factura-${safeName}.pdf`);
+      // Customer signature line
+      const sigY = totY + 46;
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(120, 120, 120);
+      doc.text("Customer Signature", 14, sigY);
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.3);
+      doc.line(14, sigY + 8, 80, sigY + 8);
+      doc.text("Date", 90, sigY);
+      doc.line(90, sigY + 8, 130, sigY + 8);
+
+      const invName = unifiedContext && typeSlug && docSlug ? `invoice_${docSlug}.pdf` : `invoice_${safeName}.pdf`;
+      doc.save(invName);
       return;
     }
 
@@ -1088,33 +1272,48 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     let mime = "";
 
     if (format === "csv") {
-      const esc = (v: string | number | null | undefined) => {
-        const s = v == null ? "" : String(v);
-        return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
-      };
-      const curLabel = formatCurrencyLabel(inv.currency);
-      const metaRows = [
-        ["Factura N°", inv.invoiceNumber ?? inv.sourceInvoiceId ?? ""].map(esc).join(","),
-        ["Cliente", inv.vendor ?? ""].map(esc).join(","),
-        ["Fecha", formatQboDate(inv.invoiceDate) ?? ""].map(esc).join(","),
-        ["Vencimiento", formatQboDate(inv.dueDate) ?? ""].map(esc).join(","),
-        ...(inv.terms ? [["Terminos", inv.terms].map(esc).join(",")] : []),
-        ...(inv.poNumber ? [["PO#", inv.poNumber].map(esc).join(",")] : []),
-        ...(inv.memo ? [["Memo", inv.memo].map(esc).join(",")] : []),
-        ["Moneda", curLabel || inv.currency || ""].map(esc).join(","),
-        ["Estado QBO", inv.qboStatusRaw ?? inv.qboPaymentStatus ?? ""].map(esc).join(","),
-        ["", ""].join(","),
-      ];
-      const header = ["Cant.", "SKU", "Item", "Descripcion", "Precio", "Importe", "Impuesto", "Total", "ID.QBO"].map(esc).join(",");
-      const rows = inv.lines.map((l) => {
-        const shortName = l.itemName ? l.itemName.split(":").pop()!.trim() : (l.targetCode ?? "");
-        return [l.quantity, l.sku ?? "", shortName, l.description, l.unitPrice?.toFixed(2), l.lineAmount?.toFixed(2), l.taxAmount?.toFixed(2), l.totalAmount?.toFixed(2), l.targetCode].map(esc).join(",");
-      });
-      rows.push(["", "", "", "SUBTOTAL", inv.subtotal.toFixed(2), "", "", ""].map(esc).join(","));
-      rows.push(["", "", "", "IMPUESTO", inv.totalTax.toFixed(2), "", "", ""].map(esc).join(","));
-      rows.push(["", "", "", "TOTAL", inv.grandTotal.toFixed(2), "", "", ""].map(esc).join(","));
-      content = [...metaRows, header, ...rows].join("\r\n");
-      mime = "text/csv;charset=utf-8;";
+      if (unifiedContext) {
+        const response = await fetch("/api/company/integrations/qbo-r365/preview-unified-invoice-csv", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ unifiedInvoiceId: unifiedContext.id }),
+        });
+        const payload = (await response.json().catch(() => ({}))) as { csv?: string; error?: string };
+        if (!payload.csv) {
+          toast.error(payload.error ?? "No se pudo generar el CSV R365");
+          return;
+        }
+        content = payload.csv;
+        mime = "text/csv;charset=utf-8;";
+      } else {
+        const esc = (v: string | number | null | undefined) => {
+          const s = v == null ? "" : String(v);
+          return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
+        };
+        const curLabel = formatCurrencyLabel(inv.currency);
+        const metaRows = [
+          ["Factura N°", inv.invoiceNumber ?? inv.sourceInvoiceId ?? ""].map(esc).join(","),
+          ["Cliente", inv.vendor ?? ""].map(esc).join(","),
+          ["Fecha", formatQboDate(inv.invoiceDate) ?? ""].map(esc).join(","),
+          ["Vencimiento", formatQboDate(inv.dueDate) ?? ""].map(esc).join(","),
+          ...(inv.terms ? [["Terminos", inv.terms].map(esc).join(",")] : []),
+          ...(inv.poNumber ? [["PO#", inv.poNumber].map(esc).join(",")] : []),
+          ...(inv.memo ? [["Memo", inv.memo].map(esc).join(",")] : []),
+          ["Moneda", curLabel || inv.currency || ""].map(esc).join(","),
+          ["Estado QBO", inv.qboStatusRaw ?? inv.qboPaymentStatus ?? ""].map(esc).join(","),
+          ["", ""].join(","),
+        ];
+        const header = ["Cant.", "SKU", "Item", "Descripcion", "Precio", "Importe", "Impuesto", "Total", "ID.QBO"].map(esc).join(",");
+        const rows = inv.lines.map((l) => {
+          const shortName = l.itemName ? l.itemName.split(":").pop()!.trim() : (l.targetCode ?? "");
+          return [l.quantity, l.sku ?? "", shortName, l.description, l.unitPrice?.toFixed(2), l.lineAmount?.toFixed(2), l.taxAmount?.toFixed(2), l.totalAmount?.toFixed(2), l.targetCode].map(esc).join(",");
+        });
+        rows.push(["", "", "", "SUBTOTAL", inv.subtotal.toFixed(2), "", "", ""].map(esc).join(","));
+        rows.push(["", "", "", "IMPUESTO", inv.totalTax.toFixed(2), "", "", ""].map(esc).join(","));
+        rows.push(["", "", "", "TOTAL", inv.grandTotal.toFixed(2), "", "", ""].map(esc).join(","));
+        content = [...metaRows, header, ...rows].join("\r\n");
+        mime = "text/csv;charset=utf-8;";
+      }
     } else if (format === "txt") {
       const pad = (s: string, n: number, right = false) => right ? s.slice(0, n).padStart(n) : s.slice(0, n).padEnd(n);
       const sep = "-".repeat(90);
@@ -1142,7 +1341,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       content = [...hdr, ...bodyLines, ...ftr].join("\n");
       mime = "text/plain;charset=utf-8;";
     } else {
-      content = JSON.stringify(inv, null, 2);
+      content = JSON.stringify(unifiedContext ? unifiedContext.rawEntity : inv, null, 2);
       mime = "application/json";
     }
 
@@ -1150,7 +1349,14 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `factura-${safeName}.${format === "json" ? "json" : format === "txt" ? "txt" : "csv"}`;
+    if (unifiedContext && typeSlug && docSlug) {
+      if (format === "csv") link.download = `r365_${typeSlug}_${docSlug}.csv`;
+      else if (format === "json") link.download = `qbo_raw_${typeSlug}_${docSlug}.json`;
+      else if (format === "txt") link.download = `factura_${typeSlug}_${docSlug}.txt`;
+      else link.download = `factura_${typeSlug}_${docSlug}.pdf`;
+    } else {
+      link.download = `factura-${safeName}.${format === "json" ? "json" : format === "txt" ? "txt" : "csv"}`;
+    }
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -1797,7 +2003,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                       <button
                         key={fmt}
                         type="button"
-                        onClick={() => handleInvoiceExport(fmt)}
+                        onClick={() => handleInvoiceExport(fmt, { id: selectedUnifiedRow.id, docNumber: selectedUnifiedRow.docNumber, entityType: selectedUnifiedRow.entityType, rawEntity: selectedUnifiedRow.rawEntity })}
                         className="rounded-md border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
                       >
                         {fmt}
