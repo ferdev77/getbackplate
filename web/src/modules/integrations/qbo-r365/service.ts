@@ -1477,7 +1477,7 @@ export async function runQboR365Sync(input: {
         file_hash: null,
         total_detected: detectedInvoiceCount,
         total_mapped: uniqueLines.length,
-        total_uploaded: dryRun ? 0 : uniqueLines.length,
+        total_uploaded: dryRun ? 0 : linesByInvoice.size,
         total_skipped_duplicates: totalSkipped,
         total_failed: 0,
       })
@@ -2267,7 +2267,7 @@ export async function sendPreparedQboR365Run(input: {
       finished_at: new Date().toISOString(),
       file_hash: csvBuild.hash,
       file_name: fileName,
-      total_uploaded: lines.length,
+      total_uploaded: 1,
       total_failed: 0,
       error_summary: {},
     })
@@ -2809,7 +2809,7 @@ export async function sendSingleInvoiceFromHistory(input: {
       file_hash: csvBuild.hash,
       total_detected: 1,
       total_mapped: lines.length,
-      total_uploaded: lines.length,
+      total_uploaded: 1,
       total_failed: 0,
       total_skipped_duplicates: 0,
     })
@@ -3135,7 +3135,7 @@ async function mapAndSendUnifiedRow(input: {
       file_hash: csvBuild.hash,
       total_detected: 1,
       total_mapped: lines.length,
-      total_uploaded: lines.length,
+      total_uploaded: 1,
       total_failed: 0,
       total_skipped_duplicates: 0,
     })
