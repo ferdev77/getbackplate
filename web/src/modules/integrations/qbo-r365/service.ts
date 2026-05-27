@@ -2484,6 +2484,7 @@ export async function previewUnifiedInvoiceCsv(input: {
 
   const syncConfig = await getSyncConfigRow(input.organizationId, syncConfigId);
   const mappings = await getActiveMappings(input.organizationId);
+  const itemSkuMap = await getQboItemSkuMapForOrganization(input.organizationId);
 
   const entityType = row.entity_type as "Invoice" | "CreditMemo";
   const rawEntity = row.raw_entity as QboInvoiceLike;
@@ -2495,6 +2496,7 @@ export async function previewUnifiedInvoiceCsv(input: {
     template: syncConfig.template,
     taxMode: syncConfig.tax_mode,
     mappings,
+    itemSkuMap,
     r365VendorName: syncConfig.r365_vendor_name || undefined,
     r365Location: syncConfig.r365_location || undefined,
     syncConfigCustomerId: syncConfig.qbo_customer_id,
@@ -3056,6 +3058,7 @@ async function mapAndSendUnifiedRow(input: {
   const admin = createSupabaseAdminClient();
 
   const mappings = await getActiveMappings(input.organizationId);
+  const itemSkuMap = await getQboItemSkuMapForOrganization(input.organizationId);
 
   const lines = normalizeQboRows({
     invoices: input.entityType === "Invoice" ? [input.rawEntity] : [],
@@ -3064,6 +3067,7 @@ async function mapAndSendUnifiedRow(input: {
     template: input.syncConfig.template,
     taxMode: input.syncConfig.tax_mode,
     mappings,
+    itemSkuMap,
     r365VendorName: input.syncConfig.r365_vendor_name || undefined,
     r365Location: input.syncConfig.r365_location || undefined,
     syncConfigCustomerId: input.syncConfig.qbo_customer_id,
@@ -3300,6 +3304,19 @@ export type UnifiedInvoiceRow = {
   createdAt: string;
   updatedAt: string;
 };
+
+async function getQboItemSkuMapForOrganization(organizationId: string): Promise<Map<string, string>> {
+  const qboConnection = await getConnection(organizationId, "quickbooks_online");
+  if (!qboConnection || qboConnection.status !== "connected") return new Map<string, string>();
+
+  const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection }).catch(() => null);
+  if (!qboAuth) return new Map<string, string>();
+
+  return fetchQboItemSkus({
+    accessToken: qboAuth.accessToken,
+    realmId: qboAuth.realmId,
+  }).catch(() => new Map<string, string>());
+}
 
 /**
  * Trae una factura o nota de crédito de QBO por su DocNumber y la persiste
