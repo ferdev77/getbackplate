@@ -156,21 +156,6 @@ function triggerLabel(src: string) {
   return "Manual";
 }
 
-function templateLabel(mode?: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates" | null) {
-  if (mode === "by_item_service_dates") return "by_item_service_dates";
-  if (mode === "by_account_service_dates") return "by_account_service_dates";
-  if (mode === "by_account") return "by_account";
-  if (mode === "by_item") return "by_item";
-  return "-";
-}
-
-function itemStatusLabel(status: string) {
-  if (status === "uploaded" || status === "validated") return "Enviada";
-  if (status === "skipped_duplicate") return "Saltada";
-  if (status === "failed_delivery" || status === "failed_validation") return "Error";
-  if (status === "exported") return "Preparada";
-  return status;
-}
 
 function connDot(status: string) {
   if (status === "connected") return "bg-[var(--gbp-success)]";
@@ -202,20 +187,6 @@ function formatCurrencyLabel(value: string | null | undefined) {
     return "USD";
   }
   return value;
-}
-
-function qboPaymentStatusLabel(status: "paid" | "unpaid" | "partial" | "not_applicable" | "unknown" | null) {
-  if (status === "paid") return "Pagada";
-  if (status === "partial") return "Parcial";
-  if (status === "unpaid") return "Sin pagar";
-  if (status === "not_applicable") return "No aplica";
-  return "Sin dato";
-}
-
-function invoiceTypeLabel(code: "1" | "2" | null) {
-  if (code === "2") return "Credit Memo";
-  if (code === "1") return "Invoice";
-  return "-";
 }
 
 function relativeTime(iso: string) {
@@ -776,10 +747,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   }, [data, query, statusFilter]);
 
   const selectedRun = useMemo(() => data?.runs.find((r) => r.id === selectedRunId) ?? null, [data, selectedRunId]);
-  const selectedInvoice = useMemo(
-    () => data?.invoiceHistory.find((item) => item.sourceInvoiceId === selectedInvoiceId) ?? null,
-    [data, selectedInvoiceId],
-  );
   const sortedUnifiedHistory = useMemo(() => {
     return [...unifiedHistory].sort((a, b) => {
       const aVal = unifiedSort.col === "txnDate" ? (a.txnDate ?? "") : a.createdAt;
@@ -794,10 +761,9 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   );
   const isCreditMemoSelected = useMemo(() => {
     if (invoiceDetail?.transactionTypeCode === "2") return true;
-    if (selectedInvoice?.transactionTypeCode === "2") return true;
     if (selectedUnifiedRow?.entityType === "CreditMemo") return true;
     return false;
-  }, [invoiceDetail, selectedInvoice, selectedUnifiedRow]);
+  }, [invoiceDetail, selectedUnifiedRow]);
 
   useEffect(() => {
     if (!selectedInvoiceId) {
@@ -838,68 +804,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     }
   }
 
-  async function handleSendSingleInvoice(
-    sourceInvoiceId: string,
-    syncConfigId?: string | null,
-    ftpOverride?: { host: string; port: number; username: string; password: string; remotePath: string; secure: boolean } | null,
-    templateOverride?: string | null,
-  ) {
-    setSendingInvoice(true);
-    const loadingToastId = toast.loading("Enviando factura a R365...");
-    try {
-      const response = await fetch("/api/company/integrations/qbo-r365/send-invoice", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          sourceInvoiceId,
-          syncConfigId: syncConfigId ?? null,
-          ftp: ftpOverride ?? null,
-          template: templateOverride ?? null,
-        }),
-      });
-      const payload = (await response.json().catch(() => ({}))) as { error?: string; uploaded?: number; fileName?: string };
-      if (!response.ok) throw new Error(payload.error || "No se pudo enviar la factura");
-      toast.dismiss(loadingToastId);
-      toast.success("Factura enviada a R365", {
-        description: payload.fileName
-          ? `Archivo ${payload.fileName} subido (${payload.uploaded ?? 0} líneas).`
-          : "Enviado correctamente.",
-      });
-      setRefreshKey((p) => p + 1);
-      setInvoiceDetailRefreshKey((p) => p + 1);
-    } catch (error) {
-      toast.dismiss(loadingToastId);
-      toast.error("No se pudo enviar la factura", {
-        description: error instanceof Error ? error.message : "Error",
-      });
-    }
-    setSendingInvoice(false);
-  }
-
-  async function handlePreviewCsv(sourceInvoiceId: string, syncConfigId: string | null, template: string) {
-    setPreviewingCsv(true);
-    setCsvPreview(null);
-    try {
-      const response = await fetch("/api/company/integrations/qbo-r365/preview-invoice-csv", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ sourceInvoiceId, syncConfigId, template }),
-      });
-      const payload = (await response.json().catch(() => ({}))) as {
-        error?: string;
-        headers?: string[];
-        rows?: string[][];
-        rowCount?: number;
-      };
-      if (!response.ok) throw new Error(payload.error || "No se pudo generar la previsualización");
-      setCsvPreview({ headers: payload.headers ?? [], rows: payload.rows ?? [], rowCount: payload.rowCount ?? 0 });
-    } catch (error) {
-      toast.error("No se pudo previsualizar", {
-        description: error instanceof Error ? error.message : "Error",
-      });
-    }
-    setPreviewingCsv(false);
-  }
 
   async function handlePreviewUnifiedCsv(unifiedInvoiceId: string) {
     setPreviewingCsv(true);
@@ -924,46 +828,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       });
     }
     setPreviewingCsv(false);
-  }
-
-  async function handleDownloadRawQbo(invoiceId: string | null) {
-    if (!invoiceId) return;
-    try {
-      const response = await fetch(`/api/company/integrations/qbo-r365/invoice-raw?invoiceId=${encodeURIComponent(invoiceId)}`);
-      const data = await response.json() as unknown;
-      if (!response.ok) { toast.error((data as { error?: string }).error ?? "Error"); return; }
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `qbo_raw_${invoiceId}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      toast.error("No se pudo descargar el raw de QBO");
-    }
-  }
-
-  async function handleDownloadCrudoQbo(invoiceId: string | null) {
-    if (!invoiceId) return;
-    try {
-      const syncConfigId = syncHistoryFilter?.id ?? "";
-      const query = syncConfigId
-        ? `invoiceId=${encodeURIComponent(invoiceId)}&syncConfigId=${encodeURIComponent(syncConfigId)}`
-        : `invoiceId=${encodeURIComponent(invoiceId)}`;
-      const response = await fetch(`/api/company/integrations/qbo-r365/invoice-crudo?${query}`);
-      const data = await response.json() as unknown;
-      if (!response.ok) { toast.error((data as { error?: string }).error ?? "Error"); return; }
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `qbo_crudo_${invoiceId}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      toast.error("No se pudo descargar el crudo de QBO");
-    }
   }
 
   async function handleInvoiceExport(
@@ -1363,7 +1227,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
 
   const statCards = data?.statCardsByMode?.[mode] ?? data?.statCards ?? [];
   const conns = data?.connections ?? { qbo: { status: "disconnected" }, ftp: { status: "disconnected" } };
-  const invoiceHistory = data?.invoiceHistory ?? [];
 
   return (
     <main className={className}>
@@ -1984,7 +1847,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       )}
 
       {/* Panel minimal para filas de webhook que no están en el historial legacy */}
-      {!selectedInvoice && selectedUnifiedRow && (
+      {selectedUnifiedRow && (
         <>
           <button type="button" onClick={() => setSelectedInvoiceId(null)} className="fixed inset-0 z-[110] bg-black/30" />
           <aside className="fixed right-0 top-0 z-[120] flex h-full w-full max-w-md flex-col border-l-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-xl)]">
@@ -2200,454 +2063,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
         </>
       )}
 
-      {selectedInvoice && (
-        <>
-          <button
-            type="button"
-            onClick={() => setSelectedInvoiceId(null)}
-            className="fixed inset-0 z-[110] bg-black/30"
-            aria-label="Cerrar detalle de factura"
-          />
-          <aside className="fixed right-0 top-0 z-[120] flex h-full w-full max-w-2xl flex-col border-l-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-xl)]">
-            {/* Header */}
-            <header className="flex items-start justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">{isCreditMemoSelected ? "Detalle de nota de crédito" : "Detalle de factura"}</p>
-                <h3 className="mt-1 text-lg font-bold text-[var(--gbp-text)]">
-                  {invoiceDetail?.invoiceNumber ?? selectedInvoice.invoiceNumber ?? "Sin numero"}
-                </h3>
-                <p className="mt-0.5 text-xs text-[var(--gbp-text2)]">
-                  {invoiceTypeLabel(invoiceDetail?.transactionTypeCode ?? selectedInvoice.transactionTypeCode)}
-                  {(invoiceDetail?.currency ?? selectedInvoice.currency) ? ` · ${formatCurrencyLabel(invoiceDetail?.currency ?? selectedInvoice.currency)}` : ""}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {invoiceDetail && invoiceDetail.lines.length > 0 && (
-                  <div className="flex items-center gap-1">
-                    {(["csv", "txt", "json", "pdf"] as const).map((fmt) => (
-                      <button
-                        key={fmt}
-                        type="button"
-                        onClick={() => handleInvoiceExport(fmt)}
-                        className="rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
-                      >
-                        {fmt}
-                      </button>
-                    ))}
-                    {mode === "developer" && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => void handleDownloadRawQbo(selectedInvoice.sourceInvoiceId)}
-                          className="rounded-lg border-[1.5px] border-[var(--gbp-warning,#f59e0b)] bg-[var(--gbp-bg)] px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--gbp-warning,#f59e0b)] transition hover:bg-[color-mix(in_oklab,#f59e0b_10%,transparent)]"
-                        >
-                          raw qbo
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void handleDownloadCrudoQbo(selectedInvoice.sourceInvoiceId)}
-                          className="rounded-lg border-[1.5px] border-[var(--gbp-accent)] bg-[var(--gbp-bg)] px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--gbp-accent)] transition hover:bg-[color-mix(in_oklab,var(--gbp-accent)_10%,transparent)]"
-                        >
-                          crudo
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setSelectedInvoiceId(null)}
-                  className="rounded-lg p-1.5 text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg)]"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-            </header>
 
-            <div className="flex-1 overflow-y-auto">
-              {/* Encabezado estilo invoice */}
-              <div className="border-b border-[var(--gbp-border)] px-6 py-5 text-sm">
-                {/* Fila 1: Bill To + datos de factura */}
-                <div className="flex items-start justify-between gap-6">
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Bill To</p>
-                    <p className="mt-1 text-base font-bold text-[var(--gbp-text)]">{invoiceDetail?.vendor ?? selectedInvoice.vendor ?? "-"}</p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <div className="grid grid-cols-[auto_auto] gap-x-4 gap-y-1 text-xs">
-                      <span className="font-bold uppercase tracking-wide text-[var(--gbp-muted)]">{isCreditMemoSelected ? "Credit Memo" : "Invoice"}</span>
-                      <span className="font-semibold text-[var(--gbp-text)]">{invoiceDetail?.invoiceNumber ?? selectedInvoice.invoiceNumber ?? "-"}</span>
-                      <span className="font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Date</span>
-                      <span className="text-[var(--gbp-text)]">{formatQboDate(invoiceDetail?.invoiceDate ?? selectedInvoice.invoiceDate)}</span>
-                      {(invoiceDetail?.terms) && (
-                        <>
-                          <span className="font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Terms</span>
-                          <span className="text-[var(--gbp-text)]">{invoiceDetail.terms}</span>
-                        </>
-                      )}
-                      {!isCreditMemoSelected && (
-                        <>
-                          <span className="font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Due Date</span>
-                          <span className="text-[var(--gbp-text)]">{formatQboDate(invoiceDetail?.dueDate ?? selectedInvoice.dueDate)}</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Fila 2: PO# + moneda */}
-                {(invoiceDetail?.poNumber ?? invoiceDetail?.memo) && (
-                  <div className="mt-3 flex gap-6">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">PO#</p>
-                      <p className="mt-0.5 font-semibold text-[var(--gbp-text)]">{invoiceDetail?.poNumber ?? invoiceDetail?.memo}</p>
-                    </div>
-                    {(invoiceDetail?.currency ?? selectedInvoice.currency) && (
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Moneda</p>
-                        <p className="mt-0.5 text-[var(--gbp-text)]">{formatCurrencyLabel(invoiceDetail?.currency ?? selectedInvoice.currency)}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Fila 3: estados en grid compacto */}
-                <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 border-t border-[var(--gbp-border)] pt-4 sm:grid-cols-4">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Estado QBO</p>
-                    <p className="mt-0.5 font-semibold text-[var(--gbp-text)]">{invoiceDetail?.qboStatusRaw ?? selectedInvoice.qboStatusRaw ?? qboPaymentStatusLabel(selectedInvoice.qboPaymentStatus)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Estado GBP</p>
-                    <p className="mt-0.5 font-semibold text-[var(--gbp-text)]">{itemStatusLabel(selectedInvoice.lastStatus)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Enviada a R365</p>
-                    <p className="mt-0.5 font-semibold text-[var(--gbp-text)]">{selectedInvoice.sentToR365 ? "Sí" : "No"}</p>
-                  </div>
-                  {invoiceDetail?.qboBalance != null && (
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Balance Due</p>
-                      <p className="mt-0.5 font-bold text-[var(--gbp-text)]">{invoiceDetail.qboBalance.toFixed(2)}</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* QBO ID pequeño al fondo */}
-                <p className="mt-3 font-mono text-[10px] text-[var(--gbp-muted)]">QBO ID: {selectedInvoice.sourceInvoiceId}</p>
-              </div>
-
-              {/* ── Enviar a R365 (siempre visible) ── */}
-              {(() => {
-                const unifiedStatus = selectedUnifiedRow?.pipelineStatus;
-                const isSent = unifiedStatus ? unifiedStatus === "enviada" : selectedInvoice.sentToR365;
-                return (
-                  <div className="flex items-center justify-between border-b border-[var(--gbp-border)] px-6 py-4">
-                    <span className="text-[10px] text-[var(--gbp-muted)]">Usando FTP configurado en sync config</span>
-                    <button
-                      type="button"
-                      disabled={sendingInvoice}
-                      onClick={() => handleSendSingleInvoice(
-                        selectedInvoice.sourceInvoiceId,
-                        syncHistoryFilter?.id ?? selectedUnifiedRow?.syncConfigId ?? null,
-                        null,
-                        "by_item",
-                      )}
-                      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-bold transition disabled:opacity-50 ${
-                        isSent
-                          ? "border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)] hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
-                          : "bg-[var(--gbp-accent)] text-white hover:opacity-90"
-                      }`}
-                    >
-                      {sendingInvoice ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isSent ? <RefreshCw className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-                      {sendingInvoice ? "Enviando..." : isSent ? "Reenviar" : "Enviar a R365"}
-                    </button>
-                  </div>
-                );
-              })()}
-
-              {/* ── Pipeline (siempre visible) ── */}
-              {(() => {
-                const unifiedStatus = selectedUnifiedRow?.pipelineStatus;
-                const isCapturada = unifiedStatus
-                  ? ["capturada", "mapeada", "enviada"].includes(unifiedStatus)
-                  : (selectedInvoice.mappedCode != null || selectedInvoice.lastStatus === "exported" || selectedInvoice.lastStatus === "uploaded" || selectedInvoice.lastStatus === "validated");
-                const isMapped = unifiedStatus
-                  ? ["mapeada", "enviada"].includes(unifiedStatus)
-                  : (selectedInvoice.sentToR365 || selectedInvoice.mappedCode != null || selectedInvoice.lastStatus === "exported" || selectedInvoice.lastStatus === "uploaded" || selectedInvoice.lastStatus === "validated" || selectedInvoice.lastStatus === "skipped_duplicate");
-                const isSent = unifiedStatus
-                  ? unifiedStatus === "enviada"
-                  : selectedInvoice.sentToR365;
-
-                const mappedSub = (() => {
-                  if (!isMapped) return "";
-                  const tmpl = selectedInvoice.templateMode ? templateLabel(selectedInvoice.templateMode) : "";
-                  if (!invoiceDetail) return tmpl;
-                  const linesCount = invoiceDetail.lines.length;
-                  const lineStr = `${linesCount} línea${linesCount !== 1 ? "s" : ""}`;
-                  return tmpl ? `${tmpl} · ${lineStr}` : lineStr;
-                })();
-
-                const steps: Array<{ key: string; done: boolean; label: string; sub: string }> = [
-                  { key: "en_cola", done: true, label: "En cola", sub: relativeTime(selectedInvoice.lastSeenAt) },
-                  { key: "capturada", done: isCapturada, label: "Capturada", sub: isCapturada ? "Datos QBO" : "" },
-                  { key: "mapeada", done: isMapped, label: "Mapeada", sub: mappedSub },
-                  { key: "sent", done: isSent, label: "Enviada", sub: isSent ? "R365 FTP" : "" },
-                ];
-
-                return (
-                  <div className="border-b border-[var(--gbp-border)] px-6 py-5">
-                    <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-muted)]">
-                      Pipeline de procesamiento
-                    </p>
-                    <div className="relative grid grid-cols-4 gap-1">
-                      <div className="absolute top-4 h-0.5 bg-[var(--gbp-border)]" style={{ left: "12.5%", right: "12.5%" }} />
-                      {isCapturada && <div className="absolute top-4 h-0.5 bg-[var(--gbp-success)] transition-all duration-500" style={{ left: "12.5%", width: "25%" }} />}
-                      {isMapped && <div className="absolute top-4 h-0.5 bg-[var(--gbp-success)] transition-all duration-500" style={{ left: "37.5%", width: "25%" }} />}
-                      {isSent && <div className="absolute top-4 h-0.5 bg-[var(--gbp-success)] transition-all duration-500" style={{ left: "62.5%", width: "25%" }} />}
-                      {steps.map((step) => (
-                        <div key={step.key} className="flex flex-col items-center gap-1 text-center">
-                          <div className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors duration-300 ${step.done ? "border-[var(--gbp-success)] bg-[color-mix(in_oklab,var(--gbp-success)_15%,transparent)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)]"}`}>
-                            {step.done ? <CheckCircle2 className="h-4 w-4 text-[var(--gbp-success)]" /> : <Clock className="h-3.5 w-3.5 text-[var(--gbp-muted)]" />}
-                          </div>
-                          <span className={`mt-1 text-[9px] font-extrabold uppercase tracking-[0.1em] ${step.done ? "text-[var(--gbp-text)]" : "text-[var(--gbp-muted)]"}`}>{step.label}</span>
-                          {step.sub && <span className="text-[9px] text-[var(--gbp-text2)]">{step.sub}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* ── Template + columnas + csv preview (solo developer) ── */}
-              {showDeveloperMode && (() => {
-                const templateCols = TEMPLATE_COLS["by_item"];
-                return (
-                  <div className="border-b border-[var(--gbp-border)] px-6 py-4">
-                    <div className="mb-3 flex items-center justify-between">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-muted)]">
-                        Template R365
-                      </p>
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => { setShowMappingPreview((p) => !p); setCsvPreview(null); }}
-                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg)] hover:text-[var(--gbp-accent)]"
-                        >
-                          {showMappingPreview ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                          {showMappingPreview ? "Ocultar columnas" : "Ver columnas"}
-                        </button>
-                        <button
-                          type="button"
-                          disabled={previewingCsv}
-                          onClick={() => {
-                            setCsvPreview(null);
-                            setShowMappingPreview(false);
-                            handlePreviewCsv(
-                              selectedInvoice.sourceInvoiceId,
-                              syncHistoryFilter?.id ?? null,
-                              "by_item",
-                            );
-                          }}
-                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
-                        >
-                          {previewingCsv ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
-                          {previewingCsv ? "Generando..." : csvPreview ? "Ocultar datos" : "Previsualizar"}
-                        </button>
-                      </div>
-                    </div>
-                    {showMappingPreview && (
-                      <div className="mt-3 overflow-x-auto rounded-xl border border-[var(--gbp-border)]">
-                        <table className="w-full text-xs">
-                          <thead>
-                            <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)]">
-                              <th className="px-2 py-1.5 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Col</th>
-                              <th className="px-2 py-1.5 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">R365</th>
-                              <th className="px-2 py-1.5 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">QBO Fuente</th>
-                              <th className="px-2 py-1.5 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Alcance</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-[var(--gbp-border)]">
-                            {templateCols.map((col) => (
-                              <tr
-                                key={col.col}
-                                className={
-                                  col.note
-                                    ? "bg-[color-mix(in_oklab,var(--gbp-accent)_5%,transparent)]"
-                                    : col.highlight
-                                      ? "bg-[color-mix(in_oklab,var(--gbp-accent)_8%,transparent)]"
-                                      : ""
-                                }
-                              >
-                                <td className={`px-2 py-1.5 font-mono font-bold ${col.note ? "text-[var(--gbp-accent)]" : "text-[var(--gbp-text)]"}`}>{col.col}</td>
-                                <td className="px-2 py-1.5 text-[var(--gbp-text)]">
-                                  {col.r365Name}
-                                  {col.highlight && !col.note && (
-                                    <span className="ml-1.5 rounded-sm bg-[var(--gbp-accent)] px-1 py-0.5 text-[9px] font-bold uppercase text-white">clave</span>
-                                  )}
-                                </td>
-                                <td className="px-2 py-1.5 font-mono text-[10px] text-[var(--gbp-text2)]">{col.qboSource}</td>
-                                <td className="px-2 py-1.5">
-                                  {col.note ? (
-                                    <span className="rounded-full bg-[color-mix(in_oklab,var(--gbp-accent)_15%,transparent)] px-1.5 py-0.5 text-[9px] font-bold uppercase text-[var(--gbp-accent)]">Fila extra</span>
-                                  ) : (
-                                    <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${col.scope === "header" ? "bg-blue-50 text-blue-600" : "bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"}`}>
-                                      {col.scope === "header" ? "Cabecera" : "Detalle"}
-                                    </span>
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                    {csvPreview && (
-                      <div className="mt-3">
-                        <div className="mb-1.5 flex items-center justify-between">
-                          <span className="text-[10px] font-bold text-[var(--gbp-muted)]">
-                            {csvPreview.rowCount} fila{csvPreview.rowCount !== 1 ? "s" : ""} · by_item
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              navigator.clipboard.writeText(
-                                [csvPreview.headers, ...csvPreview.rows].map((r) => r.join(",")).join("\n"),
-                              );
-                              toast.success("CSV copiado al portapapeles");
-                            }}
-                            className="text-[10px] font-bold text-[var(--gbp-text2)] underline-offset-2 hover:text-[var(--gbp-accent)] hover:underline"
-                          >
-                            Copiar CSV
-                          </button>
-                        </div>
-                        <div className="overflow-x-auto rounded-xl border border-[var(--gbp-border)]">
-                          <table className="w-full text-[10px]">
-                            <thead>
-                              <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)]">
-                                {csvPreview.headers.map((h, i) => (
-                                  <th key={i} className="whitespace-nowrap px-2 py-1.5 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">{h}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-[var(--gbp-border)]">
-                              {csvPreview.rows.map((row, ri) => (
-                                <tr key={ri} className="hover:bg-[var(--gbp-bg)]">
-                                  {row.map((cell, ci) => (
-                                    <td key={ci} className="max-w-[140px] truncate whitespace-nowrap px-2 py-1.5 font-mono text-[var(--gbp-text)]" title={cell}>
-                                      {cell || <span className="text-[var(--gbp-muted)]">—</span>}
-                                    </td>
-                                  ))}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-
-              {/* Líneas */}
-              <div className="px-4 py-4">
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">
-                  Ítems
-                  {invoiceDetail && ` · ${invoiceDetail.lines.length} línea${invoiceDetail.lines.length !== 1 ? "s" : ""}`}
-                </p>
-
-                {invoiceDetailLoading && (
-                  <div className="flex items-center gap-2 py-8 text-sm text-[var(--gbp-muted)]">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Cargando líneas...
-                  </div>
-                )}
-
-                {!invoiceDetailLoading && invoiceDetail && invoiceDetail.lines.length === 0 && (
-                  <p className="py-6 text-center text-sm text-[var(--gbp-muted)]">Sin líneas registradas</p>
-                )}
-
-                {!invoiceDetailLoading && invoiceDetail && invoiceDetail.lines.length > 0 && (
-                  <div className="overflow-x-auto rounded-xl border-[1.5px] border-[var(--gbp-border)]">
-                    <table className="w-full min-w-[640px] text-xs">
-                      <thead>
-                        <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)]">
-                          <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Cant.</th>
-                          <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">SKU</th>
-                          <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Ítem</th>
-                          <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Descripción</th>
-                          <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Precio</th>
-                          <th className="px-3 py-2 text-right font-bold uppercase tracking-wide text-[var(--gbp-muted)]">Importe</th>
-                          <th className="px-3 py-2 text-left font-bold uppercase tracking-wide text-[var(--gbp-muted)]">ID QBO</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--gbp-border)]">
-                        {invoiceDetail.lines.map((line) => {
-                          const shortName = line.itemName ? line.itemName.split(":").pop()!.trim() : null;
-                          return (
-                          <tr key={line.sourceLineId} className="hover:bg-[var(--gbp-bg)]">
-                            <td className="px-3 py-2.5 text-right font-semibold text-[var(--gbp-text)]">{line.quantity != null ? line.quantity : "-"}</td>
-                            <td className="px-3 py-2.5 font-mono text-[11px] text-[var(--gbp-text2)]">{line.sku ?? "-"}</td>
-                            <td className="px-3 py-2.5">
-                              {shortName ? (
-                                <span className="font-semibold text-[var(--gbp-text)]">{shortName}</span>
-                              ) : (
-                                <span className="text-[var(--gbp-muted)]">{line.targetCode ?? "-"}</span>
-                              )}
-                            </td>
-                            <td className="max-w-[180px] truncate px-3 py-2.5 text-[var(--gbp-text2)]" title={line.description ?? undefined}>
-                              {line.description || "-"}
-                              {(line.taxAmount ?? 0) > 0 && <span className="ml-1 text-[10px] font-bold text-[var(--gbp-accent)]">T</span>}
-                            </td>
-                            <td className="px-3 py-2.5 text-right text-[var(--gbp-text)]">{line.unitPrice != null ? (isCreditMemoSelected ? -line.unitPrice : line.unitPrice).toFixed(2) : "-"}</td>
-                            <td className="px-3 py-2.5 text-right font-semibold text-[var(--gbp-text)]">{line.lineAmount != null ? (isCreditMemoSelected ? -line.lineAmount : line.lineAmount).toFixed(2) : "-"}</td>
-                            <td className="px-3 py-2.5 font-mono text-[10px] text-[var(--gbp-muted)]">{line.targetCode ?? "-"}</td>
-                          </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-                {/* Totales */}
-                {!invoiceDetailLoading && invoiceDetail && invoiceDetail.lines.length > 0 && (
-                  <div className="mt-3 flex flex-col items-end gap-1 text-sm">
-                    <div className="flex w-64 items-center justify-between gap-4 border-t border-[var(--gbp-border)] pt-2">
-                      <span className="text-[var(--gbp-text2)]">Subtotal</span>
-                      <span className="font-semibold text-[var(--gbp-text)]">{(isCreditMemoSelected ? -invoiceDetail.subtotal : invoiceDetail.subtotal).toFixed(2)} {formatCurrencyLabel(invoiceDetail.currency)}</span>
-                    </div>
-                    {!isCreditMemoSelected && (
-                      <div className="flex w-64 items-center justify-between gap-4">
-                        <span className="text-[var(--gbp-text2)]">Impuestos</span>
-                        <span className="font-semibold text-[var(--gbp-text)]">{invoiceDetail.totalTax.toFixed(2)} {formatCurrencyLabel(invoiceDetail.currency)}</span>
-                      </div>
-                    )}
-                    <div className="flex w-64 items-center justify-between gap-4 rounded-lg bg-[var(--gbp-bg)] px-3 py-2">
-                      <span className="font-bold text-[var(--gbp-text)]">Total</span>
-                      <span className="text-base font-bold text-[var(--gbp-text)]">{(isCreditMemoSelected ? -invoiceDetail.grandTotal : invoiceDetail.grandTotal).toFixed(2)} {formatCurrencyLabel(invoiceDetail.currency)}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Meta */}
-              <div className="border-t border-[var(--gbp-border)] px-6 py-3">
-                <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
-                  <div className="flex justify-between gap-2">
-                    <dt className="text-[var(--gbp-muted)]">Última detección</dt>
-                    <dd className="text-[var(--gbp-text)]">{new Date(selectedInvoice.lastSeenAt).toLocaleString("es-AR")}</dd>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <dt className="text-[var(--gbp-muted)]">Detecciones</dt>
-                    <dd className="text-[var(--gbp-text)]">{selectedInvoice.timesSeen}</dd>
-                  </div>
-                </dl>
-              </div>
-            </div>
-          </aside>
-        </>
-      )}
 
 
     </main>
