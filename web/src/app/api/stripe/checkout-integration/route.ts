@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { stripe } from "@/infrastructure/stripe/client";
+import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 
 type BillingPeriod = "monthly" | "annual";
 
@@ -37,6 +38,15 @@ async function resolveTargetPriceForPeriod(params: {
 
 export async function POST(request: Request) {
   try {
+    const moduleAccess = await assertCompanyAdminModuleApi("dashboard", {
+      allowBillingBypass: true,
+    });
+    if (!moduleAccess.ok) {
+      return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
+    }
+    const { userId, tenant } = moduleAccess;
+    const { organizationId } = tenant;
+
     const payload = (await request.json()) as {
       planId?: string;
       billingPeriod?: string;
@@ -53,7 +63,7 @@ export async function POST(request: Request) {
     const supabase = createSupabaseAdminClient();
     const { data: plan } = await supabase
       .from("plans")
-      .select("id, name, stripe_price_id, plan_type, is_enterprise")
+      .select("id, code, name, stripe_price_id, plan_type, is_enterprise")
       .eq("id", planId)
       .eq("plan_type", "qbo_r365")
       .eq("is_active", true)
@@ -99,22 +109,36 @@ export async function POST(request: Request) {
     const appUrl =
       process.env.NEXT_PUBLIC_APP_URL ?? "https://app.getbackplate.com";
 
+    const planCode =
+      typeof (plan as Record<string, unknown>).code === "string"
+        ? ((plan as Record<string, unknown>).code as string)
+        : "";
+
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [{ price: targetPriceId, quantity: 1 }],
+      client_reference_id: organizationId,
       success_url: `${appUrl}/integrations/qbo-r365/success?plan=${encodeURIComponent(plan.name)}&period=${period}`,
       cancel_url: `${appUrl}/integrations/qbo-r365`,
       tax_id_collection: { enabled: true },
       metadata: {
-        planId: plan.id,
-        planType: "qbo_r365",
+        organizationId,
+        userId,
+        isAddon: "true",
+        moduleCode: "qbo_r365",
+        integrationPlanId: plan.id,
+        integrationPlanCode: planCode,
         billingPeriod: period,
       },
       subscription_data: {
         metadata: {
-          planId: plan.id,
-          planType: "qbo_r365",
+          organizationId,
+          userId,
+          isAddon: "true",
+          moduleCode: "qbo_r365",
+          integrationPlanId: plan.id,
+          integrationPlanCode: planCode,
           billingPeriod: period,
         },
       },

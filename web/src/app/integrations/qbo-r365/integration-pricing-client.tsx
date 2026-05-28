@@ -385,6 +385,12 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planId, billingPeriod: period }),
       });
+
+      if (res.status === 401) {
+        window.location.href = `/auth/register?returnTo=${encodeURIComponent("/integrations/qbo-r365")}`;
+        return;
+      }
+
       const data = (await res.json()) as { url?: string; error?: string };
       if (data.url) {
         window.location.href = data.url;
