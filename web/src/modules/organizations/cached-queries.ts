@@ -47,11 +47,10 @@ export function getIntegrationPlansCached(planType: string) {
       const { data, error } = await supabase
         .from("plans")
         .select(
-          "id, code, name, description, price_amount, currency_code, billing_period, is_featured, is_enterprise, setup_fee_amount, features, cta_text, sort_order, stripe_price_id",
+          "id, code, name, description, price_amount, currency_code, billing_period, is_featured, is_enterprise, setup_fee_amount, features, cta_text, cta_email, sort_order, stripe_price_id",
         )
         .eq("is_active", true)
         .eq("plan_type", planType)
-        .eq("is_enterprise", false)
         .order("sort_order", { ascending: true })
         .order("price_amount", { ascending: true });
       ensureNoQueryError("getIntegrationPlansCached", error);
