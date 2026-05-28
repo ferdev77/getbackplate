@@ -133,12 +133,14 @@ export async function createPlanAction(formData: FormData) {
   const planType = normalizePlanType(String(formData.get("plan_type") ?? "platform"));
   const isFeatured = String(formData.get("is_featured") ?? "") === "on";
   const isEnterprise = String(formData.get("is_enterprise") ?? "") === "on";
-  const setupFeeAmount = parsePriceAmount(formData.get("setup_fee_amount"));
   const features = parseFeatures(formData.get("features"));
   const ctaText = String(formData.get("cta_text") ?? "").trim() || null;
   const ctaEmail = String(formData.get("cta_email") ?? "").trim() || null;
   const sortOrder = toNullableInt(formData.get("sort_order")) ?? 0;
+  const invoicesIncluded = toNullableInt(formData.get("invoices_included"));
+  const setupFeeStripePriceId = String(formData.get("setup_fee_stripe_price_id") ?? "").trim() || null;
 
+  let setupFeeAmount = parsePriceAmount(formData.get("setup_fee_amount"));
   let priceAmount = parsePriceAmount(formData.get("price_amount"));
   let currencyCode = normalizeCurrencyCode(String(formData.get("currency_code") ?? "USD")) || "USD";
 
@@ -150,6 +152,16 @@ export async function createPlanAction(formData: FormData) {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Error desconocido";
       redirect("/superadmin/plans?status=error&message=" + qs(`Stripe Price ID inválido: ${message}`));
+    }
+  }
+
+  if (setupFeeStripePriceId) {
+    try {
+      const price = await stripe.prices.retrieve(setupFeeStripePriceId);
+      setupFeeAmount = price.unit_amount ? price.unit_amount / 100 : 0;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error desconocido";
+      redirect("/superadmin/plans?status=error&message=" + qs(`Stripe Price ID del setup fee inválido: ${message}`));
     }
   }
 
@@ -196,6 +208,7 @@ export async function createPlanAction(formData: FormData) {
       cta_text: ctaText,
       cta_email: ctaEmail,
       sort_order: sortOrder,
+      invoices_included: invoicesIncluded,
     })
     .select("id")
     .single();
@@ -261,12 +274,14 @@ export async function updatePlanAction(formData: FormData) {
   const planType = normalizePlanType(String(formData.get("plan_type") ?? "platform"));
   const isFeatured = String(formData.get("is_featured") ?? "") === "on";
   const isEnterprise = String(formData.get("is_enterprise") ?? "") === "on";
-  const setupFeeAmount = parsePriceAmount(formData.get("setup_fee_amount"));
   const features = parseFeatures(formData.get("features"));
   const ctaText = String(formData.get("cta_text") ?? "").trim() || null;
   const ctaEmail = String(formData.get("cta_email") ?? "").trim() || null;
   const sortOrder = toNullableInt(formData.get("sort_order")) ?? 0;
+  const invoicesIncluded = toNullableInt(formData.get("invoices_included"));
+  const setupFeeStripePriceId = String(formData.get("setup_fee_stripe_price_id") ?? "").trim() || null;
 
+  let setupFeeAmount = parsePriceAmount(formData.get("setup_fee_amount"));
   let priceAmount = parsePriceAmount(formData.get("price_amount"));
   let currencyCode = normalizeCurrencyCode(String(formData.get("currency_code") ?? "USD")) || "USD";
 
@@ -278,6 +293,16 @@ export async function updatePlanAction(formData: FormData) {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Error desconocido";
       redirect("/superadmin/plans?status=error&message=" + qs(`Stripe Price ID inválido: ${message}`));
+    }
+  }
+
+  if (setupFeeStripePriceId) {
+    try {
+      const price = await stripe.prices.retrieve(setupFeeStripePriceId);
+      setupFeeAmount = price.unit_amount ? price.unit_amount / 100 : 0;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error desconocido";
+      redirect("/superadmin/plans?status=error&message=" + qs(`Stripe Price ID del setup fee inválido: ${message}`));
     }
   }
 
@@ -323,6 +348,7 @@ export async function updatePlanAction(formData: FormData) {
       cta_text: ctaText,
       cta_email: ctaEmail,
       sort_order: sortOrder,
+      invoices_included: invoicesIncluded,
     })
     .eq("id", planId);
 

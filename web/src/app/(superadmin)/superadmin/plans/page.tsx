@@ -2,8 +2,6 @@ import {
   BadgeDollarSign,
   Building2,
   ChevronDown,
-  PencilLine,
-  Plus,
   ShieldCheck,
   Zap,
   Layers,
@@ -11,6 +9,7 @@ import {
   Users2,
   AlertCircle,
   Trash2,
+  FileText,
 } from "lucide-react";
 import * as motion from "framer-motion/client";
 
@@ -22,8 +21,7 @@ import {
 } from "@/modules/plans/actions";
 import { ConfirmSubmitButton } from "@/shared/ui/confirm-submit-button";
 import { PageContent } from "@/shared/ui/page-content";
-import { SuperadminInputField, SuperadminSelectField } from "@/shared/ui/superadmin-form-fields";
-import { DetailsCloseButton } from "@/shared/ui/details-close-button";
+import { PlanFormModal } from "./plan-form-client";
 
 type SuperadminPlansPageProps = {
   searchParams: Promise<{ status?: string; message?: string; plan?: string }>;
@@ -52,7 +50,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
   ] = await Promise.all([
     supabase
       .from("plans")
-      .select("id, code, name, description, is_active, price_amount, currency_code, billing_period, max_branches, max_users, max_storage_mb, max_employees, stripe_price_id, plan_type, is_featured, is_enterprise, setup_fee_amount, features, cta_text, cta_email, sort_order, created_at")
+      .select("id, code, name, description, is_active, price_amount, currency_code, billing_period, max_branches, max_users, max_storage_mb, max_employees, stripe_price_id, plan_type, is_featured, is_enterprise, setup_fee_amount, features, cta_text, cta_email, sort_order, invoices_included, created_at")
       .order("sort_order", { ascending: true })
       .order("price_amount", { ascending: true }),
     supabase
@@ -83,6 +81,11 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
   }
 
   const totalOrgsInAnyPlan = orgsWithPlans?.length ?? 0;
+  const moduleCatalogList = (modulesCatalog ?? []).map((m) => ({
+    id: m.id,
+    name: m.name,
+    is_core: m.is_core ?? false,
+  }));
 
   return (
     <PageContent spacing="roomy" className="flex flex-col gap-6">
@@ -117,7 +120,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
           { label: "Empresas en Producción", val: totalOrgsInAnyPlan, icon: Building2, color: "text-emerald-700", bg: "bg-emerald-50/50" },
           { label: "Planes Publicados", val: (plans ?? []).filter(p => p.is_active).length, icon: ShieldCheck, color: "text-blue-700", bg: "bg-blue-50/50" },
         ].map((stat, idx) => (
-          <motion.article 
+          <motion.article
             key={stat.label}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -134,118 +137,16 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
 
       <section className="rounded-[2.5rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-sm overflow-hidden">
         <div className="mb-8 flex items-center justify-between px-2">
-            <div>
-               <h2 className="text-lg font-bold tracking-tight text-foreground">Gestión de Oferta Comercial</h2>
-               <p className="text-xs text-muted-foreground mt-1">Configure los parámetros de crecimiento y costos operativos.</p>
-            </div>
-            <details className="relative">
-              <summary className="list-none">
-                <div className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[var(--gbp-accent)] px-6 py-3 text-xs font-bold text-white shadow-[var(--gbp-shadow-accent)] transition-all hover:bg-[var(--gbp-accent-hover)] hover:scale-[1.02]">
-                  <Plus className="h-4 w-4" /> Nuevo Plan
-                </div>
-              </summary>
-              <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-                  <div className="relative z-10 w-full max-w-4xl rounded-[2.5rem] bg-[var(--gbp-surface)] p-8 shadow-2xl border border-[var(--gbp-border)]">
-                   <div className="mb-6 flex items-center justify-between border-b border-[var(--gbp-border)] pb-6">
-                      <h3 className="text-2xl font-bold text-foreground">Configurar Nueva Propuesta</h3>
-                      <DetailsCloseButton />
-                   </div>
-                   <form action={createPlanAction} className="grid gap-6 md:grid-cols-6 max-h-[70vh] overflow-y-auto pt-2 pr-4 scrollbar-hide">
-                      <SuperadminInputField label="Identificador (Slug)" name="code" required placeholder="p.ej: premium-anual" className="md:col-span-2" />
-                      <SuperadminInputField label="Nombre Público" name="name" required placeholder="p.ej: Premium" className="md:col-span-2" />
-                      <div className="md:col-span-2 grid grid-cols-2 gap-4">
-                         <SuperadminInputField label="Precio" name="price_amount" type="number" min="0" step="0.01" placeholder="Dejar en 0 si usa Stripe ID" />
-                         <SuperadminInputField label="Moneda" name="currency_code" defaultValue="USD" />
-                      </div>
-                      <SuperadminInputField label="Descripción Breve" name="description" placeholder="Resumen de beneficios" className="md:col-span-4" />
-                      <SuperadminSelectField label="Ciclo de Cobro" name="billing_period" defaultValue="monthly" className="md:col-span-2">
-                        <option value="monthly">Mensual</option>
-                        <option value="yearly">Anual</option>
-                        <option value="one_time">Pago Único</option>
-                      </SuperadminSelectField>
-                      <SuperadminInputField label="Stripe Price ID" name="stripe_price_id" placeholder="Opcional. ej: price_1Pxxxxxxxx" className="md:col-span-6" />
-
-                      <div className="md:col-span-6 rounded-2xl border border-violet-100 bg-violet-50/30 p-6">
-                        <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-700">Landing de Integración (dejar vacío para planes Platform)</p>
-                        <div className="grid gap-4 sm:grid-cols-6">
-                          <SuperadminSelectField label="Tipo de Plan" name="plan_type" defaultValue="platform" className="sm:col-span-2">
-                            <option value="platform">Platform (SaaS)</option>
-                            <option value="qbo_r365">QBO ↔ R365</option>
-                          </SuperadminSelectField>
-                          <SuperadminInputField label="Orden en landing" name="sort_order" type="number" min="0" defaultValue="0" className="sm:col-span-1" />
-                          <SuperadminInputField label="Setup Fee ($)" name="setup_fee_amount" type="number" min="0" step="0.01" placeholder="0 = sin setup fee" className="sm:col-span-3" />
-                          <SuperadminInputField label="Texto del botón CTA" name="cta_text" placeholder="p.ej: Get Started" className="sm:col-span-3" />
-                          <SuperadminInputField label="Email del botón CTA" name="cta_email" type="email" placeholder="p.ej: sales@example.com" className="sm:col-span-3" />
-                          <div className="sm:col-span-6 flex gap-6">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input type="checkbox" name="is_featured" className="h-4 w-4 rounded accent-violet-600" />
-                              <span className="text-xs font-semibold text-foreground">Tarjeta destacada (fondo oscuro)</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input type="checkbox" name="is_enterprise" className="h-4 w-4 rounded accent-violet-600" />
-                              <span className="text-xs font-semibold text-foreground">Enterprise (sin precio, borde punteado)</span>
-                            </label>
-                          </div>
-                          <div className="sm:col-span-6">
-                            <label className="block text-xs font-semibold text-foreground/70 mb-1">Features (JSON array)</label>
-                            <textarea
-                              name="features"
-                              rows={5}
-                              placeholder={`[\n  {"text": "Hasta 5 conexiones", "highlight": false},\n  {"text": "Sincronización diaria", "highlight": true}\n]`}
-                              className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-violet-400 resize-none"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="md:col-span-6 bg-muted/20 rounded-2xl p-6 border border-line/20">
-                         <p className="mb-6 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand">Restricciones Técnicas (0 = Ilimitado)</p>
-                         <div className="grid gap-4 sm:grid-cols-4">
-                           <SuperadminInputField label="Locaciones" name="max_branches" type="number" min="0" defaultValue="0" />
-                           <SuperadminInputField label="Cant. Usuarios" name="max_users" type="number" min="0" defaultValue="0" />
-                           <SuperadminInputField label="Cant. Empleados" name="max_employees" type="number" min="0" defaultValue="0" />
-                           <SuperadminInputField label="Storage (MB)" name="max_storage_mb" type="number" min="0" defaultValue="0" />
-                         </div>
-                      </div>
-
-                      <div className="md:col-span-6 rounded-2xl border border-[var(--gbp-border)] p-6">
-                        <p className="mb-4 text-xs font-bold uppercase tracking-widest text-[var(--gbp-text2)]">Infraestructura de Módulos Incluidos</p>
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                          {(modulesCatalog ?? []).map((module) => (
-                            <label key={module.id} className="group flex cursor-pointer items-center justify-between rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3 transition-all hover:bg-[var(--gbp-surface)] hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)]">
-                              <span className="text-sm font-bold text-foreground/80">
-                                {module.name}
-                                {module.is_core && <span className="ml-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-brand">Core</span>}
-                              </span>
-                              <input
-                                type="checkbox"
-                                name="module_ids"
-                                value={module.id}
-                                defaultChecked={module.is_core}
-                                disabled={module.is_core}
-                                className="h-5 w-5 rounded-lg accent-brand"
-                              />
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-
-                       <div className="md:col-span-6 flex items-center justify-between border-t border-[var(--gbp-border)] pt-6">
-                        <label className="flex items-center gap-3 cursor-pointer">
-                           <input type="checkbox" name="is_active" defaultChecked className="h-6 w-11 rounded-full accent-brand" />
-                           <span className="text-sm font-bold text-foreground">Publicar Inmediatamente</span>
-                        </label>
-                        <div className="flex gap-3">
-                           <DetailsCloseButton className="rounded-xl border border-[var(--gbp-border)] px-6 py-2.5 text-sm font-bold text-[var(--gbp-text2)]">
-                             Cancelar
-                           </DetailsCloseButton>
-                           <button type="submit" className="rounded-xl bg-[var(--gbp-accent)] px-10 py-2.5 text-sm font-bold text-white shadow-[var(--gbp-shadow-accent)]">Registrar Plan</button>
-                        </div>
-                      </div>
-                   </form>
-                 </div>
-              </div>
-            </details>
+          <div>
+            <h2 className="text-lg font-bold tracking-tight text-foreground">Gestión de Oferta Comercial</h2>
+            <p className="text-xs text-muted-foreground mt-1">Configure los parámetros de crecimiento y costos operativos.</p>
+          </div>
+          <PlanFormModal
+            mode="create"
+            formAction={createPlanAction}
+            modulesCatalog={moduleCatalogList}
+            selectedModuleIds={[]}
+          />
         </div>
 
         <div className="grid gap-6">
@@ -253,224 +154,172 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
             const usedCount = usageMap.get(plan.id) ?? 0;
             const selectedSet = planModuleMap.get(plan.id) ?? new Set<string>();
             const activeModules = (modulesCatalog ?? []).filter(m => selectedSet.has(m.id));
+            const isIntegration = (plan as Record<string, unknown>).plan_type === "qbo_r365";
 
             return (
-              <motion.article 
+              <motion.article
                 key={plan.id}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 className="group relative overflow-hidden rounded-[2rem] border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-6 transition-all hover:bg-[var(--gbp-surface)] hover:shadow-xl sm:p-8"
               >
                 <div className="absolute right-0 top-0 h-2 w-full bg-gradient-to-r from-transparent via-brand/10 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-                
+
                 <div className="flex flex-col gap-8 lg:flex-row lg:items-center">
                   <div className="flex-1 space-y-4">
                     <div className="flex items-center justify-between">
-                       <div className="flex items-center gap-3">
-                          <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-sm ${plan.is_active ? 'bg-brand/5 text-brand' : 'bg-muted text-muted-foreground'}`}>
-                             <Zap className="h-6 w-6" />
-                          </div>
-                          <div>
-                             <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
-                             <p className="text-[11px] font-semibold uppercase tracking-[0.11em] text-muted-foreground/60">{plan.code}</p>
-                          </div>
-                       </div>
-                       <div className="flex items-center gap-2">
-                         <span className={`rounded-xl border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.11em] ${(plan as Record<string, unknown>).plan_type === 'qbo_r365' ? 'border-violet-200 bg-violet-50 text-violet-700' : 'border-blue-100 bg-blue-50/50 text-blue-600'}`}>
-                           {(plan as Record<string, unknown>).plan_type === 'qbo_r365' ? 'QBO↔R365' : 'Platform'}
-                         </span>
-                         <span className={`rounded-xl border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.11em] ${plan.is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-line bg-muted/20 text-muted-foreground'}`}>
-                           {plan.is_active ? 'Publicado' : 'Borrador'}
-                         </span>
-                       </div>
+                      <div className="flex items-center gap-3">
+                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-sm ${plan.is_active ? "bg-brand/5 text-brand" : "bg-muted text-muted-foreground"}`}>
+                          <Zap className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.11em] text-muted-foreground/60">{plan.code}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`rounded-xl border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.11em] ${isIntegration ? "border-violet-200 bg-violet-50 text-violet-700" : "border-blue-100 bg-blue-50/50 text-blue-600"}`}>
+                          {isIntegration ? "QBO↔R365" : "Platform"}
+                        </span>
+                        <span className={`rounded-xl border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.11em] ${plan.is_active ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-line bg-muted/20 text-muted-foreground"}`}>
+                          {plan.is_active ? "Publicado" : "Borrador"}
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-sm text-foreground/60 line-clamp-2 italic">{plan.description || 'Sin descripción comercial definida.'}</p>
-                    
+                    <p className="text-sm text-foreground/60 line-clamp-2 italic">{plan.description || "Sin descripción comercial definida."}</p>
+
                     <div className="flex flex-wrap gap-6 pt-2">
-                       <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-                          <BadgeDollarSign className="h-5 w-5 text-brand" />
-                          <span>{money(plan.price_amount, plan.currency_code ?? "USD")}</span>
-                          <span className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">/ {plan.billing_period}</span>
-                       </div>
-                       <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-                          <Building2 className="h-5 w-5 text-muted-foreground" />
-                          <span>{usedCount} <span className="text-[11px] uppercase tracking-[0.08em] opacity-60">Clientes</span></span>
-                       </div>
-                       {plan.stripe_price_id ? (
-                         <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600" title={`ID: ${plan.stripe_price_id}`}>
-                           <BadgeDollarSign className="h-4 w-4" />
-                           <span className="font-bold">Enlazado a Stripe</span>
-                         </div>
-                       ) : (
-                         <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-500">
-                           <AlertCircle className="h-4 w-4" />
-                           <span>Sin vincular a Stripe</span>
-                         </div>
-                       )}
+                      <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                        <BadgeDollarSign className="h-5 w-5 text-brand" />
+                        <span>{money(plan.price_amount, plan.currency_code ?? "USD")}</span>
+                        <span className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">/ {plan.billing_period}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                        <Building2 className="h-5 w-5 text-muted-foreground" />
+                        <span>{usedCount} <span className="text-[11px] uppercase tracking-[0.08em] opacity-60">Clientes</span></span>
+                      </div>
+                      {plan.stripe_price_id ? (
+                        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600" title={`ID: ${plan.stripe_price_id}`}>
+                          <BadgeDollarSign className="h-4 w-4" />
+                          <span className="font-bold">Enlazado a Stripe</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-500">
+                          <AlertCircle className="h-4 w-4" />
+                          <span>Sin vincular a Stripe</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
-                     {[
-                       { label: 'Locaciones', val: plan.max_branches, icon: Building2 },
-                       { label: 'Usuarios', val: plan.max_users, icon: Users2 },
-                       { label: 'Empleados', val: plan.max_employees, icon: Layers },
-                       { label: 'Storage (MB)', val: plan.max_storage_mb, icon: HardDrive },
-                     ].map(limit => (
+                  {/* Limits / Integration stats */}
+                  {isIntegration ? (
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2">
+                      <div className="rounded-2xl border border-line/20 bg-muted/10 p-4 text-center">
+                        <FileText className="mx-auto mb-2 h-4 w-4 text-muted-foreground opacity-40" />
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/60">Facturas incluidas</p>
+                        <p className="mt-1 text-lg font-black text-foreground">
+                          {(plan as Record<string, unknown>).invoices_included != null
+                            ? String((plan as Record<string, unknown>).invoices_included)
+                            : "∞"}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-line/20 bg-muted/10 p-4 text-center">
+                        <BadgeDollarSign className="mx-auto mb-2 h-4 w-4 text-muted-foreground opacity-40" />
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/60">Setup Fee</p>
+                        <p className="mt-1 text-lg font-black text-foreground">
+                          {(plan as Record<string, unknown>).setup_fee_amount
+                            ? money((plan as Record<string, unknown>).setup_fee_amount as number)
+                            : "Sin fee"}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
+                      {[
+                        { label: "Locaciones", val: plan.max_branches, icon: Building2 },
+                        { label: "Usuarios", val: plan.max_users, icon: Users2 },
+                        { label: "Empleados", val: plan.max_employees, icon: Layers },
+                        { label: "Storage (MB)", val: plan.max_storage_mb, icon: HardDrive },
+                      ].map(limit => (
                         <div key={limit.label} className="rounded-2xl border border-line/20 bg-muted/10 p-4 text-center">
-                           <limit.icon className="mx-auto mb-2 h-4 w-4 text-muted-foreground opacity-40" />
-                           <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/60">{limit.label}</p>
-                           <p className="mt-1 text-lg font-black text-foreground">{limit.val || '∞'}</p>
+                          <limit.icon className="mx-auto mb-2 h-4 w-4 text-muted-foreground opacity-40" />
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/60">{limit.label}</p>
+                          <p className="mt-1 text-lg font-black text-foreground">{limit.val || "∞"}</p>
                         </div>
-                     ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="flex flex-col gap-3 lg:w-48">
-                       <details className="group/details">
+                    {/* Module list (platform only) */}
+                    {!isIntegration && (
+                      <details className="group/details">
                         <summary className="flex items-center justify-between rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-4 py-3 text-xs font-bold text-foreground cursor-pointer transition-colors hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)]">
                           <span>{activeModules.length} Módulos</span>
                           <ChevronDown className="h-4 w-4 transition-transform group-open/details:rotate-180" />
-                       </summary>
+                        </summary>
                         <div className="absolute right-6 top-full mt-2 z-50 w-64 rounded-[1.5rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 shadow-2xl backdrop-blur-xl">
                           <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.11em] text-brand">Capacidades del Plan</p>
                           <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-hide">
                             {activeModules.map(m => (
-                               <div key={m.id} className="flex items-center gap-2 text-[11px] font-semibold text-foreground/80">
-                                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                                  {m.name}
-                               </div>
+                              <div key={m.id} className="flex items-center gap-2 text-[11px] font-semibold text-foreground/80">
+                                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                {m.name}
+                              </div>
                             ))}
                           </div>
-                       </div>
-                    </details>
-                    
-                    <details className="group/edit">
-                        <summary className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-700 cursor-pointer hover:bg-amber-100">
-                          <PencilLine className="h-4 w-4" /> Editar Plan
-                       </summary>
-                       <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-                          <div className="relative z-10 w-full max-w-4xl rounded-[2.5rem] bg-[var(--gbp-surface)] p-8 shadow-2xl border border-[var(--gbp-border)]">
-                             <div className="mb-6 flex items-center justify-between border-b border-[var(--gbp-border)] pb-6">
-                               <h3 className="text-2xl font-bold text-foreground">Ajustar Propuesta Comercial</h3>
-                               <DetailsCloseButton />
-                            </div>
-                            <form action={updatePlanAction} className="grid gap-6 md:grid-cols-6 max-h-[70vh] overflow-y-auto pt-2 pr-4 scrollbar-hide">
-                               <input type="hidden" name="plan_id" value={plan.id} />
-                               <SuperadminInputField label="Nombre Público" name="name" defaultValue={plan.name} className="md:col-span-3" />
-                               <div className="md:col-span-3 grid grid-cols-2 gap-4">
-                                  <SuperadminInputField label="Precio" name="price_amount" type="number" min="0" step="0.01" defaultValue={plan.price_amount ?? ""} placeholder="Auto si hay Stripe ID" />
-                                  <SuperadminInputField label="Moneda" name="currency_code" defaultValue={plan.currency_code ?? "USD"} />
-                               </div>
-                               <SuperadminInputField label="Descripción" name="description" defaultValue={plan.description ?? ""} className="md:col-span-4" />
-                               <SuperadminSelectField label="Ciclo" name="billing_period" defaultValue={plan.billing_period ?? "monthly"} className="md:col-span-2">
-                                 <option value="monthly">Mensual</option>
-                                 <option value="yearly">Anual</option>
-                                 <option value="one_time">Pago Único</option>
-                               </SuperadminSelectField>
+                        </div>
+                      </details>
+                    )}
 
-                       <SuperadminInputField label="Stripe Price ID" name="stripe_price_id" defaultValue={plan.stripe_price_id ?? ""} placeholder="price_1Pxxxxxxxx" className="md:col-span-6" />
-
-                               <div className="md:col-span-6 rounded-2xl border border-violet-100 bg-violet-50/30 p-6">
-                                 <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-700">Landing de Integración</p>
-                                 <div className="grid gap-4 sm:grid-cols-6">
-                                   <SuperadminSelectField label="Tipo de Plan" name="plan_type" defaultValue={(plan as Record<string, unknown>).plan_type as string ?? "platform"} className="sm:col-span-2">
-                                     <option value="platform">Platform (SaaS)</option>
-                                     <option value="qbo_r365">QBO ↔ R365</option>
-                                   </SuperadminSelectField>
-                                   <SuperadminInputField label="Orden" name="sort_order" type="number" min="0" defaultValue={String((plan as Record<string, unknown>).sort_order ?? "0")} className="sm:col-span-1" />
-                                   <SuperadminInputField label="Setup Fee ($)" name="setup_fee_amount" type="number" min="0" step="0.01" defaultValue={String((plan as Record<string, unknown>).setup_fee_amount ?? "")} placeholder="0" className="sm:col-span-3" />
-                                   <SuperadminInputField label="Texto CTA" name="cta_text" defaultValue={String((plan as Record<string, unknown>).cta_text ?? "")} placeholder="Get Started" className="sm:col-span-3" />
-                                   <SuperadminInputField label="Email CTA" name="cta_email" type="email" defaultValue={String((plan as Record<string, unknown>).cta_email ?? "")} placeholder="sales@example.com" className="sm:col-span-3" />
-                                   <div className="sm:col-span-6 flex gap-6">
-                                     <label className="flex items-center gap-2 cursor-pointer">
-                                       <input type="checkbox" name="is_featured" defaultChecked={Boolean((plan as Record<string, unknown>).is_featured)} className="h-4 w-4 rounded accent-violet-600" />
-                                       <span className="text-xs font-semibold text-foreground">Tarjeta destacada</span>
-                                     </label>
-                                     <label className="flex items-center gap-2 cursor-pointer">
-                                       <input type="checkbox" name="is_enterprise" defaultChecked={Boolean((plan as Record<string, unknown>).is_enterprise)} className="h-4 w-4 rounded accent-violet-600" />
-                                       <span className="text-xs font-semibold text-foreground">Enterprise</span>
-                                     </label>
-                                   </div>
-                                   <div className="sm:col-span-6">
-                                     <label className="block text-xs font-semibold text-foreground/70 mb-1">Features (JSON array)</label>
-                                     <textarea
-                                       name="features"
-                                       rows={5}
-                                       defaultValue={(plan as Record<string, unknown>).features ? JSON.stringify((plan as Record<string, unknown>).features, null, 2) : ""}
-                                       placeholder={`[\n  {"text": "Hasta 5 conexiones", "highlight": false}\n]`}
-                                       className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-violet-400 resize-none"
-                                     />
-                                   </div>
-                                 </div>
-                               </div>
-
-                               <div className="md:col-span-6 bg-muted/20 rounded-2xl p-6">
-                                  <div className="grid gap-4 sm:grid-cols-4">
-                                    <SuperadminInputField label="Locaciones" name="max_branches" type="number" min="0" defaultValue={plan.max_branches ?? "0"} />
-                                    <SuperadminInputField label="Cant. Usuarios" name="max_users" type="number" min="0" defaultValue={plan.max_users ?? "0"} />
-                                    <SuperadminInputField label="Cant. Empleados" name="max_employees" type="number" min="0" defaultValue={plan.max_employees ?? "0"} />
-                                    <SuperadminInputField label="Storage (MB)" name="max_storage_mb" type="number" min="0" defaultValue={plan.max_storage_mb ?? "0"} />
-                                  </div>
-                               </div>
-
-                                <div className="md:col-span-6 rounded-2xl border border-[var(--gbp-border)] p-6 bg-[var(--gbp-bg)]">
-                                 <p className="mb-4 text-xs font-bold uppercase tracking-widest text-foreground">Matriz de Módulos Activos</p>
-                                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                                   {(modulesCatalog ?? []).map((module) => {
-                                      const isChecked = selectedSet.has(module.id);
-                                      return (
-                                         <label key={module.id} className="group flex cursor-pointer items-center justify-between rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-4 py-3 hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)]">
-                                          <span className="text-sm font-bold text-foreground/80">
-                                            {module.name}
-                                            {module.is_core && <span className="ml-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-brand">Core</span>}
-                                          </span>
-                                          <input
-                                            type="checkbox"
-                                            name="module_ids"
-                                            value={module.id}
-                                            defaultChecked={isChecked || module.is_core}
-                                            disabled={module.is_core}
-                                            className="h-5 w-5 rounded-lg accent-brand"
-                                          />
-                                        </label>
-                                      );
-                                   })}
-                                 </div>
-                               </div>
-
-                                <div className="md:col-span-6 flex items-center justify-between border-t border-[var(--gbp-border)] pt-6">
-                                 <label className="flex items-center gap-3 cursor-pointer">
-                                    <input type="checkbox" name="is_active" defaultChecked={plan.is_active} className="h-6 w-11 rounded-full accent-brand" />
-                                    <span className="text-sm font-bold text-foreground">Estado del Plan (Habilitado)</span>
-                                 </label>
-                                 <div className="flex gap-3">
-                                     <DetailsCloseButton className="rounded-xl border border-[var(--gbp-border)] px-6 py-2.5 text-sm font-bold text-[var(--gbp-text2)]">
-                                      Cancelar
-                                    </DetailsCloseButton>
-                                    <button type="submit" className="rounded-xl bg-foreground px-10 py-2.5 text-sm font-bold text-white shadow-lg shadow-black/10">Sincronizar Cambios</button>
-                                 </div>
-                               </div>
-                            </form>
-                          </div>
-                       </div>
-                    </details>
+                    <PlanFormModal
+                      mode="edit"
+                      formAction={updatePlanAction}
+                      plan={{
+                        id: plan.id,
+                        code: plan.code,
+                        name: plan.name,
+                        description: plan.description ?? null,
+                        is_active: plan.is_active,
+                        price_amount: plan.price_amount ?? null,
+                        currency_code: plan.currency_code ?? null,
+                        billing_period: plan.billing_period ?? null,
+                        max_branches: plan.max_branches ?? null,
+                        max_users: plan.max_users ?? null,
+                        max_employees: plan.max_employees ?? null,
+                        max_storage_mb: plan.max_storage_mb ?? null,
+                        stripe_price_id: plan.stripe_price_id ?? null,
+                        plan_type: (plan as Record<string, unknown>).plan_type as string ?? null,
+                        is_featured: (plan as Record<string, unknown>).is_featured as boolean ?? null,
+                        is_enterprise: (plan as Record<string, unknown>).is_enterprise as boolean ?? null,
+                        setup_fee_amount: (plan as Record<string, unknown>).setup_fee_amount as number ?? null,
+                        features: (plan as Record<string, unknown>).features ?? null,
+                        cta_text: (plan as Record<string, unknown>).cta_text as string ?? null,
+                        cta_email: (plan as Record<string, unknown>).cta_email as string ?? null,
+                        sort_order: (plan as Record<string, unknown>).sort_order as number ?? null,
+                        invoices_included: (plan as Record<string, unknown>).invoices_included as number ?? null,
+                      }}
+                      modulesCatalog={moduleCatalogList}
+                      selectedModuleIds={Array.from(selectedSet)}
+                    />
 
                     <form action={deletePlanAction}>
-                       <input type="hidden" name="plan_id" value={plan.id} />
-                       <ConfirmSubmitButton
-                         label=""
-                         disabled={usedCount > 0}
-                         confirmTitle="Protocolo de Destrucción de Plan"
-                         confirmDescription={`Está a punto de eliminar el plan "${plan.name}". Esta acción es irreversible y solo permitida si no hay clientes asociados.`}
-                         confirmLabel="Confirmar Eliminación"
-                         className={`w-full h-11 rounded-xl flex items-center justify-center transition-all ${
-                            usedCount > 0 
-                            ? 'bg-muted/50 text-muted-foreground cursor-not-allowed border border-line/20' 
-                            : 'bg-red-50 text-red-600 border border-red-100 hover:bg-red-100'
-                         }`}
-                       >
-                         <Trash2 className="h-4 w-4" />
-                       </ConfirmSubmitButton>
+                      <input type="hidden" name="plan_id" value={plan.id} />
+                      <ConfirmSubmitButton
+                        label=""
+                        disabled={usedCount > 0}
+                        confirmTitle="Protocolo de Destrucción de Plan"
+                        confirmDescription={`Está a punto de eliminar el plan "${plan.name}". Esta acción es irreversible y solo permitida si no hay clientes asociados.`}
+                        confirmLabel="Confirmar Eliminación"
+                        className={`w-full h-11 rounded-xl flex items-center justify-center transition-all ${
+                          usedCount > 0
+                            ? "bg-muted/50 text-muted-foreground cursor-not-allowed border border-line/20"
+                            : "bg-red-50 text-red-600 border border-red-100 hover:bg-red-100"
+                        }`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </ConfirmSubmitButton>
                     </form>
                   </div>
                 </div>
