@@ -2582,7 +2582,7 @@ export function CompanyShell({
 
       {/* Integration plan selector modal */}
       {integrationPlanOpen && integrationPlans.length > 0 ? (
-        <div className="fixed inset-0 z-[1300] flex items-center justify-center p-4" onClick={() => setIntegrationPlanOpen(null)}>
+        <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4" onClick={() => setIntegrationPlanOpen(null)}>
           <div
             className={`w-full max-w-2xl overflow-hidden rounded-2xl border shadow-2xl ${isDarkTheme ? "border-white/10 bg-[#1a1a18] text-white" : "border-[var(--gbp-border)] bg-white text-[var(--gbp-text)]"}`}
             onClick={(e) => e.stopPropagation()}
