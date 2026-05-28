@@ -577,9 +577,9 @@ export function LandingExperience({ plans }: Props) {
           {/* Scroll hint */}
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 1 }}
-            className="pointer-events-none absolute bottom-8 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-[7px] md:flex"
+            animate={{ opacity: navScrolled ? 0 : 1 }}
+            transition={{ duration: 0.6, delay: navScrolled ? 0 : 1 }}
+            className="pointer-events-none fixed bottom-8 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-[7px] md:flex"
           >
             <div className="scroll-hint-line" />
             <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--gbp-muted)]">Scroll</span>
@@ -1269,9 +1269,9 @@ export function LandingExperience({ plans }: Props) {
               </p>
               <h2 className={`mt-3.5 text-[clamp(34px,4.5vw,56px)] font-bold leading-[1.0] tracking-[-0.03em] ${darkMode ? "text-[var(--gbp-text)]" : "text-white"}`}>
                 {lang === "es" ? (
-                  <>La Primera Mesa<br />está reservada para<br />los correctos <em>pocos.</em></>
+                  <>La Primera Mesa<br />está reservada para<br />los correctos <em className="not-italic text-[var(--gbp-accent)]">pocos.</em></>
                 ) : (
-                  <>The First Table<br />is reserved for<br />the right <em>few.</em></>
+                  <>The First Table<br />is reserved for<br />the right <em className="not-italic text-[var(--gbp-accent)]">few.</em></>
                 )}
               </h2>
               <p className={`mb-9 mt-[18px] text-[15px] leading-[1.8] ${darkMode ? "text-[var(--gbp-text2)]" : "text-white/55"}`}>
@@ -1430,7 +1430,7 @@ export function LandingExperience({ plans }: Props) {
                     : "The only native integration between QuickBooks Online and Restaurant365. Send invoices directly into R365 — automatically, in real time. No exports. No email chains. No manual entry."}
                 </p>
                 <div
-                  className="mt-7 inline-flex items-center gap-2 rounded-xl border border-[var(--gbp-accent)]/20 px-4 py-2.5 text-[12px] font-bold"
+                  className="mt-7 inline-flex items-center gap-2 rounded-xl border border-[var(--gbp-accent)]/20 px-4 py-2.5 text-[12px] font-bold whitespace-nowrap"
                   style={{ background: "linear-gradient(135deg, rgba(212,83,26,0.1), rgba(212,83,26,0.03))" }}
                 >
                   <span className="text-[var(--gbp-accent)]">⚡</span>
