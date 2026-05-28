@@ -178,6 +178,8 @@ type CompanyShellProps = {
     description: string | null;
     priceAmount: number | null;
     isFeatured: boolean;
+    isEnterprise: boolean;
+    ctaEmail: string | null;
     setupFeeAmount: number | null;
     features: unknown;
   }>;
@@ -2641,6 +2643,8 @@ export function CompanyShell({
                     className={`relative rounded-xl border p-4 transition ${
                       plan.isFeatured
                         ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent)]/5"
+                        : plan.isEnterprise
+                        ? isDarkTheme ? "border-dashed border-white/20 bg-white/[0.03]" : "border-dashed border-[var(--gbp-border)] bg-transparent"
                         : isDarkTheme
                         ? "border-white/10 bg-white/[0.03]"
                         : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"
@@ -2663,30 +2667,54 @@ export function CompanyShell({
                       </p>
                     )}
                     <div className="mb-3">
-                      <span className="text-2xl font-bold">${displayPrice.toLocaleString("en-US")}</span>
-                      <span className={`ml-1 text-[11px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>/mes</span>
-                      {integrationPlanBillingCycle === "annual" && savings > 0 && (
-                        <p className="mt-0.5 text-[10px] font-semibold text-emerald-500">
-                          Ahorrás ${savings.toLocaleString("en-US")}/año
-                        </p>
+                      {plan.isEnterprise ? (
+                        <>
+                          <span className="text-2xl font-bold">Custom</span>
+                          <p className={`mt-0.5 text-[10px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>
+                            a medida para tu operación
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-2xl font-bold">${displayPrice.toLocaleString("en-US")}</span>
+                          <span className={`ml-1 text-[11px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>/mes</span>
+                          {integrationPlanBillingCycle === "annual" && savings > 0 && (
+                            <p className="mt-0.5 text-[10px] font-semibold text-emerald-500">
+                              Ahorrás ${savings.toLocaleString("en-US")}/año
+                            </p>
+                          )}
+                        </>
                       )}
                     </div>
-                    <button
-                      type="button"
-                      disabled={isLoading || isCurrent || impersonationMode}
-                      onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle)}
-                      className={`w-full rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                        isCurrent
-                          ? isDarkTheme ? "bg-white/10 text-white/40" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]"
-                          : plan.isFeatured
-                          ? "bg-[var(--gbp-accent)] text-white hover:opacity-90"
-                          : isDarkTheme
-                          ? "border border-white/20 bg-white/5 text-white hover:bg-white/10"
-                          : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]"
-                      }`}
-                    >
-                      {isLoading ? "Procesando…" : isCurrent ? "Plan actual" : "Seleccionar →"}
-                    </button>
+                    {plan.isEnterprise ? (
+                      <a
+                        href={`mailto:${plan.ctaEmail ?? "angelo@mkthelp.com"}?subject=QBO R365 - ${plan.name} Plan`}
+                        className={`block w-full rounded-lg px-3 py-2 text-center text-[11px] font-bold transition ${
+                          isDarkTheme
+                            ? "border border-white/20 bg-white/5 text-white hover:bg-white/10"
+                            : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]"
+                        }`}
+                      >
+                        Contactar ventas →
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={isLoading || isCurrent || impersonationMode}
+                        onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle)}
+                        className={`w-full rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                          isCurrent
+                            ? isDarkTheme ? "bg-white/10 text-white/40" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]"
+                            : plan.isFeatured
+                            ? "bg-[var(--gbp-accent)] text-white hover:opacity-90"
+                            : isDarkTheme
+                            ? "border border-white/20 bg-white/5 text-white hover:bg-white/10"
+                            : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]"
+                        }`}
+                      >
+                        {isLoading ? "Procesando…" : isCurrent ? "Plan actual" : "Seleccionar →"}
+                      </button>
+                    )}
                   </div>
                 );
               })}

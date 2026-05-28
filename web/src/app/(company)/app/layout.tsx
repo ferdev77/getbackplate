@@ -227,6 +227,8 @@ export default async function CompanyLayout({
         description: (p as Record<string, unknown>).description as string | null ?? null,
         priceAmount: p.price_amount ?? null,
         isFeatured: (p as Record<string, unknown>).is_featured as boolean ?? false,
+        isEnterprise: (p as Record<string, unknown>).is_enterprise as boolean ?? false,
+        ctaEmail: (p as Record<string, unknown>).cta_email as string | null ?? null,
         setupFeeAmount: (p as Record<string, unknown>).setup_fee_amount as number | null ?? null,
         features: (p as Record<string, unknown>).features ?? null,
       }))}
