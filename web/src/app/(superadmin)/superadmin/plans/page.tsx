@@ -52,7 +52,8 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
   ] = await Promise.all([
     supabase
       .from("plans")
-      .select("id, code, name, description, is_active, price_amount, currency_code, billing_period, max_branches, max_users, max_storage_mb, max_employees, stripe_price_id, created_at")
+      .select("id, code, name, description, is_active, price_amount, currency_code, billing_period, max_branches, max_users, max_storage_mb, max_employees, stripe_price_id, plan_type, is_featured, is_enterprise, setup_fee_amount, features, cta_text, cta_email, sort_order, created_at")
+      .order("sort_order", { ascending: true })
       .order("price_amount", { ascending: true }),
     supabase
       .from("organizations")
@@ -164,6 +165,39 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                       </SuperadminSelectField>
                       <SuperadminInputField label="Stripe Price ID" name="stripe_price_id" placeholder="Opcional. ej: price_1Pxxxxxxxx" className="md:col-span-6" />
 
+                      <div className="md:col-span-6 rounded-2xl border border-violet-100 bg-violet-50/30 p-6">
+                        <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-700">Landing de Integración (dejar vacío para planes Platform)</p>
+                        <div className="grid gap-4 sm:grid-cols-6">
+                          <SuperadminSelectField label="Tipo de Plan" name="plan_type" defaultValue="platform" className="sm:col-span-2">
+                            <option value="platform">Platform (SaaS)</option>
+                            <option value="qbo_r365">QBO ↔ R365</option>
+                          </SuperadminSelectField>
+                          <SuperadminInputField label="Orden en landing" name="sort_order" type="number" min="0" defaultValue="0" className="sm:col-span-1" />
+                          <SuperadminInputField label="Setup Fee ($)" name="setup_fee_amount" type="number" min="0" step="0.01" placeholder="0 = sin setup fee" className="sm:col-span-3" />
+                          <SuperadminInputField label="Texto del botón CTA" name="cta_text" placeholder="p.ej: Get Started" className="sm:col-span-3" />
+                          <SuperadminInputField label="Email del botón CTA" name="cta_email" type="email" placeholder="p.ej: sales@example.com" className="sm:col-span-3" />
+                          <div className="sm:col-span-6 flex gap-6">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" name="is_featured" className="h-4 w-4 rounded accent-violet-600" />
+                              <span className="text-xs font-semibold text-foreground">Tarjeta destacada (fondo oscuro)</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" name="is_enterprise" className="h-4 w-4 rounded accent-violet-600" />
+                              <span className="text-xs font-semibold text-foreground">Enterprise (sin precio, borde punteado)</span>
+                            </label>
+                          </div>
+                          <div className="sm:col-span-6">
+                            <label className="block text-xs font-semibold text-foreground/70 mb-1">Features (JSON array)</label>
+                            <textarea
+                              name="features"
+                              rows={5}
+                              placeholder={`[\n  {"text": "Hasta 5 conexiones", "highlight": false},\n  {"text": "Sincronización diaria", "highlight": true}\n]`}
+                              className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-violet-400 resize-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="md:col-span-6 bg-muted/20 rounded-2xl p-6 border border-line/20">
                          <p className="mb-6 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand">Restricciones Técnicas (0 = Ilimitado)</p>
                          <div className="grid gap-4 sm:grid-cols-4">
@@ -241,9 +275,14 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                              <p className="text-[11px] font-semibold uppercase tracking-[0.11em] text-muted-foreground/60">{plan.code}</p>
                           </div>
                        </div>
-                       <span className={`rounded-xl border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.11em] ${plan.is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-line bg-muted/20 text-muted-foreground'}`}>
-                          {plan.is_active ? 'Status: Publicado' : 'Status: Borrador'}
-                       </span>
+                       <div className="flex items-center gap-2">
+                         <span className={`rounded-xl border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.11em] ${(plan as Record<string, unknown>).plan_type === 'qbo_r365' ? 'border-violet-200 bg-violet-50 text-violet-700' : 'border-blue-100 bg-blue-50/50 text-blue-600'}`}>
+                           {(plan as Record<string, unknown>).plan_type === 'qbo_r365' ? 'QBO↔R365' : 'Platform'}
+                         </span>
+                         <span className={`rounded-xl border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.11em] ${plan.is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-line bg-muted/20 text-muted-foreground'}`}>
+                           {plan.is_active ? 'Publicado' : 'Borrador'}
+                         </span>
+                       </div>
                     </div>
                     <p className="text-sm text-foreground/60 line-clamp-2 italic">{plan.description || 'Sin descripción comercial definida.'}</p>
                     
@@ -330,7 +369,41 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                                </SuperadminSelectField>
 
                        <SuperadminInputField label="Stripe Price ID" name="stripe_price_id" defaultValue={plan.stripe_price_id ?? ""} placeholder="price_1Pxxxxxxxx" className="md:col-span-6" />
-                               
+
+                               <div className="md:col-span-6 rounded-2xl border border-violet-100 bg-violet-50/30 p-6">
+                                 <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-700">Landing de Integración</p>
+                                 <div className="grid gap-4 sm:grid-cols-6">
+                                   <SuperadminSelectField label="Tipo de Plan" name="plan_type" defaultValue={(plan as Record<string, unknown>).plan_type as string ?? "platform"} className="sm:col-span-2">
+                                     <option value="platform">Platform (SaaS)</option>
+                                     <option value="qbo_r365">QBO ↔ R365</option>
+                                   </SuperadminSelectField>
+                                   <SuperadminInputField label="Orden" name="sort_order" type="number" min="0" defaultValue={String((plan as Record<string, unknown>).sort_order ?? "0")} className="sm:col-span-1" />
+                                   <SuperadminInputField label="Setup Fee ($)" name="setup_fee_amount" type="number" min="0" step="0.01" defaultValue={String((plan as Record<string, unknown>).setup_fee_amount ?? "")} placeholder="0" className="sm:col-span-3" />
+                                   <SuperadminInputField label="Texto CTA" name="cta_text" defaultValue={String((plan as Record<string, unknown>).cta_text ?? "")} placeholder="Get Started" className="sm:col-span-3" />
+                                   <SuperadminInputField label="Email CTA" name="cta_email" type="email" defaultValue={String((plan as Record<string, unknown>).cta_email ?? "")} placeholder="sales@example.com" className="sm:col-span-3" />
+                                   <div className="sm:col-span-6 flex gap-6">
+                                     <label className="flex items-center gap-2 cursor-pointer">
+                                       <input type="checkbox" name="is_featured" defaultChecked={Boolean((plan as Record<string, unknown>).is_featured)} className="h-4 w-4 rounded accent-violet-600" />
+                                       <span className="text-xs font-semibold text-foreground">Tarjeta destacada</span>
+                                     </label>
+                                     <label className="flex items-center gap-2 cursor-pointer">
+                                       <input type="checkbox" name="is_enterprise" defaultChecked={Boolean((plan as Record<string, unknown>).is_enterprise)} className="h-4 w-4 rounded accent-violet-600" />
+                                       <span className="text-xs font-semibold text-foreground">Enterprise</span>
+                                     </label>
+                                   </div>
+                                   <div className="sm:col-span-6">
+                                     <label className="block text-xs font-semibold text-foreground/70 mb-1">Features (JSON array)</label>
+                                     <textarea
+                                       name="features"
+                                       rows={5}
+                                       defaultValue={(plan as Record<string, unknown>).features ? JSON.stringify((plan as Record<string, unknown>).features, null, 2) : ""}
+                                       placeholder={`[\n  {"text": "Hasta 5 conexiones", "highlight": false}\n]`}
+                                       className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-violet-400 resize-none"
+                                     />
+                                   </div>
+                                 </div>
+                               </div>
+
                                <div className="md:col-span-6 bg-muted/20 rounded-2xl p-6">
                                   <div className="grid gap-4 sm:grid-cols-4">
                                     <SuperadminInputField label="Locaciones" name="max_branches" type="number" min="0" defaultValue={plan.max_branches ?? "0"} />
