@@ -50,6 +50,22 @@ function toNullableInt(input: FormDataEntryValue | null) {
   return Math.floor(value);
 }
 
+function normalizePlanType(input: string) {
+  const value = input.trim().toLowerCase();
+  if (["platform", "qbo_r365"].includes(value)) return value;
+  return "platform";
+}
+
+function parseFeatures(input: FormDataEntryValue | null): unknown | null {
+  const raw = String(input ?? "").trim();
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 function qs(message: string) {
   return encodeURIComponent(message);
 }
@@ -114,6 +130,14 @@ export async function createPlanAction(formData: FormData) {
   const maxEmployees = toNullableInt(formData.get("max_employees"));
   const maxStorageMb = toNullableInt(formData.get("max_storage_mb"));
   const stripePriceId = String(formData.get("stripe_price_id") ?? "").trim() || null;
+  const planType = normalizePlanType(String(formData.get("plan_type") ?? "platform"));
+  const isFeatured = String(formData.get("is_featured") ?? "") === "on";
+  const isEnterprise = String(formData.get("is_enterprise") ?? "") === "on";
+  const setupFeeAmount = parsePriceAmount(formData.get("setup_fee_amount"));
+  const features = parseFeatures(formData.get("features"));
+  const ctaText = String(formData.get("cta_text") ?? "").trim() || null;
+  const ctaEmail = String(formData.get("cta_email") ?? "").trim() || null;
+  const sortOrder = toNullableInt(formData.get("sort_order")) ?? 0;
 
   let priceAmount = parsePriceAmount(formData.get("price_amount"));
   let currencyCode = normalizeCurrencyCode(String(formData.get("currency_code") ?? "USD")) || "USD";
@@ -164,6 +188,14 @@ export async function createPlanAction(formData: FormData) {
       max_employees: maxEmployees,
       max_storage_mb: maxStorageMb,
       stripe_price_id: stripePriceId,
+      plan_type: planType,
+      is_featured: isFeatured,
+      is_enterprise: isEnterprise,
+      setup_fee_amount: setupFeeAmount,
+      features,
+      cta_text: ctaText,
+      cta_email: ctaEmail,
+      sort_order: sortOrder,
     })
     .select("id")
     .single();
@@ -226,6 +258,14 @@ export async function updatePlanAction(formData: FormData) {
   const maxEmployees = toNullableInt(formData.get("max_employees"));
   const maxStorageMb = toNullableInt(formData.get("max_storage_mb"));
   const stripePriceId = String(formData.get("stripe_price_id") ?? "").trim() || null;
+  const planType = normalizePlanType(String(formData.get("plan_type") ?? "platform"));
+  const isFeatured = String(formData.get("is_featured") ?? "") === "on";
+  const isEnterprise = String(formData.get("is_enterprise") ?? "") === "on";
+  const setupFeeAmount = parsePriceAmount(formData.get("setup_fee_amount"));
+  const features = parseFeatures(formData.get("features"));
+  const ctaText = String(formData.get("cta_text") ?? "").trim() || null;
+  const ctaEmail = String(formData.get("cta_email") ?? "").trim() || null;
+  const sortOrder = toNullableInt(formData.get("sort_order")) ?? 0;
 
   let priceAmount = parsePriceAmount(formData.get("price_amount"));
   let currencyCode = normalizeCurrencyCode(String(formData.get("currency_code") ?? "USD")) || "USD";
@@ -275,6 +315,14 @@ export async function updatePlanAction(formData: FormData) {
       max_employees: maxEmployees,
       max_storage_mb: maxStorageMb,
       stripe_price_id: stripePriceId,
+      plan_type: planType,
+      is_featured: isFeatured,
+      is_enterprise: isEnterprise,
+      setup_fee_amount: setupFeeAmount,
+      features,
+      cta_text: ctaText,
+      cta_email: ctaEmail,
+      sort_order: sortOrder,
     })
     .eq("id", planId);
 

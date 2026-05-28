@@ -35,6 +35,23 @@ export async function getActivePlans() {
   return plans;
 }
 
+export async function getActivePlansForIntegration(integrationType: string) {
+  const supabase = createSupabaseAdminClient();
+  const { data: plans, error } = await supabase
+    .from("plans")
+    .select("id, code, name, description, price_amount, currency_code, billing_period, is_featured, is_enterprise, setup_fee_amount, features, cta_text, cta_email, sort_order, stripe_price_id")
+    .eq("is_active", true)
+    .eq("plan_type", integrationType)
+    .order("sort_order", { ascending: true })
+    .order("price_amount", { ascending: true });
+
+  if (error || !plans) {
+    return [];
+  }
+
+  return plans;
+}
+
 export async function getActivePlansForLanding() {
   const supabase = createSupabaseAdminClient();
   const { data: plans, error } = await supabase

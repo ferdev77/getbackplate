@@ -1498,7 +1498,7 @@ export function LandingExperience({ plans }: Props) {
                           <p className="text-[26px] font-extrabold leading-none tracking-[-0.04em] text-[var(--gbp-text)]">$269<span className="text-[12px] font-semibold text-[var(--gbp-muted)]">/mo</span></p>
                           <p className="mt-0.5 text-[11px] text-[var(--gbp-muted)]">+ 99¢ per successful invoice</p>
                         </div>
-                        <a href="mailto:angelo@mkthelp.com?subject=QBO R365 - Start Sending" className="rounded-lg bg-[var(--gbp-accent)] px-[22px] py-[11px] text-[13px] font-bold text-white transition-opacity hover:opacity-85">
+                        <a href="/integrations/qbo-r365" className="rounded-lg bg-[var(--gbp-accent)] px-[22px] py-[11px] text-[13px] font-bold text-white transition-opacity hover:opacity-85">
                           {lang === "es" ? "Comenzar a Enviar →" : "Start Sending →"}
                         </a>
                       </div>
@@ -1540,7 +1540,7 @@ export function LandingExperience({ plans }: Props) {
                           <p className="text-[26px] font-extrabold leading-none tracking-[-0.04em] text-[var(--gbp-text)]">$269<span className="text-[12px] font-semibold text-[var(--gbp-muted)]">/mo</span></p>
                           <p className="mt-0.5 text-[11px] text-[var(--gbp-muted)]">+ 99¢ per successful invoice</p>
                         </div>
-                        <a href="mailto:angelo@mkthelp.com?subject=QBO R365 - Start Receiving" className="rounded-lg bg-[var(--gbp-accent)] px-[22px] py-[11px] text-[13px] font-bold text-white transition-opacity hover:opacity-85">
+                        <a href="/integrations/qbo-r365" className="rounded-lg bg-[var(--gbp-accent)] px-[22px] py-[11px] text-[13px] font-bold text-white transition-opacity hover:opacity-85">
                           {lang === "es" ? "Comenzar a Recibir →" : "Start Receiving →"}
                         </a>
                       </div>
