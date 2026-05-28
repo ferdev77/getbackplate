@@ -336,8 +336,8 @@ export function LandingExperience({ plans }: Props) {
   const builtForItems = useMemo(
     () =>
       lang === "es"
-        ? ["Cadenas de restaurantes", "Servicio completo", "Quick Service", "Bares y cervecerías", "Ghost Kitchens", "Coffee Shops", "Food Trucks", "Catering", "Hotel F&B", "Campus Dining"]
-        : ["Restaurant Chains", "Full Service Restaurants", "Quick Service", "Bars & Breweries", "Ghost Kitchens", "Coffee Shops", "Food Trucks", "Catering", "Hotel F&B", "Campus Dining"],
+        ? ["Cadenas de restaurantes", "Servicio completo", "Quick Service", "Bares y cervecerías", "Ghost Kitchens", "Coffee Shops", "Food Trucks", "Catering"]
+        : ["Restaurant Chains", "Full Service Restaurants", "Quick Service", "Bars & Breweries", "Ghost Kitchens", "Coffee Shops", "Food Trucks", "Catering"],
     [lang],
   );
 
@@ -1082,9 +1082,9 @@ export function LandingExperience({ plans }: Props) {
                       </div>
                       <div className="overflow-hidden rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg2)]">
                         <div className="flex items-center gap-1.5 border-b border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-3 py-2">
-                          <span className="h-[7px] w-[7px] rounded-full bg-[var(--gbp-border2)]" />
-                          <span className="h-[7px] w-[7px] rounded-full bg-[var(--gbp-border2)]" />
-                          <span className="h-[7px] w-[7px] rounded-full bg-[var(--gbp-border2)]" />
+                          <span className="h-[7px] w-[7px] rounded-full bg-rose-500" />
+                          <span className="h-[7px] w-[7px] rounded-full bg-amber-400" />
+                          <span className="h-[7px] w-[7px] rounded-full bg-emerald-500" />
                           <span className="ml-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">New Announcement · AI Assistant</span>
                         </div>
                         <div className="flex flex-col gap-2.5 p-3.5">
@@ -1123,9 +1123,9 @@ export function LandingExperience({ plans }: Props) {
                       </div>
                       <div className="overflow-hidden rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg2)]">
                         <div className="flex items-center gap-1.5 border-b border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-3 py-2">
-                          <span className="h-[7px] w-[7px] rounded-full bg-[var(--gbp-border2)]" />
-                          <span className="h-[7px] w-[7px] rounded-full bg-[var(--gbp-border2)]" />
-                          <span className="h-[7px] w-[7px] rounded-full bg-[var(--gbp-border2)]" />
+                          <span className="h-[7px] w-[7px] rounded-full bg-rose-500" />
+                          <span className="h-[7px] w-[7px] rounded-full bg-amber-400" />
+                          <span className="h-[7px] w-[7px] rounded-full bg-emerald-500" />
                           <span className="ml-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Proactive Alerts · This Week</span>
                         </div>
                         {[
@@ -1175,9 +1175,9 @@ export function LandingExperience({ plans }: Props) {
                       </div>
                       <div className="overflow-hidden rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg2)]">
                         <div className="flex items-center gap-1.5 border-b border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-3 py-2">
-                          <span className="h-[7px] w-[7px] rounded-full bg-[var(--gbp-border2)]" />
-                          <span className="h-[7px] w-[7px] rounded-full bg-[var(--gbp-border2)]" />
-                          <span className="h-[7px] w-[7px] rounded-full bg-[var(--gbp-border2)]" />
+                          <span className="h-[7px] w-[7px] rounded-full bg-rose-500" />
+                          <span className="h-[7px] w-[7px] rounded-full bg-amber-400" />
+                          <span className="h-[7px] w-[7px] rounded-full bg-emerald-500" />
                           <span className="ml-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Operations Query · AI Assistant</span>
                         </div>
                         <div className="p-3.5">
@@ -1472,9 +1472,9 @@ export function LandingExperience({ plans }: Props) {
                       </div>
                       <div className="mt-3.5 overflow-hidden rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg2)]">
                         <div className="flex items-center gap-1.5 border-b border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-3 py-2">
-                          <span className="h-[7px] w-[7px] rounded-full bg-[var(--gbp-border2)]" />
-                          <span className="h-[7px] w-[7px] rounded-full bg-[var(--gbp-border2)]" />
-                          <span className="h-[7px] w-[7px] rounded-full bg-[var(--gbp-border2)]" />
+                          <span className="h-[7px] w-[7px] rounded-full bg-rose-500" />
+                          <span className="h-[7px] w-[7px] rounded-full bg-amber-400" />
+                          <span className="h-[7px] w-[7px] rounded-full bg-emerald-500" />
                           <span className="ml-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">QuickBooks Online · Invoice Sent</span>
                         </div>
                         <div>
@@ -1514,9 +1514,9 @@ export function LandingExperience({ plans }: Props) {
                       </div>
                       <div className="mt-3.5 overflow-hidden rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg2)]">
                         <div className="flex items-center gap-1.5 border-b border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-3 py-2">
-                          <span className="h-[7px] w-[7px] rounded-full bg-[var(--gbp-border2)]" />
-                          <span className="h-[7px] w-[7px] rounded-full bg-[var(--gbp-border2)]" />
-                          <span className="h-[7px] w-[7px] rounded-full bg-[var(--gbp-border2)]" />
+                          <span className="h-[7px] w-[7px] rounded-full bg-rose-500" />
+                          <span className="h-[7px] w-[7px] rounded-full bg-amber-400" />
+                          <span className="h-[7px] w-[7px] rounded-full bg-emerald-500" />
                           <span className="ml-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Restaurant365 · New Invoice Received</span>
                         </div>
                         <div>
