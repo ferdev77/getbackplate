@@ -154,6 +154,8 @@ export async function POST(req: Request) {
             { onConflict: 'organization_id' },
           );
 
+          const integrationPlanId = session.metadata?.integrationPlanId ?? null;
+
           // Upsert the addon subscription record
           const { error: addonErr } = await supabase.from('organization_addons').upsert(
             {
@@ -162,6 +164,7 @@ export async function POST(req: Request) {
               stripe_subscription_id: addonStripeSubscriptionId,
               stripe_customer_id: addonStripeCustomerId,
               status: 'active',
+              ...(integrationPlanId ? { integration_plan_id: integrationPlanId } : {}),
             },
             { onConflict: 'organization_id,module_id' },
           );
@@ -437,6 +440,19 @@ export async function POST(req: Request) {
           const interval = subscription.items.data[0]?.price?.recurring?.interval ?? null;
           const currentPeriodEnd = computePeriodEnd(periodStartRaw, interval, subscription.trial_end);
 
+          // If the subscription's price changed, try to match it to a known integration plan
+          const updatedPriceId = subscription.items.data[0]?.price?.id ?? null;
+          let updatedIntegrationPlanId: string | null = subscription.metadata?.integrationPlanId ?? null;
+          if (!updatedIntegrationPlanId && updatedPriceId) {
+            const { data: matchedPlan } = await supabase
+              .from('plans')
+              .select('id')
+              .eq('stripe_price_id', updatedPriceId)
+              .eq('plan_type', 'qbo_r365')
+              .maybeSingle();
+            if (matchedPlan) updatedIntegrationPlanId = matchedPlan.id;
+          }
+
           await supabase.from('organization_addons').upsert(
             {
               organization_id: addonOrgId,
@@ -445,6 +461,7 @@ export async function POST(req: Request) {
               stripe_customer_id: stripeCustomerId,
               status: isAddonActive ? 'active' : (isAddonCanceled ? 'canceled' : addonStatus),
               current_period_end: currentPeriodEnd,
+              ...(updatedIntegrationPlanId ? { integration_plan_id: updatedIntegrationPlanId } : {}),
             },
             { onConflict: 'organization_id,module_id' },
           );

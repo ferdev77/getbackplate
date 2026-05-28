@@ -61,13 +61,22 @@ export async function POST(request: Request) {
     }
 
     const supabase = createSupabaseAdminClient();
-    const { data: plan } = await supabase
-      .from("plans")
-      .select("id, code, name, stripe_price_id, plan_type, is_enterprise")
-      .eq("id", planId)
-      .eq("plan_type", "qbo_r365")
-      .eq("is_active", true)
-      .maybeSingle();
+
+    // Load the integration plan and the qbo_r365 module ID in parallel
+    const [{ data: plan }, { data: moduleRow }] = await Promise.all([
+      supabase
+        .from("plans")
+        .select("id, code, name, stripe_price_id, plan_type, is_enterprise")
+        .eq("id", planId)
+        .eq("plan_type", "qbo_r365")
+        .eq("is_active", true)
+        .maybeSingle(),
+      supabase
+        .from("module_catalog")
+        .select("id, code")
+        .eq("code", "qbo_r365")
+        .maybeSingle(),
+    ]);
 
     if (!plan) {
       return NextResponse.json({ error: "Plan not found" }, { status: 404 });
@@ -106,13 +115,85 @@ export async function POST(request: Request) {
       );
     }
 
-    const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL ?? "https://app.getbackplate.com";
-
+    const moduleId = moduleRow?.id ?? null;
     const planCode =
       typeof (plan as Record<string, unknown>).code === "string"
         ? ((plan as Record<string, unknown>).code as string)
         : "";
+
+    const sharedMeta = {
+      organizationId,
+      userId,
+      isAddon: "true",
+      moduleCode: "qbo_r365",
+      moduleId: moduleId ?? "",
+      integrationPlanId: plan.id,
+      integrationPlanCode: planCode,
+      billingPeriod: period,
+    };
+
+    // ── UPGRADE / DOWNGRADE: org already has an active integration subscription ──
+    const { data: existingAddon } = await supabase
+      .from("organization_addons")
+      .select("stripe_subscription_id, status, integration_plan_id")
+      .eq("organization_id", organizationId)
+      .eq("module_id", moduleId ?? "")
+      .maybeSingle();
+
+    if (
+      existingAddon?.status === "active" &&
+      existingAddon.stripe_subscription_id &&
+      moduleId
+    ) {
+      // Same plan → open billing portal instead
+      if (existingAddon.integration_plan_id === plan.id) {
+        const { data: stripeMapping } = await supabase
+          .from("stripe_customers")
+          .select("stripe_customer_id")
+          .eq("organization_id", organizationId)
+          .maybeSingle();
+
+        if (stripeMapping?.stripe_customer_id) {
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.getbackplate.com";
+          const portalSession = await stripe.billingPortal.sessions.create({
+            customer: stripeMapping.stripe_customer_id,
+            return_url: `${appUrl}/app/dashboard`,
+          });
+          return NextResponse.json({ url: portalSession.url });
+        }
+      }
+
+      // Different plan → proration upgrade/downgrade inline
+      const subscription = await stripe.subscriptions.retrieve(
+        existingAddon.stripe_subscription_id,
+      );
+      const itemId = subscription.items.data[0]?.id;
+
+      if (itemId) {
+        await stripe.subscriptions.update(existingAddon.stripe_subscription_id, {
+          items: [{ id: itemId, price: targetPriceId }],
+          proration_behavior: "create_prorations",
+          metadata: sharedMeta,
+        });
+
+        // Sync the new plan tier in DB
+        await supabase
+          .from("organization_addons")
+          .update({ integration_plan_id: plan.id })
+          .eq("organization_id", organizationId)
+          .eq("module_id", moduleId);
+
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.getbackplate.com";
+        return NextResponse.json({
+          upgraded: true,
+          url: `${appUrl}/app/dashboard?integration_upgraded=1`,
+        });
+      }
+    }
+    // ── END UPGRADE/DOWNGRADE ─────────────────────────────────────────────────
+
+    const appUrl =
+      process.env.NEXT_PUBLIC_APP_URL ?? "https://app.getbackplate.com";
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -122,26 +203,8 @@ export async function POST(request: Request) {
       success_url: `${appUrl}/integrations/qbo-r365/success?plan=${encodeURIComponent(plan.name)}&period=${period}`,
       cancel_url: `${appUrl}/integrations/qbo-r365`,
       tax_id_collection: { enabled: true },
-      metadata: {
-        organizationId,
-        userId,
-        isAddon: "true",
-        moduleCode: "qbo_r365",
-        integrationPlanId: plan.id,
-        integrationPlanCode: planCode,
-        billingPeriod: period,
-      },
-      subscription_data: {
-        metadata: {
-          organizationId,
-          userId,
-          isAddon: "true",
-          moduleCode: "qbo_r365",
-          integrationPlanId: plan.id,
-          integrationPlanCode: planCode,
-          billingPeriod: period,
-        },
-      },
+      metadata: sharedMeta,
+      subscription_data: { metadata: sharedMeta },
     });
 
     return NextResponse.json({ url: session.url });

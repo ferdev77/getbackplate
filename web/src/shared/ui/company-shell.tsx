@@ -163,11 +163,23 @@ type CompanyShellProps = {
     priceAmount: number | null;
     currencyCode: string;
     stripePriceId: string | null;
+    integrationPlanType: string | null;
   }>;
   organizationAddons?: Array<{
     moduleId: string;
     status: string;
     currentPeriodEnd: string | null;
+    integrationPlanId: string | null;
+  }>;
+  integrationPlans?: Array<{
+    id: string;
+    code: string;
+    name: string;
+    description: string | null;
+    priceAmount: number | null;
+    isFeatured: boolean;
+    setupFeeAmount: number | null;
+    features: unknown;
   }>;
   children: React.ReactNode;
 };
@@ -195,6 +207,7 @@ export function CompanyShell({
   trialStatus,
   availableAddons = [],
   organizationAddons = [],
+  integrationPlans = [],
   children,
 }: CompanyShellProps) {
   const brandingName = customBrandingEnabled ? (organizationLabel || "Empresa") : "GetBackplate";
@@ -227,6 +240,9 @@ export function CompanyShell({
   const [planChangeTargetId, setPlanChangeTargetId] = useState<string | null>(null);
   const [addonOpen, setAddonOpen] = useState(false);
   const [addonBusy, setAddonBusy] = useState<string | null>(null);
+  const [integrationPlanOpen, setIntegrationPlanOpen] = useState<string | null>(null); // stores integrationPlanType
+  const [integrationPlanBillingCycle, setIntegrationPlanBillingCycle] = useState<"monthly" | "annual">("monthly");
+  const [integrationPlanBusy, setIntegrationPlanBusy] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(SECTIONS.map((section) => [section.label, false])),
   );
@@ -628,11 +644,14 @@ export function CompanyShell({
     const canceled = searchParams.get('canceled');
     const addonSuccess = searchParams.get('addon_success');
     const addonModule = searchParams.get('module');
+    const integrationUpgraded = searchParams.get('integration_upgraded');
 
-    if (upgraded !== 'true' && success !== 'true' && canceled !== 'true' && addonSuccess !== '1') return;
+    if (upgraded !== 'true' && success !== 'true' && canceled !== 'true' && addonSuccess !== '1' && integrationUpgraded !== '1') return;
 
     const toastCode =
-      addonSuccess === '1'
+      integrationUpgraded === '1'
+        ? 'integration-plan-upgraded'
+        : addonSuccess === '1'
         ? `addon-activated:${addonModule ?? ''}`
         : canceled === 'true'
           ? 'subscription-canceled'
@@ -647,6 +666,7 @@ export function CompanyShell({
     nextParams.delete('canceled');
     nextParams.delete('addon_success');
     nextParams.delete('module');
+    nextParams.delete('integration_upgraded');
 
     if (success === 'true') {
       nextParams.delete('selectPlanId');
@@ -672,6 +692,8 @@ export function CompanyShell({
         toast.success('¡Plan actualizado exitosamente!');
       } else if (toastCode === 'subscription-canceled') {
         toast.error('No se completó la activación de la suscripción.');
+      } else if (toastCode === 'integration-plan-upgraded') {
+        toast.success('¡Plan de integración actualizado exitosamente!');
       } else if (toastCode.startsWith('addon-activated:')) {
         toast.success('¡Add-on activado exitosamente! El módulo ya está disponible en tu cuenta.');
       } else {
@@ -801,6 +823,39 @@ export function CompanyShell({
       toast.error("Error de conexión. Intenta nuevamente.");
     } finally {
       setAddonBusy(null);
+    }
+  }
+
+  async function startIntegrationPlanCheckout(planId: string, period: "monthly" | "annual") {
+    if (impersonationMode) {
+      toast.error("Billing bloqueado en modo impersonación");
+      return;
+    }
+    setIntegrationPlanBusy(planId);
+    try {
+      const res = await fetch("/api/stripe/checkout-integration", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId, billingPeriod: period }),
+      });
+      const data = await res.json() as { url?: string; upgraded?: boolean; error?: string };
+      if (res.status === 401) {
+        window.location.href = `/auth/register?returnTo=${encodeURIComponent("/integrations/qbo-r365")}`;
+        return;
+      }
+      if (data.upgraded && data.url) {
+        setIntegrationPlanOpen(null);
+        toast.success("¡Plan de integración actualizado exitosamente!");
+        router.refresh();
+      } else if (data.url) {
+        window.location.href = data.url;
+      } else {
+        toast.error(data.error ?? "Error al iniciar el checkout");
+      }
+    } catch {
+      toast.error("Error de conexión. Intenta nuevamente.");
+    } finally {
+      setIntegrationPlanBusy(null);
     }
   }
 
@@ -1825,7 +1880,11 @@ export function CompanyShell({
                     {availableAddons.map((addon) => {
                       const orgAddon = organizationAddons.find((a) => a.moduleId === addon.moduleId);
                       const isActive = orgAddon?.status === "active";
-                      const formattedPrice = addon.priceAmount != null
+                      const isTiered = Boolean(addon.integrationPlanType);
+                      const currentPlan = isTiered && orgAddon?.integrationPlanId
+                        ? integrationPlans.find((p) => p.id === orgAddon.integrationPlanId)
+                        : null;
+                      const formattedPrice = !isTiered && addon.priceAmount != null
                         ? new Intl.NumberFormat("es-US", {
                             style: "currency",
                             currency: addon.currencyCode,
@@ -1861,26 +1920,54 @@ export function CompanyShell({
                               {addon.description}
                             </p>
                           )}
-                          <div className="flex items-center justify-between gap-2">
+                          {isTiered && currentPlan && (
+                            <p className={`mb-2 text-[10px] font-semibold ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-muted)]"}`}>
+                              Plan activo: {currentPlan.name}
+                            </p>
+                          )}
+                          <div className="flex items-center justify-between gap-2 flex-wrap gap-y-1.5">
                             {formattedPrice && (
                               <p className={`text-[11px] font-semibold ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-muted)]"}`}>
                                 {formattedPrice}/mes
                               </p>
                             )}
-                            <button
-                              type="button"
-                              disabled={addonBusy === addon.moduleId || impersonationMode}
-                              onClick={() => startAddonCheckout(addon.moduleId)}
-                              className={`ml-auto rounded-lg px-3 py-1.5 text-[10px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                                isActive
-                                  ? isDarkTheme
-                                    ? "bg-white/10 text-white/70 hover:bg-white/20"
-                                    : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)]"
-                                  : "bg-[var(--gbp-accent)] text-white hover:opacity-90"
-                              }`}
-                            >
-                              {addonBusy === addon.moduleId ? "..." : isActive ? "Gestionar →" : "Contratar →"}
-                            </button>
+                            {isTiered ? (
+                              <div className="ml-auto flex gap-1.5">
+                                {isActive && (
+                                  <button
+                                    type="button"
+                                    disabled={impersonationMode}
+                                    onClick={() => openBillingPortal()}
+                                    className={`rounded-lg px-3 py-1.5 text-[10px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${isDarkTheme ? "bg-white/10 text-white/70 hover:bg-white/20" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)]"}`}
+                                  >
+                                    Gestionar →
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  disabled={impersonationMode}
+                                  onClick={() => setIntegrationPlanOpen(addon.integrationPlanType)}
+                                  className="rounded-lg bg-[var(--gbp-accent)] px-3 py-1.5 text-[10px] font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  {isActive ? "Cambiar plan →" : "Ver planes →"}
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={addonBusy === addon.moduleId || impersonationMode}
+                                onClick={() => startAddonCheckout(addon.moduleId)}
+                                className={`ml-auto rounded-lg px-3 py-1.5 text-[10px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                                  isActive
+                                    ? isDarkTheme
+                                      ? "bg-white/10 text-white/70 hover:bg-white/20"
+                                      : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)]"
+                                    : "bg-[var(--gbp-accent)] text-white hover:opacity-90"
+                                }`}
+                              >
+                                {addonBusy === addon.moduleId ? "..." : isActive ? "Gestionar →" : "Contratar →"}
+                              </button>
+                            )}
                           </div>
                         </article>
                       );
@@ -2434,7 +2521,11 @@ export function CompanyShell({
               {availableAddons.map((addon) => {
                 const orgAddon = organizationAddons.find((a) => a.moduleId === addon.moduleId);
                 const isActive = orgAddon?.status === "active";
-                const formattedPrice = addon.priceAmount != null
+                const isTiered = Boolean(addon.integrationPlanType);
+                const currentPlan = isTiered && orgAddon?.integrationPlanId
+                  ? integrationPlans.find((p) => p.id === orgAddon.integrationPlanId)
+                  : null;
+                const formattedPrice = !isTiered && addon.priceAmount != null
                   ? new Intl.NumberFormat("es-US", { style: "currency", currency: addon.currencyCode, minimumFractionDigits: 0 }).format(addon.priceAmount)
                   : null;
 
@@ -2452,23 +2543,158 @@ export function CompanyShell({
                     {addon.description && (
                       <p className={`mb-2 text-[10px] leading-relaxed ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>{addon.description}</p>
                     )}
+                    {isTiered && currentPlan && (
+                      <p className={`mb-2 text-[10px] font-semibold ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-muted)]"}`}>
+                        Plan: {currentPlan.name}
+                      </p>
+                    )}
                     <div className="flex items-center justify-between gap-2">
                       {formattedPrice && (
                         <p className={`text-[10px] font-semibold ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>{formattedPrice}/mes</p>
                       )}
-                      <button
-                        type="button"
-                        disabled={addonBusy === addon.moduleId}
-                        onClick={() => startAddonCheckout(addon.moduleId)}
-                        className={`ml-auto rounded-lg px-3 py-1.5 text-[10px] font-bold transition disabled:opacity-50 ${isActive ? (isDarkTheme ? "bg-white/10 text-white/70 hover:bg-white/20" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)]") : "bg-[var(--gbp-accent)] text-white hover:opacity-90"}`}
-                      >
-                        {addonBusy === addon.moduleId ? "..." : isActive ? "Gestionar →" : "Contratar →"}
-                      </button>
+                      {isTiered ? (
+                        <button
+                          type="button"
+                          disabled={impersonationMode}
+                          onClick={() => { setAddonOpen(false); setIntegrationPlanOpen(addon.integrationPlanType); }}
+                          className="ml-auto rounded-lg bg-[var(--gbp-accent)] px-3 py-1.5 text-[10px] font-bold text-white transition hover:opacity-90 disabled:opacity-50"
+                        >
+                          {isActive ? "Cambiar plan →" : "Ver planes →"}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={addonBusy === addon.moduleId}
+                          onClick={() => startAddonCheckout(addon.moduleId)}
+                          className={`ml-auto rounded-lg px-3 py-1.5 text-[10px] font-bold transition disabled:opacity-50 ${isActive ? (isDarkTheme ? "bg-white/10 text-white/70 hover:bg-white/20" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)]") : "bg-[var(--gbp-accent)] text-white hover:opacity-90"}`}
+                        >
+                          {addonBusy === addon.moduleId ? "..." : isActive ? "Gestionar →" : "Contratar →"}
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
               })}
             </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Integration plan selector modal */}
+      {integrationPlanOpen && integrationPlans.length > 0 ? (
+        <div className="fixed inset-0 z-[1300] flex items-center justify-center p-4" onClick={() => setIntegrationPlanOpen(null)}>
+          <div
+            className={`w-full max-w-2xl overflow-hidden rounded-2xl border shadow-2xl ${isDarkTheme ? "border-white/10 bg-[#1a1a18] text-white" : "border-[var(--gbp-border)] bg-white text-[var(--gbp-text)]"}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className={`flex items-center justify-between border-b px-6 py-4 ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`}>
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">QBO ↔ R365 Integration</p>
+                <p className="mt-0.5 text-base font-bold">Selecciona un plan</p>
+              </div>
+              <div className="flex items-center gap-3">
+                {/* Billing toggle */}
+                <div className={`flex items-center gap-1.5 rounded-lg border p-1 text-[11px] font-bold ${isDarkTheme ? "border-white/10 bg-white/5" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
+                  <button
+                    type="button"
+                    onClick={() => setIntegrationPlanBillingCycle("monthly")}
+                    className={`rounded px-2.5 py-1 transition ${integrationPlanBillingCycle === "monthly" ? "bg-[var(--gbp-accent)] text-white" : isDarkTheme ? "text-white/60 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}
+                  >
+                    Mensual
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIntegrationPlanBillingCycle("annual")}
+                    className={`rounded px-2.5 py-1 transition ${integrationPlanBillingCycle === "annual" ? "bg-[var(--gbp-accent)] text-white" : isDarkTheme ? "text-white/60 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}
+                  >
+                    Anual <span className={`ml-0.5 text-[9px] ${integrationPlanBillingCycle === "annual" ? "text-white/80" : "text-emerald-500"}`}>−17%</span>
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIntegrationPlanOpen(null)}
+                  className={`grid h-7 w-7 place-items-center rounded-full text-xs ${isDarkTheme ? "bg-white/10 text-white/60 hover:bg-white/20" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)]"}`}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Plan cards */}
+            <div className="grid gap-3 p-5 sm:grid-cols-3">
+              {integrationPlans.map((plan) => {
+                const orgAddon = availableAddons
+                  .filter((a) => a.integrationPlanType === integrationPlanOpen)
+                  .map((a) => organizationAddons.find((oa) => oa.moduleId === a.moduleId))
+                  .find(Boolean);
+                const isCurrent = orgAddon?.integrationPlanId === plan.id;
+                const monthly = plan.priceAmount ?? 0;
+                const annualPerMonth = Math.round((monthly * 10) / 12);
+                const displayPrice = integrationPlanBillingCycle === "annual" ? annualPerMonth : monthly;
+                const savings = monthly * 12 - monthly * 10;
+                const isLoading = integrationPlanBusy === plan.id;
+
+                return (
+                  <div
+                    key={plan.id}
+                    className={`relative rounded-xl border p-4 transition ${
+                      plan.isFeatured
+                        ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent)]/5"
+                        : isDarkTheme
+                        ? "border-white/10 bg-white/[0.03]"
+                        : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"
+                    }`}
+                  >
+                    {plan.isFeatured && (
+                      <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+                        Popular
+                      </span>
+                    )}
+                    {isCurrent && (
+                      <span className="absolute -top-2.5 right-3 rounded-full bg-emerald-500 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+                        Actual
+                      </span>
+                    )}
+                    <p className="mb-1 text-sm font-bold">{plan.name}</p>
+                    {plan.description && (
+                      <p className={`mb-3 text-[10px] leading-relaxed ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>
+                        {plan.description}
+                      </p>
+                    )}
+                    <div className="mb-3">
+                      <span className="text-2xl font-bold">${displayPrice.toLocaleString("en-US")}</span>
+                      <span className={`ml-1 text-[11px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>/mes</span>
+                      {integrationPlanBillingCycle === "annual" && savings > 0 && (
+                        <p className="mt-0.5 text-[10px] font-semibold text-emerald-500">
+                          Ahorrás ${savings.toLocaleString("en-US")}/año
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={isLoading || isCurrent || impersonationMode}
+                      onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle)}
+                      className={`w-full rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                        isCurrent
+                          ? isDarkTheme ? "bg-white/10 text-white/40" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]"
+                          : plan.isFeatured
+                          ? "bg-[var(--gbp-accent)] text-white hover:opacity-90"
+                          : isDarkTheme
+                          ? "border border-white/20 bg-white/5 text-white hover:bg-white/10"
+                          : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]"
+                      }`}
+                    >
+                      {isLoading ? "Procesando…" : isCurrent ? "Plan actual" : "Seleccionar →"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            <p className={`px-5 pb-4 text-[10px] ${isDarkTheme ? "text-white/30" : "text-[var(--gbp-muted)]"}`}>
+              Al seleccionar un plan serás redirigido a Stripe para completar el pago. Los upgrades aplican prorrateo inmediato.
+            </p>
           </div>
         </div>
       ) : null}
