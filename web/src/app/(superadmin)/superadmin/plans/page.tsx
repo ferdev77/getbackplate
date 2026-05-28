@@ -189,11 +189,13 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                     <p className="text-sm text-foreground/60 line-clamp-2 italic">{plan.description || "Sin descripción comercial definida."}</p>
 
                     <div className="flex flex-wrap gap-6 pt-2">
-                      <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-                        <BadgeDollarSign className="h-5 w-5 text-brand" />
-                        <span>{money(plan.price_amount, plan.currency_code ?? "USD")}</span>
-                        <span className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">/ {plan.billing_period}</span>
-                      </div>
+                      {(!isIntegration || plan.stripe_price_id) && (
+                        <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                          <BadgeDollarSign className="h-5 w-5 text-brand" />
+                          <span>{money(plan.price_amount, plan.currency_code ?? "USD")}</span>
+                          <span className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">/ {plan.billing_period}</span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-2 text-sm font-bold text-foreground">
                         <Building2 className="h-5 w-5 text-muted-foreground" />
                         <span>{usedCount} <span className="text-[11px] uppercase tracking-[0.08em] opacity-60">Clientes</span></span>
