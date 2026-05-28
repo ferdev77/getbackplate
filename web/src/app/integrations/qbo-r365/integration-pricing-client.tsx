@@ -116,9 +116,9 @@ function PlanCard({
   const setupText =
     setupAmount != null ? `$${formatPrice(setupAmount)} one-time` : "Negotiated";
 
-  // CTA: Stripe checkout for priced plans, mailto for enterprise or plans without stripe
+  // CTA: enterprise → mailto; all other plans → checkout (handles auth check / 401 → register)
   function handleCta() {
-    if (isEnterprise || !plan.has_stripe_prices) {
+    if (isEnterprise) {
       const email = plan.cta_email ?? "angelo@mkthelp.com";
       window.location.href = `mailto:${email}?subject=QBO R365 - ${plan.name} Plan`;
       return;
