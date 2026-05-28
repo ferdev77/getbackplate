@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getCurrentUser } from "@/modules/memberships/queries";
 import {
   getActivePlansCached,
+  getIntegrationPlansCached,
   getPlanModulesMapCached,
   getOrganizationSettingsCached,
   getEnabledModulesCached,
@@ -78,6 +79,7 @@ export default async function CompanyLayout({
     orgSettings,
     preferences,
     activePlans,
+    integrationPlansRaw,
     planModulesByPlanId,
     enabledModuleCodes,
     activeBranches,
@@ -89,6 +91,7 @@ export default async function CompanyLayout({
     getOrganizationSettingsCached(tenant.organizationId),
     user ? getUserPreferencesCached(user.id, tenant.organizationId) : Promise.resolve(null),
     getActivePlansCached(),
+    getIntegrationPlansCached("qbo_r365"),
     getPlanModulesMapCached(),
     getEnabledModulesCached(tenant.organizationId),
     getActiveBranches(tenant.organizationId),
@@ -209,11 +212,23 @@ export default async function CompanyLayout({
         priceAmount: a.addon_price_amount ?? null,
         currencyCode: a.addon_currency_code ?? "USD",
         stripePriceId: a.addon_stripe_price_id ?? null,
+        integrationPlanType: (a as Record<string, unknown>).integration_plan_type as string | null ?? null,
       }))}
       organizationAddons={organizationAddons.map((a) => ({
         moduleId: a.module_id,
         status: a.status,
         currentPeriodEnd: a.current_period_end ?? null,
+        integrationPlanId: (a as Record<string, unknown>).integration_plan_id as string | null ?? null,
+      }))}
+      integrationPlans={integrationPlansRaw.map((p) => ({
+        id: p.id,
+        code: p.code,
+        name: p.name,
+        description: (p as Record<string, unknown>).description as string | null ?? null,
+        priceAmount: p.price_amount ?? null,
+        isFeatured: (p as Record<string, unknown>).is_featured as boolean ?? false,
+        setupFeeAmount: (p as Record<string, unknown>).setup_fee_amount as number | null ?? null,
+        features: (p as Record<string, unknown>).features ?? null,
       }))}
       trialStatus={{
         isActive: isTrialActive,

@@ -27,7 +27,7 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
   const [{ data: modules }, { count: tenantBindings }] = await Promise.all([
     supabase
       .from("module_catalog")
-      .select("id, code, name, description, is_core, is_available_as_addon, addon_name, addon_description, addon_stripe_price_id, addon_price_amount, addon_currency_code, created_at")
+      .select("id, code, name, description, is_core, is_available_as_addon, addon_name, addon_description, addon_stripe_price_id, addon_price_amount, addon_currency_code, integration_plan_type, created_at")
       .order("name"),
     supabase
       .from("organization_modules")
@@ -162,13 +162,40 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
                     <form action={updateModuleAddonAction} className="grid gap-4 sm:grid-cols-2 items-end">
                       <input type="hidden" name="module_id" value={module.id} />
                       <SuperadminInputField label="Nombre visible del Add-on" name="addon_name" defaultValue={module.addon_name ?? ""} placeholder={displayName} />
-                      <SuperadminInputField label="Stripe Price ID del Add-on" name="addon_stripe_price_id" defaultValue={module.addon_stripe_price_id ?? ""} placeholder="price_..." spellCheck={false} />
-                      <SuperadminInputField label="Descripción para el cliente" name="addon_description" defaultValue={module.addon_description ?? ""} className="sm:col-span-2" />
-                      {module.addon_price_amount != null && (
-                        <p className="text-xs text-muted-foreground sm:col-span-2">
-                          Precio detectado: <strong>{new Intl.NumberFormat("es-US", { style: "currency", currency: module.addon_currency_code ?? "USD" }).format(module.addon_price_amount)}</strong> / mes
-                        </p>
-                      )}
+                      <SuperadminInputField label="Descripción para el cliente" name="addon_description" defaultValue={module.addon_description ?? ""} className="sm:col-span-1" />
+
+                      {/* integration_plan_type: si está seteado, los precios vienen de los planes */}
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1.5">
+                          Tipo de plan de integración (tiered)
+                        </label>
+                        <input
+                          name="integration_plan_type"
+                          defaultValue={module.integration_plan_type ?? ""}
+                          placeholder="Ej: qbo_r365 — dejar vacío para precio único"
+                          spellCheck={false}
+                          className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand/30"
+                        />
+                        {module.integration_plan_type ? (
+                          <p className="mt-1.5 text-xs text-brand">
+                            ✦ Módulo tiered — los precios se gestionan desde{" "}
+                            <a href="/superadmin/plans" className="underline font-semibold">
+                              /superadmin/plans
+                            </a>
+                            , filtrando por plan_type = &quot;{module.integration_plan_type}&quot;
+                          </p>
+                        ) : (
+                          <>
+                            <SuperadminInputField label="Stripe Price ID del Add-on" name="addon_stripe_price_id" defaultValue={module.addon_stripe_price_id ?? ""} placeholder="price_..." spellCheck={false} className="mt-3" />
+                            {module.addon_price_amount != null && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Precio detectado: <strong>{new Intl.NumberFormat("es-US", { style: "currency", currency: module.addon_currency_code ?? "USD" }).format(module.addon_price_amount)}</strong> / mes
+                              </p>
+                            )}
+                          </>
+                        )}
+                      </div>
+
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:col-span-2 mt-2">
                         <label className="flex items-center gap-3 cursor-pointer">
                           <input

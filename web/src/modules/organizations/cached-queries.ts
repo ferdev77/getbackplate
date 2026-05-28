@@ -20,7 +20,7 @@ function ensureNoQueryError(context: string, error: { message?: string } | null)
 
 // ─── Global (non-org-specific) ─────────────────────────────────────────────
 
-/** Active plans — rarely change. 5 min TTL. */
+/** Active platform plans — rarely change. 5 min TTL. */
 export const getActivePlansCached = unstable_cache(
   async () => {
     const supabase = createSupabaseAdminClient();
@@ -30,13 +30,37 @@ export const getActivePlansCached = unstable_cache(
         "id, code, name, price_amount, billing_period, is_active, max_branches, max_users, max_employees, max_storage_mb, stripe_price_id",
       )
       .eq("is_active", true)
+      .eq("plan_type", "platform")
       .order("price_amount", { ascending: true, nullsFirst: false });
     ensureNoQueryError("getActivePlansCached", error);
     return data ?? [];
   },
-  ["active-plans-v1"],
+  ["active-plans-v2"],
   { revalidate: 300 },
 );
+
+/** Active integration plans for a given plan type — 5 min TTL. */
+export function getIntegrationPlansCached(planType: string) {
+  return unstable_cache(
+    async () => {
+      const supabase = createSupabaseAdminClient();
+      const { data, error } = await supabase
+        .from("plans")
+        .select(
+          "id, code, name, description, price_amount, currency_code, billing_period, is_featured, is_enterprise, setup_fee_amount, features, cta_text, sort_order, stripe_price_id",
+        )
+        .eq("is_active", true)
+        .eq("plan_type", planType)
+        .eq("is_enterprise", false)
+        .order("sort_order", { ascending: true })
+        .order("price_amount", { ascending: true });
+      ensureNoQueryError("getIntegrationPlansCached", error);
+      return data ?? [];
+    },
+    [`integration-plans-${planType}-v1`],
+    { revalidate: 300 },
+  )();
+}
 
 /** Plan → modules map — rarely changes. 5 min TTL. */
 export const getPlanModulesMapCached = unstable_cache(
@@ -178,19 +202,21 @@ export const getOrganizationBillingGateCached = unstable_cache(
   { revalidate: 30 },
 );
 
-/** Available add-on modules — 5 min TTL (rarely changes). */
+/** Available add-on modules — 5 min TTL (rarely changes).
+ *  Includes both simple add-ons (with addon_stripe_price_id) and
+ *  tiered add-ons (with integration_plan_type). */
 export const getAvailableAddonsCached = unstable_cache(
   async () => {
     const supabase = createSupabaseAdminClient();
     const { data, error } = await supabase
       .from("module_catalog")
-      .select("id, code, name, addon_name, addon_description, addon_stripe_price_id, addon_price_amount, addon_currency_code")
+      .select("id, code, name, addon_name, addon_description, addon_stripe_price_id, addon_price_amount, addon_currency_code, integration_plan_type")
       .eq("is_available_as_addon", true)
-      .not("addon_stripe_price_id", "is", null);
+      .or("addon_stripe_price_id.not.is.null,integration_plan_type.not.is.null");
     ensureNoQueryError("getAvailableAddonsCached", error);
     return data ?? [];
   },
-  ["available-addons-v1"],
+  ["available-addons-v2"],
   { revalidate: 300 },
 );
 
@@ -201,12 +227,12 @@ export function getOrganizationAddonsCached(organizationId: string) {
       const supabase = createSupabaseAdminClient();
       const { data, error } = await supabase
         .from("organization_addons")
-        .select("module_id, status, current_period_end, stripe_subscription_id")
+        .select("module_id, status, current_period_end, stripe_subscription_id, integration_plan_id")
         .eq("organization_id", organizationId);
       ensureNoQueryError("getOrganizationAddonsCached", error);
       return data ?? [];
     },
-    [`org-addons-v1-${organizationId}`],
+    [`org-addons-v2-${organizationId}`],
     { revalidate: 30 },
   )();
 }

@@ -176,6 +176,7 @@ export async function updateModuleAddonAction(formData: FormData) {
   const addonName = String(formData.get("addon_name") ?? "").trim() || null;
   const addonDescription = String(formData.get("addon_description") ?? "").trim() || null;
   const addonStripePriceId = String(formData.get("addon_stripe_price_id") ?? "").trim() || null;
+  const integrationPlanType = String(formData.get("integration_plan_type") ?? "").trim() || null;
 
   if (!moduleId) {
     redirect("/superadmin/modules?status=error&message=" + qs("Módulo no especificado"));
@@ -184,7 +185,8 @@ export async function updateModuleAddonAction(formData: FormData) {
   let addonPriceAmount: number | null = null;
   let addonCurrencyCode = "USD";
 
-  if (addonStripePriceId) {
+  // Only resolve Stripe price for simple (non-tiered) add-ons
+  if (addonStripePriceId && !integrationPlanType) {
     try {
       const price = await stripe.prices.retrieve(addonStripePriceId);
       addonPriceAmount = price.unit_amount ? price.unit_amount / 100 : 0;
@@ -202,9 +204,11 @@ export async function updateModuleAddonAction(formData: FormData) {
       is_available_as_addon: isAvailableAsAddon,
       addon_name: addonName,
       addon_description: addonDescription,
-      addon_stripe_price_id: addonStripePriceId,
-      addon_price_amount: addonPriceAmount,
-      addon_currency_code: addonCurrencyCode,
+      // Tiered add-ons don't use a single stripe_price_id
+      addon_stripe_price_id: integrationPlanType ? null : addonStripePriceId,
+      addon_price_amount: integrationPlanType ? null : addonPriceAmount,
+      addon_currency_code: integrationPlanType ? null : addonCurrencyCode,
+      integration_plan_type: integrationPlanType,
     })
     .eq("id", moduleId);
 
