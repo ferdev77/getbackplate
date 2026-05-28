@@ -419,14 +419,14 @@ export function PlanFormModal({
                       defaultValue={plan?.sort_order ?? "0"}
                       className={mode === "create" ? "md:col-span-1" : "md:col-span-1"}
                     />
+                    <SuperadminInputField
+                      label="Descripción breve"
+                      name="description"
+                      defaultValue={plan?.description ?? ""}
+                      placeholder="Resumen del plan para la landing"
+                      className="md:col-span-6"
+                    />
                   </div>
-
-                  <SuperadminInputField
-                    label="Descripción breve"
-                    name="description"
-                    defaultValue={plan?.description ?? ""}
-                    placeholder="Resumen del plan para la landing"
-                  />
 
                   {/* Main Stripe Price ID */}
                   <div>
