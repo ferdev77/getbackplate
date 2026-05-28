@@ -239,6 +239,20 @@ export async function POST(req: Request) {
             // ── END COMPANION MODULES ─────────────────────────────────────────
           }
 
+          // ── BILLING GATE: integration-only orgs must never be blocked ────────
+          // Integration plans live in organization_addons, not in subscriptions.
+          // The billing gate only reads subscriptions, so orgs without a platform
+          // plan would always get isBlocked=true (reason: subscription_missing).
+          // Clearing billing_onboarding_required ensures the gate returns
+          // reason="not_required" and never blocks the dashboard.
+          await supabase
+            .from('organizations')
+            .update({ billing_onboarding_required: false })
+            .eq('id', addonOrgId)
+            .is('plan_id', null); // only if they have no platform plan — don't touch platform customers
+          console.info(`[Webhook][addon] billing_onboarding_required cleared for integration-only org ${addonOrgId}`);
+          // ── END BILLING GATE FIX ─────────────────────────────────────────────
+
           break;
         }
         // ── END ADD-ON CHECKOUT ──────────────────────────────────
