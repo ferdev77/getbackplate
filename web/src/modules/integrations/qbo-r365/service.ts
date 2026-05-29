@@ -3920,9 +3920,19 @@ export async function processQboUnifiedQueue(): Promise<{
             .limit(1);
           if (cfgRows?.[0]) {
             resolvedSyncConfigId = String(cfgRows[0].id);
+            const re = rawEntity as unknown as Record<string, unknown>;
+            const currencyRef = (re.CurrencyRef ?? {}) as Record<string, unknown>;
             await admin
               .from("qbo_unified_invoices")
-              .update({ sync_config_id: resolvedSyncConfigId })
+              .update({
+                sync_config_id: resolvedSyncConfigId,
+                doc_number: typeof re.DocNumber === "string" ? re.DocNumber : null,
+                txn_date: typeof re.TxnDate === "string" ? re.TxnDate : null,
+                due_date: typeof re.DueDate === "string" ? re.DueDate : null,
+                total_amount: re.TotalAmt !== null && re.TotalAmt !== undefined ? Number(re.TotalAmt) : null,
+                currency: typeof currencyRef.value === "string" ? currencyRef.value : null,
+                customer_name: typeof customerRef?.name === "string" ? customerRef.name : null,
+              })
               .eq("id", unifiedInvoiceId);
           }
         }
