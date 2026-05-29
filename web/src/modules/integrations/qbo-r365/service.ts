@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { Client as FtpClient } from "basic-ftp";
 import { Readable } from "stream";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
@@ -2941,13 +2942,14 @@ export async function insertQboWebhookEvents(input: QboWebhookEventInsert[]) {
         import_source: "webhook",
         pipeline_status: "en_cola",
       }, { onConflict: "organization_id,entity_id,entity_type", ignoreDuplicates: true });
-      // Camino rápido: fetch + map + send en el mismo contexto (best effort)
-      void fetchAndCaptureWebhookInvoice({
+      // Camino rápido: fetch + map + send garantizado por after() — Vercel mantiene
+      // la función viva hasta que termine aunque la respuesta ya fue enviada.
+      after(() => fetchAndCaptureWebhookInvoice({
         organizationId,
         entityId: event.entityId,
         entityType: event.entity,
         webhookEventId,
-      }).catch(() => { /* silently fail — queda en 'en_cola' */ });
+      }).catch(() => { /* silently fail — queda en 'en_cola' para el cron */ }));
       // Camino confiable: self-trigger al cron como invocación serverless independiente.
       // Si fetchAndCaptureWebhookInvoice no completa, el cron procesa lo que quedó pendiente.
       // Si ya llegó a 'enviada', el cron lo saltea sin hacer nada.
@@ -3901,12 +3903,38 @@ export async function processQboUnifiedQueue(): Promise<{
           .eq("id", unifiedInvoiceId);
       }
 
-      if (!row.sync_config_id) {
-        results.push({ unifiedInvoiceId, status: "failed", error: "Sin sync config asociada" });
+      let resolvedSyncConfigId: string | null = row.sync_config_id ? String(row.sync_config_id) : null;
+
+      // Si sync_config_id está vacío (ej: fetchAndCaptureWebhookInvoice no terminó),
+      // intentar resolverlo desde el CustomerRef del raw_entity.
+      if (!resolvedSyncConfigId && rawEntity) {
+        const customerRef = ((rawEntity as unknown) as Record<string, unknown>).CustomerRef as Record<string, unknown> | undefined;
+        const customerId = typeof customerRef?.value === "string" ? customerRef.value : null;
+        if (customerId) {
+          const { data: cfgRows } = await admin
+            .from("qbo_r365_sync_configs")
+            .select("id")
+            .eq("organization_id", organizationId)
+            .eq("qbo_customer_id", customerId)
+            .eq("status", "active")
+            .limit(1);
+          if (cfgRows?.[0]) {
+            resolvedSyncConfigId = String(cfgRows[0].id);
+            await admin
+              .from("qbo_unified_invoices")
+              .update({ sync_config_id: resolvedSyncConfigId })
+              .eq("id", unifiedInvoiceId);
+          }
+        }
+      }
+
+      if (!resolvedSyncConfigId) {
+        await admin.from("qbo_unified_invoices").delete().eq("id", unifiedInvoiceId);
+        results.push({ unifiedInvoiceId, status: "failed", error: "Cliente sin sync config" });
         continue;
       }
 
-      const syncConfig = await getSyncConfigRow(organizationId, String(row.sync_config_id));
+      const syncConfig = await getSyncConfigRow(organizationId, resolvedSyncConfigId);
 
       await mapAndSendUnifiedRow({
         organizationId,
