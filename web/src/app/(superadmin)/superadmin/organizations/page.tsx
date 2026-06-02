@@ -48,11 +48,11 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
   ] = await Promise.all([
     supabase
       .from("organizations")
-      .select("id, name, slug, status, plan_id, created_at")
+      .select("id, name, slug, status, plan_id, integration_plan_id, created_at")
       .order("created_at", { ascending: false }),
     supabase
       .from("plans")
-      .select("id, name, code, is_active, price_amount, currency_code, billing_period")
+      .select("id, name, code, plan_type, is_active, price_amount, currency_code, billing_period")
       .order("name"),
     supabase.from("module_catalog").select("id, code, name, is_core").order("name"),
     supabase.from("organization_modules").select("organization_id, module_id, is_enabled"),

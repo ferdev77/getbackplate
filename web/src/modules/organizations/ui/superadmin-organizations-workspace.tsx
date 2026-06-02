@@ -32,8 +32,8 @@ import { SuperadminInputField, SuperadminSelectField } from "@/shared/ui/superad
 import { SubmitButton } from "@/shared/ui/submit-button";
 
 type Props = {
-  organizations: Array<{ id: string; name: string; slug: string; status: string; plan_id: string | null }>;
-  plans: Array<{ id: string; name: string; code: string }>;
+  organizations: Array<{ id: string; name: string; slug: string; status: string; plan_id: string | null; integration_plan_id: string | null }>;
+  plans: Array<{ id: string; name: string; code: string; plan_type: string | null }>;
   modules: Array<{ id: string; code: string; name: string; is_core: boolean }>;
   orgModules: Array<{ organization_id: string; module_id: string; is_enabled: boolean }>;
   limits: Array<{ organization_id: string; max_branches: number | null; max_users: number | null; max_storage_mb: number | null; max_employees: number | null }>;
@@ -217,6 +217,7 @@ export function SuperadminOrganizationsWorkspace({
         <div className="space-y-3">
           {organizations.map((org) => {
             const selectedPlan = org.plan_id ? planById.get(org.plan_id) : null;
+            const selectedIntegrationPlan = org.integration_plan_id ? planById.get(org.integration_plan_id) : null;
             const enabledCount = modules.filter((m) => moduleMap.get(`${org.id}:${m.id}`)).length;
             const adminCount = adminCountByOrg.get(org.id) ?? 0;
             const activeAddons = addonsByOrg.get(org.id) ?? [];
@@ -228,6 +229,11 @@ export function SuperadminOrganizationsWorkspace({
                 </div>
                 <div className="flex flex-col gap-1">
                   <p className="text-sm font-bold text-foreground/80">{selectedPlan ? selectedPlan.name : "Sin plan"}</p>
+                  {selectedIntegrationPlan && (
+                    <span className="inline-flex items-center rounded-full border border-brand/25 bg-brand/10 px-2 py-0.5 text-[10px] font-semibold text-brand">
+                      {selectedIntegrationPlan.name}
+                    </span>
+                  )}
                   {activeAddons.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {activeAddons.map((addonName) => (
@@ -279,9 +285,13 @@ export function SuperadminOrganizationsWorkspace({
                 <form action={createOrganizationAction} autoComplete="off" className="space-y-6">
                   <div className="grid gap-4 md:grid-cols-2">
                     <SuperadminInputField label="Organización" name="name" required className="md:col-span-2" />
-                    <SuperadminSelectField label="Plan Inicial" name="plan_id" defaultValue="" className="md:col-span-2">
-                      <option value="">Sin plan asignado</option>
-                      {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name} ({plan.code})</option>)}
+                    <SuperadminSelectField label="Plan de Plataforma" name="plan_id" defaultValue="">
+                      <option value="">Sin plan</option>
+                      {plans.filter((p) => p.plan_type === "platform").map((plan) => <option key={plan.id} value={plan.id}>{plan.name} ({plan.code})</option>)}
+                    </SuperadminSelectField>
+                    <SuperadminSelectField label="Plan de Integración" name="integration_plan_id" defaultValue="">
+                      <option value="">Sin plan</option>
+                      {plans.filter((p) => p.plan_type === "qbo_r365").map((plan) => <option key={plan.id} value={plan.id}>{plan.name} ({plan.code})</option>)}
                     </SuperadminSelectField>
                     <SuperadminInputField label="Nombre Completo" name="admin_full_name" required className="md:col-span-2" />
                     <SuperadminInputField label="Email Corporativo" name="admin_email" type="email" required />
@@ -314,7 +324,8 @@ export function SuperadminOrganizationsWorkspace({
                     <SuperadminInputField label="Nombre" name="name" defaultValue={selectedOrg.name} labelBgClassName="bg-[var(--gbp-surface)]" />
                     <div className="mt-4 grid gap-4 sm:grid-cols-2">
                       <SuperadminSelectField label="Estado" name="status" defaultValue={selectedOrg.status} labelBgClassName="bg-[var(--gbp-surface)]"><option value="active">Activo</option><option value="paused">Pausado</option><option value="suspended">Suspendido</option></SuperadminSelectField>
-                      <SuperadminSelectField label="Plan" name="plan_id" defaultValue={selectedOrg.plan_id ?? ""} labelBgClassName="bg-[var(--gbp-surface)]"><option value="">Sin plan</option>{plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</SuperadminSelectField>
+                      <SuperadminSelectField label="Plan Plataforma" name="plan_id" defaultValue={selectedOrg.plan_id ?? ""} labelBgClassName="bg-[var(--gbp-surface)]"><option value="">Sin plan</option>{plans.filter((p) => p.plan_type === "platform").map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</SuperadminSelectField>
+                      <SuperadminSelectField label="Plan Integración" name="integration_plan_id" defaultValue={selectedOrg.integration_plan_id ?? ""} labelBgClassName="bg-[var(--gbp-surface)]"><option value="">Sin plan</option>{plans.filter((p) => p.plan_type === "qbo_r365").map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</SuperadminSelectField>
                     </div>
                     <SubmitButton label="Actualizar Organización" pendingLabel="Actualizando..." variant="primary" className="mt-6 w-full rounded-xl px-4 py-3 text-sm font-bold text-white" />
                     {selectedAdmins[0] && selectedAdmins[0].status === "invited" ? (
