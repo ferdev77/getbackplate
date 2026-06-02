@@ -1825,7 +1825,7 @@ export function CompanyShell({
                 <button
                   type="button"
                   onClick={() => setLockedViewTab("platform")}
-                  className={`rounded-lg px-4 py-2 text-xs font-bold transition ${lockedViewTab === "platform" ? (isDarkTheme ? "bg-white text-[var(--gbp-text)]" : "bg-white text-[var(--gbp-text)] shadow-sm") : (isDarkTheme ? "text-white/60 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
+                  className={`rounded-lg px-4 py-2 text-xs font-bold transition ${lockedViewTab === "platform" ? "bg-[var(--gbp-accent)] text-white shadow-sm" : (isDarkTheme ? "text-white/60 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
                 >
                   Plataforma
                 </button>
@@ -1864,18 +1864,27 @@ export function CompanyShell({
                       return (
                         <article
                           key={plan.id}
-                          className={`rounded-xl border p-4 ${isSuggested ? "border-[var(--gbp-accent)]/45 bg-[var(--gbp-accent-glow)]" : (isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]")}`}
+                          className={`relative flex flex-col rounded-xl border p-4 transition ${isSuggested ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent)]/5" : (isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]")}`}
                         >
-                          <p className="text-[11px] font-bold uppercase tracking-[0.09em]">{plan.name}</p>
-                          <p className="mt-1 text-xl font-extrabold">{formatPlanPrice(plan, planBillingCycle)}</p>
-                          <p className={`mt-1 text-[11px] ${isDarkTheme ? "text-white/65" : "text-[var(--gbp-text2)]"}`}>
-                            {plan.maxUsers ?? "∞"} usuarios · {plan.maxEmployees ?? "∞"} empleados
+                          {isSuggested && (
+                            <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">Recomendado</span>
+                          )}
+                          <p className="text-sm font-bold">{plan.name}</p>
+                          <div className="mb-3 mt-1">
+                            <span className="text-2xl font-bold">{formatPlanPrice(plan, planBillingCycle)}</span>
+                            <span className={`ml-1 text-[11px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>/mes</span>
+                          </div>
+                          <p className={`mb-1 text-[10px] ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>
+                            · {plan.maxUsers ?? "∞"} usuarios
+                          </p>
+                          <p className={`mb-3 text-[10px] ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>
+                            · {plan.maxEmployees ?? "∞"} empleados
                           </p>
                           <button
                             type="button"
                             onClick={() => startCheckout(plan.id, planBillingCycle)}
                             disabled={busy || !plan.stripePriceId}
-                            className={`mt-3 w-full rounded-md px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-60 ${isSuggested ? "bg-[var(--gbp-accent)] hover:opacity-95" : "bg-[color:color-mix(in_oklab,var(--gbp-accent)_75%,black)] hover:opacity-95"}`}
+                            className={`mt-auto w-full rounded-lg px-3 py-2 text-[11px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-60 transition ${isSuggested ? "bg-[var(--gbp-accent)] hover:opacity-95" : (isDarkTheme ? "border border-white/20 bg-white/5 hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]")}`}
                           >
                             {busy ? "Redirigiendo..." : "Comenzar trial 30 días"}
                           </button>
