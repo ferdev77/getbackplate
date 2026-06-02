@@ -1889,7 +1889,7 @@ export function CompanyShell({
                       return (
                         <div
                           key={plan.id}
-                          className={`relative rounded-xl border p-4 transition ${plan.isFeatured ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent)]/5" : plan.isEnterprise ? (isDarkTheme ? "border-dashed border-white/20 bg-white/[0.03]" : "border-dashed border-[var(--gbp-border)] bg-transparent") : (isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]")}`}
+                          className={`relative flex flex-col rounded-xl border p-4 transition ${plan.isFeatured ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent)]/5" : plan.isEnterprise ? (isDarkTheme ? "border-dashed border-white/20 bg-white/[0.03]" : "border-dashed border-[var(--gbp-border)] bg-transparent") : (isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]")}`}
                         >
                           {plan.isFeatured && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">Popular</span>}
                           {isCurrent && <span className="absolute -top-2.5 right-3 rounded-full bg-emerald-500 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">Actual</span>}
@@ -1915,7 +1915,7 @@ export function CompanyShell({
                             </p>
                           ))}
                           {plan.isEnterprise ? (
-                            <a href={`mailto:${plan.ctaEmail ?? "angelo@mkthelp.com"}?subject=QBO R365 - ${plan.name} Plan`} className={`mt-3 block w-full rounded-lg px-3 py-2 text-center text-[11px] font-bold transition ${isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]"}`}>
+                            <a href={`mailto:${plan.ctaEmail ?? "angelo@mkthelp.com"}?subject=QBO R365 - ${plan.name} Plan`} className={`mt-auto block w-full rounded-lg px-3 py-2 text-center text-[11px] font-bold transition ${isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]"}`}>
                               Contactar ventas →
                             </a>
                           ) : (
@@ -1923,7 +1923,7 @@ export function CompanyShell({
                               type="button"
                               disabled={isLoading || isCurrent}
                               onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle)}
-                              className={`mt-3 w-full rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${isCurrent ? (isDarkTheme ? "bg-white/10 text-white/40" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]") : plan.isFeatured ? "bg-[var(--gbp-accent)] text-white hover:opacity-90" : (isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]")}`}
+                              className={`mt-auto w-full rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${isCurrent ? (isDarkTheme ? "bg-white/10 text-white/40" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]") : plan.isFeatured ? "bg-[var(--gbp-accent)] text-white hover:opacity-90" : (isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]")}`}
                             >
                               {isLoading ? "Redirigiendo..." : isCurrent ? "Plan actual" : "Contratar →"}
                             </button>
