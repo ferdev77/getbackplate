@@ -790,11 +790,6 @@ export function CompanyShell({
   }
 
   function startCheckout(planId: string, cycle: BillingCycle) {
-    if (impersonationMode) {
-      toast.error("Billing bloqueado en modo impersonación");
-      return;
-    }
-
     setBusy(true);
     const params = new URLSearchParams({
       planId,
@@ -805,10 +800,6 @@ export function CompanyShell({
   }
 
   async function startAddonCheckout(moduleId: string) {
-    if (impersonationMode) {
-      toast.error("Billing bloqueado en modo impersonación");
-      return;
-    }
     setAddonBusy(moduleId);
     try {
       const res = await fetch("/api/stripe/checkout-addon", {
@@ -832,10 +823,6 @@ export function CompanyShell({
   }
 
   async function startIntegrationPlanCheckout(planId: string, period: "monthly" | "annual") {
-    if (impersonationMode) {
-      toast.error("Billing bloqueado en modo impersonación");
-      return;
-    }
     setIntegrationPlanBusy(planId);
     try {
       const res = await fetch("/api/stripe/checkout-integration", {
@@ -865,20 +852,11 @@ export function CompanyShell({
   }
 
   function openPlanChangeDialog(planId: string) {
-    if (impersonationMode) {
-      toast.error("Billing bloqueado en modo impersonación");
-      return;
-    }
     setPlanOpen(false);
     setPlanChangeTargetId(planId);
   }
 
   function openBillingPortal() {
-    if (impersonationMode) {
-      toast.error("Billing bloqueado en modo impersonación");
-      return;
-    }
-
     setBusy(true);
     router.push("/app/billing/portal-launch");
     setTimeout(() => setBusy(false), 2500);
@@ -1869,7 +1847,7 @@ export function CompanyShell({
                           <button
                             type="button"
                             onClick={() => startCheckout(plan.id, planBillingCycle)}
-                            disabled={busy || !plan.stripePriceId || impersonationMode}
+                            disabled={busy || !plan.stripePriceId}
                             className={`mt-3 w-full rounded-md px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-60 ${isSuggested ? "bg-[var(--gbp-accent)] hover:opacity-95" : "bg-[color:color-mix(in_oklab,var(--gbp-accent)_75%,black)] hover:opacity-95"}`}
                           >
                             {busy ? "Redirigiendo..." : "Comenzar trial 30 días"}
@@ -1943,7 +1921,7 @@ export function CompanyShell({
                           ) : (
                             <button
                               type="button"
-                              disabled={isLoading || isCurrent || impersonationMode}
+                              disabled={isLoading || isCurrent}
                               onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle)}
                               className={`mt-3 w-full rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${isCurrent ? (isDarkTheme ? "bg-white/10 text-white/40" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]") : plan.isFeatured ? "bg-[var(--gbp-accent)] text-white hover:opacity-90" : (isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]")}`}
                             >
@@ -2017,7 +1995,7 @@ export function CompanyShell({
                         setPlanBillingCycle(normalizePlanPeriod(billingPeriod));
                         setPlanOpen(true);
                       }}
-                      disabled={impersonationMode}
+                      disabled={false}
                       className={`w-full rounded-lg border-[1.5px] px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-60 ${isDarkTheme ? "bg-white/5" : "bg-white/75"}`}
                       style={{ borderColor: palette.accent }}
                     >
@@ -2026,7 +2004,7 @@ export function CompanyShell({
                         <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-text)]">{currentPlanName}</p>
                       </div>
                       <p className="text-xs font-bold" style={{ color: palette.accent }}>
-                        {impersonationMode ? "Billing bloqueado" : "Upgrade Plan →"}
+                        Upgrade Plan →
                       </p>
                     </button>
 
@@ -2037,7 +2015,7 @@ export function CompanyShell({
                           setSettingsOpen(false);
                           setAddonOpen(true);
                         }}
-                        disabled={impersonationMode}
+                        disabled={false}
                         className={`w-full rounded-lg border-[1.5px] px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-60 ${isDarkTheme ? "bg-white/5 border-white/20" : "bg-white/75 border-[var(--gbp-border2)]"}`}
                       >
                         <div className="mb-1 flex items-center gap-2">
@@ -2045,7 +2023,7 @@ export function CompanyShell({
                           <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-text)]">Add-ons</p>
                         </div>
                         <p className={`text-xs font-bold ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>
-                          {impersonationMode ? "Billing bloqueado" : `${availableAddons.length} módulo${availableAddons.length !== 1 ? "s" : ""} disponible${availableAddons.length !== 1 ? "s" : ""} →`}
+                          {`${availableAddons.length} módulo${availableAddons.length !== 1 ? "s" : ""} disponible${availableAddons.length !== 1 ? "s" : ""} →`}
                         </p>
                       </button>
                     )}
@@ -2165,14 +2143,11 @@ export function CompanyShell({
                     <button
                       type="button"
                       onClick={openBillingPortal}
-                      disabled={busy || impersonationMode}
+                      disabled={busy}
                       className={`w-full rounded-md px-2 py-2 font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${isDarkTheme ? "bg-white text-[var(--gbp-text)] hover:bg-gray-200" : "bg-[var(--gbp-text)] text-white hover:bg-[var(--gbp-accent)]"}`}
                     >
                         Abrir Portal de Pagos
                     </button>
-                    {impersonationMode ? (
-                      <p className="mt-2 text-[10px] font-semibold text-amber-300">Acción bloqueada durante impersonación.</p>
-                    ) : null}
                   </div>
                 </div>
               </div>
@@ -2548,7 +2523,7 @@ export function CompanyShell({
                       {isTiered ? (
                         <button
                           type="button"
-                          disabled={impersonationMode}
+                          disabled={false}
                           onClick={() => { setAddonOpen(false); setIntegrationPlanOpen(addon.integrationPlanType); }}
                           className="ml-auto rounded-lg bg-[var(--gbp-accent)] px-3 py-1.5 text-[10px] font-bold text-white transition hover:opacity-90 disabled:opacity-50"
                         >
@@ -2691,7 +2666,7 @@ export function CompanyShell({
                     ) : (
                       <button
                         type="button"
-                        disabled={isLoading || isCurrent || impersonationMode}
+                        disabled={isLoading || isCurrent}
                         onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle)}
                         className={`w-full rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                           isCurrent

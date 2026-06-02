@@ -21,19 +21,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (await isSuperadminImpersonating(user.id)) {
-      await logAuditEvent({
-        action: 'organization.impersonation.blocked_billing_portal',
-        entityType: 'stripe_billing_portal',
-        eventDomain: 'security',
-        outcome: 'denied',
-        severity: 'high',
-      });
-      return NextResponse.json(
-        { error: 'impersonation_blocked', message: 'No puedes gestionar billing en modo impersonacion.' },
-        { status: 403 },
-      );
-    }
+
 
     const organizationId = moduleAccess.tenant.organizationId;
     const { data: customBrandingEnabledData } = await supabase.rpc('is_module_enabled', {

@@ -34,12 +34,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'AuthRequired' }, { status: 401 });
     }
 
-    if (await isSuperadminImpersonating(user.id)) {
-      return NextResponse.json(
-        { error: 'impersonation_blocked', message: 'No puedes gestionar billing en modo impersonación.' },
-        { status: 403 },
-      );
-    }
+
 
     const organizationId = moduleAccess.tenant.organizationId;
 
