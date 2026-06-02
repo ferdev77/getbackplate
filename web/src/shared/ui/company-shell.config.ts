@@ -14,6 +14,7 @@ import {
   User,
   UserPlus,
   Users,
+  Wrench,
 } from "lucide-react";
 
 import type { BranchOption, DepartmentOption, PositionOption, ScopedUserOption } from "@/shared/contracts/scope-options";
@@ -146,6 +147,10 @@ export const SECTIONS: SidebarSection[] = [
   {
     label: "Proveedores",
     items: [{ href: "/app/vendors", label: "Proveedores", icon: Truck, sub: true, moduleCode: "vendors" }],
+  },
+  {
+    label: "Mantenimiento",
+    items: [{ href: "/app/maintenance", label: "Requests", icon: Wrench, moduleCode: "maintenance" }],
   },
   {
     label: "Integraciones",

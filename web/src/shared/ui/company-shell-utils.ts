@@ -62,6 +62,7 @@ export const MODULE_LABELS: Record<string, string> = {
   dashboard: "Dashboard",
   company_portal: "Portal Empresa",
   vendors: "Proveedores",
+  maintenance: "Mantenimiento",
   qbo_r365: "Integración QuickBooks",
 };
 

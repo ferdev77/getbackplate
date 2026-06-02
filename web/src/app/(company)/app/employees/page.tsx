@@ -184,8 +184,11 @@ export default async function CompanyEmployeesPage({ searchParams }: CompanyEmpl
       edit: row.can_edit === true,
       delete: row.can_delete === true,
     };
-    if (moduleCode === "vendors" && (current[moduleCode].create || current[moduleCode].edit || current[moduleCode].delete)) {
+    if ((moduleCode === "vendors" || moduleCode === "maintenance") && (current[moduleCode].create || current[moduleCode].edit || current[moduleCode].delete)) {
       current[moduleCode].view = true;
+    }
+    if (moduleCode === "maintenance") {
+      current[moduleCode].delete = false;
     }
     delegatedPermissionsByMembershipId.set(row.membership_id, current);
   }

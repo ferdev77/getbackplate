@@ -445,6 +445,7 @@ export default async function EmployeeLayout({
   const isOnboardingEnabled = enabledModuleCodes.has("onboarding");
   const isVendorsEnabled = enabledModuleCodes.has("vendors");
   const isAiAssistantEnabled = enabledModuleCodes.has("ai_assistant") && delegatedPermissions.ai_assistant.create;
+  const isMaintenanceEnabled = enabledModuleCodes.has("maintenance");
 
   const docsCount = 0;
 
@@ -687,10 +688,14 @@ export default async function EmployeeLayout({
         onboarding: isOnboardingEnabled,
         vendors: isVendorsEnabled,
         ai_assistant: isAiAssistantEnabled,
+        maintenance: isMaintenanceEnabled,
       }}
       canDeleteDocuments={delegatedPermissions.documents.delete}
       canCreateChecklistReports={delegatedPermissions.checklists.create}
       canViewVendors={delegatedPermissions.vendors.view}
+      canViewMaintenance={delegatedPermissions.maintenance.view}
+      canCreateMaintenance={delegatedPermissions.maintenance.create}
+      canRespondMaintenance={delegatedPermissions.maintenance.edit}
       customBrandingEnabled={customBrandingEnabled}
       companyLogoUrl={brandingSettings?.company_logo_url ?? ""}
       employeeProfile={employeeProfile}
