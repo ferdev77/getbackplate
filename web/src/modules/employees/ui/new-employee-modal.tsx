@@ -243,13 +243,9 @@ export function NewEmployeeModal({
   useEffect(() => {
     setSelectedDept(initialEmployee?.department_id ?? "");
     setAllLocationsEnabled(initialEmployee?.all_locations === true);
-    setSelectedBranchIds(
-      initialEmployee?.all_locations
-        ? branches.map((branch) => branch.id)
-        : (Array.isArray(initialEmployee?.location_scope_ids) && initialEmployee.location_scope_ids.length
-          ? initialEmployee.location_scope_ids
-          : (initialEmployee?.branch_id ? [initialEmployee.branch_id] : [])),
-    );
+    setSelectedBranchIds((Array.isArray(initialEmployee?.location_scope_ids) && initialEmployee.location_scope_ids.length
+      ? initialEmployee.location_scope_ids
+      : (initialEmployee?.branch_id ? [initialEmployee.branch_id] : [])));
     setSelectedPosition(initialEmployee?.position_id ?? "");
     setCreateAccount(Boolean(initialEmployee?.has_dashboard_access));
     setDelegatedPermissions(initialEmployee?.delegated_permissions ?? EMPTY_DELEGATED_PERMISSIONS);
@@ -268,7 +264,7 @@ export function NewEmployeeModal({
     setPaymentFrequency(initialEmployee?.payment_frequency ?? "");
     setContractSignerName(initialEmployee?.contract_signer_name ?? "");
     setContractSignedAt(initialEmployee?.contract_signed_at ?? "");
-  }, [branches, initialEmployee, isEmployeeSelfMode, mode, open]);
+  }, [initialEmployee, isEmployeeSelfMode, mode, open]);
 
   useEffect(() => {
     if (!allLocationsEnabled) return;
