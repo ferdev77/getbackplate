@@ -113,7 +113,7 @@ export async function getBillingGateForOrganization(params: {
   supabase: SupabaseClient;
   organizationId: string;
 }): Promise<BillingGateState> {
-  const [{ data: organization }, { data: latestSubscription }] = await Promise.all([
+  const [{ data: organization }, { data: latestSubscription }, { data: activeAddon }] = await Promise.all([
     params.supabase
       .from("organizations")
       .select("billing_onboarding_required")
@@ -126,7 +126,27 @@ export async function getBillingGateForOrganization(params: {
       .order("current_period_end", { ascending: false, nullsFirst: false })
       .limit(1)
       .maybeSingle(),
+    params.supabase
+      .from("organization_addons")
+      .select("status, current_period_end")
+      .eq("organization_id", params.organizationId)
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle(),
   ]);
+
+  // Una org con un addon de integración activo nunca debe bloquearse,
+  // independientemente de si tiene plan de plataforma o suscripción.
+  if (activeAddon?.status === "active") {
+    return {
+      isBlocked: false,
+      reason: "subscription_active",
+      required: Boolean(organization?.billing_onboarding_required),
+      hasActiveSubscription: true,
+      status: "active",
+      currentPeriodEnd: activeAddon.current_period_end ?? null,
+    };
+  }
 
   return resolveBillingGateState({
     billingOnboardingRequired: Boolean(organization?.billing_onboarding_required),
