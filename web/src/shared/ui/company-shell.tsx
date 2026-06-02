@@ -1915,7 +1915,7 @@ export function CompanyShell({
               {lockedViewTab === "integration" && integrationPlans.length > 0 && (
                 <div className="mt-5">
                   <p className={`mb-4 text-xs ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>
-                    Conectá tu QuickBooks Online con Restaurant365. Las facturas llegan automáticamente sin plan de plataforma.
+                    Conectá tu QuickBooks Online con Restaurant365 y sincronizá facturas automáticamente. No requiere un plan de plataforma.
                   </p>
                   <div className={`mb-4 inline-flex rounded-lg border p-1 text-xs font-semibold ${isDarkTheme ? "border-white/15 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                     <button
