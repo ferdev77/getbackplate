@@ -249,7 +249,7 @@ export async function POST(request: Request) {
       payment_method_types: ["card"],
       line_items: [{ price: targetPriceId, quantity: 1 }],
       client_reference_id: organizationId,
-      ...(stripeCustomerIdForSession ? { customer: stripeCustomerIdForSession, customer_update: { name: "auto" } } : {}),
+      ...(stripeCustomerIdForSession ? { customer: stripeCustomerIdForSession, customer_update: { name: "auto", address: "auto" } } : {}),
       success_url: `${appUrl}/integrations/qbo-r365/success?plan=${encodeURIComponent(plan.name)}&period=${period}`,
       cancel_url: `${appUrl}/integrations/qbo-r365`,
       tax_id_collection: { enabled: true },
