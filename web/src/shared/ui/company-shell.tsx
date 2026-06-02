@@ -1861,6 +1861,10 @@ export function CompanyShell({
                   <div className="grid gap-3 md:grid-cols-3">
                     {plansForDisplay.map((plan) => {
                       const isSuggested = lockedSelectedPlan?.id === plan.id;
+                      const planModules = planModulesByPlanId[plan.id] ?? [];
+                      const storageMb = plan.maxStorageMb;
+                      const storageLabel = storageMb == null ? null : storageMb >= 1024 ? `${storageMb / 1024} GB` : `${storageMb} MB`;
+                      const mutedCls = isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]";
                       return (
                         <article
                           key={plan.id}
@@ -1870,21 +1874,33 @@ export function CompanyShell({
                             <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">Recomendado</span>
                           )}
                           <p className="text-sm font-bold">{plan.name}</p>
-                          <div className="mb-3 mt-1">
-                            <span className="text-2xl font-bold">{formatPlanPrice(plan, planBillingCycle)}</span>
-                            <span className={`ml-1 text-[11px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>/mes</span>
+                          <p className={`text-2xl font-bold mt-1 mb-3`}>{formatPlanPrice(plan, planBillingCycle)}</p>
+                          <div className={`mb-3 flex flex-col gap-1 text-[10px] ${mutedCls}`}>
+                            <span>· {plan.maxUsers ?? "∞"} usuarios</span>
+                            <span>· {plan.maxEmployees ?? "∞"} empleados</span>
+                            <span>· {plan.maxBranches ?? "∞"} locaciones</span>
+                            {storageLabel && <span>· {storageLabel} de almacenamiento</span>}
                           </div>
-                          <p className={`mb-1 text-[10px] ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>
-                            · {plan.maxUsers ?? "∞"} usuarios
-                          </p>
-                          <p className={`mb-3 text-[10px] ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>
-                            · {plan.maxEmployees ?? "∞"} empleados
-                          </p>
+                          {planModules.length > 0 && (
+                            <div className="mb-4">
+                              <p className={`mb-1.5 text-[9px] font-bold uppercase tracking-wider ${isDarkTheme ? "text-white/30" : "text-[var(--gbp-muted)]"}`}>Módulos incluidos</p>
+                              <div className="flex flex-wrap gap-1">
+                                {planModules.map((m) => (
+                                  <span
+                                    key={m.code}
+                                    className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${isDarkTheme ? "bg-white/10 text-white/70" : "bg-[var(--gbp-bg)] border border-[var(--gbp-border)] text-[var(--gbp-text2)]"}`}
+                                  >
+                                    {m.name}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                           <button
                             type="button"
                             onClick={() => startCheckout(plan.id, planBillingCycle)}
                             disabled={busy || !plan.stripePriceId}
-                            className={`mt-auto w-full rounded-lg px-3 py-2 text-[11px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-60 transition ${isSuggested ? "bg-[var(--gbp-accent)] hover:opacity-95" : (isDarkTheme ? "border border-white/20 bg-white/5 hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]")}`}
+                            className={`mt-auto w-full rounded-lg px-3 py-2 text-[11px] font-bold disabled:cursor-not-allowed disabled:opacity-60 transition ${isSuggested ? "bg-[var(--gbp-accent)] text-white hover:opacity-95" : (isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]")}`}
                           >
                             {busy ? "Redirigiendo..." : "Comenzar trial 30 días"}
                           </button>
