@@ -508,6 +508,61 @@ function imageAttachments(request: MaintenanceRequest) {
   return request.attachments.filter((attachment) => String(attachment.mimeType ?? "").startsWith("image/"));
 }
 
+function MaintenanceRequestCardSkeleton() {
+  return (
+    <div className="animate-pulse rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 space-y-2">
+          <div className="h-3 w-40 rounded bg-[var(--gbp-border)]" />
+          <div className="h-5 w-56 rounded bg-[var(--gbp-border)]" />
+        </div>
+        <div className="h-6 w-24 rounded-full bg-[var(--gbp-border)]" />
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <div className="h-7 w-24 rounded-full bg-[var(--gbp-bg)]" />
+        <div className="h-7 w-28 rounded-full bg-[var(--gbp-bg)]" />
+        <div className="h-7 w-24 rounded-full bg-[var(--gbp-bg)]" />
+      </div>
+      <div className="mt-4 space-y-2">
+        <div className="h-3 w-full rounded bg-[var(--gbp-border)]" />
+        <div className="h-3 w-4/5 rounded bg-[var(--gbp-border)]" />
+      </div>
+      <div className="mt-4 flex items-center gap-2">
+        <div className="h-7 w-24 rounded-full bg-[var(--gbp-bg)]" />
+        <div className="h-7 w-28 rounded-full bg-[var(--gbp-bg)]" />
+        <div className="ml-auto h-7 w-28 rounded-full bg-[var(--gbp-border)]" />
+      </div>
+    </div>
+  );
+}
+
+function MaintenanceRequestDetailSkeleton() {
+  return (
+    <div className="animate-pulse space-y-5">
+      <div className="space-y-2">
+        <div className="h-3 w-24 rounded bg-[var(--gbp-border)]" />
+        <div className="h-7 w-40 rounded bg-[var(--gbp-border)]" />
+      </div>
+      <div className="rounded-xl bg-[var(--gbp-bg)] p-4">
+        <div className="h-3 w-28 rounded bg-[var(--gbp-border)]" />
+        <div className="mt-3 space-y-2">
+          <div className="h-3 w-full rounded bg-[var(--gbp-border)]" />
+          <div className="h-3 w-5/6 rounded bg-[var(--gbp-border)]" />
+          <div className="h-3 w-4/6 rounded bg-[var(--gbp-border)]" />
+        </div>
+      </div>
+      <div className="space-y-3">
+        <div className="h-3 w-20 rounded bg-[var(--gbp-border)]" />
+        <div className="space-y-3">
+          <div className="h-16 rounded-xl bg-[var(--gbp-bg)]" />
+          <div className="h-16 rounded-xl bg-[var(--gbp-bg)]" />
+          <div className="h-16 rounded-xl bg-[var(--gbp-bg)]" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function MaintenanceWorkspace({
   mode,
   apiBase,
@@ -527,6 +582,7 @@ export function MaintenanceWorkspace({
   const [catalogManagerOpen, setCatalogManagerOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [responding, setResponding] = useState(false);
+  const [isRefreshingList, setIsRefreshingList] = useState(false);
   const [createForm, setCreateForm] = useState<MaintenanceRequestFormState>(() => deriveFormState(branches));
   const [draftForm, setDraftForm] = useState<MaintenanceRequestFormState>(() => deriveFormState(branches));
   const [responseStatus, setResponseStatus] = useState<"schedule_visit" | MaintenanceStatus>(() => defaultResponseStatus(initialRequests[0] ?? null));
@@ -543,23 +599,36 @@ export function MaintenanceWorkspace({
     }
   }, [requests, selectedRequest]);
 
-  async function refresh(status = activeStatus) {
-    const response = await fetch(`${apiBase}?status=${encodeURIComponent(status)}`, {
-      cache: "no-store",
-    });
-    const payload = await response.json();
-    if (!response.ok) {
-      throw new Error(payload.error ?? "No se pudo cargar mantenimiento");
+  async function refresh(status = activeStatus, options?: { showSkeleton?: boolean }) {
+    if (options?.showSkeleton) {
+      setIsRefreshingList(true);
     }
-    setRequests(payload.requests ?? []);
-    if (payload.catalog) setCatalog(payload.catalog as MaintenanceCatalog);
-    if (payload.requests?.[0]?.id) setSelectedId(payload.requests[0].id);
+    try {
+      const response = await fetch(`${apiBase}?status=${encodeURIComponent(status)}`, {
+        cache: "no-store",
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? "No se pudo cargar mantenimiento");
+      }
+      setRequests(payload.requests ?? []);
+      if (payload.catalog) setCatalog(payload.catalog as MaintenanceCatalog);
+      if (payload.requests?.[0]?.id) {
+        setSelectedId(payload.requests[0].id);
+      } else {
+        setSelectedId("");
+      }
+    } finally {
+      if (options?.showSkeleton) {
+        setIsRefreshingList(false);
+      }
+    }
   }
 
   function changeStatus(status: string) {
     setActiveStatus(status);
     startTransition(() => {
-      refresh(status).catch((error) => toast.error(error.message));
+      refresh(status, { showSkeleton: true }).catch((error) => toast.error(error.message));
     });
   }
 
@@ -687,6 +756,9 @@ export function MaintenanceWorkspace({
     [catalog.categories],
   );
 
+  const showListSkeleton = isRefreshingList;
+  const showEmptyState = !showListSkeleton && requests.length === 0;
+
   return (
     <div className="space-y-5">
       <section className="rounded-[1.5rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-6 py-5 shadow-sm sm:px-8">
@@ -715,21 +787,22 @@ export function MaintenanceWorkspace({
             key={tab.value}
             type="button"
             onClick={() => changeStatus(tab.value)}
+            disabled={showListSkeleton}
             className={`rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.08em] transition ${
               activeStatus === tab.value
                 ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent)] text-white"
                 : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
-            }`}
+            } ${showListSkeleton ? "cursor-wait opacity-75" : ""}`}
           >
             {tab.label}
           </button>
         ))}
-        {isPending ? <Loader2 className="h-4 w-4 animate-spin text-[var(--gbp-muted)]" /> : null}
+        {showListSkeleton ? <Loader2 className="h-4 w-4 animate-spin text-[var(--gbp-muted)]" /> : null}
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_400px]">
         <section className="space-y-3">
-          {requests.length === 0 ? (
+          {showEmptyState ? (
             <div className="rounded-2xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-10 text-center">
               <Wrench className="mx-auto h-8 w-8 text-[var(--gbp-muted)]" />
               <p className="mt-3 text-sm font-bold text-[var(--gbp-text)]">No hay requests en esta vista</p>
@@ -737,7 +810,15 @@ export function MaintenanceWorkspace({
             </div>
           ) : null}
 
-          {requests.map((request) => {
+          {showListSkeleton ? (
+            <>
+              <MaintenanceRequestCardSkeleton />
+              <MaintenanceRequestCardSkeleton />
+              <MaintenanceRequestCardSkeleton />
+            </>
+          ) : null}
+
+          {!showListSkeleton ? requests.map((request) => {
             const previews = imageAttachments(request).slice(0, 3);
             const active = selectedRequest?.id === request.id;
             const expanded = expandedRequestIds.has(request.id);
@@ -839,11 +920,12 @@ export function MaintenanceWorkspace({
                 ) : null}
               </article>
             );
-          })}
+          }) : null}
         </section>
 
         <aside className="sticky top-4 h-fit rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-5 shadow-sm">
-          {selectedRequest ? (
+          {showListSkeleton ? <MaintenanceRequestDetailSkeleton /> : null}
+          {!showListSkeleton && selectedRequest ? (
             <div className="space-y-5">
               {/** Drafts stay editable until they are submitted; after that, everything moves through responses. */}
               {(() => {
@@ -1054,9 +1136,9 @@ export function MaintenanceWorkspace({
                 </form>
               ) : null}
             </div>
-          ) : (
+          ) : !showListSkeleton ? (
             <p className="text-sm text-[var(--gbp-muted)]">Selecciona una request para ver el detalle.</p>
-          )}
+          ) : null}
         </aside>
       </div>
 
