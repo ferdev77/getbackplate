@@ -208,48 +208,27 @@ export async function POST(request: Request) {
       ? (plan as Record<string, unknown>).name as string
       : "Integración";
 
-    // ── SETUP FEE: crear customer + invoice item pendiente ───────────────────
-    // Los invoice items pendientes de un customer se incluyen automáticamente
-    // en el primer invoice de la suscripción y aparecen en el resumen del
-    // Stripe Checkout cuando se pasa el customer al session.
-    let stripeCustomerIdForSession: string | undefined;
-
-    if (includeSetupFee && setupFeeAmountCents > 0) {
-      const { data: existingCustomer } = await supabase
-        .from("stripe_customers")
-        .select("stripe_customer_id")
-        .eq("organization_id", organizationId)
-        .maybeSingle();
-
-      if (existingCustomer?.stripe_customer_id) {
-        stripeCustomerIdForSession = existingCustomer.stripe_customer_id;
-      } else {
-        const newCustomer = await stripe.customers.create({ metadata: { organizationId } });
-        await supabase.from("stripe_customers").upsert(
-          { organization_id: organizationId, stripe_customer_id: newCustomer.id },
-          { onConflict: "organization_id" },
-        );
-        stripeCustomerIdForSession = newCustomer.id;
-      }
-
-      await stripe.invoiceItems.create({
-        customer: stripeCustomerIdForSession,
-        currency: "usd",
-        amount: setupFeeAmountCents,
-        description: `Setup · ${planName}${period === "annual" ? " (25% off anual)" : ""}`,
-      });
-    }
-    // ── END SETUP FEE ────────────────────────────────────────────────────────
+    // Setup fee: precio one-time agregado directamente a line_items.
+    // En subscription mode, Stripe cobra los items sin `recurring` solo en el
+    // primer invoice y los muestra en el resumen del checkout.
+    const setupLineItem = includeSetupFee && setupFeeAmountCents > 0
+      ? [{
+          price_data: {
+            currency: "usd" as const,
+            product_data: {
+              name: `Setup · ${planName}${period === "annual" ? " (25% off anual)" : ""}`,
+            },
+            unit_amount: setupFeeAmountCents,
+          },
+          quantity: 1,
+        }]
+      : [];
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
-      line_items: [{ price: targetPriceId, quantity: 1 }],
+      line_items: [{ price: targetPriceId, quantity: 1 }, ...setupLineItem],
       client_reference_id: organizationId,
-      ...(stripeCustomerIdForSession ? {
-        customer: stripeCustomerIdForSession,
-        customer_update: { name: "auto", address: "auto" },
-      } : {}),
       success_url: `${appUrl}/integrations/qbo-r365/success?plan=${encodeURIComponent(plan.name)}&period=${period}`,
       cancel_url: `${appUrl}/integrations/qbo-r365`,
       tax_id_collection: { enabled: true },
