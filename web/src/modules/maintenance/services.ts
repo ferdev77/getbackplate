@@ -303,6 +303,68 @@ export async function createMaintenanceRequest(context: ActorContext, input: z.i
   return data.id as string;
 }
 
+export async function updateMaintenanceDraft(
+  context: ActorContext,
+  requestId: string,
+  input: z.infer<typeof maintenanceCreateSchema>,
+) {
+  const admin = createSupabaseAdminClient() as AnySupabase;
+  const { data: requestRow, error: requestError } = await admin
+    .from("maintenance_requests")
+    .select("id, branch_id, created_by, status")
+    .eq("organization_id", context.organizationId)
+    .eq("id", requestId)
+    .maybeSingle();
+
+  if (requestError || !requestRow) throw new Error("Request no encontrada");
+  if (requestRow.status !== "draft") {
+    throw new Error("Solo se pueden editar requests en borrador");
+  }
+
+  if (context.roleCode === "employee") {
+    if (requestRow.created_by !== context.userId) {
+      throw new Error("Solo puedes editar tus propios borradores");
+    }
+
+    const allowedLocationIds = await getAllowedLocationIds(context);
+    if (!allowedLocationIds.includes(input.branch_id)) {
+      throw new Error("No puedes mover el borrador fuera de tu locacion");
+    }
+  }
+
+  const nextStatus: MaintenanceStatus = input.action === "submit" ? "submitted" : "draft";
+  const now = new Date().toISOString();
+  const { error: updateError } = await admin
+    .from("maintenance_requests")
+    .update({
+      branch_id: input.branch_id,
+      title: input.title,
+      description: input.description,
+      category: input.category,
+      service_item: input.service_item ?? null,
+      issue: input.issue ?? null,
+      priority: input.priority,
+      status: nextStatus,
+      last_activity_at: now,
+    })
+    .eq("organization_id", context.organizationId)
+    .eq("id", requestId);
+
+  if (updateError) throw new Error(updateError.message);
+
+  await admin.from("maintenance_request_updates").insert({
+    request_id: requestId,
+    organization_id: context.organizationId,
+    actor_user_id: context.userId,
+    update_type: nextStatus === "submitted" ? "submitted" : "draft_updated",
+    from_status: requestRow.status,
+    to_status: nextStatus,
+    message: nextStatus === "submitted"
+      ? "Borrador actualizado y enviado."
+      : "Borrador actualizado.",
+  });
+}
+
 export async function addMaintenanceUpdate(
   context: ActorContext,
   requestId: string,
