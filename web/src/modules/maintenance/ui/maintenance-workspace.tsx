@@ -464,7 +464,9 @@ export function MaintenanceWorkspace({
                       <p className="text-xs font-bold text-[var(--gbp-text)]">
                         {update.toStatus ? STATUS_LABELS[update.toStatus] : "Comentario"}
                       </p>
-                      <p className="text-[11px] text-[var(--gbp-muted)]">{dateLabel(update.createdAt)}</p>
+                      <p className="text-[11px] text-[var(--gbp-muted)]">
+                        {update.actorName} · {dateLabel(update.createdAt)}
+                      </p>
                       {update.scheduledVisitAt ? <p className="mt-1 text-xs text-[var(--gbp-text2)]">Visita: {dateLabel(update.scheduledVisitAt)}</p> : null}
                       {update.message ? <p className="mt-1 text-sm text-[var(--gbp-text2)]">{update.message}</p> : null}
                     </div>

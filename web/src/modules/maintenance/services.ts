@@ -69,6 +69,13 @@ type MaintenanceAttachmentRow = {
   created_at: string;
 };
 
+type ActorNameRow = {
+  user_id: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+};
+
 type ActorContext = {
   organizationId: string;
   userId: string;
@@ -117,6 +124,79 @@ function normalizeStatus(value: unknown): MaintenanceStatus {
 
 function normalizePriority(value: unknown): MaintenancePriority {
   return MAINTENANCE_PRIORITIES.includes(value as MaintenancePriority) ? (value as MaintenancePriority) : "medium";
+}
+
+function resolveActorDisplayName(value: {
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+}) {
+  const fullName = `${value.first_name ?? ""} ${value.last_name ?? ""}`.trim();
+  if (fullName) return fullName;
+  if (value.email && value.email.includes("@")) {
+    return value.email.split("@")[0] ?? value.email;
+  }
+  return "Administrador";
+}
+
+async function resolveMaintenanceActorNames(params: {
+  organizationId: string;
+  actorIds: string[];
+}) {
+  const actorNameMap = new Map<string, string>();
+  if (!params.actorIds.length) return actorNameMap;
+
+  const admin = createSupabaseAdminClient();
+  const [{ data: employeesData }, { data: profilesData }] = await Promise.all([
+    admin
+      .from("employees")
+      .select("user_id, first_name, last_name, email")
+      .eq("organization_id", params.organizationId)
+      .in("user_id", params.actorIds),
+    admin
+      .from("organization_user_profiles")
+      .select("user_id, first_name, last_name, email")
+      .eq("organization_id", params.organizationId)
+      .in("user_id", params.actorIds),
+  ]);
+
+  for (const row of (employeesData ?? []) as ActorNameRow[]) {
+    if (row.user_id) actorNameMap.set(row.user_id, resolveActorDisplayName(row));
+  }
+
+  for (const row of (profilesData ?? []) as ActorNameRow[]) {
+    if (row.user_id && !actorNameMap.has(row.user_id)) {
+      actorNameMap.set(row.user_id, resolveActorDisplayName(row));
+    }
+  }
+
+  const missingIds = params.actorIds.filter((id) => !actorNameMap.has(id));
+  if (!missingIds.length) return actorNameMap;
+
+  const users = await Promise.all(
+    missingIds.map(async (userId) => {
+      const { data, error } = await admin.auth.admin.getUserById(userId);
+      if (error || !data.user) return null;
+      return { userId, user: data.user };
+    }),
+  );
+
+  for (const item of users) {
+    if (!item) continue;
+    const meta = item.user.user_metadata as Record<string, unknown> | null;
+    const fullName = typeof meta?.full_name === "string" ? meta.full_name.trim() : "";
+    if (fullName) {
+      actorNameMap.set(item.userId, fullName);
+      continue;
+    }
+    if (item.user.email && item.user.email.includes("@")) {
+      actorNameMap.set(item.userId, item.user.email.split("@")[0] ?? item.user.email);
+      continue;
+    }
+    actorNameMap.set(item.userId, "Administrador");
+  }
+
+  return actorNameMap;
 }
 
 async function signedUrlForPath(path: string, organizationId: string) {
@@ -213,6 +293,16 @@ export async function listMaintenanceRequests(context: ActorContext, options: Li
     attachmentsByRequest.set(attachment.request_id, rows);
   }
 
+  const actorIds = Array.from(new Set(
+    ((updates ?? []) as MaintenanceUpdateRow[])
+      .map((update) => update.actor_user_id)
+      .filter(Boolean),
+  ));
+  const actorNameMap = await resolveMaintenanceActorNames({
+    organizationId: context.organizationId,
+    actorIds,
+  });
+
   const mapped: MaintenanceRequest[] = [];
   for (const row of requests ?? []) {
     const requestAttachments = await Promise.all(
@@ -248,6 +338,7 @@ export async function listMaintenanceRequests(context: ActorContext, options: Li
       updates: (updatesByRequest.get(row.id) ?? []).map((update) => ({
         id: update.id,
         actorUserId: update.actor_user_id,
+        actorName: actorNameMap.get(update.actor_user_id) ?? "Administrador",
         updateType: update.update_type,
         fromStatus: update.from_status ? normalizeStatus(update.from_status) : null,
         toStatus: update.to_status ? normalizeStatus(update.to_status) : null,

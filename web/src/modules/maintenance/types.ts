@@ -36,6 +36,7 @@ export type MaintenanceAttachment = {
 export type MaintenanceUpdate = {
   id: string;
   actorUserId: string;
+  actorName: string;
   updateType: string;
   fromStatus: MaintenanceStatus | null;
   toStatus: MaintenanceStatus | null;
