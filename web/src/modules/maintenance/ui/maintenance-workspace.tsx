@@ -456,10 +456,10 @@ const STATUS_TABS: Array<{ value: string; label: string }> = [
 const STATUS_LABELS: Record<MaintenanceStatus, string> = {
   draft: "Borrador",
   submitted: "Enviada",
-  visit_scheduled: "Cita fijada",
+  visit_scheduled: "Visita programada",
   in_progress: "En progreso",
   needs_parts: "Requiere repuesto",
-  needs_followup: "Segunda visita",
+  needs_followup: "Requiere otra visita",
   resolved: "Resuelta",
   cancelled: "Cancelada",
 };
@@ -471,14 +471,20 @@ const PRIORITY_LABELS: Record<string, string> = {
   urgent: "Urgente",
 };
 
-const RESPOND_STATUSES: Array<{ value: MaintenanceStatus; label: string }> = [
-  { value: "visit_scheduled", label: "Cita fijada" },
+const RESPOND_STATUSES: Array<{ value: "schedule_visit" | MaintenanceStatus; label: string }> = [
+  { value: "schedule_visit", label: "Programar visita" },
   { value: "in_progress", label: "En progreso" },
   { value: "needs_parts", label: "Requiere repuesto" },
-  { value: "needs_followup", label: "Segunda visita" },
   { value: "resolved", label: "Resuelta" },
   { value: "cancelled", label: "Cancelada" },
 ];
+
+function defaultResponseStatus(request: MaintenanceRequest | null): "schedule_visit" | MaintenanceStatus {
+  if (!request) return "in_progress";
+  if (request.status === "visit_scheduled" || request.status === "needs_followup") return "schedule_visit";
+  if (RESPOND_STATUSES.some((status) => status.value === request.status)) return request.status;
+  return "in_progress";
+}
 
 function dateLabel(value: string | null) {
   if (!value) return "Sin fecha";
@@ -523,6 +529,8 @@ export function MaintenanceWorkspace({
   const [responding, setResponding] = useState(false);
   const [createForm, setCreateForm] = useState<MaintenanceRequestFormState>(() => deriveFormState(branches));
   const [draftForm, setDraftForm] = useState<MaintenanceRequestFormState>(() => deriveFormState(branches));
+  const [responseStatus, setResponseStatus] = useState<"schedule_visit" | MaintenanceStatus>(() => defaultResponseStatus(initialRequests[0] ?? null));
+  const [responseScheduledVisitAt, setResponseScheduledVisitAt] = useState("");
 
   const selectedRequest = useMemo(
     () => requests.find((request) => request.id === selectedId) ?? requests[0] ?? null,
@@ -611,12 +619,15 @@ export function MaintenanceWorkspace({
     if (!selectedRequest) return;
     setResponding(true);
     try {
+      const rawStatus = formData.get("status");
+      const normalizedStatus = rawStatus === "schedule_visit" ? "visit_scheduled" : rawStatus;
+      const scheduledVisitAt = rawStatus === "schedule_visit" ? formData.get("scheduled_visit_at") : null;
       const response = await fetch(`${apiBase}/${selectedRequest.id}/updates`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          status: formData.get("status"),
-          scheduled_visit_at: formData.get("scheduled_visit_at"),
+          status: normalizedStatus,
+          scheduled_visit_at: scheduledVisitAt,
           message: formData.get("message"),
         }),
       });
@@ -665,6 +676,11 @@ export function MaintenanceWorkspace({
     if (!selectedRequest || selectedRequest.status !== "draft") return;
     setDraftForm(deriveFormState(catalog.branches, selectedRequest));
   }, [catalog.branches, selectedRequest]);
+
+  useEffect(() => {
+    setResponseStatus(defaultResponseStatus(selectedRequest));
+    setResponseScheduledVisitAt("");
+  }, [selectedRequest]);
 
   const categoryOptions = useMemo(
     () => catalog.categories.map((category) => category.name),
@@ -1003,12 +1019,32 @@ export function MaintenanceWorkspace({
                   className="space-y-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4"
                 >
                   <p className="text-sm font-bold text-[var(--gbp-text)]">Responder request</p>
-                  <select name="status" defaultValue={selectedRequest.status} className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm">
+                  <select
+                    name="status"
+                    value={responseStatus}
+                    onChange={(event) => {
+                      const nextStatus = event.target.value as "schedule_visit" | MaintenanceStatus;
+                      setResponseStatus(nextStatus);
+                      if (nextStatus !== "schedule_visit") {
+                        setResponseScheduledVisitAt("");
+                      }
+                    }}
+                    className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm"
+                  >
                     {RESPOND_STATUSES.map((status) => (
                       <option key={status.value} value={status.value}>{status.label}</option>
                     ))}
                   </select>
-                  <input name="scheduled_visit_at" type="datetime-local" className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm" />
+                  {responseStatus === "schedule_visit" ? (
+                    <input
+                      name="scheduled_visit_at"
+                      type="datetime-local"
+                      value={responseScheduledVisitAt}
+                      onChange={(event) => setResponseScheduledVisitAt(event.target.value)}
+                      required
+                      className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm"
+                    />
+                  ) : null}
                   <textarea name="message" rows={3} placeholder="Reporte, notas o requerimientos..." className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm" />
                   <input name="files" type="file" multiple className="w-full rounded-xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-xs" />
                   <button disabled={responding} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--gbp-accent)] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60">
