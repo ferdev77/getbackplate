@@ -1,10 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { CalendarDays, ChevronDown, Clock, FileText, ImageIcon, Loader2, MessageSquare, Paperclip, Plus, Send, Wrench, X } from "lucide-react";
+import { CalendarDays, ChevronDown, Clock, FileText, ImageIcon, Loader2, MessageSquare, Paperclip, Plus, Search, Send, Settings2, Wrench, X } from "lucide-react";
 import { toast } from "sonner";
 
-import { MAINTENANCE_CATEGORIES, type MaintenanceRequest, type MaintenanceStatus } from "@/modules/maintenance/types";
+import {
+  type MaintenanceCatalog,
+  type MaintenanceCategoryOption,
+  type MaintenanceIssueOption,
+  type MaintenanceRequest,
+  type MaintenanceServiceItemOption,
+  type MaintenanceStatus,
+} from "@/modules/maintenance/types";
 
 type BranchOption = {
   id: string;
@@ -18,8 +25,425 @@ type MaintenanceWorkspaceProps = {
   canRespond: boolean;
   initialRequests: MaintenanceRequest[];
   currentUserId: string;
+  initialCatalog: MaintenanceCatalog;
   branches: BranchOption[];
 };
+
+type MaintenanceRequestFormState = {
+  branchId: string;
+  priority: string;
+  category: string;
+  serviceItem: string;
+  issue: string;
+  title: string;
+  description: string;
+};
+
+function normalizeLabel(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function deriveFormState(branches: BranchOption[], request?: MaintenanceRequest | null): MaintenanceRequestFormState {
+  return {
+    branchId: request?.branchId ?? branches[0]?.id ?? "",
+    priority: request?.priority ?? "medium",
+    category: request?.category ?? "",
+    serviceItem: request?.serviceItem ?? "",
+    issue: request?.issue ?? "",
+    title: request?.title ?? "",
+    description: request?.description ?? "",
+  };
+}
+
+function CatalogManagerRow({
+  label,
+  name,
+  isPending,
+  onRename,
+  onDelete,
+}: {
+  label: string;
+  name: string;
+  isPending: boolean;
+  onRename: (name: string) => void;
+  onDelete: () => void;
+}) {
+  const [draftName, setDraftName] = useState(name);
+
+  useEffect(() => {
+    setDraftName(name);
+  }, [name]);
+
+  return (
+    <div className="flex items-center gap-2 rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2 py-1.5">
+      <span className="min-w-20 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">{label}</span>
+      <input
+        value={draftName}
+        onChange={(event) => setDraftName(event.target.value)}
+        className="h-8 flex-1 rounded border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2 text-xs"
+      />
+      <button
+        type="button"
+        onClick={() => onRename(draftName)}
+        disabled={isPending || !draftName.trim() || draftName.trim() === name}
+        className="h-8 rounded border border-[var(--gbp-border)] px-2 text-[11px] font-semibold disabled:opacity-50"
+      >
+        Guardar
+      </button>
+      <button
+        type="button"
+        onClick={onDelete}
+        disabled={isPending}
+        className="h-8 rounded border border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] px-2 text-[11px] font-semibold text-[var(--gbp-error)] disabled:opacity-50"
+      >
+        Eliminar
+      </button>
+    </div>
+  );
+}
+
+function SearchableCreatableField({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+  name,
+  disabled = false,
+  required = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  placeholder: string;
+  name: string;
+  disabled?: boolean;
+  required?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const query = value.trim().toLowerCase();
+  const filtered = options.filter((option) => option.toLowerCase().includes(query)).slice(0, 8);
+  const exactMatch = options.some((option) => normalizeLabel(option) === normalizeLabel(value));
+
+  return (
+    <label className="space-y-1 text-sm font-semibold text-[var(--gbp-text)]">
+      {label}
+      <input type="hidden" name={name} value={value} />
+      <div className="relative">
+        <div className={`flex items-center gap-2 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 ${disabled ? "opacity-60" : ""}`}>
+          <Search className="h-4 w-4 text-[var(--gbp-muted)]" />
+          <input
+            value={value}
+            onFocus={() => setOpen(true)}
+            onBlur={() => window.setTimeout(() => setOpen(false), 120)}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder={placeholder}
+            disabled={disabled}
+            required={required}
+            className="w-full bg-transparent text-sm font-normal text-[var(--gbp-text)] outline-none placeholder:text-[var(--gbp-muted)]"
+          />
+        </div>
+        {open && !disabled ? (
+          <div className="absolute left-0 right-0 top-[calc(100%+0.35rem)] z-20 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-2 shadow-xl">
+            {filtered.length ? (
+              <div className="space-y-1">
+                {filtered.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => {
+                      onChange(option);
+                      setOpen(false);
+                    }}
+                    className="block w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="px-3 py-2 text-sm text-[var(--gbp-muted)]">Sin coincidencias.</p>
+            )}
+            {value.trim() && !exactMatch ? (
+              <div className="mt-2 rounded-lg border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs text-[var(--gbp-text2)]">
+                Se guardara como nueva opcion al crear o actualizar la request.
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </label>
+  );
+}
+
+function MaintenanceCatalogManager({
+  catalog,
+  onCatalogChange,
+}: {
+  catalog: MaintenanceCatalog;
+  onCatalogChange: (next: MaintenanceCatalog) => void;
+}) {
+  const [isPending, setIsPending] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [managerCategoryId, setManagerCategoryId] = useState(catalog.categories[0]?.id ?? "");
+  const [newServiceItemName, setNewServiceItemName] = useState("");
+  const [managerServiceItemId, setManagerServiceItemId] = useState("");
+  const [newIssueName, setNewIssueName] = useState("");
+
+  useEffect(() => {
+    if (!catalog.categories.some((category) => category.id === managerCategoryId)) {
+      setManagerCategoryId(catalog.categories[0]?.id ?? "");
+    }
+  }, [catalog.categories, managerCategoryId]);
+
+  const currentCategoryServiceItems = useMemo(
+    () => catalog.serviceItems.filter((item) => item.categoryId === managerCategoryId),
+    [catalog.serviceItems, managerCategoryId],
+  );
+
+  useEffect(() => {
+    if (!currentCategoryServiceItems.some((item) => item.id === managerServiceItemId)) {
+      setManagerServiceItemId(currentCategoryServiceItems[0]?.id ?? "");
+    }
+  }, [currentCategoryServiceItems, managerServiceItemId]);
+
+  const currentIssues = useMemo(
+    () => catalog.issues.filter((issue) => issue.serviceItemId === managerServiceItemId),
+    [catalog.issues, managerServiceItemId],
+  );
+
+  async function runRequest(input: {
+    url: string;
+    method: "POST" | "PATCH" | "DELETE";
+    body?: Record<string, string>;
+    successMessage: string;
+    apply: (current: MaintenanceCatalog, payload: Record<string, unknown>) => MaintenanceCatalog;
+  }) {
+    setIsPending(true);
+    try {
+      const response = await fetch(input.url, {
+        method: input.method,
+        headers: input.body ? { "content-type": "application/json" } : undefined,
+        body: input.body ? JSON.stringify(input.body) : undefined,
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(typeof payload.error === "string" ? payload.error : "No se pudo guardar");
+      onCatalogChange(input.apply(catalog, payload as Record<string, unknown>));
+      toast.success(input.successMessage);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo guardar");
+    } finally {
+      setIsPending(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4">
+      <div>
+        <p className="text-sm font-bold text-[var(--gbp-text)]">Gestionar catalogo</p>
+        <p className="mt-1 text-xs text-[var(--gbp-text2)]">Crea, renombra o elimina categorias, items e issues sin salir del flujo.</p>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex gap-2">
+          <input
+            value={newCategoryName}
+            onChange={(event) => setNewCategoryName(event.target.value)}
+            placeholder="Nueva categoria"
+            className="h-9 flex-1 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 text-sm"
+          />
+          <button
+            type="button"
+            onClick={() => void runRequest({
+              url: "/api/company/maintenance/categories",
+              method: "POST",
+              body: { name: newCategoryName.trim() },
+              successMessage: "Categoria creada",
+              apply: (current, payload) => ({
+                ...current,
+                categories: [...current.categories, payload.category as MaintenanceCategoryOption].sort((a, b) => a.name.localeCompare(b.name)),
+              }),
+            }).then(() => setNewCategoryName(""))}
+            disabled={isPending || !newCategoryName.trim()}
+            className="h-9 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white disabled:opacity-60"
+          >
+            Agregar
+          </button>
+        </div>
+        <div className="space-y-2">
+          {catalog.categories.map((category) => (
+            <CatalogManagerRow
+              key={category.id}
+              label="Cat"
+              name={category.name}
+              isPending={isPending}
+              onRename={(name) => void runRequest({
+                url: `/api/company/maintenance/categories/${category.id}`,
+                method: "PATCH",
+                body: { name: name.trim() },
+                successMessage: "Categoria actualizada",
+                apply: (current, payload) => ({
+                  ...current,
+                  categories: current.categories.map((item) => item.id === category.id ? payload.category as MaintenanceCategoryOption : item),
+                }),
+              })}
+              onDelete={() => void runRequest({
+                url: `/api/company/maintenance/categories/${category.id}`,
+                method: "DELETE",
+                successMessage: "Categoria eliminada",
+                apply: (current) => {
+                  const remainingServiceItems = current.serviceItems.filter((item) => item.categoryId !== category.id);
+                  const remainingServiceItemIds = new Set(remainingServiceItems.map((item) => item.id));
+                  return {
+                    ...current,
+                    categories: current.categories.filter((item) => item.id !== category.id),
+                    serviceItems: remainingServiceItems,
+                    issues: current.issues.filter((issue) => remainingServiceItemIds.has(issue.serviceItemId)),
+                  };
+                },
+              })}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3">
+        <select
+          value={managerCategoryId}
+          onChange={(event) => setManagerCategoryId(event.target.value)}
+          className="h-9 w-full rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm"
+        >
+          {catalog.categories.map((category) => (
+            <option key={category.id} value={category.id}>{category.name}</option>
+          ))}
+        </select>
+        <div className="flex gap-2">
+          <input
+            value={newServiceItemName}
+            onChange={(event) => setNewServiceItemName(event.target.value)}
+            placeholder="Nuevo item de servicio"
+            className="h-9 flex-1 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm"
+          />
+          <button
+            type="button"
+            onClick={() => void runRequest({
+              url: "/api/company/maintenance/service-items",
+              method: "POST",
+              body: { categoryId: managerCategoryId, name: newServiceItemName.trim() },
+              successMessage: "Item creado",
+              apply: (current, payload) => ({
+                ...current,
+                serviceItems: [...current.serviceItems, payload.serviceItem as MaintenanceServiceItemOption].sort((a, b) => a.name.localeCompare(b.name)),
+              }),
+            }).then(() => setNewServiceItemName(""))}
+            disabled={isPending || !managerCategoryId || !newServiceItemName.trim()}
+            className="h-9 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white disabled:opacity-60"
+          >
+            Agregar
+          </button>
+        </div>
+        <div className="space-y-2">
+          {currentCategoryServiceItems.map((item) => (
+            <CatalogManagerRow
+              key={item.id}
+              label="Item"
+              name={item.name}
+              isPending={isPending}
+              onRename={(name) => void runRequest({
+                url: `/api/company/maintenance/service-items/${item.id}`,
+                method: "PATCH",
+                body: { name: name.trim() },
+                successMessage: "Item actualizado",
+                apply: (current, payload) => ({
+                  ...current,
+                  serviceItems: current.serviceItems.map((entry) => entry.id === item.id ? payload.serviceItem as MaintenanceServiceItemOption : entry),
+                }),
+              })}
+              onDelete={() => void runRequest({
+                url: `/api/company/maintenance/service-items/${item.id}`,
+                method: "DELETE",
+                successMessage: "Item eliminado",
+                apply: (current) => ({
+                  ...current,
+                  serviceItems: current.serviceItems.filter((entry) => entry.id !== item.id),
+                  issues: current.issues.filter((issue) => issue.serviceItemId !== item.id),
+                }),
+              })}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3">
+        <select
+          value={managerServiceItemId}
+          onChange={(event) => setManagerServiceItemId(event.target.value)}
+          className="h-9 w-full rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm"
+        >
+          {currentCategoryServiceItems.map((item) => (
+            <option key={item.id} value={item.id}>{item.name}</option>
+          ))}
+        </select>
+        <div className="flex gap-2">
+          <input
+            value={newIssueName}
+            onChange={(event) => setNewIssueName(event.target.value)}
+            placeholder="Nuevo issue"
+            className="h-9 flex-1 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm"
+          />
+          <button
+            type="button"
+            onClick={() => void runRequest({
+              url: "/api/company/maintenance/issues",
+              method: "POST",
+              body: { serviceItemId: managerServiceItemId, name: newIssueName.trim() },
+              successMessage: "Issue creado",
+              apply: (current, payload) => ({
+                ...current,
+                issues: [...current.issues, payload.issue as MaintenanceIssueOption].sort((a, b) => a.name.localeCompare(b.name)),
+              }),
+            }).then(() => setNewIssueName(""))}
+            disabled={isPending || !managerServiceItemId || !newIssueName.trim()}
+            className="h-9 rounded-lg bg-[var(--gbp-text)] px-3 text-xs font-bold text-white disabled:opacity-60"
+          >
+            Agregar
+          </button>
+        </div>
+        <div className="space-y-2">
+          {currentIssues.map((issue) => (
+            <CatalogManagerRow
+              key={issue.id}
+              label="Issue"
+              name={issue.name}
+              isPending={isPending}
+              onRename={(name) => void runRequest({
+                url: `/api/company/maintenance/issues/${issue.id}`,
+                method: "PATCH",
+                body: { name: name.trim() },
+                successMessage: "Issue actualizado",
+                apply: (current, payload) => ({
+                  ...current,
+                  issues: current.issues.map((entry) => entry.id === issue.id ? payload.issue as MaintenanceIssueOption : entry),
+                }),
+              })}
+              onDelete={() => void runRequest({
+                url: `/api/company/maintenance/issues/${issue.id}`,
+                method: "DELETE",
+                successMessage: "Issue eliminado",
+                apply: (current) => ({
+                  ...current,
+                  issues: current.issues.filter((entry) => entry.id !== issue.id),
+                }),
+              })}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const STATUS_TABS: Array<{ value: string; label: string }> = [
   { value: "open", label: "Abiertas" },
@@ -85,15 +509,20 @@ export function MaintenanceWorkspace({
   canRespond,
   initialRequests,
   currentUserId,
+  initialCatalog,
   branches,
 }: MaintenanceWorkspaceProps) {
   const [requests, setRequests] = useState(initialRequests);
+  const [catalog, setCatalog] = useState(initialCatalog);
   const [activeStatus, setActiveStatus] = useState("open");
   const [selectedId, setSelectedId] = useState(initialRequests[0]?.id ?? "");
   const [expandedRequestIds, setExpandedRequestIds] = useState<Set<string>>(() => new Set());
   const [createOpen, setCreateOpen] = useState(false);
+  const [catalogManagerOpen, setCatalogManagerOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [responding, setResponding] = useState(false);
+  const [createForm, setCreateForm] = useState<MaintenanceRequestFormState>(() => deriveFormState(branches));
+  const [draftForm, setDraftForm] = useState<MaintenanceRequestFormState>(() => deriveFormState(branches));
 
   const selectedRequest = useMemo(
     () => requests.find((request) => request.id === selectedId) ?? requests[0] ?? null,
@@ -115,6 +544,7 @@ export function MaintenanceWorkspace({
       throw new Error(payload.error ?? "No se pudo cargar mantenimiento");
     }
     setRequests(payload.requests ?? []);
+    if (payload.catalog) setCatalog(payload.catalog as MaintenanceCatalog);
     if (payload.requests?.[0]?.id) setSelectedId(payload.requests[0].id);
   }
 
@@ -137,6 +567,32 @@ export function MaintenanceWorkspace({
     });
   }
 
+  function findCategoryByName(value: string) {
+    return catalog.categories.find((category) => normalizeLabel(category.name) === normalizeLabel(value));
+  }
+
+  function findServiceItemByName(categoryId: string | null, value: string) {
+    if (!categoryId) return null;
+    return catalog.serviceItems.find((item) => item.categoryId === categoryId && normalizeLabel(item.name) === normalizeLabel(value));
+  }
+
+  function getServiceItemOptions(categoryName: string) {
+    const category = findCategoryByName(categoryName);
+    if (!category) return [];
+    return catalog.serviceItems
+      .filter((item) => item.categoryId === category.id)
+      .map((item) => item.name);
+  }
+
+  function getIssueOptions(categoryName: string, serviceItemName: string) {
+    const category = findCategoryByName(categoryName);
+    const serviceItem = findServiceItemByName(category?.id ?? null, serviceItemName);
+    if (!serviceItem) return [];
+    return catalog.issues
+      .filter((issue) => issue.serviceItemId === serviceItem.id)
+      .map((issue) => issue.name);
+  }
+
   async function submitCreate(formData: FormData) {
     const response = await fetch(apiBase, {
       method: "POST",
@@ -145,6 +601,8 @@ export function MaintenanceWorkspace({
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error ?? "No se pudo crear la request");
     setCreateOpen(false);
+    setCatalogManagerOpen(false);
+    setCreateForm(deriveFormState(catalog.branches));
     toast.success("Request guardada");
     await refresh(activeStatus);
   }
@@ -197,6 +655,21 @@ export function MaintenanceWorkspace({
     toast.success(formData.get("action") === "submit" ? "Borrador enviado" : "Borrador actualizado");
     await refresh(activeStatus);
   }
+
+  useEffect(() => {
+    if (!createOpen) return;
+    setCreateForm(deriveFormState(catalog.branches));
+  }, [catalog.branches, createOpen]);
+
+  useEffect(() => {
+    if (!selectedRequest || selectedRequest.status !== "draft") return;
+    setDraftForm(deriveFormState(catalog.branches, selectedRequest));
+  }, [catalog.branches, selectedRequest]);
+
+  const categoryOptions = useMemo(
+    () => catalog.categories.map((category) => category.name),
+    [catalog.categories],
+  );
 
   return (
     <div className="space-y-5">
@@ -367,34 +840,82 @@ export function MaintenanceWorkspace({
                 return (
                   <form
                     action={(formData) => {
+                      formData.set("branch_id", draftForm.branchId);
+                      formData.set("priority", draftForm.priority);
+                      formData.set("category", draftForm.category);
+                      formData.set("service_item", draftForm.serviceItem);
+                      formData.set("issue", draftForm.issue);
+                      formData.set("title", draftForm.title);
+                      formData.set("description", draftForm.description);
                       startTransition(() => {
                         submitDraftUpdate(formData).catch((error) => toast.error(error.message));
                       });
                     }}
                     className="space-y-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4"
                   >
-                    <p className="text-sm font-bold text-[var(--gbp-text)]">Editar borrador</p>
-                    <select name="branch_id" defaultValue={selectedRequest.branchId} required className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm">
-                      {branches.map((branch) => (
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-bold text-[var(--gbp-text)]">Editar borrador</p>
+                      {mode === "company" ? (
+                        <button
+                          type="button"
+                          onClick={() => setCatalogManagerOpen((prev) => !prev)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-[11px] font-bold text-[var(--gbp-text2)]"
+                        >
+                          <Settings2 className="h-3.5 w-3.5" />
+                          {catalogManagerOpen ? "Cerrar catalogo" : "Gestionar catalogo"}
+                        </button>
+                      ) : null}
+                    </div>
+                    <select value={draftForm.branchId} onChange={(event) => setDraftForm((prev) => ({ ...prev, branchId: event.target.value }))} required className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm">
+                      {catalog.branches.map((branch) => (
                         <option key={branch.id} value={branch.id}>{branch.name}</option>
                       ))}
                     </select>
-                    <select name="priority" defaultValue={selectedRequest.priority} className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm">
+                    <select value={draftForm.priority} onChange={(event) => setDraftForm((prev) => ({ ...prev, priority: event.target.value }))} className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm">
                       <option value="low">Baja</option>
                       <option value="medium">Media</option>
                       <option value="high">Alta</option>
                       <option value="urgent">Urgente</option>
                     </select>
-                    <select name="category" defaultValue={selectedRequest.category} required className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm">
-                      {MAINTENANCE_CATEGORIES.map((category) => (
-                        <option key={category.value} value={category.value}>{category.label}</option>
-                      ))}
-                    </select>
-                    <input name="service_item" defaultValue={selectedRequest.serviceItem ?? ""} placeholder="Item de servicio" className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm" />
-                    <input name="issue" defaultValue={selectedRequest.issue ?? ""} placeholder="Issue" className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm" />
-                    <input name="title" defaultValue={selectedRequest.title} required placeholder="Titulo" className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm" />
-                    <textarea name="description" defaultValue={selectedRequest.description} required rows={4} placeholder="Detalles" className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm" />
+                    <SearchableCreatableField
+                      label="Categoria"
+                      name="category"
+                      value={draftForm.category}
+                      onChange={(value) => setDraftForm((prev) => ({ ...prev, category: value, serviceItem: "", issue: "" }))}
+                      options={categoryOptions}
+                      placeholder="Busca o crea una categoria"
+                      required
+                    />
+                    <SearchableCreatableField
+                      label="Item de servicio"
+                      name="service_item"
+                      value={draftForm.serviceItem}
+                      onChange={(value) => setDraftForm((prev) => ({ ...prev, serviceItem: value, issue: "" }))}
+                      options={getServiceItemOptions(draftForm.category)}
+                      placeholder="Busca o crea un item"
+                      disabled={!draftForm.category.trim()}
+                    />
+                    <SearchableCreatableField
+                      label="Issue"
+                      name="issue"
+                      value={draftForm.issue}
+                      onChange={(value) => setDraftForm((prev) => ({ ...prev, issue: value }))}
+                      options={getIssueOptions(draftForm.category, draftForm.serviceItem)}
+                      placeholder={draftForm.serviceItem.trim() ? "Busca o crea un issue" : "Primero elegi un item"}
+                      disabled={!draftForm.serviceItem.trim()}
+                    />
+                    <label className="space-y-1 text-sm font-semibold text-[var(--gbp-text)]">
+                      Titulo
+                      <input value={draftForm.title} onChange={(event) => setDraftForm((prev) => ({ ...prev, title: event.target.value }))} required placeholder="Titulo" className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm" />
+                    </label>
+                    <label className="space-y-1 text-sm font-semibold text-[var(--gbp-text)]">
+                      Detalles
+                      <textarea value={draftForm.description} onChange={(event) => setDraftForm((prev) => ({ ...prev, description: event.target.value }))} required rows={4} placeholder="Detalles" className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm" />
+                    </label>
                     <input name="files" type="file" multiple className="w-full rounded-xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-xs" />
+                    {mode === "company" && catalogManagerOpen ? (
+                      <MaintenanceCatalogManager catalog={catalog} onCatalogChange={setCatalog} />
+                    ) : null}
                     <div className="grid gap-2 sm:grid-cols-2">
                       <button type="submit" name="action" value="draft" disabled={isPending} className="rounded-xl border border-[var(--gbp-border)] px-4 py-2.5 text-sm font-bold text-[var(--gbp-text2)] disabled:opacity-60">
                         Guardar cambios
@@ -465,7 +986,7 @@ export function MaintenanceWorkspace({
                         {update.toStatus ? STATUS_LABELS[update.toStatus] : "Comentario"}
                       </p>
                       <p className="text-[11px] text-[var(--gbp-muted)]">
-                        {update.actorName} · {dateLabel(update.createdAt)}
+                        {update.actorName} - {dateLabel(update.createdAt)}
                       </p>
                       {update.scheduledVisitAt ? <p className="mt-1 text-xs text-[var(--gbp-text2)]">Visita: {dateLabel(update.scheduledVisitAt)}</p> : null}
                       {update.message ? <p className="mt-1 text-sm text-[var(--gbp-text2)]">{update.message}</p> : null}
@@ -507,6 +1028,13 @@ export function MaintenanceWorkspace({
         <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/40 p-4">
           <form
             action={(formData) => {
+              formData.set("branch_id", createForm.branchId);
+              formData.set("priority", createForm.priority);
+              formData.set("category", createForm.category);
+              formData.set("service_item", createForm.serviceItem);
+              formData.set("issue", createForm.issue);
+              formData.set("title", createForm.title);
+              formData.set("description", createForm.description);
               startTransition(() => {
                 submitCreate(formData).catch((error) => toast.error(error.message));
               });
@@ -518,58 +1046,88 @@ export function MaintenanceWorkspace({
                 <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Nueva request</p>
                 <h2 className="text-xl font-bold text-[var(--gbp-text)]">Crear mantenimiento</h2>
               </div>
-              <button type="button" onClick={() => setCreateOpen(false)} className="rounded-full bg-[var(--gbp-bg)] p-2 text-[var(--gbp-text2)]">
-                <X className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                {mode === "company" ? (
+                  <button
+                    type="button"
+                    onClick={() => setCatalogManagerOpen((prev) => !prev)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-[11px] font-bold text-[var(--gbp-text2)]"
+                  >
+                    <Settings2 className="h-3.5 w-3.5" />
+                    {catalogManagerOpen ? "Cerrar catalogo" : "Gestionar catalogo"}
+                  </button>
+                ) : null}
+                <button type="button" onClick={() => setCreateOpen(false)} className="rounded-full bg-[var(--gbp-bg)] p-2 text-[var(--gbp-text2)]">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="space-y-1 text-sm font-semibold text-[var(--gbp-text)]">
                 Locacion
-                <select name="branch_id" required className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm">
-                  {branches.map((branch) => (
+                <select value={createForm.branchId} onChange={(event) => setCreateForm((prev) => ({ ...prev, branchId: event.target.value }))} required className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm">
+                  {catalog.branches.map((branch) => (
                     <option key={branch.id} value={branch.id}>{branch.name}</option>
                   ))}
                 </select>
               </label>
               <label className="space-y-1 text-sm font-semibold text-[var(--gbp-text)]">
                 Prioridad
-                <select name="priority" defaultValue="medium" className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm">
+                <select value={createForm.priority} onChange={(event) => setCreateForm((prev) => ({ ...prev, priority: event.target.value }))} className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm">
                   <option value="low">Baja</option>
                   <option value="medium">Media</option>
                   <option value="high">Alta</option>
                   <option value="urgent">Urgente</option>
                 </select>
               </label>
-              <label className="space-y-1 text-sm font-semibold text-[var(--gbp-text)]">
-                Categoria
-                <select name="category" required className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm">
-                  {MAINTENANCE_CATEGORIES.map((category) => (
-                    <option key={category.value} value={category.value}>{category.label}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="space-y-1 text-sm font-semibold text-[var(--gbp-text)]">
-                Item de servicio
-                <input name="service_item" placeholder="Ej: Sink, HVAC, Freezer" className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm" />
-              </label>
-              <label className="space-y-1 text-sm font-semibold text-[var(--gbp-text)] sm:col-span-2">
-                Issue
-                <input name="issue" placeholder="Buscar o escribir el problema" className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm" />
-              </label>
+              <SearchableCreatableField
+                label="Categoria"
+                name="category"
+                value={createForm.category}
+                onChange={(value) => setCreateForm((prev) => ({ ...prev, category: value, serviceItem: "", issue: "" }))}
+                options={categoryOptions}
+                placeholder="Busca o crea una categoria"
+                required
+              />
+              <SearchableCreatableField
+                label="Item de servicio"
+                name="service_item"
+                value={createForm.serviceItem}
+                onChange={(value) => setCreateForm((prev) => ({ ...prev, serviceItem: value, issue: "" }))}
+                options={getServiceItemOptions(createForm.category)}
+                placeholder="Busca o crea un item"
+                disabled={!createForm.category.trim()}
+              />
+              <div className="sm:col-span-2">
+                <SearchableCreatableField
+                  label="Issue"
+                  name="issue"
+                  value={createForm.issue}
+                  onChange={(value) => setCreateForm((prev) => ({ ...prev, issue: value }))}
+                  options={getIssueOptions(createForm.category, createForm.serviceItem)}
+                  placeholder={createForm.serviceItem.trim() ? "Busca o crea un issue" : "Primero elegi un item"}
+                  disabled={!createForm.serviceItem.trim()}
+                />
+              </div>
               <label className="space-y-1 text-sm font-semibold text-[var(--gbp-text)] sm:col-span-2">
                 Titulo
-                <input name="title" required placeholder="Ej: Sink leaks" className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm" />
+                <input value={createForm.title} onChange={(event) => setCreateForm((prev) => ({ ...prev, title: event.target.value }))} required placeholder="Ej: Sink leaks" className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm" />
               </label>
               <label className="space-y-1 text-sm font-semibold text-[var(--gbp-text)] sm:col-span-2">
                 Detalles
-                <textarea name="description" required rows={5} placeholder="Conta que pasa, donde ocurre y cualquier dato util." className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm" />
+                <textarea value={createForm.description} onChange={(event) => setCreateForm((prev) => ({ ...prev, description: event.target.value }))} required rows={5} placeholder="Conta que pasa, donde ocurre y cualquier dato util." className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm" />
               </label>
               <label className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[var(--gbp-accent)] bg-[var(--gbp-accent)]/5 px-4 py-8 text-center text-sm font-semibold text-[var(--gbp-text2)] sm:col-span-2">
                 <ImageIcon className="h-7 w-7 text-[var(--gbp-accent)]" />
                 Drop o upload de imagenes/archivos
                 <input name="files" type="file" multiple className="max-w-full text-xs" />
               </label>
+              {mode === "company" && catalogManagerOpen ? (
+                <div className="sm:col-span-2">
+                  <MaintenanceCatalogManager catalog={catalog} onCatalogChange={setCatalog} />
+                </div>
+              ) : null}
             </div>
 
             <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
