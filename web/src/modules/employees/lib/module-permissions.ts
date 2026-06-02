@@ -1,6 +1,6 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 
-export const EMPLOYEE_PERMISSION_MODULES = ["announcements", "checklists", "documents", "vendors", "ai_assistant"] as const;
+export const EMPLOYEE_PERMISSION_MODULES = ["announcements", "checklists", "documents", "vendors", "ai_assistant", "maintenance"] as const;
 export type EmployeePermissionModuleCode = (typeof EMPLOYEE_PERMISSION_MODULES)[number];
 export type EmployeePermissionCapability = "view" | "create" | "edit" | "delete";
 
@@ -20,6 +20,7 @@ export function getEmptyEmployeeDelegatedPermissions(): EmployeeDelegatedPermiss
     documents: { view: false, create: false, edit: false, delete: false },
     vendors: { view: false, create: false, edit: false, delete: false },
     ai_assistant: { view: false, create: false, edit: false, delete: false },
+    maintenance: { view: false, create: false, edit: false, delete: false },
   };
 }
 
@@ -43,7 +44,7 @@ export function normalizeEmployeeDelegatedPermissions(input: unknown): EmployeeD
       delete: toBoolean(moduleRecord.delete),
     };
 
-    if (moduleCode === "vendors" && (base[moduleCode].create || base[moduleCode].edit || base[moduleCode].delete)) {
+    if ((moduleCode === "vendors" || moduleCode === "maintenance") && (base[moduleCode].create || base[moduleCode].edit || base[moduleCode].delete)) {
       base[moduleCode].view = true;
     }
   }
@@ -51,6 +52,7 @@ export function normalizeEmployeeDelegatedPermissions(input: unknown): EmployeeD
   base.ai_assistant.view = false;
   base.ai_assistant.edit = false;
   base.ai_assistant.delete = false;
+  base.maintenance.delete = false;
 
   return base;
 }
@@ -82,7 +84,7 @@ export async function getEmployeeDelegatedPermissionsByMembership(
       delete: row.can_delete === true,
     };
 
-    if (moduleCode === "vendors" && (result[moduleCode].create || result[moduleCode].edit || result[moduleCode].delete)) {
+    if ((moduleCode === "vendors" || moduleCode === "maintenance") && (result[moduleCode].create || result[moduleCode].edit || result[moduleCode].delete)) {
       result[moduleCode].view = true;
     }
   }
@@ -90,6 +92,7 @@ export async function getEmployeeDelegatedPermissionsByMembership(
   result.ai_assistant.view = false;
   result.ai_assistant.edit = false;
   result.ai_assistant.delete = false;
+  result.maintenance.delete = false;
 
   return result;
 }
@@ -100,6 +103,9 @@ export function hasEmployeeDelegatedCapability(
   capability: EmployeePermissionCapability,
 ) {
   if (moduleCode === "ai_assistant" && capability !== "create") {
+    return false;
+  }
+  if (moduleCode === "maintenance" && capability === "delete") {
     return false;
   }
   return permissions[moduleCode]?.[capability] === true;

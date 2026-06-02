@@ -2,7 +2,7 @@
 
 import type { Dispatch, SetStateAction } from "react";
 
-type DelegatedPermissionModuleCode = "announcements" | "checklists" | "documents" | "vendors" | "ai_assistant";
+type DelegatedPermissionModuleCode = "announcements" | "checklists" | "documents" | "vendors" | "ai_assistant" | "maintenance";
 type DelegatedPermissionCapability = "view" | "create" | "edit" | "delete";
 
 type DelegatedPermissionsState = Record<
@@ -22,6 +22,7 @@ const MODULES: Array<{ code: DelegatedPermissionModuleCode; label: string }> = [
   { code: "documents", label: "Documentos Operativos" },
   { code: "vendors", label: "Proveedores" },
   { code: "ai_assistant", label: "Asistente IA" },
+  { code: "maintenance", label: "Mantenimiento" },
 ];
 
 const CAPABILITIES: DelegatedPermissionCapability[] = ["view", "create", "edit", "delete"];
@@ -50,6 +51,11 @@ function capabilityLabel(moduleCode: DelegatedPermissionModuleCode, capability: 
     if (capability === "edit") return "Editar";
     if (capability === "delete") return "Eliminar";
   }
+  if (moduleCode === "maintenance") {
+    if (capability === "view") return "Ver request";
+    if (capability === "create") return "Crear request";
+    if (capability === "edit") return "Responder request";
+  }
   return CAPABILITY_LABELS[capability];
 }
 
@@ -59,6 +65,9 @@ function visibleCapabilities(moduleCode: DelegatedPermissionModuleCode) {
   }
   if (moduleCode === "vendors") {
     return ["view", "create", "edit", "delete"] as DelegatedPermissionCapability[];
+  }
+  if (moduleCode === "maintenance") {
+    return ["view", "create", "edit"] as DelegatedPermissionCapability[];
   }
   return CAPABILITIES;
 }
@@ -79,6 +88,7 @@ export function DelegatedPermissionsSection({ delegatedPermissions, setDelegated
         En Documentos, <strong>Subir</strong> habilita carga de archivos y organización visual (filtros/orden) de sus propios documentos.
         En <strong>Proveedores</strong>, <strong>Ver</strong> habilita el acceso a la pantalla y luego podés delegar Crear, Editar o Eliminar.
         En <strong>Asistente IA</strong>, el permiso <strong>Usar IA</strong> habilita el asistente en el panel del empleado.
+        En <strong>Mantenimiento</strong>, Crear o Responder activan Ver request automaticamente.
       </p>
 
       <div className="space-y-4">
@@ -100,13 +110,14 @@ export function DelegatedPermissionsSection({ delegatedPermissions, setDelegated
                           [moduleItem.code]: {
                             ...prev[moduleItem.code],
                             [capability]: !prev[moduleItem.code][capability],
-                            ...(moduleItem.code === "vendors" && capability !== "view" && !prev[moduleItem.code][capability]
+                            ...((moduleItem.code === "vendors" || moduleItem.code === "maintenance") && capability !== "view" && !prev[moduleItem.code][capability]
                               ? { view: true }
                               : {}),
-                            ...(moduleItem.code === "vendors" && capability === "view" && prev[moduleItem.code].view
+                            ...((moduleItem.code === "vendors" || moduleItem.code === "maintenance") && capability === "view" && prev[moduleItem.code].view
                               ? { create: false, edit: false, delete: false }
                               : {}),
                             ...(moduleItem.code === "ai_assistant" ? { edit: false, delete: false } : {}),
+                            ...(moduleItem.code === "maintenance" ? { delete: false } : {}),
                           },
                         }));
                       }}

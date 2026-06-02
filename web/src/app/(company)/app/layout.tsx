@@ -135,6 +135,7 @@ export default async function CompanyLayout({
     ...(enabledModuleCodesSet.has("reports") ? ["reports"] : []),
     ...(enabledModuleCodesSet.has("ai_assistant") ? ["ai_assistant"] : []),
     ...(enabledModuleCodesSet.has("vendors") ? ["vendors"] : []),
+    ...(enabledModuleCodesSet.has("maintenance") ? ["maintenance"] : []),
     ...(enabledModuleCodesSet.has("qbo_r365") ? ["qbo_r365"] : []),
   ];
 

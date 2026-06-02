@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { isDndActive } from "@/modules/documents/hooks/use-dnd-safety-net";
-import { ChevronDown, LayoutDashboard, ClipboardList, Folder, Bell, FileText, FileBarChart, PanelsLeftRight, LogOut, Menu, Trash2, User, Truck, MessageSquarePlus, X, Loader2, type LucideIcon } from "lucide-react";
+import { ChevronDown, LayoutDashboard, ClipboardList, Folder, Bell, FileText, FileBarChart, PanelsLeftRight, LogOut, Menu, Trash2, User, Truck, MessageSquarePlus, X, Loader2, Wrench, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { NewEmployeeModal, type EmployeeModalInitialData, type ModalBranch, type ModalDepartment, type ModalPosition } from "@/modules/employees/ui/new-employee-modal";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
@@ -43,10 +43,14 @@ type EmployeeShellProps = {
     onboarding: boolean;
     vendors: boolean;
     ai_assistant: boolean;
+    maintenance: boolean;
   };
   canDeleteDocuments: boolean;
   canCreateChecklistReports: boolean;
   canViewVendors: boolean;
+  canViewMaintenance: boolean;
+  canCreateMaintenance: boolean;
+  canRespondMaintenance: boolean;
   customBrandingEnabled: boolean;
   companyLogoUrl: string;
   employeeProfile: EmployeeModalInitialData;
@@ -90,6 +94,9 @@ export function EmployeeShell({
   canDeleteDocuments,
   canCreateChecklistReports,
   canViewVendors,
+  canViewMaintenance,
+  canCreateMaintenance,
+  canRespondMaintenance,
   customBrandingEnabled,
   companyLogoUrl,
   employeeProfile,
@@ -124,7 +131,7 @@ export function EmployeeShell({
       supabase.realtime.setAuth(realtimeAccessToken);
     }
     const orgFilter = `organization_id=eq.${organizationId}`;
-    const fastRealtimePaths = ["/portal/checklist", "/portal/home", "/portal/announcements", "/portal/documents", "/portal/trash"];
+    const fastRealtimePaths = ["/portal/checklist", "/portal/home", "/portal/announcements", "/portal/documents", "/portal/trash", "/portal/maintenance"];
     const refreshDelayMs = fastRealtimePaths.some((prefix) => pathname.startsWith(prefix)) ? 450 : 2000;
     const employeeUploadCooldownKey = "gbp.employee.docs.upload.cooldown";
     const employeeUploadInflightKey = "gbp.employee.docs.upload.inflight";
@@ -186,6 +193,12 @@ export function EmployeeShell({
           filter: `employee_id=eq.${employeeId}`,
         });
       }
+    } else if (pathname.startsWith("/portal/maintenance")) {
+      subscriptions.push(
+        { table: "maintenance_requests", filter: orgFilter },
+        { table: "maintenance_request_updates", filter: orgFilter },
+        { table: "maintenance_request_attachments", filter: orgFilter },
+      );
     }
 
     function isEmployeeUploadCooldownActive() {
@@ -266,7 +279,7 @@ export function EmployeeShell({
 
     const channel = channelBuilder.subscribe();
 
-    if (pathname.startsWith("/portal/home") || pathname.startsWith("/portal/announcements") || pathname.startsWith("/portal/checklist") || pathname.startsWith("/portal/documents") || pathname.startsWith("/portal/trash") || pathname.startsWith("/portal/vendors")) {
+    if (pathname.startsWith("/portal/home") || pathname.startsWith("/portal/announcements") || pathname.startsWith("/portal/checklist") || pathname.startsWith("/portal/documents") || pathname.startsWith("/portal/trash") || pathname.startsWith("/portal/vendors") || pathname.startsWith("/portal/maintenance")) {
       pollingRef = setInterval(() => {
         const now = Date.now();
         if (now - lastRefreshAtRef.current < 7000) return;
@@ -312,11 +325,14 @@ export function EmployeeShell({
     if (enabledModules.vendors && canViewVendors) {
       result.push({ href: "/portal/vendors", label: "Proveedores", icon: Truck });
     }
+    if (enabledModules.maintenance && (canViewMaintenance || canCreateMaintenance || canRespondMaintenance)) {
+      result.push({ href: "/portal/maintenance", label: "Mantenimiento", icon: Wrench });
+    }
     if (enabledModules.onboarding) {
       result.push({ href: "/portal/onboarding", label: "Instrucciones", icon: FileText });
     }
     return result;
-  }, [canCreateChecklistReports, canDeleteDocuments, canViewVendors, enabledModules.announcements, enabledModules.checklists, enabledModules.documents, enabledModules.onboarding, enabledModules.vendors]);
+  }, [canCreateChecklistReports, canCreateMaintenance, canDeleteDocuments, canRespondMaintenance, canViewMaintenance, canViewVendors, enabledModules.announcements, enabledModules.checklists, enabledModules.documents, enabledModules.maintenance, enabledModules.onboarding, enabledModules.vendors]);
 
   const sidebarWidth = collapsed ? "w-[56px]" : "w-[240px]";
   const sidebarPaddingX = collapsed ? "px-2" : "px-4";

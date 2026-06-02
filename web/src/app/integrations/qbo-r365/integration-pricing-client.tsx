@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 type PlanFeature = {
@@ -431,14 +432,14 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
             alignItems: "center",
           }}
         >
-          <a href="/" style={{ textDecoration: "none" }}>
+          <Link href="/" style={{ textDecoration: "none" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/getbackplate-logo-light.svg"
               alt="GetBackplate"
               style={{ height: 28, width: "auto", display: "block" }}
             />
-          </a>
+          </Link>
           <nav style={{ display: "flex" }}>
             {(
               [

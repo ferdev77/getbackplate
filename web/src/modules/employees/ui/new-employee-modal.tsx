@@ -15,7 +15,7 @@ type ModalDocument = { id: string; title: string; created_at: string };
 export type ModalDepartment = { id: string; name: string };
 export type ModalPosition = { id: string; department_id: string; name: string; is_active: boolean };
 
-type DelegatedPermissionModuleCode = "announcements" | "checklists" | "documents" | "vendors" | "ai_assistant";
+type DelegatedPermissionModuleCode = "announcements" | "checklists" | "documents" | "vendors" | "ai_assistant" | "maintenance";
 type DelegatedPermissionsState = Record<
   DelegatedPermissionModuleCode,
   Record<"view" | "create" | "edit" | "delete", boolean>
@@ -27,6 +27,7 @@ const EMPTY_DELEGATED_PERMISSIONS: DelegatedPermissionsState = {
   documents: { view: false, create: false, edit: false, delete: false },
   vendors: { view: false, create: false, edit: false, delete: false },
   ai_assistant: { view: false, create: false, edit: false, delete: false },
+  maintenance: { view: false, create: false, edit: false, delete: false },
 };
 
 export type EmployeeModalInitialDocument = {

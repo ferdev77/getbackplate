@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Fraunces, Inter_Tight } from "next/font/google";
 
 const fraunces = Fraunces({
@@ -51,14 +52,14 @@ export default async function IntegrationSuccessPage({ searchParams }: Props) {
             alignItems: "center",
           }}
         >
-          <a href="/" style={{ textDecoration: "none" }}>
+          <Link href="/" style={{ textDecoration: "none" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/getbackplate-logo-light.svg"
               alt="GetBackplate"
               style={{ height: 28, width: "auto", display: "block" }}
             />
-          </a>
+          </Link>
         </div>
       </header>
 
