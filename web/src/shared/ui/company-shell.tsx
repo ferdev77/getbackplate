@@ -249,6 +249,7 @@ export function CompanyShell({
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(SECTIONS.map((section) => [section.label, false])),
   );
+  const [manuallyClosedSections, setManuallyClosedSections] = useState<Set<string>>(() => new Set());
   const [busy, setBusy] = useState(false);
   const [localBranches, setLocalBranches] = useState(() => branchOptions);
   const [isReordering, setIsReordering] = useState(false);
@@ -365,6 +366,7 @@ export function CompanyShell({
   const [stoppingImpersonation, setStoppingImpersonation] = useState(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const billingToastHandledRef = useRef(false);
+  const activeSectionLabelRef = useRef<string | null>(null);
   const prefetchedRoutesRef = useRef<Set<string>>(new Set());
   const checklistCatalogPrefetchStartedRef = useRef(false);
   const documentsCatalogPrefetchStartedRef = useRef(false);
@@ -728,6 +730,18 @@ export function CompanyShell({
     );
     if (!activeSection) return;
 
+    if (activeSectionLabelRef.current !== activeSection.label) {
+      activeSectionLabelRef.current = activeSection.label;
+      setManuallyClosedSections((prev) => {
+        if (!prev.has(activeSection.label)) return prev;
+        const next = new Set(prev);
+        next.delete(activeSection.label);
+        return next;
+      });
+    }
+
+    if (manuallyClosedSections.has(activeSection.label)) return;
+
     setExpandedSections((prev) => {
       if (prev[activeSection.label]) return prev;
       return {
@@ -735,7 +749,7 @@ export function CompanyShell({
         [activeSection.label]: true,
       };
     });
-  }, [pathname, searchParams, visibleSections]);
+  }, [manuallyClosedSections, pathname, searchParams, visibleSections]);
 
   const hrefWithBranch = useCallback((href: string) => {
     if (!selectedBranch || !href.startsWith("/app")) return href;
@@ -1350,10 +1364,22 @@ export function CompanyShell({
   }, [currentPlan, enabledModules, moduleNameByCode, planChangeTarget, planModulesByPlanId]);
 
   function toggleSection(label: string) {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [label]: !prev[label],
-    }));
+    setExpandedSections((prev) => {
+      const nextExpanded = !prev[label];
+      setManuallyClosedSections((closedPrev) => {
+        const next = new Set(closedPrev);
+        if (nextExpanded) {
+          next.delete(label);
+        } else {
+          next.add(label);
+        }
+        return next;
+      });
+      return {
+        ...prev,
+        [label]: nextExpanded,
+      };
+    });
   }
 
   function handleSidebarItemClick(item: SidebarItem) {
