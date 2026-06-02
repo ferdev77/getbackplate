@@ -10,6 +10,10 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
+  ChevronUp,
+  ChevronDown,
+  Trash2,
+  GripVertical,
 } from "lucide-react";
 
 import {
@@ -49,6 +53,56 @@ type PriceState = {
   preview: { amount: number; currency: string; type: string; interval: string | null } | null;
   error: string | null;
 };
+
+type FeatureItem = {
+  text: string;
+  highlight: boolean;
+  everything: boolean;
+  annual_only: boolean;
+};
+
+function parseFeaturesSafe(raw: unknown): FeatureItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((f): f is Record<string, unknown> => typeof f === "object" && f !== null)
+    .map((f) => ({
+      text: typeof f.text === "string" ? f.text : "",
+      highlight: Boolean(f.highlight),
+      everything: Boolean(f.everything),
+      annual_only: Boolean(f.annual_only),
+    }));
+}
+
+function FeatureFlagToggle({
+  label,
+  checked,
+  onChange,
+  color = "violet",
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  color?: "violet" | "amber" | "sky";
+}) {
+  const ring = color === "amber" ? "peer-checked:bg-amber-500" : color === "sky" ? "peer-checked:bg-sky-500" : "peer-checked:bg-violet-600";
+  return (
+    <label className="flex cursor-pointer select-none items-center gap-1.5">
+      <span className="relative inline-flex">
+        <input
+          type="checkbox"
+          className="peer sr-only"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+        />
+        <span className={`h-4 w-7 rounded-full bg-muted/50 transition-colors ${ring}`} />
+        <span className="absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform peer-checked:translate-x-3" />
+      </span>
+      <span className={`text-[10px] font-semibold ${checked ? (color === "amber" ? "text-amber-600" : color === "sky" ? "text-sky-600" : "text-violet-600") : "text-muted-foreground"}`}>
+        {label}
+      </span>
+    </label>
+  );
+}
 
 type Props = {
   mode: "create" | "edit";
@@ -131,6 +185,32 @@ export function PlanFormModal({
   const [setupFeeAmount, setSetupFeeAmount] = useState(
     plan?.setup_fee_amount != null ? String(plan.setup_fee_amount) : "",
   );
+
+  const [features, setFeatures] = useState<FeatureItem[]>(() =>
+    parseFeaturesSafe(plan?.features),
+  );
+
+  function addFeature() {
+    setFeatures((prev) => [...prev, { text: "", highlight: false, everything: false, annual_only: false }]);
+  }
+
+  function removeFeature(i: number) {
+    setFeatures((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  function updateFeature(i: number, patch: Partial<FeatureItem>) {
+    setFeatures((prev) => prev.map((f, idx) => (idx === i ? { ...f, ...patch } : f)));
+  }
+
+  function moveFeature(i: number, dir: -1 | 1) {
+    const j = i + dir;
+    setFeatures((prev) => {
+      if (j < 0 || j >= prev.length) return prev;
+      const next = [...prev];
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
+  }
 
   const selectedSet = new Set(selectedModuleIds);
 
@@ -531,20 +611,113 @@ export function PlanFormModal({
                     </label>
                   </div>
 
-                  {/* Features JSON */}
+                  {/* Features builder */}
                   <div>
-                    <label className="block text-xs font-semibold text-foreground/70 mb-1.5">
-                      Features (JSON array)
-                    </label>
-                    <textarea
+                    <input
+                      type="hidden"
                       name="features"
-                      rows={5}
-                      defaultValue={
-                        plan?.features ? JSON.stringify(plan.features, null, 2) : ""
-                      }
-                      placeholder={`[\n  {"text": "Hasta 500 facturas/mes", "highlight": false},\n  {"text": "Sincronización diaria", "highlight": true}\n]`}
-                      className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-violet-400 resize-none"
+                      value={features.length > 0 ? JSON.stringify(features) : ""}
                     />
+                    <div className="mb-3 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-bold text-foreground">Features del plan</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Aparecen en la tarjeta de la pantalla de contratación.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={addFeature}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-3 py-2 text-[11px] font-bold text-white transition hover:bg-violet-700"
+                      >
+                        <Plus className="h-3.5 w-3.5" /> Agregar feature
+                      </button>
+                    </div>
+
+                    {features.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-[var(--gbp-border)] px-4 py-6 text-center text-xs text-muted-foreground">
+                        Sin features aún. Hacé clic en "Agregar feature" para comenzar.
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        {features.map((f, i) => (
+                          <div
+                            key={i}
+                            className="group relative rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-3 transition hover:border-violet-300"
+                          >
+                            <div className="flex items-start gap-2">
+                              {/* Order controls */}
+                              <div className="flex flex-col gap-0.5 pt-0.5">
+                                <button
+                                  type="button"
+                                  onClick={() => moveFeature(i, -1)}
+                                  disabled={i === 0}
+                                  className="rounded p-0.5 text-muted-foreground/40 transition hover:bg-muted hover:text-foreground disabled:opacity-20"
+                                >
+                                  <ChevronUp className="h-3 w-3" />
+                                </button>
+                                <GripVertical className="h-3 w-3 text-muted-foreground/30" />
+                                <button
+                                  type="button"
+                                  onClick={() => moveFeature(i, 1)}
+                                  disabled={i === features.length - 1}
+                                  className="rounded p-0.5 text-muted-foreground/40 transition hover:bg-muted hover:text-foreground disabled:opacity-20"
+                                >
+                                  <ChevronDown className="h-3 w-3" />
+                                </button>
+                              </div>
+
+                              {/* Text input */}
+                              <div className="flex-1">
+                                <input
+                                  type="text"
+                                  value={f.text}
+                                  onChange={(e) => updateFeature(i, { text: e.target.value })}
+                                  placeholder="p.ej: Up to 75 invoices per month"
+                                  className="w-full rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-violet-400"
+                                />
+                                {/* Flags */}
+                                <div className="mt-2 flex flex-wrap gap-3">
+                                  <FeatureFlagToggle
+                                    label="Resaltado"
+                                    checked={f.highlight}
+                                    onChange={(v) => updateFeature(i, { highlight: v })}
+                                    color="violet"
+                                  />
+                                  <FeatureFlagToggle
+                                    label='Prefijo "✦ Todo lo anterior +"'
+                                    checked={f.everything}
+                                    onChange={(v) => updateFeature(i, { everything: v })}
+                                    color="amber"
+                                  />
+                                  <FeatureFlagToggle
+                                    label="Solo en plan Anual"
+                                    checked={f.annual_only}
+                                    onChange={(v) => updateFeature(i, { annual_only: v })}
+                                    color="sky"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Delete */}
+                              <button
+                                type="button"
+                                onClick={() => removeFeature(i)}
+                                className="mt-0.5 rounded-lg p-1.5 text-muted-foreground/30 transition hover:bg-rose-50 hover:text-rose-500"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+
+                            {/* Preview pill */}
+                            <div className="mt-2 pl-8">
+                              <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-mono ${f.highlight ? "bg-violet-100 text-violet-700" : "bg-muted/50 text-muted-foreground"}`}>
+                                {f.everything ? "✦ " : "· "}{f.text || "…"}
+                                {f.annual_only && <span className="ml-1 text-sky-500">[anual]</span>}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Unused platform fields sent as neutral values */}
