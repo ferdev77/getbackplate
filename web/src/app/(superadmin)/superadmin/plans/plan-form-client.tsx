@@ -268,7 +268,7 @@ export function PlanFormModal({
       {/* ── Modal ───────────────────────────────────────────────── */}
       {open && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-          <div className="relative z-10 w-full max-w-4xl rounded-[2.5rem] bg-[var(--gbp-surface)] p-8 shadow-2xl border border-[var(--gbp-border)]">
+          <div className="relative z-10 w-full max-w-5xl rounded-[2.5rem] bg-[var(--gbp-surface)] p-10 shadow-2xl border border-[var(--gbp-border)]">
             {/* Header */}
             <div className="mb-6 flex items-center justify-between border-b border-[var(--gbp-border)] pb-6">
               <h3 className="text-2xl font-bold text-foreground">
@@ -388,7 +388,7 @@ export function PlanFormModal({
                       name="stripe_price_id"
                       defaultValue={plan?.stripe_price_id ?? ""}
                       placeholder="Opcional. ej: price_1Pxxxxxxxx"
-                      className="md:col-span-6"
+                      className="md:col-span-full"
                     />
                   </div>
 
@@ -465,7 +465,7 @@ export function PlanFormModal({
               {planType === "integration" && (
                 <>
                   {/* Slug / Name / Sort order */}
-                  <div className="grid gap-5 md:grid-cols-6">
+                  <div className="grid gap-5 md:grid-cols-8">
                     {mode === "create" && (
                       <SuperadminInputField
                         label="Identificador (Slug)"
@@ -481,13 +481,13 @@ export function PlanFormModal({
                       required
                       defaultValue={plan?.name ?? ""}
                       placeholder="p.ej: Connect"
-                      className={mode === "create" ? "md:col-span-2" : "md:col-span-3"}
+                      className={mode === "create" ? "md:col-span-2" : "md:col-span-4"}
                     />
                     <SuperadminSelectField
                       label="Ciclo de Cobro"
                       name="billing_period"
                       defaultValue={plan?.billing_period ?? "monthly"}
-                      className={mode === "create" ? "md:col-span-1" : "md:col-span-2"}
+                      className={mode === "create" ? "md:col-span-2" : "md:col-span-2"}
                     >
                       <option value="monthly">Mensual</option>
                       <option value="yearly">Anual</option>
@@ -498,14 +498,14 @@ export function PlanFormModal({
                       type="number"
                       min="0"
                       defaultValue={plan?.sort_order ?? "0"}
-                      className={mode === "create" ? "md:col-span-1" : "md:col-span-1"}
+                      className="md:col-span-2"
                     />
                     <SuperadminInputField
                       label="Descripción breve"
                       name="description"
                       defaultValue={plan?.description ?? ""}
                       placeholder="Resumen del plan para la landing"
-                      className="md:col-span-6"
+                      className="md:col-span-8"
                     />
                   </div>
 
