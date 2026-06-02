@@ -17,6 +17,7 @@ type MaintenanceWorkspaceProps = {
   canCreate: boolean;
   canRespond: boolean;
   initialRequests: MaintenanceRequest[];
+  currentUserId: string;
   branches: BranchOption[];
 };
 
@@ -83,6 +84,7 @@ export function MaintenanceWorkspace({
   canCreate,
   canRespond,
   initialRequests,
+  currentUserId,
   branches,
 }: MaintenanceWorkspaceProps) {
   const [requests, setRequests] = useState(initialRequests);
@@ -182,6 +184,18 @@ export function MaintenanceWorkspace({
     } finally {
       setResponding(false);
     }
+  }
+
+  async function submitDraftUpdate(formData: FormData) {
+    if (!selectedRequest) return;
+    const response = await fetch(`${apiBase}/${selectedRequest.id}`, {
+      method: "PUT",
+      body: formData,
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error ?? "No se pudo actualizar el borrador");
+    toast.success(formData.get("action") === "submit" ? "Borrador enviado" : "Borrador actualizado");
+    await refresh(activeStatus);
   }
 
   return (
@@ -342,6 +356,58 @@ export function MaintenanceWorkspace({
         <aside className="sticky top-4 h-fit rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-5 shadow-sm">
           {selectedRequest ? (
             <div className="space-y-5">
+              {/** Drafts stay editable until they are submitted; after that, everything moves through responses. */}
+              {(() => {
+                const canEditDraft = selectedRequest.status === "draft" && canCreate && (
+                  mode === "company" || selectedRequest.createdBy === currentUserId
+                );
+
+                if (!canEditDraft) return null;
+
+                return (
+                  <form
+                    action={(formData) => {
+                      startTransition(() => {
+                        submitDraftUpdate(formData).catch((error) => toast.error(error.message));
+                      });
+                    }}
+                    className="space-y-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4"
+                  >
+                    <p className="text-sm font-bold text-[var(--gbp-text)]">Editar borrador</p>
+                    <select name="branch_id" defaultValue={selectedRequest.branchId} required className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm">
+                      {branches.map((branch) => (
+                        <option key={branch.id} value={branch.id}>{branch.name}</option>
+                      ))}
+                    </select>
+                    <select name="priority" defaultValue={selectedRequest.priority} className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm">
+                      <option value="low">Baja</option>
+                      <option value="medium">Media</option>
+                      <option value="high">Alta</option>
+                      <option value="urgent">Urgente</option>
+                    </select>
+                    <select name="category" defaultValue={selectedRequest.category} required className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm">
+                      {MAINTENANCE_CATEGORIES.map((category) => (
+                        <option key={category.value} value={category.value}>{category.label}</option>
+                      ))}
+                    </select>
+                    <input name="service_item" defaultValue={selectedRequest.serviceItem ?? ""} placeholder="Item de servicio" className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm" />
+                    <input name="issue" defaultValue={selectedRequest.issue ?? ""} placeholder="Issue" className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm" />
+                    <input name="title" defaultValue={selectedRequest.title} required placeholder="Titulo" className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm" />
+                    <textarea name="description" defaultValue={selectedRequest.description} required rows={4} placeholder="Detalles" className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm" />
+                    <input name="files" type="file" multiple className="w-full rounded-xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-xs" />
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <button type="submit" name="action" value="draft" disabled={isPending} className="rounded-xl border border-[var(--gbp-border)] px-4 py-2.5 text-sm font-bold text-[var(--gbp-text2)] disabled:opacity-60">
+                        Guardar cambios
+                      </button>
+                      <button type="submit" name="action" value="submit" disabled={isPending} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--gbp-accent)] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60">
+                        {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                        Guardar y enviar
+                      </button>
+                    </div>
+                  </form>
+                );
+              })()}
+
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">{selectedRequest.branchName}</p>
@@ -406,7 +472,7 @@ export function MaintenanceWorkspace({
                 </div>
               </div>
 
-              {canRespond ? (
+              {canRespond && selectedRequest.status !== "draft" ? (
                 <form
                   action={(formData) => {
                     submitResponse(formData);

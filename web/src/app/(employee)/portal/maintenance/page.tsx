@@ -41,6 +41,7 @@ export default async function EmployeeMaintenancePage() {
       canCreate={canCreate}
       canRespond={canRespond}
       initialRequests={requests}
+      currentUserId={user.id}
       branches={catalog.branches}
     />
   );
