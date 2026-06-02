@@ -2008,25 +2008,32 @@ export function CompanyShell({
                       </p>
                     </button>
 
-                    {availableAddons.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSettingsOpen(false);
-                          setAddonOpen(true);
-                        }}
-                        disabled={false}
-                        className={`w-full rounded-lg border-[1.5px] px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-60 ${isDarkTheme ? "bg-white/5 border-white/20" : "bg-white/75 border-[var(--gbp-border2)]"}`}
-                      >
-                        <div className="mb-1 flex items-center gap-2">
-                          <div className={`h-1.5 w-1.5 rounded-full ${isDarkTheme ? "bg-white/40" : "bg-[var(--gbp-muted)]"}`} />
-                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-text)]">Add-ons</p>
-                        </div>
-                        <p className={`text-xs font-bold ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>
-                          {`${availableAddons.length} módulo${availableAddons.length !== 1 ? "s" : ""} disponible${availableAddons.length !== 1 ? "s" : ""} →`}
-                        </p>
-                      </button>
-                    )}
+                    {availableAddons.length > 0 && (() => {
+                      const activeOrgAddons = organizationAddons.filter((a) => a.status === "active");
+                      const hasActive = activeOrgAddons.length > 0;
+                      const addonSummary = hasActive
+                        ? activeOrgAddons.map((a) => {
+                            const plan = a.integrationPlanId ? integrationPlans.find((p) => p.id === a.integrationPlanId) : null;
+                            const addonInfo = availableAddons.find((ad) => ad.moduleId === a.moduleId);
+                            return plan?.name ?? addonInfo?.name ?? "Activo";
+                          }).join(" · ") + " →"
+                        : `${availableAddons.length} disponible${availableAddons.length !== 1 ? "s" : ""} →`;
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => { setSettingsOpen(false); setAddonOpen(true); }}
+                          className={`w-full rounded-lg border-[1.5px] px-3 py-2 text-left ${isDarkTheme ? "bg-white/5 border-white/20" : "bg-white/75 border-[var(--gbp-border2)]"}`}
+                        >
+                          <div className="mb-1 flex items-center gap-2">
+                            <div className={`h-1.5 w-1.5 rounded-full ${hasActive ? "bg-emerald-500" : (isDarkTheme ? "bg-white/40" : "bg-[var(--gbp-muted)]")}`} />
+                            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-text)]">Add-ons</p>
+                          </div>
+                          <p className={`text-xs font-bold ${hasActive ? (isDarkTheme ? "text-emerald-400" : "text-emerald-600") : (isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]")}`}>
+                            {addonSummary}
+                          </p>
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
               </>
