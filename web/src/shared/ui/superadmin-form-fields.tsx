@@ -34,7 +34,7 @@ export function SuperadminInputField({
   ...props
 }: InputFieldProps) {
   return (
-    <label className={join("relative", className, props.type === "password" ? "flex flex-col" : "")}>
+    <label className={join("relative mt-3 block", className, props.type === "password" ? "flex flex-col" : "")}>
       <span className={join(baseLabelClass, labelBgClassName, "z-10")}>{label}</span>
       {props.type === "password" ? (
         <PasswordInput {...props} className={join(baseFieldClass, fieldClassName)} />
@@ -54,7 +54,7 @@ export function SuperadminSelectField({
   ...props
 }: SelectFieldProps) {
   return (
-    <label className={join("relative", className)}>
+    <label className={join("relative mt-3 block", className)}>
       <span className={join(baseLabelClass, labelBgClassName)}>{label}</span>
       <select {...props} className={join(baseFieldClass, fieldClassName)}>
         {children}
