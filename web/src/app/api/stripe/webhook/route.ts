@@ -239,6 +239,16 @@ export async function POST(req: Request) {
             // ── END COMPANION MODULES ─────────────────────────────────────────
           }
 
+          // ── SYNC integration_plan_id en organizations ────────────────────────
+          if (integrationPlanId) {
+            await supabase
+              .from('organizations')
+              .update({ integration_plan_id: integrationPlanId })
+              .eq('id', addonOrgId);
+            console.info(`[Webhook][addon] organizations.integration_plan_id set to ${integrationPlanId} for org ${addonOrgId}`);
+          }
+          // ── END SYNC ──────────────────────────────────────────────────────────
+
           // ── BILLING GATE: integration-only orgs must never be blocked ────────
           // Integration plans live in organization_addons, not in subscriptions.
           // The billing gate only reads subscriptions, so orgs without a platform
@@ -499,6 +509,22 @@ export async function POST(req: Request) {
             );
             console.info(`[Webhook][addon] Module ${addonModuleCode} set enabled=${isAddonActive} for org ${addonOrgId}`);
           }
+
+          // ── SYNC integration_plan_id en organizations ────────────────────────
+          if (isAddonActive && updatedIntegrationPlanId) {
+            await supabase
+              .from('organizations')
+              .update({ integration_plan_id: updatedIntegrationPlanId })
+              .eq('id', addonOrgId);
+            console.info(`[Webhook][addon] organizations.integration_plan_id updated to ${updatedIntegrationPlanId} for org ${addonOrgId}`);
+          } else if (isAddonCanceled) {
+            await supabase
+              .from('organizations')
+              .update({ integration_plan_id: null })
+              .eq('id', addonOrgId);
+            console.info(`[Webhook][addon] organizations.integration_plan_id cleared for org ${addonOrgId} (addon canceled)`);
+          }
+          // ── END SYNC ──────────────────────────────────────────────────────────
 
           break;
         }
