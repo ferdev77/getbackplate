@@ -204,44 +204,29 @@ export async function POST(request: Request) {
     const appUrl =
       process.env.NEXT_PUBLIC_APP_URL ?? "https://app.getbackplate.com";
 
-    // ── SETUP FEE: invoice item one-time ─────────────────────────────────────
-    // Si el usuario eligió incluir el setup, creamos o recuperamos el Stripe
-    // customer y adjuntamos un invoice item. Stripe lo cobrará junto al primer
-    // pago de la suscripción automáticamente.
-    let stripeCustomerIdForSession: string | undefined;
+    const planName = typeof (plan as Record<string, unknown>).name === "string"
+      ? (plan as Record<string, unknown>).name as string
+      : "Integración";
 
-    if (includeSetupFee && setupFeeAmountCents > 0) {
-      const { data: existingCustomer } = await supabase
-        .from("stripe_customers")
-        .select("stripe_customer_id")
-        .eq("organization_id", organizationId)
-        .maybeSingle();
-
-      if (existingCustomer?.stripe_customer_id) {
-        stripeCustomerIdForSession = existingCustomer.stripe_customer_id;
-      } else {
-        const newCustomer = await stripe.customers.create({
-          metadata: { organizationId },
-        });
-        await supabase.from("stripe_customers").upsert(
-          { organization_id: organizationId, stripe_customer_id: newCustomer.id },
-          { onConflict: "organization_id" },
-        );
-        stripeCustomerIdForSession = newCustomer.id;
-      }
-
-      const planName = typeof (plan as Record<string, unknown>).name === "string"
-        ? (plan as Record<string, unknown>).name as string
-        : "Integración";
-      const isAnnual = period === "annual";
-
-      await stripe.invoiceItems.create({
-        customer: stripeCustomerIdForSession,
-        currency: "usd",
-        amount: setupFeeAmountCents,
-        description: `Setup · ${planName}${isAnnual ? " (25% off anual)" : ""}`,
-      });
-    }
+    // ── SETUP FEE via subscription_data.add_invoice_items ────────────────────
+    // Usando add_invoice_items en lugar de invoiceItems.create independiente:
+    // aparece como línea visible en la pantalla de Stripe Checkout y se cobra
+    // junto al primer pago de la suscripción.
+    const setupFeeInvoiceItems: Array<{
+      price_data: { currency: string; product_data: { name: string }; unit_amount: number };
+      quantity: number;
+    }> = includeSetupFee && setupFeeAmountCents > 0
+      ? [{
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: `Setup · ${planName}${period === "annual" ? " (25% off anual)" : ""}`,
+            },
+            unit_amount: setupFeeAmountCents,
+          },
+          quantity: 1,
+        }]
+      : [];
     // ── END SETUP FEE ────────────────────────────────────────────────────────
 
     const session = await stripe.checkout.sessions.create({
@@ -249,12 +234,14 @@ export async function POST(request: Request) {
       payment_method_types: ["card"],
       line_items: [{ price: targetPriceId, quantity: 1 }],
       client_reference_id: organizationId,
-      ...(stripeCustomerIdForSession ? { customer: stripeCustomerIdForSession, customer_update: { name: "auto", address: "auto" } } : {}),
       success_url: `${appUrl}/integrations/qbo-r365/success?plan=${encodeURIComponent(plan.name)}&period=${period}`,
       cancel_url: `${appUrl}/integrations/qbo-r365`,
       tax_id_collection: { enabled: true },
       metadata: sharedMeta,
-      subscription_data: { metadata: sharedMeta },
+      subscription_data: {
+        metadata: sharedMeta,
+        ...(setupFeeInvoiceItems.length > 0 ? { add_invoice_items: setupFeeInvoiceItems } : {}),
+      },
     });
 
     return NextResponse.json({ url: session.url });
