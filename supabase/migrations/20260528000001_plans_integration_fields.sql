@@ -13,8 +13,11 @@ ALTER TABLE public.plans
   ADD COLUMN IF NOT EXISTS sort_order       integer     NOT NULL DEFAULT 0;
 
 -- Valid values: 'platform' | 'qbo_r365'
-ALTER TABLE public.plans
-  ADD CONSTRAINT plans_plan_type_check CHECK (plan_type IN ('platform', 'qbo_r365'));
+DO $$ BEGIN
+  ALTER TABLE public.plans
+    ADD CONSTRAINT plans_plan_type_check CHECK (plan_type IN ('platform', 'qbo_r365'));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 COMMENT ON COLUMN public.plans.plan_type IS 'Discriminator: platform = SaaS subscription plans, qbo_r365 = QBO↔R365 integration landing plans';
 COMMENT ON COLUMN public.plans.is_featured IS 'If true, renders as the highlighted/dark featured card on integration landing';
