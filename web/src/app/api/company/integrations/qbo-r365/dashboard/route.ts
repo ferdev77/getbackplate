@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
+import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { getQboR365Snapshot, getUnifiedInvoiceStats, listQboR365Runs, listQboR365InvoiceHistory } from "@/modules/integrations/qbo-r365/service";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +10,12 @@ type StatCard = {
   value: string;
   subLabel: string;
   tone: "default" | "success" | "warning" | "muted";
+  quota?: {
+    used: number;
+    limit: number | null;
+    periodEnd: string | null;
+    overageRate: number | null;
+  };
 };
 
 export async function GET() {
@@ -18,12 +25,40 @@ export async function GET() {
       return NextResponse.json({ error: access.error }, { status: access.status });
     }
     const organizationId = access.tenant.organizationId;
+    const supabase = createSupabaseAdminClient();
+
+    // Fetch plan quota info: invoices_included + billing period end
+    const { data: orgRow } = await supabase
+      .from("organizations")
+      .select("integration_plan_id")
+      .eq("id", organizationId)
+      .maybeSingle();
+
+    const integrationPlanId = orgRow?.integration_plan_id as string | null ?? null;
+
+    const [planRow, addonRow] = await Promise.all([
+      integrationPlanId
+        ? supabase.from("plans").select("invoices_included").eq("id", integrationPlanId).maybeSingle()
+        : Promise.resolve({ data: null }),
+      supabase.from("organization_addons")
+        .select("current_period_end")
+        .eq("organization_id", organizationId)
+        .eq("status", "active")
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    const invoicesIncluded = (planRow.data as { invoices_included?: number | null } | null)?.invoices_included ?? null;
+    const currentPeriodEnd = (addonRow.data as { current_period_end?: string | null } | null)?.current_period_end ?? null;
+    const periodStart = currentPeriodEnd
+      ? new Date(new Date(currentPeriodEnd).setMonth(new Date(currentPeriodEnd).getMonth() - 1)).toISOString()
+      : null;
 
     const [snapshot, runs, invoiceHistory, unifiedStats] = await Promise.all([
       getQboR365Snapshot(organizationId),
       listQboR365Runs(organizationId, 50),
       listQboR365InvoiceHistory(organizationId, 120),
-      getUnifiedInvoiceStats(organizationId),
+      getUnifiedInvoiceStats(organizationId, periodStart),
     ]);
 
     const lastRun = runs[0] ?? null;
@@ -37,10 +72,26 @@ export async function GET() {
         tone: unifiedStats.total > 0 ? "success" : "muted",
       },
       {
-        label: "Facturas Enviadas",
-        value: String(unifiedStats.enviadas),
-        subLabel: "Entregadas a R365 vía FTP",
-        tone: unifiedStats.enviadas > 0 ? "success" : "muted",
+        label: invoicesIncluded ? "Facturas este mes" : "Facturas Enviadas",
+        value: invoicesIncluded
+          ? `${unifiedStats.enviadasThisPeriod} / ${invoicesIncluded}`
+          : String(unifiedStats.enviadas),
+        subLabel: invoicesIncluded
+          ? (unifiedStats.enviadasThisPeriod > invoicesIncluded
+              ? `${unifiedStats.enviadasThisPeriod - invoicesIncluded} en excedente · $0.99 c/u`
+              : `${invoicesIncluded - unifiedStats.enviadasThisPeriod} disponibles este mes`)
+          : "Entregadas a R365 vía FTP",
+        tone: invoicesIncluded && unifiedStats.enviadasThisPeriod > invoicesIncluded
+          ? "warning"
+          : unifiedStats.enviadas > 0 ? "success" : "muted",
+        ...(invoicesIncluded ? {
+          quota: {
+            used: unifiedStats.enviadasThisPeriod,
+            limit: invoicesIncluded,
+            periodEnd: currentPeriodEnd,
+            overageRate: 0.99,
+          },
+        } : {}),
       },
       {
         label: "Errores",

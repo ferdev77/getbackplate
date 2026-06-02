@@ -3464,16 +3464,27 @@ export async function fetchInvoiceByDocNumber(
   return { entityId, entityType, docNumber: docNumber.trim(), alreadyExisted };
 }
 
-export async function getUnifiedInvoiceStats(organizationId: string): Promise<{
+export async function getUnifiedInvoiceStats(organizationId: string, periodStart?: string | null): Promise<{
   total: number;
   enviadas: number;
+  enviadasThisPeriod: number;
   atascadas: number;
 }> {
   const admin = createSupabaseAdminClient();
-  // Webhooks en 'en_cola' por más de 24h = no se procesaron → requieren atención.
   const stuckThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-  const [totalRes, enviadasRes, atascadasRes] = await Promise.all([
+  const enviadasPeriodQuery = periodStart
+    ? admin.from("qbo_unified_invoices")
+        .select("*", { count: "exact", head: true })
+        .eq("organization_id", organizationId)
+        .eq("pipeline_status", "enviada")
+        .gte("sent_at", periodStart)
+    : admin.from("qbo_unified_invoices")
+        .select("*", { count: "exact", head: true })
+        .eq("organization_id", organizationId)
+        .eq("pipeline_status", "enviada");
+
+  const [totalRes, enviadasRes, atascadasRes, enviadasPeriodRes] = await Promise.all([
     admin.from("qbo_unified_invoices")
       .select("*", { count: "exact", head: true })
       .eq("organization_id", organizationId),
@@ -3486,11 +3497,13 @@ export async function getUnifiedInvoiceStats(organizationId: string): Promise<{
       .eq("organization_id", organizationId)
       .eq("pipeline_status", "en_cola")
       .lte("created_at", stuckThreshold),
+    enviadasPeriodQuery,
   ]);
 
   return {
     total: totalRes.count ?? 0,
     enviadas: enviadasRes.count ?? 0,
+    enviadasThisPeriod: enviadasPeriodRes.count ?? 0,
     atascadas: atascadasRes.count ?? 0,
   };
 }

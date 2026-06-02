@@ -8,7 +8,18 @@ import { saveIntegrationConfigAction } from "@/modules/integrations/qbo-r365/act
 import { resolveHistoryCustomerName } from "@/modules/integrations/qbo-r365/lib/resolve-customer-name";
 import { toast } from "sonner";
 
-type StatCard = { label: string; value: string; subLabel: string; tone: "default" | "success" | "warning" | "muted" };
+type StatCard = {
+  label: string;
+  value: string;
+  subLabel: string;
+  tone: "default" | "success" | "warning" | "muted";
+  quota?: {
+    used: number;
+    limit: number | null;
+    periodEnd: string | null;
+    overageRate: number | null;
+  };
+};
 type ConnectionInfo = { status: string; realmId?: string | null; host?: string | null; lastRefreshed?: string | null };
 type RunRow = {
   id: string; startedAt: string; completedAt: string | null; status: string; triggerSource: string;
@@ -1265,7 +1276,29 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
           <article key={card.label} className="rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-5 py-4 transition hover:shadow-[var(--gbp-shadow-md)]">
             <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">{card.label}</p>
             <p className={`mt-1 text-2xl font-bold tracking-tight ${toneClass(card.tone)}`}>{card.value}</p>
-            <p className="mt-1 text-xs text-[var(--gbp-muted)]">{card.subLabel}</p>
+            {card.quota?.limit ? (() => {
+              const pct = Math.min(100, Math.round((card.quota.used / card.quota.limit) * 100));
+              const isOver = card.quota.used > card.quota.limit;
+              const renewDate = card.quota.periodEnd
+                ? new Date(card.quota.periodEnd).toLocaleDateString("es-AR", { day: "numeric", month: "short" })
+                : null;
+              return (
+                <>
+                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--gbp-border)]">
+                    <div
+                      className={`h-full rounded-full transition-all ${isOver ? "bg-amber-500" : "bg-[var(--gbp-accent)]"}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <p className="mt-1.5 text-xs text-[var(--gbp-muted)]">
+                    {card.subLabel}
+                    {renewDate && <span className="ml-1">· Renueva {renewDate}</span>}
+                  </p>
+                </>
+              );
+            })() : (
+              <p className="mt-1 text-xs text-[var(--gbp-muted)]">{card.subLabel}</p>
+            )}
           </article>
         ))}
         <article className="rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-5 py-4 transition hover:shadow-[var(--gbp-shadow-md)]">
