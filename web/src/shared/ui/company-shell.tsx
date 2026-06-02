@@ -2511,9 +2511,9 @@ export function CompanyShell({
                     {addon.description && (
                       <p className={`mb-2 text-[10px] leading-relaxed ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>{addon.description}</p>
                     )}
-                    {isTiered && currentPlan && (
+                    {isTiered && isActive && (
                       <p className={`mb-2 text-[10px] font-semibold ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-muted)]"}`}>
-                        Plan: {currentPlan.name}
+                        Plan: {currentPlan ? currentPlan.name : "—"}
                       </p>
                     )}
                     <div className="flex items-center justify-between gap-2">
