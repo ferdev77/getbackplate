@@ -231,6 +231,7 @@ export default async function CompanyLayout({
         isEnterprise: (p as Record<string, unknown>).is_enterprise as boolean ?? false,
         ctaEmail: (p as Record<string, unknown>).cta_email as string | null ?? null,
         setupFeeAmount: (p as Record<string, unknown>).setup_fee_amount as number | null ?? null,
+        setupFeeDiscountPct: (p as Record<string, unknown>).setup_fee_annual_discount_pct as number ?? 25,
         features: (p as Record<string, unknown>).features ?? null,
       }))}
       trialStatus={{

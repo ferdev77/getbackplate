@@ -181,6 +181,7 @@ type CompanyShellProps = {
     isEnterprise: boolean;
     ctaEmail: string | null;
     setupFeeAmount: number | null;
+    setupFeeDiscountPct: number;
     features: unknown;
   }>;
   children: React.ReactNode;
@@ -1976,8 +1977,8 @@ export function CompanyShell({
                               />
                               <span className={isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}>
                                 Setup de configuración inicial
-                                {integrationPlanBillingCycle === "annual" ? (
-                                  <> · <span className="line-through opacity-50">${plan.setupFeeAmount.toLocaleString("en-US")}</span> <span className="font-semibold text-emerald-500">${Math.round(plan.setupFeeAmount * 0.75).toLocaleString("en-US")}</span> <span className="text-emerald-500 text-[9px]">−25%</span></>
+                                {integrationPlanBillingCycle === "annual" && plan.setupFeeDiscountPct > 0 ? (
+                                  <> · <span className="line-through opacity-50">${plan.setupFeeAmount.toLocaleString("en-US")}</span> <span className="font-semibold text-emerald-500">${Math.round(plan.setupFeeAmount * (1 - plan.setupFeeDiscountPct / 100)).toLocaleString("en-US")}</span> <span className="text-emerald-500 text-[9px]">−{plan.setupFeeDiscountPct}%</span></>
                                 ) : (
                                   <> · <span className="font-semibold">${plan.setupFeeAmount.toLocaleString("en-US")}</span></>
                                 )}
@@ -2740,8 +2741,8 @@ export function CompanyShell({
                         />
                         <span className={isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}>
                           Setup de configuración inicial
-                          {integrationPlanBillingCycle === "annual" ? (
-                            <> · <span className="line-through opacity-50">${plan.setupFeeAmount.toLocaleString("en-US")}</span> <span className="font-semibold text-emerald-500">${Math.round(plan.setupFeeAmount * 0.75).toLocaleString("en-US")}</span> <span className="text-emerald-500 text-[9px]">−25%</span></>
+                          {integrationPlanBillingCycle === "annual" && plan.setupFeeDiscountPct > 0 ? (
+                            <> · <span className="line-through opacity-50">${plan.setupFeeAmount.toLocaleString("en-US")}</span> <span className="font-semibold text-emerald-500">${Math.round(plan.setupFeeAmount * (1 - plan.setupFeeDiscountPct / 100)).toLocaleString("en-US")}</span> <span className="text-emerald-500 text-[9px]">−{plan.setupFeeDiscountPct}%</span></>
                           ) : (
                             <> · <span className="font-semibold">${plan.setupFeeAmount.toLocaleString("en-US")}</span></>
                           )}

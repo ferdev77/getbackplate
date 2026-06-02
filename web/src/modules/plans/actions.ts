@@ -139,6 +139,8 @@ export async function createPlanAction(formData: FormData) {
   const sortOrder = toNullableInt(formData.get("sort_order")) ?? 0;
   const invoicesIncluded = toNullableInt(formData.get("invoices_included"));
   const setupFeeStripePriceId = String(formData.get("setup_fee_stripe_price_id") ?? "").trim() || null;
+  const rawDiscountPct = parseInt(String(formData.get("setup_fee_annual_discount_pct") ?? "25"), 10);
+  const setupFeeAnnualDiscountPct = Number.isNaN(rawDiscountPct) ? 25 : Math.min(100, Math.max(0, rawDiscountPct));
 
   let setupFeeAmount = parsePriceAmount(formData.get("setup_fee_amount"));
   let priceAmount = parsePriceAmount(formData.get("price_amount"));
@@ -204,6 +206,7 @@ export async function createPlanAction(formData: FormData) {
       is_featured: isFeatured,
       is_enterprise: isEnterprise,
       setup_fee_amount: setupFeeAmount,
+      setup_fee_annual_discount_pct: setupFeeAnnualDiscountPct,
       features,
       cta_text: ctaText,
       cta_email: ctaEmail,
@@ -280,6 +283,8 @@ export async function updatePlanAction(formData: FormData) {
   const sortOrder = toNullableInt(formData.get("sort_order")) ?? 0;
   const invoicesIncluded = toNullableInt(formData.get("invoices_included"));
   const setupFeeStripePriceId = String(formData.get("setup_fee_stripe_price_id") ?? "").trim() || null;
+  const rawDiscountPctU = parseInt(String(formData.get("setup_fee_annual_discount_pct") ?? "25"), 10);
+  const setupFeeAnnualDiscountPct = Number.isNaN(rawDiscountPctU) ? 25 : Math.min(100, Math.max(0, rawDiscountPctU));
 
   let setupFeeAmount = parsePriceAmount(formData.get("setup_fee_amount"));
   let priceAmount = parsePriceAmount(formData.get("price_amount"));
@@ -344,6 +349,7 @@ export async function updatePlanAction(formData: FormData) {
       is_featured: isFeatured,
       is_enterprise: isEnterprise,
       setup_fee_amount: setupFeeAmount,
+      setup_fee_annual_discount_pct: setupFeeAnnualDiscountPct,
       features,
       cta_text: ctaText,
       cta_email: ctaEmail,

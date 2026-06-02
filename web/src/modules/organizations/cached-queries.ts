@@ -47,7 +47,7 @@ export function getIntegrationPlansCached(planType: string) {
       const { data, error } = await supabase
         .from("plans")
         .select(
-          "id, code, name, description, price_amount, currency_code, billing_period, is_featured, is_enterprise, setup_fee_amount, features, cta_text, cta_email, sort_order, stripe_price_id",
+          "id, code, name, description, price_amount, currency_code, billing_period, is_featured, is_enterprise, setup_fee_amount, setup_fee_annual_discount_pct, features, cta_text, cta_email, sort_order, stripe_price_id",
         )
         .eq("is_active", true)
         .eq("plan_type", planType)
@@ -56,7 +56,7 @@ export function getIntegrationPlansCached(planType: string) {
       ensureNoQueryError("getIntegrationPlansCached", error);
       return data ?? [];
     },
-    [`integration-plans-${planType}-v1`],
+    [`integration-plans-${planType}-v2`],
     { revalidate: 300 },
   )();
 }
