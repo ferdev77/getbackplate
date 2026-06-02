@@ -91,6 +91,6 @@ export function formatPlanPrice(plan: PlanForBilling, cycle?: BillingCycle): str
   const selectedCycle = cycle ?? normalizePlanPeriod(plan.billingPeriod);
   const amount = getPlanAmountByCycle(plan, selectedCycle);
   if (typeof amount !== "number") return "Precio no definido";
-  const period = selectedCycle === "yearly" ? "ano" : "mes";
+  const period = selectedCycle === "yearly" ? "año" : "mes";
   return `$${amount}/${period}`;
 }
