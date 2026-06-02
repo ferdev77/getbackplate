@@ -1862,20 +1862,28 @@ export function CompanyShell({
                 </Link>
               </div>
 
-              {/* Sección de add-ons: solo visible cuando hay módulos disponibles para contratar.
-                  Permite que una empresa contrate un módulo individual sin necesitar un plan
-                  completo. Al pagar, el webhook activa el módulo del add-on más los módulos
-                  compañeros definidos en addon_companion_module_codes (ej: settings + custom_branding
-                  para qbo_r365). */}
               {availableAddons.length > 0 && (
                 <div className="mt-2 border-t border-[var(--gbp-border)] pt-5">
                   <div className="mb-4">
-                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--gbp-muted)]">
-                      ¿Sin plan? Contrata solo lo que necesitas
-                    </p>
-                    <p className={`mt-1 text-xs ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-text2)]"}`}>
-                      Contrata un módulo individual y empieza a operar sin un plan completo.
-                    </p>
+                    {organizationAddons.some((a) => a.status === "active") ? (
+                      <>
+                        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--gbp-accent)]">
+                          Plan de integración activo
+                        </p>
+                        <p className={`mt-1 text-xs ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-text2)]"}`}>
+                          Gestiona o cambia tu plan de integración.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--gbp-muted)]">
+                          Planes de integración
+                        </p>
+                        <p className={`mt-1 text-xs ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-text2)]"}`}>
+                          Conecta tu QuickBooks con Restaurant365 sin necesitar un plan de plataforma.
+                        </p>
+                      </>
+                    )}
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
