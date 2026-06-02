@@ -287,7 +287,7 @@ export function PlanFormModal({
 
             <form
               action={formAction}
-              className="max-h-[70vh] space-y-6 overflow-y-auto pr-4 scrollbar-hide"
+              className="max-h-[70vh] space-y-8 overflow-y-auto pr-2 scrollbar-hide"
             >
               {mode === "edit" && plan && (
                 <input type="hidden" name="plan_id" value={plan.id} />
@@ -330,7 +330,7 @@ export function PlanFormModal({
               {/* ── Platform fields ──────────────────────────── */}
               {planType === "platform" && (
                 <>
-                  <div className="grid gap-4 md:grid-cols-6">
+                  <div className="grid gap-5 md:grid-cols-6">
                     {mode === "create" && (
                       <SuperadminInputField
                         label="Identificador (Slug)"
@@ -393,10 +393,10 @@ export function PlanFormModal({
                   </div>
 
                   <div className="rounded-2xl border border-[var(--gbp-border)] bg-muted/20 p-6">
-                    <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand">
-                      Restricciones Técnicas (0 = Ilimitado)
+                    <p className="mb-5 text-[11px] font-bold uppercase tracking-[0.14em] text-brand">
+                      Restricciones Técnicas <span className="font-normal normal-case text-muted-foreground">(0 = Ilimitado)</span>
                     </p>
-                    <div className="grid gap-4 sm:grid-cols-4">
+                    <div className="grid gap-5 sm:grid-cols-4">
                       <SuperadminInputField
                         label="Locaciones"
                         name="max_branches"
@@ -429,8 +429,8 @@ export function PlanFormModal({
                   </div>
 
                   <div className="rounded-2xl border border-[var(--gbp-border)] p-6">
-                    <p className="mb-4 text-xs font-bold uppercase tracking-widest text-[var(--gbp-text2)]">
-                      Infraestructura de Módulos Incluidos
+                    <p className="mb-5 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--gbp-text2)]">
+                      Módulos incluidos
                     </p>
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {modulesCatalog.map((module) => (
@@ -465,7 +465,7 @@ export function PlanFormModal({
               {planType === "integration" && (
                 <>
                   {/* Slug / Name / Sort order */}
-                  <div className="grid gap-4 md:grid-cols-6">
+                  <div className="grid gap-5 md:grid-cols-6">
                     {mode === "create" && (
                       <SuperadminInputField
                         label="Identificador (Slug)"
@@ -526,11 +526,11 @@ export function PlanFormModal({
                   </div>
 
                   {/* Setup Fee */}
-                  <div className="rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-5">
-                    <p className="mb-4 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                  <div className="rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-6">
+                    <p className="mb-5 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                       Setup Fee <span className="normal-case font-normal">(opcional)</span>
                     </p>
-                    <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="grid gap-5 sm:grid-cols-3">
                       <div>
                         <SuperadminInputField
                           label="Stripe Price ID del Setup Fee"
@@ -560,7 +560,7 @@ export function PlanFormModal({
                       </div>
                       <div>
                         <SuperadminInputField
-                          label="Descuento Setup Fee — plan Anual (%)"
+                          label="Descuento anual (%)"
                           name="setup_fee_annual_discount_pct"
                           type="number"
                           min="0"
@@ -577,7 +577,7 @@ export function PlanFormModal({
                   </div>
 
                   {/* Invoices + CTA */}
-                  <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="grid gap-5 sm:grid-cols-3">
                     <SuperadminInputField
                       label="Facturas incluidas en el plan"
                       name="invoices_included"

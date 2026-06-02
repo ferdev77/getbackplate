@@ -901,6 +901,9 @@ export async function addMaintenanceUpdate(
 
   const nextStatus = input.status ?? requestRow.status;
   const scheduledVisitAt = input.scheduled_visit_at || null;
+  if (nextStatus === "visit_scheduled" && !scheduledVisitAt) {
+    throw new Error("Debes indicar fecha y hora para programar la visita");
+  }
   const now = new Date().toISOString();
   const resolvedAt = nextStatus === "resolved" ? now : null;
 
