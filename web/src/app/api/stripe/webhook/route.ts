@@ -155,6 +155,10 @@ export async function POST(req: Request) {
           );
 
           const integrationPlanId = session.metadata?.integrationPlanId ?? null;
+          const setupFeePaidMeta = session.metadata?.setupFeePaid === 'true';
+          const setupFeeAmountMeta = session.metadata?.setupFeeAmount
+            ? Number(session.metadata.setupFeeAmount)
+            : null;
 
           // Upsert the addon subscription record
           const { error: addonErr } = await supabase.from('organization_addons').upsert(
@@ -165,6 +169,7 @@ export async function POST(req: Request) {
               stripe_customer_id: addonStripeCustomerId,
               status: 'active',
               ...(integrationPlanId ? { integration_plan_id: integrationPlanId } : {}),
+              ...(setupFeePaidMeta ? { setup_fee_paid: true, setup_fee_amount: setupFeeAmountMeta } : {}),
             },
             { onConflict: 'organization_id,module_id' },
           );

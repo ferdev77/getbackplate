@@ -245,6 +245,7 @@ export function CompanyShell({
   const [integrationPlanOpen, setIntegrationPlanOpen] = useState<string | null>(null); // stores integrationPlanType
   const [integrationPlanBillingCycle, setIntegrationPlanBillingCycle] = useState<"monthly" | "annual">("monthly");
   const [integrationPlanBusy, setIntegrationPlanBusy] = useState<string | null>(null);
+  const [setupFeeSelected, setSetupFeeSelected] = useState<Record<string, boolean>>({});
   const [lockedViewTab, setLockedViewTab] = useState<"platform" | "integration">("platform");
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(SECTIONS.map((section) => [section.label, false])),
@@ -836,13 +837,13 @@ export function CompanyShell({
     }
   }
 
-  async function startIntegrationPlanCheckout(planId: string, period: "monthly" | "annual") {
+  async function startIntegrationPlanCheckout(planId: string, period: "monthly" | "annual", includeSetupFee = false) {
     setIntegrationPlanBusy(planId);
     try {
       const res = await fetch("/api/stripe/checkout-integration", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId, billingPeriod: period }),
+        body: JSON.stringify({ planId, billingPeriod: period, includeSetupFee }),
       });
       const data = await res.json() as { url?: string; upgraded?: boolean; error?: string };
       if (res.status === 401) {
@@ -1940,6 +1941,25 @@ export function CompanyShell({
                               {f.everything ? "✦ " : "· "}{f.text}
                             </p>
                           ))}
+                          {!plan.isEnterprise && !isCurrent && plan.setupFeeAmount != null && (
+                            <label className={`mt-3 flex cursor-pointer items-start gap-2 rounded-lg border p-2.5 text-[10px] transition ${setupFeeSelected[plan.id] ? (isDarkTheme ? "border-white/20 bg-white/[0.06]" : "border-[var(--gbp-accent)]/30 bg-[var(--gbp-accent-glow)]") : (isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]")}`}>
+                              <input
+                                type="checkbox"
+                                className="mt-px shrink-0 accent-[var(--gbp-accent)]"
+                                checked={setupFeeSelected[plan.id] ?? false}
+                                onChange={(e) => setSetupFeeSelected((prev) => ({ ...prev, [plan.id]: e.target.checked }))}
+                              />
+                              <span className={isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}>
+                                Setup de configuración inicial
+                                {integrationPlanBillingCycle === "annual" ? (
+                                  <> · <span className="line-through opacity-50">${plan.setupFeeAmount.toLocaleString("en-US")}</span> <span className="font-semibold text-emerald-500">${Math.round(plan.setupFeeAmount * 0.75).toLocaleString("en-US")}</span> <span className="text-emerald-500 text-[9px]">−25%</span></>
+                                ) : (
+                                  <> · <span className="font-semibold">${plan.setupFeeAmount.toLocaleString("en-US")}</span></>
+                                )}
+                                <span className={`ml-1 text-[9px] ${isDarkTheme ? "opacity-40" : "opacity-60"}`}>one-time</span>
+                              </span>
+                            </label>
+                          )}
                           {plan.isEnterprise ? (
                             <a href={`mailto:${plan.ctaEmail ?? "angelo@mkthelp.com"}?subject=QBO R365 - ${plan.name} Plan`} className={`mt-auto block w-full rounded-lg px-3 py-2 text-center text-[11px] font-bold transition ${isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]"}`}>
                               Contactar ventas →
@@ -1948,7 +1968,7 @@ export function CompanyShell({
                             <button
                               type="button"
                               disabled={isLoading || isCurrent}
-                              onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle)}
+                              onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle, setupFeeSelected[plan.id] ?? false)}
                               className={`mt-auto w-full rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${isCurrent ? (isDarkTheme ? "bg-white/10 text-white/40" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]") : plan.isFeatured ? "bg-[var(--gbp-accent)] text-white hover:opacity-90" : (isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]")}`}
                             >
                               {isLoading ? "Redirigiendo..." : isCurrent ? "Plan actual" : "Contratar →"}
@@ -2685,6 +2705,25 @@ export function CompanyShell({
                         </>
                       )}
                     </div>
+                    {!plan.isEnterprise && !isCurrent && plan.setupFeeAmount != null && (
+                      <label className={`mb-3 flex cursor-pointer items-start gap-2 rounded-lg border p-2.5 text-[10px] transition ${setupFeeSelected[plan.id] ? (isDarkTheme ? "border-white/20 bg-white/[0.06]" : "border-[var(--gbp-accent)]/30 bg-[var(--gbp-accent-glow)]") : (isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]")}`}>
+                        <input
+                          type="checkbox"
+                          className="mt-px shrink-0 accent-[var(--gbp-accent)]"
+                          checked={setupFeeSelected[plan.id] ?? false}
+                          onChange={(e) => setSetupFeeSelected((prev) => ({ ...prev, [plan.id]: e.target.checked }))}
+                        />
+                        <span className={isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}>
+                          Setup de configuración inicial
+                          {integrationPlanBillingCycle === "annual" ? (
+                            <> · <span className="line-through opacity-50">${plan.setupFeeAmount.toLocaleString("en-US")}</span> <span className="font-semibold text-emerald-500">${Math.round(plan.setupFeeAmount * 0.75).toLocaleString("en-US")}</span> <span className="text-emerald-500 text-[9px]">−25%</span></>
+                          ) : (
+                            <> · <span className="font-semibold">${plan.setupFeeAmount.toLocaleString("en-US")}</span></>
+                          )}
+                          <span className={`ml-1 text-[9px] ${isDarkTheme ? "opacity-40" : "opacity-60"}`}>one-time</span>
+                        </span>
+                      </label>
+                    )}
                     {plan.isEnterprise ? (
                       <a
                         href={`mailto:${plan.ctaEmail ?? "angelo@mkthelp.com"}?subject=QBO R365 - ${plan.name} Plan`}
@@ -2700,7 +2739,7 @@ export function CompanyShell({
                       <button
                         type="button"
                         disabled={isLoading || isCurrent}
-                        onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle)}
+                        onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle, setupFeeSelected[plan.id] ?? false)}
                         className={`w-full rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                           isCurrent
                             ? isDarkTheme ? "bg-white/10 text-white/40" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]"

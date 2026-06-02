@@ -152,6 +152,10 @@ export async function listMaintenanceRequests(context: ActorContext, options: Li
   const branchNameById = new Map(catalog.branches.map((branch) => [branch.id, branch.name]));
   const allowedLocationIds = options.scope === "employee" ? await getAllowedLocationIds(context) : [];
 
+  if (options.scope === "employee" && allowedLocationIds.length === 0) {
+    return { requests: [], catalog };
+  }
+
   let query = admin
     .from("maintenance_requests")
     .select("id, organization_id, branch_id, created_by, title, description, category, service_item, issue, priority, status, scheduled_visit_at, resolved_at, last_activity_at, created_at, updated_at")

@@ -50,11 +50,12 @@ export async function POST(request: Request) {
     const payload = (await request.json()) as {
       planId?: string;
       billingPeriod?: string;
+      includeSetupFee?: boolean;
     };
 
     const planId = typeof payload.planId === "string" ? payload.planId.trim() : "";
-    const period: BillingPeriod =
-      payload.billingPeriod === "annual" ? "annual" : "monthly";
+    const period: BillingPeriod = payload.billingPeriod === "annual" ? "annual" : "monthly";
+    const includeSetupFee = payload.includeSetupFee === true;
 
     if (!planId) {
       return NextResponse.json({ error: "Missing planId" }, { status: 400 });
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
     const [{ data: plan }, { data: moduleRow }] = await Promise.all([
       supabase
         .from("plans")
-        .select("id, code, name, stripe_price_id, plan_type, is_enterprise")
+        .select("id, code, name, stripe_price_id, plan_type, is_enterprise, setup_fee_amount")
         .eq("id", planId)
         .eq("plan_type", "qbo_r365")
         .eq("is_active", true)
@@ -121,6 +122,12 @@ export async function POST(request: Request) {
         ? ((plan as Record<string, unknown>).code as string)
         : "";
 
+    // Setup fee: solo en nuevas contrataciones, opcional
+    const rawSetupFee = (plan as Record<string, unknown>).setup_fee_amount as number | null ?? null;
+    const setupFeeAmountCents = rawSetupFee
+      ? Math.round((period === "annual" ? rawSetupFee * 0.75 : rawSetupFee) * 100)
+      : 0;
+
     const sharedMeta = {
       organizationId,
       userId,
@@ -130,6 +137,8 @@ export async function POST(request: Request) {
       integrationPlanId: plan.id,
       integrationPlanCode: planCode,
       billingPeriod: period,
+      setupFeePaid: includeSetupFee && setupFeeAmountCents > 0 ? "true" : "false",
+      setupFeeAmount: includeSetupFee && setupFeeAmountCents > 0 ? String(setupFeeAmountCents) : "0",
     };
 
     // ── UPGRADE / DOWNGRADE: org already has an active integration subscription ──
@@ -195,11 +204,52 @@ export async function POST(request: Request) {
     const appUrl =
       process.env.NEXT_PUBLIC_APP_URL ?? "https://app.getbackplate.com";
 
+    // ── SETUP FEE: invoice item one-time ─────────────────────────────────────
+    // Si el usuario eligió incluir el setup, creamos o recuperamos el Stripe
+    // customer y adjuntamos un invoice item. Stripe lo cobrará junto al primer
+    // pago de la suscripción automáticamente.
+    let stripeCustomerIdForSession: string | undefined;
+
+    if (includeSetupFee && setupFeeAmountCents > 0) {
+      const { data: existingCustomer } = await supabase
+        .from("stripe_customers")
+        .select("stripe_customer_id")
+        .eq("organization_id", organizationId)
+        .maybeSingle();
+
+      if (existingCustomer?.stripe_customer_id) {
+        stripeCustomerIdForSession = existingCustomer.stripe_customer_id;
+      } else {
+        const newCustomer = await stripe.customers.create({
+          metadata: { organizationId },
+        });
+        await supabase.from("stripe_customers").upsert(
+          { organization_id: organizationId, stripe_customer_id: newCustomer.id },
+          { onConflict: "organization_id" },
+        );
+        stripeCustomerIdForSession = newCustomer.id;
+      }
+
+      const planName = typeof (plan as Record<string, unknown>).name === "string"
+        ? (plan as Record<string, unknown>).name as string
+        : "Integración";
+      const isAnnual = period === "annual";
+
+      await stripe.invoiceItems.create({
+        customer: stripeCustomerIdForSession,
+        currency: "usd",
+        amount: setupFeeAmountCents,
+        description: `Setup · ${planName}${isAnnual ? " (25% off anual)" : ""}`,
+      });
+    }
+    // ── END SETUP FEE ────────────────────────────────────────────────────────
+
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [{ price: targetPriceId, quantity: 1 }],
       client_reference_id: organizationId,
+      ...(stripeCustomerIdForSession ? { customer: stripeCustomerIdForSession } : {}),
       success_url: `${appUrl}/integrations/qbo-r365/success?plan=${encodeURIComponent(plan.name)}&period=${period}`,
       cancel_url: `${appUrl}/integrations/qbo-r365`,
       tax_id_collection: { enabled: true },
