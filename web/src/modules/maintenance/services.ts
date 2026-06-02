@@ -9,8 +9,13 @@ import { resolveEmployeeAllowedLocationIds } from "@/shared/lib/employee-api-sco
 import {
   MAINTENANCE_PRIORITIES,
   MAINTENANCE_STATUSES,
+  MAINTENANCE_CATEGORIES,
+  type MaintenanceCatalog,
+  type MaintenanceCategoryOption,
+  type MaintenanceIssueOption,
   type MaintenancePriority,
   type MaintenanceRequest,
+  type MaintenanceServiceItemOption,
   type MaintenanceStatus,
 } from "@/modules/maintenance/types";
 
@@ -69,6 +74,32 @@ type MaintenanceAttachmentRow = {
   created_at: string;
 };
 
+type MaintenanceCategoryRow = {
+  id: string;
+  code: string;
+  name: string;
+  is_system: boolean | null;
+  sort_order: number | null;
+};
+
+type MaintenanceServiceItemRow = {
+  id: string;
+  category_id: string;
+  code: string;
+  name: string;
+  is_system: boolean | null;
+  sort_order: number | null;
+};
+
+type MaintenanceIssueRow = {
+  id: string;
+  service_item_id: string;
+  code: string;
+  name: string;
+  is_system: boolean | null;
+  sort_order: number | null;
+};
+
 type ActorNameRow = {
   user_id: string | null;
   first_name?: string | null;
@@ -87,6 +118,14 @@ type ListOptions = {
   scope: "company" | "employee";
   status?: string;
   branchId?: string;
+};
+
+type CreateCatalogInput = {
+  name: string;
+};
+
+type UpdateCatalogInput = {
+  name: string;
 };
 
 async function ensureBucketExists() {
@@ -124,6 +163,54 @@ function normalizeStatus(value: unknown): MaintenanceStatus {
 
 function normalizePriority(value: unknown): MaintenancePriority {
   return MAINTENANCE_PRIORITIES.includes(value as MaintenancePriority) ? (value as MaintenancePriority) : "medium";
+}
+
+function slugifyCatalogName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
+
+function normalizeCategoryName(value: string) {
+  const trimmed = value.trim();
+  const legacy = MAINTENANCE_CATEGORIES.find((category) => category.value === trimmed.toLowerCase());
+  return legacy?.label ?? trimmed;
+}
+
+async function buildUniqueCatalogCode(
+  admin: AnySupabase,
+  table: "maintenance_categories" | "maintenance_service_items" | "maintenance_issue_templates",
+  organizationId: string,
+  name: string,
+  excludeId?: string,
+) {
+  const base = slugifyCatalogName(name) || "catalogo";
+  const { data: existingRows } = await admin
+    .from(table)
+    .select("id, code")
+    .eq("organization_id", organizationId)
+    .ilike("code", `${base}%`)
+    .limit(200);
+
+  const existing = new Set(
+    (existingRows ?? [])
+      .filter((row: { id: string }) => (excludeId ? row.id !== excludeId : true))
+      .map((row: { code: string }) => row.code),
+  );
+
+  if (!existing.has(base)) return base;
+
+  let suffix = 2;
+  while (existing.has(`${base}-${suffix}`)) {
+    suffix += 1;
+  }
+
+  return `${base}-${suffix}`;
 }
 
 function resolveActorDisplayName(value: {
@@ -206,15 +293,65 @@ async function signedUrlForPath(path: string, organizationId: string) {
   return data?.signedUrl ?? null;
 }
 
-export async function getMaintenanceCatalog(organizationId: string) {
+function mapCategoryOption(row: MaintenanceCategoryRow): MaintenanceCategoryOption {
+  return {
+    id: row.id,
+    code: row.code,
+    name: row.name,
+    isSystem: row.is_system === true,
+  };
+}
+
+function mapServiceItemOption(row: MaintenanceServiceItemRow): MaintenanceServiceItemOption {
+  return {
+    id: row.id,
+    categoryId: row.category_id,
+    code: row.code,
+    name: row.name,
+    isSystem: row.is_system === true,
+  };
+}
+
+function mapIssueOption(row: MaintenanceIssueRow): MaintenanceIssueOption {
+  return {
+    id: row.id,
+    serviceItemId: row.service_item_id,
+    code: row.code,
+    name: row.name,
+    isSystem: row.is_system === true,
+  };
+}
+
+export async function getMaintenanceCatalog(organizationId: string): Promise<MaintenanceCatalog> {
   const admin = createSupabaseAdminClient();
-  const [{ data: customBrandingEnabled }, { data: branches }] = await Promise.all([
+  const [{ data: customBrandingEnabled }, { data: branches }, { data: categories }, { data: serviceItems }, { data: issues }] = await Promise.all([
     admin.rpc("is_module_enabled", { org_id: organizationId, module_code: "custom_branding" }),
     admin
       .from("branches")
       .select("id, name, city")
       .eq("organization_id", organizationId)
       .eq("is_active", true)
+      .order("name", { ascending: true }),
+    admin
+      .from("maintenance_categories")
+      .select("id, code, name, is_system, sort_order")
+      .eq("organization_id", organizationId)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true }),
+    admin
+      .from("maintenance_service_items")
+      .select("id, category_id, code, name, is_system, sort_order")
+      .eq("organization_id", organizationId)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true }),
+    admin
+      .from("maintenance_issue_templates")
+      .select("id, service_item_id, code, name, is_system, sort_order")
+      .eq("organization_id", organizationId)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
       .order("name", { ascending: true }),
   ]);
 
@@ -223,6 +360,9 @@ export async function getMaintenanceCatalog(organizationId: string) {
       id: branch.id,
       name: customBrandingEnabled && branch.city ? branch.city : branch.name,
     })),
+    categories: (categories ?? []).map((row) => mapCategoryOption(row as MaintenanceCategoryRow)),
+    serviceItems: (serviceItems ?? []).map((row) => mapServiceItemOption(row as MaintenanceServiceItemRow)),
+    issues: (issues ?? []).map((row) => mapIssueOption(row as MaintenanceIssueRow)),
   };
 }
 
@@ -324,7 +464,7 @@ export async function listMaintenanceRequests(context: ActorContext, options: Li
       createdBy: row.created_by,
       title: row.title,
       description: row.description,
-      category: row.category,
+      category: normalizeCategoryName(row.category),
       serviceItem: row.service_item ?? null,
       issue: row.issue ?? null,
       priority: normalizePriority(row.priority),
@@ -360,6 +500,8 @@ export async function createMaintenanceRequest(context: ActorContext, input: z.i
     throw new Error("No puedes crear requests fuera de tu locacion");
   }
 
+  const catalogSelection = await ensureMaintenanceCatalogSelection(admin, context, input);
+
   const status: MaintenanceStatus = input.action === "draft" ? "draft" : "submitted";
   const now = new Date().toISOString();
   const { data, error } = await admin
@@ -370,9 +512,9 @@ export async function createMaintenanceRequest(context: ActorContext, input: z.i
       created_by: context.userId,
       title: input.title,
       description: input.description,
-      category: input.category,
-      service_item: input.service_item ?? null,
-      issue: input.issue ?? null,
+      category: catalogSelection.categoryName,
+      service_item: catalogSelection.serviceItemName,
+      issue: catalogSelection.issueName,
       priority: input.priority,
       status,
       last_activity_at: now,
@@ -423,6 +565,8 @@ export async function updateMaintenanceDraft(
     }
   }
 
+  const catalogSelection = await ensureMaintenanceCatalogSelection(admin, context, input);
+
   const nextStatus: MaintenanceStatus = input.action === "submit" ? "submitted" : "draft";
   const now = new Date().toISOString();
   const { error: updateError } = await admin
@@ -431,9 +575,9 @@ export async function updateMaintenanceDraft(
       branch_id: input.branch_id,
       title: input.title,
       description: input.description,
-      category: input.category,
-      service_item: input.service_item ?? null,
-      issue: input.issue ?? null,
+      category: catalogSelection.categoryName,
+      service_item: catalogSelection.serviceItemName,
+      issue: catalogSelection.issueName,
       priority: input.priority,
       status: nextStatus,
       last_activity_at: now,
@@ -447,13 +591,290 @@ export async function updateMaintenanceDraft(
     request_id: requestId,
     organization_id: context.organizationId,
     actor_user_id: context.userId,
-    update_type: nextStatus === "submitted" ? "submitted" : "draft_updated",
+    update_type: nextStatus === "submitted" ? "submitted" : "comment",
     from_status: requestRow.status,
     to_status: nextStatus,
     message: nextStatus === "submitted"
       ? "Borrador actualizado y enviado."
       : "Borrador actualizado.",
   });
+}
+
+async function ensureMaintenanceCategory(
+  admin: AnySupabase,
+  organizationId: string,
+  userId: string,
+  rawName: string,
+) {
+  const normalizedName = normalizeCategoryName(rawName);
+  const { data: existing } = await admin
+    .from("maintenance_categories")
+    .select("id, code, name, is_system, sort_order")
+    .eq("organization_id", organizationId)
+    .ilike("name", normalizedName)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) return mapCategoryOption(existing as MaintenanceCategoryRow);
+
+  const code = await buildUniqueCatalogCode(admin, "maintenance_categories", organizationId, normalizedName);
+  const { data, error } = await admin
+    .from("maintenance_categories")
+    .insert({
+      organization_id: organizationId,
+      code,
+      name: normalizedName,
+      is_system: false,
+      sort_order: 500,
+      created_by: userId,
+      is_active: true,
+    })
+    .select("id, code, name, is_system, sort_order")
+    .single();
+
+  if (error || !data) throw new Error(error?.message ?? "No se pudo crear la categoria");
+  return mapCategoryOption(data as MaintenanceCategoryRow);
+}
+
+async function ensureMaintenanceServiceItem(
+  admin: AnySupabase,
+  organizationId: string,
+  userId: string,
+  categoryId: string,
+  rawName: string,
+) {
+  const normalizedName = rawName.trim();
+  const { data: existing } = await admin
+    .from("maintenance_service_items")
+    .select("id, category_id, code, name, is_system, sort_order")
+    .eq("organization_id", organizationId)
+    .eq("category_id", categoryId)
+    .ilike("name", normalizedName)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) return mapServiceItemOption(existing as MaintenanceServiceItemRow);
+
+  const code = await buildUniqueCatalogCode(admin, "maintenance_service_items", organizationId, normalizedName);
+  const { data, error } = await admin
+    .from("maintenance_service_items")
+    .insert({
+      organization_id: organizationId,
+      category_id: categoryId,
+      code,
+      name: normalizedName,
+      is_system: false,
+      sort_order: 500,
+      created_by: userId,
+      is_active: true,
+    })
+    .select("id, category_id, code, name, is_system, sort_order")
+    .single();
+
+  if (error || !data) throw new Error(error?.message ?? "No se pudo crear el item de servicio");
+  return mapServiceItemOption(data as MaintenanceServiceItemRow);
+}
+
+async function ensureMaintenanceIssue(
+  admin: AnySupabase,
+  organizationId: string,
+  userId: string,
+  serviceItemId: string,
+  rawName: string,
+) {
+  const normalizedName = rawName.trim();
+  const { data: existing } = await admin
+    .from("maintenance_issue_templates")
+    .select("id, service_item_id, code, name, is_system, sort_order")
+    .eq("organization_id", organizationId)
+    .eq("service_item_id", serviceItemId)
+    .ilike("name", normalizedName)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) return mapIssueOption(existing as MaintenanceIssueRow);
+
+  const code = await buildUniqueCatalogCode(admin, "maintenance_issue_templates", organizationId, normalizedName);
+  const { data, error } = await admin
+    .from("maintenance_issue_templates")
+    .insert({
+      organization_id: organizationId,
+      service_item_id: serviceItemId,
+      code,
+      name: normalizedName,
+      is_system: false,
+      sort_order: 500,
+      created_by: userId,
+      is_active: true,
+    })
+    .select("id, service_item_id, code, name, is_system, sort_order")
+    .single();
+
+  if (error || !data) throw new Error(error?.message ?? "No se pudo crear el issue");
+  return mapIssueOption(data as MaintenanceIssueRow);
+}
+
+async function ensureMaintenanceCatalogSelection(
+  admin: AnySupabase,
+  context: ActorContext,
+  input: z.infer<typeof maintenanceCreateSchema>,
+) {
+  const category = await ensureMaintenanceCategory(admin, context.organizationId, context.userId, input.category);
+
+  const serviceItemName = input.service_item?.trim() ? input.service_item.trim() : null;
+  const serviceItem = serviceItemName
+    ? await ensureMaintenanceServiceItem(admin, context.organizationId, context.userId, category.id, serviceItemName)
+    : null;
+
+  const issueName = input.issue?.trim() ? input.issue.trim() : null;
+  if (issueName && serviceItem) {
+    await ensureMaintenanceIssue(admin, context.organizationId, context.userId, serviceItem.id, issueName);
+  }
+
+  return {
+    categoryName: category.name,
+    serviceItemName: serviceItem?.name ?? serviceItemName,
+    issueName,
+  };
+}
+
+export async function createMaintenanceCategory(context: ActorContext, input: CreateCatalogInput) {
+  const admin = createSupabaseAdminClient() as AnySupabase;
+  return ensureMaintenanceCategory(admin, context.organizationId, context.userId, input.name);
+}
+
+export async function updateMaintenanceCategory(context: ActorContext, categoryId: string, input: UpdateCatalogInput) {
+  const admin = createSupabaseAdminClient() as AnySupabase;
+  const { data: existing } = await admin
+    .from("maintenance_categories")
+    .select("id")
+    .eq("organization_id", context.organizationId)
+    .eq("id", categoryId)
+    .maybeSingle();
+
+  if (!existing) throw new Error("Categoria no encontrada");
+
+  const normalizedName = normalizeCategoryName(input.name);
+  const code = await buildUniqueCatalogCode(admin, "maintenance_categories", context.organizationId, normalizedName, categoryId);
+  const { data, error } = await admin
+    .from("maintenance_categories")
+    .update({ name: normalizedName, code })
+    .eq("organization_id", context.organizationId)
+    .eq("id", categoryId)
+    .select("id, code, name, is_system, sort_order")
+    .single();
+
+  if (error || !data) throw new Error(error?.message ?? "No se pudo actualizar la categoria");
+  return mapCategoryOption(data as MaintenanceCategoryRow);
+}
+
+export async function deleteMaintenanceCategory(context: ActorContext, categoryId: string) {
+  const admin = createSupabaseAdminClient() as AnySupabase;
+  const { error } = await admin
+    .from("maintenance_categories")
+    .delete()
+    .eq("organization_id", context.organizationId)
+    .eq("id", categoryId);
+
+  if (error) throw new Error(error.message);
+}
+
+export async function createMaintenanceServiceItem(context: ActorContext, categoryId: string, input: CreateCatalogInput) {
+  const admin = createSupabaseAdminClient() as AnySupabase;
+  const { data: category } = await admin
+    .from("maintenance_categories")
+    .select("id")
+    .eq("organization_id", context.organizationId)
+    .eq("id", categoryId)
+    .maybeSingle();
+
+  if (!category) throw new Error("Categoria no encontrada");
+  return ensureMaintenanceServiceItem(admin, context.organizationId, context.userId, categoryId, input.name);
+}
+
+export async function updateMaintenanceServiceItem(context: ActorContext, serviceItemId: string, input: UpdateCatalogInput) {
+  const admin = createSupabaseAdminClient() as AnySupabase;
+  const { data: existing } = await admin
+    .from("maintenance_service_items")
+    .select("id")
+    .eq("organization_id", context.organizationId)
+    .eq("id", serviceItemId)
+    .maybeSingle();
+
+  if (!existing) throw new Error("Item no encontrado");
+
+  const normalizedName = input.name.trim();
+  const code = await buildUniqueCatalogCode(admin, "maintenance_service_items", context.organizationId, normalizedName, serviceItemId);
+  const { data, error } = await admin
+    .from("maintenance_service_items")
+    .update({ name: normalizedName, code })
+    .eq("organization_id", context.organizationId)
+    .eq("id", serviceItemId)
+    .select("id, category_id, code, name, is_system, sort_order")
+    .single();
+
+  if (error || !data) throw new Error(error?.message ?? "No se pudo actualizar el item");
+  return mapServiceItemOption(data as MaintenanceServiceItemRow);
+}
+
+export async function deleteMaintenanceServiceItem(context: ActorContext, serviceItemId: string) {
+  const admin = createSupabaseAdminClient() as AnySupabase;
+  const { error } = await admin
+    .from("maintenance_service_items")
+    .delete()
+    .eq("organization_id", context.organizationId)
+    .eq("id", serviceItemId);
+
+  if (error) throw new Error(error.message);
+}
+
+export async function createMaintenanceIssueTemplate(context: ActorContext, serviceItemId: string, input: CreateCatalogInput) {
+  const admin = createSupabaseAdminClient() as AnySupabase;
+  const { data: serviceItem } = await admin
+    .from("maintenance_service_items")
+    .select("id")
+    .eq("organization_id", context.organizationId)
+    .eq("id", serviceItemId)
+    .maybeSingle();
+
+  if (!serviceItem) throw new Error("Item no encontrado");
+  return ensureMaintenanceIssue(admin, context.organizationId, context.userId, serviceItemId, input.name);
+}
+
+export async function updateMaintenanceIssueTemplate(context: ActorContext, issueId: string, input: UpdateCatalogInput) {
+  const admin = createSupabaseAdminClient() as AnySupabase;
+  const { data: existing } = await admin
+    .from("maintenance_issue_templates")
+    .select("id")
+    .eq("organization_id", context.organizationId)
+    .eq("id", issueId)
+    .maybeSingle();
+
+  if (!existing) throw new Error("Issue no encontrado");
+
+  const normalizedName = input.name.trim();
+  const code = await buildUniqueCatalogCode(admin, "maintenance_issue_templates", context.organizationId, normalizedName, issueId);
+  const { data, error } = await admin
+    .from("maintenance_issue_templates")
+    .update({ name: normalizedName, code })
+    .eq("organization_id", context.organizationId)
+    .eq("id", issueId)
+    .select("id, service_item_id, code, name, is_system, sort_order")
+    .single();
+
+  if (error || !data) throw new Error(error?.message ?? "No se pudo actualizar el issue");
+  return mapIssueOption(data as MaintenanceIssueRow);
+}
+
+export async function deleteMaintenanceIssueTemplate(context: ActorContext, issueId: string) {
+  const admin = createSupabaseAdminClient() as AnySupabase;
+  const { error } = await admin
+    .from("maintenance_issue_templates")
+    .delete()
+    .eq("organization_id", context.organizationId)
+    .eq("id", issueId);
+
+  if (error) throw new Error(error.message);
 }
 
 export async function addMaintenanceUpdate(

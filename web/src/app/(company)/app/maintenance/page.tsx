@@ -25,6 +25,7 @@ export default async function CompanyMaintenancePage() {
       canRespond
       initialRequests={requests}
       currentUserId={user?.id ?? ""}
+      initialCatalog={catalog}
       branches={catalog.branches}
     />
   );

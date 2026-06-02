@@ -24,6 +24,36 @@ export const MAINTENANCE_CATEGORIES = [
   { value: "other", label: "Otro" },
 ] as const;
 
+export type MaintenanceCategoryOption = {
+  id: string;
+  code: string;
+  name: string;
+  isSystem?: boolean;
+};
+
+export type MaintenanceServiceItemOption = {
+  id: string;
+  categoryId: string;
+  code: string;
+  name: string;
+  isSystem?: boolean;
+};
+
+export type MaintenanceIssueOption = {
+  id: string;
+  serviceItemId: string;
+  code: string;
+  name: string;
+  isSystem?: boolean;
+};
+
+export type MaintenanceCatalog = {
+  branches: Array<{ id: string; name: string }>;
+  categories: MaintenanceCategoryOption[];
+  serviceItems: MaintenanceServiceItemOption[];
+  issues: MaintenanceIssueOption[];
+};
+
 export type MaintenanceAttachment = {
   id: string;
   fileName: string;
