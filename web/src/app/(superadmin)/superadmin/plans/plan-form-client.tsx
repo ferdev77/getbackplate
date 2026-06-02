@@ -41,6 +41,7 @@ type PlanData = {
   is_featured: boolean | null;
   is_enterprise: boolean | null;
   setup_fee_amount: number | null;
+  setup_fee_annual_discount_pct: number | null;
   features: unknown;
   cta_text: string | null;
   cta_email: string | null;
@@ -529,7 +530,7 @@ export function PlanFormModal({
                     <p className="mb-4 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
                       Setup Fee <span className="normal-case font-normal">(opcional)</span>
                     </p>
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="grid gap-4 sm:grid-cols-3">
                       <div>
                         <SuperadminInputField
                           label="Stripe Price ID del Setup Fee"
@@ -555,6 +556,21 @@ export function PlanFormModal({
                           {setupFeePrice.preview
                             ? "Auto-completado desde Stripe. Ajustable manualmente."
                             : "Ingresa el Price ID arriba para auto-completar, o escribe el monto."}
+                        </p>
+                      </div>
+                      <div>
+                        <SuperadminInputField
+                          label="Descuento Setup Fee — plan Anual (%)"
+                          name="setup_fee_annual_discount_pct"
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="1"
+                          defaultValue={plan?.setup_fee_annual_discount_pct ?? 25}
+                          placeholder="25"
+                        />
+                        <p className="mt-1 text-[11px] text-muted-foreground/60">
+                          0 = sin descuento · 100 = setup fee gratis en plan anual
                         </p>
                       </div>
                     </div>

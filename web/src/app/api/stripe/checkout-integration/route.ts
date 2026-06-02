@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     const [{ data: plan }, { data: moduleRow }] = await Promise.all([
       supabase
         .from("plans")
-        .select("id, code, name, stripe_price_id, plan_type, is_enterprise, setup_fee_amount")
+        .select("id, code, name, stripe_price_id, plan_type, is_enterprise, setup_fee_amount, setup_fee_annual_discount_pct")
         .eq("id", planId)
         .eq("plan_type", "qbo_r365")
         .eq("is_active", true)
@@ -124,8 +124,9 @@ export async function POST(request: Request) {
 
     // Setup fee: solo en nuevas contrataciones, opcional
     const rawSetupFee = (plan as Record<string, unknown>).setup_fee_amount as number | null ?? null;
+    const discountPct = (plan as Record<string, unknown>).setup_fee_annual_discount_pct as number ?? 25;
     const setupFeeAmountCents = rawSetupFee
-      ? Math.round((period === "annual" ? rawSetupFee * 0.75 : rawSetupFee) * 100)
+      ? Math.round((period === "annual" && discountPct > 0 ? rawSetupFee * (1 - discountPct / 100) : rawSetupFee) * 100)
       : 0;
 
     const sharedMeta = {
