@@ -33,6 +33,7 @@ export function toNullableInt(value: string | null): number | null {
 export async function provisionOrganizationFromPlan(params: {
   organizationId: string;
   planId: string | null;
+  integrationPlanId?: string | null;
 }) {
   const supabase = createSupabaseAdminClient();
 
@@ -40,14 +41,15 @@ export async function provisionOrganizationFromPlan(params: {
     .from("module_catalog")
     .select("id, is_core");
 
-  let planModuleIds = new Set<string>();
-  if (params.planId) {
+  const planModuleIds = new Set<string>();
+  const planIds = [params.planId, params.integrationPlanId ?? null].filter(Boolean) as string[];
+  for (const pid of planIds) {
     const { data: planModules } = await supabase
       .from("plan_modules")
       .select("module_id")
-      .eq("plan_id", params.planId)
+      .eq("plan_id", pid)
       .eq("is_enabled", true);
-    planModuleIds = new Set((planModules ?? []).map((row) => row.module_id));
+    for (const row of planModules ?? []) planModuleIds.add(row.module_id);
   }
 
   if (modules?.length) {
@@ -88,6 +90,7 @@ export async function provisionOrganizationFromPlan(params: {
 export async function syncOrganizationPlan(params: {
   organizationId: string;
   planId: string | null;
+  integrationPlanId?: string | null;
 }): Promise<{ ok: true } | { ok: false; message: string }> {
   const supabase = createSupabaseAdminClient();
 
@@ -105,7 +108,7 @@ export async function syncOrganizationPlan(params: {
     }
   }
 
-  // Update limits
+  // Update limits from platform plan only
   if (params.planId) {
     const { data: planLimits } = await supabase
       .from("plans")
@@ -125,20 +128,20 @@ export async function syncOrganizationPlan(params: {
     );
   }
 
-  // Sync modules
+  // Sync modules — union de ambos planes
   const { data: modules } = await supabase
     .from("module_catalog")
     .select("id, is_core");
 
-  let planModuleIds = new Set<string>();
-  if (params.planId) {
+  const planModuleIds = new Set<string>();
+  const planIds = [params.planId, params.integrationPlanId ?? null].filter(Boolean) as string[];
+  for (const pid of planIds) {
     const { data: planModules } = await supabase
       .from("plan_modules")
       .select("module_id")
-      .eq("plan_id", params.planId)
+      .eq("plan_id", pid)
       .eq("is_enabled", true);
-
-    planModuleIds = new Set((planModules ?? []).map((row) => row.module_id));
+    for (const row of planModules ?? []) planModuleIds.add(row.module_id);
   }
 
   if (modules?.length) {

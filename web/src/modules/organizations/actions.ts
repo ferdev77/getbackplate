@@ -39,6 +39,7 @@ export async function createOrganizationAction(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const providedSlug = String(formData.get("slug") ?? "").trim();
   const planId = String(formData.get("plan_id") ?? "").trim() || null;
+  const integrationPlanId = String(formData.get("integration_plan_id") ?? "").trim() || null;
   const adminEmail = String(formData.get("admin_email") ?? "").trim().toLowerCase();
   const adminFullName = String(formData.get("admin_full_name") ?? "").trim();
   const adminPassword = String(formData.get("admin_password") ?? "");
@@ -70,6 +71,7 @@ export async function createOrganizationAction(formData: FormData) {
       name,
       slug,
       plan_id: planId,
+      integration_plan_id: integrationPlanId,
       created_by: authData.user?.id ?? null,
     })
     .select("id")
@@ -83,7 +85,7 @@ export async function createOrganizationAction(formData: FormData) {
   }
 
   // Provision modules + limits from plan
-  await provisionOrganizationFromPlan({ organizationId: org.id, planId });
+  await provisionOrganizationFromPlan({ organizationId: org.id, planId, integrationPlanId });
 
   // Send admin invitation
   const invitation = await sendOrganizationAdminInvitation({
@@ -223,6 +225,7 @@ export async function updateOrganizationAction(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const status = String(formData.get("status") ?? "").trim();
   const planId = String(formData.get("plan_id") ?? "").trim() || null;
+  const integrationPlanId = String(formData.get("integration_plan_id") ?? "").trim() || null;
 
   if (!organizationId || !name || !status) {
     return;
@@ -233,15 +236,16 @@ export async function updateOrganizationAction(formData: FormData) {
   const supabase = createSupabaseAdminClient();
   const { data: currentOrg } = await supabase
     .from("organizations")
-    .select("plan_id")
+    .select("plan_id, integration_plan_id")
     .eq("id", organizationId)
     .maybeSingle();
 
   const planChanged = (currentOrg?.plan_id ?? null) !== planId;
+  const integrationPlanChanged = ((currentOrg as Record<string, unknown> | null)?.integration_plan_id as string | null ?? null) !== integrationPlanId;
 
-  // Sync plan if changed
-  if (planChanged) {
-    const syncResult = await syncOrganizationPlan({ organizationId, planId });
+  // Sync modules if any plan changed
+  if (planChanged || integrationPlanChanged) {
+    const syncResult = await syncOrganizationPlan({ organizationId, planId, integrationPlanId });
     if (!syncResult.ok) {
       redirect(
         "/superadmin/organizations?status=error&message=" + qs(syncResult.message),
@@ -254,15 +258,15 @@ export async function updateOrganizationAction(formData: FormData) {
     slug: string;
     status: string;
     plan_id?: string | null;
+    integration_plan_id?: string | null;
   } = {
     name,
     slug,
     status,
   };
 
-  if (planChanged) {
-    organizationUpdatePayload.plan_id = planId;
-  }
+  if (planChanged) organizationUpdatePayload.plan_id = planId;
+  if (integrationPlanChanged) organizationUpdatePayload.integration_plan_id = integrationPlanId;
 
   await supabase
     .from("organizations")
