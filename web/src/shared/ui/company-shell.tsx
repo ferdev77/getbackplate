@@ -2083,12 +2083,11 @@ export function CompanyShell({
                     {availableAddons.length > 0 && (() => {
                       const activeOrgAddons = organizationAddons.filter((a) => a.status === "active");
                       const hasActive = activeOrgAddons.length > 0;
+                      const activeIntegrationPlanName = activeOrgAddons
+                        .map((a) => a.integrationPlanId ? integrationPlans.find((p) => p.id === a.integrationPlanId)?.name ?? null : null)
+                        .find((name): name is string => Boolean(name));
                       const addonSummary = hasActive
-                        ? activeOrgAddons.map((a) => {
-                            const plan = a.integrationPlanId ? integrationPlans.find((p) => p.id === a.integrationPlanId) : null;
-                            const addonInfo = availableAddons.find((ad) => ad.moduleId === a.moduleId);
-                            return plan?.name ?? addonInfo?.name ?? "Activo";
-                          }).join(" · ")
+                        ? activeIntegrationPlanName ?? "Get started"
                         : "Get started";
                       return (
                         <button
