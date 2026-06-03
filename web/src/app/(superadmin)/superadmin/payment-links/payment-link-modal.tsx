@@ -203,7 +203,7 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
               </div>
             ) : (
               /* ── Form ── */
-              <form onSubmit={handleSubmit} className="max-h-[65vh] space-y-5 overflow-y-auto pr-1 scrollbar-hide">
+              <form onSubmit={handleSubmit} className="max-h-[65vh] space-y-6 overflow-y-auto pr-1 scrollbar-hide">
 
                 {/* Org */}
                 <SuperadminSelectField
@@ -220,7 +220,7 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
                 </SuperadminSelectField>
 
                 {/* Items */}
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {items.map((item, idx) => (
                     <ItemCard
                       key={idx}
@@ -238,14 +238,14 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
                 <button
                   type="button"
                   onClick={addItem}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--gbp-border)] py-2.5 text-xs font-bold text-muted-foreground transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--gbp-border)] py-3 text-xs font-bold text-muted-foreground transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
                 >
                   <Plus className="h-3.5 w-3.5" /> Agregar item
                 </button>
 
                 {/* Total */}
                 {totalCents > 0 && (
-                  <div className="flex items-center justify-between rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3">
+                  <div className="flex items-center justify-between rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-5 py-4">
                     <span className="text-sm font-semibold text-muted-foreground">
                       Total{items.length > 1 ? ` (${items.length} items)` : ""}
                     </span>
@@ -255,7 +255,7 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
 
                 {/* Expiry + Notes */}
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex items-center gap-2 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3">
+                  <div className="flex items-center gap-2 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-5 py-4">
                     <span className="text-sm text-muted-foreground">⏱ Expira en:</span>
                     <span className="text-sm font-bold text-foreground">24 hs</span>
                     <span className="ml-auto text-[10px] text-muted-foreground/60">límite de Stripe</span>
@@ -270,7 +270,7 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-end gap-3 border-t border-[var(--gbp-border)] pt-5">
+                <div className="flex items-center justify-end gap-3 border-t border-[var(--gbp-border)] pt-6">
                   <button type="button" onClick={close} className="rounded-xl border border-[var(--gbp-border)] px-6 py-2.5 text-sm font-bold text-[var(--gbp-text2)]">
                     Cancelar
                   </button>
@@ -306,7 +306,7 @@ function ItemCard({ idx, item, modules, canRemove, onRemove, onChange }: ItemCar
   const actionMeta = ACTION_META[item.actionType];
 
   return (
-    <div className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4 space-y-3">
+    <div className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-5 space-y-4">
       {/* Item header */}
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
@@ -324,7 +324,7 @@ function ItemCard({ idx, item, modules, canRemove, onRemove, onChange }: ItemCar
       </div>
 
       {/* Description + Amount */}
-      <div className="grid gap-3 sm:grid-cols-[1fr_130px]">
+      <div className="grid gap-4 sm:grid-cols-[1fr_130px]">
         <SuperadminInputField
           label="Descripción (visible en Stripe)"
           name={`desc_${idx}`}
@@ -345,7 +345,7 @@ function ItemCard({ idx, item, modules, canRemove, onRemove, onChange }: ItemCar
             placeholder="0.00"
             required
           />
-          <div className="flex items-center justify-center rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-[0.62rem] text-sm font-bold text-[var(--gbp-text2)]">
+          <div className="flex items-center justify-center rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-3.5 text-sm font-bold text-[var(--gbp-text2)]">
             USD
           </div>
         </div>
@@ -353,10 +353,10 @@ function ItemCard({ idx, item, modules, canRemove, onRemove, onChange }: ItemCar
 
       {/* Action type */}
       <div>
-        <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+        <p className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
           Acción al pagar
         </p>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2.5">
           {(Object.entries(ACTION_META) as [ActionType, typeof ACTION_META[ActionType]][]).map(([type, meta]) => {
             const Icon = meta.icon;
             const active = item.actionType === type;
@@ -370,7 +370,7 @@ function ItemCard({ idx, item, modules, canRemove, onRemove, onChange }: ItemCar
                 key={type}
                 type="button"
                 onClick={() => onChange({ actionType: type, moduleCode: "", invoiceCount: "" })}
-                className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition ${colorCls}`}
+                className={`flex flex-col items-start gap-1.5 rounded-xl border p-3.5 text-left transition ${colorCls}`}
               >
                 <Icon className="h-3.5 w-3.5" />
                 <span className="text-[11px] font-bold">{meta.label}</span>
@@ -378,7 +378,7 @@ function ItemCard({ idx, item, modules, canRemove, onRemove, onChange }: ItemCar
             );
           })}
         </div>
-        <p className="mt-1.5 text-[11px] text-muted-foreground">{actionMeta.description}</p>
+        <p className="mt-2 text-[11px] text-muted-foreground">{actionMeta.description}</p>
       </div>
 
       {/* Action payload */}
