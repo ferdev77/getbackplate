@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Clock, XCircle, Ban, Zap, FileStack, Tag, ChevronDown, ExternalLink, Mail, CreditCard, Calendar, Layers } from "lucide-react";
+import { CheckCircle2, Clock, XCircle, Ban, Zap, FileStack, Tag, Plug, ChevronDown, ExternalLink, Mail, CreditCard, Calendar, Layers } from "lucide-react";
 import { CopyUrlButton } from "./copy-url-button";
 import { CancelOrderButton } from "./cancel-order-button";
 import { DeleteOrderButton } from "./delete-order-button";
@@ -16,6 +16,7 @@ const STATUS_CONFIG = {
 const ACTION_CONFIG = {
   activate_module: { label: "Activar módulo",  Icon: Zap,       cls: "text-violet-600" },
   add_invoices:    { label: "Facturas",         Icon: FileStack, cls: "text-emerald-600" },
+  add_slot:        { label: "Slot + Setup Fee", Icon: Plug,      cls: "text-sky-600" },
   custom:          { label: "Cobro custom",     Icon: Tag,       cls: "text-amber-600" },
 } as const;
 

@@ -66,8 +66,31 @@ export async function POST(request: Request) {
 
   try {
     const existing = await listSyncConfigs(access.tenant.organizationId);
-    if (existing.length > 0) {
-      return NextResponse.json({ error: "Esta empresa ya tiene una sincronización configurada" }, { status: 409 });
+
+    // Compute effective slot limit = plan.max_r365_connections + addon.extra_r365_connections
+    const { createSupabaseAdminClient } = await import("@/infrastructure/supabase/client/admin");
+    const supabase = createSupabaseAdminClient();
+    const { data: orgRow } = await supabase
+      .from("organizations")
+      .select("integration_plan_id")
+      .eq("id", access.tenant.organizationId)
+      .maybeSingle();
+    const integrationPlanId = (orgRow as Record<string, unknown> | null)?.integration_plan_id as string | null ?? null;
+    let effectiveLimit: number | null = null;
+    if (integrationPlanId) {
+      const [planData, addonData] = await Promise.all([
+        supabase.from("plans").select("max_r365_connections").eq("id", integrationPlanId).maybeSingle(),
+        supabase.from("organization_addons").select("extra_r365_connections").eq("organization_id", access.tenant.organizationId).eq("status", "active").limit(1).maybeSingle(),
+      ]);
+      const base = (planData.data as Record<string, unknown> | null)?.max_r365_connections as number | null ?? null;
+      const extra = ((addonData.data as Record<string, unknown> | null)?.extra_r365_connections as number) ?? 0;
+      effectiveLimit = base != null ? base + extra : null;
+    }
+    if (effectiveLimit !== null && existing.length >= effectiveLimit) {
+      return NextResponse.json(
+        { error: `Límite de ${effectiveLimit} slot${effectiveLimit === 1 ? "" : "s"} alcanzado para tu plan.` },
+        { status: 409 },
+      );
     }
 
     const payload = {

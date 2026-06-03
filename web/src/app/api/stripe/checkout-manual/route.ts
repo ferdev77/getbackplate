@@ -3,7 +3,7 @@ import { stripe } from "@/infrastructure/stripe/client";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { assertSuperadminApi } from "@/shared/lib/access";
 
-type ActionType = "activate_module" | "add_invoices" | "custom";
+type ActionType = "activate_module" | "add_invoices" | "add_slot" | "custom";
 
 interface OrderItem {
   description: string;
@@ -19,7 +19,7 @@ interface CreateManualCheckoutBody {
   items: OrderItem[];
 }
 
-const VALID_ACTIONS: ActionType[] = ["activate_module", "add_invoices", "custom"];
+const VALID_ACTIONS: ActionType[] = ["activate_module", "add_invoices", "add_slot", "custom"];
 
 function validateItem(item: OrderItem, idx: number): string | null {
   if (!item.description?.trim()) return `Item ${idx + 1}: descripción requerida.`;
@@ -29,6 +29,8 @@ function validateItem(item: OrderItem, idx: number): string | null {
     return `Item ${idx + 1}: activate_module requiere actionPayload.moduleCode.`;
   if (item.actionType === "add_invoices" && (!item.actionPayload?.invoiceCount || Number(item.actionPayload.invoiceCount) <= 0))
     return `Item ${idx + 1}: add_invoices requiere actionPayload.invoiceCount > 0.`;
+  if (item.actionType === "add_slot" && (!item.actionPayload?.slotCount || Number(item.actionPayload.slotCount) <= 0))
+    return `Item ${idx + 1}: add_slot requiere actionPayload.slotCount > 0.`;
   return null;
 }
 

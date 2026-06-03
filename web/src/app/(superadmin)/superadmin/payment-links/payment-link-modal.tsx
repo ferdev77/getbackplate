@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, Plus, Copy, CheckCheck, Loader2, Link2, Zap, FileStack, Tag, Trash2 } from "lucide-react";
+import { X, Plus, Copy, CheckCheck, Loader2, Link2, Zap, FileStack, Tag, Plug, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { SuperadminInputField, SuperadminSelectField } from "@/shared/ui/superadmin-form-fields";
 
 type Org = { id: string; name: string };
 type Module = { id: string; code: string; name: string };
-type ActionType = "activate_module" | "add_invoices" | "custom";
+type ActionType = "activate_module" | "add_invoices" | "add_slot" | "custom";
 
 const ACTION_META: Record<ActionType, { label: string; icon: React.ElementType; color: string; description: string }> = {
   activate_module: {
@@ -22,6 +22,12 @@ const ACTION_META: Record<ActionType, { label: string; icon: React.ElementType; 
     icon: FileStack,
     color: "emerald",
     description: "Suma N facturas al balance de la organización (requiere módulo QBO activo).",
+  },
+  add_slot: {
+    label: "Slot + Setup Fee",
+    icon: Plug,
+    color: "sky",
+    description: "Suma un slot de sync QBO-R365 a la organización al confirmar el pago.",
   },
   custom: {
     label: "Cobro personalizado",
@@ -37,6 +43,7 @@ type ItemDraft = {
   actionType: ActionType;
   moduleCode: string;
   invoiceCount: string;
+  slotCount: string;
 };
 
 const EMPTY_ITEM: ItemDraft = {
@@ -45,6 +52,7 @@ const EMPTY_ITEM: ItemDraft = {
   actionType: "custom",
   moduleCode: "",
   invoiceCount: "",
+  slotCount: "1",
 };
 
 type Props = {
@@ -97,6 +105,7 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
       if (!item.description.trim() || !cents || cents <= 0) return;
       if (item.actionType === "activate_module" && !item.moduleCode) return;
       if (item.actionType === "add_invoices" && (!item.invoiceCount || Number(item.invoiceCount) <= 0)) return;
+      if (item.actionType === "add_slot" && (!item.slotCount || Number(item.slotCount) <= 0)) return;
     }
 
     const apiItems = items.map(item => ({
@@ -106,6 +115,7 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
       actionPayload:
         item.actionType === "activate_module" ? { moduleCode: item.moduleCode } :
         item.actionType === "add_invoices"    ? { invoiceCount: Number(item.invoiceCount) } :
+        item.actionType === "add_slot"        ? { slotCount: Number(item.slotCount) } :
         undefined,
     }));
 
@@ -352,20 +362,21 @@ function ItemCard({ idx, item, modules, canRemove, onRemove, onChange }: ItemCar
         <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
           Acción al pagar
         </p>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {(Object.entries(ACTION_META) as [ActionType, typeof ACTION_META[ActionType]][]).map(([type, meta]) => {
             const Icon = meta.icon;
             const active = item.actionType === type;
             const colorCls = active
               ? meta.color === "violet"  ? "border-violet-400 bg-violet-50 text-violet-700"
               : meta.color === "emerald" ? "border-emerald-400 bg-emerald-50 text-emerald-700"
+              : meta.color === "sky"     ? "border-sky-400 bg-sky-50 text-sky-700"
               : "border-amber-400 bg-amber-50 text-amber-700"
               : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
             return (
               <button
                 key={type}
                 type="button"
-                onClick={() => onChange({ actionType: type, moduleCode: "", invoiceCount: "" })}
+                onClick={() => onChange({ actionType: type, moduleCode: "", invoiceCount: "", slotCount: "1" })}
                 className={`flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition ${colorCls}`}
               >
                 <Icon className="h-4 w-4" />
@@ -403,6 +414,20 @@ function ItemCard({ idx, item, modules, canRemove, onRemove, onChange }: ItemCar
           value={item.invoiceCount}
           onChange={e => onChange({ invoiceCount: e.target.value })}
           placeholder="p.ej: 500"
+          required
+        />
+      )}
+
+      {item.actionType === "add_slot" && (
+        <SuperadminInputField
+          label="Cantidad de slots a sumar"
+          name={`slots_${idx}`}
+          type="number"
+          min="1"
+          step="1"
+          value={item.slotCount}
+          onChange={e => onChange({ slotCount: e.target.value })}
+          placeholder="1"
           required
         />
       )}
