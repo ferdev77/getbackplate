@@ -147,6 +147,7 @@ export async function createPlanAction(formData: FormData) {
   const ctaEmail = String(formData.get("cta_email") ?? "").trim() || null;
   const sortOrder = toNullableInt(formData.get("sort_order")) ?? 0;
   const invoicesIncluded = toNullableInt(formData.get("invoices_included"));
+  const maxR365Connections = toNullableInt(formData.get("max_r365_connections"));
   const setupFeeStripePriceId = String(formData.get("setup_fee_stripe_price_id") ?? "").trim() || null;
   const rawDiscountPct = parseInt(String(formData.get("setup_fee_annual_discount_pct") ?? "25"), 10);
   const setupFeeAnnualDiscountPct = Number.isNaN(rawDiscountPct) ? 25 : Math.min(100, Math.max(0, rawDiscountPct));
@@ -221,6 +222,7 @@ export async function createPlanAction(formData: FormData) {
       cta_email: ctaEmail,
       sort_order: sortOrder,
       invoices_included: invoicesIncluded,
+      max_r365_connections: maxR365Connections,
     })
     .select("id")
     .single();
@@ -291,6 +293,7 @@ export async function updatePlanAction(formData: FormData) {
   const ctaEmail = String(formData.get("cta_email") ?? "").trim() || null;
   const sortOrder = toNullableInt(formData.get("sort_order")) ?? 0;
   const invoicesIncluded = toNullableInt(formData.get("invoices_included"));
+  const maxR365Connections = toNullableInt(formData.get("max_r365_connections"));
   const setupFeeStripePriceId = String(formData.get("setup_fee_stripe_price_id") ?? "").trim() || null;
   const rawDiscountPctU = parseInt(String(formData.get("setup_fee_annual_discount_pct") ?? "25"), 10);
   const setupFeeAnnualDiscountPct = Number.isNaN(rawDiscountPctU) ? 25 : Math.min(100, Math.max(0, rawDiscountPctU));
@@ -364,6 +367,7 @@ export async function updatePlanAction(formData: FormData) {
       cta_email: ctaEmail,
       sort_order: sortOrder,
       invoices_included: invoicesIncluded,
+      max_r365_connections: maxR365Connections,
     })
     .eq("id", planId);
 

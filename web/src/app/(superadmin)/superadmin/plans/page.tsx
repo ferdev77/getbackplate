@@ -297,6 +297,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
                         is_enterprise: (plan as Record<string, unknown>).is_enterprise as boolean ?? null,
                         setup_fee_amount: (plan as Record<string, unknown>).setup_fee_amount as number ?? null,
                         setup_fee_annual_discount_pct: (plan as Record<string, unknown>).setup_fee_annual_discount_pct as number ?? 25,
+                        max_r365_connections: (plan as Record<string, unknown>).max_r365_connections as number | null ?? null,
                         features: (plan as Record<string, unknown>).features ?? null,
                         cta_text: (plan as Record<string, unknown>).cta_text as string ?? null,
                         cta_email: (plan as Record<string, unknown>).cta_email as string ?? null,
