@@ -47,6 +47,7 @@ type PlanData = {
   cta_email: string | null;
   sort_order: number | null;
   invoices_included: number | null;
+  max_r365_connections: number | null;
 };
 
 type PriceState = {
@@ -576,15 +577,23 @@ export function PlanFormModal({
                     </div>
                   </div>
 
-                  {/* Invoices + CTA */}
-                  <div className="grid gap-5 sm:grid-cols-3">
+                  {/* Invoices + connections + CTA */}
+                  <div className="grid gap-5 sm:grid-cols-4">
                     <SuperadminInputField
-                      label="Facturas incluidas en el plan"
+                      label="Facturas incluidas"
                       name="invoices_included"
                       type="number"
                       min="0"
                       defaultValue={plan?.invoices_included ?? ""}
                       placeholder="p.ej: 500"
+                    />
+                    <SuperadminInputField
+                      label="Conexiones R365 (slots)"
+                      name="max_r365_connections"
+                      type="number"
+                      min="1"
+                      defaultValue={plan?.max_r365_connections ?? ""}
+                      placeholder="vacío = ilimitado"
                     />
                     <SuperadminInputField
                       label="Texto del botón CTA"

@@ -136,7 +136,7 @@ type UnifiedInvoiceRow = {
   createdAt: string;
 };
 
-type Props = { organizationId: string; deferredDataUrl: string; showDeveloperMode?: boolean; className?: string; orgName?: string; orgLogoUrl?: string };
+type Props = { organizationId: string; deferredDataUrl: string; showDeveloperMode?: boolean; className?: string; orgName?: string; orgLogoUrl?: string; maxR365Connections?: number | null };
 
 function toneClass(tone: StatCard["tone"]) {
   if (tone === "success") return "text-[var(--gbp-success)]";
@@ -331,7 +331,7 @@ const TEMPLATE_COLS: Record<"by_item" | "by_item_service_dates" | "by_account" |
   ],
 };
 
-export function QboR365Dashboard({ organizationId, deferredDataUrl, showDeveloperMode = false, className, orgName, orgLogoUrl }: Props) {
+export function QboR365Dashboard({ organizationId, deferredDataUrl, showDeveloperMode = false, className, orgName, orgLogoUrl, maxR365Connections }: Props) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [query, setQuery] = useState("");
@@ -1320,32 +1320,35 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
         </article>
       </section>
 
-      {/* Sincronizaciones */}
+      {/* Sincronizaciones / Slots */}
       <section className="mb-6">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Sincronizaciones</h2>
-          <button
-            type="button"
-            onClick={() => setIsCreateSyncOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 py-2 text-xs font-bold text-white transition hover:bg-[var(--gbp-accent)]"
-          >
-            <Plus className="h-3.5 w-3.5" /> Crear sincronización
-          </button>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Conexiones R365</h2>
+            {maxR365Connections != null && (
+              <p className="mt-0.5 text-xs text-[var(--gbp-muted)]">
+                {syncConfigs.length} de {maxR365Connections} slots usados
+              </p>
+            )}
+          </div>
+          {(maxR365Connections == null || syncConfigs.length < maxR365Connections) && (
+            <button
+              type="button"
+              onClick={() => setIsCreateSyncOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 py-2 text-xs font-bold text-white transition hover:bg-[var(--gbp-accent)]"
+            >
+              <Plus className="h-3.5 w-3.5" /> Nueva conexión
+            </button>
+          )}
         </div>
 
         {syncConfigsLoading && (
           <p className="text-sm text-[var(--gbp-muted)]">Cargando...</p>
         )}
 
-        {!syncConfigsLoading && syncConfigs.length === 0 && (
-          <div className="rounded-[14px] border-[1.5px] border-dashed border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-6 py-10 text-center">
-            <p className="text-sm font-semibold text-[var(--gbp-text2)]">No hay sincronizaciones configuradas</p>
-            <p className="mt-1 text-xs text-[var(--gbp-muted)]">Crea una sincronización para enviar facturas de un cliente a R365.</p>
-          </div>
-        )}
-
-        {syncConfigs.length > 0 && (
+        {!syncConfigsLoading && (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {/* Occupied slots */}
             {syncConfigs.map((config) => (
               <article key={config.id} className="rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-5 py-4">
                 <div className="flex items-start justify-between gap-2">
@@ -1437,6 +1440,30 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                 )}
               </article>
             ))}
+
+            {/* Empty slots — only when plan has a defined limit */}
+            {maxR365Connections != null && Array.from({ length: Math.max(0, maxR365Connections - syncConfigs.length) }).map((_, i) => (
+              <button
+                key={`empty-${i}`}
+                type="button"
+                onClick={() => setIsCreateSyncOpen(true)}
+                className="group flex min-h-[140px] flex-col items-center justify-center gap-2 rounded-[14px] border-[1.5px] border-dashed border-[var(--gbp-border)] bg-transparent px-5 py-6 text-center transition hover:border-[var(--gbp-accent)] hover:bg-[color-mix(in_oklab,var(--gbp-accent)_5%,transparent)]"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-full border-[1.5px] border-dashed border-[var(--gbp-border)] text-[var(--gbp-muted)] transition group-hover:border-[var(--gbp-accent)] group-hover:text-[var(--gbp-accent)]">
+                  <Plus className="h-4 w-4" />
+                </span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--gbp-muted)] transition group-hover:text-[var(--gbp-accent)]">Slot libre</span>
+                <span className="text-[10px] text-[var(--gbp-muted)]">Configurar conexión</span>
+              </button>
+            ))}
+
+            {/* Empty state when no limit and no configs */}
+            {maxR365Connections == null && syncConfigs.length === 0 && !syncConfigsLoading && (
+              <div className="col-span-full rounded-[14px] border-[1.5px] border-dashed border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-6 py-10 text-center">
+                <p className="text-sm font-semibold text-[var(--gbp-text2)]">No hay conexiones configuradas</p>
+                <p className="mt-1 text-xs text-[var(--gbp-muted)]">Creá una conexión para enviar facturas de un cliente a R365.</p>
+              </div>
+            )}
           </div>
         )}
       </section>
