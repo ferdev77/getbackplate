@@ -4,7 +4,7 @@ export async function getActivePlans() {
   const supabase = createSupabaseAdminClient();
   const { data: plans, error } = await supabase
     .from("plans")
-    .select("id, code, name, description, price_amount, currency_code, billing_period, max_branches, max_users, max_storage_mb, max_employees, stripe_price_id")
+    .select("id, code, name, description, price_amount, currency_code, billing_period, max_branches, max_users, max_storage_mb, max_employees, stripe_price_id, features")
     .eq("is_active", true)
     .eq("plan_type", "platform")
     .order("price_amount", { ascending: true });

@@ -20,6 +20,14 @@ type PlanInput = {
   max_storage_mb?: number | null;
   modules_count?: number | null;
   modules?: Array<{ code: string; name: string }>;
+  features?: unknown;
+};
+
+type PlanFeature = {
+  text: string;
+  highlight: boolean;
+  everything: boolean;
+  annual_only: boolean;
 };
 
 type Props = {
@@ -36,6 +44,19 @@ type Lang = "en" | "es";
 function formatPrice(value: number | null | undefined) {
   if (!value && value !== 0) return "Custom";
   return `$${value}`;
+}
+
+function parsePlanFeatures(raw: unknown): PlanFeature[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
+    .map((item) => ({
+      text: typeof item.text === "string" ? item.text.trim() : "",
+      highlight: Boolean(item.highlight),
+      everything: Boolean(item.everything),
+      annual_only: Boolean(item.annual_only),
+    }))
+    .filter((item) => item.text.length > 0);
 }
 
 function planTier(code: string) {
@@ -222,18 +243,61 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
       const annualPerMonth = monthly !== null ? Math.round((monthly * 10) / 12) : null;
       const annualBilled = monthly !== null ? Math.round(monthly * 10) : null;
       const tier = planTier(plan.code ?? plan.name);
-      const features: string[] = [];
-      features.push(plan.max_branches ? `${plan.max_branches} locations` : "Unlimited locations");
-      features.push(plan.max_users ? `${plan.max_users} users` : "Unlimited users");
-      features.push(plan.max_employees ? `${plan.max_employees} employees` : "Unlimited employees");
+      const defaultFeatures: PlanFeature[] = [];
+      defaultFeatures.push({
+        text: plan.max_branches ? `${plan.max_branches} locations` : "Unlimited locations",
+        highlight: false,
+        everything: false,
+        annual_only: false,
+      });
+      defaultFeatures.push({
+        text: plan.max_users ? `${plan.max_users} users` : "Unlimited users",
+        highlight: false,
+        everything: false,
+        annual_only: false,
+      });
+      defaultFeatures.push({
+        text: plan.max_employees ? `${plan.max_employees} employees` : "Unlimited employees",
+        highlight: false,
+        everything: false,
+        annual_only: false,
+      });
       if (plan.max_storage_mb) {
         const gb = plan.max_storage_mb / 1024;
-        features.push(gb >= 1 ? `${gb.toFixed(1)} GB storage` : `${plan.max_storage_mb} MB storage`);
+        defaultFeatures.push({
+          text: gb >= 1 ? `${gb.toFixed(1)} GB storage` : `${plan.max_storage_mb} MB storage`,
+          highlight: false,
+          everything: false,
+          annual_only: false,
+        });
       } else {
-        features.push("Unlimited storage");
+        defaultFeatures.push({
+          text: "Unlimited storage",
+          highlight: false,
+          everything: false,
+          annual_only: false,
+        });
       }
       const moduleNames = (plan.modules ?? []).slice(0, 6).map((mod) => mod.name);
-      features.push(...moduleNames);
+      defaultFeatures.push(
+        ...moduleNames.map((name) => ({
+          text: name,
+          highlight: false,
+          everything: false,
+          annual_only: false,
+        })),
+      );
+
+      const customFeatures = parsePlanFeatures(plan.features);
+      const features = [...defaultFeatures];
+      const seen = new Set(defaultFeatures.map((feature) => feature.text.toLowerCase()));
+      for (const feature of customFeatures) {
+        const key = feature.text.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        features.push(feature);
+      }
+
       return { ...plan, tier, monthly, annualPerMonth, annualBilled, features };
     });
   }, [plans]);
@@ -1413,9 +1477,13 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                       {loadingPlanId === plan.id ? "..." : lang === "es" ? "Comenzar trial 30 días" : "Start 30-day trial"}
                     </button>
                     <ul className="mt-4 space-y-2">
-                      {plan.features.map((feature) => (
-                        <li key={`${plan.id}-${feature}`} className="text-xs text-[var(--gbp-text2)]">✓ {feature}</li>
-                      ))}
+                      {plan.features
+                        .filter((feature) => !feature.annual_only || billingMode === "annual")
+                        .map((feature) => (
+                          <li key={`${plan.id}-${feature.text}`} className={`text-xs ${feature.highlight ? "font-semibold text-[var(--gbp-text)]" : "text-[var(--gbp-text2)]"}`}>
+                            {feature.everything ? "✦ " : "✓ "}{feature.text}
+                          </li>
+                        ))}
                     </ul>
                   </motion.article>
                 );

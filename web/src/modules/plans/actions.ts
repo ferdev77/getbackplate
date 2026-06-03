@@ -72,9 +72,9 @@ function qs(message: string) {
 
 function revalidatePlanSurfaces(planType: string) {
   revalidatePath("/superadmin/plans");
+  revalidatePath("/");
 
   if (planType === "qbo_r365") {
-    revalidatePath("/");
     revalidatePath("/integrations/qbo-r365");
   }
 }
