@@ -32,8 +32,8 @@ export type IntegrationPlan = {
 const INTEGRATION_EXTRAS = [
   {
     icon: "✦",
-    title: "Setup waived on annual.",
-    desc: "Commit annually and we waive the one-time setup fee — that's up to $5,000 in your pocket. You also lock in your rate forever.",
+    title: "25% off setup on annual.",
+    desc: "Commit annually and the one-time setup fee drops by 25% — saving you up to $1,250. You also lock in your rate forever.",
   },
   {
     icon: "∞",
