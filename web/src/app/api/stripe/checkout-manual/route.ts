@@ -135,8 +135,8 @@ export async function POST(req: NextRequest) {
       quantity: 1,
     })),
     ...(customerId ? { customer: customerId } : {}),
-    success_url: `${appUrl}/app/dashboard?manual_payment=success`,
-    cancel_url:  `${appUrl}/app/dashboard?manual_payment=canceled`,
+    success_url: `${appUrl}/pay/success`,
+    cancel_url:  `${appUrl}/pay/canceled`,
     expires_at:  stripeExpiresAt,
     metadata: {
       manualPaymentOrderId: order.id,
