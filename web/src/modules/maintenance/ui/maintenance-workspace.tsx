@@ -505,6 +505,14 @@ function statusClassName(status: MaintenanceStatus) {
   return "bg-[var(--gbp-accent)]/10 text-[var(--gbp-accent)] border-[var(--gbp-accent)]/20";
 }
 
+function priorityClassName(priority: string) {
+  if (priority === "urgent") return "bg-rose-500/12 text-rose-700 border border-rose-500/20";
+  if (priority === "high") return "bg-amber-500/14 text-amber-700 border border-amber-500/20";
+  if (priority === "medium") return "bg-sky-500/12 text-sky-700 border border-sky-500/20";
+  if (priority === "low") return "bg-emerald-500/12 text-emerald-700 border border-emerald-500/20";
+  return "bg-[var(--gbp-bg)] text-[var(--gbp-text2)] border border-[var(--gbp-border)]";
+}
+
 function latestRequestResponse(request: MaintenanceRequest): MaintenanceUpdate | null {
   const relevantUpdates = request.updates.filter((update) => {
     if (update.updateType === "created" || update.updateType === "submitted") return false;
@@ -851,7 +859,7 @@ export function MaintenanceWorkspace({
                       <h2 className="truncate text-base font-black text-[var(--gbp-text)]">{request.title}</h2>
                     </div>
                     <div className="flex flex-wrap items-center justify-end gap-2">
-                      <span className="rounded-full bg-[var(--gbp-bg)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">
+                      <span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] ${priorityClassName(request.priority)}`}>
                         Prioridad {PRIORITY_LABELS[request.priority] ?? request.priority}
                       </span>
                       <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.08em] ${statusClassName(request.status)}`}>
@@ -896,7 +904,14 @@ export function MaintenanceWorkspace({
                   <div className="border-t border-[var(--gbp-border)] px-4 py-4">
                     {latestResponse ? (
                       <div className="space-y-4">
-                        <div className="grid gap-4 sm:grid-cols-3">
+                        <div className="rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4">
+                          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Ultima contestacion</p>
+                          <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed text-[var(--gbp-text)]">
+                            {latestResponse.message?.trim() || "Sin comentario en esta respuesta."}
+                          </p>
+                        </div>
+
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                           <div>
                             <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Respondio</p>
                             <p className="mt-1 text-sm text-[var(--gbp-text2)]">{latestResponse.actorName}</p>
@@ -909,18 +924,10 @@ export function MaintenanceWorkspace({
                             <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Fecha</p>
                             <p className="mt-1 text-sm text-[var(--gbp-text2)]">{dateLabel(latestResponse.createdAt)}</p>
                           </div>
-                        </div>
-
-                        {latestResponse.scheduledVisitAt ? (
                           <div>
                             <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Visita programada</p>
-                            <p className="mt-1 text-sm text-[var(--gbp-text2)]">{dateLabel(latestResponse.scheduledVisitAt)}</p>
+                            <p className="mt-1 text-sm text-[var(--gbp-text2)]">{latestResponse.scheduledVisitAt ? dateLabel(latestResponse.scheduledVisitAt) : "Sin fecha programada"}</p>
                           </div>
-                        ) : null}
-
-                        <div>
-                          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Ultima contestacion</p>
-                          <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-[var(--gbp-text2)]">{latestResponse.message?.trim() || "Sin comentario en esta respuesta."}</p>
                         </div>
                       </div>
                     ) : (
