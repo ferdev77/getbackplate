@@ -15,23 +15,35 @@ export default async function IntegrationQuickbooksPage() {
     getOrganizationSettingsCached(tenant.organizationId),
   ]);
 
-  // Resolve the org's integration plan limit
+  // Fetch integration plan info + onboarding state
   let maxR365Connections: number | null = null;
+  let showOnboarding = false;
+  let vendorProfile: Record<string, string> | null = null;
+  let planName = "QBO";
+
   {
     const supabase = createSupabaseAdminClient();
     const { data: orgRow } = await supabase
       .from("organizations")
-      .select("integration_plan_id")
+      .select("integration_plan_id, integration_vendor_profile, integration_onboarding_completed_at")
       .eq("id", tenant.organizationId)
       .maybeSingle();
+
     const integrationPlanId = (orgRow as Record<string, unknown> | null)?.integration_plan_id as string | null ?? null;
+    vendorProfile = (orgRow as Record<string, unknown> | null)?.integration_vendor_profile as Record<string, string> | null ?? null;
+    const onboardingCompletedAt = (orgRow as Record<string, unknown> | null)?.integration_onboarding_completed_at as string | null ?? null;
+
+    // Show onboarding if: has a plan AND never completed onboarding
+    showOnboarding = integrationPlanId != null && onboardingCompletedAt == null;
+
     if (integrationPlanId) {
       const { data: plan } = await supabase
         .from("plans")
-        .select("max_r365_connections")
+        .select("max_r365_connections, name")
         .eq("id", integrationPlanId)
         .maybeSingle();
       maxR365Connections = (plan as Record<string, unknown> | null)?.max_r365_connections as number | null ?? null;
+      planName = (plan as Record<string, unknown> | null)?.name as string ?? "QBO";
     }
   }
 
@@ -45,6 +57,9 @@ export default async function IntegrationQuickbooksPage() {
       orgName={org?.name ?? undefined}
       orgLogoUrl={orgSettings?.company_logo_url ?? undefined}
       maxR365Connections={maxR365Connections}
+      showOnboarding={showOnboarding}
+      vendorProfile={vendorProfile}
+      planName={planName}
       className="mx-auto w-full max-w-[var(--gbp-content-max)] px-[var(--gbp-content-pad-x)] py-[var(--gbp-content-shell-pad-y)] sm:px-[var(--gbp-content-pad-x-sm)] sm:py-[var(--gbp-content-shell-pad-y-sm)]"
     />
   );

@@ -7,6 +7,7 @@ import { EmptyState } from "@/shared/ui/empty-state";
 import { saveIntegrationConfigAction } from "@/modules/integrations/qbo-r365/actions";
 import { resolveHistoryCustomerName } from "@/modules/integrations/qbo-r365/lib/resolve-customer-name";
 import { toast } from "sonner";
+import { QboR365Onboarding } from "@/modules/integrations/ui/qbo-r365-onboarding";
 
 type StatCard = {
   label: string;
@@ -136,7 +137,8 @@ type UnifiedInvoiceRow = {
   createdAt: string;
 };
 
-type Props = { organizationId: string; deferredDataUrl: string; showDeveloperMode?: boolean; className?: string; orgName?: string; orgLogoUrl?: string; maxR365Connections?: number | null };
+type VendorProfile = { company?: string; contactName?: string; email?: string; phone?: string; address?: string; website?: string };
+type Props = { organizationId: string; deferredDataUrl: string; showDeveloperMode?: boolean; className?: string; orgName?: string; orgLogoUrl?: string; maxR365Connections?: number | null; showOnboarding?: boolean; vendorProfile?: VendorProfile | null; planName?: string };
 
 function toneClass(tone: StatCard["tone"]) {
   if (tone === "success") return "text-[var(--gbp-success)]";
@@ -331,7 +333,8 @@ const TEMPLATE_COLS: Record<"by_item" | "by_item_service_dates" | "by_account" |
   ],
 };
 
-export function QboR365Dashboard({ organizationId, deferredDataUrl, showDeveloperMode = false, className, orgName, orgLogoUrl, maxR365Connections }: Props) {
+export function QboR365Dashboard({ organizationId, deferredDataUrl, showDeveloperMode = false, className, orgName, orgLogoUrl, maxR365Connections, showOnboarding: initialShowOnboarding = false, vendorProfile = null, planName = "QBO" }: Props) {
+  const [onboardingVisible, setOnboardingVisible] = useState(initialShowOnboarding);
   const [data, setData] = useState<DashboardData | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [query, setQuery] = useState("");
@@ -1241,6 +1244,18 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
 
   return (
     <main className={className}>
+      {/* Onboarding overlay */}
+      {onboardingVisible && (
+        <QboR365Onboarding
+          qboConnected={data?.connections?.qbo?.status === "connected"}
+          vendorProfile={vendorProfile}
+          maxConnections={maxR365Connections ?? null}
+          syncConfigsCount={syncConfigs.length}
+          planName={planName}
+          onComplete={() => { setOnboardingVisible(false); }}
+        />
+      )}
+
       {/* Header */}
       <section className="mb-6 rounded-2xl border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-5 py-4 sm:px-6">
         <div className="flex flex-wrap items-start justify-between gap-3">

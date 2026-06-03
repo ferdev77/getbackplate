@@ -230,7 +230,8 @@ export async function POST(request: Request) {
       payment_method_types: ["card"],
       line_items: [{ price: targetPriceId, quantity: 1 }, ...setupLineItem],
       client_reference_id: organizationId,
-      success_url: `${appUrl}/integrations/qbo-r365/success?plan=${encodeURIComponent(plan.name)}&period=${period}`,
+      // Redirect into the app after payment — QBO dashboard auto-detects onboarding state
+      success_url: `${appUrl}/app/integrations/quickbooks?integration_upgraded=1`,
       cancel_url: `${appUrl}/integrations/qbo-r365`,
       tax_id_collection: { enabled: true },
       metadata: sharedMeta,
