@@ -1,8 +1,8 @@
 // Stripe Webhook Handler — typed, no as any
 import { NextResponse } from 'next/server';
 import { stripe } from '@/infrastructure/stripe/client';
-import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
+import { createSupabaseAdminClient } from '@/infrastructure/supabase/client/admin';
 import { 
   sendRenewalReminderEmail, 
   sendPaymentFailedEmail,
@@ -75,7 +75,7 @@ async function executeManualAction(
   orgId: string,
   actionType: string,
   actionPayload: Record<string, unknown>,
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
 ) {
   if (actionType === 'activate_module') {
     const moduleCode = String(actionPayload.moduleCode ?? '');
@@ -144,10 +144,7 @@ export async function POST(req: Request) {
   }
 
   // We need a server-role client to bypass RLS since Webhooks are anonymous system calls
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabase = createSupabaseAdminClient();
 
   console.info(`[Webhook] Received event: ${event.type} (id: ${event.id})`);
 
