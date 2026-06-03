@@ -135,6 +135,90 @@ export async function POST(req: Request) {
 
         console.info(`[Webhook] checkout.session.completed - customer: ${session.customer}, subscription: ${session.subscription}`);
 
+        // ── MANUAL PAYMENT ORDER ─────────────────────────────────
+        // Created from superadmin/payment-links. One-time payment mode.
+        // Executes the configured action (activate_module | add_invoices | custom).
+        if (session.metadata?.manualPaymentOrderId) {
+          const orderId = session.metadata.manualPaymentOrderId;
+          const orgId   = session.metadata.organizationId;
+          const actionType = session.metadata.actionType as 'activate_module' | 'add_invoices' | 'custom';
+          let actionPayload: Record<string, unknown> = {};
+          try {
+            if (session.metadata.actionPayload) {
+              actionPayload = JSON.parse(session.metadata.actionPayload) as Record<string, unknown>;
+            }
+          } catch {
+            console.error('[Webhook][manual] Could not parse actionPayload JSON');
+          }
+
+          console.info(`[Webhook][manual] orderId=${orderId} orgId=${orgId} action=${actionType}`);
+
+          // Mark order as paid
+          const { error: paidErr } = await supabase
+            .from('manual_payment_orders')
+            .update({ status: 'paid', paid_at: new Date().toISOString() })
+            .eq('id', orderId);
+          if (paidErr) console.error('[Webhook][manual] Error marking order paid:', paidErr);
+
+          if (orgId) {
+            if (actionType === 'activate_module') {
+              // ── Activate module for the org ──────────────────────
+              const moduleCode = String(actionPayload.moduleCode ?? '');
+              if (moduleCode) {
+                const { data: moduleRow } = await supabase
+                  .from('module_catalog')
+                  .select('id')
+                  .eq('code', moduleCode)
+                  .maybeSingle();
+
+                if (moduleRow) {
+                  const { error: modErr } = await supabase
+                    .from('organization_modules')
+                    .upsert(
+                      { organization_id: orgId, module_id: moduleRow.id, is_enabled: true, enabled_at: new Date().toISOString() },
+                      { onConflict: 'organization_id,module_id' },
+                    );
+                  if (modErr) console.error(`[Webhook][manual] Error enabling module ${moduleCode}:`, modErr);
+                  else console.info(`[Webhook][manual] Module "${moduleCode}" enabled for org ${orgId}`);
+                } else {
+                  console.error(`[Webhook][manual] Module code "${moduleCode}" not found in catalog`);
+                }
+              }
+            } else if (actionType === 'add_invoices') {
+              // ── Credit invoice balance on the org's QBO addon ────
+              const count = Number(actionPayload.invoiceCount ?? 0);
+              if (count > 0) {
+                // Increment invoice_balance on any active addon for this org
+                const { error: invErr } = await supabase.rpc('increment_invoice_balance', {
+                  p_organization_id: orgId,
+                  p_amount: count,
+                });
+                if (invErr) {
+                  // Fallback: direct update on first active addon
+                  console.warn('[Webhook][manual] RPC increment_invoice_balance failed, trying direct update:', invErr);
+                  const { data: addonRow } = await supabase
+                    .from('organization_addons')
+                    .select('id, invoice_balance')
+                    .eq('organization_id', orgId)
+                    .eq('status', 'active')
+                    .maybeSingle();
+                  if (addonRow) {
+                    await supabase
+                      .from('organization_addons')
+                      .update({ invoice_balance: (addonRow.invoice_balance ?? 0) + count })
+                      .eq('id', addonRow.id);
+                  }
+                }
+                console.info(`[Webhook][manual] invoice_balance +${count} for org ${orgId}`);
+              }
+            }
+            // 'custom': payment recorded, no automatic side-effect
+          }
+
+          break;
+        }
+        // ── END MANUAL PAYMENT ORDER ─────────────────────────────
+
         // ── ADD-ON CHECKOUT ──────────────────────────────────────
         if (session.metadata?.isAddon === 'true') {
           const addonOrgId = session.metadata?.organizationId;

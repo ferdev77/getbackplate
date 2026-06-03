@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pricing — QBO ↔ R365 Integration | GetBackplate</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Inter+Tight:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #F7F4EE;
+      --bg-card: #FFFFFF;
+      --bg-card-featured: #161614;
+      --text: #161614;
+      --text-light: #6B6760;
+      --text-muted: #9B968D;
+      --text-on-dark: #F7F4EE;
+      --text-on-dark-light: #A8A39B;
+      --accent: #C24A1E;
+      --accent-dark: #9A3A18;
+      --accent-soft: #FCE9DD;
+      --border: #E5DFD3;
+      --border-dark: #2A2A26;
+      --success: #2D7A4A;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter Tight', -apple-system, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+
+    /* Header */
+    .site-header {
+      padding: 24px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .site-header .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      font-family: 'Fraunces', serif;
+      font-weight: 700;
+      font-size: 22px;
+      letter-spacing: -0.02em;
+    }
+    .brand-mark {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      background: var(--accent);
+      border-radius: 6px;
+      vertical-align: -7px;
+      margin-right: 10px;
+      position: relative;
+    }
+    .brand-mark::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 12px;
+      height: 12px;
+      border: 2px solid var(--bg);
+      border-radius: 2px;
+    }
+    nav a {
+      color: var(--text-light);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 15px;
+      margin-left: 28px;
+    }
+    nav a:hover { color: var(--text); }
+
+    /* Hero */
+    .hero {
+      padding: 80px 0 56px;
+      text-align: center;
+    }
+    .eyebrow {
+      display: inline-block;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 6px 14px;
+      border-radius: 100px;
+      margin-bottom: 24px;
+    }
+    h1 {
+      font-family: 'Fraunces', serif;
+      font-size: clamp(40px, 6vw, 72px);
+      font-weight: 600;
+      line-height: 1.02;
+      letter-spacing: -0.03em;
+      margin-bottom: 24px;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    h1 em {
+      font-style: italic;
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .subhead {
+      font-size: 19px;
+      color: var(--text-light);
+      max-width: 640px;
+      margin: 0 auto 40px;
+      line-height: 1.5;
+    }
+
+    /* Toggle */
+    .billing-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 10px;
+    }
+    .toggle-label {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.25s ease;
+      background: none;
+      border: none;
+      padding: 0;
+      font-family: inherit;
+    }
+    .toggle-label.active {
+      color: var(--text);
+    }
+    .toggle-switch {
+      width: 54px;
+      height: 30px;
+      background: #D9D5CC;
+      border: none;
+      border-radius: 100px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      padding: 0;
+      flex-shrink: 0;
+    }
+    .toggle-switch.annual {
+      background: var(--text);
+    }
+    .toggle-handle {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 24px;
+      height: 24px;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(22, 22, 20, 0.18);
+      transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+    .toggle-switch.annual .toggle-handle {
+      transform: translateX(24px);
+    }
+    .toggle-badge {
+      display: inline-block;
+      background: var(--success);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-left: 6px;
+      vertical-align: 1px;
+    }
+    .toggle-note {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 12px;
+    }
+
+    /* Pricing grid */
+    .pricing {
+      padding: 56px 0 80px;
+    }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+    @media (max-width: 1100px) {
+      .pricing-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .pricing-grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 32px 28px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(22, 22, 20, 0.08);
+    }
+    .card.featured {
+      background: var(--bg-card-featured);
+      color: var(--text-on-dark);
+      border-color: var(--bg-card-featured);
+    }
+    .card.featured:hover {
+      box-shadow: 0 16px 40px rgba(22, 22, 20, 0.2);
+    }
+    .card.enterprise {
+      background: transparent;
+      border-style: dashed;
+    }
+
+    .featured-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border-radius: 100px;
+    }
+
+    .plan-name {
+      font-family: 'Fraunces', serif;
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+    .plan-tag {
+      font-size: 13px;
+      color: var(--text-light);
+      margin-bottom: 24px;
+      min-height: 36px;
+    }
+    .card.featured .plan-tag { color: var(--text-on-dark-light); }
+
+    .price-block {
+      margin-bottom: 24px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      min-height: 142px;
+    }
+    .card.featured .price-block { border-color: var(--border-dark); }
+    .card.enterprise .price-block { border-color: var(--border); }
+
+    .price-amount {
+      font-family: 'Fraunces', serif;
+      font-size: 52px;
+      font-weight: 600;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+    .price-amount .currency {
+      font-size: 24px;
+      font-weight: 500;
+      color: var(--text-light);
+      align-self: flex-start;
+      padding-top: 8px;
+    }
+    .card.featured .price-amount .currency { color: var(--text-on-dark-light); }
+
+    .price-period {
+      font-size: 14px;
+      color: var(--text-light);
+      margin-top: 4px;
+    }
+    .card.featured .price-period { color: var(--text-on-dark-light); }
+
+    .price-billing {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+    .card.featured .price-billing { color: var(--text-on-dark-light); }
+
+    .price-savings {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--success);
+      background: rgba(45, 122, 74, 0.1);
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-top: 8px;
+    }
+    .card.featured .price-savings {
+      background: rgba(80, 200, 120, 0.15);
+      color: #7FD89D;
+    }
+
+    .setup-block {
+      padding-bottom: 16px;
+      margin-bottom: 22px;
+      border-bottom: 1px dashed var(--border);
+    }
+    .card.featured .setup-block { border-color: var(--border-dark); }
+
+    .setup-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0 8px;
+      font-size: 13px;
+    }
+
+    .setup-hints {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding-top: 4px;
+    }
+    .setup-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .card.featured .setup-hint { color: var(--text-on-dark-light); }
+    .setup-waiver {
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .card.featured .setup-waiver { color: #FCB69D; }
+
+    .setup-label {
+      color: var(--text-light);
+      font-weight: 500;
+    }
+    .card.featured .setup-label { color: var(--text-on-dark-light); }
+
+    .setup-fee {
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+    .setup-fee.waived {
+      color: var(--success);
+      text-decoration: none;
+    }
+    .setup-fee.waived .original {
+      text-decoration: line-through;
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-right: 6px;
+    }
+    .card.featured .setup-fee.waived { color: #7FD89D; }
+    .card.featured .setup-fee.waived .original { color: var(--text-on-dark-light); }
+
+    .features {
+      list-style: none;
+      flex-grow: 1;
+      margin-bottom: 24px;
+    }
+    .features li {
+      padding: 8px 0;
+      font-size: 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      line-height: 1.45;
+    }
+    .features li::before {
+      content: '';
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      background: var(--accent-soft);
+      border-radius: 50%;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10' fill='none'%3E%3Cpath d='M1.5 5L4 7.5L8.5 2.5' stroke='%23C24A1E' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+    .features li.highlight {
+      font-weight: 600;
+    }
+    .features li.everything {
+      font-weight: 700;
+      margin-top: 6px;
+      padding-top: 14px;
+      border-top: 1px dashed var(--border);
+    }
+    .card.featured .features li.everything {
+      border-color: var(--border-dark);
+    }
+    .features li.everything::before {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10' fill='none'%3E%3Cpath d='M5 1V9M1 5H9' stroke='%23C24A1E' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+    }
+    .card.featured .features li::before {
+      background: rgba(194, 74, 30, 0.2);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10' fill='none'%3E%3Cpath d='M1.5 5L4 7.5L8.5 2.5' stroke='%23FCB69D' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    }
+
+    .cta-button {
+      display: inline-block;
+      width: 100%;
+      text-align: center;
+      padding: 14px 24px;
+      border-radius: 100px;
+      font-weight: 600;
+      font-size: 14px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+      font-family: inherit;
+    }
+    .cta-primary {
+      background: var(--text);
+      color: var(--text-on-dark);
+    }
+    .cta-primary:hover { background: #000; }
+    .cta-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1.5px solid var(--text);
+    }
+    .cta-secondary:hover { background: var(--text); color: var(--text-on-dark); }
+    .card.featured .cta-primary {
+      background: var(--accent);
+      color: white;
+    }
+    .card.featured .cta-primary:hover { background: var(--accent-dark); }
+
+    /* What's included section */
+    .extras {
+      padding: 60px 0;
+      border-top: 1px solid var(--border);
+    }
+    .extras-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 40px;
+    }
+    @media (max-width: 800px) {
+      .extras-grid { grid-template-columns: 1fr; }
+    }
+    .extra h3 {
+      font-family: 'Fraunces', serif;
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+    .extra p {
+      color: var(--text-light);
+      font-size: 15px;
+      line-height: 1.55;
+    }
+    .extra .icon {
+      width: 36px;
+      height: 36px;
+      background: var(--accent-soft);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    /* Footnotes */
+    .notes {
+      padding: 40px 0 80px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.8;
+    }
+    .notes .container { max-width: 760px; }
+    .notes strong { color: var(--text-light); }
+
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <div class="brand">
+        <span class="brand-mark"></span>GetBackplate
+      </div>
+      <nav>
+        <a href="#">Platform</a>
+        <a href="#">Modules</a>
+        <a href="#">Integrations</a>
+        <a href="#">Pricing</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container">
+      <span class="eyebrow">QBO ↔ R365 Integration</span>
+      <h1>The only native connector between <em>QuickBooks Online</em> and <em>Restaurant365</em>.</h1>
+      <p class="subhead">Built for food vendors and distributors selling to R365 restaurants. Send invoices and credit memos automatically, in real time, from your QuickBooks Online directly to your customers' R365.</p>
+
+      <div class="billing-toggle">
+        <button class="toggle-label active" data-period="monthly">Monthly</button>
+        <button class="toggle-switch" id="billingSwitch" aria-label="Toggle billing period">
+          <span class="toggle-handle"></span>
+        </button>
+        <button class="toggle-label" data-period="annual">Annual <span class="toggle-badge">2 MONTHS FREE</span></button>
+      </div>
+      <div class="toggle-note">Annual billing = pay 10 months, get 12. Plus 25% off setup.</div>
+    </div>
+  </section>
+
+  <section class="pricing">
+    <div class="container">
+      <div class="pricing-grid">
+
+        <!-- Connect -->
+        <div class="card">
+          <div class="plan-name">Connect</div>
+          <div class="plan-tag">For vendors starting their first R365 integration.</div>
+
+          <div class="price-block">
+            <div class="price-amount"><span class="currency">$</span><span data-monthly="349" data-annual="291">349</span></div>
+            <div class="price-period">per month</div>
+            <div class="price-billing" data-monthly="Billed monthly" data-annual="Billed $3,490/year">Billed monthly</div>
+            <div class="price-savings" style="display:none" data-annual-save="Save $698 per year">Save $698 per year</div>
+          </div>
+
+          <div class="setup-block">
+            <div class="setup-row">
+              <span class="setup-label">Setup fee</span>
+              <span class="setup-fee" data-setup="799">$799 one-time</span>
+            </div>
+            <div class="setup-hints">
+              <div class="setup-hint">Covers onboarding for the R365 connection included in this plan</div>
+              <div class="setup-hint setup-waiver">25% off setup on annual</div>
+            </div>
+          </div>
+
+          <ul class="features">
+            <li class="highlight">1 R365 customer connection</li>
+            <li>Up to 75 invoices per month</li>
+            <li>Invoices and credit memos, fully automated</li>
+            <li>Lands in your customer's R365 inbox</li>
+            <li>$0.99 per invoice over 75</li>
+            <li>Email support</li>
+          </ul>
+
+          <a href="mailto:angelo@mkthelp.com?subject=QBO R365 - Connect Plan" class="cta-button cta-secondary">Start Connecting →</a>
+        </div>
+
+        <!-- Grow - Featured -->
+        <div class="card featured">
+          <span class="featured-badge">Most Popular</span>
+          <div class="plan-name">Grow</div>
+          <div class="plan-tag">For vendors serving multiple R365 customers.</div>
+
+          <div class="price-block">
+            <div class="price-amount"><span class="currency">$</span><span data-monthly="649" data-annual="541">649</span></div>
+            <div class="price-period">per month</div>
+            <div class="price-billing" data-monthly="Billed monthly" data-annual="Billed $6,490/year">Billed monthly</div>
+            <div class="price-savings" style="display:none" data-annual-save="Save $1,298 per year">Save $1,298 per year</div>
+          </div>
+
+          <div class="setup-block">
+            <div class="setup-row">
+              <span class="setup-label">Setup fee</span>
+              <span class="setup-fee" data-setup="2099">$2,099 one-time</span>
+            </div>
+            <div class="setup-hints">
+              <div class="setup-hint">Covers onboarding for all 3 R365 connections included in this plan</div>
+              <div class="setup-hint setup-waiver">25% off setup on annual</div>
+            </div>
+          </div>
+
+          <ul class="features">
+            <li class="highlight">Up to 3 R365 customer connections</li>
+            <li>Up to 250 invoices per month</li>
+            <li>$0.79 per invoice over 250</li>
+            <li class="everything">Everything in Connect +</li>
+            <li>All your R365 customers in one view</li>
+            <li>Priority email support</li>
+          </ul>
+
+          <a href="mailto:angelo@mkthelp.com?subject=QBO R365 - Grow Plan" class="cta-button cta-primary">Start Growing →</a>
+        </div>
+
+        <!-- Scale -->
+        <div class="card">
+          <div class="plan-name">Scale</div>
+          <div class="plan-tag">For distributors with broad R365 customer reach.</div>
+
+          <div class="price-block">
+            <div class="price-amount"><span class="currency">$</span><span data-monthly="1199" data-annual="999">1,199</span></div>
+            <div class="price-period">per month</div>
+            <div class="price-billing" data-monthly="Billed monthly" data-annual="Billed $11,990/year">Billed monthly</div>
+            <div class="price-savings" style="display:none" data-annual-save="Save $2,398 per year">Save $2,398 per year</div>
+          </div>
+
+          <div class="setup-block">
+            <div class="setup-row">
+              <span class="setup-label">Setup fee</span>
+              <span class="setup-fee" data-setup="4999">$4,999 one-time</span>
+            </div>
+            <div class="setup-hints">
+              <div class="setup-hint">Covers onboarding for all 10 R365 connections included in this plan</div>
+              <div class="setup-hint setup-waiver">25% off setup on annual</div>
+            </div>
+          </div>
+
+          <ul class="features">
+            <li class="highlight">Up to 10 R365 customer connections</li>
+            <li>Up to 1,000 invoices per month</li>
+            <li>$0.49 per invoice over 1,000</li>
+            <li class="everything">Everything in Grow +</li>
+            <li class="highlight" data-annual-only="true" style="display:none">Unlimited invoices (annual only)</li>
+          </ul>
+
+          <a href="mailto:angelo@mkthelp.com?subject=QBO R365 - Scale Plan" class="cta-button cta-secondary">Start Scaling →</a>
+        </div>
+
+        <!-- Enterprise -->
+        <div class="card enterprise">
+          <div class="plan-name">Enterprise</div>
+          <div class="plan-tag">For large distributors with custom needs.</div>
+
+          <div class="price-block">
+            <div class="price-amount" style="font-size:40px">Custom</div>
+            <div class="price-period">tailored to your operation</div>
+            <div class="price-billing">&nbsp;</div>
+          </div>
+
+          <div class="setup-row">
+            <span class="setup-label">Setup fee</span>
+            <span class="setup-fee">Negotiated</span>
+          </div>
+
+          <ul class="features">
+            <li class="highlight">Unlimited R365 connections</li>
+            <li>Unlimited invoices</li>
+            <li class="everything">Everything in Scale +</li>
+            <li>Custom SLA</li>
+            <li>Dedicated success manager</li>
+            <li>Priority feature requests</li>
+            <li>API access</li>
+            <li>Data Processing Agreement</li>
+          </ul>
+
+          <a href="mailto:angelo@mkthelp.com?subject=QBO R365 - Enterprise Plan" class="cta-button cta-secondary">Talk to Sales →</a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="extras">
+    <div class="container">
+      <div class="extras-grid">
+        <div class="extra">
+          <div class="icon">✦</div>
+          <h3>25% off setup on annual.</h3>
+          <p>Commit annually and the one-time setup fee drops by 25% — saving you up to $1,250. You also lock in your rate forever.</p>
+        </div>
+        <div class="extra">
+          <div class="icon">∞</div>
+          <h3>Scale across multiple R365 customers.</h3>
+          <p>Each plan supports a defined number of R365 customer connections. Add more anytime — no full plan upgrade needed if you only add one or two.</p>
+        </div>
+        <div class="extra">
+          <div class="icon">⚡</div>
+          <h3>Real-time, not delayed.</h3>
+          <p>The moment you finalize and send an invoice in QuickBooks Online, it lands in your customer's R365. No exports, no manual uploads.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="container">
+      <p><strong>About overage:</strong> If you exceed your monthly invoice allowance, additional invoices are billed at the per-invoice rate of your plan. No overage on Scale annual plans.</p>
+      <p style="margin-top:14px"><strong>About R365 customer connections:</strong> Each connection represents one Restaurant365 customer (restaurant group or location) that receives your invoices. Each has its own configuration: vendor name in their R365, account number, FTP credentials, and item catalog mapping.</p>
+      <p style="margin-top:14px"><strong>Adding connections beyond your plan:</strong> $499 one-time setup + $99/mo per additional connection ($79/mo on Scale). Grow gradually without changing plans — until the math points to an upgrade naturally.</p>
+      <p style="margin-top:14px"><strong>About setup:</strong> Includes initial configuration, FTP setup with R365 Support, item catalog mapping, test transactions, and go-live monitoring. Typically completed within 5 business days from kickoff.</p>
+      <p style="margin-top:14px"><strong>Standalone product:</strong> No GetBackplate platform subscription required to use the QBO ↔ R365 integration.</p>
+    </div>
+  </section>
+
+  <script>
+    const billingSwitch = document.getElementById('billingSwitch');
+    const toggleLabels = document.querySelectorAll('.toggle-label');
+    const priceAmounts = document.querySelectorAll('[data-monthly][data-annual]');
+    const priceBillings = document.querySelectorAll('.price-billing[data-monthly]');
+    const priceSavings = document.querySelectorAll('.price-savings');
+    const setupFees = document.querySelectorAll('.setup-fee[data-setup]');
+    const setupWaivers = document.querySelectorAll('.setup-waiver');
+    const annualOnlyItems = document.querySelectorAll('[data-annual-only]');
+
+    function setPeriod(period) {
+      const isAnnual = period === 'annual';
+
+      // toggle UI
+      toggleLabels.forEach(label => {
+        label.classList.toggle('active', label.dataset.period === period);
+      });
+      billingSwitch.classList.toggle('annual', isAnnual);
+
+      // prices
+      priceAmounts.forEach(el => {
+        const value = isAnnual ? el.dataset.annual : el.dataset.monthly;
+        el.textContent = Number(value).toLocaleString('en-US');
+      });
+
+      // billing line
+      priceBillings.forEach(el => {
+        el.textContent = isAnnual ? el.dataset.annual : el.dataset.monthly;
+      });
+
+      // savings indicator
+      priceSavings.forEach(el => {
+        el.style.display = isAnnual ? 'inline-block' : 'none';
+        if (isAnnual && el.dataset.annualSave) el.textContent = el.dataset.annualSave;
+      });
+
+      // setup fee — 25% off on annual
+      setupFees.forEach(el => {
+        if (!el.dataset.setup) return;
+        const fullPrice = Number(el.dataset.setup);
+        const original = '$' + fullPrice.toLocaleString('en-US') + ' one-time';
+        if (isAnnual) {
+          const discounted = Math.round(fullPrice * 0.75);
+          const discountedDisplay = '$' + discounted.toLocaleString('en-US') + ' one-time';
+          el.classList.add('waived');
+          el.innerHTML = '<span class="original">' + original + '</span>' + discountedDisplay;
+        } else {
+          el.classList.remove('waived');
+          el.textContent = original;
+        }
+      });
+
+      // setup waiver hint — hide when annual is active (already waived)
+      setupWaivers.forEach(el => {
+        el.style.display = isAnnual ? 'none' : 'block';
+      });
+
+      // annual-only feature items
+      annualOnlyItems.forEach(el => {
+        el.style.display = isAnnual ? 'flex' : 'none';
+      });
+    }
+
+    // Clicking the labels switches to that period
+    toggleLabels.forEach(label => {
+      label.addEventListener('click', () => setPeriod(label.dataset.period));
+    });
+
+    // Clicking the switch toggles between periods
+    billingSwitch.addEventListener('click', () => {
+      const isCurrentlyAnnual = billingSwitch.classList.contains('annual');
+      setPeriod(isCurrentlyAnnual ? 'monthly' : 'annual');
+    });
+  </script>
+
+</body>
+</html>
