@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { X, Plus, Copy, CheckCheck, Loader2, Link2, Zap, FileStack, Tag } from "lucide-react";
+import { toast } from "sonner";
 import { SuperadminInputField, SuperadminSelectField } from "@/shared/ui/superadmin-form-fields";
 
 type Org = { id: string; name: string };
@@ -89,10 +90,11 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
       });
       const data = await res.json() as { url?: string; error?: string };
       if (!res.ok || !data.url) {
-        alert(data.error ?? "Error al generar el link");
+        toast.error(data.error ?? "Error al generar el link de pago");
         return;
       }
       setGeneratedUrl(data.url);
+      toast.success("Link de pago generado correctamente");
       router.refresh();
     } finally {
       setLoading(false);
