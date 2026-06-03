@@ -11,7 +11,7 @@ export default async function PaymentLinksPage() {
   const [{ data: orders }, { data: orgs }, { data: modules }] = await Promise.all([
     supabase
       .from("manual_payment_orders")
-      .select("id, organization_id, description, internal_notes, amount_cents, currency, action_type, action_payload, status, checkout_url, paid_at, expires_at, created_at, stripe_payment_intent_id, customer_email")
+      .select("id, organization_id, description, internal_notes, amount_cents, currency, action_type, action_payload, items, status, checkout_url, paid_at, expires_at, created_at, stripe_payment_intent_id, customer_email")
       .order("created_at", { ascending: false })
       .limit(200),
     supabase.from("organizations").select("id, name").eq("status", "active").order("name"),
