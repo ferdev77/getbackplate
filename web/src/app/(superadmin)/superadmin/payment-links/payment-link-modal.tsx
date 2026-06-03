@@ -48,7 +48,6 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
   const [description, setDescription] = useState("");
   const [internalNotes, setInternalNotes] = useState("");
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState("usd");
   const [actionType, setActionType] = useState<ActionType>("custom");
   const [moduleCode, setModuleCode] = useState("");
   const [invoiceCount, setInvoiceCount] = useState("");
@@ -56,7 +55,7 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
 
   function reset() {
     setOrgId(""); setDescription(""); setInternalNotes(""); setAmount("");
-    setCurrency("usd"); setActionType("custom"); setModuleCode("");
+    setActionType("custom"); setModuleCode("");
     setInvoiceCount(""); setExpiresInDays("7"); setGeneratedUrl(null); setCopied(false);
   }
 
@@ -82,7 +81,7 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
           description: description.trim(),
           internalNotes: internalNotes.trim() || undefined,
           amountCents,
-          currency,
+          currency: "usd",
           actionType,
           actionPayload,
           expiresInDays: Number(expiresInDays),
@@ -192,15 +191,9 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
                       placeholder="0.00"
                       required
                     />
-                    <SuperadminSelectField
-                      label="Moneda"
-                      name="currency"
-                      value={currency}
-                      onChange={e => setCurrency(e.target.value)}
-                    >
-                      <option value="usd">USD</option>
-                      <option value="ars">ARS</option>
-                    </SuperadminSelectField>
+                    <div className="mt-3 flex items-center justify-center rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3 text-sm font-bold text-[var(--gbp-text2)]">
+                      USD
+                    </div>
                   </div>
                 </div>
 
