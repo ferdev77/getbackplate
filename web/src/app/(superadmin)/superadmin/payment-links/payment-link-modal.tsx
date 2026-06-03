@@ -77,14 +77,8 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
 
   function close() { setOpen(false); setTimeout(reset, 300); }
 
-  function addItem() {
-    setItems(prev => [...prev, { ...EMPTY_ITEM }]);
-  }
-
-  function removeItem(idx: number) {
-    setItems(prev => prev.filter((_, i) => i !== idx));
-  }
-
+  function addItem() { setItems(prev => [...prev, { ...EMPTY_ITEM }]); }
+  function removeItem(idx: number) { setItems(prev => prev.filter((_, i) => i !== idx)); }
   function updateItem(idx: number, patch: Partial<ItemDraft>) {
     setItems(prev => prev.map((item, i) => i === idx ? { ...item, ...patch } : item));
   }
@@ -98,8 +92,7 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
     e.preventDefault();
     if (!orgId) return;
 
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
+    for (const item of items) {
       const cents = Math.round(parseFloat(item.amount) * 100);
       if (!item.description.trim() || !cents || cents <= 0) return;
       if (item.actionType === "activate_module" && !item.moduleCode) return;
@@ -161,11 +154,11 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-          <div className="relative z-10 w-full max-w-2xl rounded-[2.5rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-10 shadow-2xl">
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/40 p-6 backdrop-blur-sm">
+          <div className="relative z-10 flex w-full max-w-3xl max-h-[90vh] flex-col rounded-[2.5rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-2xl overflow-hidden">
 
-            {/* Header */}
-            <div className="mb-6 flex items-center justify-between border-b border-[var(--gbp-border)] pb-6">
+            {/* Header — siempre visible */}
+            <div className="flex shrink-0 items-center justify-between border-b border-[var(--gbp-border)] px-10 py-7">
               <div>
                 <h3 className="text-2xl font-bold text-foreground">Nuevo link de pago</h3>
                 <p className="mt-0.5 text-sm text-muted-foreground">Genera un checkout Stripe para una organización.</p>
@@ -177,13 +170,13 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
 
             {generatedUrl ? (
               /* ── Success state ── */
-              <div className="space-y-6">
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+              <div className="flex flex-col gap-6 overflow-y-auto px-10 py-8">
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
                   <p className="mb-1 text-xs font-bold uppercase tracking-widest text-emerald-700">Link generado</p>
-                  <p className="mb-3 text-sm text-emerald-800">
-                    Copiá el link y enviáselo a <strong>{selectedOrg?.name}</strong>. El link expira en <strong>24 horas</strong> (límite de Stripe).
+                  <p className="mb-4 text-sm text-emerald-800">
+                    Copiá el link y enviáselo a <strong>{selectedOrg?.name}</strong>. Expira en <strong>24 horas</strong> (límite de Stripe).
                   </p>
-                  <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-3 text-xs font-mono text-emerald-900 break-all">
+                  <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-3.5 text-xs font-mono text-emerald-900 break-all">
                     <Link2 className="h-4 w-4 shrink-0 text-emerald-500" />
                     <span className="flex-1 truncate">{generatedUrl}</span>
                   </div>
@@ -196,88 +189,92 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
                   >
                     {copied ? <><CheckCheck className="h-4 w-4" /> Copiado</> : <><Copy className="h-4 w-4" /> Copiar link</>}
                   </button>
-                  <button type="button" onClick={close} className="rounded-xl border border-[var(--gbp-border)] px-4 py-3 text-sm font-bold text-[var(--gbp-text2)]">
+                  <button type="button" onClick={close} className="rounded-xl border border-[var(--gbp-border)] px-5 py-3 text-sm font-bold text-[var(--gbp-text2)]">
                     Cerrar
                   </button>
                 </div>
               </div>
             ) : (
               /* ── Form ── */
-              <form onSubmit={handleSubmit} className="max-h-[65vh] space-y-6 overflow-y-auto pr-1 scrollbar-hide">
+              <form onSubmit={handleSubmit} className="flex flex-1 flex-col overflow-hidden">
 
-                {/* Org */}
-                <SuperadminSelectField
-                  label="Organización"
-                  name="org"
-                  value={orgId}
-                  onChange={e => setOrgId(e.target.value)}
-                  required
-                >
-                  <option value="">Seleccioná una org…</option>
-                  {organizations.map(o => (
-                    <option key={o.id} value={o.id}>{o.name}</option>
-                  ))}
-                </SuperadminSelectField>
+                {/* Scrollable content */}
+                <div className="flex-1 overflow-y-auto px-10 py-7 space-y-6">
 
-                {/* Items */}
-                <div className="space-y-4">
-                  {items.map((item, idx) => (
-                    <ItemCard
-                      key={idx}
-                      idx={idx}
-                      item={item}
-                      modules={modules}
-                      canRemove={items.length > 1}
-                      onRemove={() => removeItem(idx)}
-                      onChange={patch => updateItem(idx, patch)}
+                  {/* Org */}
+                  <SuperadminSelectField
+                    label="Organización"
+                    name="org"
+                    value={orgId}
+                    onChange={e => setOrgId(e.target.value)}
+                    required
+                  >
+                    <option value="">Seleccioná una org…</option>
+                    {organizations.map(o => (
+                      <option key={o.id} value={o.id}>{o.name}</option>
+                    ))}
+                  </SuperadminSelectField>
+
+                  {/* Items */}
+                  <div className="space-y-4">
+                    {items.map((item, idx) => (
+                      <ItemCard
+                        key={idx}
+                        idx={idx}
+                        item={item}
+                        modules={modules}
+                        canRemove={items.length > 1}
+                        onRemove={() => removeItem(idx)}
+                        onChange={patch => updateItem(idx, patch)}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Add item */}
+                  <button
+                    type="button"
+                    onClick={addItem}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--gbp-border)] py-3.5 text-xs font-bold text-muted-foreground transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Agregar item
+                  </button>
+
+                  {/* Total */}
+                  {totalCents > 0 && (
+                    <div className="flex items-center justify-between rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-5 py-4">
+                      <span className="text-sm font-semibold text-muted-foreground">
+                        Total{items.length > 1 ? ` (${items.length} items)` : ""}
+                      </span>
+                      <span className="text-lg font-extrabold text-foreground">{fmtTotal(totalCents)}</span>
+                    </div>
+                  )}
+
+                  {/* Expiry + Notes */}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="flex items-center gap-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-5 py-4">
+                      <span className="text-sm text-muted-foreground">⏱ Expira en:</span>
+                      <span className="text-sm font-bold text-foreground">24 hs</span>
+                      <span className="ml-auto text-[10px] text-muted-foreground/60">límite de Stripe</span>
+                    </div>
+                    <SuperadminInputField
+                      label="Notas internas (opcional)"
+                      name="internal_notes"
+                      value={internalNotes}
+                      onChange={e => setInternalNotes(e.target.value)}
+                      placeholder="Solo visible para el equipo"
                     />
-                  ))}
+                  </div>
                 </div>
 
-                {/* Add item */}
-                <button
-                  type="button"
-                  onClick={addItem}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--gbp-border)] py-3 text-xs font-bold text-muted-foreground transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
-                >
-                  <Plus className="h-3.5 w-3.5" /> Agregar item
-                </button>
-
-                {/* Total */}
-                {totalCents > 0 && (
-                  <div className="flex items-center justify-between rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-5 py-4">
-                    <span className="text-sm font-semibold text-muted-foreground">
-                      Total{items.length > 1 ? ` (${items.length} items)` : ""}
-                    </span>
-                    <span className="text-base font-extrabold text-foreground">{fmtTotal(totalCents)}</span>
-                  </div>
-                )}
-
-                {/* Expiry + Notes */}
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex items-center gap-2 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-5 py-4">
-                    <span className="text-sm text-muted-foreground">⏱ Expira en:</span>
-                    <span className="text-sm font-bold text-foreground">24 hs</span>
-                    <span className="ml-auto text-[10px] text-muted-foreground/60">límite de Stripe</span>
-                  </div>
-                  <SuperadminInputField
-                    label="Notas internas (opcional)"
-                    name="internal_notes"
-                    value={internalNotes}
-                    onChange={e => setInternalNotes(e.target.value)}
-                    placeholder="Solo visible para el equipo"
-                  />
-                </div>
-
-                {/* Footer */}
-                <div className="flex items-center justify-end gap-3 border-t border-[var(--gbp-border)] pt-6">
-                  <button type="button" onClick={close} className="rounded-xl border border-[var(--gbp-border)] px-6 py-2.5 text-sm font-bold text-[var(--gbp-text2)]">
+                {/* Footer — siempre visible */}
+                <div className="flex shrink-0 items-center justify-end gap-3 border-t border-[var(--gbp-border)] px-10 py-6">
+                  <button type="button" onClick={close} className="rounded-xl border border-[var(--gbp-border)] px-6 py-2.5 text-sm font-bold text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg)]">
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--gbp-accent)] px-8 py-2.5 text-sm font-bold text-white shadow-[var(--gbp-shadow-accent)] disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--gbp-accent)] px-8 py-2.5 text-sm font-bold text-white shadow-[var(--gbp-shadow-accent)] transition hover:opacity-90 disabled:opacity-60"
                   >
                     {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Generando…</> : "Generar link →"}
                   </button>
@@ -306,7 +303,8 @@ function ItemCard({ idx, item, modules, canRemove, onRemove, onChange }: ItemCar
   const actionMeta = ACTION_META[item.actionType];
 
   return (
-    <div className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-5 space-y-4">
+    <div className="rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-6 space-y-5">
+
       {/* Item header */}
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
@@ -316,47 +314,45 @@ function ItemCard({ idx, item, modules, canRemove, onRemove, onChange }: ItemCar
           <button
             type="button"
             onClick={onRemove}
-            className="rounded-lg p-1 text-muted-foreground/60 transition hover:bg-rose-50 hover:text-rose-500"
+            className="rounded-lg p-1.5 text-muted-foreground/50 transition hover:bg-rose-50 hover:text-rose-500"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 className="h-4 w-4" />
           </button>
         )}
       </div>
 
-      {/* Description + Amount */}
-      <div className="grid gap-4 sm:grid-cols-[1fr_130px]">
+      {/* Descripción / Monto / USD — 3 columnas */}
+      <div className="grid gap-4 sm:grid-cols-[1fr_160px_56px]">
         <SuperadminInputField
-          label="Descripción (visible en Stripe)"
+          label="Descripción"
           name={`desc_${idx}`}
           value={item.description}
           onChange={e => onChange({ description: e.target.value })}
           placeholder="p.ej: Módulo Mantenimiento"
           required
         />
-        <div className="grid grid-cols-[1fr_auto] items-end gap-2">
-          <SuperadminInputField
-            label="Monto ($)"
-            name={`amount_${idx}`}
-            type="number"
-            min="0.01"
-            step="0.01"
-            value={item.amount}
-            onChange={e => onChange({ amount: e.target.value })}
-            placeholder="0.00"
-            required
-          />
-          <div className="flex items-center justify-center rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-3.5 text-sm font-bold text-[var(--gbp-text2)]">
-            USD
-          </div>
+        <SuperadminInputField
+          label="Monto ($)"
+          name={`amount_${idx}`}
+          type="number"
+          min="0.01"
+          step="0.01"
+          value={item.amount}
+          onChange={e => onChange({ amount: e.target.value })}
+          placeholder="0.00"
+          required
+        />
+        <div className="mt-3 flex items-center justify-center rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] py-3.5 text-sm font-bold text-[var(--gbp-text2)]">
+          USD
         </div>
       </div>
 
-      {/* Action type */}
+      {/* Acción al pagar */}
       <div>
-        <p className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+        <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
           Acción al pagar
         </p>
-        <div className="grid grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-3 gap-3">
           {(Object.entries(ACTION_META) as [ActionType, typeof ACTION_META[ActionType]][]).map(([type, meta]) => {
             const Icon = meta.icon;
             const active = item.actionType === type;
@@ -370,18 +366,18 @@ function ItemCard({ idx, item, modules, canRemove, onRemove, onChange }: ItemCar
                 key={type}
                 type="button"
                 onClick={() => onChange({ actionType: type, moduleCode: "", invoiceCount: "" })}
-                className={`flex flex-col items-start gap-1.5 rounded-xl border p-3.5 text-left transition ${colorCls}`}
+                className={`flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition ${colorCls}`}
               >
-                <Icon className="h-3.5 w-3.5" />
-                <span className="text-[11px] font-bold">{meta.label}</span>
+                <Icon className="h-4 w-4" />
+                <span className="text-xs font-bold">{meta.label}</span>
               </button>
             );
           })}
         </div>
-        <p className="mt-2 text-[11px] text-muted-foreground">{actionMeta.description}</p>
+        <p className="mt-2.5 text-[11px] text-muted-foreground">{actionMeta.description}</p>
       </div>
 
-      {/* Action payload */}
+      {/* Payload condicional */}
       {item.actionType === "activate_module" && (
         <SuperadminSelectField
           label="Módulo a activar"
