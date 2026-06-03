@@ -102,34 +102,43 @@ export async function POST(req: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.getbackplate.com";
 
   // ── Create Stripe Checkout Session (one-time payment) ─────
-  const session = await stripe.checkout.sessions.create({
-    mode: "payment",
-    payment_method_types: ["card"],
-    line_items: [
-      {
-        price_data: {
-          currency,
-          product_data: { name: description.trim() },
-          unit_amount: amountCents,
+  // payment mode: expires_at must be 30 min–24h from now (Stripe limit)
+  const stripeExpiresAt = Math.floor(Date.now() / 1000) + 23 * 3600;
+
+  let session: Awaited<ReturnType<typeof stripe.checkout.sessions.create>>;
+  try {
+    session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      line_items: [
+        {
+          price_data: {
+            currency,
+            product_data: { name: description.trim() },
+            unit_amount: amountCents,
+          },
+          quantity: 1,
         },
-        quantity: 1,
+      ],
+      ...(stripeMapping?.stripe_customer_id
+        ? { customer: stripeMapping.stripe_customer_id }
+        : {}),
+      success_url: `${appUrl}/app/dashboard?manual_payment=success`,
+      cancel_url:  `${appUrl}/app/dashboard?manual_payment=canceled`,
+      expires_at:  stripeExpiresAt,
+      metadata: {
+        manualPaymentOrderId: order.id,
+        organizationId,
+        actionType,
+        ...(actionPayload ? { actionPayload: JSON.stringify(actionPayload) } : {}),
       },
-    ],
-    // Pre-fill customer if we already have one in Stripe
-    ...(stripeMapping?.stripe_customer_id
-      ? { customer: stripeMapping.stripe_customer_id }
-      : {}),
-    success_url: `${appUrl}/app/dashboard?manual_payment=success`,
-    cancel_url:  `${appUrl}/app/dashboard?manual_payment=canceled`,
-    // Stripe expires_at must be between 30 min and 24h for payment mode
-    // For longer windows we rely on our own expires_at field in the DB
-    metadata: {
-      manualPaymentOrderId: order.id,
-      organizationId,
-      actionType,
-      ...(actionPayload ? { actionPayload: JSON.stringify(actionPayload) } : {}),
-    },
-  });
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Error al crear la sesión en Stripe";
+    console.error("[checkout-manual] Stripe error:", msg);
+    // Clean up the DB record so the admin can retry
+    await supabase.from("manual_payment_orders").delete().eq("id", order.id);
+    return NextResponse.json({ error: msg }, { status: 502 });
+  }
 
   // ── Update order with Stripe session info ──────────────────
   await supabase
