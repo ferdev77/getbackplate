@@ -2073,9 +2073,9 @@ export function CompanyShell({
                     >
                       <div className="mb-1 flex items-center gap-2">
                         <div className="h-1.5 w-1.5 rounded-full" style={{ background: palette.accent }} />
-                        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-text)]">GetBackplate App</p>
+                        <p className="text-[10px] font-semibold tracking-[0.04em] text-[var(--gbp-text)]">GetBackplate App</p>
                       </div>
-                      <p className="text-xs font-bold" style={{ color: palette.accent }}>
+                      <p className="text-xs font-semibold" style={{ color: palette.accent }}>
                         {currentPlanName && currentPlanName !== "Sin plan" ? currentPlanName : "Get started"}
                       </p>
                     </button>
@@ -2098,9 +2098,9 @@ export function CompanyShell({
                         >
                           <div className="mb-1 flex items-center gap-2">
                             <div className={`h-1.5 w-1.5 rounded-full ${hasActive ? "bg-emerald-500" : (isDarkTheme ? "bg-white/40" : "bg-[var(--gbp-muted)]")}`} />
-                            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-text)]">GetBackplate Integrations</p>
+                            <p className="text-[10px] font-semibold tracking-[0.04em] text-[var(--gbp-text)]">GetBackplate Integrations</p>
                           </div>
-                          <p className={`text-xs font-bold ${hasActive ? (isDarkTheme ? "text-emerald-400" : "text-emerald-600") : (isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]")}`}>
+                          <p className={`text-xs font-semibold ${hasActive ? (isDarkTheme ? "text-emerald-400" : "text-emerald-600") : (isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]")}`}>
                             {addonSummary}
                           </p>
                         </button>
