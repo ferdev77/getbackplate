@@ -636,6 +636,16 @@ export async function requireEmployeeAccess() {
     redirect(buildChangePasswordRedirect("/portal/home"));
   }
 
+  // Superadmin impersonation bypass: superadmins access company routes (/app/*),
+  // never employee routes (/portal/*). Redirect silently to avoid confusing error toasts.
+  const isSuperadmin = await isCurrentUserSuperadmin();
+  if (isSuperadmin) {
+    const impersonation = await resolveActiveSuperadminImpersonationSession(user.id);
+    if (impersonation) {
+      redirect("/app/dashboard");
+    }
+  }
+
   const preferredOrganizationId = await getActiveOrganizationIdFromCookie();
 
   if (preferredOrganizationId) {
