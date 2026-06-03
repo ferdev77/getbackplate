@@ -29,6 +29,47 @@ export type IntegrationPlan = {
   has_stripe_prices: boolean;
 };
 
+const INTEGRATION_EXTRAS = [
+  {
+    icon: "✦",
+    title: "Setup waived on annual.",
+    desc: "Commit annually and we waive the one-time setup fee — that's up to $5,000 in your pocket. You also lock in your rate forever.",
+  },
+  {
+    icon: "∞",
+    title: "Scale across multiple R365 customers.",
+    desc: "Each plan supports a defined number of R365 customer connections. Add more anytime — no full plan upgrade needed if you only add one or two.",
+  },
+  {
+    icon: "⚡",
+    title: "Real-time, not delayed.",
+    desc: "The moment you finalize and send an invoice in QuickBooks Online, it lands in your customer's R365. No exports, no manual uploads.",
+  },
+] as const;
+
+const INTEGRATION_NOTES = [
+  [
+    "About overage:",
+    "If you exceed your monthly invoice allowance, additional invoices are billed at the per-invoice rate of your plan. No overage on Scale annual plans.",
+  ],
+  [
+    "About R365 customer connections:",
+    "Each connection represents one Restaurant365 customer (restaurant group or location) that receives your invoices. Each has its own configuration: vendor name in their R365, account number, FTP credentials, and item catalog mapping.",
+  ],
+  [
+    "Adding connections beyond your plan:",
+    "$500 one-time setup + $99/mo per additional connection ($79/mo on Scale). Grow gradually without changing plans — until the math points to an upgrade naturally.",
+  ],
+  [
+    "About setup:",
+    "Includes initial configuration, FTP setup with R365 Support, item catalog mapping, test transactions, and go-live monitoring. Typically completed within 5 business days from kickoff.",
+  ],
+  [
+    "Standalone product:",
+    "No GetBackplate platform subscription required to use the QBO ↔ R365 integration.",
+  ],
+] as const;
+
 function formatPrice(amount: number) {
   return amount.toLocaleString("en-US");
 }
@@ -665,27 +706,9 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
       {/* Extras */}
       <section style={{ padding: "60px 0", borderTop: "1px solid #E5DFD3" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 32px" }}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-            {(
-              [
-                {
-                  icon: "✦",
-                  title: "Setup waived on annual.",
-                  desc: "Commit annually and we waive the one-time setup fee — that's up to $5,000 in your pocket. You also lock in your rate forever.",
-                },
-                {
-                  icon: "∞",
-                  title: "Scale across multiple R365 customers.",
-                  desc: "Each plan supports a defined number of R365 customer connections. Add more anytime — no full plan upgrade needed if you only add one or two.",
-                },
-                {
-                  icon: "⚡",
-                  title: "Real-time, not delayed.",
-                  desc: "The moment you finalize and send an invoice in QuickBooks Online, it lands in your customer's R365. No exports, no manual uploads.",
-                },
-              ] as { icon: string; title: string; desc: string }[]
-            ).map((extra) => (
-              <div key={extra.title}>
+          <div className="grid grid-cols-1 gap-10 md:grid-cols-3" style={{ alignItems: "start" }}>
+            {INTEGRATION_EXTRAS.map((extra) => (
+              <div key={extra.title} style={{ maxWidth: 340 }}>
                 <div
                   style={{
                     width: 36,
@@ -733,31 +756,8 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
           lineHeight: 1.8,
         }}
       >
-        <div style={{ maxWidth: 760, margin: "0 auto", padding: "0 32px" }}>
-          {(
-            [
-              [
-                "About overage:",
-                "If you exceed your monthly invoice allowance, additional invoices are billed at the per-invoice rate of your plan. No overage on Scale annual plans.",
-              ],
-              [
-                "About R365 customer connections:",
-                "Each connection represents one Restaurant365 customer (restaurant group or location) that receives your invoices. Each has its own configuration: vendor name in their R365, account number, FTP credentials, and item catalog mapping.",
-              ],
-              [
-                "Adding connections beyond your plan:",
-                "$500 one-time setup + $99/mo per additional connection ($79/mo on Scale). Grow gradually without changing plans — until the math points to an upgrade naturally.",
-              ],
-              [
-                "About setup:",
-                "Includes initial configuration, FTP setup with R365 Support, item catalog mapping, test transactions, and go-live monitoring. Typically completed within 5 business days from kickoff.",
-              ],
-              [
-                "Standalone product:",
-                "No GetBackplate platform subscription required to use the QBO ↔ R365 integration.",
-              ],
-            ] as [string, string][]
-          ).map(([label, text], i) => (
+        <div style={{ maxWidth: 760, margin: "0 auto", padding: "0 32px", textAlign: "left" }}>
+          {INTEGRATION_NOTES.map(([label, text], i) => (
             <p key={label} style={{ marginTop: i === 0 ? 0 : 14 }}>
               <strong style={{ color: "#6B6760" }}>{label}</strong> {text}
             </p>
