@@ -1968,12 +1968,13 @@ export function CompanyShell({
                             </p>
                           ))}
                           {!plan.isEnterprise && !isCurrent && plan.setupFeeAmount != null && (
-                            <label className={`mt-3 flex cursor-pointer items-start gap-2 rounded-lg border p-2.5 text-[10px] transition ${setupFeeSelected[plan.id] ? (isDarkTheme ? "border-white/20 bg-white/[0.06]" : "border-[var(--gbp-accent)]/30 bg-[var(--gbp-accent-glow)]") : (isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]")}`}>
+                            <label className={`mt-3 flex items-start gap-2 rounded-lg border p-2.5 text-[10px] transition ${isDarkTheme ? "border-white/20 bg-white/[0.06]" : "border-[var(--gbp-accent)]/30 bg-[var(--gbp-accent-glow)]"}`}>
                               <input
                                 type="checkbox"
                                 className="mt-px shrink-0 accent-[var(--gbp-accent)]"
-                                checked={setupFeeSelected[plan.id] ?? false}
-                                onChange={(e) => setSetupFeeSelected((prev) => ({ ...prev, [plan.id]: e.target.checked }))}
+                                checked
+                                disabled
+                                readOnly
                               />
                               <span className={isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}>
                                 Setup de configuración inicial
@@ -1994,7 +1995,7 @@ export function CompanyShell({
                             <button
                               type="button"
                               disabled={isLoading || isCurrent}
-                              onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle, setupFeeSelected[plan.id] ?? false)}
+                              onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle, true)}
                               className={`mt-auto w-full rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${isCurrent ? (isDarkTheme ? "bg-white/10 text-white/40" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]") : plan.isFeatured ? "bg-[var(--gbp-accent)] text-white hover:opacity-90" : (isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]")}`}
                             >
                               {isLoading ? "Redirigiendo..." : isCurrent ? "Plan actual" : "Contratar →"}
@@ -2731,12 +2732,13 @@ export function CompanyShell({
                       )}
                     </div>
                     {!plan.isEnterprise && !isCurrent && plan.setupFeeAmount != null && (
-                      <label className={`mb-3 flex cursor-pointer items-start gap-2 rounded-lg border p-2.5 text-[10px] transition ${setupFeeSelected[plan.id] ? (isDarkTheme ? "border-white/20 bg-white/[0.06]" : "border-[var(--gbp-accent)]/30 bg-[var(--gbp-accent-glow)]") : (isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]")}`}>
+                      <label className={`mb-3 flex items-start gap-2 rounded-lg border p-2.5 text-[10px] transition ${isDarkTheme ? "border-white/20 bg-white/[0.06]" : "border-[var(--gbp-accent)]/30 bg-[var(--gbp-accent-glow)]"}`}>
                         <input
                           type="checkbox"
                           className="mt-px shrink-0 accent-[var(--gbp-accent)]"
-                          checked={setupFeeSelected[plan.id] ?? false}
-                          onChange={(e) => setSetupFeeSelected((prev) => ({ ...prev, [plan.id]: e.target.checked }))}
+                          checked
+                          disabled
+                          readOnly
                         />
                         <span className={isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}>
                           Setup de configuración inicial
@@ -2764,7 +2766,7 @@ export function CompanyShell({
                       <button
                         type="button"
                         disabled={isLoading || isCurrent}
-                        onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle, setupFeeSelected[plan.id] ?? false)}
+                        onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle, true)}
                         className={`w-full rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                           isCurrent
                             ? isDarkTheme ? "bg-white/10 text-white/40" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]"
