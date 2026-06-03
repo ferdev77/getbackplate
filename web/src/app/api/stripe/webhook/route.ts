@@ -120,6 +120,29 @@ async function executeManualAction(
       }
     }
     console.info(`[Webhook][manual] invoice_balance +${count} for org ${orgId}`);
+  } else if (actionType === 'add_slot') {
+    const count = Number(actionPayload.slotCount ?? 1);
+    if (count <= 0) return;
+    const { error: slotErr } = await supabase.rpc('increment_r365_slots', {
+      p_organization_id: orgId,
+      p_amount: count,
+    });
+    if (slotErr) {
+      console.warn('[Webhook][manual] RPC increment_r365_slots failed, trying direct update:', slotErr);
+      const { data: addonRow } = await supabase
+        .from('organization_addons')
+        .select('id, extra_r365_connections')
+        .eq('organization_id', orgId)
+        .eq('status', 'active')
+        .maybeSingle();
+      if (addonRow) {
+        await supabase
+          .from('organization_addons')
+          .update({ extra_r365_connections: ((addonRow.extra_r365_connections as number) ?? 0) + count })
+          .eq('id', addonRow.id);
+      }
+    }
+    console.info(`[Webhook][manual] extra_r365_connections +${count} for org ${orgId}`);
   }
   // 'custom': payment recorded, no automatic side-effect
 }

@@ -37,13 +37,14 @@ export default async function IntegrationQuickbooksPage() {
     showOnboarding = integrationPlanId != null && onboardingCompletedAt == null;
 
     if (integrationPlanId) {
-      const { data: plan } = await supabase
-        .from("plans")
-        .select("max_r365_connections, name")
-        .eq("id", integrationPlanId)
-        .maybeSingle();
-      maxR365Connections = (plan as Record<string, unknown> | null)?.max_r365_connections as number | null ?? null;
-      planName = (plan as Record<string, unknown> | null)?.name as string ?? "QBO";
+      const [planData, addonData] = await Promise.all([
+        supabase.from("plans").select("max_r365_connections, name").eq("id", integrationPlanId).maybeSingle(),
+        supabase.from("organization_addons").select("extra_r365_connections").eq("organization_id", tenant.organizationId).eq("status", "active").limit(1).maybeSingle(),
+      ]);
+      const base = (planData.data as Record<string, unknown> | null)?.max_r365_connections as number | null ?? null;
+      const extra = ((addonData.data as Record<string, unknown> | null)?.extra_r365_connections as number) ?? 0;
+      maxR365Connections = base != null ? base + extra : null;
+      planName = (planData.data as Record<string, unknown> | null)?.name as string ?? "QBO";
     }
   }
 
