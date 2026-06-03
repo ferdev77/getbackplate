@@ -41,14 +41,16 @@ export async function GET() {
         ? supabase.from("plans").select("invoices_included").eq("id", integrationPlanId).maybeSingle()
         : Promise.resolve({ data: null }),
       supabase.from("organization_addons")
-        .select("current_period_end")
+        .select("current_period_end, invoice_balance")
         .eq("organization_id", organizationId)
         .eq("status", "active")
         .limit(1)
         .maybeSingle(),
     ]);
 
-    const invoicesIncluded = (planRow.data as { invoices_included?: number | null } | null)?.invoices_included ?? null;
+    const basePlanInvoices = (planRow.data as { invoices_included?: number | null } | null)?.invoices_included ?? null;
+    const extraInvoiceBalance = ((addonRow.data as { invoice_balance?: number | null } | null)?.invoice_balance) ?? 0;
+    const invoicesIncluded = basePlanInvoices != null ? basePlanInvoices + extraInvoiceBalance : null;
     const currentPeriodEnd = (addonRow.data as { current_period_end?: string | null } | null)?.current_period_end ?? null;
     const periodStart = currentPeriodEnd
       ? new Date(new Date(currentPeriodEnd).setMonth(new Date(currentPeriodEnd).getMonth() - 1)).toISOString()
