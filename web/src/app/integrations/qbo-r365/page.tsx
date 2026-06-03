@@ -23,6 +23,8 @@ export const metadata: Metadata = {
     "The only native connector between QuickBooks Online and Restaurant365. Send invoices automatically, in real time.",
 };
 
+export const dynamic = "force-dynamic";
+
 async function resolveStripePrices(stripePriceId: string) {
   try {
     const basePrice = await stripe.prices.retrieve(stripePriceId);

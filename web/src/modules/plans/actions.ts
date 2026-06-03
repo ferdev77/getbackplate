@@ -70,6 +70,15 @@ function qs(message: string) {
   return encodeURIComponent(message);
 }
 
+function revalidatePlanSurfaces(planType: string) {
+  revalidatePath("/superadmin/plans");
+
+  if (planType === "qbo_r365") {
+    revalidatePath("/");
+    revalidatePath("/integrations/qbo-r365");
+  }
+}
+
 function toFriendlyPlanErrorMessage(raw: string) {
   const text = raw.toLowerCase();
 
@@ -257,7 +266,7 @@ export async function createPlanAction(formData: FormData) {
     },
   });
 
-  revalidatePath("/superadmin/plans");
+  revalidatePlanSurfaces(planType);
   redirect("/superadmin/plans?status=success&message=" + qs("Plan creado correctamente"));
 }
 
@@ -397,7 +406,7 @@ export async function updatePlanAction(formData: FormData) {
     },
   });
 
-  revalidatePath("/superadmin/plans");
+  revalidatePlanSurfaces(planType);
   redirect("/superadmin/plans?status=success&message=" + qs("Plan actualizado correctamente"));
 }
 
@@ -431,6 +440,21 @@ export async function deletePlanAction(formData: FormData) {
     );
   }
 
+  const { data: planRow, error: planLookupError } = await supabase
+    .from("plans")
+    .select("plan_type")
+    .eq("id", planId)
+    .single();
+
+  if (planLookupError) {
+    redirect(
+      "/superadmin/plans?status=error&message=" +
+        qs(`No se pudo obtener el tipo del plan: ${toFriendlyPlanErrorMessage(planLookupError.message)}`),
+    );
+  }
+
+  const deletedPlanType = normalizePlanType(String(planRow?.plan_type ?? "platform"));
+
   const { error } = await supabase.from("plans").delete().eq("id", planId);
 
   if (error) {
@@ -449,6 +473,6 @@ export async function deletePlanAction(formData: FormData) {
     severity: "critical",
   });
 
-  revalidatePath("/superadmin/plans");
+  revalidatePlanSurfaces(deletedPlanType);
   redirect("/superadmin/plans?status=success&message=" + qs("Plan eliminado correctamente"));
 }
