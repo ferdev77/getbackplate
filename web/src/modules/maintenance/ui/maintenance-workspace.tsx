@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { CalendarDays, ChevronDown, Clock, FileText, ImageIcon, Loader2, MessageSquare, Paperclip, Plus, Search, Send, Settings2, Wrench, X } from "lucide-react";
+import { CalendarDays, ChevronDown, FileText, ImageIcon, Loader2, MessageSquare, Paperclip, Plus, Search, Send, Settings2, Wrench, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -11,6 +11,7 @@ import {
   type MaintenanceRequest,
   type MaintenanceServiceItemOption,
   type MaintenanceStatus,
+  type MaintenanceUpdate,
 } from "@/modules/maintenance/types";
 
 type BranchOption = {
@@ -504,8 +505,14 @@ function statusClassName(status: MaintenanceStatus) {
   return "bg-[var(--gbp-accent)]/10 text-[var(--gbp-accent)] border-[var(--gbp-accent)]/20";
 }
 
-function imageAttachments(request: MaintenanceRequest) {
-  return request.attachments.filter((attachment) => String(attachment.mimeType ?? "").startsWith("image/"));
+function latestRequestResponse(request: MaintenanceRequest): MaintenanceUpdate | null {
+  const relevantUpdates = request.updates.filter((update) => {
+    if (update.updateType === "created" || update.updateType === "submitted") return false;
+    if (update.fromStatus === "draft" && update.toStatus === "draft") return false;
+    return true;
+  });
+
+  return relevantUpdates.at(-1) ?? null;
 }
 
 function MaintenanceRequestCardSkeleton() {
@@ -819,9 +826,9 @@ export function MaintenanceWorkspace({
           ) : null}
 
           {!showListSkeleton ? requests.map((request) => {
-            const previews = imageAttachments(request).slice(0, 3);
             const active = selectedRequest?.id === request.id;
             const expanded = expandedRequestIds.has(request.id);
+            const latestResponse = latestRequestResponse(request);
             return (
               <article
                 key={request.id}
@@ -843,30 +850,28 @@ export function MaintenanceWorkspace({
                       </div>
                       <h2 className="truncate text-base font-black text-[var(--gbp-text)]">{request.title}</h2>
                     </div>
-                    <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.08em] ${statusClassName(request.status)}`}>
-                      {STATUS_LABELS[request.status]}
-                    </span>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <span className="rounded-full bg-[var(--gbp-bg)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">
+                        Prioridad {PRIORITY_LABELS[request.priority] ?? request.priority}
+                      </span>
+                      <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.08em] ${statusClassName(request.status)}`}>
+                        {request.status === "visit_scheduled" && request.scheduledVisitAt
+                          ? `Visita programada - ${dateLabel(request.scheduledVisitAt)}`
+                          : STATUS_LABELS[request.status]}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[var(--gbp-text2)]">
-                    <span className="rounded-full bg-[var(--gbp-bg)] px-3 py-1 font-semibold">{request.branchName}</span>
-                    <span className="rounded-full bg-[var(--gbp-bg)] px-3 py-1 font-semibold">{request.category}</span>
-                    {request.serviceItem ? <span className="rounded-full bg-[var(--gbp-bg)] px-3 py-1 font-semibold">{request.serviceItem}</span> : null}
+                    <span className="rounded-full bg-[var(--gbp-bg)] px-3 py-1 font-semibold">Locacion: {request.branchName}</span>
+                    <span className="rounded-full bg-[var(--gbp-bg)] px-3 py-1 font-semibold">Categoria: {request.category}</span>
+                    {request.serviceItem ? <span className="rounded-full bg-[var(--gbp-bg)] px-3 py-1 font-semibold">Item: {request.serviceItem}</span> : null}
                   </div>
 
                   <p className="mt-3 line-clamp-1 text-sm leading-relaxed text-[var(--gbp-text2)]">{request.description}</p>
                 </button>
 
                 <div className="flex flex-wrap items-center gap-2 px-4 pb-4">
-                  <span className="rounded-full bg-[var(--gbp-bg)] px-3 py-1 text-xs font-semibold text-[var(--gbp-text2)]">
-                    Prioridad {PRIORITY_LABELS[request.priority] ?? request.priority}
-                  </span>
-                  {request.scheduledVisitAt ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--gbp-bg)] px-3 py-1 text-xs font-semibold text-[var(--gbp-text2)]">
-                      <Clock className="h-3.5 w-3.5" />
-                      Visita {dateLabel(request.scheduledVisitAt)}
-                    </span>
-                  ) : null}
                   {request.attachments.length ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-[var(--gbp-bg)] px-3 py-1 text-xs font-semibold text-[var(--gbp-text2)]">
                       <Paperclip className="h-3.5 w-3.5" />
@@ -882,40 +887,48 @@ export function MaintenanceWorkspace({
                     className="ml-auto inline-flex items-center gap-1 rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-1 text-xs font-bold text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-surface2)]"
                     aria-expanded={expanded}
                   >
-                    {expanded ? "Ocultar detalle" : "Ver detalle"}
+                    {expanded ? "Ocultar respuesta" : latestResponse ? "Ver respuesta" : "No hay respuesta"}
                     <ChevronDown className={`h-3.5 w-3.5 transition ${expanded ? "rotate-180" : ""}`} />
                   </button>
                 </div>
 
                 {expanded ? (
                   <div className="border-t border-[var(--gbp-border)] px-4 py-4">
-                    <div className="grid gap-4 sm:grid-cols-3">
-                      <div>
-                        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Categoria</p>
-                        <p className="mt-1 text-sm text-[var(--gbp-text2)]">{request.category}</p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Item</p>
-                        <p className="mt-1 text-sm text-[var(--gbp-text2)]">{request.serviceItem || "N/A"}</p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Locacion</p>
-                        <p className="mt-1 text-sm text-[var(--gbp-text2)]">{request.branchName}</p>
-                      </div>
-                    </div>
+                    {latestResponse ? (
+                      <div className="space-y-4">
+                        <div className="grid gap-4 sm:grid-cols-3">
+                          <div>
+                            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Respondio</p>
+                            <p className="mt-1 text-sm text-[var(--gbp-text2)]">{latestResponse.actorName}</p>
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Estado</p>
+                            <p className="mt-1 text-sm text-[var(--gbp-text2)]">{latestResponse.toStatus ? STATUS_LABELS[latestResponse.toStatus] : "Comentario"}</p>
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Fecha</p>
+                            <p className="mt-1 text-sm text-[var(--gbp-text2)]">{dateLabel(latestResponse.createdAt)}</p>
+                          </div>
+                        </div>
 
-                    <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-[var(--gbp-text2)]">{request.description}</p>
+                        {latestResponse.scheduledVisitAt ? (
+                          <div>
+                            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Visita programada</p>
+                            <p className="mt-1 text-sm text-[var(--gbp-text2)]">{dateLabel(latestResponse.scheduledVisitAt)}</p>
+                          </div>
+                        ) : null}
 
-                    {previews.length ? (
-                      <div className="mt-4 flex gap-2">
-                        {previews.map((attachment) => (
-                          attachment.signedUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img key={attachment.id} src={attachment.signedUrl} alt={attachment.fileName} className="h-16 w-16 rounded-xl object-cover" />
-                          ) : null
-                        ))}
+                        <div>
+                          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Ultima contestacion</p>
+                          <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-[var(--gbp-text2)]">{latestResponse.message?.trim() || "Sin comentario en esta respuesta."}</p>
+                        </div>
                       </div>
-                    ) : null}
+                    ) : (
+                      <div className="rounded-xl bg-[var(--gbp-bg)] px-4 py-3 text-sm text-[var(--gbp-muted)]">
+                        No hay respuesta todavia para esta request.
+                      </div>
+                    )}
+
                   </div>
                 ) : null}
               </article>
