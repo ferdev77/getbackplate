@@ -497,6 +497,15 @@ function dateLabel(value: string | null) {
   }).format(date);
 }
 
+function visitDateLabel(value: string | null) {
+  if (!value) return "Sin fecha";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Sin fecha";
+  return new Intl.DateTimeFormat("es", {
+    dateStyle: "medium",
+  }).format(date);
+}
+
 function statusClassName(status: MaintenanceStatus) {
   if (status === "resolved") return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
   if (status === "cancelled") return "bg-rose-500/10 text-rose-600 border-rose-500/20";
@@ -864,7 +873,7 @@ export function MaintenanceWorkspace({
                       </span>
                       <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.08em] ${statusClassName(request.status)}`}>
                         {request.status === "visit_scheduled" && request.scheduledVisitAt
-                          ? `Visita programada - ${dateLabel(request.scheduledVisitAt)}`
+                          ? `Visita programada - ${visitDateLabel(request.scheduledVisitAt)}`
                           : STATUS_LABELS[request.status]}
                       </span>
                     </div>
@@ -926,7 +935,7 @@ export function MaintenanceWorkspace({
                           </div>
                           <div>
                             <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Visita programada</p>
-                            <p className="mt-1 text-sm text-[var(--gbp-text2)]">{latestResponse.scheduledVisitAt ? dateLabel(latestResponse.scheduledVisitAt) : "Sin fecha programada"}</p>
+                            <p className="mt-1 text-sm text-[var(--gbp-text2)]">{latestResponse.scheduledVisitAt ? visitDateLabel(latestResponse.scheduledVisitAt) : "Sin fecha programada"}</p>
                           </div>
                         </div>
                       </div>
@@ -1106,7 +1115,7 @@ export function MaintenanceWorkspace({
                       <p className="text-[11px] text-[var(--gbp-muted)]">
                         {update.actorName} - {dateLabel(update.createdAt)}
                       </p>
-                      {update.scheduledVisitAt ? <p className="mt-1 text-xs text-[var(--gbp-text2)]">Visita: {dateLabel(update.scheduledVisitAt)}</p> : null}
+                      {update.scheduledVisitAt ? <p className="mt-1 text-xs text-[var(--gbp-text2)]">Visita: {visitDateLabel(update.scheduledVisitAt)}</p> : null}
                       {update.message ? <p className="mt-1 text-sm text-[var(--gbp-text2)]">{update.message}</p> : null}
                     </div>
                   ))}
@@ -1140,7 +1149,7 @@ export function MaintenanceWorkspace({
                   {responseStatus === "schedule_visit" ? (
                     <input
                       name="scheduled_visit_at"
-                      type="datetime-local"
+                      type="date"
                       value={responseScheduledVisitAt}
                       onChange={(event) => setResponseScheduledVisitAt(event.target.value)}
                       required
