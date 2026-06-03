@@ -51,12 +51,11 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
   const [actionType, setActionType] = useState<ActionType>("custom");
   const [moduleCode, setModuleCode] = useState("");
   const [invoiceCount, setInvoiceCount] = useState("");
-  const [expiresInDays, setExpiresInDays] = useState("7");
 
   function reset() {
     setOrgId(""); setDescription(""); setInternalNotes(""); setAmount("");
     setActionType("custom"); setModuleCode("");
-    setInvoiceCount(""); setExpiresInDays("7"); setGeneratedUrl(null); setCopied(false);
+    setInvoiceCount(""); setGeneratedUrl(null); setCopied(false);
   }
 
   function close() { setOpen(false); setTimeout(reset, 300); }
@@ -84,7 +83,6 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
           currency: "usd",
           actionType,
           actionPayload,
-          expiresInDays: Number(expiresInDays),
         }),
       });
       const data = await res.json() as { url?: string; error?: string };
@@ -141,7 +139,7 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
                 <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
                   <p className="mb-1 text-xs font-bold uppercase tracking-widest text-emerald-700">Link generado</p>
                   <p className="mb-3 text-sm text-emerald-800">
-                    Copiá el link y enviáselo a <strong>{selectedOrg?.name}</strong>. El link expira en {expiresInDays} días.
+                    Copiá el link y enviáselo a <strong>{selectedOrg?.name}</strong>. El link expira en <strong>24 horas</strong> (límite de Stripe).
                   </p>
                   <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-3 text-xs font-mono text-emerald-900 break-all">
                     <Link2 className="h-4 w-4 shrink-0 text-emerald-500" />
@@ -267,17 +265,13 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
                   />
                 )}
 
-                {/* Expiry + notes */}
+                {/* Expiry info + notes */}
                 <div className="grid gap-5 sm:grid-cols-2">
-                  <SuperadminInputField
-                    label="Expira en (días)"
-                    name="expires_in_days"
-                    type="number"
-                    min="1"
-                    max="30"
-                    value={expiresInDays}
-                    onChange={e => setExpiresInDays(e.target.value)}
-                  />
+                  <div className="mt-3 flex items-center gap-2 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3">
+                    <span className="text-sm text-muted-foreground">⏱ Expira en:</span>
+                    <span className="text-sm font-bold text-foreground">24 hs</span>
+                    <span className="ml-auto text-[10px] text-muted-foreground/60">límite de Stripe</span>
+                  </div>
                   <SuperadminInputField
                     label="Notas internas (opcional)"
                     name="internal_notes"
