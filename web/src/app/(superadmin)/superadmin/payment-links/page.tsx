@@ -4,6 +4,7 @@ import { CheckCircle2, Clock, XCircle, Ban, Zap, FileStack, Tag } from "lucide-r
 import { PaymentLinkModal } from "./payment-link-modal";
 import { CopyUrlButton } from "./copy-url-button";
 import { CancelOrderButton } from "./cancel-order-button";
+import { DeleteOrderButton } from "./delete-order-button";
 
 export const dynamic = "force-dynamic";
 
@@ -155,6 +156,9 @@ export default async function PaymentLinksPage(_props: PageProps) {
                         )}
                         {order.status === "pending" && (
                           <CancelOrderButton orderId={order.id} />
+                        )}
+                        {order.status !== "paid" && (
+                          <DeleteOrderButton orderId={order.id} />
                         )}
                       </div>
                     </td>

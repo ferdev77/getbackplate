@@ -23,3 +23,23 @@ export async function cancelManualPaymentOrderAction(formData: FormData) {
   revalidatePath("/superadmin/payment-links");
   return { ok: true };
 }
+
+export async function deleteManualPaymentOrderAction(formData: FormData) {
+  await requireSuperadmin();
+
+  const orderId = String(formData.get("order_id") ?? "").trim();
+  if (!orderId) return { ok: false, error: "ID de orden inválido" };
+
+  const supabase = createSupabaseAdminClient();
+
+  const { error } = await supabase
+    .from("manual_payment_orders")
+    .delete()
+    .eq("id", orderId)
+    .neq("status", "paid"); // never delete paid orders
+
+  if (error) return { ok: false, error: "No se pudo eliminar la orden" };
+
+  revalidatePath("/superadmin/payment-links");
+  return { ok: true };
+}
