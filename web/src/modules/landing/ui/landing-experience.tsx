@@ -24,6 +24,11 @@ type PlanInput = {
 
 type Props = {
   plans: PlanInput[];
+  integrationPlans: Array<{
+    id: string;
+    price_amount: number | null;
+    is_enterprise: boolean;
+  }>;
 };
 
 type Lang = "en" | "es";
@@ -68,7 +73,7 @@ const MODULE_DESCRIPTIONS: Record<string, string> = {
   "Full AI Assistant": "Natural language queries against your own data. Ask anything about your operations across every location.",
 };
 
-export function LandingExperience({ plans }: Props) {
+export function LandingExperience({ plans, integrationPlans }: Props) {
   const router = useRouter();
   const [darkMode, setDarkMode] = useState(false);
   const [lang, setLang] = useState<Lang>("en");
@@ -256,6 +261,22 @@ export function LandingExperience({ plans }: Props) {
     () => groupedModules.growth.length + groupedModules.pro.length,
     [groupedModules],
   );
+
+  const integrationPricingSummary = useMemo(() => {
+    const paidPlans = integrationPlans.filter(
+      (plan) => !plan.is_enterprise && typeof plan.price_amount === "number",
+    );
+    const cheapestPlan = paidPlans.reduce<number | null>((lowest, plan) => {
+      if (typeof plan.price_amount !== "number") return lowest;
+      if (lowest === null || plan.price_amount < lowest) return plan.price_amount;
+      return lowest;
+    }, null);
+
+    return {
+      cheapestPlan,
+      totalPlans: integrationPlans.length,
+    };
+  }, [integrationPlans]);
 
   const faqs = useMemo(
     () =>
@@ -1495,8 +1516,8 @@ export function LandingExperience({ plans }: Props) {
                       </div>
                       <div className="mt-5 flex flex-wrap items-center justify-between gap-3.5 border-t border-[var(--gbp-border)] pt-[18px]">
                         <div>
-                          <p className="text-[26px] font-extrabold leading-none tracking-[-0.04em] text-[var(--gbp-text)]">$269<span className="text-[12px] font-semibold text-[var(--gbp-muted)]">/mo</span></p>
-                          <p className="mt-0.5 text-[11px] text-[var(--gbp-muted)]">+ 99¢ per successful invoice</p>
+                          <p className="text-[26px] font-extrabold leading-none tracking-[-0.04em] text-[var(--gbp-text)]">{formatPrice(integrationPricingSummary.cheapestPlan)}<span className="text-[12px] font-semibold text-[var(--gbp-muted)]">/mo</span></p>
+                          <p className="mt-0.5 text-[11px] text-[var(--gbp-muted)]">{lang === "es" ? `${integrationPricingSummary.totalPlans} planes para elegir` : `${integrationPricingSummary.totalPlans} plans to choose from`}</p>
                         </div>
                         <a href="/integrations/qbo-r365" className="rounded-lg bg-[var(--gbp-accent)] px-[22px] py-[11px] text-[13px] font-bold text-white transition-opacity hover:opacity-85">
                           {lang === "es" ? "Comenzar a Enviar →" : "Start Sending →"}
@@ -1537,8 +1558,8 @@ export function LandingExperience({ plans }: Props) {
                       </div>
                       <div className="mt-5 flex flex-wrap items-center justify-between gap-3.5 border-t border-[var(--gbp-border)] pt-[18px]">
                         <div>
-                          <p className="text-[26px] font-extrabold leading-none tracking-[-0.04em] text-[var(--gbp-text)]">$269<span className="text-[12px] font-semibold text-[var(--gbp-muted)]">/mo</span></p>
-                          <p className="mt-0.5 text-[11px] text-[var(--gbp-muted)]">+ 99¢ per successful invoice</p>
+                          <p className="text-[26px] font-extrabold leading-none tracking-[-0.04em] text-[var(--gbp-text)]">{formatPrice(integrationPricingSummary.cheapestPlan)}<span className="text-[12px] font-semibold text-[var(--gbp-muted)]">/mo</span></p>
+                          <p className="mt-0.5 text-[11px] text-[var(--gbp-muted)]">{lang === "es" ? `${integrationPricingSummary.totalPlans} planes para elegir` : `${integrationPricingSummary.totalPlans} plans to choose from`}</p>
                         </div>
                         <a href="/integrations/qbo-r365" className="rounded-lg bg-[var(--gbp-accent)] px-[22px] py-[11px] text-[13px] font-bold text-white transition-opacity hover:opacity-85">
                           {lang === "es" ? "Comenzar a Recibir →" : "Start Receiving →"}

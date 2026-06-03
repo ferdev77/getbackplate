@@ -6,7 +6,10 @@ import {
   getCurrentUserMemberships,
   isCurrentUserSuperadmin,
 } from "@/modules/memberships/queries";
-import { getActivePlansForLanding } from "@/modules/plans/queries";
+import {
+  getActivePlansForIntegration,
+  getActivePlansForLanding,
+} from "@/modules/plans/queries";
 import { LandingExperience } from "@/modules/landing/ui/landing-experience";
 import {
   resolveOrganizationIdFromAuthContext,
@@ -52,9 +55,12 @@ export default async function Home() {
     redirect(`/auth/login${orgQuery}`);
   }
 
-  const plans = await getActivePlansForLanding();
+  const [plans, integrationPlans] = await Promise.all([
+    getActivePlansForLanding(),
+    getActivePlansForIntegration("qbo_r365"),
+  ]);
 
   return (
-    <LandingExperience plans={plans} />
+    <LandingExperience plans={plans} integrationPlans={integrationPlans} />
   );
 }
