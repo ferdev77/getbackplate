@@ -3,12 +3,12 @@ import { PageContent } from "@/shared/ui/page-content";
 import { CheckCircle2, Clock, XCircle, Ban, Zap, FileStack, Tag } from "lucide-react";
 import { PaymentLinkModal } from "./payment-link-modal";
 import { CopyUrlButton } from "./copy-url-button";
-import { cancelManualPaymentOrderAction } from "./actions";
+import { CancelOrderButton } from "./cancel-order-button";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
-  searchParams: Promise<{ status?: string; message?: string }>;
+  searchParams?: Promise<Record<string, string>>;
 };
 
 const STATUS_CONFIG = {
@@ -37,8 +37,7 @@ function fmtDate(iso: string) {
   }).format(new Date(iso));
 }
 
-export default async function PaymentLinksPage({ searchParams }: PageProps) {
-  const params = await searchParams;
+export default async function PaymentLinksPage(_props: PageProps) {
   const supabase = createSupabaseAdminClient();
 
   const [{ data: orders }, { data: orgs }, { data: modules }] = await Promise.all([
@@ -57,12 +56,6 @@ export default async function PaymentLinksPage({ searchParams }: PageProps) {
 
   return (
     <PageContent>
-      {params.message && (
-        <div className={`mb-6 rounded-xl border px-4 py-3 text-sm font-medium ${params.status === "error" ? "border-rose-200 bg-rose-50 text-rose-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>
-          {decodeURIComponent(params.message)}
-        </div>
-      )}
-
       {/* Header */}
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -161,15 +154,7 @@ export default async function PaymentLinksPage({ searchParams }: PageProps) {
                           <CopyUrlButton url={order.checkout_url} />
                         )}
                         {order.status === "pending" && (
-                          <form action={cancelManualPaymentOrderAction}>
-                            <input type="hidden" name="order_id" value={order.id} />
-                            <button
-                              type="submit"
-                              className="rounded-lg border border-rose-200 px-2.5 py-1.5 text-[10px] font-bold text-rose-500 transition hover:bg-rose-50"
-                            >
-                              Cancelar
-                            </button>
-                          </form>
+                          <CancelOrderButton orderId={order.id} />
                         )}
                       </div>
                     </td>
