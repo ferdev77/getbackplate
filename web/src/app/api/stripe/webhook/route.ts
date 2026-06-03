@@ -153,10 +153,21 @@ export async function POST(req: Request) {
 
           console.info(`[Webhook][manual] orderId=${orderId} orgId=${orgId} action=${actionType}`);
 
-          // Mark order as paid
+          // Mark order as paid — save payment traceability fields
+          const paymentIntentId =
+            typeof session.payment_intent === 'string'
+              ? session.payment_intent
+              : (session.payment_intent as { id: string } | null)?.id ?? null;
+          const customerEmail = session.customer_details?.email ?? null;
+
           const { error: paidErr } = await supabase
             .from('manual_payment_orders')
-            .update({ status: 'paid', paid_at: new Date().toISOString() })
+            .update({
+              status: 'paid',
+              paid_at: new Date().toISOString(),
+              stripe_payment_intent_id: paymentIntentId,
+              customer_email: customerEmail,
+            })
             .eq('id', orderId);
           if (paidErr) console.error('[Webhook][manual] Error marking order paid:', paidErr);
 
