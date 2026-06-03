@@ -124,34 +124,50 @@ export async function POST(req: NextRequest) {
   // ── Create Stripe Checkout Session (one-time payment) ─────
   const stripeExpiresAt = Math.floor(Date.now() / 1000) + 23 * 3600;
 
-  let session: Awaited<ReturnType<typeof stripe.checkout.sessions.create>>;
-  try {
-    session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      line_items: items.map(item => ({
-        price_data: {
-          currency,
-          product_data: { name: item.description.trim() },
-          unit_amount: item.amountCents,
-        },
-        quantity: 1,
-      })),
-      ...(stripeMapping?.stripe_customer_id
-        ? { customer: stripeMapping.stripe_customer_id }
-        : {}),
-      success_url: `${appUrl}/app/dashboard?manual_payment=success`,
-      cancel_url:  `${appUrl}/app/dashboard?manual_payment=canceled`,
-      expires_at:  stripeExpiresAt,
-      metadata: {
-        manualPaymentOrderId: order.id,
-        organizationId,
+  const sessionParams = (customerId: string | null) => ({
+    mode: "payment" as const,
+    line_items: items.map(item => ({
+      price_data: {
+        currency,
+        product_data: { name: item.description.trim() },
+        unit_amount: item.amountCents,
       },
-    });
+      quantity: 1,
+    })),
+    ...(customerId ? { customer: customerId } : {}),
+    success_url: `${appUrl}/app/dashboard?manual_payment=success`,
+    cancel_url:  `${appUrl}/app/dashboard?manual_payment=canceled`,
+    expires_at:  stripeExpiresAt,
+    metadata: {
+      manualPaymentOrderId: order.id,
+      organizationId,
+    },
+  });
+
+  let session: Awaited<ReturnType<typeof stripe.checkout.sessions.create>>;
+  const existingCustomerId = stripeMapping?.stripe_customer_id ?? null;
+  try {
+    session = await stripe.checkout.sessions.create(sessionParams(existingCustomerId));
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Error al crear la sesión en Stripe";
-    console.error("[checkout-manual] Stripe error:", msg);
-    await supabase.from("manual_payment_orders").delete().eq("id", order.id);
-    return NextResponse.json({ error: msg }, { status: 502 });
+    const msg = err instanceof Error ? err.message : "";
+    const isStaleCustomer = existingCustomerId && msg.includes("No such customer");
+    if (isStaleCustomer) {
+      // Customer ID is stale (deleted in Stripe or wrong account) — purge it and retry
+      console.warn(`[checkout-manual] Stale customer ${existingCustomerId} for org ${organizationId}, retrying without customer`);
+      await supabase.from("stripe_customers").delete().eq("organization_id", organizationId);
+      try {
+        session = await stripe.checkout.sessions.create(sessionParams(null));
+      } catch (retryErr) {
+        const retryMsg = retryErr instanceof Error ? retryErr.message : "Error al crear la sesión en Stripe";
+        console.error("[checkout-manual] Stripe error on retry:", retryMsg);
+        await supabase.from("manual_payment_orders").delete().eq("id", order.id);
+        return NextResponse.json({ error: retryMsg }, { status: 502 });
+      }
+    } else {
+      console.error("[checkout-manual] Stripe error:", msg);
+      await supabase.from("manual_payment_orders").delete().eq("id", order.id);
+      return NextResponse.json({ error: msg || "Error al crear la sesión en Stripe" }, { status: 502 });
+    }
   }
 
   // ── Update order with Stripe session info ──────────────────
