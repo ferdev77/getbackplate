@@ -2553,7 +2553,7 @@ export function CompanyShell({
             onClick={(event) => event.stopPropagation()}
           >
             <div className={`flex items-center justify-between border-b px-4 py-3 ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`}>
-              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Módulos Add-on</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">GetBackplate Integrations</p>
               <button
                 type="button"
                 onClick={() => setAddonOpen(false)}
