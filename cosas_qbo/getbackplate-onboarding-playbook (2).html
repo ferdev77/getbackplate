@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GetBackplate · Onboarding & Intake Playbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAF7F1;
+    --paper-2:#FFFFFF;
+    --ink:#15201A;
+    --ink-soft:#4C544D;
+    --ink-faint:#7A8079;
+    --line:#E7DFD2;
+    --line-strong:#D6CCBB;
+    --brand:#10402B;
+    --brand-bright:#1F9D5C;
+    --brand-wash:#E9F4EC;
+    --qbo:#2CA01C;
+    --amber:#B5680B;   --amber-wash:#FBEEDA;
+    --blue:#2155CD;    --blue-wash:#E6ECFB;
+    --green:#15803D;   --green-wash:#DCF3E2;
+    --shadow:0 1px 2px rgba(21,32,26,.05),0 12px 30px -12px rgba(21,32,26,.16);
+    --radius:18px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Hanken Grotesk',sans-serif;
+    font-size:16px;line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(circle at 1px 1px, rgba(21,32,26,.045) 1px, transparent 0);
+    background-size:26px 26px;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:0 28px 100px}
+  .mono{font-family:'Spline Sans Mono',monospace}
+
+  /* ---------- header ---------- */
+  header.top{padding:64px 0 44px;border-bottom:1px solid var(--line);margin-bottom:54px}
+  .eyebrow{display:inline-flex;align-items:center;gap:9px;font-family:'Spline Sans Mono',monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--brand-bright);
+    background:var(--brand-wash);border:1px solid #CFE7D6;padding:6px 13px;border-radius:100px}
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--brand-bright);
+    box-shadow:0 0 0 3px rgba(31,157,92,.18)}
+  h1{font-family:'Fraunces',serif;font-weight:600;font-size:clamp(38px,6vw,62px);
+    line-height:1.02;letter-spacing:-.02em;margin:22px 0 14px}
+  h1 em{font-style:italic;color:var(--brand-bright)}
+  .lede{font-size:19px;color:var(--ink-soft);max-width:62ch}
+  .meta{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:26px;font-family:'Spline Sans Mono',monospace;
+    font-size:12.5px;color:var(--ink-faint);letter-spacing:.02em}
+  .meta b{color:var(--ink);font-weight:500}
+
+  /* ---------- section scaffolding ---------- */
+  section{margin-bottom:62px}
+  .sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:26px}
+  .sec-num{font-family:'Spline Sans Mono',monospace;font-size:13px;color:var(--brand-bright);
+    font-weight:600;padding-top:7px;min-width:34px}
+  h2{font-family:'Fraunces',serif;font-weight:600;font-size:clamp(26px,3.6vw,34px);
+    letter-spacing:-.015em;line-height:1.08}
+  h2 + .sub{color:var(--ink-soft);margin-top:7px;font-size:16.5px}
+  p{margin-bottom:14px}
+  p:last-child{margin-bottom:0}
+
+  /* ---------- flow diagram (3 steps) ---------- */
+  .flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:stretch;gap:0;margin:8px 0 6px}
+  .node{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px 20px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .node::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--brand-bright)}
+  .node .step-k{font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--ink-faint)}
+  .node .ic{font-size:26px;margin:4px 0 8px;display:block}
+  .node h3{font-family:'Fraunces',serif;font-weight:600;font-size:21px;letter-spacing:-.01em;margin-bottom:5px}
+  .node p{font-size:14px;color:var(--ink-soft);margin:0}
+  .arrow{display:flex;align-items:center;justify-content:center;color:var(--line-strong);
+    font-size:24px;padding:0 6px}
+  @media(max-width:720px){
+    .flow{grid-template-columns:1fr;gap:14px}
+    .arrow{transform:rotate(90deg);padding:2px 0}
+  }
+
+  /* ---------- generic card ---------- */
+  .card{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);
+    padding:26px 28px;box-shadow:var(--shadow)}
+  .card + .card{margin-top:16px}
+
+  /* ---------- plan table ---------- */
+  .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:720px){.plans{grid-template-columns:1fr}}
+  .plan{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);position:relative}
+  .plan.feat{border-color:var(--brand-bright);box-shadow:0 0 0 1px var(--brand-bright),var(--shadow)}
+  .plan .tag{position:absolute;top:-11px;left:22px;background:var(--brand-bright);color:#fff;
+    font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    padding:4px 10px;border-radius:100px}
+  .plan h4{font-family:'Fraunces',serif;font-size:23px;font-weight:600;margin-bottom:2px}
+  .plan .price{font-family:'Spline Sans Mono',monospace;font-size:15px;color:var(--brand-bright);margin-bottom:14px}
+  .plan .slots{display:flex;align-items:center;gap:7px;font-weight:600;font-size:15px;margin-bottom:12px}
+  .plan .slots .pips{display:flex;gap:3px}
+  .plan .pip{width:9px;height:9px;border-radius:2px;background:var(--brand-bright)}
+  .plan .pip.more{background:var(--line-strong)}
+  .plan ul{list-style:none;font-size:13.5px;color:var(--ink-soft)}
+  .plan li{padding:3px 0 3px 18px;position:relative}
+  .plan li::before{content:"";position:absolute;left:0;top:11px;width:6px;height:6px;border-radius:50%;
+    background:var(--line-strong)}
+
+  /* ---------- field list ---------- */
+  .fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+  @media(max-width:560px){.fields{grid-template-columns:1fr}}
+  .field{display:flex;gap:12px;align-items:flex-start;background:var(--paper-2);
+    border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+  .field .fic{font-family:'Spline Sans Mono',monospace;font-size:11px;color:var(--brand-bright);
+    background:var(--brand-wash);border-radius:6px;padding:3px 7px;font-weight:600;margin-top:1px;white-space:nowrap}
+  .field b{font-size:14.5px}
+  .field span{display:block;font-size:12.5px;color:var(--ink-faint);line-height:1.4}
+
+  /* ---------- intake levels ---------- */
+  .level-head{display:flex;gap:14px;align-items:flex-start;margin:0 0 14px}
+  .lvl{flex:none;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    font-family:'Fraunces',serif;font-weight:600;font-size:18px;background:var(--brand);color:#fff}
+  .level-head h3{font-family:'Fraunces',serif;font-weight:600;font-size:21px;letter-spacing:-.01em;line-height:1.15}
+  .level-head h3 .muted{font-family:'Hanken Grotesk',sans-serif;font-weight:500;font-size:15px;color:var(--ink-faint)}
+  .level-head p{font-size:14px;color:var(--ink-soft);margin:3px 0 0}
+  .slot-tabs{display:flex;gap:8px;margin:0 0 12px}
+  .slot-tab{font-family:'Spline Sans Mono',monospace;font-size:12px;font-weight:500;padding:6px 14px;
+    border-radius:9px;border:1px solid var(--line-strong);background:var(--paper-2);color:var(--ink-faint)}
+  .slot-tab.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+
+  /* ---------- callout / tooltip ---------- */
+  .tip{border-left:4px solid var(--qbo);background:#F1FAEE;border-radius:0 14px 14px 0;
+    padding:20px 24px;margin:6px 0}
+  .tip .lbl{display:inline-flex;align-items:center;gap:8px;font-family:'Spline Sans Mono',monospace;
+    font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--qbo);font-weight:600;margin-bottom:8px}
+  .tip code,.acct{font-family:'Spline Sans Mono',monospace;background:#fff;border:1px solid #CDE6C5;
+    border-radius:6px;padding:2px 7px;font-size:13.5px;color:var(--brand)}
+  .warn{display:inline-flex;align-items:center;gap:8px;font-weight:600;color:var(--amber);
+    background:var(--amber-wash);border:1px solid #EBD3A6;border-radius:8px;padding:7px 12px;font-size:14px;margin-top:6px}
+
+  /* ---------- state machine ---------- */
+  .states{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:0;margin:10px 0}
+  .state{border-radius:14px;padding:18px 16px;text-align:center;border:1px solid}
+  .state.s1{background:var(--amber-wash);border-color:#EBD3A6}
+  .state.s2{background:var(--blue-wash);border-color:#C3D2F4}
+  .state.s3{background:var(--green-wash);border-color:#B5E0C2}
+  .state .sk{font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;font-weight:600;margin-bottom:5px}
+  .state.s1 .sk{color:var(--amber)} .state.s2 .sk{color:var(--blue)} .state.s3 .sk{color:var(--green)}
+  .state h4{font-family:'Fraunces',serif;font-size:18px;font-weight:600;margin-bottom:4px}
+  .state p{font-size:12.5px;color:var(--ink-soft);margin:0}
+  .s-arrow{color:var(--line-strong);font-size:22px;padding:0 8px;text-align:center}
+  @media(max-width:720px){
+    .states{grid-template-columns:1fr}
+    .s-arrow{transform:rotate(90deg);padding:4px 0}
+  }
+
+  /* ---------- two-path FTP ---------- */
+  .paths{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}
+  @media(max-width:640px){.paths{grid-template-columns:1fr}}
+  .path{border-radius:var(--radius);padding:20px 22px;border:1px solid}
+  .path.have{background:var(--green-wash);border-color:#B5E0C2}
+  .path.pending{background:var(--amber-wash);border-color:#EBD3A6}
+  .path .ph{display:flex;align-items:center;gap:10px;font-family:'Fraunces',serif;font-size:18px;
+    font-weight:600;margin-bottom:8px}
+  .path.have .ph{color:var(--green)} .path.pending .ph{color:var(--amber)}
+  .path p{font-size:14px;color:var(--ink-soft);margin:0}
+
+  /* ---------- email card ---------- */
+  .email{background:#fff;border:1px solid var(--line-strong);border-radius:var(--radius);
+    overflow:hidden;box-shadow:var(--shadow);margin-top:14px}
+  .email .ehead{background:#F6F2EB;border-bottom:1px solid var(--line);padding:14px 22px;
+    display:flex;align-items:center;gap:10px}
+  .email .ehead .lbl{font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+  .email .copybtn{margin-left:auto;font-family:'Spline Sans Mono',monospace;font-size:11px;
+    border:1px solid var(--line-strong);background:#fff;color:var(--ink-soft);border-radius:8px;
+    padding:6px 12px;cursor:pointer;transition:.18s}
+  .email .copybtn:hover{border-color:var(--brand-bright);color:var(--brand-bright)}
+  .email .efields{padding:16px 22px;border-bottom:1px solid var(--line);font-size:13.5px}
+  .email .erow{display:flex;gap:12px;padding:2px 0}
+  .email .erow .ek{font-family:'Spline Sans Mono',monospace;color:var(--ink-faint);min-width:64px;font-size:12.5px}
+  .email .erow .ev{font-family:'Spline Sans Mono',monospace}
+  .ph-token{background:var(--amber-wash);color:var(--amber);border-radius:4px;padding:0 4px;
+    font-size:12.5px;border:1px solid #EBD3A6}
+  .email .ebody{padding:20px 22px;font-size:14px;color:var(--ink);line-height:1.6;white-space:pre-wrap}
+  .email .ebody a{color:var(--brand-bright);text-decoration:none;border-bottom:1px solid #BFE3CC}
+
+  /* ---------- principles ---------- */
+  .principles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:640px){.principles{grid-template-columns:1fr}}
+  .pr{background:var(--paper-2);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+  .pr .pn{font-family:'Spline Sans Mono',monospace;font-size:12px;color:var(--brand-bright);font-weight:600;margin-bottom:6px}
+  .pr p{font-size:14px;color:var(--ink-soft);margin:0}
+  .pr b{color:var(--ink)}
+
+  /* misc */
+  .note{font-size:14px;color:var(--ink-soft);background:#F6F2EB;border:1px dashed var(--line-strong);
+    border-radius:12px;padding:15px 18px;margin-top:14px}
+  .note b{color:var(--ink)}
+  footer{border-top:1px solid var(--line);margin-top:30px;padding-top:24px;font-family:'Spline Sans Mono',monospace;
+    font-size:12px;color:var(--ink-faint);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+
+  /* entrance */
+  .reveal{opacity:0;transform:translateY(14px);animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards}
+  @keyframes rise{to{opacity:1;transform:none}}
+
+  @media print{
+    body{background:#fff;background-image:none}
+    .card,.node,.plan,.email,.pr{box-shadow:none}
+    .reveal{animation:none;opacity:1;transform:none}
+    .copybtn{display:none}
+    section{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top reveal">
+    <span class="eyebrow"><span class="dot"></span>GetBackplate · Internal Playbook</span>
+    <h1>Onboarding &amp; <em>Intake</em></h1>
+    <p class="lede">Qué pasa desde que un vendor da clic en pagar hasta que cada uno de sus clientes de R365 queda recibiendo facturas en automático. El conector de QuickBooks → R365.</p>
+    <div class="meta">
+      <span>FLUJO · <b>QBO → R365</b></span>
+      <span>CASO BASE · <b>Prodel → Kumori</b></span>
+      <span>VERSIÓN · <b>v1 · Jun 2026</b></span>
+    </div>
+  </header>
+
+  <!-- ===== THE FLOW ===== -->
+  <section class="reveal" style="animation-delay:.05s">
+    <div class="sec-head"><span class="sec-num">00</span>
+      <div><h2>El flujo, de un vistazo</h2>
+      <p class="sub">Tres pasos para el vendor. Todo lo demás cuelga del paso 3.</p></div>
+    </div>
+    <div class="flow">
+      <div class="node">
+        <span class="step-k">Paso 01</span><span class="ic">💳</span>
+        <h3>Pago</h3>
+        <p>Elige plan y paga mensualidad + setup fee en el checkout. El setup asegura la integración de sus clientes.</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node">
+        <span class="step-k">Paso 02</span><span class="ic">🔗</span>
+        <h3>Auth de la integración</h3>
+        <p>Conecta QuickBooks vía OAuth. La victoria rápida: 30 segundos y la integración queda viva.</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node">
+        <span class="step-k">Paso 03</span><span class="ic">📋</span>
+        <h3>Intake</h3>
+        <p>Sus datos como vendor + la info de cada cliente de R365 a conectar (un slot c/u). Aquí vive el setup real.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PASO 1 ===== -->
+  <section class="reveal" style="animation-delay:.1s">
+    <div class="sec-head"><span class="sec-num">01</span>
+      <div><h2>Pago</h2>
+      <p class="sub">El plan define cuántos slots (conexiones) tiene disponibles.</p></div>
+    </div>
+    <p>En el checkout el vendor paga <b>mensualidad + setup fee</b> en un solo cobro. El setup fee garantiza el trabajo de integración del lado de GetBackplate. Cada <b>slot = una conexión a un cliente de R365</b>.</p>
+    <div class="plans">
+      <div class="plan">
+        <h4>Connect</h4><div class="price">$349/mo · setup $799</div>
+        <div class="slots"><span class="pips"><i class="pip"></i></span> 1 slot</div>
+        <ul><li>75 facturas / mes</li><li>$0.99 por factura extra</li></ul>
+      </div>
+      <div class="plan feat">
+        <span class="tag">Most Popular</span>
+        <h4>Grow</h4><div class="price">$649/mo · setup $2,099</div>
+        <div class="slots"><span class="pips"><i class="pip"></i><i class="pip"></i><i class="pip"></i></span> hasta 3 slots</div>
+        <ul><li>250 facturas / mes</li><li>$0.79 por factura extra</li></ul>
+      </div>
+      <div class="plan">
+        <h4>Scale</h4><div class="price">$1,199/mo · setup $4,999</div>
+        <div class="slots"><span class="pips"><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip more"></i></span> hasta 10 slots</div>
+        <ul><li>1,000 facturas / mes</li><li>$0.49 por factura extra</li></ul>
+      </div>
+    </div>
+    <div class="note"><b>Lógica de slots:</b> cada slot sin usar se muestra como <b>“Free Slot”</b> (ej. en Grow, usar 2 de 3 deja 1 “Free Slot” visible). Para crecer más allá del plan puede <b>agregar conexiones sueltas</b> ($499 setup + $99/mo cada una, $79/mo en Scale) sin cambiar de plan, o subir de tier cuando la cuenta lo justifique. Arriba de Scale está <b>Enterprise</b> (conexiones e invoices ilimitados, precio custom). <b>Anual:</b> 2 meses gratis + 25% off del setup.</div>
+  </section>
+
+  <!-- ===== PASO 2 ===== -->
+  <section class="reveal" style="animation-delay:.15s">
+    <div class="sec-head"><span class="sec-num">02</span>
+      <div><h2>Auth de la integración</h2>
+      <p class="sub">Lo único que el vendor puede hacer solo, en el momento, sin depender de nadie.</p></div>
+    </div>
+    <div class="card">
+      <p>Justo después del checkout, el vendor conecta <b>QuickBooks Online vía OAuth</b>. Es la victoria rápida del onboarding: confirma que la integración es real y le da sensación de avance inmediato. El token se guarda per-tenant; cada vendor queda aislado.</p>
+    </div>
+  </section>
+
+  <!-- ===== PASO 3 ===== -->
+  <section class="reveal" style="animation-delay:.2s">
+    <div class="sec-head"><span class="sec-num">03</span>
+      <div><h2>El intake: dos niveles de datos</h2>
+      <p class="sub">Separar siempre quién paga de con quién se integra. No se mezclan.</p></div>
+    </div>
+
+    <div class="level-head">
+      <span class="lvl">A</span>
+      <div><h3>Datos del vendor <span class="muted">— la cuenta que paga</span></h3>
+      <p>Se capturan una sola vez. Es el perfil de la empresa que contrató la integración.</p></div>
+    </div>
+    <div class="fields">
+      <div class="field"><span class="fic">compañía</span><div><b>Nombre de la compañía</b><span>Razón social / nombre comercial del vendor.</span></div></div>
+      <div class="field"><span class="fic">contacto</span><div><b>Nombre de contacto</b><span>Persona responsable de la cuenta.</span></div></div>
+      <div class="field"><span class="fic">email</span><div><b>Email</b><span>Cuenta, billing y notificaciones.</span></div></div>
+      <div class="field"><span class="fic">teléfono</span><div><b>Teléfono</b><span>Contacto del vendor.</span></div></div>
+      <div class="field"><span class="fic">dirección</span><div><b>Dirección</b><span>Domicilio de la empresa.</span></div></div>
+      <div class="field"><span class="fic">url</span><div><b>Sitio web</b><span>URL del vendor.</span></div></div>
+    </div>
+
+    <div class="level-head" style="margin-top:30px">
+      <span class="lvl">B</span>
+      <div><h3>Datos del cliente a integrar <span class="muted">— un bloque por slot</span></h3>
+      <p>Uno por cada cliente de R365 con quien se integra. El plan define cuántos slots (Slot 1, 2, 3…).</p></div>
+    </div>
+    <div class="slot-tabs"><span class="slot-tab on">Slot 1</span><span class="slot-tab">Slot 2</span><span class="slot-tab">Slot 3</span></div>
+    <div class="fields">
+      <div class="field"><span class="fic">cliente</span><div><b>Nombre del cliente</b><span>El restaurante / cuenta de R365 (ej. Kumori Central Kitchen).</span></div></div>
+      <div class="field"><span class="fic">acct #</span><div><b>Account Number</b><span>El identificador que el vendor le asignó a este cliente. Declarado aquí para validar. <b>No es el invoice number.</b></span></div></div>
+      <div class="field"><span class="fic">dirección</span><div><b>Dirección del cliente</b><span>Domicilio del restaurante.</span></div></div>
+      <div class="field"><span class="fic">teléfono</span><div><b>Teléfono del cliente</b><span>Contacto del restaurante.</span></div></div>
+      <div class="field"><span class="fic">ftp</span><div><b>Credenciales FTP de R365</b><span>Host · username · password · directory. Puede entrar “pendiente” → sección 05.</span></div></div>
+    </div>
+  </section>
+
+  <!-- ===== ACCOUNT NUMBER (tooltip) ===== -->
+  <section class="reveal" style="animation-delay:.25s">
+    <div class="sec-head"><span class="sec-num">04</span>
+      <div><h2>El tooltip del Account Number</h2>
+      <p class="sub">Texto que aparece junto al campo en el form de intake.</p></div>
+    </div>
+    <div class="tip">
+      <span class="lbl">▟ Cómo dejar el Account Number en QBO</span>
+      <p>En QuickBooks, en el <b>perfil del cliente</b>, agrega un custom field llamado <span class="acct">Account Number</span> y pon ahí el número que le asignaste (ej. Kumori = <span class="acct">10001901</span>). Al estar a nivel customer, fluye solo a <b>todos sus documentos — tanto invoices como credit memos</b>, como cualquier otro campo.</p>
+      <p style="margin-top:10px">La integración lo lee del dato de la factura (vía API) y lo rutea a R365. Un número equivocado no da error: la factura simplemente no llega al inbox del cliente.</p>
+      <span class="warn">⚠ Esto NO es el número de factura (invoice number). Son dos campos distintos.</span>
+    </div>
+    <div class="note"><b>Nota de plataforma:</b> en la cuenta de Prodel (QBO Plus) el campo a nivel customer funciona y ya validó con 4 facturas. Como esa capacidad en Plus va contra la doc oficial de Intuit (que la marca como exclusiva de Advanced), <b>no asumas</b> que toda cuenta Plus la tendrá igual. Por eso la integración <b>valida el Account Number factura por factura</b> contra lo declarado en el intake — seguro barato.</div>
+  </section>
+
+  <!-- ===== FTP PENDING + STATE MACHINE ===== -->
+  <section class="reveal" style="animation-delay:.3s">
+    <div class="sec-head"><span class="sec-num">05</span>
+      <div><h2>Cuando falta el FTP</h2>
+      <p class="sub">El FTP lo da R365 al restaurante. Un slot sin FTP no debe bloquear el onboarding.</p></div>
+    </div>
+    <div class="paths">
+      <div class="path have">
+        <div class="ph">✓ Ya tengo las credenciales</div>
+        <p>El vendor captura host, username, password y directory. El slot pasa a validación con factura de prueba.</p>
+      </div>
+      <div class="path pending">
+        <div class="ph">⏳ Todavía no las tengo</div>
+        <p>El slot se guarda igual con todo lo demás y queda <b>Pendiente de FTP</b>. Se le entrega el email pre-redactado de abajo para que su cliente lo pida a R365.</p>
+      </div>
+    </div>
+
+    <h3 style="font-family:'Fraunces',serif;font-weight:600;font-size:20px;margin:30px 0 6px">Estados del slot</h3>
+    <div class="states">
+      <div class="state s1"><div class="sk">Estado 1</div><h4>Pendiente de FTP</h4><p>Esperando credenciales de R365.</p></div>
+      <div class="s-arrow">→</div>
+      <div class="state s2"><div class="sk">Estado 2</div><h4>En validación</h4><p>Factura de prueba — valida FTP + Account Number.</p></div>
+      <div class="s-arrow">→</div>
+      <div class="state s3"><div class="sk">Estado 3</div><h4>Vivo</h4><p>Recibiendo facturas reales en automático.</p></div>
+    </div>
+    <div class="note">Un slot pendiente queda <b>reservado</b> contra el plan, no perdido, y no bloquea a los demás. El setup fee cubre el trabajo de GetBackplate; <b>el FTP es una dependencia del lado del cliente</b>, fuera de tu control — dejarlo escrito así evita comprometerse a un go-live que depende de R365.</div>
+  </section>
+
+  <!-- ===== THE EMAIL ===== -->
+  <section class="reveal" style="animation-delay:.35s">
+    <div class="sec-head"><span class="sec-num">06</span>
+      <div><h2>Email pre-redactado para R365</h2>
+      <p class="sub">Lo manda el restaurante (titular de la cuenta R365), no el vendor. GetBackplate auto-rellena los <span class="ph-token">corchetes</span>.</p></div>
+    </div>
+    <div class="email">
+      <div class="ehead">
+        <span class="lbl">✉ Borrador · copy-paste</span>
+        <button class="copybtn" onclick="copyEmail()">Copiar email</button>
+      </div>
+      <div class="efields">
+        <div class="erow"><span class="ek">To</span><span class="ev"><span class="ph-token">[Tu contacto de soporte en R365]</span></span></div>
+        <div class="erow"><span class="ek">Cc</span><span class="ev">integrations@getbackplate.com</span></div>
+        <div class="erow"><span class="ek">Subject</span><span class="ev">SFTP credentials request — vendor invoice (AP) imports via GetBackplate</span></div>
+      </div>
+      <div class="ebody" id="emailBody">Hi R365 Support,
+
+We'd like to set up automated vendor invoice imports for our account, <span class="ph-token">[RESTAURANT / R365 COMPANY NAME]</span>.
+
+Our vendor <span class="ph-token">[VENDOR NAME]</span> delivers invoices through GetBackplate (<a href="https://getbackplate.com">https://getbackplate.com</a>), an app that already connects other QuickBooks-based vendors to their R365 customers. Invoices will arrive as CSV files in our AP import folder via SFTP.
+
+Could you please provide or confirm the SFTP credentials for our AP file imports:
+
+  · Host
+  · Username
+  · Password
+  · Import directory path
+
+We've copied GetBackplate's integrations team (integrations@getbackplate.com) so they can assist if any questions come up.
+
+Thank you,
+<span class="ph-token">[YOUR NAME]</span>
+<span class="ph-token">[RESTAURANT / R365 COMPANY NAME]</span></div>
+    </div>
+    <div class="note"><b>El CC a integrations@ te sirve doble:</b> te enteras en tiempo real de cuándo se resuelve (para mover el slot de Pendiente a validación), y puedes meterte si R365 pide aclaraciones técnicas. Ojo: si las credenciales vuelven por ese hilo en texto plano, cárgalas encriptadas a Supabase y limpia el correo — no las dejes vivir en el inbox.</div>
+  </section>
+
+  <!-- ===== VALIDATION ===== -->
+  <section class="reveal" style="animation-delay:.4s">
+    <div class="sec-head"><span class="sec-num">07</span>
+      <div><h2>Validación &amp; go-live</h2>
+      <p class="sub">La factura de prueba es la compuerta antes de marcar el slot como vivo.</p></div>
+    </div>
+    <div class="card">
+      <p>Con FTP + Account Number en su lugar, se dispara una <b>factura de prueba</b> de punta a punta y se confirma que aterriza en el AP view de R365 del cliente correcto. Eso valida de un solo golpe que el username/directory ruteen bien <b>y</b> que el Account Number lleve la factura al inbox correcto. Idealmente se confirma del lado del cliente. Recién ahí el slot pasa a <b>Vivo</b>.</p>
+    </div>
+  </section>
+
+  <!-- ===== PRINCIPLES ===== -->
+  <section class="reveal" style="animation-delay:.45s">
+    <div class="sec-head"><span class="sec-num">08</span>
+      <div><h2>Principios que sostienen el diseño</h2></div>
+    </div>
+    <div class="principles">
+      <div class="pr"><div class="pn">// no bloquear</div><p>Un dato faltante (típicamente el FTP) <b>nunca</b> traba el onboarding. El slot se guarda parcial y avanza en paralelo.</p></div>
+      <div class="pr"><div class="pn">// falla ruidosa</div><p>Account Number y FTP rutean en silencio. La validación por factura los convierte en <b>alerta</b>, no en error invisible.</p></div>
+      <div class="pr"><div class="pn">// dependencias claras</div><p>El FTP nace en R365 → restaurante. GetBackplate <b>arma la solicitud</b>, pero no la provisiona. Eso se dice explícito.</p></div>
+      <div class="pr"><div class="pn">// secretos como secretos</div><p>Passwords FTP enmascarados, encriptados at rest en Supabase, nunca en texto plano ni en chats/inbox.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>GETBACKPLATE · ONBOARDING PLAYBOOK</span>
+    <span>QBO → R365 · v1 · JUN 2026</span>
+  </footer>
+
+</div>
+
+<script>
+  function copyEmail(){
+    var body = document.getElementById('emailBody').innerText;
+    var full = "To: [Tu contacto de soporte en R365]\nCc: integrations@getbackplate.com\nSubject: SFTP credentials request — vendor invoice (AP) imports via GetBackplate\n\n" + body;
+    navigator.clipboard.writeText(full).then(function(){
+      var b=document.querySelector('.copybtn'); var t=b.innerText; b.innerText='✓ Copiado';
+      setTimeout(function(){b.innerText=t;},1600);
+    });
+  }
+</script>
+</body>
+</html>
