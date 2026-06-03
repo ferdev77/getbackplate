@@ -21,10 +21,10 @@ function join(...classes: Array<string | undefined>) {
 }
 
 const baseFieldClass =
-  "peer w-full rounded-xl border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-4 py-3 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] transition focus:border-[var(--gbp-accent)] focus:outline-none focus:ring-2 focus:ring-[color:color-mix(in_oklab,var(--gbp-accent)_18%,transparent)]";
+  "peer w-full rounded-xl border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-4 py-3.5 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] transition focus:border-[var(--gbp-accent)] focus:outline-none focus:ring-2 focus:ring-[color:color-mix(in_oklab,var(--gbp-accent)_18%,transparent)]";
 
 const baseLabelClass =
-  "absolute -top-2.5 left-3 px-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)] transition peer-focus:text-[var(--gbp-accent)]";
+  "absolute -top-[11px] left-3 px-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)] transition peer-focus:text-[var(--gbp-accent)]";
 
 export function SuperadminInputField({
   label,
