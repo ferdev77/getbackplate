@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Clock, XCircle, Ban, Zap, FileStack, Tag, ChevronDown, ExternalLink, Mail, CreditCard, Calendar } from "lucide-react";
+import { CheckCircle2, Clock, XCircle, Ban, Zap, FileStack, Tag, ChevronDown, ExternalLink, Mail, CreditCard, Calendar, Layers } from "lucide-react";
 import { CopyUrlButton } from "./copy-url-button";
 import { CancelOrderButton } from "./cancel-order-button";
 import { DeleteOrderButton } from "./delete-order-button";
@@ -32,6 +32,13 @@ function fmtDate(iso: string) {
   }).format(new Date(iso));
 }
 
+type StoredItem = {
+  description: string;
+  amount_cents: number;
+  action_type: string;
+  action_payload: Record<string, unknown> | null;
+};
+
 type Order = {
   id: string;
   organization_id: string | null;
@@ -41,6 +48,7 @@ type Order = {
   currency: string;
   action_type: string;
   action_payload: unknown;
+  items: StoredItem[] | null;
   status: string;
   checkout_url: string | null;
   paid_at: string | null;
@@ -56,6 +64,77 @@ type Props = {
 };
 
 const isTestMode = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.startsWith("pk_test");
+
+function ActionCell({ order }: { order: Order }) {
+  const storedItems = order.items;
+  const isMulti = storedItems && storedItems.length > 1;
+
+  if (isMulti) {
+    return (
+      <div className="flex items-center gap-1.5 text-[var(--gbp-text2)]">
+        <Layers className="h-3.5 w-3.5 shrink-0" />
+        <span className="text-[11px] font-semibold">{storedItems.length} acciones</span>
+      </div>
+    );
+  }
+
+  // Single item (new or legacy)
+  const actionType = storedItems?.[0]?.action_type ?? order.action_type;
+  const actionPayload = (storedItems?.[0]?.action_payload ?? order.action_payload) as Record<string, unknown> | null;
+  const ac = ACTION_CONFIG[actionType as keyof typeof ACTION_CONFIG] ?? ACTION_CONFIG.custom;
+
+  return (
+    <div>
+      <div className={`flex items-center gap-1.5 ${ac.cls}`}>
+        <ac.Icon className="h-3.5 w-3.5 shrink-0" />
+        <span className="text-[11px] font-semibold">{ac.label}</span>
+      </div>
+      {actionPayload && (actionPayload.moduleCode != null || actionPayload.invoiceCount != null) && (
+        <p className="mt-0.5 text-[10px] text-muted-foreground">
+          {actionPayload.moduleCode != null
+            ? String(actionPayload.moduleCode)
+            : `+${String(actionPayload.invoiceCount)} facturas`}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ItemsBreakdown({ items, currency }: { items: StoredItem[]; currency: string }) {
+  return (
+    <div className="mt-4 pt-4 border-t border-[var(--gbp-border)]">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        Items ({items.length})
+      </p>
+      <div className="space-y-2">
+        {items.map((item, idx) => {
+          const ac = ACTION_CONFIG[item.action_type as keyof typeof ACTION_CONFIG] ?? ACTION_CONFIG.custom;
+          const payload = item.action_payload;
+          return (
+            <div key={idx} className="flex items-start justify-between gap-4 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[11px] font-semibold text-foreground">{item.description}</p>
+                <div className={`mt-0.5 flex items-center gap-1 ${ac.cls}`}>
+                  <ac.Icon className="h-3 w-3 shrink-0" />
+                  <span className="text-[10px] font-medium">{ac.label}</span>
+                  {payload?.moduleCode != null && (
+                    <span className="text-[10px] text-muted-foreground">· {String(payload.moduleCode)}</span>
+                  )}
+                  {payload?.invoiceCount != null && (
+                    <span className="text-[10px] text-muted-foreground">· +{String(payload.invoiceCount)} facturas</span>
+                  )}
+                </div>
+              </div>
+              <span className="shrink-0 text-[11px] font-bold text-foreground whitespace-nowrap">
+                {fmt(item.amount_cents, currency)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export function PaymentLinksTable({ orders, orgMap }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -79,11 +158,11 @@ export function PaymentLinksTable({ orders, orgMap }: Props) {
         <tbody>
           {orders.map((order, i) => {
             const st = STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending;
-            const ac = ACTION_CONFIG[order.action_type as keyof typeof ACTION_CONFIG] ?? ACTION_CONFIG.custom;
-            const payload = order.action_payload as Record<string, unknown> | null;
             const isLast = i === orders.length - 1;
             const isExpanded = expandedId === order.id;
             const isPaid = order.status === "paid";
+            const storedItems = order.items as StoredItem[] | null;
+            const isMulti = storedItems && storedItems.length > 1;
 
             return (
               <>
@@ -104,7 +183,14 @@ export function PaymentLinksTable({ orders, orgMap }: Props) {
                   </td>
 
                   <td className="max-w-[180px] px-4 py-4">
-                    <p className="truncate font-medium text-foreground">{order.description}</p>
+                    <p className="truncate font-medium text-foreground">
+                      {isMulti ? (
+                        <span className="flex items-center gap-1.5">
+                          <Layers className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          {order.description}
+                        </span>
+                      ) : order.description}
+                    </p>
                     {order.internal_notes && (
                       <p className="mt-0.5 truncate text-[11px] italic text-muted-foreground">{order.internal_notes}</p>
                     )}
@@ -115,15 +201,7 @@ export function PaymentLinksTable({ orders, orgMap }: Props) {
                   </td>
 
                   <td className="px-4 py-4">
-                    <div className={`flex items-center gap-1.5 ${ac.cls}`}>
-                      <ac.Icon className="h-3.5 w-3.5 shrink-0" />
-                      <span className="text-[11px] font-semibold">{ac.label}</span>
-                    </div>
-                    {payload && (payload.moduleCode != null || payload.invoiceCount != null) && (
-                      <p className="mt-0.5 text-[10px] text-muted-foreground">
-                        {payload.moduleCode != null ? String(payload.moduleCode) : `+${String(payload.invoiceCount)} facturas`}
-                      </p>
-                    )}
+                    <ActionCell order={order} />
                   </td>
 
                   <td className="px-4 py-4">
@@ -158,83 +236,97 @@ export function PaymentLinksTable({ orders, orgMap }: Props) {
                     <td colSpan={8} className="px-6 pb-5 pt-1">
                       <div className={`rounded-xl border p-4 ${isPaid ? "border-emerald-200 bg-emerald-50/50" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                         {isPaid ? (
-                          <div className="grid gap-4 sm:grid-cols-3">
-                            {/* Payment intent */}
-                            <div className="flex items-start gap-2.5">
-                              <div className="mt-0.5 rounded-lg bg-emerald-100 p-1.5">
-                                <CreditCard className="h-3.5 w-3.5 text-emerald-600" />
-                              </div>
-                              <div>
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Payment Intent</p>
-                                {order.stripe_payment_intent_id ? (
-                                  <a
-                                    href={`https://dashboard.stripe.com/${isTestMode ? "test/" : ""}payments/${order.stripe_payment_intent_id}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="mt-0.5 flex items-center gap-1 text-[11px] font-mono font-semibold text-emerald-700 hover:underline"
-                                    onClick={e => e.stopPropagation()}
-                                  >
-                                    {order.stripe_payment_intent_id.slice(0, 24)}…
-                                    <ExternalLink className="h-3 w-3 shrink-0" />
-                                  </a>
-                                ) : (
-                                  <p className="mt-0.5 text-[11px] italic text-muted-foreground">No disponible</p>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Customer email */}
-                            <div className="flex items-start gap-2.5">
-                              <div className="mt-0.5 rounded-lg bg-emerald-100 p-1.5">
-                                <Mail className="h-3.5 w-3.5 text-emerald-600" />
-                              </div>
-                              <div>
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Email del cliente</p>
-                                <p className="mt-0.5 text-[11px] font-semibold text-foreground">
-                                  {order.customer_email ?? <span className="italic text-muted-foreground">No disponible</span>}
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* Paid at */}
-                            <div className="flex items-start gap-2.5">
-                              <div className="mt-0.5 rounded-lg bg-emerald-100 p-1.5">
-                                <Calendar className="h-3.5 w-3.5 text-emerald-600" />
-                              </div>
-                              <div>
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Fecha de pago</p>
-                                <p className="mt-0.5 text-[11px] font-semibold text-foreground">
-                                  {order.paid_at ? fmtDate(order.paid_at) : "—"}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          /* Non-paid detail */
-                          <div className="grid gap-4 sm:grid-cols-2">
-                            {order.expires_at && (
+                          <>
+                            <div className="grid gap-4 sm:grid-cols-3">
+                              {/* Payment intent */}
                               <div className="flex items-start gap-2.5">
-                                <div className="mt-0.5 rounded-lg bg-[var(--gbp-surface)] p-1.5 border border-[var(--gbp-border)]">
-                                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                                <div className="mt-0.5 rounded-lg bg-emerald-100 p-1.5">
+                                  <CreditCard className="h-3.5 w-3.5 text-emerald-600" />
                                 </div>
                                 <div>
-                                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Expira</p>
-                                  <p className="mt-0.5 text-[11px] font-semibold text-foreground">{fmtDate(order.expires_at)}</p>
+                                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Payment Intent</p>
+                                  {order.stripe_payment_intent_id ? (
+                                    <a
+                                      href={`https://dashboard.stripe.com/${isTestMode ? "test/" : ""}payments/${order.stripe_payment_intent_id}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="mt-0.5 flex items-center gap-1 text-[11px] font-mono font-semibold text-emerald-700 hover:underline"
+                                      onClick={e => e.stopPropagation()}
+                                    >
+                                      {order.stripe_payment_intent_id.slice(0, 24)}…
+                                      <ExternalLink className="h-3 w-3 shrink-0" />
+                                    </a>
+                                  ) : (
+                                    <p className="mt-0.5 text-[11px] italic text-muted-foreground">No disponible</p>
+                                  )}
                                 </div>
                               </div>
-                            )}
-                            {order.checkout_url && order.status === "pending" && (
+
+                              {/* Customer email */}
                               <div className="flex items-start gap-2.5">
-                                <div className="mt-0.5 rounded-lg bg-[var(--gbp-surface)] p-1.5 border border-[var(--gbp-border)]">
-                                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                                <div className="mt-0.5 rounded-lg bg-emerald-100 p-1.5">
+                                  <Mail className="h-3.5 w-3.5 text-emerald-600" />
                                 </div>
-                                <div className="min-w-0">
-                                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">URL de checkout</p>
-                                  <p className="mt-0.5 truncate text-[11px] font-mono text-muted-foreground">{order.checkout_url}</p>
+                                <div>
+                                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Email del cliente</p>
+                                  <p className="mt-0.5 text-[11px] font-semibold text-foreground">
+                                    {order.customer_email ?? <span className="italic text-muted-foreground">No disponible</span>}
+                                  </p>
                                 </div>
                               </div>
+
+                              {/* Paid at */}
+                              <div className="flex items-start gap-2.5">
+                                <div className="mt-0.5 rounded-lg bg-emerald-100 p-1.5">
+                                  <Calendar className="h-3.5 w-3.5 text-emerald-600" />
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Fecha de pago</p>
+                                  <p className="mt-0.5 text-[11px] font-semibold text-foreground">
+                                    {order.paid_at ? fmtDate(order.paid_at) : "—"}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Items breakdown for multi-item paid orders */}
+                            {storedItems && storedItems.length > 1 && (
+                              <ItemsBreakdown items={storedItems} currency={order.currency} />
                             )}
-                          </div>
+                          </>
+                        ) : (
+                          /* Non-paid detail */
+                          <>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                              {order.expires_at && (
+                                <div className="flex items-start gap-2.5">
+                                  <div className="mt-0.5 rounded-lg bg-[var(--gbp-surface)] p-1.5 border border-[var(--gbp-border)]">
+                                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                                  </div>
+                                  <div>
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Expira</p>
+                                    <p className="mt-0.5 text-[11px] font-semibold text-foreground">{fmtDate(order.expires_at)}</p>
+                                  </div>
+                                </div>
+                              )}
+                              {order.checkout_url && order.status === "pending" && (
+                                <div className="flex items-start gap-2.5">
+                                  <div className="mt-0.5 rounded-lg bg-[var(--gbp-surface)] p-1.5 border border-[var(--gbp-border)]">
+                                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">URL de checkout</p>
+                                    <p className="mt-0.5 truncate text-[11px] font-mono text-muted-foreground">{order.checkout_url}</p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Items breakdown for multi-item pending orders */}
+                            {storedItems && storedItems.length > 1 && (
+                              <ItemsBreakdown items={storedItems} currency={order.currency} />
+                            )}
+                          </>
                         )}
                       </div>
                     </td>

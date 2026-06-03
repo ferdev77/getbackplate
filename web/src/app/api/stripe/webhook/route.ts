@@ -71,6 +71,58 @@ function computePeriodEnd(
   return start.toISOString();
 }
 
+async function executeManualAction(
+  orgId: string,
+  actionType: string,
+  actionPayload: Record<string, unknown>,
+  supabase: ReturnType<typeof createClient>,
+) {
+  if (actionType === 'activate_module') {
+    const moduleCode = String(actionPayload.moduleCode ?? '');
+    if (!moduleCode) return;
+    const { data: moduleRow } = await supabase
+      .from('module_catalog')
+      .select('id')
+      .eq('code', moduleCode)
+      .maybeSingle();
+    if (moduleRow) {
+      const { error: modErr } = await supabase
+        .from('organization_modules')
+        .upsert(
+          { organization_id: orgId, module_id: moduleRow.id, is_enabled: true, enabled_at: new Date().toISOString() },
+          { onConflict: 'organization_id,module_id' },
+        );
+      if (modErr) console.error(`[Webhook][manual] Error enabling module ${moduleCode}:`, modErr);
+      else console.info(`[Webhook][manual] Module "${moduleCode}" enabled for org ${orgId}`);
+    } else {
+      console.error(`[Webhook][manual] Module code "${moduleCode}" not found in catalog`);
+    }
+  } else if (actionType === 'add_invoices') {
+    const count = Number(actionPayload.invoiceCount ?? 0);
+    if (count <= 0) return;
+    const { error: invErr } = await supabase.rpc('increment_invoice_balance', {
+      p_organization_id: orgId,
+      p_amount: count,
+    });
+    if (invErr) {
+      console.warn('[Webhook][manual] RPC increment_invoice_balance failed, trying direct update:', invErr);
+      const { data: addonRow } = await supabase
+        .from('organization_addons')
+        .select('id, invoice_balance')
+        .eq('organization_id', orgId)
+        .eq('status', 'active')
+        .maybeSingle();
+      if (addonRow) {
+        await supabase
+          .from('organization_addons')
+          .update({ invoice_balance: (addonRow.invoice_balance ?? 0) + count })
+          .eq('id', addonRow.id);
+      }
+    }
+    console.info(`[Webhook][manual] invoice_balance +${count} for org ${orgId}`);
+  }
+  // 'custom': payment recorded, no automatic side-effect
+}
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -137,23 +189,14 @@ export async function POST(req: Request) {
 
         // ── MANUAL PAYMENT ORDER ─────────────────────────────────
         // Created from superadmin/payment-links. One-time payment mode.
-        // Executes the configured action (activate_module | add_invoices | custom).
+        // Actions are stored in the DB items column (new orders) or metadata (legacy).
         if (session.metadata?.manualPaymentOrderId) {
           const orderId = session.metadata.manualPaymentOrderId;
           const orgId   = session.metadata.organizationId;
-          const actionType = session.metadata.actionType as 'activate_module' | 'add_invoices' | 'custom';
-          let actionPayload: Record<string, unknown> = {};
-          try {
-            if (session.metadata.actionPayload) {
-              actionPayload = JSON.parse(session.metadata.actionPayload) as Record<string, unknown>;
-            }
-          } catch {
-            console.error('[Webhook][manual] Could not parse actionPayload JSON');
-          }
 
-          console.info(`[Webhook][manual] orderId=${orderId} orgId=${orgId} action=${actionType}`);
+          console.info(`[Webhook][manual] orderId=${orderId} orgId=${orgId}`);
 
-          // Mark order as paid — save payment traceability fields
+          // Mark order as paid
           const paymentIntentId =
             typeof session.payment_intent === 'string'
               ? session.payment_intent
@@ -172,58 +215,33 @@ export async function POST(req: Request) {
           if (paidErr) console.error('[Webhook][manual] Error marking order paid:', paidErr);
 
           if (orgId) {
-            if (actionType === 'activate_module') {
-              // ── Activate module for the org ──────────────────────
-              const moduleCode = String(actionPayload.moduleCode ?? '');
-              if (moduleCode) {
-                const { data: moduleRow } = await supabase
-                  .from('module_catalog')
-                  .select('id')
-                  .eq('code', moduleCode)
-                  .maybeSingle();
+            // Fetch order to get items[] (new orders) or fall back to metadata (legacy)
+            type StoredItem = { action_type: string; action_payload: Record<string, unknown> | null };
+            const { data: orderRecord } = await supabase
+              .from('manual_payment_orders')
+              .select('items, action_type, action_payload')
+              .eq('id', orderId)
+              .maybeSingle();
 
-                if (moduleRow) {
-                  const { error: modErr } = await supabase
-                    .from('organization_modules')
-                    .upsert(
-                      { organization_id: orgId, module_id: moduleRow.id, is_enabled: true, enabled_at: new Date().toISOString() },
-                      { onConflict: 'organization_id,module_id' },
-                    );
-                  if (modErr) console.error(`[Webhook][manual] Error enabling module ${moduleCode}:`, modErr);
-                  else console.info(`[Webhook][manual] Module "${moduleCode}" enabled for org ${orgId}`);
-                } else {
-                  console.error(`[Webhook][manual] Module code "${moduleCode}" not found in catalog`);
-                }
+            const storedItems = orderRecord?.items as StoredItem[] | null;
+
+            if (storedItems && storedItems.length > 0) {
+              for (const item of storedItems) {
+                await executeManualAction(orgId, item.action_type, item.action_payload ?? {}, supabase);
               }
-            } else if (actionType === 'add_invoices') {
-              // ── Credit invoice balance on the org's QBO addon ────
-              const count = Number(actionPayload.invoiceCount ?? 0);
-              if (count > 0) {
-                // Increment invoice_balance on any active addon for this org
-                const { error: invErr } = await supabase.rpc('increment_invoice_balance', {
-                  p_organization_id: orgId,
-                  p_amount: count,
-                });
-                if (invErr) {
-                  // Fallback: direct update on first active addon
-                  console.warn('[Webhook][manual] RPC increment_invoice_balance failed, trying direct update:', invErr);
-                  const { data: addonRow } = await supabase
-                    .from('organization_addons')
-                    .select('id, invoice_balance')
-                    .eq('organization_id', orgId)
-                    .eq('status', 'active')
-                    .maybeSingle();
-                  if (addonRow) {
-                    await supabase
-                      .from('organization_addons')
-                      .update({ invoice_balance: (addonRow.invoice_balance ?? 0) + count })
-                      .eq('id', addonRow.id);
-                  }
+            } else {
+              // Legacy single-item order: read action from session metadata
+              let legacyPayload: Record<string, unknown> = {};
+              try {
+                if (session.metadata.actionPayload) {
+                  legacyPayload = JSON.parse(session.metadata.actionPayload) as Record<string, unknown>;
                 }
-                console.info(`[Webhook][manual] invoice_balance +${count} for org ${orgId}`);
+              } catch {
+                console.error('[Webhook][manual] Could not parse legacy actionPayload JSON');
               }
+              const legacyActionType = session.metadata.actionType ?? 'custom';
+              await executeManualAction(orgId, legacyActionType, legacyPayload, supabase);
             }
-            // 'custom': payment recorded, no automatic side-effect
           }
 
           break;

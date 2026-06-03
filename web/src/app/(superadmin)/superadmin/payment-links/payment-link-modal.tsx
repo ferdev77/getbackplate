@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, Plus, Copy, CheckCheck, Loader2, Link2, Zap, FileStack, Tag } from "lucide-react";
+import { X, Plus, Copy, CheckCheck, Loader2, Link2, Zap, FileStack, Tag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { SuperadminInputField, SuperadminSelectField } from "@/shared/ui/superadmin-form-fields";
 
 type Org = { id: string; name: string };
 type Module = { id: string; code: string; name: string };
-
 type ActionType = "activate_module" | "add_invoices" | "custom";
 
 const ACTION_META: Record<ActionType, { label: string; icon: React.ElementType; color: string; description: string }> = {
@@ -32,10 +31,32 @@ const ACTION_META: Record<ActionType, { label: string; icon: React.ElementType; 
   },
 };
 
+type ItemDraft = {
+  description: string;
+  amount: string;
+  actionType: ActionType;
+  moduleCode: string;
+  invoiceCount: string;
+};
+
+const EMPTY_ITEM: ItemDraft = {
+  description: "",
+  amount: "",
+  actionType: "custom",
+  moduleCode: "",
+  invoiceCount: "",
+};
+
 type Props = {
   organizations: Org[];
   modules: Module[];
 };
+
+function fmtTotal(cents: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency", currency: "USD", minimumFractionDigits: 2,
+  }).format(cents / 100);
+}
 
 export function PaymentLinkModal({ organizations, modules }: Props) {
   const router = useRouter();
@@ -45,30 +66,55 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
   const [copied, setCopied] = useState(false);
 
   const [orgId, setOrgId] = useState("");
-  const [description, setDescription] = useState("");
   const [internalNotes, setInternalNotes] = useState("");
-  const [amount, setAmount] = useState("");
-  const [actionType, setActionType] = useState<ActionType>("custom");
-  const [moduleCode, setModuleCode] = useState("");
-  const [invoiceCount, setInvoiceCount] = useState("");
+  const [items, setItems] = useState<ItemDraft[]>([{ ...EMPTY_ITEM }]);
 
   function reset() {
-    setOrgId(""); setDescription(""); setInternalNotes(""); setAmount("");
-    setActionType("custom"); setModuleCode("");
-    setInvoiceCount(""); setGeneratedUrl(null); setCopied(false);
+    setOrgId(""); setInternalNotes("");
+    setItems([{ ...EMPTY_ITEM }]);
+    setGeneratedUrl(null); setCopied(false);
   }
 
   function close() { setOpen(false); setTimeout(reset, 300); }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const amountCents = Math.round(parseFloat(amount) * 100);
-    if (!orgId || !description.trim() || !amountCents || amountCents <= 0) return;
+  function addItem() {
+    setItems(prev => [...prev, { ...EMPTY_ITEM }]);
+  }
 
-    const actionPayload =
-      actionType === "activate_module" ? { moduleCode } :
-      actionType === "add_invoices"    ? { invoiceCount: Number(invoiceCount) } :
-      undefined;
+  function removeItem(idx: number) {
+    setItems(prev => prev.filter((_, i) => i !== idx));
+  }
+
+  function updateItem(idx: number, patch: Partial<ItemDraft>) {
+    setItems(prev => prev.map((item, i) => i === idx ? { ...item, ...patch } : item));
+  }
+
+  const totalCents = items.reduce((sum, item) => {
+    const c = Math.round(parseFloat(item.amount || "0") * 100);
+    return sum + (isNaN(c) ? 0 : c);
+  }, 0);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!orgId) return;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const cents = Math.round(parseFloat(item.amount) * 100);
+      if (!item.description.trim() || !cents || cents <= 0) return;
+      if (item.actionType === "activate_module" && !item.moduleCode) return;
+      if (item.actionType === "add_invoices" && (!item.invoiceCount || Number(item.invoiceCount) <= 0)) return;
+    }
+
+    const apiItems = items.map(item => ({
+      description: item.description.trim(),
+      amountCents: Math.round(parseFloat(item.amount) * 100),
+      actionType: item.actionType,
+      actionPayload:
+        item.actionType === "activate_module" ? { moduleCode: item.moduleCode } :
+        item.actionType === "add_invoices"    ? { invoiceCount: Number(item.invoiceCount) } :
+        undefined,
+    }));
 
     setLoading(true);
     try {
@@ -77,12 +123,9 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           organizationId: orgId,
-          description: description.trim(),
           internalNotes: internalNotes.trim() || undefined,
-          amountCents,
           currency: "usd",
-          actionType,
-          actionPayload,
+          items: apiItems,
         }),
       });
       const data = await res.json() as { url?: string; error?: string };
@@ -106,7 +149,6 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
   }
 
   const selectedOrg = organizations.find(o => o.id === orgId);
-  const actionMeta = ACTION_META[actionType];
 
   return (
     <>
@@ -161,113 +203,59 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
               </div>
             ) : (
               /* ── Form ── */
-              <form onSubmit={handleSubmit} className="max-h-[65vh] space-y-6 overflow-y-auto pr-1 scrollbar-hide">
+              <form onSubmit={handleSubmit} className="max-h-[65vh] space-y-5 overflow-y-auto pr-1 scrollbar-hide">
 
-                {/* Org + amount */}
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <SuperadminSelectField
-                    label="Organización"
-                    name="org"
-                    value={orgId}
-                    onChange={e => setOrgId(e.target.value)}
-                    required
-                  >
-                    <option value="">Seleccioná una org…</option>
-                    {organizations.map(o => (
-                      <option key={o.id} value={o.id}>{o.name}</option>
-                    ))}
-                  </SuperadminSelectField>
-                  <div className="grid grid-cols-2 gap-3">
-                    <SuperadminInputField
-                      label="Monto ($)"
-                      name="amount"
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      value={amount}
-                      onChange={e => setAmount(e.target.value)}
-                      placeholder="0.00"
-                      required
-                    />
-                    <div className="mt-3 flex items-center justify-center rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3 text-sm font-bold text-[var(--gbp-text2)]">
-                      USD
-                    </div>
-                  </div>
-                </div>
-
-                {/* Description */}
-                <SuperadminInputField
-                  label="Descripción (visible en Stripe)"
-                  name="description"
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  placeholder="p.ej: Módulo Mantenimiento — Pack inicial"
+                {/* Org */}
+                <SuperadminSelectField
+                  label="Organización"
+                  name="org"
+                  value={orgId}
+                  onChange={e => setOrgId(e.target.value)}
                   required
-                />
+                >
+                  <option value="">Seleccioná una org…</option>
+                  {organizations.map(o => (
+                    <option key={o.id} value={o.id}>{o.name}</option>
+                  ))}
+                </SuperadminSelectField>
 
-                {/* Action type */}
-                <div>
-                  <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-                    Acción al pagar
-                  </p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(Object.entries(ACTION_META) as [ActionType, typeof ACTION_META[ActionType]][]).map(([type, meta]) => {
-                      const Icon = meta.icon;
-                      const active = actionType === type;
-                      const colorCls = active
-                        ? meta.color === "violet" ? "border-violet-400 bg-violet-50 text-violet-700"
-                        : meta.color === "emerald" ? "border-emerald-400 bg-emerald-50 text-emerald-700"
-                        : "border-amber-400 bg-amber-50 text-amber-700"
-                        : "border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
-                      return (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() => setActionType(type)}
-                          className={`flex flex-col items-start gap-1.5 rounded-xl border p-3.5 text-left transition ${colorCls}`}
-                        >
-                          <Icon className="h-4 w-4" />
-                          <span className="text-xs font-bold">{meta.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <p className="mt-2 text-[11px] text-muted-foreground">{actionMeta.description}</p>
+                {/* Items */}
+                <div className="space-y-3">
+                  {items.map((item, idx) => (
+                    <ItemCard
+                      key={idx}
+                      idx={idx}
+                      item={item}
+                      modules={modules}
+                      canRemove={items.length > 1}
+                      onRemove={() => removeItem(idx)}
+                      onChange={patch => updateItem(idx, patch)}
+                    />
+                  ))}
                 </div>
 
-                {/* Action payload */}
-                {actionType === "activate_module" && (
-                  <SuperadminSelectField
-                    label="Módulo a activar"
-                    name="module_code"
-                    value={moduleCode}
-                    onChange={e => setModuleCode(e.target.value)}
-                    required
-                  >
-                    <option value="">Seleccioná un módulo…</option>
-                    {modules.map(m => (
-                      <option key={m.id} value={m.code}>{m.name}</option>
-                    ))}
-                  </SuperadminSelectField>
+                {/* Add item */}
+                <button
+                  type="button"
+                  onClick={addItem}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--gbp-border)] py-2.5 text-xs font-bold text-muted-foreground transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Agregar item
+                </button>
+
+                {/* Total */}
+                {totalCents > 0 && (
+                  <div className="flex items-center justify-between rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3">
+                    <span className="text-sm font-semibold text-muted-foreground">
+                      Total{items.length > 1 ? ` (${items.length} items)` : ""}
+                    </span>
+                    <span className="text-base font-extrabold text-foreground">{fmtTotal(totalCents)}</span>
+                  </div>
                 )}
 
-                {actionType === "add_invoices" && (
-                  <SuperadminInputField
-                    label="Cantidad de facturas a acreditar"
-                    name="invoice_count"
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={invoiceCount}
-                    onChange={e => setInvoiceCount(e.target.value)}
-                    placeholder="p.ej: 500"
-                    required
-                  />
-                )}
-
-                {/* Expiry info + notes */}
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <div className="mt-3 flex items-center gap-2 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3">
+                {/* Expiry + Notes */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="flex items-center gap-2 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3">
                     <span className="text-sm text-muted-foreground">⏱ Expira en:</span>
                     <span className="text-sm font-bold text-foreground">24 hs</span>
                     <span className="ml-auto text-[10px] text-muted-foreground/60">límite de Stripe</span>
@@ -282,7 +270,7 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-end gap-3 border-t border-[var(--gbp-border)] pt-6">
+                <div className="flex items-center justify-end gap-3 border-t border-[var(--gbp-border)] pt-5">
                   <button type="button" onClick={close} className="rounded-xl border border-[var(--gbp-border)] px-6 py-2.5 text-sm font-bold text-[var(--gbp-text2)]">
                     Cancelar
                   </button>
@@ -300,5 +288,128 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
         </div>
       )}
     </>
+  );
+}
+
+/* ── Item card ──────────────────────────────────────────────── */
+
+type ItemCardProps = {
+  idx: number;
+  item: ItemDraft;
+  modules: Module[];
+  canRemove: boolean;
+  onRemove: () => void;
+  onChange: (patch: Partial<ItemDraft>) => void;
+};
+
+function ItemCard({ idx, item, modules, canRemove, onRemove, onChange }: ItemCardProps) {
+  const actionMeta = ACTION_META[item.actionType];
+
+  return (
+    <div className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4 space-y-3">
+      {/* Item header */}
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+          Item {idx + 1}
+        </span>
+        {canRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="rounded-lg p-1 text-muted-foreground/60 transition hover:bg-rose-50 hover:text-rose-500"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Description + Amount */}
+      <div className="grid gap-3 sm:grid-cols-[1fr_130px]">
+        <SuperadminInputField
+          label="Descripción (visible en Stripe)"
+          name={`desc_${idx}`}
+          value={item.description}
+          onChange={e => onChange({ description: e.target.value })}
+          placeholder="p.ej: Módulo Mantenimiento"
+          required
+        />
+        <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+          <SuperadminInputField
+            label="Monto ($)"
+            name={`amount_${idx}`}
+            type="number"
+            min="0.01"
+            step="0.01"
+            value={item.amount}
+            onChange={e => onChange({ amount: e.target.value })}
+            placeholder="0.00"
+            required
+          />
+          <div className="flex items-center justify-center rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-[0.62rem] text-sm font-bold text-[var(--gbp-text2)]">
+            USD
+          </div>
+        </div>
+      </div>
+
+      {/* Action type */}
+      <div>
+        <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+          Acción al pagar
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {(Object.entries(ACTION_META) as [ActionType, typeof ACTION_META[ActionType]][]).map(([type, meta]) => {
+            const Icon = meta.icon;
+            const active = item.actionType === type;
+            const colorCls = active
+              ? meta.color === "violet"  ? "border-violet-400 bg-violet-50 text-violet-700"
+              : meta.color === "emerald" ? "border-emerald-400 bg-emerald-50 text-emerald-700"
+              : "border-amber-400 bg-amber-50 text-amber-700"
+              : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => onChange({ actionType: type, moduleCode: "", invoiceCount: "" })}
+                className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition ${colorCls}`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                <span className="text-[11px] font-bold">{meta.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-1.5 text-[11px] text-muted-foreground">{actionMeta.description}</p>
+      </div>
+
+      {/* Action payload */}
+      {item.actionType === "activate_module" && (
+        <SuperadminSelectField
+          label="Módulo a activar"
+          name={`module_${idx}`}
+          value={item.moduleCode}
+          onChange={e => onChange({ moduleCode: e.target.value })}
+          required
+        >
+          <option value="">Seleccioná un módulo…</option>
+          {modules.map(m => (
+            <option key={m.id} value={m.code}>{m.name}</option>
+          ))}
+        </SuperadminSelectField>
+      )}
+
+      {item.actionType === "add_invoices" && (
+        <SuperadminInputField
+          label="Cantidad de facturas a acreditar"
+          name={`invoices_${idx}`}
+          type="number"
+          min="1"
+          step="1"
+          value={item.invoiceCount}
+          onChange={e => onChange({ invoiceCount: e.target.value })}
+          placeholder="p.ej: 500"
+          required
+        />
+      )}
+    </div>
   );
 }
