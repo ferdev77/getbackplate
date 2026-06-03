@@ -50,7 +50,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
   ] = await Promise.all([
     supabase
       .from("plans")
-      .select("id, code, name, description, is_active, price_amount, currency_code, billing_period, max_branches, max_users, max_storage_mb, max_employees, stripe_price_id, plan_type, is_featured, is_enterprise, setup_fee_amount, features, cta_text, cta_email, sort_order, invoices_included, created_at")
+      .select("id, code, name, description, is_active, price_amount, currency_code, billing_period, max_branches, max_users, max_storage_mb, max_employees, stripe_price_id, plan_type, is_featured, is_enterprise, setup_fee_amount, setup_fee_annual_discount_pct, features, cta_text, cta_email, sort_order, invoices_included, max_r365_connections, created_at")
       .order("sort_order", { ascending: true })
       .order("price_amount", { ascending: true }),
     supabase
