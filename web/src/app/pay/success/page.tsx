@@ -11,7 +11,7 @@ export default function PaySuccessPage() {
         </div>
         <h1 className="text-2xl font-bold text-gray-900">Pago confirmado</h1>
         <p className="mt-3 text-sm text-gray-500">
-          Tu pago fue procesado correctamente. En breve recibirás una confirmación por email.
+          Tu pago fue procesado correctamente.
         </p>
         <p className="mt-6 text-xs text-gray-400">Podés cerrar esta pestaña.</p>
       </div>
