@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCircle2, Clock, XCircle, Ban, Zap, FileStack, Tag, Plug, ChevronDown, ExternalLink, Mail, CreditCard, Calendar, Layers } from "lucide-react";
+import { useState, useEffect } from "react";
+import { CheckCircle2, Clock, XCircle, Ban, Zap, FileStack, Tag, Plug, ChevronDown, ExternalLink, Mail, CreditCard, Timer, Layers } from "lucide-react";
 import { CopyUrlButton } from "./copy-url-button";
 import { CancelOrderButton } from "./cancel-order-button";
 import { DeleteOrderButton } from "./delete-order-button";
@@ -134,6 +134,30 @@ function ItemsBreakdown({ items, currency }: { items: StoredItem[]; currency: st
         })}
       </div>
     </div>
+  );
+}
+
+function CountdownTimer({ expiresAt }: { expiresAt: string }) {
+  const getSecondsLeft = () => Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000));
+  const [secs, setSecs] = useState(getSecondsLeft);
+
+  useEffect(() => {
+    if (secs <= 0) return;
+    const id = setInterval(() => setSecs(getSecondsLeft()), 1000);
+    return () => clearInterval(id);
+  }, [expiresAt]);
+
+  if (secs <= 0) return <span className="text-[11px] font-semibold text-rose-500">Expirado</span>;
+
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  const colorCls = secs < 3600 ? "text-rose-600" : secs < 7200 ? "text-amber-600" : "text-foreground";
+
+  return (
+    <span className={`font-mono text-[11px] font-semibold tabular-nums ${colorCls}`}>
+      {h > 0 ? `${h}h ` : ""}{String(m).padStart(2, "0")}m {String(s).padStart(2, "0")}s
+    </span>
   );
 }
 
@@ -302,11 +326,11 @@ export function PaymentLinksTable({ orders, orgMap }: Props) {
                               {order.expires_at && (
                                 <div className="flex items-start gap-2.5">
                                   <div className="mt-0.5 rounded-lg bg-[var(--gbp-surface)] p-1.5 border border-[var(--gbp-border)]">
-                                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                                    <Timer className="h-3.5 w-3.5 text-muted-foreground" />
                                   </div>
                                   <div>
-                                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Expira</p>
-                                    <p className="mt-0.5 text-[11px] font-semibold text-foreground">{fmtDate(order.expires_at)}</p>
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Expira en</p>
+                                    <div className="mt-0.5"><CountdownTimer expiresAt={order.expires_at} /></div>
                                   </div>
                                 </div>
                               )}
