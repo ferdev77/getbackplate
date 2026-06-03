@@ -334,17 +334,6 @@ export function PaymentLinksTable({ orders, orgMap }: Props) {
                                   </div>
                                 </div>
                               )}
-                              {order.checkout_url && order.status === "pending" && (
-                                <div className="flex items-start gap-2.5">
-                                  <div className="mt-0.5 rounded-lg bg-[var(--gbp-surface)] p-1.5 border border-[var(--gbp-border)]">
-                                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
-                                  </div>
-                                  <div className="min-w-0">
-                                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">URL de checkout</p>
-                                    <p className="mt-0.5 truncate text-[11px] font-mono text-muted-foreground">{order.checkout_url}</p>
-                                  </div>
-                                </div>
-                              )}
                             </div>
 
                             {/* Items breakdown for multi-item pending orders */}
