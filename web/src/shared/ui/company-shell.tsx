@@ -187,68 +187,6 @@ type CompanyShellProps = {
   children: React.ReactNode;
 };
 
-type SettingsShortcutCardProps = {
-  eyebrow: string;
-  value: string;
-  active: boolean;
-  accentColor: string;
-  onClick: () => void;
-  isDarkTheme: boolean;
-};
-
-function SettingsShortcutCard({
-  eyebrow,
-  value,
-  active,
-  accentColor,
-  onClick,
-  isDarkTheme,
-}: SettingsShortcutCardProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`group relative w-full overflow-hidden rounded-xl border px-3 py-3 text-left transition-all duration-200 ${
-        active
-          ? isDarkTheme
-            ? "border-white/20 bg-white/[0.06] shadow-[0_12px_28px_rgba(0,0,0,.28)]"
-            : "border-[var(--gbp-border2)] bg-white shadow-[0_10px_24px_rgba(15,23,42,.08)]"
-          : isDarkTheme
-            ? "border-white/12 bg-white/[0.03] hover:bg-white/[0.05]"
-            : "border-[var(--gbp-border)] bg-white/80 hover:bg-white"
-      }`}
-    >
-      <div
-        className="absolute inset-x-0 top-0 h-px opacity-70"
-        style={{ background: `linear-gradient(90deg, transparent, ${accentColor}, transparent)` }}
-        aria-hidden="true"
-      />
-      <div className="mb-1 flex items-center gap-2">
-        <div
-          className={`h-1.5 w-1.5 rounded-full transition-transform duration-200 group-hover:scale-110 ${
-            active ? "shadow-[0_0_0_4px_rgba(255,255,255,.04)]" : ""
-          }`}
-          style={{ background: accentColor }}
-        />
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-text)]">{eyebrow}</p>
-      </div>
-      <p
-        className={`text-sm font-bold transition-colors ${
-          active
-            ? isDarkTheme
-              ? "text-white"
-              : "text-[var(--gbp-text)]"
-            : isDarkTheme
-              ? "text-white/70 group-hover:text-white/85"
-              : "text-[var(--gbp-text2)] group-hover:text-[var(--gbp-text)]"
-        }`}
-      >
-        {value}
-      </p>
-    </button>
-  );
-}
-
 
 export function CompanyShell({
   organizationLabel,
@@ -2122,18 +2060,25 @@ export function CompanyShell({
                     ))}
                   </div>
                   <div className="px-3.5 pb-2 pt-4 flex flex-col gap-2">
-                    <SettingsShortcutCard
-                      eyebrow="GetBackplate App"
-                      value={currentPlanName && currentPlanName !== "Sin plan" ? currentPlanName : "Get started"}
-                      active={Boolean(currentPlanName && currentPlanName !== "Sin plan")}
-                      accentColor={palette.accent}
-                      isDarkTheme={isDarkTheme}
+                    <button
+                      type="button"
                       onClick={() => {
                         setSettingsOpen(false);
                         setPlanBillingCycle(normalizePlanPeriod(billingPeriod));
                         setPlanOpen(true);
                       }}
-                    />
+                      disabled={false}
+                      className={`w-full rounded-lg border-[1.5px] px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-60 ${isDarkTheme ? "bg-white/5" : "bg-white/75"}`}
+                      style={{ borderColor: palette.accent }}
+                    >
+                      <div className="mb-1 flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full" style={{ background: palette.accent }} />
+                        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-text)]">GetBackplate App</p>
+                      </div>
+                      <p className="text-xs font-bold" style={{ color: palette.accent }}>
+                        {currentPlanName && currentPlanName !== "Sin plan" ? currentPlanName : "Get started"}
+                      </p>
+                    </button>
 
                     {availableAddons.length > 0 && (() => {
                       const activeOrgAddons = organizationAddons.filter((a) => a.status === "active");
@@ -2146,14 +2091,19 @@ export function CompanyShell({
                           }).join(" · ")
                         : "Get started";
                       return (
-                        <SettingsShortcutCard
-                          eyebrow="GetBackplate Integrations"
-                          value={addonSummary}
-                          active={hasActive}
-                          accentColor={hasActive ? "#10b981" : palette.accent}
-                          isDarkTheme={isDarkTheme}
+                        <button
+                          type="button"
                           onClick={() => { setSettingsOpen(false); setAddonOpen(true); }}
-                        />
+                          className={`w-full rounded-lg border-[1.5px] px-3 py-2 text-left ${isDarkTheme ? "bg-white/5 border-white/20" : "bg-white/75 border-[var(--gbp-border2)]"}`}
+                        >
+                          <div className="mb-1 flex items-center gap-2">
+                            <div className={`h-1.5 w-1.5 rounded-full ${hasActive ? "bg-emerald-500" : (isDarkTheme ? "bg-white/40" : "bg-[var(--gbp-muted)]")}`} />
+                            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-text)]">GetBackplate Integrations</p>
+                          </div>
+                          <p className={`text-xs font-bold ${hasActive ? (isDarkTheme ? "text-emerald-400" : "text-emerald-600") : (isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]")}`}>
+                            {addonSummary}
+                          </p>
+                        </button>
                       );
                     })()}
                   </div>
