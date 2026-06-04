@@ -84,11 +84,18 @@ export async function POST(request: Request) {
           fallbackAppUrl: requestBaseUrl,
         })
       : resolveCanonicalAppUrl(requestBaseUrl);
-    const { data: targetPlan } = await supabase
-      .from('plans')
-      .select('id, stripe_price_id')
-      .eq('id', planId)
-      .maybeSingle();
+    const [{ data: targetPlan }, { data: currentOrganization }] = await Promise.all([
+      supabase
+        .from('plans')
+        .select('id, stripe_price_id')
+        .eq('id', planId)
+        .maybeSingle(),
+      supabase
+        .from('organizations')
+        .select('integration_plan_id')
+        .eq('id', organizationId)
+        .maybeSingle(),
+    ]);
 
     if (!targetPlan?.stripe_price_id) {
       return NextResponse.json({ error: 'Plan sin precio base configurado en Stripe' }, { status: 400 });
@@ -164,6 +171,7 @@ export async function POST(request: Request) {
       const syncResult = await syncOrganizationPlan({
         organizationId,
         planId,
+        integrationPlanId: currentOrganization?.integration_plan_id ?? null,
       });
 
       if (!syncResult.ok) {

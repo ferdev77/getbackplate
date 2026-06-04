@@ -2,7 +2,7 @@
 
 Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 
-> **Última actualización:** 2026-06-04 (125 migraciones)
+> **Última actualización:** 2026-06-04 (127 migraciones)
 
 ## Todas las migraciones (orden cronológico)
 
@@ -134,6 +134,7 @@ Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 | 124 | `20260603000001_manual_payment_orders_items.sql` | Columna `items` JSONB en órdenes para multi-item checkout |
 | 125 | `20260603000002_organization_addons_extra_r365_slots.sql` | Campo `extra_r365_connections` en `organization_addons` |
 | 126 | `20260604000001_announcement_deliveries_processing_status.sql` | Agrega `processing` al CHECK constraint de `announcement_deliveries.status` |
+| 127 | `20260604000002_manual_payment_add_slot_and_status_guards.sql` | Agrega `add_slot` al CHECK constraint de `manual_payment_orders.action_type` |
 
 ## Convención de naming
 
