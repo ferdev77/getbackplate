@@ -1,112 +1,102 @@
-# Start Here - Canonical Reading Order
+# Start Here — Guía de Navegación de la Documentación
 
-Objetivo: evitar confusion entre fases globales del producto y subfases internas de complementos.
+**GetBackplate** — SaaS multi-tenant en producción. Este archivo es el índice canónico de toda la documentación del repo.
 
-## Vigente vs Historico (lectura de 30 segundos)
+---
 
-Usar como vigente primero:
-- `DOCS/00_START_HERE.md`
-- `DOCS/1_Arquitectura_y_Contexto/DOCUMENTACION_TECNICA.md`
-- `DOCS/complemento_etapa_1/COMP_F1_ESTADO_REAL_Y_ROADMAP.md`
+## Si acabás de entrar al proyecto
 
-Tomar como historico/contextual (no como estado runtime unico):
-- `DOCS/3_Actualizaciones_Sprints/ACTUALIZACION_2.0_SAAS.md`
-- `DOCS/3_Actualizaciones_Sprints/ACTUALIZACION_2.1_SAAS.md`
-- `DOCS/3_Actualizaciones_Sprints/ACTUALIZACION_2.2_SAAS.md`
-- `DOCS/1_Arquitectura_y_Contexto/ANALISIS_INTEGRAL_APP_DB_2026-03-31.md`
+Leer en este orden:
 
-Regla rapida: si un documento historico contradice uno vigente, prevalece el vigente.
+1. **[README.md](../README.md)** — estructura del repo, cómo levantar el proyecto localmente, servicios, checklist de deploy.
+2. **[AGENTS.md](../AGENTS.md)** — convenciones del código, modelo de datos, flujos de billing, cómo funciona el checkout, manual payment orders. **El doc técnico más importante.**
+3. **[web/ARCHITECTURE.md](../web/ARCHITECTURE.md)** — estructura de módulos, patrones de API, estrategia de caché, tests.
+4. **[CHANGELOG.md](../CHANGELOG.md)** — qué cambió y cuándo.
 
-## 1) Si la pregunta es "cual es la siguiente fase de implementacion"
+---
 
-Leer primero:
-- `DOCS/complemento_etapa_1/COMP_F1_ESTADO_REAL_Y_ROADMAP.md`
+## Por tema específico
 
-Luego validar detalle de flujo:
-- `DOCS/complemento_etapa_1/COMP_F1_ALCANCE_Y_FLUJOS.md`
+### Código y arquitectura
 
-## 2) Si la pregunta es "cual es el roadmap global"
+| Pregunta | Documento |
+|---|---|
+| ¿Cómo está estructurado el codebase? | [`web/ARCHITECTURE.md`](../web/ARCHITECTURE.md) |
+| ¿Cuáles son las convenciones del repo? | [`AGENTS.md`](../AGENTS.md) |
+| ¿Cómo funciona el middleware/proxy? | [`web/ARCHITECTURE.md`](../web/ARCHITECTURE.md) — sección Middleware |
+| ¿Cómo funciona el scope de empleados? | [`web/ARCHITECTURE.md`](../web/ARCHITECTURE.md) + archivos `shared/lib/employee-*` |
+| ¿Qué son los ADRs? | [`1_Arquitectura_y_Contexto/ADR_001_*`](./1_Arquitectura_y_Contexto/) — decisiones arquitectónicas documentadas |
 
-Leer:
-- `DOCS/2_Planes_y_Checklists/PROD_ROADMAP_MACRO.md`
-- `DOCS/2_Planes_y_Checklists/PROD_F1_PLAN_BASE_SAAS.md`
+### Billing y Stripe
 
-## 3) Si la pregunta es seguridad/riesgo tecnico
+| Pregunta | Documento |
+|---|---|
+| ¿Cómo funciona el checkout? | [`AGENTS.md`](../AGENTS.md) — sección Stripe Billing Flows |
+| ¿Qué es el modelo dual-plan? | [`1_Arquitectura_y_Contexto/ADR_003_DUAL_PLAN_MODEL.md`](./1_Arquitectura_y_Contexto/ADR_003_DUAL_PLAN_MODEL.md) |
+| ¿Cómo configuro Stripe? | [`4_Operaciones_y_Guias/GUIA_CONFIGURACION_STRIPE.md`](./4_Operaciones_y_Guias/GUIA_CONFIGURACION_STRIPE.md) |
+| ¿Qué son las manual payment orders? | [`AGENTS.md`](../AGENTS.md) — sección Manual Payment Orders |
 
-Leer:
-- `DOCS/1_Arquitectura_y_Contexto/ANALISIS_INTEGRAL_APP_DB_2026-03-31.md`
-- `DOCS/2_Planes_y_Checklists/PLAN_EJECUCION_TABLERO_OPERATIVO_SIN_FECHAS.md`
+### Integración QBO → R365
 
-## 4) Si la pregunta es flujo de documentos de empleados (slots fijos/custom)
+| Pregunta | Documento |
+|---|---|
+| ¿Cómo funciona el pipeline completo? | [`4_Operaciones_y_Guias/GUIA_PIPELINE_QBO_WEBHOOK.md`](./4_Operaciones_y_Guias/GUIA_PIPELINE_QBO_WEBHOOK.md) |
+| ¿Cómo onboardear un cliente nuevo? | [`4_Operaciones_y_Guias/GUIA_ONBOARDING_QBO_R365_RAPIDA.md`](./4_Operaciones_y_Guias/GUIA_ONBOARDING_QBO_R365_RAPIDA.md) |
+| ¿Cómo configurar el sandbox? | [`4_Operaciones_y_Guias/GUIA_CONFIGURACION_QBO_R365_SANDBOX.md`](./4_Operaciones_y_Guias/GUIA_CONFIGURACION_QBO_R365_SANDBOX.md) |
+| ¿Cómo operar en producción? | [`4_Operaciones_y_Guias/GUIA_OPERATIVA_QBO_R365.md`](./4_Operaciones_y_Guias/GUIA_OPERATIVA_QBO_R365.md) |
+| Especificación técnica completa | [`1_Arquitectura_y_Contexto/PRODUCT_PHASE_QBO_R365_ESPECIFICACION_TECNICA.md`](./1_Arquitectura_y_Contexto/PRODUCT_PHASE_QBO_R365_ESPECIFICACION_TECNICA.md) |
 
-Leer:
-- `DOCS/4_Operaciones_y_Guias/GUIA_FLUJO_DOCUMENTOS_CUSTOM_EMPLEADOS.md`
-- `DOCS/4_Operaciones_y_Guias/GUIA_SEPARACION_DOCUMENTOS_LABORALES_OPERATIVOS.md`
+### Testing y CI
 
-## 5) Si la pregunta es validar flujos DB (anuncios, documentos, checklists) en local/prod
+| Pregunta | Documento |
+|---|---|
+| ¿Cómo correr los tests? | [`4_Operaciones_y_Guias/GUIA_TESTING_Y_CI.md`](./4_Operaciones_y_Guias/GUIA_TESTING_Y_CI.md) |
+| ¿Qué cubre cada test? | [`web/ARCHITECTURE.md`](../web/ARCHITECTURE.md) — sección Tests |
 
-Leer:
-- `DOCS/4_Operaciones_y_Guias/GUIA_VALIDACION_FLUJOS_LOCAL_PROD.md`
-- `DOCS/4_Operaciones_y_Guias/REPORTE_VALIDACION_FLUJOS_LOCAL_PROD_2026-04-16.md`
+### Operaciones y producción
 
-## 6) Si la pregunta es modulo core de permisos (delegacion a employees)
+| Pregunta | Documento |
+|---|---|
+| Incidente en prod — qué hacer | [`4_Operaciones_y_Guias/OPS_RUNBOOK.md`](./4_Operaciones_y_Guias/OPS_RUNBOOK.md) |
+| Alta/baja de tenants | [`4_Operaciones_y_Guias/TENANT_OPS_GUIDE.md`](./4_Operaciones_y_Guias/TENANT_OPS_GUIDE.md) |
+| Custom domains | [`4_Operaciones_y_Guias/GUIA_CUSTOM_DOMAINS.md`](./4_Operaciones_y_Guias/GUIA_CUSTOM_DOMAINS.md) |
+| Scripts operativos | [`4_Operaciones_y_Guias/GUIA_SCRIPTS_PLATAFORMA.md`](./4_Operaciones_y_Guias/GUIA_SCRIPTS_PLATAFORMA.md) |
+| Cron jobs activos y schedules | [`web/CRONS_SIMPLE.md`](../web/CRONS_SIMPLE.md) |
+| Validar flujos DB | [`4_Operaciones_y_Guias/GUIA_VALIDACION_FLUJOS_LOCAL_PROD.md`](./4_Operaciones_y_Guias/GUIA_VALIDACION_FLUJOS_LOCAL_PROD.md) |
 
-Leer:
-- `DOCS/2_Planes_y_Checklists/TECH_REMEDIATION_TRACK_MODULO_CORE_PERMISOS_PLAN_CHECKLIST.md`
+### Base de datos y migraciones
 
-## 7) Si la pregunta es como operar releases/migraciones/repositorio
+| Pregunta | Documento |
+|---|---|
+| Índice de todas las migraciones | [`SUPABASE_MIGRATIONS.md`](../SUPABASE_MIGRATIONS.md) |
+| Convención para nuevas migraciones | [`AGENTS.md`](../AGENTS.md) — sección Migration Conventions |
+| Cómo aplicar una migración a DEV/PROD | [`4_Operaciones_y_Guias/GUIA_SCRIPTS_PLATAFORMA.md`](./4_Operaciones_y_Guias/GUIA_SCRIPTS_PLATAFORMA.md) |
+| Verificar sincronía de esquema | `cd web && npm run verify:migrations-sync` |
 
-Leer:
-- `DOCS/4_Operaciones_y_Guias/GUIA_OPERATIVA_CLI_OBLIGATORIA.md`
+### Documentos de empleados
 
-## 8) Si la pregunta es mejora de arquitectura/modularizacion
+| Pregunta | Documento |
+|---|---|
+| Separación laborales vs operativos | [`4_Operaciones_y_Guias/GUIA_SEPARACION_DOCUMENTOS_LABORALES_OPERATIVOS.md`](./4_Operaciones_y_Guias/GUIA_SEPARACION_DOCUMENTOS_LABORALES_OPERATIVOS.md) |
+| Flujo de documentos custom | [`4_Operaciones_y_Guias/GUIA_FLUJO_DOCUMENTOS_CUSTOM_EMPLEADOS.md`](./4_Operaciones_y_Guias/GUIA_FLUJO_DOCUMENTOS_CUSTOM_EMPLEADOS.md) |
 
-Leer:
-- `DOCS/1_Arquitectura_y_Contexto/AUDITORIA_ARQUITECTURA_MODULARIZACION_2026-04-19.md`
-- `DOCS/2_Planes_y_Checklists/PLAN_IMPLEMENTACION_SENIOR_ARQUITECTURA_MODULAR_2026-04-19.md`
-- `DOCS/4_Operaciones_y_Guias/REPORTE_EJECUCION_ULTRA_PASADA_ARQUITECTURA_2026-04-19.md`
+### IA / Asistente
 
-## 9) Si la pregunta es toggle/vistas de Documentos (empresa + portal)
+| Pregunta | Documento |
+|---|---|
+| Política de uso del asistente | [`4_Operaciones_y_Guias/POLITICA_INTERNA_ASISTENTE_IA.md`](./4_Operaciones_y_Guias/POLITICA_INTERNA_ASISTENTE_IA.md) |
 
-Leer:
-- `DOCS/2_Planes_y_Checklists/TECH_REMEDIATION_TRACK_DOCUMENTOS_TOGGLE_Y_VISTAS_PLAN_2026-04-21.md`
-- `DOCS/4_Operaciones_y_Guias/GUIA_FLUJO_DOCUMENTOS_CUSTOM_EMPLEADOS.md`
+---
 
-## 10) Si la pregunta es scripts operativos (que hace cada script y como correrlo)
+## Sobre los documentos históricos en `DOCS/`
 
-Leer:
-- `DOCS/4_Operaciones_y_Guias/GUIA_SCRIPTS_PLATAFORMA.md`
+Muchos documentos de `DOCS/2_Planes_y_Checklists/`, `DOCS/3_Actualizaciones_Sprints/` y `DOCS/complemento_etapa_1/` son **registros históricos** de fases ya ejecutadas. Son útiles para entender decisiones pasadas, pero no representan el estado actual del sistema.
 
-## 11) Si la pregunta es integracion QuickBooks Online -> Restaurant365
+**Regla:** si un documento histórico contradice el código o un documento marcado como vigente, el código manda.
 
-Leer (orden recomendado):
-- `DOCS/4_Operaciones_y_Guias/GUIA_ONBOARDING_QBO_R365_RAPIDA.md`
-- `DOCS/2_Planes_y_Checklists/PRODUCT_PHASE_INTEGRACION_QBO_R365_PROPUESTA_IMPLEMENTACION.md`
-- `DOCS/1_Arquitectura_y_Contexto/PRODUCT_PHASE_QBO_R365_ESPECIFICACION_TECNICA.md`
-- `DOCS/2_Planes_y_Checklists/PRODUCT_PHASE_QBO_R365_MATRIZ_MAPEO_BASE.md`
-- `DOCS/2_Planes_y_Checklists/PRODUCT_PHASE_QBO_R365_PLAN_IMPLEMENTACION_CHECKLIST.md`
-- `DOCS/4_Operaciones_y_Guias/GUIA_OPERATIVA_QBO_R365.md`
-- `DOCS/4_Operaciones_y_Guias/GUIA_CONFIGURACION_QBO_R365_SANDBOX.md`
-
-## 12) Si la pregunta es scope/permisos de empleados multi-locacion
-
-El sistema tiene dos contextos de acceso:
-- **Admin** (`/app/*`): scope global, todas las locaciones
-- **Portal empleado** (`/portal/*`): scope restringido a locaciones asignadas
-
-Archivos clave en codigo (no en DOCS, leer directamente):
-- `web/src/shared/lib/employee-api-scope.ts` — resolver locaciones permitidas para APIs
-- `web/src/shared/lib/employee-location-scope.ts` — resolver scope para paginas del portal
-- `web/src/shared/lib/employee-module-permissions.ts` — permisos delegados por modulo
-- `web/src/shared/lib/scope-policy.ts` — logica de matcheo de audiencia
-- `web/src/shared/lib/scope-validation.ts` — validacion de IDs de scope contra BD
-
-Estado al 2026-05-01: scope multi-locacion corregido en todas las rutas API de empleado
-(announcements, documents, document-folders, checklists/templates, checklists/submit, vendors).
-
-## Regla operativa para IA o humanos
-
-1. Responder primero lo puntual pedido por el usuario.
-2. Citar el documento canonico del tema.
-3. Solo despues agregar contexto adicional.
-4. Operar siempre por CLI oficial (`supabase`, `vercel`, `gh`) cuando aplique.
+Documentos vigentes de referencia técnica:
+- `AGENTS.md`
+- `web/ARCHITECTURE.md`
+- `DOCS/1_Arquitectura_y_Contexto/ESTADO_Y_AUDITORIA_ACTUAL.md`
+- `DOCS/1_Arquitectura_y_Contexto/ADR_003_DUAL_PLAN_MODEL.md`
+- `CHANGELOG.md`
