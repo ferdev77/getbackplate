@@ -1,3 +1,6 @@
+> **HISTÓRICO — CONGELADO** — Este documento refleja el estado del proyecto en Marzo 2026 (versión 2.2).
+> No se actualiza. Para el estado actual ver [`ESTADO_Y_AUDITORIA_ACTUAL.md`](../1_Arquitectura_y_Contexto/ESTADO_Y_AUDITORIA_ACTUAL.md) y [`AGENTS.md`](../../AGENTS.md).
+
 # 🚀 Proyecto SaaS Resto - Estado Actual y Handover (Versión 2.2)
 
 ¡Hola! Si sos un nuevo desarrollador o un Asistente de IA (Claude, Gemini, ChatGPT) tomando este proyecto, **LEÉ ESTO PRIMERO**.

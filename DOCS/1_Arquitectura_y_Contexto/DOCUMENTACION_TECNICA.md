@@ -1,3 +1,6 @@
+> **HISTÓRICO — CONGELADO** — Este documento refleja el estado técnico del proyecto hasta Marzo 2026.
+> No se actualiza. Para la arquitectura actual ver [`web/ARCHITECTURE.md`](../../web/ARCHITECTURE.md) y [`AGENTS.md`](../../AGENTS.md).
+
 # DOCUMENTACION TECNICA
 
 ## Estado actual

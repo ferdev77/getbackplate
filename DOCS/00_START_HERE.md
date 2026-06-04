@@ -15,6 +15,12 @@ Leer en este orden:
 
 ---
 
+## Cómo agregar documentación nueva
+
+Ver **[`01_DOC_GOVERNANCE_AND_NAMING.md`](./01_DOC_GOVERNANCE_AND_NAMING.md)** — define tipos de doc, dónde va cada uno, naming convention y checklist de incorporación.
+
+---
+
 ## Por tema específico
 
 ### Código y arquitectura
