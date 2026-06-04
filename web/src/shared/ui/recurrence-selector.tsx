@@ -39,6 +39,7 @@ export function RecurrenceSelector({
         onChange={(e) => setType(e.target.value)}
         className="mb-3 w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]"
       >
+        <option value="none">Sin recurrencia (una sola vez)</option>
         <option value="daily">Diaria</option>
         <option value="weekly">Semanal</option>
         <option value="monthly">Mensual</option>

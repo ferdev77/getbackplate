@@ -38,7 +38,7 @@ export async function GET() {
 
     const [planRow, addonRow] = await Promise.all([
       integrationPlanId
-        ? supabase.from("plans").select("invoices_included").eq("id", integrationPlanId).maybeSingle()
+        ? supabase.from("plans").select("invoices_included, billing_period").eq("id", integrationPlanId).maybeSingle()
         : Promise.resolve({ data: null }),
       supabase.from("organization_addons")
         .select("current_period_end, invoice_balance")
@@ -48,12 +48,22 @@ export async function GET() {
         .maybeSingle(),
     ]);
 
-    const basePlanInvoices = (planRow.data as { invoices_included?: number | null } | null)?.invoices_included ?? null;
+    const planData = planRow.data as { invoices_included?: number | null; billing_period?: string | null } | null;
+    const basePlanInvoices = planData?.invoices_included ?? null;
+    const billingPeriod = planData?.billing_period ?? "monthly";
     const extraInvoiceBalance = ((addonRow.data as { invoice_balance?: number | null } | null)?.invoice_balance) ?? 0;
     const invoicesIncluded = basePlanInvoices != null ? basePlanInvoices + extraInvoiceBalance : null;
     const currentPeriodEnd = (addonRow.data as { current_period_end?: string | null } | null)?.current_period_end ?? null;
     const periodStart = currentPeriodEnd
-      ? new Date(new Date(currentPeriodEnd).setMonth(new Date(currentPeriodEnd).getMonth() - 1)).toISOString()
+      ? (() => {
+          const start = new Date(currentPeriodEnd);
+          if (billingPeriod === "yearly") {
+            start.setFullYear(start.getFullYear() - 1);
+          } else {
+            start.setMonth(start.getMonth() - 1);
+          }
+          return start.toISOString();
+        })()
       : null;
 
     const [snapshot, runs, invoiceHistory, unifiedStats] = await Promise.all([
