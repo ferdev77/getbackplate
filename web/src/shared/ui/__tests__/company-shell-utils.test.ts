@@ -113,7 +113,7 @@ describe("formatPlanPrice", () => {
   });
 
   it("formatea precio anual correctamente", () => {
-    expect(formatPlanPrice({ priceAmount: 490, billingPeriod: "yearly" }, "yearly")).toBe("$490/ano");
+    expect(formatPlanPrice({ priceAmount: 490, billingPeriod: "yearly" }, "yearly")).toBe("$490/año");
   });
 
   it("retorna texto de fallback si no hay precio", () => {

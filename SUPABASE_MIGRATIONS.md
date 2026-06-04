@@ -2,7 +2,7 @@
 
 Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 
-> **Última actualización:** 2026-05-04 (101 migraciones)
+> **Última actualización:** 2026-06-04 (125 migraciones)
 
 ## Todas las migraciones (orden cronológico)
 
@@ -109,6 +109,31 @@ Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 | 99 | `20260501000002_fix_vendors_rls_multilocacion.sql` | Fix RLS vendors multi-ubicación |
 | 100 | `20260502000001_stripe_events_status_field.sql` | Campo status en eventos Stripe procesados |
 | 101 | `20260503000001_qbo_lookback_allow_zero.sql` | QBO lookback permitir cero |
+| 102 | `20260505000001_qbo_r365_sync_configs.sql` | Tabla de sync configs por cliente QBO |
+| 103 | `20260505000002_qbo_r365_sync_configs_lookback.sql` | Lookback hours en sync configs |
+| 104 | `20260507000001_addon_modules.sql` | Tabla `organization_addons` para suscripciones add-on |
+| 105 | `20260517000001_qbo_r365_sync_configs_vendor_name.sql` | Campo vendor name en sync configs |
+| 106 | `20260517000002_qbo_r365_sync_configs_location.sql` | Campo location en sync configs |
+| 107 | `20260519000001_qbo_webhook_events.sql` | Tabla `qbo_webhook_events` — log de eventos recibidos de QBO |
+| 108 | `20260519000002_qbo_webhook_capture_manual.sql` | Soporte de captura manual en webhook events |
+| 109 | `20260520000001_addon_companion_modules.sql` | Módulos compañeros de add-ons |
+| 110 | `20260520000002_qbo_unified_invoices.sql` | Tabla `qbo_unified_invoices` — pipeline unificado de facturas |
+| 111 | `20260520000003_qbo_unified_invoices_import_source_manual.sql` | Import source manual en invoices unificadas |
+| 112 | `20260528000001_plans_integration_fields.sql` | Campos de integración en `plans` (`plan_type`, `addon_stripe_price_id`) |
+| 113 | `20260528000002_addon_integration_fields.sql` | Campos de integración en `organization_addons` (`integration_plan_id`, `invoice_balance`) |
+| 114 | `20260528000003_plans_invoices_included.sql` | Campo `invoices_included` en `plans` *(en web/supabase/migrations/)* |
+| 115 | `20260602000001_integration_plan_id.sql` | Campo `integration_plan_id` en `organizations` (modelo dual-plan) |
+| 116 | `20260602000002_maintenance_module.sql` | Tablas del módulo de mantenimiento |
+| 117 | `20260602000003_maintenance_catalog.sql` | Catálogo de mantenimiento (categorías, ítems de servicio) |
+| 118 | `20260602000004_setup_fee_annual_discount.sql` | Setup fee y descuento anual en planes de integración |
+| 119 | `20260602000005_setup_fee_tracking.sql` | Tracking de setup fee pagado en `organization_addons` |
+| 120 | `20260602000007_manual_payment_orders.sql` | Tabla `manual_payment_orders` para pagos ad-hoc desde superadmin |
+| 121 | `20260602000008_manual_payment_orders_payment_detail.sql` | Campos `stripe_payment_intent_id` y `customer_email` en órdenes |
+| 122 | `20260602000009_integration_plan_max_connections.sql` | Campo `max_r365_connections` en planes de integración |
+| 123 | `20260602000010_integration_onboarding.sql` | Flag `billing_onboarding_required` para onboarding de integración |
+| 124 | `20260603000001_manual_payment_orders_items.sql` | Columna `items` JSONB en órdenes para multi-item checkout |
+| 125 | `20260603000002_organization_addons_extra_r365_slots.sql` | Campo `extra_r365_connections` en `organization_addons` |
+| 126 | `20260604000001_announcement_deliveries_processing_status.sql` | Agrega `processing` al CHECK constraint de `announcement_deliveries.status` |
 
 ## Convención de naming
 
