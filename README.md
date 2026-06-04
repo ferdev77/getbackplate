@@ -1,173 +1,152 @@
-# GetBackplate - README tecnico (Etapa 1)
+# GetBackplate — Repositorio Principal
 
-Repositorio principal del SaaS multi-tenant **GetBackplate**.
+SaaS multi-tenant para operación interna de empresas. En producción en `https://app.getbackplate.com`.
 
-Este README cubre el repositorio completo y la entrega tecnica de Etapa 1; para detalles operativos de la app web ver `web/README.md`.
+---
 
-## 1) Alcance del repositorio
+## Para desarrolladores — empezá por acá
 
-- App web (Next.js): `web/`
-- Esquema y migraciones de Supabase: `supabase/migrations/`
-- Documentacion funcional/operativa: `DOCS/`
+| Documento | Qué encontrás |
+|---|---|
+| **[AGENTS.md](AGENTS.md)** | Convenciones del codebase, modelo de datos, flujos de billing, patrones obligatorios. **Leer primero.** |
+| **[web/ARCHITECTURE.md](web/ARCHITECTURE.md)** | Estructura de módulos, estrategia de caché, patrones de API routes, tests. |
+| **[DOCS/00_START_HERE.md](DOCS/00_START_HERE.md)** | Índice completo de documentación — dónde buscar cada tema. |
+| **[CHANGELOG.md](CHANGELOG.md)** | Historial de cambios con fecha. |
 
-## 2) Requisitos locales
+---
 
-- Node.js 20+
-- npm 10+
-- Git
-- Opcional pero recomendado:
-  - Supabase CLI (`npx supabase ...`)
-  - Vercel CLI (`vercel ...`)
+## Estructura del repositorio
 
-## 3) Puesta en marcha local
-
-1. Instalar dependencias:
-
-```bash
-cd web
-npm install
+```
+getbackplate/
+├── web/                    # App Next.js 16 (ver web/README.md)
+├── supabase/migrations/    # Migraciones SQL versionadas (fuente de verdad)
+├── scripts/                # Scripts operativos de migración y diagnóstico
+├── DOCS/                   # Documentación funcional y operativa
+├── AGENTS.md               # Guía técnica para devs y agentes IA
+├── SUPABASE_MIGRATIONS.md  # Índice completo de migraciones
+└── CHANGELOG.md            # Historial de cambios
 ```
 
-2. Crear entorno local:
+---
+
+## Puesta en marcha local
 
 ```bash
+# 1. Instalar dependencias
+cd web && npm install
+
+# 2. Crear entorno local
 cp .env.example .env.local
-```
+# Completar valores en web/.env.local (ver sección Variables de entorno abajo)
 
-3. Completar valores reales en `web/.env.local`.
-
-4. Levantar proyecto:
-
-```bash
+# 3. Levantar
 npm run dev
+
+# 4. Verificar conexión
+# Abrir http://localhost:3000/api/health/supabase → debe responder ok: true
 ```
 
-5. Verificar salud de Supabase:
+---
 
-- Abrir `http://localhost:3000/api/health/supabase`
-- Debe responder `ok: true`
-
-## 4) Scripts principales
-
-Desde `web/`:
-
-- `npm run dev`: desarrollo local
-- `npm run lint`: lint
-- `npm run build`: build de produccion
-- `npm run verify:migrations-sync`: valida sincronizacion de migraciones entre:
-  - `supabase/migrations` (fuente de verdad)
-  - proyecto Supabase linkeado (dev)
-  - base de production (leyendo Vercel env)
-- `npm run verify:flow:local`: valida flujo DB de anuncios/documentos/checklists en local (conserva datos de prueba)
-- `npm run verify:flow:local:cleanup`: valida flujo DB en local y limpia los datos de prueba al final
-- `npm run verify:flow:prod:cleanup`: valida flujo DB en produccion y limpia los datos de prueba al final
-
-Guia canonica de estos flujos:
-- `DOCS/4_Operaciones_y_Guias/GUIA_VALIDACION_FLUJOS_LOCAL_PROD.md`
-
-## 5) Servicios conectados y como se usan
-
-- **Supabase (DB/Auth/Storage/Realtime)**
-  - Clientes server/browser/admin en `web/src/infrastructure/supabase/client/`
-  - Migraciones SQL versionadas en `supabase/migrations/`
-  - Storage para branding y documentos
-  - Realtime para vistas operativas
-
-- **Stripe (billing)**
-  - Endpoints API en `web/src/app/api/stripe/`
-  - Variables: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
-
-- **Brevo (email transaccional)**
-  - Cliente en `web/src/infrastructure/email/client.ts`
-  - Variables: `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, opcional `BREVO_SENDER_NAME`
-
-- **Twilio (SMS/WhatsApp)**
-  - Integracion de notificaciones en backend
-  - Variables: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`, `TWILIO_WHATSAPP_NUMBER`, `TWILIO_TRIAL_MODE`
-
-- **IA (Anthropic/OpenRouter)**
-  - Endpoint principal: `web/src/app/api/company/ai/chat/route.ts`
-  - Variables principales: `OPENROUTER_API_KEY` (principal) y `ANTHROPIC_API_KEY` (fallback)
-
-- **Upstash Redis (rate limit/cache opcional)**
-  - Variables: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
-
-## 6) Migraciones Supabase (fuente de verdad)
-
-- Ubicacion obligatoria: `supabase/migrations/`
-- Convencion: archivos SQL versionados por timestamp/prefijo
-- Comando para listar:
+## Scripts principales (desde `web/`)
 
 ```bash
-ls supabase/migrations
+npm run dev                          # Desarrollo local
+npm run lint                         # Lint
+npm run build                        # Build de producción
+npm test                             # Tests unitarios (215 tests)
+npm run e2e:smoke                    # E2E smoke de API
+npm run verify:migrations-sync       # Valida sincronía de migraciones DEV/PROD
+npm run verify:flow:local:cleanup    # Valida flujo DB y limpia datos de prueba
 ```
 
-- Verificacion de sincronizacion completa:
+Guía completa de testing: [`DOCS/4_Operaciones_y_Guias/GUIA_TESTING_Y_CI.md`](DOCS/4_Operaciones_y_Guias/GUIA_TESTING_Y_CI.md)
 
-```bash
-cd web
-npm run verify:migrations-sync
-```
+---
 
-## 7) Entornos Supabase y despliegue
+## Entornos
 
 ### Dos bases de datos separadas
 
-| Entorno | Proyecto Supabase | Región AWS | Archivo de configuración |
+| Entorno | Proyecto Supabase | Región | Config |
 |---|---|---|---|
-| **Desarrollo local** | `uubdslmtfxwraszinpao` | `us-east-1` | `web/.env.local` |
+| **Desarrollo** | `uubdslmtfxwraszinpao` | `us-east-1` | `web/.env.local` |
 | **Producción** | `mfhyemwypuzsqjqxtbjf` | `us-west-2` | `web/.env.production.local` |
 
-Regla: el esquema debe estar alineado en ambos entornos mediante `supabase/migrations`.
+Regla: el esquema debe estar alineado en ambos entornos via `supabase/migrations/`.
 
-### Despliegue en Vercel
+### Despliegue
 
-La app está publicada en Vercel bajo el proyecto `getbackplate`:
-- **URL de producción:** `https://app.getbackplate.com`
-- **Project ID:** `prj_IvTEU3Ta3ApMY5Sa8tZCY4SxT0Mc`
-- **Org ID:** `team_Ajv0vLA1g46FuSu4It7WjJSk`
-- Configurado en `.vercel/project.json`
+- **URL producción:** `https://app.getbackplate.com`
+- **Plataforma:** Vercel (proyecto `getbackplate`, `.vercel/project.json`)
+- Vercel inyecta las variables de `web/.env.production.local` automáticamente
 
-En producción, Vercel inyecta las variables de `web/.env.production.local` automáticamente.
-
-### Correr localmente contra producción (solo para debugging)
-
-Por defecto `npm run dev` apunta a la base de **desarrollo**. Si necesitás conectarte a producción desde local:
+### Correr localmente contra producción (solo debugging)
 
 ```bash
-# Opción recomendada: usar el archivo de producción directamente
+# Scripts puntuales
 node --env-file=web/.env.production.local scripts/mi-script.mjs
 
-# Para el servidor de Next.js completo contra producción
-# (requiere pasar las variables manualmente en la sesión de PowerShell)
+# Servidor Next.js completo contra prod (PowerShell)
 $env:NEXT_PUBLIC_SUPABASE_URL="https://mfhyemwypuzsqjqxtbjf.supabase.co"
 npm run dev
 ```
 
-> ⚠️ **ADVERTENCIA:** Correr localmente apuntando a producción significa operar sobre **datos reales de clientes activos**. Usar exclusivamente para debugging puntual y nunca ejecutar scripts de seeds, migraciones destructivas o limpieza masiva contra producción desde local.
+> ⚠️ Apuntar a producción local significa operar sobre datos reales de clientes activos. Solo para debugging. Nunca correr seeds, migraciones destructivas ni limpiezas masivas contra producción desde local.
 
-## 8) Entrega de bundle Git
+---
 
-Comando correcto para bundle completo:
+## Servicios conectados
+
+| Servicio | Propósito | Variables principales |
+|---|---|---|
+| **Supabase** | DB / Auth / Storage / Realtime | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` |
+| **Stripe** | Billing y suscripciones | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` |
+| **Brevo** | Email transaccional | `BREVO_API_KEY`, `BREVO_SENDER_EMAIL` |
+| **Twilio** | SMS / WhatsApp | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`, `TWILIO_WHATSAPP_NUMBER` |
+| **DocuSeal** | Firma digital de documentos | `DOCUSEAL_API_KEY`, `DOCUSEAL_BASE_URL` |
+| **Anthropic / OpenRouter** | Asistente IA | `OPENROUTER_API_KEY` (principal), `ANTHROPIC_API_KEY` (fallback) |
+| **Upstash Redis** | Rate limiting / caché | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` |
+| **Sentry** | Error tracking | `SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT` |
+
+---
+
+## Migraciones Supabase
+
+- Ubicación: `supabase/migrations/` (fuente de verdad)
+- Índice completo: [`SUPABASE_MIGRATIONS.md`](SUPABASE_MIGRATIONS.md) — 126 migraciones al 2026-06-04
+- Scripts de migración operativa: [`scripts/`](scripts/) — ver [`DOCS/4_Operaciones_y_Guias/GUIA_SCRIPTS_PLATAFORMA.md`](DOCS/4_Operaciones_y_Guias/GUIA_SCRIPTS_PLATAFORMA.md)
 
 ```bash
-git bundle create getbackgplate.bundle --all
+# Verificar sincronía DEV/PROD
+cd web && npm run verify:migrations-sync
 ```
 
-Nota: en algunos pedidos aparece `-all`, pero la forma valida en Git es `--all`.
+---
 
-## 9) Checklist rapido de cierre Etapa 1
+## Checklist antes de deployar
 
-- [ ] `npm run lint` sin errores
-- [ ] `npm run build` sin errores
-- [ ] `npm run verify:migrations-sync` en OK
-- [ ] `web/.env.example` actualizado y sin secretos
-- [ ] `git status` limpio
-- [ ] bundle generado: `getbackgplate.bundle`
+```
+☐ npm run lint        → sin errores
+☐ npm run build       → sin errores
+☐ npm test            → 215/215 pasando
+☐ npm run verify:migrations-sync → OK en DEV y PROD
+☐ git status          → limpio
+```
 
-## 10) Guias operativas clave
+---
 
-- Tenant lifecycle (alta/baja): `DOCS/4_Operaciones_y_Guias/TENANT_OPS_GUIDE.md`
-- Custom Domains (estado actual + runbook + checklists): `DOCS/4_Operaciones_y_Guias/GUIA_CUSTOM_DOMAINS.md`
-- Separacion de documentos laborales vs operativos: `DOCS/4_Operaciones_y_Guias/GUIA_SEPARACION_DOCUMENTOS_LABORALES_OPERATIVOS.md`
-- Politica interna del asistente IA: `DOCS/4_Operaciones_y_Guias/POLITICA_INTERNA_ASISTENTE_IA.md`
+## Documentación operativa clave
+
+| Guía | Tema |
+|---|---|
+| [`DOCS/4_Operaciones_y_Guias/GUIA_TESTING_Y_CI.md`](DOCS/4_Operaciones_y_Guias/GUIA_TESTING_Y_CI.md) | Tests, CI/CD, cómo correr la suite |
+| [`DOCS/4_Operaciones_y_Guias/GUIA_SCRIPTS_PLATAFORMA.md`](DOCS/4_Operaciones_y_Guias/GUIA_SCRIPTS_PLATAFORMA.md) | Índice de todos los scripts y cómo usarlos |
+| [`DOCS/4_Operaciones_y_Guias/GUIA_PIPELINE_QBO_WEBHOOK.md`](DOCS/4_Operaciones_y_Guias/GUIA_PIPELINE_QBO_WEBHOOK.md) | Pipeline QBO→R365 webhook completo |
+| [`DOCS/4_Operaciones_y_Guias/TENANT_OPS_GUIDE.md`](DOCS/4_Operaciones_y_Guias/TENANT_OPS_GUIDE.md) | Alta y baja de tenants |
+| [`DOCS/4_Operaciones_y_Guias/OPS_RUNBOOK.md`](DOCS/4_Operaciones_y_Guias/OPS_RUNBOOK.md) | Runbook L1/L2 para incidentes en producción |
+| [`DOCS/4_Operaciones_y_Guias/GUIA_CUSTOM_DOMAINS.md`](DOCS/4_Operaciones_y_Guias/GUIA_CUSTOM_DOMAINS.md) | Custom domains — configuración y runbook |
+| [`DOCS/4_Operaciones_y_Guias/GUIA_CONFIGURACION_STRIPE.md`](DOCS/4_Operaciones_y_Guias/GUIA_CONFIGURACION_STRIPE.md) | Configuración de Stripe paso a paso |
+| [`DOCS/1_Arquitectura_y_Contexto/ESTADO_Y_AUDITORIA_ACTUAL.md`](DOCS/1_Arquitectura_y_Contexto/ESTADO_Y_AUDITORIA_ACTUAL.md) | Estado técnico actual del proyecto |
+| [`DOCS/1_Arquitectura_y_Contexto/ADR_003_DUAL_PLAN_MODEL.md`](DOCS/1_Arquitectura_y_Contexto/ADR_003_DUAL_PLAN_MODEL.md) | Decisión arquitectónica: modelo dual-plan |
