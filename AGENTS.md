@@ -63,15 +63,28 @@ On payment, a configured action executes automatically.
 | `internal_notes` | TEXT | Superadmin-only context |
 | `amount_cents` | INTEGER | Price in cents (e.g. 4999 = $49.99) |
 | `currency` | TEXT | usd, ars, etc. |
-| `action_type` | TEXT | `activate_module` / `add_invoices` / `custom` |
-| `action_payload` | JSONB | See shapes below |
+| `action_type` | TEXT | `activate_module` / `add_invoices` / `add_slot` / `custom` (legacy single-item) |
+| `action_payload` | JSONB | See shapes below (legacy single-item) |
+| `items` | JSONB | Array of line items for multi-item orders. Schema: `[{description, amount_cents, action_type, action_payload}]`. NULL for legacy single-item orders |
 | `stripe_session_id` | TEXT | Stripe Checkout Session ID (unique) |
 | `checkout_url` | TEXT | Shareable payment URL |
 | `status` | TEXT | `pending` / `paid` / `expired` / `canceled` |
 | `paid_at` | TIMESTAMPTZ | Set by webhook on successful payment |
+| `stripe_payment_intent_id` | TEXT | Set by webhook on successful payment |
+| `customer_email` | TEXT | Customer email captured on payment |
 | `expires_at` | TIMESTAMPTZ | Informational — Stripe sessions also have their own expiry |
 
-### action_payload shapes
+### items array (multi-item orders — preferred)
+
+```jsonc
+[
+  { "description": "Módulo Mantenimiento", "amountCents": 4999, "actionType": "activate_module", "actionPayload": { "moduleCode": "maintenance" } },
+  { "description": "500 facturas adicionales", "amountCents": 2999, "actionType": "add_invoices", "actionPayload": { "invoiceCount": 500 } },
+  { "description": "Taxes (8.25%)", "amountCents": 660, "actionType": "custom", "actionPayload": null }
+]
+```
+
+### action_payload shapes (legacy single-item)
 
 ```jsonc
 // activate_module — enables a module in organization_modules
@@ -79,6 +92,9 @@ On payment, a configured action executes automatically.
 
 // add_invoices — credits organization_addons.invoice_balance
 { "invoiceCount": 500 }
+
+// add_slot — increments organization_addons.extra_r365_connections
+{ "slotCount": 1 }
 
 // custom — payment is recorded, no automatic side-effect
 {}
@@ -98,6 +114,7 @@ before the addon branch (`metadata.isAddon`) and the normal plan branch.
 |---|---|
 | `activate_module` | Upserts `organization_modules` with `is_enabled = true` for the given `moduleCode` |
 | `add_invoices` | Calls `increment_invoice_balance(org_id, count)` RPC → atomically increments `organization_addons.invoice_balance` |
+| `add_slot` | Calls `increment_r365_slots(org_id, count)` RPC → atomically increments `organization_addons.extra_r365_connections` |
 | `custom` | Marks order as `paid`, no DB side-effect |
 
 ### Superadmin UI

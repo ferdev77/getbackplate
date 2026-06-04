@@ -11,10 +11,32 @@ Objetivo: tener un indice unico, rapido y operativo de todos los scripts del rep
 
 ## Scripts raiz (`scripts/`)
 
-- `scripts/apply-signature-migration.mjs`: aplica migracion operativa de firma/documentos.
-- `scripts/cleanup_juans_prod_keep_admin_locations_departments_positions.sql`: limpia tenant Juans en prod manteniendo admins, locaciones, departamentos y puestos.
-- `scripts/remove_user_from_org_with_auth.sql`: elimina un usuario de una empresa y tambien su auth (script generico).
-- `scripts/remove_juan_ramos_from_juans_prod.sql`: alias historico (ahora generico), mantiene la misma logica de borrado por org+email.
+### Migraciones de schema (raíz)
+
+Estos scripts aplican migraciones directamente a DEV o PROD via pooler connection.
+Uso: `node --env-file=web/.env.local scripts/<script>.mjs dev`
+      `node --env-file=web/.env.production.local scripts/<script>.mjs prod`
+
+- `apply-signature-migration.mjs`: aplica migración operativa de firma/documentos.
+- `apply-addon-companion-modules-migration.mjs`: aplica módulos compañeros de add-ons.
+- `apply-extra-r365-slots-migration.mjs`: aplica campo `extra_r365_connections` en `organization_addons`.
+- `apply-manual-payment-items-migration.mjs`: aplica columna `items` JSONB en `manual_payment_orders`.
+- `apply-manual-payment-orders-to-dev.mjs`: copia órdenes de pago manual de prod a dev (controlado).
+- `apply-unified-invoices-migration.mjs`: aplica tabla `qbo_unified_invoices` y pipeline unificado.
+- `apply-announcement-deliveries-processing-status.mjs`: agrega estado `processing` al constraint de `announcement_deliveries`.
+
+### SQL operativos (raíz)
+
+- `cleanup_juans_prod_keep_admin_locations_departments_positions.sql`: limpia tenant Juans en prod manteniendo admins, locaciones, departamentos y puestos.
+- `cleanup_qbo_history.sql`: limpia historial QBO (facturas, runs) para una org específica.
+- `remove_user_from_org_with_auth.sql`: elimina un usuario de una empresa y también su auth (script genérico — ver sección siguiente).
+- `remove_juan_ramos_from_juans_prod.sql`: alias histórico (ahora genérico), mantiene la misma lógica de borrado por org+email.
+
+### Diagnóstico / utilidades (raíz)
+
+- `test_qbo_customers.mjs`: prueba conexión a clientes QBO para una org.
+- `backfill-prodel-unified.mjs`: backfill de facturas históricas al pipeline unificado para tenant Prodel.
+- `run-tests.sh`: script bash de tests con colores y resumen (ver GUIA_TESTING_Y_CI.md).
 
 ## Script generico de borrado por empresa + usuario
 

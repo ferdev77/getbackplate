@@ -1,7 +1,7 @@
 # Testing y CI/CD — Guía Operativa
 
-**Última actualización:** Mayo 2026  
-**Estado:** Activo y verde en producción
+**Última actualización:** Junio 2026  
+**Estado:** Activo y verde en producción — 215 tests pasando
 
 ---
 
@@ -61,21 +61,21 @@ Dependencias externas: ninguna (funciones puras)
 
 | Archivo | Qué cubre |
 |---|---|
-| `shared/lib/__tests__/access.test.ts` | `userMustChangePassword` |
+| `shared/lib/__tests__/access.test.ts` | `userMustChangePassword` — detección de cambio de contraseña obligatorio |
 | `shared/lib/__tests__/audience-resolver.test.ts` | `resolveAudienceContacts` — resolución de audiencias por scope |
 | `shared/lib/__tests__/audit.test.ts` | `sanitizeMetadataValue` — redacción de datos sensibles |
 | `shared/lib/__tests__/plan-limits.test.ts` | `PlanLimitExceededError`, `PlanDowngradeBlockedError`, `getPlanLimitErrorMessage` |
 | `shared/lib/__tests__/scope-policy.test.ts` | `parseAudienceScope`, `matchesAudienceFilters`, `canSubjectAccessScope`, `enforceLocationPolicy` |
-| `shared/lib/__tests__/supabase-compat.test.ts` | Compatibilidad Supabase |
-| `shared/ui/__tests__/company-shell-utils.test.ts` | Utilidades de UI de empresa |
+| `shared/lib/__tests__/supabase-compat.test.ts` | Detección de errores de columna faltante |
+| `shared/ui/__tests__/company-shell-utils.test.ts` | Cache keys, rutas activas, temas, formateo de precios de planes |
 | `modules/billing/services/__tests__/billing-gate.test.ts` | `resolveBillingGateState` — todos los estados de billing (active, trialing, expired, missing, canceled) |
 | `modules/checklists/lib/__tests__/checklist-access.test.ts` | `canUseChecklistTemplateInTenant` — acceso por rol, branch y scope |
-| `modules/checklists/services/__tests__/checklist-template.test.ts` | Servicio de plantillas de checklists |
-| `modules/documents/lib/__tests__/documents-tree-utils.test.ts` | Árbol de documentos |
+| `modules/checklists/services/__tests__/checklist-template.test.ts` | Normalización de prioridades de ítems |
+| `modules/documents/lib/__tests__/documents-tree-utils.test.ts` | Árbol de documentos — formateo de fechas, tamaños, MIME, scopes |
 | `modules/employees/ui/__tests__/new-employee-modal-helpers.test.ts` | Helpers del modal de nuevo empleado |
-| `modules/settings/services/__tests__/org-structure.test.ts` | Estructura organizacional |
+| `modules/settings/services/__tests__/org-structure.test.ts` | Estructura organizacional — generación de slugs (toCode) |
 
-**Total: 13 archivos, 204 tests.**
+**Total: 14 archivos, 215 tests.**
 
 ### E2E Tests — Playwright
 

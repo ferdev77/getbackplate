@@ -1,16 +1,14 @@
 # Tareas Automaticas (Cron) - Explicacion simple
 
-Este proyecto usa **solo Vercel Cron** para ejecutar tareas automaticas una vez por dia.
+Este proyecto usa **solo Vercel Cron**. Definidos en `web/vercel.json`.
 
 ## Que cron jobs estan activos
 
-Definidos en `web/vercel.json`:
-
-1. `/api/internal/cron/daily`
-2. `/api/webhooks/cron/process-recurrence`
-3. `/api/webhooks/cron/qbo-r365-sync`
-
-Todos corren en frecuencia diaria.
+| Ruta | Schedule | Frecuencia |
+|---|---|---|
+| `/api/internal/cron/daily` | `0 8 * * *` | Una vez al día (08:00 UTC) |
+| `/api/webhooks/cron/process-recurrence` | `0 9 * * *` | Una vez al día (09:00 UTC) |
+| `/api/webhooks/cron/qbo-r365-sync` | `0 0,4,10,12,14,16,18,20,21,22 * * *` | 10 veces al día |
 
 ## Que hace cada uno
 
