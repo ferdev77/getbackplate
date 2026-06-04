@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { stripe } from '@/infrastructure/stripe/client';
 import Stripe from 'stripe';
 import { createSupabaseAdminClient } from '@/infrastructure/supabase/client/admin';
+import { syncOrganizationPlan } from '@/modules/organizations/services/organization.service';
 import { 
   sendRenewalReminderEmail, 
   sendPaymentFailedEmail,
@@ -223,7 +224,7 @@ export async function POST(req: Request) {
               : (session.payment_intent as { id: string } | null)?.id ?? null;
           const customerEmail = session.customer_details?.email ?? null;
 
-          const { error: paidErr } = await supabase
+          const { data: paidOrder, error: paidErr } = await supabase
             .from('manual_payment_orders')
             .update({
               status: 'paid',
@@ -231,8 +232,15 @@ export async function POST(req: Request) {
               stripe_payment_intent_id: paymentIntentId,
               customer_email: customerEmail,
             })
-            .eq('id', orderId);
+            .eq('id', orderId)
+            .eq('status', 'pending')
+            .select('id')
+            .maybeSingle();
           if (paidErr) console.error('[Webhook][manual] Error marking order paid:', paidErr);
+          if (!paidOrder) {
+            console.info(`[Webhook][manual] Ignoring non-pending or missing order ${orderId}`);
+            break;
+          }
 
           if (orgId) {
             // Fetch order to get items[] (new orders) or fall back to metadata (legacy)
@@ -387,6 +395,25 @@ export async function POST(req: Request) {
           }
           // ── END SYNC ──────────────────────────────────────────────────────────
 
+          if (integrationPlanId) {
+            const { data: orgRow } = await supabase
+              .from('organizations')
+              .select('plan_id')
+              .eq('id', addonOrgId)
+              .maybeSingle();
+
+            const syncResult = await syncOrganizationPlan({
+              organizationId: addonOrgId,
+              planId: orgRow?.plan_id ?? null,
+              integrationPlanId,
+              skipPlanLimitCheck: true,
+            });
+
+            if (!syncResult.ok) {
+              console.error(`[Webhook][addon] Failed to sync dual-plan modules for org ${addonOrgId}: ${syncResult.message}`);
+            }
+          }
+
           // ── BILLING GATE: integration-only orgs must never be blocked ────────
           // Integration plans live in organization_addons, not in subscriptions.
           // The billing gate only reads subscriptions, so orgs without a platform
@@ -472,11 +499,18 @@ export async function POST(req: Request) {
 
         if (planId && isActive) {
             // 4. Fetch full plan data for limits
-            const { data: planData } = await supabase
-                .from('plans')
-                .select('id, name, max_branches, max_users, max_storage_mb, max_employees')
-                .eq('id', planId)
-                .maybeSingle();
+            const [{ data: planData }, { data: currentOrg }] = await Promise.all([
+                supabase
+                    .from('plans')
+                    .select('id, name, max_branches, max_users, max_storage_mb, max_employees')
+                    .eq('id', planId)
+                    .maybeSingle(),
+                supabase
+                    .from('organizations')
+                    .select('integration_plan_id')
+                    .eq('id', organizationId)
+                    .maybeSingle(),
+            ]);
 
             // 5. Update organization plan
             const { error: orgErr } = await supabase
@@ -490,17 +524,14 @@ export async function POST(req: Request) {
             if (orgErr) console.error('[Webhook] Error updating org plan:', orgErr);
             else console.info('[Webhook] Organization plan updated OK');
 
-            // 6. Sync plan limits
             if (planData) {
-                const { error: limErr } = await supabase.from('organization_limits').upsert({
-                    organization_id: organizationId,
-                    max_branches: planData.max_branches ?? null,
-                    max_users: planData.max_users ?? null,
-                    max_storage_mb: planData.max_storage_mb ?? null,
-                    max_employees: planData.max_employees ?? null,
-                }, { onConflict: 'organization_id' });
-                if (limErr) console.error('[Webhook] Error syncing limits:', limErr);
-                else console.info('[Webhook] organization_limits upserted OK');
+                const syncResult = await syncOrganizationPlan({
+                    organizationId,
+                    planId,
+                    integrationPlanId: currentOrg?.integration_plan_id ?? null,
+                    skipPlanLimitCheck: true,
+                });
+                if (!syncResult.ok) console.error('[Webhook] Error syncing organization plan:', syncResult.message);
 
                 await supabase.from('organization_settings').upsert(
                     {
@@ -509,28 +540,6 @@ export async function POST(req: Request) {
                     },
                     { onConflict: 'organization_id' },
                 );
-            }
-
-            // 7. Sync modules
-            const { data: modules } = await supabase.from('module_catalog').select('id, is_core');
-            const { data: planModules } = await supabase.from('plan_modules').select('module_id').eq('plan_id', planId).eq('is_enabled', true);
-            const planModuleIds = new Set((planModules || []).map((m) => m.module_id));
-
-            if (modules?.length) {
-                const { error: modErr } = await supabase.from('organization_modules').upsert(
-                    modules.map((mod) => {
-                        const shouldEnable = Boolean(mod.is_core) || planModuleIds.has(mod.id);
-                        return {
-                            organization_id: organizationId,
-                            module_id: mod.id,
-                            is_enabled: shouldEnable,
-                            enabled_at: shouldEnable ? new Date().toISOString() : null,
-                        };
-                    }),
-                    { onConflict: 'organization_id,module_id' }
-                );
-                if (modErr) console.error('[Webhook] Error syncing modules:', modErr);
-                else console.info('[Webhook] organization_modules upserted OK');
             }
 
             if (!hadActiveSubscriptionBefore) {
@@ -664,6 +673,25 @@ export async function POST(req: Request) {
           }
           // ── END SYNC ──────────────────────────────────────────────────────────
 
+          if (addonModuleCode === 'qbo_r365' || updatedIntegrationPlanId || isAddonCanceled) {
+            const { data: orgRow } = await supabase
+              .from('organizations')
+              .select('plan_id')
+              .eq('id', addonOrgId)
+              .maybeSingle();
+
+            const syncResult = await syncOrganizationPlan({
+              organizationId: addonOrgId,
+              planId: orgRow?.plan_id ?? null,
+              integrationPlanId: isAddonCanceled ? null : (updatedIntegrationPlanId ?? null),
+              skipPlanLimitCheck: true,
+            });
+
+            if (!syncResult.ok) {
+              console.error(`[Webhook][addon] Failed to sync organization after addon lifecycle change for org ${addonOrgId}: ${syncResult.message}`);
+            }
+          }
+
           break;
         }
         // ── END ADD-ON SUBSCRIPTION LIFECYCLE ───────────────────
@@ -702,6 +730,12 @@ export async function POST(req: Request) {
         const targetPlanIdFromMeta = typeof subscription.metadata?.planId === 'string' ? subscription.metadata.planId : null;
 
         if (isCanceled) {
+            const { data: currentOrg } = await supabase
+              .from('organizations')
+              .select('integration_plan_id')
+              .eq('id', organizationId)
+              .maybeSingle();
+
             await supabase
               .from('organizations')
               .update({
@@ -709,18 +743,14 @@ export async function POST(req: Request) {
                 billing_activation_status: 'blocked',
               })
               .eq('id', organizationId);
-            const { data: modules } = await supabase.from('module_catalog').select('id, is_core');
-            if (modules?.length) {
-                await supabase.from('organization_modules').upsert(
-                    modules.map((mod) => ({
-                        organization_id: organizationId,
-                        module_id: mod.id,
-                        is_enabled: Boolean(mod.is_core),
-                        enabled_at: Boolean(mod.is_core) ? new Date().toISOString() : null,
-                    })),
-                    { onConflict: 'organization_id,module_id' }
-                );
-            }
+
+            const syncResult = await syncOrganizationPlan({
+              organizationId,
+              planId: null,
+              integrationPlanId: currentOrg?.integration_plan_id ?? null,
+              skipPlanLimitCheck: true,
+            });
+            if (!syncResult.ok) console.error('[Webhook] Error syncing organization plan after cancellation:', syncResult.message);
         } else if (isActive) {
             let planData: {
               id: string;
@@ -749,6 +779,12 @@ export async function POST(req: Request) {
             }
 
             if (planData) {
+                const { data: currentOrg } = await supabase
+                  .from('organizations')
+                  .select('integration_plan_id')
+                  .eq('id', organizationId)
+                  .maybeSingle();
+
                 // Update org plan
                 await supabase
                   .from('organizations')
@@ -759,14 +795,13 @@ export async function POST(req: Request) {
                   })
                   .eq('id', organizationId);
 
-                // Sync limits
-                await supabase.from('organization_limits').upsert({
-                    organization_id: organizationId,
-                    max_branches: planData.max_branches ?? null,
-                    max_users: planData.max_users ?? null,
-                    max_storage_mb: planData.max_storage_mb ?? null,
-                    max_employees: planData.max_employees ?? null,
-                }, { onConflict: 'organization_id' });
+                const syncResult = await syncOrganizationPlan({
+                    organizationId,
+                    planId: planData.id,
+                    integrationPlanId: currentOrg?.integration_plan_id ?? null,
+                    skipPlanLimitCheck: true,
+                });
+                if (!syncResult.ok) console.error('[Webhook] Error syncing organization plan on subscription update:', syncResult.message);
 
                 await supabase.from('organization_settings').upsert(
                     {
@@ -776,27 +811,6 @@ export async function POST(req: Request) {
                     { onConflict: 'organization_id' },
                 );
 
-                // Sync modules for the new plan
-                const { data: allModules } = await supabase.from('module_catalog').select('id, is_core');
-                const { data: planModules } = await supabase.from('plan_modules').select('module_id').eq('plan_id', planData.id).eq('is_enabled', true);
-                const planModuleIds = new Set((planModules || []).map((m) => m.module_id));
-
-                if (allModules?.length) {
-                    const { error: modErr } = await supabase.from('organization_modules').upsert(
-                        allModules.map((mod) => {
-                            const shouldEnable = Boolean(mod.is_core) || planModuleIds.has(mod.id);
-                            return {
-                                organization_id: organizationId,
-                                module_id: mod.id,
-                                is_enabled: shouldEnable,
-                                enabled_at: shouldEnable ? new Date().toISOString() : null,
-                            };
-                        }),
-                        { onConflict: 'organization_id,module_id' }
-                    );
-                    if (modErr) console.error('[Webhook] Error syncing modules on upgrade:', modErr);
-                    else console.info('[Webhook] Modules synced on plan upgrade OK');
-                }
             }
         }
 

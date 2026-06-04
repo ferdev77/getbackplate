@@ -113,7 +113,7 @@ export async function getBillingGateForOrganization(params: {
   supabase: SupabaseClient;
   organizationId: string;
 }): Promise<BillingGateState> {
-  const [{ data: organization }, { data: latestSubscription }, { data: activeAddon }] = await Promise.all([
+  const [{ data: organization }, { data: latestSubscription }, { data: activeAddons }] = await Promise.all([
     params.supabase
       .from("organizations")
       .select("billing_onboarding_required")
@@ -128,23 +128,31 @@ export async function getBillingGateForOrganization(params: {
       .maybeSingle(),
     params.supabase
       .from("organization_addons")
-      .select("status, current_period_end")
+      .select("status, current_period_end, module_catalog!inner(code, integration_plan_type)")
       .eq("organization_id", params.organizationId)
       .eq("status", "active")
-      .limit(1)
-      .maybeSingle(),
+      .limit(20),
   ]);
+
+  const activeIntegrationAddon = (activeAddons ?? []).find((row) => {
+    const moduleCatalog = row.module_catalog as {
+      code?: string | null;
+      integration_plan_type?: string | null;
+    } | null;
+
+    return moduleCatalog?.code === "qbo_r365" || Boolean(moduleCatalog?.integration_plan_type);
+  });
 
   // Una org con un addon de integración activo nunca debe bloquearse,
   // independientemente de si tiene plan de plataforma o suscripción.
-  if (activeAddon?.status === "active") {
+  if (activeIntegrationAddon?.status === "active") {
     return {
       isBlocked: false,
       reason: "subscription_active",
       required: Boolean(organization?.billing_onboarding_required),
       hasActiveSubscription: true,
       status: "active",
-      currentPeriodEnd: activeAddon.current_period_end ?? null,
+      currentPeriodEnd: activeIntegrationAddon.current_period_end ?? null,
     };
   }
 

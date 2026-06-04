@@ -104,14 +104,14 @@ export const getOrganizationByIdCached = unstable_cache(
     const { data, error } = await supabase
       .from("organizations")
       .select(
-        "id, name, slug, status, plan_id, billing_activation_status, billing_activated_at, billing_onboarding_required",
+        "id, name, slug, status, plan_id, integration_plan_id, billing_activation_status, billing_activated_at, billing_onboarding_required",
       )
       .eq("id", organizationId)
       .maybeSingle();
     ensureNoQueryError("getOrganizationByIdCached", error);
     return data;
   },
-  ["org-by-id-v1"],
+  ["org-by-id-v2"],
   { revalidate: 60 },
 );
 

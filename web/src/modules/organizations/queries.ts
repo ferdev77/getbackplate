@@ -6,7 +6,7 @@ export const getOrganizationById = cache(async function getOrganizationById(orga
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("organizations")
-    .select("id, name, slug, status, plan_id, billing_activation_status, billing_activated_at, billing_onboarding_required")
+    .select("id, name, slug, status, plan_id, integration_plan_id, billing_activation_status, billing_activated_at, billing_onboarding_required")
     .eq("id", organizationId)
     .maybeSingle();
   return data;

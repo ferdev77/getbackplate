@@ -8,6 +8,12 @@ export const dynamic = "force-dynamic";
 export default async function PaymentLinksPage() {
   const supabase = createSupabaseAdminClient();
 
+  await supabase
+    .from("manual_payment_orders")
+    .update({ status: "expired" })
+    .eq("status", "pending")
+    .lt("expires_at", new Date().toISOString());
+
   const [{ data: orders }, { data: orgs }, { data: modules }] = await Promise.all([
     supabase
       .from("manual_payment_orders")

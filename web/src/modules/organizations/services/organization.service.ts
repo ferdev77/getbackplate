@@ -63,24 +63,24 @@ export async function provisionOrganizationFromPlan(params: {
     );
   }
 
-  if (params.planId) {
-    const { data: planLimits } = await supabase
-      .from("plans")
-      .select("max_branches, max_users, max_storage_mb, max_employees")
-      .eq("id", params.planId)
-      .maybeSingle();
+  const { data: planLimits } = params.planId
+    ? await supabase
+        .from("plans")
+        .select("max_branches, max_users, max_storage_mb, max_employees")
+        .eq("id", params.planId)
+        .maybeSingle()
+    : { data: null };
 
-    await supabase.from("organization_limits").upsert(
-      {
-        organization_id: params.organizationId,
-        max_branches: planLimits?.max_branches ?? null,
-        max_users: planLimits?.max_users ?? null,
-        max_storage_mb: planLimits?.max_storage_mb ?? null,
-        max_employees: planLimits?.max_employees ?? null,
-      },
-      { onConflict: "organization_id" },
-    );
-  }
+  await supabase.from("organization_limits").upsert(
+    {
+      organization_id: params.organizationId,
+      max_branches: planLimits?.max_branches ?? null,
+      max_users: planLimits?.max_users ?? null,
+      max_storage_mb: planLimits?.max_storage_mb ?? null,
+      max_employees: planLimits?.max_employees ?? null,
+    },
+    { onConflict: "organization_id" },
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -91,10 +91,11 @@ export async function syncOrganizationPlan(params: {
   organizationId: string;
   planId: string | null;
   integrationPlanId?: string | null;
+  skipPlanLimitCheck?: boolean;
 }): Promise<{ ok: true } | { ok: false; message: string }> {
   const supabase = createSupabaseAdminClient();
 
-  if (params.planId) {
+  if (params.planId && !params.skipPlanLimitCheck) {
     try {
       await assertOrganizationCanSwitchToPlan(params.organizationId, params.planId);
     } catch (error) {
@@ -109,24 +110,24 @@ export async function syncOrganizationPlan(params: {
   }
 
   // Update limits from platform plan only
-  if (params.planId) {
-    const { data: planLimits } = await supabase
-      .from("plans")
-      .select("max_branches, max_users, max_storage_mb, max_employees")
-      .eq("id", params.planId)
-      .maybeSingle();
+  const { data: planLimits } = params.planId
+    ? await supabase
+        .from("plans")
+        .select("max_branches, max_users, max_storage_mb, max_employees")
+        .eq("id", params.planId)
+        .maybeSingle()
+    : { data: null };
 
-    await supabase.from("organization_limits").upsert(
-      {
-        organization_id: params.organizationId,
-        max_branches: planLimits?.max_branches ?? null,
-        max_users: planLimits?.max_users ?? null,
-        max_storage_mb: planLimits?.max_storage_mb ?? null,
-        max_employees: planLimits?.max_employees ?? null,
-      },
-      { onConflict: "organization_id" },
-    );
-  }
+  await supabase.from("organization_limits").upsert(
+    {
+      organization_id: params.organizationId,
+      max_branches: planLimits?.max_branches ?? null,
+      max_users: planLimits?.max_users ?? null,
+      max_storage_mb: planLimits?.max_storage_mb ?? null,
+      max_employees: planLimits?.max_employees ?? null,
+    },
+    { onConflict: "organization_id" },
+  );
 
   // Sync modules — union de ambos planes
   const { data: modules } = await supabase
