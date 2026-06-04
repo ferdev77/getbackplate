@@ -914,9 +914,9 @@ export function MaintenanceWorkspace({
                     {latestResponse ? (
                       <div className="space-y-4">
                         <div className="rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4">
-                          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Ultima contestacion</p>
-                          <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed text-[var(--gbp-text)]">
-                            {latestResponse.message?.trim() || "Sin comentario en esta respuesta."}
+                          <p className="text-base leading-relaxed text-[var(--gbp-text)]">
+                            <span className="mr-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Ultima respuesta:</span>
+                            <span className="whitespace-pre-wrap">{latestResponse.message?.trim() || "Sin comentario en esta respuesta."}</span>
                           </p>
                         </div>
 
