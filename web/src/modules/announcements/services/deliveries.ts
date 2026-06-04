@@ -115,10 +115,34 @@ export async function processAnnouncementDeliveries() {
   const supabase = createSupabaseAdminClient();
   const batchSize = clampNumber(DELIVERY_BATCH_SIZE, 1, 200, 50);
   const sendConcurrency = clampNumber(DELIVERY_MAX_CONCURRENCY, 1, 20, 4);
-  
-  // 1. Fetch queued deliveries
-  const { data: deliveries, error: fetchError } = await supabase
+
+  // 1. Leer IDs candidatos (solo IDs, sin datos pesados)
+  const { data: candidates, error: candidatesError } = await supabase
     .from("announcement_deliveries")
+    .select("id")
+    .eq("status", "queued")
+    .order("created_at", { ascending: true })
+    .limit(batchSize);
+
+  if (candidatesError) {
+    console.error("Failed to fetch candidate deliveries:", candidatesError);
+    return { success: false, error: candidatesError.message };
+  }
+
+  if (!candidates || candidates.length === 0) {
+    return { success: true, processed: 0, message: "No queued deliveries found." };
+  }
+
+  const candidateIds = candidates.map((r) => r.id);
+
+  // 2. Claim atómico: UPDATE status='processing' WHERE id IN candidates AND status='queued'
+  // Solo se actualizan las filas que siguen en 'queued' en este momento.
+  // Si otro proceso corrió al mismo tiempo, su UPDATE no encontrará filas y no procesará nada.
+  const { data: deliveries, error: claimError } = await supabase
+    .from("announcement_deliveries")
+    .update({ status: "processing" })
+    .in("id", candidateIds)
+    .eq("status", "queued")
     .select(`
       id,
       organization_id,
@@ -129,18 +153,15 @@ export async function processAnnouncementDeliveries() {
         body,
         target_scope
       )
-    `)
-    .eq("status", "queued")
-    .order("created_at", { ascending: true })
-    .limit(batchSize);
-    
-  if (fetchError) {
-    console.error("Failed to fetch queued deliveries:", fetchError);
-    return { success: false, error: fetchError.message };
+    `);
+
+  if (claimError) {
+    console.error("Failed to claim deliveries:", claimError);
+    return { success: false, error: claimError.message };
   }
 
   if (!deliveries || deliveries.length === 0) {
-    return { success: true, processed: 0, message: "No queued deliveries found." };
+    return { success: true, processed: 0, message: "No deliveries claimed (taken by another process)." };
   }
 
   const grouped = new Map<string, DeliveryRow[]>();

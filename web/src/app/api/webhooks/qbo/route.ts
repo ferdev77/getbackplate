@@ -20,7 +20,12 @@ type IntuitWebhookPayload = {
 export async function POST(request: Request) {
   const signature = request.headers.get("intuit-signature");
   const rawBody = await request.text();
-  const signatureValid = verifyQboWebhookSignature(rawBody, signature);
+  let signatureValid = false;
+  try {
+    signatureValid = verifyQboWebhookSignature(rawBody, signature);
+  } catch (err) {
+    console.warn("[QBO Webhook] No se pudo verificar la firma — QBO_WEBHOOK_VERIFIER_TOKEN no configurado:", err instanceof Error ? err.message : err);
+  }
 
   let parsed: IntuitWebhookPayload = {};
   try {

@@ -178,23 +178,42 @@ export async function POST(request: Request) {
 
   const admin = createSupabaseAdminClient();
 
-  const { data: existingSubmission } = await admin
-    .from("checklist_submissions")
-    .select("id, status, submitted_at")
-    .eq("organization_id", tenant.organizationId)
-    .eq("template_id", templateId)
-    .eq("submitted_by", userId)
-    .in("status", ["submitted", "reviewed"])
-    .order("submitted_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const [{ data: existingSubmission }, { data: scheduledJob }] = await Promise.all([
+    admin
+      .from("checklist_submissions")
+      .select("id, status, submitted_at")
+      .eq("organization_id", tenant.organizationId)
+      .eq("template_id", templateId)
+      .eq("submitted_by", userId)
+      .in("status", ["submitted", "reviewed"])
+      .order("submitted_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    admin
+      .from("scheduled_jobs")
+      .select("last_run_at")
+      .eq("organization_id", tenant.organizationId)
+      .eq("job_type", "checklist_generator")
+      .eq("target_id", templateId)
+      .maybeSingle(),
+  ]);
 
   if (existingSubmission) {
-    return fail("Este checklist ya fue enviado. Solo puedes visualizarlo.", 409, {
-      template_id: templateId,
-      existing_submission_id: existingSubmission.id,
-      existing_submission_status: existingSubmission.status,
-    });
+    const lastRunAt = scheduledJob?.last_run_at ? new Date(scheduledJob.last_run_at) : null;
+    const submittedAt = existingSubmission.submitted_at ? new Date(existingSubmission.submitted_at) : null;
+
+    // Para checklists recurrentes: solo bloquear si la submission es del período actual
+    // (entregada DESPUÉS del último run del cron). Si es de un período anterior, permitir.
+    // Para checklists sin recurrencia (lastRunAt = null): bloquear siempre.
+    const isCurrentPeriod = !lastRunAt || (submittedAt !== null && submittedAt >= lastRunAt);
+
+    if (isCurrentPeriod) {
+      return fail("Este checklist ya fue enviado. Solo puedes visualizarlo.", 409, {
+        template_id: templateId,
+        existing_submission_id: existingSubmission.id,
+        existing_submission_status: existingSubmission.status,
+      });
+    }
   }
 
   const itemIds = Array.from(new Set(items.map((item) => item.template_item_id).filter(Boolean)));

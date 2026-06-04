@@ -6,7 +6,6 @@ import { sendPlanChangeDecisionEmail } from '@/modules/billing/services/plan-cha
 import { resolveTrialPolicyForOrganization } from '@/modules/billing/services/trial-policy.service';
 import { syncOrganizationPlan } from '@/modules/organizations/services/organization.service';
 import { assertCompanyAdminModuleApi } from '@/shared/lib/access';
-import { isSuperadminImpersonating } from '@/shared/lib/impersonation';
 import { logAuditEvent } from '@/shared/lib/audit';
 import { resolveCanonicalAppUrl } from '@/shared/lib/app-url';
 import { resolveTenantAppUrlByOrganizationId } from '@/shared/lib/custom-domains';

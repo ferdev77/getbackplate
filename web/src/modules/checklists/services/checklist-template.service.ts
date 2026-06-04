@@ -310,9 +310,6 @@ export async function upsertChecklistTemplate(
 
   // Handle recurrence / scheduled_jobs
   if (template.id) {
-    const nextRun = calculateNextRunAt(recurrenceType as RecurrenceType, null, customDays);
-    
-    // Attempt to update or create
     const { data: existingJob } = await supabase
       .from("scheduled_jobs")
       .select("id")
@@ -321,17 +318,22 @@ export async function upsertChecklistTemplate(
       .eq("target_id", template.id)
       .maybeSingle();
 
+    const isRecurring = recurrenceType !== "none";
+
     if (existingJob) {
-      if (templateStatus === "active") {
+      if (isRecurring && templateStatus === "active") {
+        const nextRun = calculateNextRunAt(recurrenceType as RecurrenceType, null, customDays);
         await supabase.from("scheduled_jobs").update({
           recurrence_type: recurrenceType,
           custom_days: customDays,
           next_run_at: nextRun.toISOString()
         }).eq("id", existingJob.id);
       } else {
+        // Sin recurrencia o template inactivo: eliminar el job
         await supabase.from("scheduled_jobs").delete().eq("id", existingJob.id);
       }
-    } else if (templateStatus === "active") {
+    } else if (isRecurring && templateStatus === "active") {
+      const nextRun = calculateNextRunAt(recurrenceType as RecurrenceType, null, customDays);
       await supabase.from("scheduled_jobs").insert({
         organization_id: organizationId,
         job_type: "checklist_generator",
