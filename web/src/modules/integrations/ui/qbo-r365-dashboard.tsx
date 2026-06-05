@@ -213,6 +213,24 @@ function relativeTime(iso: string) {
   return `Hace ${days}d`;
 }
 
+function importedTime(iso: string) {
+  const date = new Date(iso);
+  const diff = Date.now() - date.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Ahora";
+  if (mins < 60) return `Hace ${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs === 1 ? "Hace 1 hora" : `Hace ${hrs} horas`;
+  const currentYear = new Date().getFullYear();
+  const months = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  const day = date.getDate();
+  const month = months[date.getMonth()];
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  const yearSuffix = date.getFullYear() !== currentYear ? ` ${date.getFullYear()}` : "";
+  return `${day} ${month}${yearSuffix}, ${hh}:${mm}`;
+}
+
 function normalizeApiError(error: unknown, fallback: string) {
   if (error instanceof Error && error.message.trim()) return error.message;
   if (typeof error === "string" && error.trim()) return error;
@@ -1735,7 +1753,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                             {pipelineLabels[item.pipelineStatus] ?? item.pipelineStatus}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-xs text-[var(--gbp-muted)]">{relativeTime(item.createdAt)}</td>
+                        <td className="px-4 py-3 text-xs text-[var(--gbp-muted)]">{importedTime(item.createdAt)}</td>
                       </tr>
                     ))}
                   </tbody>
