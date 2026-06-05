@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import type { Dispatch, SetStateAction } from "react";
 
 type DelegatedPermissionModuleCode = "announcements" | "checklists" | "documents" | "vendors" | "ai_assistant" | "maintenance";
@@ -77,11 +78,52 @@ export function DelegatedPermissionsSection({ delegatedPermissions, setDelegated
     ? MODULES.filter((m) => enabledModules.includes(m.code))
     : MODULES;
 
+  const allChecked = visibleModules.every((m) =>
+    visibleCapabilities(m.code).every((cap) => delegatedPermissions[m.code][cap]),
+  );
+  const someChecked = visibleModules.some((m) =>
+    visibleCapabilities(m.code).some((cap) => delegatedPermissions[m.code][cap]),
+  );
+
+  const adminCheckRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (adminCheckRef.current) {
+      adminCheckRef.current.indeterminate = someChecked && !allChecked;
+    }
+  }, [someChecked, allChecked]);
+
+  function handleAdminToggle() {
+    const enable = !allChecked;
+    setDelegatedPermissions((prev) => {
+      const next = { ...prev };
+      for (const m of visibleModules) {
+        const caps = { ...prev[m.code] };
+        for (const cap of CAPABILITIES) {
+          caps[cap] = enable ? visibleCapabilities(m.code).includes(cap) : false;
+        }
+        next[m.code] = caps as Record<DelegatedPermissionCapability, boolean>;
+      }
+      return next;
+    });
+  }
+
   return (
     <>
       <h3 className="mb-6 border-b border-[var(--gbp-border)] pb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--gbp-muted)]">
         Permisos Delegados por Módulo
       </h3>
+
+      <label className="mb-5 flex cursor-pointer items-center gap-3 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-4 py-3 transition-colors hover:bg-[var(--gbp-surface2)]">
+        <input
+          ref={adminCheckRef}
+          type="checkbox"
+          checked={allChecked}
+          onChange={handleAdminToggle}
+          className="h-4 w-4 cursor-pointer accent-[var(--gbp-primary)]"
+        />
+        <span className="text-sm font-bold text-[var(--gbp-text)]">Permisos Admin</span>
+        <span className="text-xs text-[var(--gbp-muted)]">— Habilita todos los permisos disponibles de una vez</span>
+      </label>
 
       <p className="mb-5 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3 text-xs text-[var(--gbp-text2)]">
         Estos permisos aplican al portal de empleado. Editar y eliminar solo se permitirá sobre contenido creado por este usuario.
