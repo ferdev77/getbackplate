@@ -72,32 +72,39 @@ function planTier(code: string) {
   return "other";
 }
 
-const MODULE_DESCRIPTIONS: Record<string, string> = {
-  "Roles & Permissions": "User access control across every module. Define what owners, managers, and staff can see and do — the backbone everything else depends on.",
-  "File Management": "Centralized document storage for menus, SOPs, certifications, and more. Organized by location, department, or role.",
-  "Checklists by Dept & Shift": "Digital checklists per department and shift — with sign-off, accountability tracking, and manager visibility built in.",
-  "Platform Notifications": "In-platform alerts keep your team informed in real time. No third-party apps, no missed updates.",
-  "Employee Onboarding": "Every new hire — documents, training, and setup — in one place. No more email chains or printed packets.",
-  "Digital Contract Signatures": "Send, sign, and archive employment contracts digitally. No per-document fees, no chasing signatures.",
-  "Supplier & Vendor Directory": "Centralized vendor contacts, order history, and supplier information by location.",
-  "SMS & WhatsApp Notifications": "Real-time team messaging that reaches staff beyond the platform.",
-  "Task Assignment": "Assign tasks, set due dates, and require photo proof of completion. Integrated with checklists and shift communication.",
-  "Incident & Accident Log": "Track kitchen injuries, customer complaints, and equipment failures with full documentation.",
-  "Vacation & Time-Off Requests": "Digital requests with manager approval flow. No more paper slips.",
-  "Disciplinary Log": "Private manager-only record of warnings, incidents, and write-ups.",
-  "Equipment Maintenance Tracker": "Service schedules, repair history, and vendor contacts per unit.",
-  "Schedule Builder": "Weekly scheduling with role filters and availability management.",
-  "Zoom Integration": "Schedule and launch Zoom meetings directly from the platform. Team briefings and training sessions in one place.",
-  "AI Quick Reports": "Automated reports surfaced from your operations data. No query needed.",
-  "Menu Costing": "Food cost percentage calculated per dish — live, tied directly to your recipes.",
-  "Recipe Archive + Portion Scaler": "Store recipes with automatic portion scaling. Consistent output every time, across every location.",
-  "Temperature & Food Safety Log": "HACCP-compliant fridge and freezer readings logged by shift. Ready for health inspections.",
-  "Performance Reviews": "Structured evaluations tied to roles, departments, and KPIs.",
-  "Google My Business Management": "Manage your GMB listing and track guest feedback.",
-  "Review Champions": "Staff compete to get mentioned by name in Google Reviews.",
-  "Mystery Shopper": "Weighted scoring, visit logs, and trend reports over time.",
-  "Full AI Assistant": "Natural language queries against your own data. Ask anything about your operations across every location.",
-};
+type ModuleEntry = { name: string; desc: string; ai?: boolean };
+
+const STARTER_MODULES: ModuleEntry[] = [
+  { name: "Roles & Permissions", desc: "User access control across every module. Define what owners, managers, and staff can see and do — the backbone everything else depends on." },
+  { name: "File Management", desc: "Centralized document storage for menus, SOPs, certifications, and more. Organized by location, department, or role." },
+  { name: "Checklists by Dept & Shift", desc: "Digital checklists per department and shift — with sign-off, accountability tracking, and manager visibility built in." },
+  { name: "Platform Notifications", desc: "In-platform alerts keep your team informed in real time. No third-party apps, no missed updates." },
+  { name: "Employee Onboarding", desc: "Every new hire — documents, training, and setup — in one place. No more email chains, shared drives, or printed packets." },
+  { name: "Digital Contract Signatures", desc: "Send, sign, and archive employment contracts digitally. No per-document fees, no printing, no chasing signatures." },
+  { name: "Supplier & Vendor Directory", desc: "Centralized vendor contacts, order history, and supplier information by location." },
+];
+
+const PRO_DELTA_MODULES: ModuleEntry[] = [
+  { name: "SMS & WhatsApp Notifications", desc: "Real-time team messaging that reaches staff beyond the platform." },
+  { name: "Task Assignment", desc: "Assign tasks, set due dates, and require photo proof of completion. Integrated with checklists and shift communication." },
+  { name: "Incident & Accident Log", desc: "Track kitchen injuries, customer complaints, and equipment failures with full documentation." },
+  { name: "Vacation & Time-Off Requests", desc: "Digital requests with manager approval flow. No more paper slips." },
+  { name: "Disciplinary Log", desc: "Private manager-only record of warnings, incidents, and write-ups." },
+  { name: "Equipment Maintenance Tracker", desc: "Service schedules, repair history, and vendor contacts per unit." },
+  { name: "Schedule Builder", desc: "Weekly scheduling with role filters and availability management." },
+  { name: "Zoom Integration", desc: "Schedule and launch Zoom meetings directly from the platform. Team briefings, training sessions, and manager check-ins in one place." },
+  { name: "✦ AI Quick Reports", desc: "Automated reports surfaced from your operations data. No query needed.", ai: true },
+  { name: "Menu Costing", desc: "Food cost percentage calculated per dish — live, tied directly to your recipes." },
+  { name: "Recipe Archive + Portion Scaler", desc: "Store recipes with automatic portion scaling. Consistent output every time, across every location." },
+  { name: "Temperature & Food Safety Log", desc: "HACCP-compliant fridge and freezer readings logged by shift. Ready for health inspections before they arrive." },
+  { name: "Performance Reviews", desc: "Structured evaluations tied to roles, departments, and KPIs." },
+  { name: "Google My Business Management", desc: "Manage your GMB listing and track guest feedback." },
+  { name: "Review Champions", desc: "Staff compete to get mentioned by name in Google Reviews." },
+  { name: "Mystery Shopper", desc: "Weighted scoring, visit logs, and trend reports over time." },
+  { name: "✦ Full AI Assistant", desc: "Natural language queries against your own data. Ask anything about your operations across every location.", ai: true },
+];
+
+const PLAN_MODULES = [STARTER_MODULES, PRO_DELTA_MODULES] as const;
 
 export function LandingExperience({ plans, integrationPlans }: Props) {
   const router = useRouter();
@@ -317,15 +324,8 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
     [planCards],
   );
 
-  const totalModulesCount = useMemo(
-    () => new Set(displayPlans.flatMap((p) => (p.modules ?? []).map((m) => m.name))).size,
-    [displayPlans],
-  );
-
-  const extraModulesCount = useMemo(
-    () => new Set(displayPlans.slice(1).flatMap((p) => (p.modules ?? []).map((m) => m.name))).size,
-    [displayPlans],
-  );
+  const totalModulesCount = STARTER_MODULES.length + PRO_DELTA_MODULES.length;
+  const extraModulesCount = PRO_DELTA_MODULES.length;
 
   const integrationPricingSummary = useMemo(() => {
     const paidPlans = integrationPlans.filter(
@@ -572,6 +572,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                 ];
                 const s = colStyles[Math.min(i, colStyles.length - 1)];
                 const pad = i === 0 ? "pr-9" : i === displayPlans.length - 1 ? "pl-9" : "px-9";
+                const planMods = PLAN_MODULES[i] ?? [];
                 const col = (
                   <div key={plan.id} className={pad}>
                     <div className="mb-[18px] flex items-center gap-2.5 border-b border-[var(--gbp-border)] pb-3.5">
@@ -581,17 +582,14 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                       </span>
                     </div>
                     <ul className="flex flex-col gap-0.5">
-                      {(plan.modules ?? []).map((mod) => {
-                        const isAi = s.ai && (mod.name.toLowerCase().includes("ai") || mod.name.toLowerCase().includes("assistant") || mod.name.toLowerCase().includes("report"));
-                        return (
-                          <li key={mod.name}>
-                            <a href="#modules" onClick={() => setMegaOpen(false)} className={`flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] font-medium transition-colors hover:bg-[var(--gbp-surface2)] ${isAi ? s.text : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}>
-                              <span className={`h-[5px] w-[5px] shrink-0 rounded-full ${s.dot}`} />
-                              {isAi ? `✦ ${mod.name}` : mod.name}
-                            </a>
-                          </li>
-                        );
-                      })}
+                      {planMods.map((mod) => (
+                        <li key={mod.name}>
+                          <a href="#modules" onClick={() => setMegaOpen(false)} className={`flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] font-medium transition-colors hover:bg-[var(--gbp-surface2)] ${mod.ai ? s.text : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}>
+                            <span className={`h-[5px] w-[5px] shrink-0 rounded-full ${s.dot}`} />
+                            {mod.name}
+                          </a>
+                        </li>
+                      ))}
                     </ul>
                   </div>
                 );
@@ -976,9 +974,9 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
               </p>
             </div>
 
-            {/* First plan modules grid */}
+            {/* Starter modules grid */}
             <div className="grid gap-px overflow-hidden rounded-t-xl border border-[var(--gbp-border)] bg-[var(--gbp-border)] md:grid-cols-3">
-              {(displayPlans[0]?.modules ?? []).slice(0, 6).map((mod, idx) => (
+              {STARTER_MODULES.slice(0, 6).map((mod, idx) => (
                 <motion.article
                   key={mod.name}
                   initial={{ opacity: 0, y: 16 }}
@@ -991,8 +989,8 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                     {String(idx + 1).padStart(2, "0")}
                   </p>
                   <h3 className="text-[15px] font-bold text-[var(--gbp-text)]">{mod.name}</h3>
-                  {MODULE_DESCRIPTIONS[mod.name] && (
-                    <p className="text-[13px] leading-[1.7] text-[var(--gbp-text2)]">{MODULE_DESCRIPTIONS[mod.name]}</p>
+                  {mod.desc && (
+                    <p className="text-[13px] leading-[1.7] text-[var(--gbp-text2)]">{mod.desc}</p>
                   )}
                 </motion.article>
               ))}
@@ -1025,36 +1023,27 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                 transition={{ duration: 0.25 }}
                 className="overflow-hidden rounded-b-xl border border-t-0 border-[var(--gbp-border)]"
               >
-                {displayPlans.slice(1).map((plan, planIdx) => {
-                  const modules = plan.modules ?? [];
-                  if (modules.length === 0) return null;
-                  const planStyles = [
-                    { text: "text-[var(--gbp-violet)]", badge: "bg-[var(--gbp-violet-soft)] text-[var(--gbp-violet)]" },
-                    { text: "text-[var(--gbp-accent)]", badge: "bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]" },
-                  ];
-                  const ps = planStyles[Math.min(planIdx, planStyles.length - 1)];
-                  return (
-                    <div key={plan.id}>
-                      <div className="flex items-center gap-4 bg-[var(--gbp-bg2)] px-[22px] py-[11px]">
-                        <span className={`whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.12em] ${ps.text}`}>
-                          {lang === "es" ? `Módulos Plan ${plan.name}` : `${plan.name} Plan Modules`}
-                        </span>
-                        <div className="h-px flex-1 bg-[var(--gbp-border2)]" />
-                      </div>
-                      <div className="grid gap-px bg-[var(--gbp-border)] md:grid-cols-4">
-                        {modules.map((mod) => (
-                          <div key={mod.name} className="flex flex-col gap-1.5 bg-[var(--gbp-surface2)] p-[26px_22px]">
-                            <span className={`inline-block w-fit rounded-full ${ps.badge} px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em]`}>{plan.name}</span>
-                            <p className="text-[14px] font-bold text-[var(--gbp-text)]">{mod.name}</p>
-                            {MODULE_DESCRIPTIONS[mod.name] && (
-                              <p className="text-[12px] leading-[1.65] text-[var(--gbp-text2)]">{MODULE_DESCRIPTIONS[mod.name]}</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                {displayPlans[1] && (
+                  <div>
+                    <div className="flex items-center gap-4 bg-[var(--gbp-bg2)] px-[22px] py-[11px]">
+                      <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-violet)]">
+                        {lang === "es" ? `Módulos Plan ${displayPlans[1].name}` : `${displayPlans[1].name} Plan Modules`}
+                      </span>
+                      <div className="h-px flex-1 bg-[var(--gbp-border2)]" />
                     </div>
-                  );
-                })}
+                    <div className="grid gap-px bg-[var(--gbp-border)] md:grid-cols-4">
+                      {PRO_DELTA_MODULES.map((mod) => (
+                        <div key={mod.name} className="flex flex-col gap-1.5 bg-[var(--gbp-surface2)] p-[26px_22px]">
+                          <span className={`inline-block w-fit rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] ${mod.ai ? "bg-[var(--gbp-violet-soft)] text-[var(--gbp-violet)]" : "bg-[var(--gbp-violet-soft)] text-[var(--gbp-violet)]"}`}>{displayPlans[1].name}</span>
+                          <p className={`text-[14px] font-bold ${mod.ai ? "text-[var(--gbp-violet)]" : "text-[var(--gbp-text)]"}`}>{mod.name}</p>
+                          {mod.desc && (
+                            <p className="text-[12px] leading-[1.65] text-[var(--gbp-text2)]">{mod.desc}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
           </div>
