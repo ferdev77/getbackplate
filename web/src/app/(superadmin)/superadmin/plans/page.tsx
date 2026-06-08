@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   BadgeDollarSign,
   Building2,
@@ -155,17 +156,18 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
             const labels = { todos: "Todos", plataforma: "Plataforma", integracion: "Integración" };
             const active = filter === tab;
             return (
-              <a
+              <Link
                 key={tab}
                 href={tab === "todos" ? "?" : `?filter=${tab}`}
+                scroll={false}
                 className={`rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.1em] transition-colors ${
                   active
-                    ? "border-[var(--gbp-primary)] bg-[var(--gbp-primary)] text-white"
+                    ? "border-[var(--gbp-text)] bg-[var(--gbp-text)] text-white shadow-sm"
                     : "border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
                 }`}
               >
                 {labels[tab]}
-              </a>
+              </Link>
             );
           })}
         </div>
