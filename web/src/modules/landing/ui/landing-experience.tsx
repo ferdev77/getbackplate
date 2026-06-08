@@ -1721,7 +1721,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
           </p>
           <p className="text-right text-[11px] text-white/50">
             © 2026 GetBackplate. All rights reserved.<br />
-            Site by <a href="https://marketingsolutions.com" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 opacity-70 hover:opacity-100">Marketing Solutions</a>
+            Site by <a href="https://marketingsolutions.formstack.com/forms/webform" target="_blank" rel="noopener noreferrer" className="text-[var(--gbp-accent)] hover:opacity-80">Marketing Solutions</a>
             {" · "}
             <a href="/legal/" className="underline underline-offset-2 opacity-70 hover:opacity-100">Legal</a>
           </p>
