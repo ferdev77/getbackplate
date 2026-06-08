@@ -312,28 +312,19 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
     });
   }, [plans]);
 
-  const groupedModules = useMemo(() => {
-    const groups: Record<string, string[]> = { starter: [], growth: [], pro: [] };
-    for (const plan of planCards) {
-      if (!(plan.tier in groups)) continue;
-      for (const mod of plan.modules ?? []) {
-        if (!groups[plan.tier].includes(mod.name)) groups[plan.tier].push(mod.name);
-      }
-    }
-    return groups;
-  }, [planCards]);
-
-  const starterPlan = useMemo(() => planCards.find((p) => p.tier === "starter"), [planCards]);
-  const growthPlan = useMemo(() => planCards.find((p) => p.tier === "growth"), [planCards]);
-  const proPlan = useMemo(() => planCards.find((p) => p.tier === "pro"), [planCards]);
+  const displayPlans = useMemo(
+    () => planCards.filter((p) => !p.is_enterprise),
+    [planCards],
+  );
 
   const totalModulesCount = useMemo(
-    () => groupedModules.starter.length + groupedModules.growth.length + groupedModules.pro.length,
-    [groupedModules],
+    () => new Set(displayPlans.flatMap((p) => (p.modules ?? []).map((m) => m.name))).size,
+    [displayPlans],
   );
+
   const extraModulesCount = useMemo(
-    () => groupedModules.growth.length + groupedModules.pro.length,
-    [groupedModules],
+    () => new Set(displayPlans.slice(1).flatMap((p) => (p.modules ?? []).map((m) => m.name))).size,
+    [displayPlans],
   );
 
   const integrationPricingSummary = useMemo(() => {
@@ -571,77 +562,41 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
           >
             <div
               className="mx-auto px-10 py-9"
-              style={{ maxWidth: "1400px", display: "grid", gridTemplateColumns: "1fr 1px 1fr 1px 1fr", gap: 0 }}
+              style={{ maxWidth: "1400px", display: "grid", gridTemplateColumns: displayPlans.map(() => "1fr").join(" 1px "), gap: 0 }}
             >
-              {/* Starter */}
-              <div className="pr-9">
-                <div className="mb-[18px] flex items-center gap-2.5 border-b border-[var(--gbp-border)] pb-3.5">
-                  <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.1em] text-emerald-500">Starter</span>
-                  <span className="text-[11px] text-[var(--gbp-muted)]">
-                    {starterPlan?.monthly ? `from $${starterPlan.monthly}/mo` : "from $49/mo"}
-                  </span>
-                </div>
-                <ul className="flex flex-col gap-0.5">
-                  {groupedModules.starter.map((name) => (
-                    <li key={name}>
-                      <a href="#modules" onClick={() => setMegaOpen(false)} className="flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] font-medium text-[var(--gbp-text2)] transition-colors hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">
-                        <span className="h-[5px] w-[5px] shrink-0 rounded-full bg-emerald-500" />
-                        {name}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="bg-[var(--gbp-border)]" />
-
-              {/* Growth */}
-              <div className="px-9">
-                <div className="mb-[18px] flex items-center gap-2.5 border-b border-[var(--gbp-border)] pb-3.5">
-                  <span className="rounded-full bg-[var(--gbp-violet-soft)] px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.1em] text-[var(--gbp-violet)]">Growth</span>
-                  <span className="text-[11px] text-[var(--gbp-muted)]">
-                    {growthPlan?.monthly ? `from $${growthPlan.monthly}/mo` : "from $129/mo"}
-                  </span>
-                </div>
-                <ul className="flex flex-col gap-0.5">
-                  {groupedModules.growth.map((name) => {
-                    const isAi = name.toLowerCase().includes("ai") || name.toLowerCase().includes("assistant") || name.toLowerCase().includes("report");
-                    return (
-                      <li key={name}>
-                        <a href="#modules" onClick={() => setMegaOpen(false)} className={`flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] font-medium transition-colors hover:bg-[var(--gbp-surface2)] ${isAi ? "text-[var(--gbp-violet)]" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}>
-                          <span className="h-[5px] w-[5px] shrink-0 rounded-full bg-[var(--gbp-violet)]" />
-                          {isAi ? `✦ ${name}` : name}
-                        </a>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-
-              <div className="bg-[var(--gbp-border)]" />
-
-              {/* Pro */}
-              <div className="pl-9">
-                <div className="mb-[18px] flex items-center gap-2.5 border-b border-[var(--gbp-border)] pb-3.5">
-                  <span className="rounded-full bg-[var(--gbp-accent-glow)] px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.1em] text-[var(--gbp-accent)]">Pro</span>
-                  <span className="text-[11px] text-[var(--gbp-muted)]">
-                    {proPlan?.monthly ? `from $${proPlan.monthly}/mo` : "from $249/mo"}
-                  </span>
-                </div>
-                <ul className="flex flex-col gap-0.5">
-                  {groupedModules.pro.map((name) => {
-                    const isAi = name.toLowerCase().includes("ai") || name.toLowerCase().includes("assistant");
-                    return (
-                      <li key={name}>
-                        <a href="#modules" onClick={() => setMegaOpen(false)} className={`flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] font-medium transition-colors hover:bg-[var(--gbp-surface2)] ${isAi ? "text-[var(--gbp-violet)]" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}>
-                          <span className="h-[5px] w-[5px] shrink-0 rounded-full bg-[var(--gbp-accent)]" />
-                          {isAi ? `✦ ${name}` : name}
-                        </a>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
+              {displayPlans.flatMap((plan, i) => {
+                const colStyles = [
+                  { badge: "bg-emerald-500/10 text-emerald-500", dot: "bg-emerald-500", text: "text-emerald-500", ai: false },
+                  { badge: "bg-[var(--gbp-violet-soft)] text-[var(--gbp-violet)]", dot: "bg-[var(--gbp-violet)]", text: "text-[var(--gbp-violet)]", ai: true },
+                  { badge: "bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]", dot: "bg-[var(--gbp-accent)]", text: "text-[var(--gbp-accent)]", ai: true },
+                ];
+                const s = colStyles[Math.min(i, colStyles.length - 1)];
+                const pad = i === 0 ? "pr-9" : i === displayPlans.length - 1 ? "pl-9" : "px-9";
+                const col = (
+                  <div key={plan.id} className={pad}>
+                    <div className="mb-[18px] flex items-center gap-2.5 border-b border-[var(--gbp-border)] pb-3.5">
+                      <span className={`rounded-full ${s.badge} px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.1em]`}>{plan.name}</span>
+                      <span className="text-[11px] text-[var(--gbp-muted)]">
+                        {plan.monthly ? `from $${plan.monthly}/mo` : "Custom"}
+                      </span>
+                    </div>
+                    <ul className="flex flex-col gap-0.5">
+                      {(plan.modules ?? []).map((mod) => {
+                        const isAi = s.ai && (mod.name.toLowerCase().includes("ai") || mod.name.toLowerCase().includes("assistant") || mod.name.toLowerCase().includes("report"));
+                        return (
+                          <li key={mod.name}>
+                            <a href="#modules" onClick={() => setMegaOpen(false)} className={`flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] font-medium transition-colors hover:bg-[var(--gbp-surface2)] ${isAi ? s.text : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}>
+                              <span className={`h-[5px] w-[5px] shrink-0 rounded-full ${s.dot}`} />
+                              {isAi ? `✦ ${mod.name}` : mod.name}
+                            </a>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                );
+                return i > 0 ? [<div key={`sep-${i}`} className="bg-[var(--gbp-border)]" />, col] : [col];
+              })}
             </div>
             <div className="mx-auto flex max-w-[1400px] items-center justify-between border-t border-[var(--gbp-border)] px-10 py-4">
               <p className="text-[13px] text-[var(--gbp-muted)]">
@@ -1021,11 +976,11 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
               </p>
             </div>
 
-            {/* Starter modules grid */}
+            {/* First plan modules grid */}
             <div className="grid gap-px overflow-hidden rounded-t-xl border border-[var(--gbp-border)] bg-[var(--gbp-border)] md:grid-cols-3">
-              {groupedModules.starter.slice(0, 6).map((name, idx) => (
+              {(displayPlans[0]?.modules ?? []).slice(0, 6).map((mod, idx) => (
                 <motion.article
-                  key={name}
+                  key={mod.name}
                   initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, ease: "easeOut", delay: idx * 0.07 }}
@@ -1035,9 +990,9 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                   <p className="text-[38px] font-black leading-none tracking-[-0.03em] text-[var(--gbp-border2)] transition-colors duration-200 group-hover:text-[var(--gbp-accent)]">
                     {String(idx + 1).padStart(2, "0")}
                   </p>
-                  <h3 className="text-[15px] font-bold text-[var(--gbp-text)]">{name}</h3>
-                  {MODULE_DESCRIPTIONS[name] && (
-                    <p className="text-[13px] leading-[1.7] text-[var(--gbp-text2)]">{MODULE_DESCRIPTIONS[name]}</p>
+                  <h3 className="text-[15px] font-bold text-[var(--gbp-text)]">{mod.name}</h3>
+                  {MODULE_DESCRIPTIONS[mod.name] && (
+                    <p className="text-[13px] leading-[1.7] text-[var(--gbp-text2)]">{MODULE_DESCRIPTIONS[mod.name]}</p>
                   )}
                 </motion.article>
               ))}
@@ -1070,48 +1025,36 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                 transition={{ duration: 0.25 }}
                 className="overflow-hidden rounded-b-xl border border-t-0 border-[var(--gbp-border)]"
               >
-                {groupedModules.growth.length > 0 && (
-                  <>
-                    <div className="flex items-center gap-4 bg-[var(--gbp-bg2)] px-[22px] py-[11px]">
-                      <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-violet)]">
-                        {lang === "es" ? "Módulos Plan Growth" : "Growth Plan Modules"}
-                      </span>
-                      <div className="h-px flex-1 bg-[var(--gbp-border2)]" />
+                {displayPlans.slice(1).map((plan, planIdx) => {
+                  const modules = plan.modules ?? [];
+                  if (modules.length === 0) return null;
+                  const planStyles = [
+                    { text: "text-[var(--gbp-violet)]", badge: "bg-[var(--gbp-violet-soft)] text-[var(--gbp-violet)]" },
+                    { text: "text-[var(--gbp-accent)]", badge: "bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]" },
+                  ];
+                  const ps = planStyles[Math.min(planIdx, planStyles.length - 1)];
+                  return (
+                    <div key={plan.id}>
+                      <div className="flex items-center gap-4 bg-[var(--gbp-bg2)] px-[22px] py-[11px]">
+                        <span className={`whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.12em] ${ps.text}`}>
+                          {lang === "es" ? `Módulos Plan ${plan.name}` : `${plan.name} Plan Modules`}
+                        </span>
+                        <div className="h-px flex-1 bg-[var(--gbp-border2)]" />
+                      </div>
+                      <div className="grid gap-px bg-[var(--gbp-border)] md:grid-cols-4">
+                        {modules.map((mod) => (
+                          <div key={mod.name} className="flex flex-col gap-1.5 bg-[var(--gbp-surface2)] p-[26px_22px]">
+                            <span className={`inline-block w-fit rounded-full ${ps.badge} px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em]`}>{plan.name}</span>
+                            <p className="text-[14px] font-bold text-[var(--gbp-text)]">{mod.name}</p>
+                            {MODULE_DESCRIPTIONS[mod.name] && (
+                              <p className="text-[12px] leading-[1.65] text-[var(--gbp-text2)]">{MODULE_DESCRIPTIONS[mod.name]}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="grid gap-px bg-[var(--gbp-border)] md:grid-cols-4">
-                      {groupedModules.growth.map((name) => (
-                        <div key={name} className="flex flex-col gap-1.5 bg-[var(--gbp-surface2)] p-[26px_22px]">
-                          <span className="inline-block w-fit rounded-full bg-[var(--gbp-violet-soft)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-violet)]">Growth</span>
-                          <p className="text-[14px] font-bold text-[var(--gbp-text)]">{name}</p>
-                          {MODULE_DESCRIPTIONS[name] && (
-                            <p className="text-[12px] leading-[1.65] text-[var(--gbp-text2)]">{MODULE_DESCRIPTIONS[name]}</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-                {groupedModules.pro.length > 0 && (
-                  <>
-                    <div className="flex items-center gap-4 bg-[var(--gbp-bg2)] px-[22px] py-[11px]">
-                      <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-accent)]">
-                        {lang === "es" ? "Módulos Plan Pro" : "Pro Plan Modules"}
-                      </span>
-                      <div className="h-px flex-1 bg-[var(--gbp-border2)]" />
-                    </div>
-                    <div className="grid gap-px bg-[var(--gbp-border)] md:grid-cols-4">
-                      {groupedModules.pro.map((name) => (
-                        <div key={name} className="flex flex-col gap-1.5 bg-[var(--gbp-surface2)] p-[26px_22px]">
-                          <span className="inline-block w-fit rounded-full bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">Pro</span>
-                          <p className="text-[14px] font-bold text-[var(--gbp-text)]">{name}</p>
-                          {MODULE_DESCRIPTIONS[name] && (
-                            <p className="text-[12px] leading-[1.65] text-[var(--gbp-text2)]">{MODULE_DESCRIPTIONS[name]}</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
+                  );
+                })}
               </motion.div>
             )}
           </div>
