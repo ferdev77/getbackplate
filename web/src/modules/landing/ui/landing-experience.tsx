@@ -21,6 +21,10 @@ type PlanInput = {
   modules_count?: number | null;
   modules?: Array<{ code: string; name: string }>;
   features?: unknown;
+  is_enterprise?: boolean | null;
+  is_featured?: boolean | null;
+  cta_text?: string | null;
+  cta_email?: string | null;
 };
 
 type PlanFeature = {
@@ -1441,7 +1445,8 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
 
             <div className="mt-8 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               {planCards.map((plan, idx) => {
-                const featured = plan.tier === "growth" || plan.tier === "pro";
+                const isEnterprise = !!plan.is_enterprise;
+                const featured = !isEnterprise && (plan.tier === "growth" || plan.tier === "pro" || !!plan.is_featured);
                 return (
                   <motion.article
                     key={plan.id}
@@ -1450,7 +1455,13 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                     transition={{ duration: 0.45, ease: "easeOut", delay: idx * 0.08 }}
                     viewport={{ once: true, amount: 0.25 }}
                     whileHover={{ y: -4 }}
-                    className={`relative rounded-xl border p-5 bg-[var(--gbp-surface)] transition-shadow ${featured ? "border-[var(--gbp-violet)] shadow-[0_0_0_1px_var(--gbp-violet),0_18px_50px_rgba(108,71,255,0.18)]" : "border-[var(--gbp-border)]"}`}
+                    className={`relative rounded-xl border p-5 bg-[var(--gbp-surface)] transition-shadow ${
+                      isEnterprise
+                        ? "border-dashed border-[var(--gbp-border)]"
+                        : featured
+                        ? "border-[var(--gbp-violet)] shadow-[0_0_0_1px_var(--gbp-violet),0_18px_50px_rgba(108,71,255,0.18)]"
+                        : "border-[var(--gbp-border)]"
+                    }`}
                   >
                     {featured && (
                       <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-violet)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white">
@@ -1458,24 +1469,48 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                       </span>
                     )}
                     <p className="text-xs font-black uppercase tracking-[0.1em] text-[var(--gbp-muted)]">{plan.name}</p>
-                    <p className="mt-3 text-5xl font-extrabold tracking-tight text-[var(--gbp-text)]">
-                      {billingMode === "annual" ? formatPrice(plan.annualBilled) : formatPrice(plan.monthly)}
-                    </p>
-                    <p className="mt-1 text-xs text-[var(--gbp-muted)]">
-                      {billingMode === "annual"
-                        ? plan.annualBilled && plan.annualPerMonth
-                          ? lang === "es" ? `por año, equivale a ${formatPrice(plan.annualPerMonth)}/mes` : `per year, equals ${formatPrice(plan.annualPerMonth)}/mo`
-                          : lang === "es" ? "anual" : "annual"
-                        : lang === "es" ? "por mes" : "per month"}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => startCheckout(plan.id)}
-                      disabled={loadingPlanId === plan.id}
-                      className={`mt-4 w-full rounded-md px-3 py-2 text-sm font-bold transition-colors ${featured ? "bg-[var(--gbp-violet)] text-white hover:bg-[var(--gbp-violet-hover)]" : "bg-[var(--gbp-accent)] text-white hover:bg-[var(--gbp-accent-hover)]"}`}
-                    >
-                      {loadingPlanId === plan.id ? "..." : lang === "es" ? "Comenzar trial 30 días" : "Start 30-day trial"}
-                    </button>
+                    {isEnterprise ? (
+                      <>
+                        <p className="mt-3 text-5xl font-extrabold tracking-tight text-[var(--gbp-text)]">Custom</p>
+                        <p className="mt-1 text-xs text-[var(--gbp-muted)]">
+                          {lang === "es" ? "a medida para tu operación" : "tailored to your operation"}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="mt-3 text-5xl font-extrabold tracking-tight text-[var(--gbp-text)]">
+                          {billingMode === "annual" ? formatPrice(plan.annualBilled) : formatPrice(plan.monthly)}
+                        </p>
+                        <p className="mt-1 text-xs text-[var(--gbp-muted)]">
+                          {billingMode === "annual"
+                            ? plan.annualBilled && plan.annualPerMonth
+                              ? lang === "es" ? `por año, equivale a ${formatPrice(plan.annualPerMonth)}/mes` : `per year, equals ${formatPrice(plan.annualPerMonth)}/mo`
+                              : lang === "es" ? "anual" : "annual"
+                            : lang === "es" ? "por mes" : "per month"}
+                        </p>
+                      </>
+                    )}
+                    {isEnterprise ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const email = plan.cta_email ?? "";
+                          if (email) window.location.href = `mailto:${email}?subject=GetBackplate - ${plan.name}`;
+                        }}
+                        className="mt-4 w-full rounded-md px-3 py-2 text-sm font-bold transition-colors bg-[var(--gbp-accent)] text-white hover:bg-[var(--gbp-accent-hover)]"
+                      >
+                        {plan.cta_text ?? (lang === "es" ? "Contactar ventas →" : "Talk to Sales →")}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => startCheckout(plan.id)}
+                        disabled={loadingPlanId === plan.id}
+                        className={`mt-4 w-full rounded-md px-3 py-2 text-sm font-bold transition-colors ${featured ? "bg-[var(--gbp-violet)] text-white hover:bg-[var(--gbp-violet-hover)]" : "bg-[var(--gbp-accent)] text-white hover:bg-[var(--gbp-accent-hover)]"}`}
+                      >
+                        {loadingPlanId === plan.id ? "..." : lang === "es" ? "Comenzar trial 30 días" : "Start 30-day trial"}
+                      </button>
+                    )}
                     <ul className="mt-4 space-y-2">
                       {plan.features
                         .filter((feature) => !feature.annual_only || billingMode === "annual")
