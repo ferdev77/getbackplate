@@ -25,6 +25,7 @@ type PlanInput = {
   is_featured?: boolean | null;
   cta_text?: string | null;
   cta_email?: string | null;
+  sort_order?: number | null;
 };
 
 type PlanFeature = {
@@ -240,7 +241,12 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
   }, [lang]);
 
   const planCards = useMemo(() => {
-    const sorted = [...plans].sort((a, b) => (a.price_amount ?? 0) - (b.price_amount ?? 0));
+    const sorted = [...plans].sort((a, b) => {
+      const sa = a.sort_order ?? 999;
+      const sb = b.sort_order ?? 999;
+      if (sa !== sb) return sa - sb;
+      return (a.price_amount ?? 0) - (b.price_amount ?? 0);
+    });
     return sorted.map((plan) => {
       const parsedMonthly = plan.price_amount === null || plan.price_amount === undefined ? null : Number(plan.price_amount);
       const monthly = parsedMonthly !== null && Number.isFinite(parsedMonthly) ? parsedMonthly : null;
