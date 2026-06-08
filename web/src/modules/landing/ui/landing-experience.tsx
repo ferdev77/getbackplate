@@ -105,7 +105,6 @@ const PRO_DELTA_MODULES: ModuleEntry[] = [
   { name: "✦ Full AI Assistant", desc: "Natural language queries against your own data. Ask anything about your operations across every location.", ai: true },
 ];
 
-const PLAN_MODULES = [STARTER_MODULES, PRO_DELTA_MODULES] as const;
 
 export function LandingExperience({ plans, integrationPlans }: Props) {
   const router = useRouter();
@@ -353,20 +352,36 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
     () =>
       lang === "es"
         ? [
-            ["¿Es un POS?", "No. Es una plataforma operativa que trabaja junto a tu POS actual."],
-            ["¿Debo cambiar mi POS?", "No. Puedes mantener Toast, Square, Clover u otro sistema actual."],
-            ["¿El trial de 30 días cobra al inicio?", "No. Se carga tarjeta al suscribir, pero el primer cobro llega al finalizar el trial."],
-            ["¿Puedo cambiar de plan durante el trial?", "Sí. Cambias módulos/límites del plan, pero no se reinicia el reloj de 30 días."],
-            ["¿Funciona para múltiples locaciones?", "Sí. Una sola cuenta, todas tus locaciones en una vista unificada."],
-            ["¿Reemplaza mis herramientas actuales?", "Complementa lo que tenés. No reemplaza tu POS, nómina o sistema de delivery."],
+            ["¿Es GetBackplate un sistema POS?", "No. GetBackplate es una plataforma de operaciones para restaurantes — no un POS. Gestiona todo lo que tu POS ignora: tu personal, tus procesos, los estándares de cocina, el cumplimiento y la comunicación. Funciona junto a Toast, Square, Clover y cualquier POS que ya usás."],
+            ["¿Necesito reemplazar mi POS actual?", "Para nada. GetBackplate no es un reemplazo — es un complemento. Tu POS maneja transacciones. GetBackplate maneja todo lo demás. Ambos funcionan de forma independiente, sin integración necesaria."],
+            ["¿Puedo personalizar los checklists y módulos para mi concepto?", "Sí. Los checklists son completamente personalizables por departamento, turno y locación. Cada concepto opera de forma diferente, y GetBackplate está construido para reflejar tus estándares específicos — no una plantilla genérica."],
+            ["¿Cuánto tiempo lleva la configuración?", "GetBackplate está diseñado para que lo configures vos — sin conocimiento técnico. La plataforma es intuitiva y la mayoría de los operadores están completamente configurados en pocos días. Si manejás una operación compleja y preferís ayuda, ofrecemos un servicio de configuración por única vez desde $299."],
+            ["¿Mis empleados necesitan sus propios dispositivos?", "No. GetBackplate es web y funciona en cualquier dispositivo — teléfono, tablet o computadora. No requiere descarga de app. Cada usuario tiene sus propias credenciales y puede acceder desde cualquier dispositivo con conexión a internet."],
+            ["¿GetBackplate está disponible en español?", "El soporte en español está en la hoja de ruta y es una prioridad dado el perfil de la mayoría de los equipos en EE.UU. Los Miembros First Table tendrán participación directa en el calendario de lanzamiento y las prioridades de traducción."],
+            ["¿Qué pasa si un empleado no completa un checklist?", "Los managers tienen visibilidad en tiempo real del estado de completitud por turno y departamento. Los ítems incompletos quedan marcados hasta resolverse. GetBackplate AI (planes Growth y Pro) también puede detectar patrones de incumplimiento recurrente de forma proactiva."],
+            ["¿Qué es el Programa First Table?", "First Table es nuestro programa de soft launch — limitado a 100 restaurantes. Los miembros obtienen precios fijos para siempre, acceso prioritario antes del lanzamiento público, y contacto directo con el equipo. Es solo por invitación y cierra cuando se llenan todos los lugares."],
+            ["¿El precio realmente queda fijo para siempre?", "Sí. El plan al que te unís durante el Programa First Table es tu plan permanente — sin aumentos, nunca. Cuando GetBackplate lance públicamente, los precios reflejarán el producto completo. Los Miembros First Table conservan su plan fundador."],
+            ["¿Hay contratos a largo plazo?", "No. GetBackplate es mes a mes en facturación mensual, o anual si querés el descuento. Podés cancelar cuando quieras. Creemos que el producto debe ganarse tu negocio cada mes."],
+            ["¿Puedo cambiar de plan?", "Sí. Podés cambiar de plan en cualquier momento. Los upgrades aplican de inmediato. Los downgrades aplican en el siguiente ciclo de facturación. El precio First Table se mantiene sin importar en qué nivel de plan estés."],
+            ["¿Dónde se almacenan mis datos? ¿Son seguros?", "Todos los datos están cifrados en tránsito y en reposo, almacenados en infraestructura cloud segura. Contratos de empleo, registros de RRHH y datos operativos están protegidos con controles de acceso basados en roles."],
+            ["¿Puedo exportar mis datos si me voy?", "Sí. Tus datos son tuyos. Podés exportar todos los registros — checklists, archivos de empleados, contratos, logs — en cualquier momento. No retenemos tus datos como rehén."],
+            ["¿Necesito conocimiento técnico para usar las funciones de IA?", "Para nada. La IA en GetBackplate funciona en lenguaje natural — escribís una oración, genera un borrador. Hacés una pregunta, responde con tus propios datos operativos. Sin prompts, sin configuración, sin curva de aprendizaje."],
           ]
         : [
-            ["Is this a POS?", "No. It is an operations platform that works alongside your existing POS."],
-            ["Do I need to replace my POS?", "No. You can keep Toast, Square, Clover, or your current stack."],
-            ["Does the 30-day trial charge at signup?", "No. Card is collected at signup, but first charge is at trial end."],
-            ["Can I change plans during trial?", "Yes. Plan limits/modules change, but the 30-day trial clock does not reset."],
-            ["Does it work for multiple locations?", "Yes. One account, all your locations in a single unified view."],
-            ["Does it replace my existing tools?", "It complements what you have. It does not replace your POS, payroll, or delivery system."],
+            ["Is GetBackplate a POS system?", "No. GetBackplate is a restaurant operations platform — not a POS. It manages everything your POS ignores: your people, your processes, your kitchen standards, your compliance, and your communication. It works alongside Toast, Square, Clover, and any POS you already use."],
+            ["Do I need to replace my current POS?", "Not at all. GetBackplate is not a replacement — it's a complement. Your POS handles transactions. GetBackplate handles everything else. Both run independently, no integration required."],
+            ["Can I customize checklists and modules for my concept?", "Yes. Checklists are fully customizable by department, shift, and location. Every concept operates differently, and GetBackplate is built to reflect your specific standards — not a generic template."],
+            ["How long does setup take?", "GetBackplate is designed to be set up by you — no technical knowledge needed. Most operators are fully configured within a few days. If you run a complex operation and prefer hands-on help, we offer an optional one-time setup service starting at $299."],
+            ["Do my employees need their own devices?", "No. GetBackplate is web-based and works on any device — phone, tablet, or desktop. No app download required. Every user gets their own credentials and can access their information from any device with an internet connection."],
+            ["Is GetBackplate available in Spanish?", "Spanish language support is on the roadmap and a top priority given the makeup of most restaurant teams in the US. First Table Members will have direct input on the rollout timeline and translation priorities."],
+            ["What happens if an employee doesn't complete a checklist?", "Managers receive real-time visibility into completion status by shift and department. Incomplete items remain flagged until resolved. GetBackplate AI (Growth & Pro) can also surface recurring non-compliance patterns proactively."],
+            ["What is the First Table Program?", "The First Table is our soft launch program — limited to 100 restaurants. Members get locked-in pricing forever, priority access before public launch, and a direct line to the team. It's invitation-only and closes when all seats are filled."],
+            ["Is the pricing really locked in forever?", "Yes. The plan you join at during the First Table Program is your plan permanently — no increases, ever. When GetBackplate launches publicly, prices will reflect the full product. First Table Members keep their founding plan regardless."],
+            ["Are there any long-term contracts?", "No long-term contracts. GetBackplate is month-to-month on monthly billing, or annual if you want the discount. You can cancel anytime. We believe the product should earn your business every month."],
+            ["Can I upgrade or downgrade my plan?", "Yes. You can change plans at any time. Upgrades take effect immediately. Downgrades apply at the next billing cycle. First Table pricing is preserved regardless of which plan tier you're on."],
+            ["Where is my data stored? Is it secure?", "All data is encrypted in transit and at rest, stored on secure cloud infrastructure. Employment contracts, HR records, and operational data are protected with role-based access controls — only authorized users can see sensitive information."],
+            ["Can I export my data if I leave?", "Yes. Your data is yours. You can export all records — checklists, employee files, contracts, logs — at any time. We don't hold your data hostage."],
+            ["Do I need technical knowledge to use AI features?", "None at all. AI in GetBackplate works in plain language — you write a sentence, it generates a draft. You ask a question, it answers from your own operations data. No prompts, no settings, no learning curve."],
           ],
     [lang],
   );
@@ -578,7 +593,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                 ];
                 const s = colStyles[Math.min(i, colStyles.length - 1)];
                 const pad = i === 0 ? "pr-9" : i === displayPlans.length - 1 ? "pl-9" : "px-9";
-                const planMods = PLAN_MODULES[i] ?? [];
+                const planFeatures = (Array.isArray(plan.features) ? plan.features : []) as Array<{ text: string; highlight?: boolean }>;
                 const col = (
                   <div key={plan.id} className={pad}>
                     <div className="mb-[18px] flex items-center gap-2.5 border-b border-[var(--gbp-border)] pb-3.5">
@@ -588,11 +603,11 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                       </span>
                     </div>
                     <ul className="flex flex-col gap-0.5">
-                      {planMods.map((mod) => (
-                        <li key={mod.name}>
-                          <a href="#modules" onClick={() => setMegaOpen(false)} className={`flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] font-medium transition-colors hover:bg-[var(--gbp-surface2)] ${mod.ai ? s.text : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}>
+                      {planFeatures.map((f) => (
+                        <li key={f.text}>
+                          <a href="#modules" onClick={() => setMegaOpen(false)} className={`flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] font-medium transition-colors hover:bg-[var(--gbp-surface2)] ${f.highlight ? s.text : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}>
                             <span className={`h-[5px] w-[5px] shrink-0 rounded-full ${s.dot}`} />
-                            {mod.name}
+                            {f.text}
                           </a>
                         </li>
                       ))}
