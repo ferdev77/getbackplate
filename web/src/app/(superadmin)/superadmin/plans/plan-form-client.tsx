@@ -191,6 +191,7 @@ export function PlanFormModal({
   const [features, setFeatures] = useState<FeatureItem[]>(() =>
     parseFeaturesSafe(plan?.features),
   );
+  const [stripePriceId, setStripePriceId] = useState(plan?.stripe_price_id ?? "");
 
   function addFeature() {
     setFeatures((prev) => [...prev, { text: "", highlight: false, everything: false, annual_only: false }]);
@@ -391,6 +392,7 @@ export function PlanFormModal({
                         defaultValue={plan?.stripe_price_id ?? ""}
                         placeholder="Opcional. ej: price_1Pxxxxxxxx"
                         onBlur={handleMainPriceBlur}
+                        onChange={(e) => setStripePriceId(e.target.value.trim())}
                       />
                       <PriceHint state={mainPrice} />
                     </div>
@@ -514,6 +516,7 @@ export function PlanFormModal({
                       defaultValue={plan?.stripe_price_id ?? ""}
                       placeholder="price_1Pxxxxxxxx"
                       onBlur={handleMainPriceBlur}
+                      onChange={(e) => setStripePriceId(e.target.value.trim())}
                     />
                     <PriceHint state={mainPrice} />
                     <p className="mt-1 text-[11px] text-muted-foreground/60">
@@ -609,19 +612,23 @@ export function PlanFormModal({
                   min="0"
                   defaultValue={plan?.sort_order ?? "0"}
                 />
-                <SuperadminInputField
-                  label="Texto del botón CTA"
-                  name="cta_text"
-                  defaultValue={plan?.cta_text ?? ""}
-                  placeholder="p.ej: Get Started"
-                />
-                <SuperadminInputField
-                  label="Email CTA (Enterprise)"
-                  name="cta_email"
-                  type="email"
-                  defaultValue={plan?.cta_email ?? ""}
-                  placeholder="p.ej: sales@example.com"
-                />
+                {!stripePriceId && (
+                  <>
+                    <SuperadminInputField
+                      label="Texto del botón CTA"
+                      name="cta_text"
+                      defaultValue={plan?.cta_text ?? ""}
+                      placeholder="p.ej: Get Started"
+                    />
+                    <SuperadminInputField
+                      label="Email CTA (Enterprise)"
+                      name="cta_email"
+                      type="email"
+                      defaultValue={plan?.cta_email ?? ""}
+                      placeholder="p.ej: sales@example.com"
+                    />
+                  </>
+                )}
               </div>
 
               <div className="flex flex-wrap gap-6">
