@@ -24,7 +24,7 @@ import { PageContent } from "@/shared/ui/page-content";
 import { PlanFormModal } from "./plan-form-client";
 
 type SuperadminPlansPageProps = {
-  searchParams: Promise<{ status?: string; message?: string; plan?: string }>;
+  searchParams: Promise<{ status?: string; message?: string; plan?: string; filter?: string }>;
 };
 
 function money(amount: number | null, currency = "USD") {
@@ -41,6 +41,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
   const params = await searchParams;
   const status = params.status;
   const message = params.message;
+  const filter = params.filter ?? "todos";
 
   const [
     { data: plans },
@@ -149,8 +150,35 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
           />
         </div>
 
+        <div className="mb-6 flex items-center gap-2 px-2">
+          {(["todos", "plataforma", "integracion"] as const).map((tab) => {
+            const labels = { todos: "Todos", plataforma: "Plataforma", integracion: "Integración" };
+            const active = filter === tab;
+            return (
+              <a
+                key={tab}
+                href={tab === "todos" ? "?" : `?filter=${tab}`}
+                className={`rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.1em] transition-colors ${
+                  active
+                    ? "border-[var(--gbp-primary)] bg-[var(--gbp-primary)] text-white"
+                    : "border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
+                }`}
+              >
+                {labels[tab]}
+              </a>
+            );
+          })}
+        </div>
+
         <div className="grid gap-6">
-          {(plans ?? []).map((plan) => {
+          {(plans ?? [])
+            .filter((plan) => {
+              const isIntegration = (plan as Record<string, unknown>).plan_type === "qbo_r365";
+              if (filter === "plataforma") return !isIntegration;
+              if (filter === "integracion") return isIntegration;
+              return true;
+            })
+            .map((plan) => {
             const usedCount = usageMap.get(plan.id) ?? 0;
             const selectedSet = planModuleMap.get(plan.id) ?? new Set<string>();
             const activeModules = (modulesCatalog ?? []).filter(m => selectedSet.has(m.id));
