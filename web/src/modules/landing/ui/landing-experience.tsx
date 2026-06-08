@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
+import { RequestSeatModal } from "./request-seat-modal";
 
 type PlanInput = {
   id: string;
@@ -120,6 +121,11 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
   const [intTab, setIntTab] = useState<"send" | "receive">("send");
   const [modulesExpanded, setModulesExpanded] = useState(false);
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0 });
+  const [seatModal, setSeatModal] = useState<{ open: boolean; email: string; planName: string }>({ open: false, email: "", planName: "" });
+
+  function openSeatModal(email: string, planName: string) {
+    setSeatModal({ open: true, email, planName });
+  }
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("gbp-marketing-theme");
@@ -1431,10 +1437,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                     {isEnterprise ? (
                       <button
                         type="button"
-                        onClick={() => {
-                          const email = plan.cta_email ?? "";
-                          if (email) window.location.href = `mailto:${email}?subject=GetBackplate - ${plan.name}`;
-                        }}
+                        onClick={() => openSeatModal(plan.cta_email ?? "", plan.name)}
                         className="mt-4 w-full rounded-md px-3 py-2 text-sm font-bold transition-colors bg-[var(--gbp-accent)] text-white hover:bg-[var(--gbp-accent-hover)]"
                       >
                         {plan.cta_text ?? (lang === "es" ? "Contactar ventas →" : "Talk to Sales →")}
@@ -1800,6 +1803,13 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
           }
         }
       `}</style>
+
+      <RequestSeatModal
+        open={seatModal.open}
+        onClose={() => setSeatModal((s) => ({ ...s, open: false }))}
+        toEmail={seatModal.email}
+        planName={seatModal.planName}
+      />
     </div>
   );
 }
