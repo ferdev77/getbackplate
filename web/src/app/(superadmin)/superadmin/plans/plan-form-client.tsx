@@ -384,13 +384,16 @@ export function PlanFormModal({
                       <option value="yearly">Anual</option>
                       <option value="one_time">Pago Único</option>
                     </SuperadminSelectField>
-                    <SuperadminInputField
-                      label="Stripe Price ID"
-                      name="stripe_price_id"
-                      defaultValue={plan?.stripe_price_id ?? ""}
-                      placeholder="Opcional. ej: price_1Pxxxxxxxx"
-                      className="md:col-span-full"
-                    />
+                    <div className="md:col-span-full">
+                      <SuperadminInputField
+                        label="Stripe Price ID"
+                        name="stripe_price_id"
+                        defaultValue={plan?.stripe_price_id ?? ""}
+                        placeholder="Opcional. ej: price_1Pxxxxxxxx"
+                        onBlur={handleMainPriceBlur}
+                      />
+                      <PriceHint state={mainPrice} />
+                    </div>
                   </div>
 
                   <div className="rounded-2xl border border-[var(--gbp-border)] bg-muted/20 p-6">
@@ -494,14 +497,6 @@ export function PlanFormModal({
                       <option value="yearly">Anual</option>
                     </SuperadminSelectField>
                     <SuperadminInputField
-                      label="Orden en landing"
-                      name="sort_order"
-                      type="number"
-                      min="0"
-                      defaultValue={plan?.sort_order ?? "0"}
-                      className="md:col-span-2"
-                    />
-                    <SuperadminInputField
                       label="Descripción breve"
                       name="description"
                       defaultValue={plan?.description ?? ""}
@@ -577,8 +572,8 @@ export function PlanFormModal({
                     </div>
                   </div>
 
-                  {/* Invoices + connections + CTA */}
-                  <div className="grid gap-5 sm:grid-cols-4">
+                  {/* Invoices + connections */}
+                  <div className="grid gap-5 sm:grid-cols-2">
                     <SuperadminInputField
                       label="Facturas incluidas"
                       name="invoices_included"
@@ -595,154 +590,6 @@ export function PlanFormModal({
                       defaultValue={plan?.max_r365_connections ?? ""}
                       placeholder="vacío = ilimitado"
                     />
-                    <SuperadminInputField
-                      label="Texto del botón CTA"
-                      name="cta_text"
-                      defaultValue={plan?.cta_text ?? ""}
-                      placeholder="p.ej: Get Started"
-                    />
-                    <SuperadminInputField
-                      label="Email CTA (Enterprise)"
-                      name="cta_email"
-                      type="email"
-                      defaultValue={plan?.cta_email ?? ""}
-                      placeholder="p.ej: sales@example.com"
-                    />
-                  </div>
-
-                  {/* Flags */}
-                  <div className="flex flex-wrap gap-6">
-                    <label className="flex cursor-pointer items-center gap-2">
-                      <input
-                        type="checkbox"
-                        name="is_featured"
-                        defaultChecked={plan?.is_featured ?? false}
-                        className="h-4 w-4 rounded accent-violet-600"
-                      />
-                      <span className="text-xs font-semibold text-foreground">
-                        Tarjeta destacada (fondo oscuro)
-                      </span>
-                    </label>
-                    <label className="flex cursor-pointer items-center gap-2">
-                      <input
-                        type="checkbox"
-                        name="is_enterprise"
-                        defaultChecked={plan?.is_enterprise ?? false}
-                        className="h-4 w-4 rounded accent-violet-600"
-                      />
-                      <span className="text-xs font-semibold text-foreground">
-                        Enterprise (sin precio, borde punteado)
-                      </span>
-                    </label>
-                  </div>
-
-                  {/* Features builder */}
-                  <div>
-                    <input
-                      type="hidden"
-                      name="features"
-                      value={features.length > 0 ? JSON.stringify(features) : ""}
-                    />
-                    <div className="mb-3 flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-bold text-foreground">Features del plan</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">Aparecen en la tarjeta de la pantalla de contratación.</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={addFeature}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-3 py-2 text-[11px] font-bold text-white transition hover:bg-violet-700"
-                      >
-                        <Plus className="h-3.5 w-3.5" /> Agregar feature
-                      </button>
-                    </div>
-
-                    {features.length === 0 ? (
-                      <div className="rounded-xl border border-dashed border-[var(--gbp-border)] px-4 py-6 text-center text-xs text-muted-foreground">
-                        Sin features aún. Hacé clic en "Agregar feature" para comenzar.
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        {features.map((f, i) => (
-                          <div
-                            key={i}
-                            className="group relative rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-3 transition hover:border-violet-300"
-                          >
-                            <div className="flex items-start gap-2">
-                              {/* Order controls */}
-                              <div className="flex flex-col gap-0.5 pt-0.5">
-                                <button
-                                  type="button"
-                                  onClick={() => moveFeature(i, -1)}
-                                  disabled={i === 0}
-                                  className="rounded p-0.5 text-muted-foreground/40 transition hover:bg-muted hover:text-foreground disabled:opacity-20"
-                                >
-                                  <ChevronUp className="h-3 w-3" />
-                                </button>
-                                <GripVertical className="h-3 w-3 text-muted-foreground/30" />
-                                <button
-                                  type="button"
-                                  onClick={() => moveFeature(i, 1)}
-                                  disabled={i === features.length - 1}
-                                  className="rounded p-0.5 text-muted-foreground/40 transition hover:bg-muted hover:text-foreground disabled:opacity-20"
-                                >
-                                  <ChevronDown className="h-3 w-3" />
-                                </button>
-                              </div>
-
-                              {/* Text input */}
-                              <div className="flex-1">
-                                <input
-                                  type="text"
-                                  value={f.text}
-                                  onChange={(e) => updateFeature(i, { text: e.target.value })}
-                                  placeholder="p.ej: Up to 75 invoices per month"
-                                  className="w-full rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-violet-400"
-                                />
-                                {/* Flags */}
-                                <div className="mt-2 flex flex-wrap gap-3">
-                                  <FeatureFlagToggle
-                                    label="Resaltado"
-                                    checked={f.highlight}
-                                    onChange={(v) => updateFeature(i, { highlight: v })}
-                                    color="violet"
-                                  />
-                                  <FeatureFlagToggle
-                                    label='Prefijo "✦ Todo lo anterior +"'
-                                    checked={f.everything}
-                                    onChange={(v) => updateFeature(i, { everything: v })}
-                                    color="amber"
-                                  />
-                                  <FeatureFlagToggle
-                                    label="Solo en plan Anual"
-                                    checked={f.annual_only}
-                                    onChange={(v) => updateFeature(i, { annual_only: v })}
-                                    color="sky"
-                                  />
-                                </div>
-                              </div>
-
-                              {/* Delete */}
-                              <button
-                                type="button"
-                                onClick={() => removeFeature(i)}
-                                className="mt-0.5 rounded-lg p-1.5 text-muted-foreground/30 transition hover:bg-rose-50 hover:text-rose-500"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-
-                            {/* Preview pill */}
-                            <div className="mt-2 pl-8">
-                              <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-mono ${f.highlight ? "bg-violet-100 text-violet-700" : "bg-muted/50 text-muted-foreground"}`}>
-                                {f.everything ? "✦ " : "· "}{f.text || "…"}
-                                {f.annual_only && <span className="ml-1 text-sky-500">[anual]</span>}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
                   {/* Unused platform fields sent as neutral values */}
@@ -752,6 +599,159 @@ export function PlanFormModal({
                   <input type="hidden" name="max_storage_mb" value="0" />
                 </>
               )}
+
+              {/* ── Campos compartidos (ambos tipos de plan) ─── */}
+              <div className="grid gap-5 sm:grid-cols-4">
+                <SuperadminInputField
+                  label="Orden en landing"
+                  name="sort_order"
+                  type="number"
+                  min="0"
+                  defaultValue={plan?.sort_order ?? "0"}
+                />
+                <SuperadminInputField
+                  label="Texto del botón CTA"
+                  name="cta_text"
+                  defaultValue={plan?.cta_text ?? ""}
+                  placeholder="p.ej: Get Started"
+                />
+                <SuperadminInputField
+                  label="Email CTA (Enterprise)"
+                  name="cta_email"
+                  type="email"
+                  defaultValue={plan?.cta_email ?? ""}
+                  placeholder="p.ej: sales@example.com"
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-6">
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    name="is_featured"
+                    defaultChecked={plan?.is_featured ?? false}
+                    className="h-4 w-4 rounded accent-violet-600"
+                  />
+                  <span className="text-xs font-semibold text-foreground">
+                    Tarjeta destacada (fondo oscuro)
+                  </span>
+                </label>
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    name="is_enterprise"
+                    defaultChecked={plan?.is_enterprise ?? false}
+                    className="h-4 w-4 rounded accent-violet-600"
+                  />
+                  <span className="text-xs font-semibold text-foreground">
+                    Enterprise (sin precio, borde punteado)
+                  </span>
+                </label>
+              </div>
+
+              {/* Features builder */}
+              <div>
+                <input
+                  type="hidden"
+                  name="features"
+                  value={features.length > 0 ? JSON.stringify(features) : ""}
+                />
+                <div className="mb-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-foreground">Features del plan</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Aparecen en la tarjeta de la pantalla de contratación.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addFeature}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-3 py-2 text-[11px] font-bold text-white transition hover:bg-violet-700"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Agregar feature
+                  </button>
+                </div>
+
+                {features.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-[var(--gbp-border)] px-4 py-6 text-center text-xs text-muted-foreground">
+                    Sin features aún. Hacé clic en "Agregar feature" para comenzar.
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {features.map((f, i) => (
+                      <div
+                        key={i}
+                        className="group relative rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-3 transition hover:border-violet-300"
+                      >
+                        <div className="flex items-start gap-2">
+                          <div className="flex flex-col gap-0.5 pt-0.5">
+                            <button
+                              type="button"
+                              onClick={() => moveFeature(i, -1)}
+                              disabled={i === 0}
+                              className="rounded p-0.5 text-muted-foreground/40 transition hover:bg-muted hover:text-foreground disabled:opacity-20"
+                            >
+                              <ChevronUp className="h-3 w-3" />
+                            </button>
+                            <GripVertical className="h-3 w-3 text-muted-foreground/30" />
+                            <button
+                              type="button"
+                              onClick={() => moveFeature(i, 1)}
+                              disabled={i === features.length - 1}
+                              className="rounded p-0.5 text-muted-foreground/40 transition hover:bg-muted hover:text-foreground disabled:opacity-20"
+                            >
+                              <ChevronDown className="h-3 w-3" />
+                            </button>
+                          </div>
+
+                          <div className="flex-1">
+                            <input
+                              type="text"
+                              value={f.text}
+                              onChange={(e) => updateFeature(i, { text: e.target.value })}
+                              placeholder="p.ej: Up to 75 invoices per month"
+                              className="w-full rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-violet-400"
+                            />
+                            <div className="mt-2 flex flex-wrap gap-3">
+                              <FeatureFlagToggle
+                                label="Resaltado"
+                                checked={f.highlight}
+                                onChange={(v) => updateFeature(i, { highlight: v })}
+                                color="violet"
+                              />
+                              <FeatureFlagToggle
+                                label='Prefijo "✦ Todo lo anterior +"'
+                                checked={f.everything}
+                                onChange={(v) => updateFeature(i, { everything: v })}
+                                color="amber"
+                              />
+                              <FeatureFlagToggle
+                                label="Solo en plan Anual"
+                                checked={f.annual_only}
+                                onChange={(v) => updateFeature(i, { annual_only: v })}
+                                color="sky"
+                              />
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => removeFeature(i)}
+                            className="mt-0.5 rounded-lg p-1.5 text-muted-foreground/30 transition hover:bg-rose-50 hover:text-rose-500"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+
+                        <div className="mt-2 pl-8">
+                          <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-mono ${f.highlight ? "bg-violet-100 text-violet-700" : "bg-muted/50 text-muted-foreground"}`}>
+                            {f.everything ? "✦ " : "· "}{f.text || "…"}
+                            {f.annual_only && <span className="ml-1 text-sky-500">[anual]</span>}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* ── Footer ───────────────────────────────────── */}
               <div className="flex items-center justify-between border-t border-[var(--gbp-border)] pt-6">
