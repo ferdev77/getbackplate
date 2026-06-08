@@ -512,7 +512,6 @@ export function PlanFormModal({
                     <SuperadminInputField
                       label="Stripe Price ID (precio recurrente)"
                       name="stripe_price_id"
-                      required
                       defaultValue={plan?.stripe_price_id ?? ""}
                       placeholder="price_1Pxxxxxxxx"
                       onBlur={handleMainPriceBlur}
