@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { RequestSeatModal } from "@/modules/landing/ui/request-seat-modal";
 
 type PlanFeature = {
   text: string;
@@ -127,11 +128,13 @@ function PlanCard({
   plan,
   isAnnual,
   onCheckout,
+  onSeatRequest,
   checkoutLoading,
 }: {
   plan: IntegrationPlan;
   isAnnual: boolean;
   onCheckout: (planId: string, period: "monthly" | "annual") => void;
+  onSeatRequest: (email: string, planName: string) => void;
   checkoutLoading: string | null;
 }) {
   const features = Array.isArray(plan.features) ? (plan.features as PlanFeature[]) : [];
@@ -158,11 +161,10 @@ function PlanCard({
   const setupText =
     setupAmount != null ? `$${formatPrice(setupAmount)} one-time` : "Negotiated";
 
-  // CTA: enterprise → mailto; all other plans → checkout (handles auth check / 401 → register)
+  // CTA: enterprise → seat request modal; all other plans → checkout (handles auth check / 401 → register)
   function handleCta() {
     if (isEnterprise) {
-      const email = plan.cta_email ?? "angelo@mkthelp.com";
-      window.location.href = `mailto:${email}?subject=QBO R365 - ${plan.name} Plan`;
+      onSeatRequest(plan.cta_email ?? "", plan.name);
       return;
     }
     onCheckout(plan.id, isAnnual ? "annual" : "monthly");
@@ -417,6 +419,11 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
   const [isAnnual, setIsAnnual] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [seatModal, setSeatModal] = useState<{ open: boolean; email: string; planName: string }>({ open: false, email: "", planName: "" });
+
+  function openSeatModal(email: string, planName: string) {
+    setSeatModal({ open: true, email, planName });
+  }
 
   async function handleCheckout(planId: string, period: "monthly" | "annual") {
     setCheckoutLoading(planId);
@@ -696,6 +703,7 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
                 plan={plan}
                 isAnnual={isAnnual}
                 onCheckout={handleCheckout}
+                onSeatRequest={openSeatModal}
                 checkoutLoading={checkoutLoading}
               />
             ))}
@@ -765,6 +773,13 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
         </div>
       </section>
     </div>
+      <RequestSeatModal
+        open={seatModal.open}
+        onClose={() => setSeatModal((s) => ({ ...s, open: false }))}
+        toEmail={seatModal.email}
+        planName={seatModal.planName}
+        source="QBO ↔ R365 Integration"
+      />
     </>
   );
 }

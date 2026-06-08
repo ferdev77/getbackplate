@@ -14,6 +14,7 @@ function buildHtml(p: {
   restaurant: string;
   locations: string;
   planName: string;
+  source: string;
 }) {
   const fields = [
     { label: "Restaurant", value: p.restaurant },
@@ -56,7 +57,7 @@ function buildHtml(p: {
 
         <!-- Hero band -->
         <tr><td style="background:#D4531A;padding:20px 32px">
-          <p style="margin:0;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.7)">New seat request · ${p.planName} plan</p>
+          <p style="margin:0;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.7)">New seat request · ${p.planName} plan · ${p.source}</p>
           <p style="margin:6px 0 0;font-size:22px;font-weight:800;color:#FFFFFF;letter-spacing:-0.02em">${p.name}</p>
           <a href="mailto:${p.email}" style="display:inline-block;margin-top:4px;font-size:13px;color:rgba(255,255,255,0.85);text-decoration:none">${p.email}</a>
         </td></tr>
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
 
-  const { name, email, phone, state, restaurant, locations, toEmail, planName } = body as Record<string, string>;
+  const { name, email, phone, state, restaurant, locations, toEmail, planName, source } = body as Record<string, string>;
 
   if (!name || !email || !restaurant || !state || !locations || !toEmail) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -108,8 +109,8 @@ export async function POST(req: NextRequest) {
   const result = await sendTransactionalEmail({
     to: toEmail,
     subject: `Seat Request — ${restaurant} (${state})`,
-    html: buildHtml({ name, email, phone, state, restaurant, locations, planName: planName ?? "GetBackplate" }),
-    text: `New seat request\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone || "—"}\nState: ${state}\nRestaurant: ${restaurant}\nLocations: ${locations}\nPlan: ${planName}`,
+    html: buildHtml({ name, email, phone, state, restaurant, locations, planName: planName ?? "GetBackplate", source: source ?? "Platform" }),
+    text: `New seat request\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone || "—"}\nState: ${state}\nRestaurant: ${restaurant}\nLocations: ${locations}\nPlan: ${planName}\nSource: ${source ?? "Platform"}`,
   });
 
   if (!result.ok) {
