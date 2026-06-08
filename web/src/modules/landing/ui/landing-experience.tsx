@@ -1824,6 +1824,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
         onClose={() => setSeatModal((s) => ({ ...s, open: false }))}
         toEmail={seatModal.email}
         planName={seatModal.planName}
+        source="Platform"
       />
     </div>
   );

@@ -25,9 +25,10 @@ type Props = {
   onClose: () => void;
   toEmail: string;
   planName: string;
+  source?: string;
 };
 
-export function RequestSeatModal({ open, onClose, toEmail, planName }: Props) {
+export function RequestSeatModal({ open, onClose, toEmail, planName, source }: Props) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -66,7 +67,7 @@ export function RequestSeatModal({ open, onClose, toEmail, planName }: Props) {
       const res = await fetch("/api/landing/seat-request", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, email, phone, state, restaurant, locations, toEmail, planName }),
+        body: JSON.stringify({ name, email, phone, state, restaurant, locations, toEmail, planName, source }),
       });
       if (!res.ok) throw new Error("failed");
       setStatus("success");
