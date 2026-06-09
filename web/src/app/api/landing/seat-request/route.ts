@@ -3,7 +3,7 @@ import { sendTransactionalEmail } from "@/infrastructure/email/client";
 
 function getLogoUrl() {
   const base = (process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://getbackplate.com").replace(/\/$/, "");
-  return `${base}/getbackplate-logo-light.svg`;
+  return `${base}/getbackplate-logo-dark.svg`;
 }
 
 function buildHtml(p: {
