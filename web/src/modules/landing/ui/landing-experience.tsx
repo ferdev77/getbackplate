@@ -320,7 +320,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
         features.push(feature);
       }
 
-      return { ...plan, tier, monthly, annualPerMonth, annualBilled, features };
+      return { ...plan, tier, monthly, annualPerMonth, annualBilled, features, navFeatures: customFeatures };
     });
   }, [plans]);
 
@@ -593,7 +593,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                 ];
                 const s = colStyles[Math.min(i, colStyles.length - 1)];
                 const pad = i === 0 ? "pr-9" : i === displayPlans.length - 1 ? "pl-9" : "px-9";
-                const planFeatures = (Array.isArray(plan.features) ? plan.features : []) as Array<{ text: string; highlight?: boolean }>;
+                const planFeatures = (Array.isArray(plan.navFeatures) ? plan.navFeatures : []) as Array<{ text: string; highlight?: boolean }>;
                 const col = (
                   <div key={plan.id} className={pad}>
                     <div className="mb-[18px] flex items-center gap-2.5 border-b border-[var(--gbp-border)] pb-3.5">
