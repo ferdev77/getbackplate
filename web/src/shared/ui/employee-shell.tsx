@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { isDndActive } from "@/modules/documents/hooks/use-dnd-safety-net";
-import { ChevronDown, LayoutDashboard, ClipboardList, Folder, Bell, FileText, FileBarChart, PanelsLeftRight, LogOut, Menu, Trash2, User, Truck, MessageSquarePlus, X, Loader2, Wrench, type LucideIcon } from "lucide-react";
+import { ChevronDown, Download, LayoutDashboard, ClipboardList, Folder, Bell, FileText, FileBarChart, PanelsLeftRight, LogOut, Menu, Trash2, User, Truck, MessageSquarePlus, X, Loader2, Wrench, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { NewEmployeeModal, type EmployeeModalInitialData, type ModalBranch, type ModalDepartment, type ModalPosition } from "@/modules/employees/ui/new-employee-modal";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
@@ -16,6 +16,7 @@ import { PageContent } from "@/shared/ui/page-content";
 import { CollapsibleSidebarNavItem } from "@/shared/ui/collapsible-sidebar-nav-item";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 import { FloatingAiAssistant } from "@/shared/ui/floating-ai-assistant";
+import { usePwaInstall } from "@/shared/lib/use-pwa-install";
 import { DevClientCachePanel } from "@/shared/ui/dev-client-cache-panel";
 import { ScopePillsOverflow } from "@/shared/ui/scope-pills-overflow";
 
@@ -111,6 +112,7 @@ export function EmployeeShell({
   const lastRefreshAtRef = useRef(0);
   const prefetchedRoutesRef = useRef<Set<string>>(new Set());
 
+  const { canInstall, install } = usePwaInstall();
   const [collapsed, setCollapsed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -601,6 +603,19 @@ export function EmployeeShell({
               </button>
             ) : null}
 
+            {canInstall && (
+              <button
+                type="button"
+                onClick={install}
+                className={`group/tooltip relative inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] py-2 text-xs text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)] lg:hidden ${
+                  collapsed ? "h-9 w-9 p-0" : "px-2"
+                }`}
+              >
+                <Download className="h-3.5 w-3.5" />
+                {!collapsed ? <span>Instalar app</span> : null}
+                {collapsed && <TooltipLabel label="Instalar app" side="right" />}
+              </button>
+            )}
             <Link
               prefetch={false}
               href="/auth/logout"

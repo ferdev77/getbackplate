@@ -7,6 +7,7 @@ import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState }
 import {
   AlertTriangle,
   ChevronDown,
+  Download,
   Loader2,
   LogOut,
   MessageSquarePlus,
@@ -22,6 +23,7 @@ import { Reorder } from "framer-motion";
 import { reorderBranchesAction } from "@/modules/organizations/actions";
 import dynamic from "next/dynamic";
 import { FloatingAiAssistant } from "@/shared/ui/floating-ai-assistant";
+import { usePwaInstall } from "@/shared/lib/use-pwa-install";
 import { CollapsibleSidebarNavItem } from "@/shared/ui/collapsible-sidebar-nav-item";
 import { DevClientCachePanel } from "@/shared/ui/dev-client-cache-panel";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
@@ -349,6 +351,7 @@ export function CompanyShell({
       .filter((section) => section.items.length > 0);
   }, [enabledModuleSet, localBranches, customBrandingEnabled, branchOptions.length]);
 
+  const { canInstall, install } = usePwaInstall();
   const [theme, setTheme] = useState(() => normalizeTheme(settingsSnapshot.theme || THEME_DEFAULT));
   const [profileName] = useState(sessionUserName);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState(sessionAvatarUrl);
@@ -1745,6 +1748,12 @@ export function CompanyShell({
                  <MessageSquarePlus className="h-4 w-4" />
                  <TooltipLabel label="Feedback" />
                </button>
+               {canInstall && (
+                 <button type="button" onClick={install} className={`group relative inline-flex items-center justify-center rounded-md border text-[var(--gbp-text2)] transition lg:hidden ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9" : "h-9 flex-1"}`}>
+                   <Download className="h-4 w-4" />
+                   <TooltipLabel label="Instalar app" />
+                 </button>
+               )}
              </div>
           </div>
         </aside>
