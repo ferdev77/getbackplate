@@ -1,5 +1,6 @@
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { sendPushToOrg } from "@/infrastructure/push/send-to-org";
 import {
   paymentFailedTemplate,
   planChangedTemplate,
@@ -107,6 +108,11 @@ export async function sendRenewalReminderEmail(organizationId: string, renewalDa
     branding,
     type: "renewal_reminder",
   });
+  void sendPushToOrg(organizationId, {
+    title: "Tu plan se renueva pronto",
+    body: `El plan de ${orgName} se renueva el ${renewalDate} por ${amount}.`,
+    url: "/app/billing",
+  }).catch(() => {});
 }
 
 export async function sendPlanChangedEmail(organizationId: string, planName: string) {
@@ -122,6 +128,11 @@ export async function sendPlanChangedEmail(organizationId: string, planName: str
     branding,
     type: "plan_changed",
   });
+  void sendPushToOrg(organizationId, {
+    title: "Tu plan ha sido actualizado",
+    body: `Tu nuevo plan activo es: ${planName}.`,
+    url: "/app/billing",
+  }).catch(() => {});
 }
 
 export async function sendPaymentFailedEmail(organizationId: string, retryLink: string) {
@@ -138,6 +149,11 @@ export async function sendPaymentFailedEmail(organizationId: string, retryLink: 
     branding,
     type: "payment_failed",
   });
+  void sendPushToOrg(organizationId, {
+    title: "Problema con tu pago",
+    body: "Hay un problema con el pago de tu suscripción. Revisá los detalles de facturación.",
+    url: "/app/billing",
+  }).catch(() => {});
 }
 
 export async function sendSubscriptionActivatedEmail(params: {
@@ -168,4 +184,9 @@ export async function sendSubscriptionActivatedEmail(params: {
     branding,
     type: "subscription_activated",
   });
+  void sendPushToOrg(params.organizationId, {
+    title: "¡Tu suscripción ya está activa!",
+    body: `Plan ${params.planName} activado. ¡Bienvenido a bordo!`,
+    url: "/app/dashboard",
+  }).catch(() => {});
 }

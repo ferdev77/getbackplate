@@ -1,6 +1,7 @@
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { buildBrandedEmailSubject, getTenantEmailBranding, resolveEmailSenderName } from "@/shared/lib/email-branding";
+import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
 
 function parseUtcDateOnly(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
@@ -147,6 +148,16 @@ export async function processEmployeeDocumentExpirationReminders() {
       } else {
         sent += 1;
       }
+    }
+
+    const pushUserIds = [employee.user_id, link.reviewed_by]
+      .filter((v): v is string => typeof v === "string" && v.length > 0);
+    if (pushUserIds.length > 0) {
+      void sendPushToUsers(pushUserIds, {
+        title: "Documento por vencer",
+        body: `"${doc.title}" vence en ${link.reminder_days} días (${dueDateLabel}).`,
+        url: "/portal/documents",
+      }).catch(() => {});
     }
 
     if (deliveryFailed) {
@@ -337,6 +348,21 @@ export async function processEmployeeDocumentPendingReminders() {
         sent += 1;
         delivered += 1;
       }
+    }
+
+    const managerUserIdsForOrg = (managerMemberships ?? [])
+      .filter((m) => m.organization_id === link.organization_id)
+      .map((m) => m.user_id)
+      .filter((v): v is string => typeof v === "string" && v.length > 0);
+    const pushUserIds = link.requested_without_file
+      ? [employee.user_id].filter((v): v is string => Boolean(v))
+      : managerUserIdsForOrg;
+    if (pushUserIds.length > 0) {
+      void sendPushToUsers(pushUserIds, {
+        title: link.requested_without_file ? "Documento pendiente de carga" : "Documento pendiente de revisión",
+        body: `"${doc.title}" requiere tu atención.`,
+        url: link.requested_without_file ? "/portal/documents" : "/app/employees",
+      }).catch(() => {});
     }
 
     if (delivered === 0) {

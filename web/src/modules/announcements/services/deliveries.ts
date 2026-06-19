@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { sendTwilioMessage } from "@/infrastructure/twilio/client";
+import { sendPushToOrg } from "@/infrastructure/push/send-to-org";
 import {
   buildBrandedEmailSubject,
   getTenantEmailBranding,
@@ -204,6 +205,28 @@ export async function processAnnouncementDeliveries() {
           users: scope.users,
         },
       });
+      // Canal push: envío masivo por org, no por contacto individual
+      if (primary.channel === "push") {
+        try {
+          await withTimeout(
+            sendPushToOrg(primary.organization_id, {
+              title: announcement.title,
+              body: announcement.body,
+              url: "/portal/announcements",
+            }),
+            DELIVERY_SEND_TIMEOUT_MS,
+            `announcement push to org ${primary.organization_id}`,
+          );
+          await markDeliveryStatuses(supabase, rows.map((row) => row.id), "sent");
+          successCount += rows.length;
+        } catch (err) {
+          console.error(`Error procesando push delivery para org ${primary.organization_id}:`, err);
+          await markDeliveryStatuses(supabase, rows.map((row) => row.id), "failed");
+          failCount += rows.length;
+        }
+        return;
+      }
+
       const targetContacts = primary.channel === "email" ? audience.emails : audience.phones;
 
       if (targetContacts.length === 0) {

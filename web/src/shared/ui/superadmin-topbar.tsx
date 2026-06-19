@@ -12,6 +12,7 @@ import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 const ITEMS = [
   { href: "/superadmin/dashboard", label: "Dashboard" },
   { href: "/superadmin/organizations", label: "Organizaciones" },
+  { href: "/superadmin/push", label: "Push" },
   { href: "/superadmin/feedback", label: "Feedback" },
   { href: "/superadmin/modules", label: "Módulos" },
   { href: "/superadmin/plans", label: "Planes" },

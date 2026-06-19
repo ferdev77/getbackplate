@@ -10,6 +10,7 @@ import {
   getOrganizationByIdCached,
 } from "@/modules/organizations/cached-queries";
 import { getEmployeeDelegatedPermissionsByMembership } from "@/shared/lib/employee-module-permissions";
+import { PushPermissionManager } from "@/shared/ui/push-permission";
 
 function normalizeDateInput(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -665,6 +666,8 @@ export default async function EmployeeLayout({
     : [];
 
   return (
+    <>
+    <PushPermissionManager orgId={tenant.organizationId} />
     <EmployeeShell
       organizationId={tenant.organizationId}
       membershipId={tenant.membershipId}
@@ -707,5 +710,6 @@ export default async function EmployeeLayout({
     >
       {children}
     </EmployeeShell>
+    </>
   );
 }

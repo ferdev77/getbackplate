@@ -18,6 +18,7 @@ import { requireCompanyAccess } from "@/shared/lib/access";
 import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impersonation";
 import { CompanyShell } from "@/shared/ui/company-shell";
 import { FadeIn } from "@/shared/ui/animations";
+import { PushPermissionManager } from "@/shared/ui/push-permission";
 
 export async function generateMetadata(): Promise<Metadata> {
   let tenant;
@@ -240,6 +241,7 @@ export default async function CompanyLayout({
         endsAt: subscriptionEndsAt,
       }}
     >
+      <PushPermissionManager orgId={tenant.organizationId} />
       <FadeIn>
         {children}
       </FadeIn>

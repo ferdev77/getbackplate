@@ -60,7 +60,7 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
   const userScopes = scope.users;
   const notifyChannels = formData.getAll("notify_channel").map(String);
   const normalizedNotifyChannels = [...new Set(notifyChannels)].filter((channel) =>
-    ["sms", "whatsapp", "email", "in_app"].includes(channel),
+    ["sms", "whatsapp", "email", "in_app", "push"].includes(channel),
   );
   const channelsForDelivery = announcementId
     ? []
