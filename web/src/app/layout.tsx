@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   title: "GetBackplate",
   description: "Plataforma SaaS multi-tenant para operación interna",
   manifest: "/manifest.webmanifest",
+  icons: {
+    apple: "/icons/icon-512x512.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
