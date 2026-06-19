@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  void supabase.from("push_send_logs").insert({
+  const { error: logError } = await supabase.from("push_send_logs").insert({
     sent_by: currentUser?.email ?? "superadmin",
     title,
     body,
@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
     expired,
     failed,
   });
+  if (logError) console.error("[push/send] Error guardando log:", logError.message);
 
   return NextResponse.json({ sent, expired, failed, orgs: targetOrgIds.length });
 }
