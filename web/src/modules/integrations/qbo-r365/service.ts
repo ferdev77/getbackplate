@@ -49,7 +49,7 @@ type ConnectionRow = {
 
 type SettingsRow = {
   organization_id: string;
-  qbo_r365_template: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates";
+  qbo_r365_template: "by_item";
   tax_mode: "line" | "header" | "none";
   timezone: string;
   file_prefix: string;
@@ -76,7 +76,7 @@ type SyncConfigRow = {
   r365_ftp_secrets_tag: string | null;
   r365_ftp_remote_path: string;
   r365_ftp_secure: boolean;
-  template: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates";
+  template: "by_item";
   tax_mode: "line" | "header" | "none";
   status: "active" | "paused";
   last_run_at: string | null;
@@ -581,7 +581,7 @@ function normalizeQboRows(input: {
   invoices: QboInvoiceLike[];
   salesReceipts: QboInvoiceLike[];
   creditMemos: QboInvoiceLike[];
-  template: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates";
+  template: "by_item";
   taxMode: "line" | "header" | "none";
   mappings: MappingRow[];
   itemSkuMap?: Map<string, string>;
@@ -646,9 +646,7 @@ function normalizeQboRows(input: {
       const sourceItemCode =
         line.SalesItemLineDetail?.ItemRef?.value || line.AccountBasedExpenseLineDetail?.AccountRef?.value || "";
       const accountOrItem =
-        (input.template === "by_item" || input.template === "by_item_service_dates")
-          ? (sourceItemCode && input.itemSkuMap?.get(sourceItemCode)) || line.SalesItemLineDetail?.ItemRef?.name || `UNMAPPED-${sourceItemCode || "ITEM"}`
-          : line.AccountBasedExpenseLineDetail?.AccountRef?.value || line.AccountBasedExpenseLineDetail?.AccountRef?.name || "UNMAPPED_ACCOUNT";
+        (sourceItemCode && input.itemSkuMap?.get(sourceItemCode)) || line.SalesItemLineDetail?.ItemRef?.name || `UNMAPPED-${sourceItemCode || "ITEM"}`;
 
       const explicitLineTax = Number(
         line.TaxAmount
@@ -1631,7 +1629,7 @@ export async function listQboR365InvoiceHistory(organizationId: string, limit = 
   }>;
 
   const runIds = Array.from(new Set(rows.map((row) => row.run_id).filter(Boolean)));
-  const runsById = new Map<string, { template_used: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates" | null; started_at: string | null }>();
+  const runsById = new Map<string, { template_used: "by_item" | null; started_at: string | null }>();
   const qboCustomerByRunId = new Map<string, string>();
 
   if (runIds.length > 0) {
@@ -1661,7 +1659,7 @@ export async function listQboR365InvoiceHistory(organizationId: string, limit = 
 
     for (const run of runs ?? []) {
       runsById.set(String(run.id), {
-        template_used: (run.template_used as "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates" | null) ?? null,
+        template_used: (run.template_used as "by_item" | null) ?? null,
         started_at: (run.started_at as string | null) ?? null,
       });
       if (typeof run.sync_config_id === "string") {
@@ -1688,7 +1686,7 @@ export async function listQboR365InvoiceHistory(organizationId: string, limit = 
     lastStatus: string;
     lastSeenAt: string;
     lastRunId: string | null;
-    templateMode: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates" | null;
+    templateMode: "by_item" | null;
     sentToR365: boolean;
     timesSeen: number;
     runIdsSeen: Set<string>;
@@ -2182,7 +2180,7 @@ export async function sendPreparedQboR365Run(input: {
     throw new Error("La corrida preparada no tiene lineas para enviar");
   }
 
-  const template = (run.template_used as "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates" | null) ?? "by_item";
+  const template = (run.template_used as "by_item" | null) ?? "by_item";
   const csvBuild = buildR365Csv({ template, lines });
   const fileName = typeof run.file_name === "string" && run.file_name
     ? run.file_name
@@ -2342,7 +2340,7 @@ export async function getQboR365RunPreview(input: {
     throw new Error(error.message);
   }
 
-  const mappingMode = (run?.template_used as "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates" | null) ?? null;
+  const mappingMode = (run?.template_used as "by_item" | null) ?? null;
 
   const rows = (data ?? []).map((item) => {
     const payload = (item.payload as Record<string, unknown> | null) ?? {};
@@ -2417,7 +2415,7 @@ export async function getQboR365RunExport(input: {
     throw new Error(error.message);
   }
 
-  const mappingMode = (run.template_used as "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates" | null) ?? null;
+  const mappingMode = (run.template_used as "by_item" | null) ?? null;
 
   const rows = (data ?? []).map((item) => {
     const payload = (item.payload as Record<string, unknown> | null) ?? {};
@@ -2546,7 +2544,7 @@ export async function previewSingleInvoiceCsv(input: {
   organizationId: string;
   sourceInvoiceId: string;
   syncConfigId?: string | null;
-  templateOverride?: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates" | null;
+  templateOverride?: "by_item" | null;
 }): Promise<{ headers: string[]; rows: string[][]; csv: string; rowCount: number; templateUsed: string }> {
   const admin = createSupabaseAdminClient();
 
@@ -2581,7 +2579,7 @@ export async function previewSingleInvoiceCsv(input: {
     .eq("id", firstEntry.runId)
     .maybeSingle();
 
-  const template = (input.templateOverride ?? runMeta?.template_used ?? "by_item") as "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates";
+  const template = (input.templateOverride ?? runMeta?.template_used ?? "by_item") as "by_item";
 
   const lines = [...lineMap.values()]
     .map(({ payload }) => payloadToLine(payload))
@@ -2650,7 +2648,7 @@ export async function sendSingleInvoiceFromHistory(input: {
   sourceInvoiceId: string;
   syncConfigId?: string | null;
   ftpOverride?: { host: string; port: number; username: string; password: string; remotePath: string; secure: boolean } | null;
-  templateOverride?: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates" | null;
+  templateOverride?: "by_item" | null;
 }): Promise<{ uploaded: number; fileName: string; runId: string }> {
   const admin = createSupabaseAdminClient();
 
@@ -2688,7 +2686,7 @@ export async function sendSingleInvoiceFromHistory(input: {
     .eq("id", firstEntry.runId)
     .maybeSingle();
 
-  const template = (input.templateOverride ?? runMeta?.template_used ?? "by_item") as "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates";
+  const template = (input.templateOverride ?? runMeta?.template_used ?? "by_item") as "by_item";
   const effectiveSyncConfigId = input.syncConfigId ?? (runMeta?.sync_config_id ? String(runMeta.sync_config_id) : null);
 
   // Resolve FTP — ftpOverride first, then sync config, then global connection

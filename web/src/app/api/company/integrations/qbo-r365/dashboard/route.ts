@@ -128,7 +128,7 @@ export async function GET() {
       invoicesFailed: run.total_failed ?? 0,
       syncConfigId: run.sync_config_id ?? null,
       fileName: run.file_name ?? null,
-      templateMode: (run.template_used as "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates" | null) ?? null,
+      templateMode: (run.template_used as "by_item" | null) ?? null,
       dryRun: (run.total_uploaded ?? 0) === 0 && (run.total_detected ?? 0) > 0 && run.status !== "failed",
       errorMessage: typeof (run.error_summary as Record<string, unknown> | null)?.message === "string"
         ? String((run.error_summary as Record<string, unknown>).message)

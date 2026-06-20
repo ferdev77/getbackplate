@@ -60,12 +60,12 @@ y evitar que futuros desarrolladores asuman que ciertos datos no existen en orig
 | Campo QBO | Descripción | Por qué se descarta |
 |---|---|---|
 | `Line[].LineNum` | Número de orden de la línea en la factura | Se usa `Line[].Id` como identificador de línea |
-| `Line[].SalesItemLineDetail.ServiceDate` | Fecha de servicio específica de esa línea | Solo se guarda si el template es `by_item_service_dates` o `by_account_service_dates` |
+| `Line[].SalesItemLineDetail.ServiceDate` | Fecha de servicio específica de esa línea | No requerido por R365 — el único template soportado (`by_item`) no incluye fechas de servicio |
 | `Line[].SalesItemLineDetail.TaxCodeRef` | Código de impuesto aplicado a esa línea | Se usa el monto de impuesto, no la referencia al código |
 | `Line[].SalesItemLineDetail.ClassRef` | Clase contable a nivel de línea | No requerido por R365 |
 | `Line[].SalesItemLineDetail.MarkupInfo` | Información de markup sobre el costo | No requerido por R365 |
-| `Line[].AccountBasedExpenseLineDetail.ClassRef` | Clase contable (template by_account) | No requerido por R365 |
-| `Line[].AccountBasedExpenseLineDetail.CustomerRef` | Cliente asignado a la línea (template by_account) | No requerido por R365 actualmente |
+| `Line[].AccountBasedExpenseLineDetail.ClassRef` | Clase contable | No requerido por R365 |
+| `Line[].AccountBasedExpenseLineDetail.CustomerRef` | Cliente asignado a la línea | No requerido por R365 actualmente |
 | `Line[].AccountBasedExpenseLineDetail.BillableStatus` | Si la línea es facturable al cliente | No requerido por R365 |
 | `SubTotalLine` | Línea automática de QBO que suma todas las líneas anteriores | **Descartada intencionalmente** — causa doble conteo del total |
 | `DiscountLine` | Línea de descuento global aplicado a la factura | Descartada — los descuentos por línea están en `Amount` directamente |
@@ -119,6 +119,5 @@ Estos campos tienen valor real para expansiones futuras:
 | `ClassRef` / `DepartmentRef` | Segmentación contable si R365 lo requiere |
 | `CustomerMemo.value` | Mostrar el mensaje que el cliente ve en la factura |
 | `ExchangeRate` | Conversión correcta para facturas en moneda extranjera |
-| `Line[].SalesItemLineDetail.ServiceDate` | Ya preparado en el schema del CSV (templates `_service_dates`) |
 | `Item.Type` | Diferenciar ítems de inventario vs servicios en la exportación |
 | `Item.SalesDesc` | Descripción alternativa del ítem para el PDF |

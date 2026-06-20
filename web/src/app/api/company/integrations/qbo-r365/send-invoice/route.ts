@@ -14,11 +14,7 @@ export async function POST(request: Request) {
     ? body.syncConfigId.trim()
     : null;
 
-  const validTemplates = ["by_item", "by_item_service_dates", "by_account", "by_account_service_dates"] as const;
-  type ValidTemplate = typeof validTemplates[number];
-  const templateOverride: ValidTemplate | null = validTemplates.includes(body?.template)
-    ? (body.template as ValidTemplate)
-    : null;
+  const templateOverride: "by_item" | null = body?.template === "by_item" ? "by_item" : null;
 
   const ftpBody = body?.ftp;
   const ftpOverride: { host: string; port: number; username: string; password: string; remotePath: string; secure: boolean } | null =

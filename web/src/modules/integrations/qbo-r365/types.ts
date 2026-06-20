@@ -17,7 +17,7 @@ export const r365FtpConfigSchema = z.object({
 });
 
 export const qboR365SettingsSchema = z.object({
-  template: z.enum(["by_item", "by_item_service_dates", "by_account", "by_account_service_dates"]).default("by_item"),
+  template: z.literal("by_item").default("by_item"),
   taxMode: z.enum(["line", "header", "none"]).default("line"),
   timezone: z.string().trim().min(1).max(80).default("UTC"),
   filePrefix: z.string().trim().min(1).max(80).default("r365_multi_invoice"),
@@ -71,7 +71,7 @@ export const syncConfigCreateSchema = z.object({
   r365FtpPassword: z.string().trim().min(1).max(500),
   r365FtpRemotePath: z.string().trim().min(1).max(500).default("/APImports/R365"),
   r365FtpSecure: z.boolean().default(false),
-  template: z.enum(["by_item", "by_item_service_dates", "by_account", "by_account_service_dates"]).default("by_item"),
+  template: z.literal("by_item").default("by_item"),
   taxMode: z.enum(["line", "header", "none"]).default("none"),
   r365VendorName: z.string().trim().max(255).optional(),
   r365Location: z.string().trim().max(120).optional(),
@@ -91,7 +91,7 @@ export type SyncConfigSummary = {
   qboCustomerName: string;
   scheduleInterval: "manual" | "daily" | "weekly";
   lookbackHours: number;
-  template: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates";
+  template: "by_item";
   taxMode: "line" | "header" | "none";
   status: "active" | "paused";
   lastRunAt: string | null;

@@ -26,7 +26,7 @@ type RunRow = {
   id: string; startedAt: string; completedAt: string | null; status: string; triggerSource: string;
   invoicesDetected: number; invoicesUploaded: number; invoicesSkipped: number; invoicesFailed: number;
   syncConfigId?: string | null;
-  fileName: string | null; templateMode?: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates" | null; dryRun: boolean; errorMessage: string | null;
+  fileName: string | null; templateMode?: "by_item" | null; dryRun: boolean; errorMessage: string | null;
 };
 type DashboardData = {
   generatedAt: string;
@@ -51,7 +51,7 @@ type DashboardData = {
     lastStatus: string;
     lastSeenAt: string;
     lastRunId: string | null;
-    templateMode: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates" | null;
+    templateMode: "by_item" | null;
     sentToR365: boolean;
     timesSeen: number;
   }>;
@@ -94,7 +94,7 @@ type InvoiceDetailData = {
 };
 type ConfigSnapshot = {
   settings?: {
-    template?: "by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates";
+    template?: "by_item";
     incrementalLookbackHours?: number;
   };
   qbo?: {
@@ -282,7 +282,7 @@ function presentIntegrationError(errorMessage: string, context: "sync" | "oauth"
 }
 
 type TemplateCol = { col: string; r365Name: string; qboSource: string; scope: "header" | "detail"; highlight?: boolean; note?: boolean };
-const TEMPLATE_COLS: Record<"by_item" | "by_item_service_dates" | "by_account" | "by_account_service_dates", TemplateCol[]> = {
+const TEMPLATE_COLS: Record<"by_item", TemplateCol[]> = {
   by_item: [
     { col: "A", r365Name: "Vendor", qboSource: "CustomerRef.name (nombre del proveedor configurado en el sync)", scope: "header" },
     { col: "B", r365Name: "Location", qboSource: "Customer.AcctNum en QBO — el campo «Account No.» del cliente, que contiene el código de ubicación en R365. Se cachea en el sync config.", scope: "header", highlight: true },
@@ -296,58 +296,6 @@ const TEMPLATE_COLS: Record<"by_item" | "by_item_service_dates" | "by_account" |
     { col: "J", r365Name: "Total", qboSource: "Line.Amount", scope: "detail" },
     { col: "K", r365Name: "Break Flag", qboSource: "Siempre vacío", scope: "detail" },
     { col: "★", r365Name: "Fila impuesto (si TxnTaxDetail.TotalTax > 0)", qboSource: "Item 999999 · Vendor Item Name «Tax» · UofM «EACH» · Qty 1 · Unit Price = TxnTaxDetail.TotalTax", scope: "detail", note: true },
-  ],
-  by_item_service_dates: [
-    { col: "A", r365Name: "Vendor", qboSource: "CustomerRef.name (nombre del proveedor configurado en el sync)", scope: "header" },
-    { col: "B", r365Name: "Location", qboSource: "Customer.AcctNum en QBO — el campo «Account No.» del cliente, que contiene el código de ubicación en R365. Se cachea en el sync config.", scope: "header", highlight: true },
-    { col: "C", r365Name: "Document Number", qboSource: "DocNumber", scope: "header" },
-    { col: "D", r365Name: "Date", qboSource: "TxnDate", scope: "header" },
-    { col: "E", r365Name: "Vendor Item Number", qboSource: "ItemRef.Value → buscado en tabla de SKUs; fallback: ItemRef.Name si no hay mapeo", scope: "detail", highlight: true },
-    { col: "F", r365Name: "Vendor Item Name", qboSource: "ItemRef.Name — solo la parte final (después del último «:» si hay categorías)", scope: "detail" },
-    { col: "G", r365Name: "UofM", qboSource: "Line.Description de la línea (o «EACH» cuando es la fila de impuesto)", scope: "detail" },
-    { col: "H", r365Name: "Qty", qboSource: "SalesItemLineDetail.Qty", scope: "detail" },
-    { col: "I", r365Name: "Unit Price", qboSource: "SalesItemLineDetail.UnitPrice", scope: "detail" },
-    { col: "J", r365Name: "Total", qboSource: "Line.Amount", scope: "detail" },
-    { col: "K", r365Name: "Break Flag", qboSource: "Siempre vacío", scope: "detail" },
-    { col: "L", r365Name: "Start Date of Service", qboSource: "serviceStartDate (no mapeado desde QBO actualmente — queda vacío)", scope: "detail" },
-    { col: "M", r365Name: "End Date of Service", qboSource: "serviceEndDate (no mapeado desde QBO actualmente — queda vacío)", scope: "detail" },
-    { col: "★", r365Name: "Fila impuesto (si TxnTaxDetail.TotalTax > 0)", qboSource: "Item 999999 · Vendor Item Name «Tax» · UofM «EACH» · Qty 1 · Unit Price = TxnTaxDetail.TotalTax", scope: "detail", note: true },
-  ],
-  by_account: [
-    { col: "A", r365Name: "Type", qboSource: "«1» = Invoice / «2» = Credit Memo", scope: "header" },
-    { col: "B", r365Name: "Location", qboSource: "Customer.AcctNum en QBO — el campo «Account No.» del cliente, que contiene el código de ubicación en R365. Se cachea en el sync config.", scope: "header", highlight: true },
-    { col: "C", r365Name: "Vendor", qboSource: "CustomerRef.name (nombre del proveedor configurado en el sync)", scope: "header" },
-    { col: "D", r365Name: "Number", qboSource: "DocNumber", scope: "header" },
-    { col: "E", r365Name: "Date", qboSource: "TxnDate", scope: "detail" },
-    { col: "F", r365Name: "Gl Date", qboSource: "TxnDate (igual que Date)", scope: "detail" },
-    { col: "G", r365Name: "Amount", qboSource: "Suma del total de todas las líneas de la factura (no el monto de la línea individual)", scope: "detail" },
-    { col: "H", r365Name: "Payment Terms", qboSource: "Siempre vacío", scope: "detail" },
-    { col: "I", r365Name: "Due Date", qboSource: "DueDate (fallback: TxnDate si no hay fecha de vencimiento)", scope: "detail" },
-    { col: "J", r365Name: "Comment", qboSource: "PrivateNote / Memo de la factura", scope: "detail" },
-    { col: "K", r365Name: "Detail Account", qboSource: "AccountBasedExpenseLineDetail.AccountRef.Value (código de cuenta contable)", scope: "detail", highlight: true },
-    { col: "L", r365Name: "Detail Amount", qboSource: "Line.Amount", scope: "detail" },
-    { col: "M", r365Name: "Detail Location", qboSource: "Customer.AcctNum en QBO (mismo valor que Location — col B)", scope: "detail", highlight: true },
-    { col: "N", r365Name: "Detail Comment", qboSource: "Line.Description", scope: "detail" },
-    { col: "★", r365Name: "Fila impuesto (si TxnTaxDetail.TotalTax > 0)", qboSource: "Item 999999 · Amount = TxnTaxDetail.TotalTax · Detail Account = 999999", scope: "detail", note: true },
-  ],
-  by_account_service_dates: [
-    { col: "A", r365Name: "Type", qboSource: "«1» = Invoice / «2» = Credit Memo", scope: "header" },
-    { col: "B", r365Name: "Location", qboSource: "Customer.AcctNum en QBO — el campo «Account No.» del cliente, que contiene el código de ubicación en R365. Se cachea en el sync config.", scope: "header", highlight: true },
-    { col: "C", r365Name: "Vendor", qboSource: "CustomerRef.name (nombre del proveedor configurado en el sync)", scope: "header" },
-    { col: "D", r365Name: "Number", qboSource: "DocNumber", scope: "header" },
-    { col: "E", r365Name: "Date", qboSource: "TxnDate", scope: "detail" },
-    { col: "F", r365Name: "Gl Date", qboSource: "TxnDate (igual que Date)", scope: "detail" },
-    { col: "G", r365Name: "Amount", qboSource: "Suma del total de todas las líneas de la factura (no el monto de la línea individual)", scope: "detail" },
-    { col: "H", r365Name: "Payment Terms", qboSource: "Siempre vacío", scope: "detail" },
-    { col: "I", r365Name: "Due Date", qboSource: "DueDate (fallback: TxnDate si no hay fecha de vencimiento)", scope: "detail" },
-    { col: "J", r365Name: "Comment", qboSource: "PrivateNote / Memo de la factura", scope: "detail" },
-    { col: "K", r365Name: "Detail Account", qboSource: "AccountBasedExpenseLineDetail.AccountRef.Value (código de cuenta contable)", scope: "detail", highlight: true },
-    { col: "L", r365Name: "Detail Amount", qboSource: "Line.Amount", scope: "detail" },
-    { col: "M", r365Name: "Detail Location", qboSource: "Customer.AcctNum en QBO (mismo valor que Location — col B)", scope: "detail", highlight: true },
-    { col: "N", r365Name: "Detail Comment", qboSource: "Line.Description", scope: "detail" },
-    { col: "O", r365Name: "Start Date of Service", qboSource: "serviceStartDate (no mapeado desde QBO actualmente — queda vacío)", scope: "detail" },
-    { col: "P", r365Name: "End Date of Service", qboSource: "serviceEndDate (no mapeado desde QBO actualmente — queda vacío)", scope: "detail" },
-    { col: "★", r365Name: "Fila impuesto (si TxnTaxDetail.TotalTax > 0)", qboSource: "Item 999999 · Amount = TxnTaxDetail.TotalTax · Detail Account = 999999", scope: "detail", note: true },
   ],
 };
 

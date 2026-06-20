@@ -65,15 +65,13 @@ Estos cuatro parámetros determinan exactamente qué datos trae la API de QuickB
 
 ### Lo que NO afecta la consulta a QBO (solo post-procesamiento)
 
-**Template** (`by_item` / `by_item_service_dates` / `by_account` / `by_account_service_dates`):
+**Template**: el único soportado es `by_item` (11 columnas: Vendor, Location, Document Number,
+Date, Vendor Item Number, Vendor Item Name, UofM, Qty, Unit Price, Total, Break Flag). R365
+confirmó que solo recibe este formato — no hay otras variantes en código ni en BD.
 
-Solo cambia dos cosas, ambas **después** de que los datos ya llegaron de QBO:
-
-1. Qué campo de QBO se usa como `targetCode` por línea — ver `normalizeQboRows()` en `service.ts`:
-   - `by_item` / `by_item_service_dates` → `SalesItemLineDetail.ItemRef.value` (ID del ítem)
-   - `by_account` / `by_account_service_dates` → `AccountBasedExpenseLineDetail.AccountRef.value` (cuenta contable)
-
-2. El formato y columnas del CSV que se envía a R365 (ver `buildR365Csv()` en `r365-csv.ts`).
+`targetCode` por línea usa `SalesItemLineDetail.ItemRef.value` (ID del ítem) — ver
+`normalizeQboRows()` en `service.ts`. El formato y columnas del CSV están en `buildR365Csv()`
+en `r365-csv.ts`.
 
 **Tax Mode** (`line` / `header` / `none`):
 
