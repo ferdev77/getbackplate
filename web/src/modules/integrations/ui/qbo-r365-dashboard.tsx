@@ -544,19 +544,20 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     [syncConfigs],
   );
 
+  // Nota diagnostico (2026-06-21): se muestran TODOS los clientes, incluso los ya
+  // asignados a otra sync config, para poder comparar su AcctNum (ej. Kumori) contra
+  // los que todavia no se sincronizaron. El backend sigue rechazando duplicados (409).
   const filteredCustomers = useMemo(() => {
-    const available = qboCustomers.filter((c) => !allUsedCustomerIds.has(c.id));
     const q = customerSearch.trim().toLowerCase();
-    if (!q) return available;
-    return available.filter((c) => c.displayName.toLowerCase().includes(q));
-  }, [qboCustomers, customerSearch, allUsedCustomerIds]);
+    if (!q) return qboCustomers;
+    return qboCustomers.filter((c) => c.displayName.toLowerCase().includes(q));
+  }, [qboCustomers, customerSearch]);
 
   const branchFilteredCustomers = useMemo(() => {
     const q = addBranchSearch.trim().toLowerCase();
-    const available = qboCustomers.filter((c) => !allUsedCustomerIds.has(c.id));
-    if (!q) return available;
-    return available.filter((c) => c.displayName.toLowerCase().includes(q));
-  }, [qboCustomers, addBranchSearch, allUsedCustomerIds]);
+    if (!q) return qboCustomers;
+    return qboCustomers.filter((c) => c.displayName.toLowerCase().includes(q));
+  }, [qboCustomers, addBranchSearch]);
 
   async function handleCreateSync(e: React.FormEvent) {
     e.preventDefault();
@@ -1586,6 +1587,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                           <ul className="absolute z-50 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-lg">
                             {filteredCustomers.map((c) => {
                               const checked = newSyncCustomers.some((picked) => picked.id === c.id);
+                              const alreadyUsed = allUsedCustomerIds.has(c.id);
                               return (
                                 <li
                                   key={c.id}
@@ -1595,6 +1597,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                                   <input type="checkbox" readOnly checked={checked} className="h-3.5 w-3.5 shrink-0 accent-[var(--gbp-accent)]" />
                                   <span className="min-w-0 flex-1 truncate">
                                     {c.displayName}
+                                    {alreadyUsed && <span className="ml-1.5 text-[10px] font-normal text-[var(--gbp-muted)]">(ya asignado)</span>}
                                     {mode === "developer" && c.raw && (
                                       <span className="ml-1.5 text-[10px] text-[var(--gbp-muted)]">({JSON.stringify(c.raw)})</span>
                                     )}
@@ -1794,7 +1797,10 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                           onMouseDown={() => { setAddBranchPicked({ id: c.id, name: c.displayName }); setAddBranchSearch(c.displayName); setAddBranchDropdownOpen(false); }}
                           className={`flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--gbp-bg)] ${addBranchPicked?.id === c.id ? "font-bold text-[var(--gbp-accent)]" : "text-[var(--gbp-text)]"}`}
                         >
-                          <span className="min-w-0 flex-1 truncate">{c.displayName}</span>
+                          <span className="min-w-0 flex-1 truncate">
+                            {c.displayName}
+                            {allUsedCustomerIds.has(c.id) && <span className="ml-1.5 text-[10px] font-normal text-[var(--gbp-muted)]">(ya asignado)</span>}
+                          </span>
                           {c.acctNum
                             ? <span className="shrink-0 rounded bg-[var(--gbp-bg)] px-1.5 py-0.5 text-[10px] font-mono text-[var(--gbp-text2)]">Cuenta: {c.acctNum}</span>
                             : <span className="shrink-0 rounded bg-[var(--gbp-error-soft)] px-1.5 py-0.5 text-[10px] text-[var(--gbp-error)]">⚠ Sin Account No.</span>}
