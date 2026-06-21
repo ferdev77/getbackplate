@@ -178,13 +178,13 @@ async function upsertConnection(input: {
 
 // ─── Sync Configs CRUD ────────────────────────────────────────────────────────
 
-type SyncConfigCustomerRow = { qbo_customer_id: string; qbo_customer_name: string };
+type SyncConfigCustomerRow = { qbo_customer_id: string; qbo_customer_name: string; r365_location: string | null };
 
 async function getSyncConfigCustomers(syncConfigId: string): Promise<SyncConfigCustomerRow[]> {
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin
     .from("qbo_r365_sync_config_customers")
-    .select("qbo_customer_id, qbo_customer_name")
+    .select("qbo_customer_id, qbo_customer_name, r365_location")
     .eq("sync_config_id", syncConfigId)
     .order("created_at", { ascending: true });
 
@@ -315,6 +315,11 @@ export async function createSyncConfig(
 
   const syncConfigId = data.id as string;
 
+  const acctNumMap = await getQboCustomerAcctNumMapForOrganization(
+    organizationId,
+    payload.qboCustomers.map((c) => c.id),
+  );
+
   const { error: customersError } = await admin
     .from("qbo_r365_sync_config_customers")
     .insert(payload.qboCustomers.map((c) => ({
@@ -322,6 +327,7 @@ export async function createSyncConfig(
       organization_id: organizationId,
       qbo_customer_id: c.id,
       qbo_customer_name: c.name,
+      r365_location: acctNumMap.get(c.id) ?? null,
       created_by: actorId,
     })));
 
@@ -398,11 +404,14 @@ export async function addCustomerToSyncConfig(
 
   await getSyncConfigRow(organizationId, syncConfigId);
 
+  const acctNumMap = await getQboCustomerAcctNumMapForOrganization(organizationId, [qboCustomerId]);
+
   const { error } = await admin.from("qbo_r365_sync_config_customers").insert({
     sync_config_id: syncConfigId,
     organization_id: organizationId,
     qbo_customer_id: qboCustomerId,
     qbo_customer_name: qboCustomerName,
+    r365_location: acctNumMap.get(qboCustomerId) ?? null,
     created_by: actorId,
   });
 
@@ -1256,17 +1265,33 @@ function buildFileName(prefix: string, invoiceNumber?: string) {
   return `${safePrefix}_${date}_${time}.csv`;
 }
 
-async function getQboCustomerAcctNumMap(qboAuth: { accessToken: string; realmId: string }): Promise<Map<string, string>> {
-  return fetchQboCustomers({
-    accessToken: qboAuth.accessToken,
-    realmId: qboAuth.realmId,
-  }).then((customers) => {
-    const map = new Map<string, string>();
-    for (const c of customers) {
-      if (c.acctNum) map.set(c.id, c.acctNum);
+/**
+ * El "Account Number" (codigo de ubicacion R365) vive en QBO como un Enhanced
+ * Custom Field, que el endpoint de consultas masivas (/query) nunca devuelve
+ * sin importar el select usado — es una limitacion de la API de QBO, no de
+ * este codigo. Por eso se pide cliente por cliente via GET /customer/{id},
+ * que si lo trae. customerIds esta acotado al grupo de la sync config
+ * (maximo 50), no a todo el customer list de la organizacion.
+ */
+async function getQboCustomerAcctNumMap(
+  qboAuth: { accessToken: string; realmId: string },
+  customerIds: string[],
+): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  const uniqueIds = Array.from(new Set(customerIds.filter(Boolean)));
+  const batchSize = 10;
+  for (let i = 0; i < uniqueIds.length; i += batchSize) {
+    const batch = uniqueIds.slice(i, i + batchSize);
+    const results = await Promise.all(
+      batch.map((customerId) =>
+        fetchQboCustomerById({ accessToken: qboAuth.accessToken, realmId: qboAuth.realmId, customerId }).catch(() => null),
+      ),
+    );
+    for (const customer of results) {
+      if (customer?.acctNum) map.set(customer.id, customer.acctNum);
     }
-    return map;
-  }).catch(() => new Map<string, string>());
+  }
+  return map;
 }
 
 export async function runQboR365Sync(input: {
@@ -1388,13 +1413,15 @@ export async function runQboR365Sync(input: {
 
     const mappings = await getActiveMappings(input.organizationId);
 
-    const [itemSkuMap, customerAcctNumMap] = await Promise.all([
-      fetchQboItemSkus({
-        accessToken: qboAuth.accessToken,
-        realmId: qboAuth.realmId,
-      }).catch(() => new Map<string, string>()),
-      getQboCustomerAcctNumMap(qboAuth),
-    ]);
+    const itemSkuMap = await fetchQboItemSkus({
+      accessToken: qboAuth.accessToken,
+      realmId: qboAuth.realmId,
+    }).catch(() => new Map<string, string>());
+    const customerAcctNumMap = new Map(
+      (syncConfig?.customers ?? [])
+        .filter((c) => c.r365_location)
+        .map((c) => [c.qbo_customer_id, c.r365_location as string]),
+    );
 
     // Si el sync config no tiene r365_location, intentar resolverlo del mapa y guardarlo.
     // Solo aplica cuando el grupo tiene un unico cliente: con varios, cada factura
@@ -2605,11 +2632,15 @@ export async function previewUnifiedInvoiceCsv(input: {
   const syncConfig = await getSyncConfigRow(input.organizationId, syncConfigId);
   const mappings = await getActiveMappings(input.organizationId);
   const itemSkuMap = await getQboItemSkuMapForOrganization(input.organizationId);
-  const customerAcctNumMap = await getQboCustomerAcctNumMapForOrganization(input.organizationId);
+  const groupCustomerIds = syncConfig.customers.map((c) => c.qbo_customer_id);
+  const customerAcctNumMap = new Map(
+    syncConfig.customers
+      .filter((c) => c.r365_location)
+      .map((c) => [c.qbo_customer_id, c.r365_location as string]),
+  );
 
   const entityType = row.entity_type as "Invoice" | "CreditMemo";
   const rawEntity = row.raw_entity as QboInvoiceLike;
-  const groupCustomerIds = syncConfig.customers.map((c) => c.qbo_customer_id);
 
   const lines = normalizeQboRows({
     invoices: entityType === "Invoice" ? [rawEntity] : [],
@@ -3183,8 +3214,12 @@ async function mapAndSendUnifiedRow(input: {
 
   const mappings = await getActiveMappings(input.organizationId);
   const itemSkuMap = await getQboItemSkuMapForOrganization(input.organizationId);
-  const customerAcctNumMap = await getQboCustomerAcctNumMapForOrganization(input.organizationId);
   const groupCustomerIds = input.syncConfig.customers.map((c) => c.qbo_customer_id);
+  const customerAcctNumMap = new Map(
+    input.syncConfig.customers
+      .filter((c) => c.r365_location)
+      .map((c) => [c.qbo_customer_id, c.r365_location as string]),
+  );
 
   const lines = normalizeQboRows({
     invoices: input.entityType === "Invoice" ? [input.rawEntity] : [],
@@ -3429,14 +3464,14 @@ async function getQboItemSkuMapForOrganization(organizationId: string): Promise<
   }).catch(() => new Map<string, string>());
 }
 
-async function getQboCustomerAcctNumMapForOrganization(organizationId: string): Promise<Map<string, string>> {
+async function getQboCustomerAcctNumMapForOrganization(organizationId: string, customerIds: string[]): Promise<Map<string, string>> {
   const qboConnection = await getConnection(organizationId, "quickbooks_online");
   if (!qboConnection || qboConnection.status !== "connected") return new Map<string, string>();
 
   const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection }).catch(() => null);
   if (!qboAuth) return new Map<string, string>();
 
-  return getQboCustomerAcctNumMap(qboAuth);
+  return getQboCustomerAcctNumMap(qboAuth, customerIds);
 }
 
 /**
@@ -3816,11 +3851,15 @@ export async function mapOnlyUnifiedInvoice(input: {
   const syncConfig = await getSyncConfigRow(input.organizationId, syncConfigId);
   const mappings = await getActiveMappings(input.organizationId);
   const itemSkuMap = await getQboItemSkuMapForOrganization(input.organizationId);
-  const customerAcctNumMap = await getQboCustomerAcctNumMapForOrganization(input.organizationId);
+  const groupCustomerIds = syncConfig.customers.map((c) => c.qbo_customer_id);
+  const customerAcctNumMap = new Map(
+    syncConfig.customers
+      .filter((c) => c.r365_location)
+      .map((c) => [c.qbo_customer_id, c.r365_location as string]),
+  );
 
   const entityType = row.entity_type as "Invoice" | "CreditMemo";
   const rawEntity = row.raw_entity as QboInvoiceLike;
-  const groupCustomerIds = syncConfig.customers.map((c) => c.qbo_customer_id);
 
   const lines = normalizeQboRows({
     invoices: entityType === "Invoice" ? [rawEntity] : [],

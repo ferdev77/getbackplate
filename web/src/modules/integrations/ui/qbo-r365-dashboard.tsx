@@ -353,6 +353,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [newSyncBackfillEnabled, setNewSyncBackfillEnabled] = useState(false);
   const [newSyncBackfillFromDate, setNewSyncBackfillFromDate] = useState("");
   const [qboCustomers, setQboCustomers] = useState<QboCustomer[]>([]);
+  const [resolvedAcctNumIds, setResolvedAcctNumIds] = useState<Set<string>>(new Set());
   const [customersLoading, setCustomersLoading] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
@@ -476,14 +477,45 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
 
   // Cargar clientes QBO al abrir el modal
   useEffect(() => {
-    if (!isCreateSyncOpen || qboCustomers.length > 0) return;
+    if ((!isCreateSyncOpen && !addBranchTarget) || qboCustomers.length > 0) return;
     setCustomersLoading(true);
     void fetch("/api/company/integrations/qbo-r365/customers", { cache: "no-store" })
       .then((r) => r.json())
       .then((d: { customers?: QboCustomer[] }) => setQboCustomers(d.customers ?? []))
       .catch(() => {})
       .finally(() => setCustomersLoading(false));
-  }, [isCreateSyncOpen, qboCustomers.length]);
+  }, [isCreateSyncOpen, addBranchTarget, qboCustomers.length]);
+
+  // La consulta masiva no trae el numero de cuenta real (vive en un Enhanced
+  // Custom Field que QBO solo expone via consulta individual). Una vez que la
+  // lista de nombres ya esta en pantalla, se resuelve el numero de cada uno
+  // en tandas de 10 en segundo plano, sin bloquear la busqueda. Cada tanda
+  // resuelta dispara el siguiente tick del efecto (cambia resolvedAcctNumIds).
+  useEffect(() => {
+    const idsToResolve = qboCustomers.filter((c) => !resolvedAcctNumIds.has(c.id)).map((c) => c.id).slice(0, 10);
+    if (idsToResolve.length === 0) return;
+    let cancelled = false;
+    void Promise.all(
+      idsToResolve.map((id) =>
+        fetch(`/api/company/integrations/qbo-r365/customers/${id}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d: { customer?: QboCustomer } | null) => ({ id, acctNum: d?.customer?.acctNum }))
+          .catch(() => ({ id, acctNum: undefined })),
+      ),
+    ).then((results) => {
+      if (cancelled) return;
+      setQboCustomers((prev) => {
+        const updates = new Map(results.map((r) => [r.id, r.acctNum]));
+        return prev.map((c) => (updates.has(c.id) ? { ...c, acctNum: updates.get(c.id) } : c));
+      });
+      setResolvedAcctNumIds((prev) => {
+        const next = new Set(prev);
+        for (const r of results) next.add(r.id);
+        return next;
+      });
+    });
+    return () => { cancelled = true; };
+  }, [qboCustomers, resolvedAcctNumIds]);
 
   async function handleDeleteSyncConfig(id: string) {
     if (!confirm("¿Eliminar esta sincronización? Los runs históricos quedarán sin referencia.")) return;
@@ -1602,9 +1634,11 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                                       <span className="ml-1.5 text-[10px] text-[var(--gbp-muted)]">({JSON.stringify(c.raw)})</span>
                                     )}
                                   </span>
-                                  {c.acctNum
-                                    ? <span className="shrink-0 rounded bg-[var(--gbp-bg)] px-1.5 py-0.5 text-[10px] font-mono text-[var(--gbp-text2)]">Cuenta: {c.acctNum}</span>
-                                    : <span className="shrink-0 rounded bg-[var(--gbp-error-soft)] px-1.5 py-0.5 text-[10px] text-[var(--gbp-error)]">⚠ Sin Account No.</span>}
+                                  {!resolvedAcctNumIds.has(c.id)
+                                    ? <span className="shrink-0 rounded bg-[var(--gbp-bg)] px-1.5 py-0.5 text-[10px] text-[var(--gbp-muted)]">Cargando…</span>
+                                    : c.acctNum
+                                      ? <span className="shrink-0 rounded bg-[var(--gbp-bg)] px-1.5 py-0.5 text-[10px] font-mono text-[var(--gbp-text2)]">Cuenta: {c.acctNum}</span>
+                                      : <span className="shrink-0 rounded bg-[var(--gbp-error-soft)] px-1.5 py-0.5 text-[10px] text-[var(--gbp-error)]">⚠ Sin Account No.</span>}
                                 </li>
                               );
                             })}
@@ -1622,11 +1656,12 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {newSyncCustomers.map((c) => {
                       const acctNum = qboCustomers.find((q) => q.id === c.id)?.acctNum;
+                      const loading = !resolvedAcctNumIds.has(c.id);
                       return (
                         <span key={c.id} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--gbp-bg)] px-2.5 py-1 text-[11px] font-medium text-[var(--gbp-text)]">
                           {c.name}
-                          <span className={`font-mono text-[10px] ${acctNum ? "text-[var(--gbp-text2)]" : "font-bold text-[var(--gbp-error)]"}`}>
-                            {acctNum ? `· ${acctNum}` : "· ⚠ sin cuenta"}
+                          <span className={`font-mono text-[10px] ${loading ? "text-[var(--gbp-muted)]" : acctNum ? "text-[var(--gbp-text2)]" : "font-bold text-[var(--gbp-error)]"}`}>
+                            {loading ? "· cargando…" : acctNum ? `· ${acctNum}` : "· ⚠ sin cuenta"}
                           </span>
                           <button type="button" onClick={() => handleRemoveNewSyncCustomer(c.id)} className="text-[var(--gbp-muted)] hover:text-[var(--gbp-error)]">
                             <X className="h-3 w-3" />
@@ -1801,9 +1836,11 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                             {c.displayName}
                             {allUsedCustomerIds.has(c.id) && <span className="ml-1.5 text-[10px] font-normal text-[var(--gbp-muted)]">(ya asignado)</span>}
                           </span>
-                          {c.acctNum
-                            ? <span className="shrink-0 rounded bg-[var(--gbp-bg)] px-1.5 py-0.5 text-[10px] font-mono text-[var(--gbp-text2)]">Cuenta: {c.acctNum}</span>
-                            : <span className="shrink-0 rounded bg-[var(--gbp-error-soft)] px-1.5 py-0.5 text-[10px] text-[var(--gbp-error)]">⚠ Sin Account No.</span>}
+                          {!resolvedAcctNumIds.has(c.id)
+                            ? <span className="shrink-0 rounded bg-[var(--gbp-bg)] px-1.5 py-0.5 text-[10px] text-[var(--gbp-muted)]">Cargando…</span>
+                            : c.acctNum
+                              ? <span className="shrink-0 rounded bg-[var(--gbp-bg)] px-1.5 py-0.5 text-[10px] font-mono text-[var(--gbp-text2)]">Cuenta: {c.acctNum}</span>
+                              : <span className="shrink-0 rounded bg-[var(--gbp-error-soft)] px-1.5 py-0.5 text-[10px] text-[var(--gbp-error)]">⚠ Sin Account No.</span>}
                         </li>
                       ))}
                     </ul>

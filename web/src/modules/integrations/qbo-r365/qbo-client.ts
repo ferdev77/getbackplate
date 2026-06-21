@@ -592,7 +592,16 @@ export async function fetchQboCustomerById(input: {
   const c = payload?.Customer;
   if (!c || typeof c.Id !== "string" || typeof c.DisplayName !== "string") return null;
 
-  return { id: c.Id, displayName: c.DisplayName, acctNum: extractAccountNumberField(c), raw: c };
+  let acctNum = extractAccountNumberField(c);
+  if (!acctNum) {
+    const parentRef = c.ParentRef as { value?: string } | undefined;
+    if (parentRef?.value) {
+      const parent = await fetchQboCustomerById({ accessToken: input.accessToken, realmId: input.realmId, customerId: parentRef.value }).catch(() => null);
+      acctNum = parent?.acctNum;
+    }
+  }
+
+  return { id: c.Id, displayName: c.DisplayName, acctNum, raw: c };
 }
 
 export async function fetchQboCustomers(input: {
