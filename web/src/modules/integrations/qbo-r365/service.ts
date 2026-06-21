@@ -3677,64 +3677,111 @@ export async function backfillFromQboSinceDate(
   sinceIso: string,
 ): Promise<{ upserted: number }> {
   const admin = createSupabaseAdminClient();
+  const runId = await createRun(organizationId, null, "manual", syncConfigId);
 
-  const qboConnection = await getConnection(organizationId, "quickbooks_online");
-  if (!qboConnection || qboConnection.status !== "connected") {
-    throw new Error("QuickBooks no está conectado");
-  }
+  try {
+    const qboConnection = await getConnection(organizationId, "quickbooks_online");
+    if (!qboConnection || qboConnection.status !== "connected") {
+      throw new Error("QuickBooks no está conectado");
+    }
 
-  const syncConfigRow = await getSyncConfigRow(organizationId, syncConfigId);
-  const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
+    const syncConfigRow = await getSyncConfigRow(organizationId, syncConfigId);
+    const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
 
-  const txnDateFrom = sinceIso.trim().slice(0, 10);
-  const { invoices, creditMemos } = await fetchQboSalesTransactions({
-    accessToken: qboAuth.accessToken,
-    realmId: qboAuth.realmId,
-    customerIds: syncConfigRow.customers.map((c) => c.qbo_customer_id),
-    txnDateFrom,
-    skipSalesReceipts: true,
-  });
-
-  const nowIso = new Date().toISOString();
-
-  const toUpsert = [
-    ...invoices.map((data) => ({ type: "Invoice" as const, data })),
-    ...creditMemos.map((data) => ({ type: "CreditMemo" as const, data })),
-  ]
-    .filter((item) => Boolean(item.data.Id))
-    .map(({ type, data }) => ({
-      organization_id: organizationId,
-      sync_config_id: syncConfigId,
-      entity_id: String(data.Id),
-      entity_type: type,
-      import_source: "sync" as const,
-      pipeline_status: "capturada" as const,
-      raw_entity: data as Record<string, unknown>,
-      fetched_at: nowIso,
-      doc_number: data.DocNumber ?? null,
-      txn_date: data.TxnDate ?? null,
-      due_date: data.DueDate ?? null,
-      total_amount: data.TotalAmt !== undefined && data.TotalAmt !== null ? Number(data.TotalAmt) : null,
-      currency: data.CurrencyRef?.value ?? null,
-      customer_name: data.CustomerRef?.name ?? null,
-      vendor_name: data.CustomerRef?.name ?? null,
-    }));
-
-  if (toUpsert.length === 0) return { upserted: 0 };
-
-  const batchSize = 100;
-  let upserted = 0;
-  for (let i = 0; i < toUpsert.length; i += batchSize) {
-    const batch = toUpsert.slice(i, i + batchSize);
-    const { error } = await admin.from("qbo_unified_invoices").upsert(batch, {
-      onConflict: "organization_id,entity_id,entity_type",
-      ignoreDuplicates: true,
+    const txnDateFrom = sinceIso.trim().slice(0, 10);
+    const { invoices, creditMemos } = await fetchQboSalesTransactions({
+      accessToken: qboAuth.accessToken,
+      realmId: qboAuth.realmId,
+      customerIds: syncConfigRow.customers.map((c) => c.qbo_customer_id),
+      txnDateFrom,
+      skipSalesReceipts: true,
     });
-    if (error) throw new Error(error.message);
-    upserted += batch.length;
-  }
 
-  return { upserted };
+    const nowIso = new Date().toISOString();
+    const detected = invoices.length + creditMemos.length;
+
+    const toUpsert = [
+      ...invoices.map((data) => ({ type: "Invoice" as const, data })),
+      ...creditMemos.map((data) => ({ type: "CreditMemo" as const, data })),
+    ]
+      .filter((item) => Boolean(item.data.Id))
+      .map(({ type, data }) => ({
+        organization_id: organizationId,
+        sync_config_id: syncConfigId,
+        entity_id: String(data.Id),
+        entity_type: type,
+        import_source: "sync" as const,
+        pipeline_status: "capturada" as const,
+        raw_entity: data as Record<string, unknown>,
+        fetched_at: nowIso,
+        doc_number: data.DocNumber ?? null,
+        txn_date: data.TxnDate ?? null,
+        due_date: data.DueDate ?? null,
+        total_amount: data.TotalAmt !== undefined && data.TotalAmt !== null ? Number(data.TotalAmt) : null,
+        currency: data.CurrencyRef?.value ?? null,
+        customer_name: data.CustomerRef?.name ?? null,
+        vendor_name: data.CustomerRef?.name ?? null,
+      }));
+
+    let upserted = 0;
+    const batchSize = 100;
+    for (let i = 0; i < toUpsert.length; i += batchSize) {
+      const batch = toUpsert.slice(i, i + batchSize);
+      const { error } = await admin.from("qbo_unified_invoices").upsert(batch, {
+        onConflict: "organization_id,entity_id,entity_type",
+        ignoreDuplicates: true,
+      });
+      if (error) throw new Error(error.message);
+      upserted += batch.length;
+    }
+
+    await admin
+      .from("integration_runs")
+      .update({
+        status: "completed",
+        finished_at: new Date().toISOString(),
+        total_detected: detected,
+        total_mapped: upserted,
+        total_uploaded: 0,
+        total_skipped_duplicates: detected - upserted,
+        total_failed: 0,
+      })
+      .eq("id", runId)
+      .eq("organization_id", organizationId);
+
+    await appendIntegrationAudit({
+      organizationId,
+      runId,
+      level: "info",
+      code: "backfill_completed",
+      message: `Importación histórica desde ${txnDateFrom}: ${detected} detectadas, ${upserted} capturadas en cola`,
+      metadata: { detected, upserted, since: txnDateFrom },
+    });
+
+    return { upserted };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Error en importación histórica";
+    await admin
+      .from("integration_runs")
+      .update({
+        status: "failed",
+        finished_at: new Date().toISOString(),
+        total_failed: 1,
+        error_summary: { message },
+      })
+      .eq("id", runId)
+      .eq("organization_id", organizationId);
+
+    await appendIntegrationAudit({
+      organizationId,
+      runId,
+      level: "error",
+      code: "backfill_failed",
+      message,
+    });
+
+    throw error;
+  }
 }
 
 /**

@@ -500,6 +500,12 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   }
 
   async function handleCustomerPick(customer: QboCustomer) {
+    const alreadyPicked = newSyncCustomers.some((c) => c.id === customer.id);
+    if (alreadyPicked) {
+      handleRemoveNewSyncCustomer(customer.id);
+      return;
+    }
+
     const isFirst = newSyncCustomers.length === 0;
     setNewSyncCustomers((prev) => [...prev, { id: customer.id, name: customer.displayName }]);
     if (isFirst) {
@@ -510,8 +516,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       // no tiene sentido fijar un solo valor para todo el grupo.
       setNewSyncLocation("");
     }
-    setCustomerSearch("");
-    setCustomerDropdownOpen(false);
     setPickedCustomerRaw(null);
 
     // Fetch full customer by ID to get AcctNum + CustomField (SELECT query doesn't return these)
@@ -541,12 +545,11 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   );
 
   const filteredCustomers = useMemo(() => {
-    const pickedIds = new Set(newSyncCustomers.map((c) => c.id));
-    const available = qboCustomers.filter((c) => !allUsedCustomerIds.has(c.id) && !pickedIds.has(c.id));
+    const available = qboCustomers.filter((c) => !allUsedCustomerIds.has(c.id));
     const q = customerSearch.trim().toLowerCase();
     if (!q) return available;
     return available.filter((c) => c.displayName.toLowerCase().includes(q));
-  }, [qboCustomers, customerSearch, allUsedCustomerIds, newSyncCustomers]);
+  }, [qboCustomers, customerSearch, allUsedCustomerIds]);
 
   const branchFilteredCustomers = useMemo(() => {
     const q = addBranchSearch.trim().toLowerCase();
@@ -1581,18 +1584,24 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                         />
                         {customerDropdownOpen && filteredCustomers.length > 0 && (
                           <ul className="absolute z-50 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-lg">
-                            {filteredCustomers.map((c) => (
-                              <li
-                                key={c.id}
-                                onMouseDown={() => handleCustomerPick(c)}
-                                className="cursor-pointer px-3 py-2 text-sm text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]"
-                              >
-                                {c.displayName}
-                                {mode === "developer" && c.raw && (
-                                  <span className="ml-1.5 text-[10px] text-[var(--gbp-muted)]">({JSON.stringify(c.raw)})</span>
-                                )}
-                              </li>
-                            ))}
+                            {filteredCustomers.map((c) => {
+                              const checked = newSyncCustomers.some((picked) => picked.id === c.id);
+                              return (
+                                <li
+                                  key={c.id}
+                                  onMouseDown={(e) => { e.preventDefault(); handleCustomerPick(c); }}
+                                  className={`flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--gbp-bg)] ${checked ? "font-semibold text-[var(--gbp-accent)]" : "text-[var(--gbp-text)]"}`}
+                                >
+                                  <input type="checkbox" readOnly checked={checked} className="h-3.5 w-3.5 shrink-0 accent-[var(--gbp-accent)]" />
+                                  <span>
+                                    {c.displayName}
+                                    {mode === "developer" && c.raw && (
+                                      <span className="ml-1.5 text-[10px] text-[var(--gbp-muted)]">({JSON.stringify(c.raw)})</span>
+                                    )}
+                                  </span>
+                                </li>
+                              );
+                            })}
                           </ul>
                         )}
                         {customerDropdownOpen && customerSearch.length > 0 && filteredCustomers.length === 0 && (
