@@ -3,7 +3,10 @@
  *   Lista las sync configs de la organización.
  *
  * POST /api/company/integrations/qbo-r365/sync-configs
- *   Crea una sync config. Solo se permite una por organización (409 si ya existe).
+ *   Crea una sync config (1 slot). El body acepta `qboCustomers: [{id, name}, ...]`
+ *   — una o varias sucursales/clientes QBO agrupados bajo el mismo FTP/vendor.
+ *   El límite de slots se calcula por cantidad de filas, no por cantidad de clientes
+ *   (409 si ya se alcanzó plan.max_r365_connections + organization_addons.extra_r365_connections).
  *
  *   Body opcional: backfillFromDate (YYYY-MM-DD) → dispara backfillFromQboSinceDate
  *   en segundo plano. El backfill filtra por TxnDate, no por MetaData.LastUpdatedTime.

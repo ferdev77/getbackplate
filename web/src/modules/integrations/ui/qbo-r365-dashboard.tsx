@@ -104,6 +104,7 @@ type ConfigSnapshot = {
 type SyncConfigSummary = {
   id: string;
   name: string;
+  qboCustomers: Array<{ qboCustomerId: string; qboCustomerName: string }>;
   qboCustomerId: string;
   qboCustomerName: string;
   scheduleInterval: "manual" | "daily" | "weekly";
@@ -330,9 +331,16 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [syncConfigsLoading, setSyncConfigsLoading] = useState(false);
   const [isCreateSyncOpen, setIsCreateSyncOpen] = useState(false);
   const [deletingSyncId, setDeletingSyncId] = useState<string | null>(null);
+  // Agregar/quitar sucursales de un grupo existente
+  const [addBranchTarget, setAddBranchTarget] = useState<{ syncConfigId: string; configName: string } | null>(null);
+  const [addBranchSearch, setAddBranchSearch] = useState("");
+  const [addBranchDropdownOpen, setAddBranchDropdownOpen] = useState(false);
+  const [addBranchPicked, setAddBranchPicked] = useState<{ id: string; name: string } | null>(null);
+  const [isSavingBranch, setIsSavingBranch] = useState(false);
+  const [removingBranchKey, setRemovingBranchKey] = useState<string | null>(null);
   // Form state for new sync config
-  const [newSyncCustomerId, setNewSyncCustomerId] = useState("");
-  const [newSyncCustomerName, setNewSyncCustomerName] = useState("");
+  const [newSyncCustomers, setNewSyncCustomers] = useState<Array<{ id: string; name: string }>>([]);
+  const [newSyncName, setNewSyncName] = useState("");
   const [newSyncVendorName, setNewSyncVendorName] = useState("");
   const [newSyncLocation, setNewSyncLocation] = useState("");
   const [pickedCustomerRaw, setPickedCustomerRaw] = useState<Record<string, unknown> | null>(null);
@@ -492,39 +500,65 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   }
 
   async function handleCustomerPick(customer: QboCustomer) {
-    setNewSyncCustomerId(customer.id);
-    setNewSyncCustomerName(customer.displayName);
-    setNewSyncLocation(customer.acctNum ?? "");
-    setCustomerSearch(customer.displayName);
+    const isFirst = newSyncCustomers.length === 0;
+    setNewSyncCustomers((prev) => [...prev, { id: customer.id, name: customer.displayName }]);
+    if (isFirst) {
+      setNewSyncName(customer.displayName);
+      setNewSyncLocation(customer.acctNum ?? "");
+    } else {
+      // Con mas de un cliente, la location se resuelve dinamicamente por factura —
+      // no tiene sentido fijar un solo valor para todo el grupo.
+      setNewSyncLocation("");
+    }
+    setCustomerSearch("");
     setCustomerDropdownOpen(false);
     setPickedCustomerRaw(null);
 
     // Fetch full customer by ID to get AcctNum + CustomField (SELECT query doesn't return these)
-    try {
-      const res = await fetch(`/api/company/integrations/qbo-r365/customers/${customer.id}`);
-      if (res.ok) {
-        const data = (await res.json()) as { customer?: QboCustomer };
-        if (data.customer?.raw) setPickedCustomerRaw(data.customer.raw);
-        if (data.customer?.acctNum) {
-          setNewSyncLocation(data.customer.acctNum);
+    if (isFirst) {
+      try {
+        const res = await fetch(`/api/company/integrations/qbo-r365/customers/${customer.id}`);
+        if (res.ok) {
+          const data = (await res.json()) as { customer?: QboCustomer };
+          if (data.customer?.raw) setPickedCustomerRaw(data.customer.raw);
+          if (data.customer?.acctNum) {
+            setNewSyncLocation(data.customer.acctNum);
+          }
         }
+      } catch {
+        // Silently fallback to what the SELECT already returned
       }
-    } catch {
-      // Silently fallback to what the SELECT already returned
     }
   }
 
+  function handleRemoveNewSyncCustomer(customerId: string) {
+    setNewSyncCustomers((prev) => prev.filter((c) => c.id !== customerId));
+  }
+
+  const allUsedCustomerIds = useMemo(
+    () => new Set(syncConfigs.flatMap((s) => s.qboCustomers.map((c) => c.qboCustomerId))),
+    [syncConfigs],
+  );
+
   const filteredCustomers = useMemo(() => {
-    const usedIds = new Set(syncConfigs.map((s) => s.qboCustomerId));
-    const available = qboCustomers.filter((c) => !usedIds.has(c.id));
+    const pickedIds = new Set(newSyncCustomers.map((c) => c.id));
+    const available = qboCustomers.filter((c) => !allUsedCustomerIds.has(c.id) && !pickedIds.has(c.id));
     const q = customerSearch.trim().toLowerCase();
     if (!q) return available;
     return available.filter((c) => c.displayName.toLowerCase().includes(q));
-  }, [qboCustomers, customerSearch, syncConfigs]);
+  }, [qboCustomers, customerSearch, allUsedCustomerIds, newSyncCustomers]);
+
+  const branchFilteredCustomers = useMemo(() => {
+    const q = addBranchSearch.trim().toLowerCase();
+    const available = qboCustomers.filter((c) => !allUsedCustomerIds.has(c.id));
+    if (!q) return available;
+    return available.filter((c) => c.displayName.toLowerCase().includes(q));
+  }, [qboCustomers, addBranchSearch, allUsedCustomerIds]);
 
   async function handleCreateSync(e: React.FormEvent) {
     e.preventDefault();
-    if (!newSyncCustomerId) { toast.error("Selecciona un cliente QBO"); return; }
+    if (newSyncCustomers.length === 0) { toast.error("Selecciona al menos un cliente QBO"); return; }
+    if (!newSyncName.trim()) { toast.error("Ingresá un nombre para la sincronización"); return; }
     if (newSyncBackfillEnabled && !newSyncBackfillFromDate) {
       toast.error("Elegí una fecha de inicio para la importación histórica");
       return;
@@ -536,9 +570,8 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           developerMode: mode === "developer",
-          name: newSyncCustomerName,
-          qboCustomerId: newSyncCustomerId,
-          qboCustomerName: newSyncCustomerName,
+          name: newSyncName,
+          qboCustomers: newSyncCustomers,
           r365VendorName: newSyncVendorName,
           r365Location: newSyncLocation,
           r365FtpHost: newSyncFtpHost,
@@ -559,7 +592,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
         toast.success("Sincronización creada");
       }
       setIsCreateSyncOpen(false);
-      setNewSyncCustomerId(""); setNewSyncCustomerName("");
+      setNewSyncCustomers([]); setNewSyncName("");
       setCustomerSearch(""); setCustomerDropdownOpen(false);
       setNewSyncVendorName(""); setNewSyncLocation("");
       setNewSyncFtpHost(""); setNewSyncFtpUser(""); setNewSyncFtpPass(""); setShowNewSyncFtpPass(false);
@@ -569,6 +602,45 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       toast.error("No se pudo crear", { description: error instanceof Error ? error.message : "Error" });
     }
     setIsSavingSync(false);
+  }
+
+  async function handleAddBranch(e: React.FormEvent) {
+    e.preventDefault();
+    if (!addBranchTarget || !addBranchPicked) { toast.error("Selecciona un cliente QBO"); return; }
+    setIsSavingBranch(true);
+    try {
+      const response = await fetch(`/api/company/integrations/qbo-r365/sync-configs/${addBranchTarget.syncConfigId}/customers`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: addBranchPicked.id, name: addBranchPicked.name }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) throw new Error(payload.error || "Error al agregar la sucursal");
+      toast.success("Sucursal agregada");
+      setAddBranchTarget(null);
+      setAddBranchPicked(null);
+      setAddBranchSearch("");
+      setRefreshKey((p) => p + 1);
+    } catch (error) {
+      toast.error("No se pudo agregar la sucursal", { description: error instanceof Error ? error.message : "Error" });
+    }
+    setIsSavingBranch(false);
+  }
+
+  async function handleRemoveBranch(syncConfigId: string, qboCustomerId: string) {
+    if (!confirm("¿Quitar esta sucursal de la sincronización?")) return;
+    const key = `${syncConfigId}:${qboCustomerId}`;
+    setRemovingBranchKey(key);
+    try {
+      const response = await fetch(`/api/company/integrations/qbo-r365/sync-configs/${syncConfigId}/customers/${qboCustomerId}`, { method: "DELETE" });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) throw new Error(payload.error || "Error al quitar la sucursal");
+      toast.success("Sucursal eliminada del grupo");
+      setRefreshKey((p) => p + 1);
+    } catch (error) {
+      toast.error("No se pudo quitar la sucursal", { description: error instanceof Error ? error.message : "Error" });
+    }
+    setRemovingBranchKey(null);
   }
 
   async function handleFetchByDocNumber(e: React.FormEvent) {
@@ -1335,11 +1407,38 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-bold text-[var(--gbp-text)]">{config.name}</p>
-                    <p className="mt-0.5 truncate text-xs text-[var(--gbp-text2)]">{config.qboCustomerName}</p>
                   </div>
                   <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${config.status === "active" ? "bg-[var(--gbp-success-soft)] text-[var(--gbp-success)]" : "bg-[var(--gbp-bg)] text-[var(--gbp-muted)]"}`}>
                     {config.status === "active" ? "Activa" : "Pausada"}
                   </span>
+                </div>
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {config.qboCustomers.map((c) => {
+                    const key = `${config.id}:${c.qboCustomerId}`;
+                    return (
+                      <span key={key} className="inline-flex items-center gap-1 rounded-full bg-[var(--gbp-bg)] px-2 py-0.5 text-[10px] text-[var(--gbp-text2)]">
+                        {c.qboCustomerName}
+                        {config.qboCustomers.length > 1 && (
+                          <button
+                            type="button"
+                            disabled={removingBranchKey === key}
+                            onClick={() => { void handleRemoveBranch(config.id, c.qboCustomerId); }}
+                            className="text-[var(--gbp-muted)] hover:text-[var(--gbp-error)]"
+                            title="Quitar sucursal"
+                          >
+                            <X className="h-2.5 w-2.5" />
+                          </button>
+                        )}
+                      </span>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => { setAddBranchTarget({ syncConfigId: config.id, configName: config.name }); setAddBranchPicked(null); setAddBranchSearch(""); }}
+                    className="inline-flex items-center gap-0.5 rounded-full border border-dashed border-[var(--gbp-border)] px-2 py-0.5 text-[10px] text-[var(--gbp-muted)] hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
+                  >
+                    <Plus className="h-2.5 w-2.5" /> Sucursal
+                  </button>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <span className="rounded bg-[var(--gbp-bg)] px-2 py-0.5 text-[10px] text-[var(--gbp-text2)]">{config.template}</span>
@@ -1461,9 +1560,9 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
               </button>
             </div>
             <form onSubmit={(e) => { void handleCreateSync(e); }} className="max-h-[70vh] overflow-y-auto px-6 py-5 space-y-4">
-              {/* Cliente QBO */}
+              {/* Cliente(s) QBO */}
               <div>
-                <h4 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">Cliente QuickBooks</h4>
+                <h4 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">Clientes QuickBooks (sucursales)</h4>
                 <label className="block">
                   <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Cliente *</span>
                   {customersLoading
@@ -1474,26 +1573,19 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                           ref={customerInputRef}
                           type="text"
                           value={customerSearch}
-                          onChange={(e) => {
-                            setCustomerSearch(e.target.value);
-                            setCustomerDropdownOpen(true);
-                            if (!e.target.value) { setNewSyncCustomerId(""); setNewSyncCustomerName(""); }
-                          }}
+                          onChange={(e) => { setCustomerSearch(e.target.value); setCustomerDropdownOpen(true); }}
                           onFocus={() => setCustomerDropdownOpen(true)}
                           onBlur={() => setTimeout(() => setCustomerDropdownOpen(false), 150)}
-                          placeholder="Buscar cliente..."
+                          placeholder="Buscar cliente para agregar..."
                           className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none"
                         />
-                        {newSyncCustomerId && (
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[var(--gbp-success)]">✓</span>
-                        )}
                         {customerDropdownOpen && filteredCustomers.length > 0 && (
                           <ul className="absolute z-50 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-lg">
                             {filteredCustomers.map((c) => (
                               <li
                                 key={c.id}
                                 onMouseDown={() => handleCustomerPick(c)}
-                                className={`cursor-pointer px-3 py-2 text-sm hover:bg-[var(--gbp-bg)] ${newSyncCustomerId === c.id ? "font-bold text-[var(--gbp-accent)]" : "text-[var(--gbp-text)]"}`}
+                                className="cursor-pointer px-3 py-2 text-sm text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]"
                               >
                                 {c.displayName}
                                 {mode === "developer" && c.raw && (
@@ -1511,12 +1603,44 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                       </div>
                     )}
                 </label>
+                {newSyncCustomers.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {newSyncCustomers.map((c) => (
+                      <span key={c.id} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--gbp-bg)] px-2.5 py-1 text-[11px] font-medium text-[var(--gbp-text)]">
+                        {c.name}
+                        <button type="button" onClick={() => handleRemoveNewSyncCustomer(c.id)} className="text-[var(--gbp-muted)] hover:text-[var(--gbp-error)]">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {newSyncCustomers.length > 1 && (
+                  <p className="mt-1.5 text-[10px] text-[var(--gbp-muted)]">
+                    Con más de un cliente, la ubicación R365 se resuelve automáticamente por factura según el Account No. de cada cliente en QBO.
+                  </p>
+                )}
                 {mode === "developer" && pickedCustomerRaw && (
                   <div className="mt-2 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
                     <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[var(--gbp-accent)]">GET /Customer/{String(pickedCustomerRaw.Id ?? "")} — raw</p>
                     <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all text-[10px] text-[var(--gbp-text2)]">{JSON.stringify(pickedCustomerRaw, null, 2)}</pre>
                   </div>
                 )}
+              </div>
+              {/* Nombre de la sincronizacion */}
+              <div>
+                <h4 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">Nombre</h4>
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Nombre de la sincronización *</span>
+                  <input
+                    required
+                    type="text"
+                    placeholder="Ej: Kumori"
+                    value={newSyncName}
+                    onChange={(e) => setNewSyncName(e.target.value)}
+                    className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none"
+                  />
+                </label>
               </div>
               {/* Nombre del proveedor en R365 */}
               <div>
@@ -1610,6 +1734,68 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                 <button type="submit" disabled={isSavingSync}
                   className="flex flex-[2] items-center justify-center gap-2 rounded-lg bg-[var(--gbp-accent)] px-4 py-2.5 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50">
                   {isSavingSync ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear sincronización"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Agregar sucursal a una sincronización existente */}
+      {addBranchTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-2xl">
+            <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-4">
+              <h3 className="text-base font-bold text-[var(--gbp-text)]">Agregar sucursal a {addBranchTarget.configName}</h3>
+              <button type="button" onClick={() => setAddBranchTarget(null)}
+                className="rounded-lg p-1 text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <form onSubmit={(e) => { void handleAddBranch(e); }} className="px-6 py-5 space-y-4">
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Cliente QBO *</span>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={addBranchSearch}
+                    onChange={(e) => { setAddBranchSearch(e.target.value); setAddBranchDropdownOpen(true); if (!e.target.value) setAddBranchPicked(null); }}
+                    onFocus={() => setAddBranchDropdownOpen(true)}
+                    onBlur={() => setTimeout(() => setAddBranchDropdownOpen(false), 150)}
+                    placeholder="Buscar cliente..."
+                    className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none"
+                  />
+                  {addBranchPicked && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[var(--gbp-success)]">✓</span>
+                  )}
+                  {addBranchDropdownOpen && branchFilteredCustomers.length > 0 && (
+                    <ul className="absolute z-50 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-lg">
+                      {branchFilteredCustomers.map((c) => (
+                        <li
+                          key={c.id}
+                          onMouseDown={() => { setAddBranchPicked({ id: c.id, name: c.displayName }); setAddBranchSearch(c.displayName); setAddBranchDropdownOpen(false); }}
+                          className={`cursor-pointer px-3 py-2 text-sm hover:bg-[var(--gbp-bg)] ${addBranchPicked?.id === c.id ? "font-bold text-[var(--gbp-accent)]" : "text-[var(--gbp-text)]"}`}
+                        >
+                          {c.displayName}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {addBranchDropdownOpen && addBranchSearch.length > 0 && branchFilteredCustomers.length === 0 && (
+                    <div className="absolute z-50 mt-1 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-muted)] shadow-lg">
+                      Sin resultados
+                    </div>
+                  )}
+                </div>
+              </label>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setAddBranchTarget(null)}
+                  className="flex-1 rounded-lg border-[1.5px] border-[var(--gbp-border)] px-4 py-2.5 text-sm font-bold text-[var(--gbp-text)] transition hover:bg-[var(--gbp-bg)]">
+                  Cancelar
+                </button>
+                <button type="submit" disabled={isSavingBranch || !addBranchPicked}
+                  className="flex flex-[2] items-center justify-center gap-2 rounded-lg bg-[var(--gbp-accent)] px-4 py-2.5 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50">
+                  {isSavingBranch ? <Loader2 className="h-4 w-4 animate-spin" /> : "Agregar sucursal"}
                 </button>
               </div>
             </form>

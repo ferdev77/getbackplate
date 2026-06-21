@@ -178,20 +178,38 @@ async function upsertConnection(input: {
 
 // ─── Sync Configs CRUD ────────────────────────────────────────────────────────
 
-async function getSyncConfigRow(organizationId: string, id: string): Promise<SyncConfigRow> {
+type SyncConfigCustomerRow = { qbo_customer_id: string; qbo_customer_name: string };
+
+async function getSyncConfigCustomers(syncConfigId: string): Promise<SyncConfigCustomerRow[]> {
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin
-    .from("qbo_r365_sync_configs")
-    .select("*")
-    .eq("organization_id", organizationId)
-    .eq("id", id)
-    .single();
+    .from("qbo_r365_sync_config_customers")
+    .select("qbo_customer_id, qbo_customer_name")
+    .eq("sync_config_id", syncConfigId)
+    .order("created_at", { ascending: true });
+
+  if (error) throw new Error(error.message);
+
+  return (data ?? []) as SyncConfigCustomerRow[];
+}
+
+async function getSyncConfigRow(organizationId: string, id: string): Promise<SyncConfigRow & { customers: SyncConfigCustomerRow[] }> {
+  const admin = createSupabaseAdminClient();
+  const [{ data, error }, customers] = await Promise.all([
+    admin
+      .from("qbo_r365_sync_configs")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .eq("id", id)
+      .single(),
+    getSyncConfigCustomers(id),
+  ]);
 
   if (error || !data) {
     throw new Error(error?.message || "Sync config no encontrada");
   }
 
-  return data as SyncConfigRow;
+  return { ...(data as SyncConfigRow), customers };
 }
 
 export async function listSyncConfigs(organizationId: string): Promise<SyncConfigSummary[]> {
@@ -204,24 +222,43 @@ export async function listSyncConfigs(organizationId: string): Promise<SyncConfi
 
   if (error) throw new Error(error.message);
 
-  return (data ?? []).map((row) => ({
-    id: row.id as string,
-    name: row.name as string,
-    qboCustomerId: row.qbo_customer_id as string,
-    qboCustomerName: row.qbo_customer_name as string,
-    scheduleInterval: row.schedule_interval === "hourly"
-      ? "daily"
-      : (row.schedule_interval as SyncConfigSummary["scheduleInterval"]),
-    lookbackHours: Number(row.lookback_hours ?? 48),
-    template: row.template as SyncConfigSummary["template"],
-    taxMode: row.tax_mode as SyncConfigSummary["taxMode"],
-    status: row.status as SyncConfigSummary["status"],
-    lastRunAt: (row.last_run_at as string | null) ?? null,
-    hasFtp: Boolean(row.r365_ftp_host),
-    r365Location: (row.r365_location as string | null) ?? null,
-    r365VendorName: (row.r365_vendor_name as string | null) ?? null,
-    createdAt: row.created_at as string,
-  }));
+  const ids = (data ?? []).map((row) => row.id as string);
+  const { data: customerRows } = ids.length > 0
+    ? await admin
+        .from("qbo_r365_sync_config_customers")
+        .select("sync_config_id, qbo_customer_id, qbo_customer_name")
+        .in("sync_config_id", ids)
+    : { data: [] as Array<{ sync_config_id: string; qbo_customer_id: string; qbo_customer_name: string }> };
+
+  const customersByConfig = new Map<string, Array<{ qboCustomerId: string; qboCustomerName: string }>>();
+  for (const row of customerRows ?? []) {
+    const list = customersByConfig.get(row.sync_config_id as string) ?? [];
+    list.push({ qboCustomerId: row.qbo_customer_id as string, qboCustomerName: row.qbo_customer_name as string });
+    customersByConfig.set(row.sync_config_id as string, list);
+  }
+
+  return (data ?? []).map((row) => {
+    const qboCustomers = customersByConfig.get(row.id as string) ?? [];
+    return {
+      id: row.id as string,
+      name: row.name as string,
+      qboCustomers,
+      qboCustomerId: qboCustomers[0]?.qboCustomerId ?? (row.qbo_customer_id as string),
+      qboCustomerName: qboCustomers[0]?.qboCustomerName ?? (row.qbo_customer_name as string),
+      scheduleInterval: row.schedule_interval === "hourly"
+        ? "daily"
+        : (row.schedule_interval as SyncConfigSummary["scheduleInterval"]),
+      lookbackHours: Number(row.lookback_hours ?? 48),
+      template: row.template as SyncConfigSummary["template"],
+      taxMode: row.tax_mode as SyncConfigSummary["taxMode"],
+      status: row.status as SyncConfigSummary["status"],
+      lastRunAt: (row.last_run_at as string | null) ?? null,
+      hasFtp: Boolean(row.r365_ftp_host),
+      r365Location: (row.r365_location as string | null) ?? null,
+      r365VendorName: (row.r365_vendor_name as string | null) ?? null,
+      createdAt: row.created_at as string,
+    };
+  });
 }
 
 export async function createSyncConfig(
@@ -245,13 +282,15 @@ export async function createSyncConfig(
     ? encryptJsonPayload({ password: ftpPassword })
     : null;
 
+  const firstCustomer = payload.qboCustomers[0];
+
   const { data, error } = await admin
     .from("qbo_r365_sync_configs")
     .insert({
       organization_id: organizationId,
       name: payload.name,
-      qbo_customer_id: payload.qboCustomerId,
-      qbo_customer_name: payload.qboCustomerName,
+      qbo_customer_id: firstCustomer.id,
+      qbo_customer_name: firstCustomer.name,
       schedule_interval: payload.scheduleInterval,
       lookback_hours: payload.lookbackHours,
       r365_ftp_host: hasAllFtpFields ? ftpHost : null,
@@ -265,7 +304,7 @@ export async function createSyncConfig(
       template: payload.template,
       tax_mode: payload.taxMode,
       r365_vendor_name: payload.r365VendorName || null,
-      r365_location: payload.r365Location || null,
+      r365_location: payload.qboCustomers.length === 1 ? (payload.r365Location || null) : null,
       created_by: actorId,
       updated_by: actorId,
     })
@@ -274,7 +313,27 @@ export async function createSyncConfig(
 
   if (error || !data) throw new Error(error?.message || "No se pudo crear la sync config");
 
-  return data.id as string;
+  const syncConfigId = data.id as string;
+
+  const { error: customersError } = await admin
+    .from("qbo_r365_sync_config_customers")
+    .insert(payload.qboCustomers.map((c) => ({
+      sync_config_id: syncConfigId,
+      organization_id: organizationId,
+      qbo_customer_id: c.id,
+      qbo_customer_name: c.name,
+      created_by: actorId,
+    })));
+
+  if (customersError) {
+    await admin.from("qbo_r365_sync_configs").delete().eq("id", syncConfigId);
+    if (customersError.code === "23505") {
+      throw new Error("Uno de los clientes de QBO elegidos ya está asignado a otra sincronización.");
+    }
+    throw new Error(customersError.message);
+  }
+
+  return syncConfigId;
 }
 
 export async function updateSyncConfig(
@@ -288,8 +347,6 @@ export async function updateSyncConfig(
   const patch: Record<string, unknown> = { updated_by: actorId };
 
   if (payload.name !== undefined) patch.name = payload.name;
-  if (payload.qboCustomerId !== undefined) patch.qbo_customer_id = payload.qboCustomerId;
-  if (payload.qboCustomerName !== undefined) patch.qbo_customer_name = payload.qboCustomerName;
   if (payload.scheduleInterval !== undefined) patch.schedule_interval = payload.scheduleInterval;
   if (payload.lookbackHours !== undefined) patch.lookback_hours = payload.lookbackHours;
   if (payload.r365FtpHost !== undefined) patch.r365_ftp_host = payload.r365FtpHost;
@@ -326,6 +383,63 @@ export async function deleteSyncConfig(organizationId: string, id: string): Prom
     .delete()
     .eq("organization_id", organizationId)
     .eq("id", id);
+
+  if (error) throw new Error(error.message);
+}
+
+export async function addCustomerToSyncConfig(
+  organizationId: string,
+  syncConfigId: string,
+  actorId: string | null,
+  qboCustomerId: string,
+  qboCustomerName: string,
+): Promise<void> {
+  const admin = createSupabaseAdminClient();
+
+  await getSyncConfigRow(organizationId, syncConfigId);
+
+  const { error } = await admin.from("qbo_r365_sync_config_customers").insert({
+    sync_config_id: syncConfigId,
+    organization_id: organizationId,
+    qbo_customer_id: qboCustomerId,
+    qbo_customer_name: qboCustomerName,
+    created_by: actorId,
+  });
+
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error("Este cliente de QBO ya está asignado a otra sincronización.");
+    }
+    throw new Error(error.message);
+  }
+
+  // Si el grupo pasa a tener mas de 1 cliente, no tiene sentido un location
+  // unico cacheado a nivel de sync config — cada factura lo resuelve por su
+  // propio CustomerRef via customerAcctNumMap.
+  const customers = await getSyncConfigCustomers(syncConfigId);
+  if (customers.length > 1) {
+    await admin.from("qbo_r365_sync_configs").update({ r365_location: null }).eq("id", syncConfigId);
+  }
+}
+
+export async function removeCustomerFromSyncConfig(
+  organizationId: string,
+  syncConfigId: string,
+  qboCustomerId: string,
+): Promise<void> {
+  const admin = createSupabaseAdminClient();
+
+  const current = await getSyncConfigCustomers(syncConfigId);
+  if (current.length <= 1) {
+    throw new Error("No se puede quitar el único cliente de la sincronización. Eliminá la sincronización completa si ya no la necesitás.");
+  }
+
+  const { error } = await admin
+    .from("qbo_r365_sync_config_customers")
+    .delete()
+    .eq("sync_config_id", syncConfigId)
+    .eq("organization_id", organizationId)
+    .eq("qbo_customer_id", qboCustomerId);
 
   if (error) throw new Error(error.message);
 }
@@ -1142,6 +1256,19 @@ function buildFileName(prefix: string, invoiceNumber?: string) {
   return `${safePrefix}_${date}_${time}.csv`;
 }
 
+async function getQboCustomerAcctNumMap(qboAuth: { accessToken: string; realmId: string }): Promise<Map<string, string>> {
+  return fetchQboCustomers({
+    accessToken: qboAuth.accessToken,
+    realmId: qboAuth.realmId,
+  }).then((customers) => {
+    const map = new Map<string, string>();
+    for (const c of customers) {
+      if (c.acctNum) map.set(c.id, c.acctNum);
+    }
+    return map;
+  }).catch(() => new Map<string, string>());
+}
+
 export async function runQboR365Sync(input: {
   organizationId: string;
   actorId?: string | null;
@@ -1155,10 +1282,11 @@ export async function runQboR365Sync(input: {
   const triggerSource = input.triggerSource ?? "manual";
 
   // Cargar sync config si se especifica
-  let syncConfig: SyncConfigRow | null = null;
+  let syncConfig: (SyncConfigRow & { customers: SyncConfigCustomerRow[] }) | null = null;
   if (input.syncConfigId) {
     syncConfig = await getSyncConfigRow(input.organizationId, input.syncConfigId);
   }
+  const groupCustomerIds = syncConfig?.customers.map((c) => c.qbo_customer_id) ?? [];
 
   const settings = await getSettings(input.organizationId);
   const qboConnection = await getConnection(input.organizationId, "quickbooks_online");
@@ -1233,7 +1361,7 @@ export async function runQboR365Sync(input: {
       qboData = await fetchQboSalesTransactions({
         accessToken: qboAuth.accessToken,
         realmId: qboAuth.realmId,
-        customerId: syncConfig?.qbo_customer_id,
+        customerIds: groupCustomerIds.length > 0 ? groupCustomerIds : undefined,
         sinceIso,
       });
     } catch (error) {
@@ -1253,7 +1381,7 @@ export async function runQboR365Sync(input: {
       qboData = await fetchQboSalesTransactions({
         accessToken: qboAuth.accessToken,
         realmId: qboAuth.realmId,
-        customerId: syncConfig?.qbo_customer_id,
+        customerIds: groupCustomerIds.length > 0 ? groupCustomerIds : undefined,
         sinceIso,
       });
     }
@@ -1265,28 +1393,21 @@ export async function runQboR365Sync(input: {
         accessToken: qboAuth.accessToken,
         realmId: qboAuth.realmId,
       }).catch(() => new Map<string, string>()),
-      fetchQboCustomers({
-        accessToken: qboAuth.accessToken,
-        realmId: qboAuth.realmId,
-      }).then((customers) => {
-        const map = new Map<string, string>();
-        for (const c of customers) {
-          if (c.acctNum) map.set(c.id, c.acctNum);
-        }
-        return map;
-      }).catch(() => new Map<string, string>()),
+      getQboCustomerAcctNumMap(qboAuth),
     ]);
 
-    // Si el sync config no tiene r365_location, intentar resolverlo del mapa y guardarlo
+    // Si el sync config no tiene r365_location, intentar resolverlo del mapa y guardarlo.
+    // Solo aplica cuando el grupo tiene un unico cliente: con varios, cada factura
+    // resuelve su propia location dinamicamente mas abajo via customerAcctNumMap.
     let effectiveR365Location = syncConfig?.r365_location || undefined;
-    if (!effectiveR365Location && syncConfig?.qbo_customer_id) {
-      const resolved = customerAcctNumMap.get(syncConfig.qbo_customer_id);
+    if (!effectiveR365Location && groupCustomerIds.length === 1) {
+      const resolved = customerAcctNumMap.get(groupCustomerIds[0]);
       if (resolved) {
         effectiveR365Location = resolved;
         void createSupabaseAdminClient()
           .from("qbo_r365_sync_configs")
           .update({ r365_location: resolved })
-          .eq("id", syncConfig.id);
+          .eq("id", syncConfig!.id);
       }
     }
 
@@ -1300,7 +1421,7 @@ export async function runQboR365Sync(input: {
       mappings,
       itemSkuMap,
       customerAcctNumMap,
-      syncConfigCustomerId: syncConfig?.qbo_customer_id || undefined,
+      syncConfigCustomerId: groupCustomerIds[0] || undefined,
       r365VendorName: syncConfig?.r365_vendor_name || undefined,
       r365Location: effectiveR365Location,
       invoiceTotalsOut: invoiceTotalsMap,
@@ -2484,9 +2605,11 @@ export async function previewUnifiedInvoiceCsv(input: {
   const syncConfig = await getSyncConfigRow(input.organizationId, syncConfigId);
   const mappings = await getActiveMappings(input.organizationId);
   const itemSkuMap = await getQboItemSkuMapForOrganization(input.organizationId);
+  const customerAcctNumMap = await getQboCustomerAcctNumMapForOrganization(input.organizationId);
 
   const entityType = row.entity_type as "Invoice" | "CreditMemo";
   const rawEntity = row.raw_entity as QboInvoiceLike;
+  const groupCustomerIds = syncConfig.customers.map((c) => c.qbo_customer_id);
 
   const lines = normalizeQboRows({
     invoices: entityType === "Invoice" ? [rawEntity] : [],
@@ -2496,9 +2619,10 @@ export async function previewUnifiedInvoiceCsv(input: {
     taxMode: syncConfig.tax_mode,
     mappings,
     itemSkuMap,
+    customerAcctNumMap,
     r365VendorName: syncConfig.r365_vendor_name || undefined,
-    r365Location: syncConfig.r365_location || undefined,
-    syncConfigCustomerId: syncConfig.qbo_customer_id,
+    r365Location: groupCustomerIds.length === 1 ? (syncConfig.r365_location || undefined) : undefined,
+    syncConfigCustomerId: groupCustomerIds[0],
   });
 
   if (lines.length === 0) throw new Error("La factura no tiene líneas válidas para previsualizar — revisá los mappings del sync config");
@@ -3051,7 +3175,7 @@ async function mapAndSendUnifiedRow(input: {
   entityId: string;
   entityType: "Invoice" | "CreditMemo";
   rawEntity: QboInvoiceLike;
-  syncConfig: SyncConfigRow;
+  syncConfig: SyncConfigRow & { customers: SyncConfigCustomerRow[] };
   actorId: string | null;
   triggerSource: "manual" | "scheduled" | "retry";
 }): Promise<{ fileName: string; runId: string; uploaded: number }> {
@@ -3059,6 +3183,8 @@ async function mapAndSendUnifiedRow(input: {
 
   const mappings = await getActiveMappings(input.organizationId);
   const itemSkuMap = await getQboItemSkuMapForOrganization(input.organizationId);
+  const customerAcctNumMap = await getQboCustomerAcctNumMapForOrganization(input.organizationId);
+  const groupCustomerIds = input.syncConfig.customers.map((c) => c.qbo_customer_id);
 
   const lines = normalizeQboRows({
     invoices: input.entityType === "Invoice" ? [input.rawEntity] : [],
@@ -3068,9 +3194,10 @@ async function mapAndSendUnifiedRow(input: {
     taxMode: input.syncConfig.tax_mode,
     mappings,
     itemSkuMap,
+    customerAcctNumMap,
     r365VendorName: input.syncConfig.r365_vendor_name || undefined,
-    r365Location: input.syncConfig.r365_location || undefined,
-    syncConfigCustomerId: input.syncConfig.qbo_customer_id,
+    r365Location: groupCustomerIds.length === 1 ? (input.syncConfig.r365_location || undefined) : undefined,
+    syncConfigCustomerId: groupCustomerIds[0],
   });
 
   if (lines.length === 0) throw new Error("La factura no tiene líneas válidas para enviar a R365");
@@ -3189,33 +3316,17 @@ async function fetchAndCaptureWebhookInvoice(input: {
   const customerName = typeof customerRef.name === "string" ? customerRef.name : null;
   const customerId = typeof customerRef.value === "string" ? customerRef.value : null;
 
-  let r365Location: string | null = null;
   let syncConfigId: string | null = null;
 
   if (customerId) {
-    const { data: syncConfigs } = await admin
-      .from("qbo_r365_sync_configs")
-      .select("id, r365_location")
+    const { data: linkRows } = await admin
+      .from("qbo_r365_sync_config_customers")
+      .select("sync_config_id")
       .eq("organization_id", input.organizationId)
       .eq("qbo_customer_id", customerId)
       .limit(1);
 
-    const syncConfig = syncConfigs?.[0] ?? null;
-    if (syncConfig) {
-      syncConfigId = String(syncConfig.id);
-      r365Location = typeof syncConfig.r365_location === "string" ? syncConfig.r365_location : null;
-
-      if (!r365Location) {
-        const customers = await fetchQboCustomers({ accessToken: qboAuth.accessToken, realmId: qboAuth.realmId }).catch(() => [] as QboCustomer[]);
-        const found = customers.find((c) => c.id === customerId);
-        if (found?.acctNum) {
-          r365Location = found.acctNum;
-          void admin.from("qbo_r365_sync_configs")
-            .update({ r365_location: found.acctNum })
-            .eq("id", syncConfig.id);
-        }
-      }
-    }
+    syncConfigId = linkRows?.[0] ? String(linkRows[0].sync_config_id) : null;
   }
 
   const nowIso = new Date().toISOString();
@@ -3318,6 +3429,16 @@ async function getQboItemSkuMapForOrganization(organizationId: string): Promise<
   }).catch(() => new Map<string, string>());
 }
 
+async function getQboCustomerAcctNumMapForOrganization(organizationId: string): Promise<Map<string, string>> {
+  const qboConnection = await getConnection(organizationId, "quickbooks_online");
+  if (!qboConnection || qboConnection.status !== "connected") return new Map<string, string>();
+
+  const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection }).catch(() => null);
+  if (!qboAuth) return new Map<string, string>();
+
+  return getQboCustomerAcctNumMap(qboAuth);
+}
+
 /**
  * Trae una factura o nota de crédito de QBO por su DocNumber y la persiste
  * en qbo_unified_invoices con import_source='manual'.
@@ -3371,32 +3492,16 @@ export async function fetchInvoiceByDocNumber(
   const customerId = typeof customerRef?.value === "string" ? customerRef.value : null;
 
   let syncConfigId: string | null = null;
-  let r365Location: string | null = null;
 
   if (customerId) {
-    const { data: syncConfigs } = await admin
-      .from("qbo_r365_sync_configs")
-      .select("id, r365_location")
+    const { data: linkRows } = await admin
+      .from("qbo_r365_sync_config_customers")
+      .select("sync_config_id")
       .eq("organization_id", organizationId)
       .eq("qbo_customer_id", customerId)
       .limit(1);
 
-    const syncConfig = syncConfigs?.[0] ?? null;
-    if (syncConfig) {
-      syncConfigId = String(syncConfig.id);
-      r365Location = typeof syncConfig.r365_location === "string" ? syncConfig.r365_location : null;
-
-      if (!r365Location) {
-        const customers = await fetchQboCustomers({ accessToken: qboAuth.accessToken, realmId: qboAuth.realmId }).catch(() => [] as QboCustomer[]);
-        const found = customers.find((c) => c.id === customerId);
-        if (found?.acctNum) {
-          r365Location = found.acctNum;
-          void admin.from("qbo_r365_sync_configs")
-            .update({ r365_location: found.acctNum })
-            .eq("id", syncConfig.id);
-        }
-      }
-    }
+    syncConfigId = linkRows?.[0] ? String(linkRows[0].sync_config_id) : null;
   }
 
   if (!syncConfigId) {
@@ -3585,7 +3690,7 @@ export async function backfillFromQboSinceDate(
   const { invoices, creditMemos } = await fetchQboSalesTransactions({
     accessToken: qboAuth.accessToken,
     realmId: qboAuth.realmId,
-    customerId: syncConfigRow.qbo_customer_id,
+    customerIds: syncConfigRow.customers.map((c) => c.qbo_customer_id),
     txnDateFrom,
     skipSalesReceipts: true,
   });
@@ -3663,9 +3768,12 @@ export async function mapOnlyUnifiedInvoice(input: {
 
   const syncConfig = await getSyncConfigRow(input.organizationId, syncConfigId);
   const mappings = await getActiveMappings(input.organizationId);
+  const itemSkuMap = await getQboItemSkuMapForOrganization(input.organizationId);
+  const customerAcctNumMap = await getQboCustomerAcctNumMapForOrganization(input.organizationId);
 
   const entityType = row.entity_type as "Invoice" | "CreditMemo";
   const rawEntity = row.raw_entity as QboInvoiceLike;
+  const groupCustomerIds = syncConfig.customers.map((c) => c.qbo_customer_id);
 
   const lines = normalizeQboRows({
     invoices: entityType === "Invoice" ? [rawEntity] : [],
@@ -3674,9 +3782,11 @@ export async function mapOnlyUnifiedInvoice(input: {
     template: syncConfig.template,
     taxMode: syncConfig.tax_mode,
     mappings,
+    itemSkuMap,
+    customerAcctNumMap,
     r365VendorName: syncConfig.r365_vendor_name || undefined,
-    r365Location: syncConfig.r365_location || undefined,
-    syncConfigCustomerId: syncConfig.qbo_customer_id,
+    r365Location: groupCustomerIds.length === 1 ? (syncConfig.r365_location || undefined) : undefined,
+    syncConfigCustomerId: groupCustomerIds[0],
   });
 
   if (lines.length === 0) throw new Error("La factura no tiene líneas válidas para mapear — revisá los mappings del sync config");
@@ -3922,15 +4032,15 @@ export async function processQboUnifiedQueue(): Promise<{
         const customerRef = ((rawEntity as unknown) as Record<string, unknown>).CustomerRef as Record<string, unknown> | undefined;
         const customerId = typeof customerRef?.value === "string" ? customerRef.value : null;
         if (customerId) {
-          const { data: cfgRows } = await admin
-            .from("qbo_r365_sync_configs")
-            .select("id")
+          const { data: linkRows } = await admin
+            .from("qbo_r365_sync_config_customers")
+            .select("sync_config_id, qbo_r365_sync_configs(status)")
             .eq("organization_id", organizationId)
             .eq("qbo_customer_id", customerId)
-            .eq("status", "active")
             .limit(1);
-          if (cfgRows?.[0]) {
-            resolvedSyncConfigId = String(cfgRows[0].id);
+          const link = linkRows?.[0] as { sync_config_id: string; qbo_r365_sync_configs: { status: string } | null } | undefined;
+          if (link && link.qbo_r365_sync_configs?.status === "active") {
+            resolvedSyncConfigId = String(link.sync_config_id);
             const re = rawEntity as unknown as Record<string, unknown>;
             const currencyRef = (re.CurrencyRef ?? {}) as Record<string, unknown>;
             await admin

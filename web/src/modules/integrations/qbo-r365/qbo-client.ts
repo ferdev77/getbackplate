@@ -147,8 +147,8 @@ async function queryQboTable<T>(input: {
   accessToken: string;
   realmId: string;
   table: "Invoice" | "SalesReceipt" | "CreditMemo";
-  /** Filtra por CustomerRef = customerId (solo caracteres alfanuméricos/._-) */
-  customerId?: string;
+  /** Filtra por CustomerRef IN (customerIds) (solo caracteres alfanuméricos/._-) */
+  customerIds?: string[];
   /** Filtra por MetaData.LastUpdatedTime >= ISO (modo incremental / webhook) */
   sinceIso?: string;
   /** Filtra por TxnDate >= 'YYYY-MM-DD' (modo backfill histórico) */
@@ -215,8 +215,13 @@ async function queryQboTable<T>(input: {
 
   while (true) {
     const clauses: string[] = [];
-    if (input.customerId) {
-      clauses.push(`CustomerRef = '${sanitizeCustomerId(input.customerId)}'`);
+    if (input.customerIds && input.customerIds.length > 0) {
+      const sanitized = input.customerIds.map(sanitizeCustomerId);
+      clauses.push(
+        sanitized.length === 1
+          ? `CustomerRef = '${sanitized[0]}'`
+          : `CustomerRef IN (${sanitized.map((id) => `'${id}'`).join(", ")})`,
+      );
     }
     const sinceClause = buildSinceClause(input.sinceIso);
     if (sinceClause) {
@@ -276,7 +281,7 @@ async function queryQboTable<T>(input: {
 export async function fetchQboSalesTransactions(input: {
   accessToken: string;
   realmId: string;
-  customerId?: string;
+  customerIds?: string[];
   /** Filtra por MetaData.LastUpdatedTime >= ISO (sync incremental) */
   sinceIso?: string;
   /** Filtra por TxnDate >= 'YYYY-MM-DD' (backfill histórico) */
@@ -288,7 +293,7 @@ export async function fetchQboSalesTransactions(input: {
     accessToken: input.accessToken,
     realmId: input.realmId,
     table: "Invoice",
-    customerId: input.customerId,
+    customerIds: input.customerIds,
     sinceIso: input.sinceIso,
     txnDateFrom: input.txnDateFrom,
   });
@@ -298,7 +303,7 @@ export async function fetchQboSalesTransactions(input: {
         accessToken: input.accessToken,
         realmId: input.realmId,
         table: "SalesReceipt",
-        customerId: input.customerId,
+        customerIds: input.customerIds,
         sinceIso: input.sinceIso,
         txnDateFrom: input.txnDateFrom,
       });
@@ -306,7 +311,7 @@ export async function fetchQboSalesTransactions(input: {
     accessToken: input.accessToken,
     realmId: input.realmId,
     table: "CreditMemo",
-    customerId: input.customerId,
+    customerIds: input.customerIds,
     sinceIso: input.sinceIso,
     txnDateFrom: input.txnDateFrom,
   });
