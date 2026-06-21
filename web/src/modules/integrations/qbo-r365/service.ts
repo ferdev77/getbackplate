@@ -216,7 +216,7 @@ export async function listSyncConfigs(organizationId: string): Promise<SyncConfi
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin
     .from("qbo_r365_sync_configs")
-    .select("id, name, qbo_customer_id, qbo_customer_name, schedule_interval, lookback_hours, template, tax_mode, status, last_run_at, r365_ftp_host, r365_vendor_name, r365_location, created_at")
+    .select("id, name, qbo_customer_id, qbo_customer_name, schedule_interval, lookback_hours, template, tax_mode, status, last_run_at, r365_ftp_host, r365_ftp_username, r365_ftp_remote_path, r365_vendor_name, r365_location, created_at")
     .eq("organization_id", organizationId)
     .order("created_at", { ascending: true });
 
@@ -256,6 +256,9 @@ export async function listSyncConfigs(organizationId: string): Promise<SyncConfi
       hasFtp: Boolean(row.r365_ftp_host),
       r365Location: (row.r365_location as string | null) ?? null,
       r365VendorName: (row.r365_vendor_name as string | null) ?? null,
+      r365FtpHost: (row.r365_ftp_host as string | null) ?? null,
+      r365FtpUsername: (row.r365_ftp_username as string | null) ?? null,
+      r365FtpRemotePath: (row.r365_ftp_remote_path as string | null) ?? null,
       createdAt: row.created_at as string,
     };
   });

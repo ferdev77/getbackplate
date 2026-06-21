@@ -112,5 +112,8 @@ export type SyncConfigSummary = {
   hasFtp: boolean;
   r365Location: string | null;
   r365VendorName: string | null;
+  r365FtpHost: string | null;
+  r365FtpUsername: string | null;
+  r365FtpRemotePath: string | null;
   createdAt: string;
 };

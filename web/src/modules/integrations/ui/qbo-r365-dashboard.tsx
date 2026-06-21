@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link2, Search, X, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Plus, Play, Trash2, Eye, ChevronDown, ChevronUp, ChevronsUpDown, Server, Layers } from "lucide-react";
+import { Link2, Search, X, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Plus, Play, Trash2, Eye, Pencil, ChevronDown, ChevronUp, ChevronsUpDown, Server, Layers } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { saveIntegrationConfigAction } from "@/modules/integrations/qbo-r365/actions";
@@ -115,6 +115,9 @@ type SyncConfigSummary = {
   hasFtp: boolean;
   r365Location: string | null;
   r365VendorName: string | null;
+  r365FtpHost: string | null;
+  r365FtpUsername: string | null;
+  r365FtpRemotePath: string | null;
   createdAt: string;
 };
 
@@ -331,13 +334,8 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [syncConfigsLoading, setSyncConfigsLoading] = useState(false);
   const [isCreateSyncOpen, setIsCreateSyncOpen] = useState(false);
   const [deletingSyncId, setDeletingSyncId] = useState<string | null>(null);
-  // Agregar/quitar sucursales de un grupo existente
-  const [addBranchTarget, setAddBranchTarget] = useState<{ syncConfigId: string; configName: string } | null>(null);
-  const [addBranchSearch, setAddBranchSearch] = useState("");
-  const [addBranchDropdownOpen, setAddBranchDropdownOpen] = useState(false);
-  const [addBranchPicked, setAddBranchPicked] = useState<{ id: string; name: string } | null>(null);
-  const [isSavingBranch, setIsSavingBranch] = useState(false);
-  const [removingBranchKey, setRemovingBranchKey] = useState<string | null>(null);
+  // Editar sincronizacion existente (developer-only) — reusa el mismo modal/estado de crear
+  const [editingSyncConfigId, setEditingSyncConfigId] = useState<string | null>(null);
   // Form state for new sync config
   const [newSyncCustomers, setNewSyncCustomers] = useState<Array<{ id: string; name: string }>>([]);
   const [newSyncName, setNewSyncName] = useState("");
@@ -477,14 +475,14 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
 
   // Cargar clientes QBO al abrir el modal
   useEffect(() => {
-    if ((!isCreateSyncOpen && !addBranchTarget) || qboCustomers.length > 0) return;
+    if (!isCreateSyncOpen || qboCustomers.length > 0) return;
     setCustomersLoading(true);
     void fetch("/api/company/integrations/qbo-r365/customers", { cache: "no-store" })
       .then((r) => r.json())
       .then((d: { customers?: QboCustomer[] }) => setQboCustomers(d.customers ?? []))
       .catch(() => {})
       .finally(() => setCustomersLoading(false));
-  }, [isCreateSyncOpen, addBranchTarget, qboCustomers.length]);
+  }, [isCreateSyncOpen, qboCustomers.length]);
 
   // La consulta masiva no trae el numero de cuenta real (vive en un Enhanced
   // Custom Field que QBO solo expone via consulta individual). Una vez que la
@@ -585,12 +583,6 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     return qboCustomers.filter((c) => c.displayName.toLowerCase().includes(q) || c.acctNum?.toLowerCase().includes(q));
   }, [qboCustomers, customerSearch]);
 
-  const branchFilteredCustomers = useMemo(() => {
-    const q = addBranchSearch.trim().toLowerCase();
-    if (!q) return qboCustomers;
-    return qboCustomers.filter((c) => c.displayName.toLowerCase().includes(q) || c.acctNum?.toLowerCase().includes(q));
-  }, [qboCustomers, addBranchSearch]);
-
   async function handleCreateSync(e: React.FormEvent) {
     e.preventDefault();
     if (newSyncCustomers.length === 0) { toast.error("Selecciona al menos un cliente QBO"); return; }
@@ -640,43 +632,84 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     setIsSavingSync(false);
   }
 
-  async function handleAddBranch(e: React.FormEvent) {
-    e.preventDefault();
-    if (!addBranchTarget || !addBranchPicked) { toast.error("Selecciona un cliente QBO"); return; }
-    setIsSavingBranch(true);
-    try {
-      const response = await fetch(`/api/company/integrations/qbo-r365/sync-configs/${addBranchTarget.syncConfigId}/customers`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id: addBranchPicked.id, name: addBranchPicked.name }),
-      });
-      const payload = (await response.json().catch(() => ({}))) as { error?: string };
-      if (!response.ok) throw new Error(payload.error || "Error al agregar la sucursal");
-      toast.success("Sucursal agregada");
-      setAddBranchTarget(null);
-      setAddBranchPicked(null);
-      setAddBranchSearch("");
-      setRefreshKey((p) => p + 1);
-    } catch (error) {
-      toast.error("No se pudo agregar la sucursal", { description: error instanceof Error ? error.message : "Error" });
-    }
-    setIsSavingBranch(false);
+  function openEditSyncModal(config: SyncConfigSummary) {
+    setEditingSyncConfigId(config.id);
+    setNewSyncCustomers(config.qboCustomers.map((c) => ({ id: c.qboCustomerId, name: c.qboCustomerName })));
+    setNewSyncName(config.name);
+    setNewSyncVendorName(config.r365VendorName ?? "");
+    setNewSyncLocation(config.r365Location ?? "");
+    setNewSyncFtpHost(config.r365FtpHost ?? "");
+    setNewSyncFtpUser(config.r365FtpUsername ?? "");
+    setNewSyncFtpPass("");
+    setNewSyncFtpPath(config.r365FtpRemotePath ?? "/APImports/R365");
+    setShowNewSyncFtpPass(false);
+    setCustomerSearch(""); setCustomerDropdownOpen(false);
+    setNewSyncBackfillEnabled(false); setNewSyncBackfillFromDate("");
+    setIsCreateSyncOpen(true);
   }
 
-  async function handleRemoveBranch(syncConfigId: string, qboCustomerId: string) {
-    if (!confirm("¿Quitar esta sucursal de la sincronización?")) return;
-    const key = `${syncConfigId}:${qboCustomerId}`;
-    setRemovingBranchKey(key);
+  async function handleSaveEditSync(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingSyncConfigId) return;
+    if (newSyncCustomers.length === 0) { toast.error("Selecciona al menos un cliente QBO"); return; }
+    if (!newSyncName.trim()) { toast.error("Ingresá un nombre para la sincronización"); return; }
+    setIsSavingSync(true);
     try {
-      const response = await fetch(`/api/company/integrations/qbo-r365/sync-configs/${syncConfigId}/customers/${qboCustomerId}`, { method: "DELETE" });
+      const original = syncConfigs.find((c) => c.id === editingSyncConfigId);
+      const originalIds = new Set((original?.qboCustomers ?? []).map((c) => c.qboCustomerId));
+      const currentIds = new Set(newSyncCustomers.map((c) => c.id));
+      const toAdd = newSyncCustomers.filter((c) => !originalIds.has(c.id));
+      const toRemoveIds = [...originalIds].filter((id) => !currentIds.has(id));
+
+      // Agregar primero, recien despues quitar — asi un "reemplazar la unica sucursal
+      // por otra" no choca con la regla de no poder vaciar el grupo.
+      for (const c of toAdd) {
+        const res = await fetch(`/api/company/integrations/qbo-r365/sync-configs/${editingSyncConfigId}/customers`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ id: c.id, name: c.name }),
+        });
+        if (!res.ok) {
+          const payload = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(payload.error || `No se pudo agregar ${c.name}`);
+        }
+      }
+      for (const id of toRemoveIds) {
+        const res = await fetch(`/api/company/integrations/qbo-r365/sync-configs/${editingSyncConfigId}/customers/${id}`, { method: "DELETE" });
+        if (!res.ok) {
+          const payload = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(payload.error || "No se pudo quitar una sucursal");
+        }
+      }
+
+      const patch: Record<string, unknown> = { name: newSyncName };
+      if (newSyncVendorName.trim()) patch.r365VendorName = newSyncVendorName.trim();
+      if (newSyncFtpHost.trim() || newSyncFtpUser.trim() || newSyncFtpPass.trim()) {
+        patch.r365FtpHost = newSyncFtpHost.trim();
+        patch.r365FtpUsername = newSyncFtpUser.trim();
+        patch.r365FtpRemotePath = newSyncFtpPath.trim() || "/APImports/R365";
+        if (newSyncFtpPass.trim()) patch.r365FtpPassword = newSyncFtpPass.trim();
+      }
+      const response = await fetch(`/api/company/integrations/qbo-r365/sync-configs/${editingSyncConfigId}`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(patch),
+      });
       const payload = (await response.json().catch(() => ({}))) as { error?: string };
-      if (!response.ok) throw new Error(payload.error || "Error al quitar la sucursal");
-      toast.success("Sucursal eliminada del grupo");
+      if (!response.ok) throw new Error(payload.error || "Error al guardar");
+
+      toast.success("Cambios guardados");
+      setIsCreateSyncOpen(false);
+      setEditingSyncConfigId(null);
+      setNewSyncCustomers([]); setNewSyncName("");
+      setCustomerSearch(""); setCustomerDropdownOpen(false);
+      setNewSyncVendorName(""); setNewSyncLocation("");
+      setNewSyncFtpHost(""); setNewSyncFtpUser(""); setNewSyncFtpPass(""); setShowNewSyncFtpPass(false);
       setRefreshKey((p) => p + 1);
     } catch (error) {
-      toast.error("No se pudo quitar la sucursal", { description: error instanceof Error ? error.message : "Error" });
+      toast.error("No se pudo guardar", { description: error instanceof Error ? error.message : "Error" });
     }
-    setRemovingBranchKey(null);
+    setIsSavingSync(false);
   }
 
   async function handleFetchByDocNumber(e: React.FormEvent) {
@@ -1423,7 +1456,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
           {(maxR365Connections == null || syncConfigs.length < maxR365Connections) && (
             <button
               type="button"
-              onClick={() => setIsCreateSyncOpen(true)}
+              onClick={() => { setEditingSyncConfigId(null); setIsCreateSyncOpen(true); }}
               className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 py-2 text-xs font-bold text-white transition hover:bg-[var(--gbp-accent)]"
             >
               <Plus className="h-3.5 w-3.5" /> Nueva conexión
@@ -1449,34 +1482,11 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   </span>
                 </div>
                 <div className="mt-1.5 flex flex-wrap gap-1">
-                  {config.qboCustomers.map((c) => {
-                    const key = `${config.id}:${c.qboCustomerId}`;
-                    return (
-                      <span key={key} className="inline-flex items-center gap-1 rounded-full bg-[var(--gbp-bg)] px-2 py-0.5 text-[10px] text-[var(--gbp-text2)]">
-                        {c.qboCustomerName}
-                        {mode === "developer" && config.qboCustomers.length > 1 && (
-                          <button
-                            type="button"
-                            disabled={removingBranchKey === key}
-                            onClick={() => { void handleRemoveBranch(config.id, c.qboCustomerId); }}
-                            className="text-[var(--gbp-muted)] hover:text-[var(--gbp-error)]"
-                            title="Quitar sucursal"
-                          >
-                            <X className="h-2.5 w-2.5" />
-                          </button>
-                        )}
-                      </span>
-                    );
-                  })}
-                  {mode === "developer" && (
-                    <button
-                      type="button"
-                      onClick={() => { setAddBranchTarget({ syncConfigId: config.id, configName: config.name }); setAddBranchPicked(null); setAddBranchSearch(""); }}
-                      className="inline-flex items-center gap-0.5 rounded-full border border-dashed border-[var(--gbp-border)] px-2 py-0.5 text-[10px] text-[var(--gbp-muted)] hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
-                    >
-                      <Plus className="h-2.5 w-2.5" /> Sucursal
-                    </button>
-                  )}
+                  {config.qboCustomers.map((c) => (
+                    <span key={c.qboCustomerId} className="inline-flex items-center gap-1 rounded-full bg-[var(--gbp-bg)] px-2 py-0.5 text-[10px] text-[var(--gbp-text2)]">
+                      {c.qboCustomerName}
+                    </span>
+                  ))}
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <span className="rounded bg-[var(--gbp-bg)] px-2 py-0.5 text-[10px] text-[var(--gbp-text2)]">{config.template}</span>
@@ -1493,6 +1503,17 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   >
                     <Eye className="h-3.5 w-3.5" />
                   </button>
+
+                  {mode === "developer" && (
+                    <button
+                      type="button"
+                      onClick={() => openEditSyncModal(config)}
+                      title="Editar sincronización"
+                      className="inline-flex items-center justify-center rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2.5 py-1.5 text-[11px] text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  )}
 
                   {mode === "developer" && (
                     <button
@@ -1566,7 +1587,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
               <button
                 key={`empty-${i}`}
                 type="button"
-                onClick={() => setIsCreateSyncOpen(true)}
+                onClick={() => { setEditingSyncConfigId(null); setIsCreateSyncOpen(true); }}
                 className="group flex min-h-[140px] flex-col items-center justify-center gap-2 rounded-[14px] border-[1.5px] border-dashed border-[var(--gbp-border)] bg-transparent px-5 py-6 text-center transition hover:border-[var(--gbp-accent)] hover:bg-[color-mix(in_oklab,var(--gbp-accent)_5%,transparent)]"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-full border-[1.5px] border-dashed border-[var(--gbp-border)] text-[var(--gbp-muted)] transition group-hover:border-[var(--gbp-accent)] group-hover:text-[var(--gbp-accent)]">
@@ -1588,18 +1609,18 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
         )}
       </section>
 
-      {/* Modal: Crear sincronización */}
+      {/* Modal: Crear / Editar sincronización */}
       {isCreateSyncOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-lg overflow-hidden rounded-2xl border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-2xl">
             <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-4">
-              <h3 className="text-base font-bold text-[var(--gbp-text)]">Crear sincronización</h3>
-              <button type="button" onClick={() => setIsCreateSyncOpen(false)}
+              <h3 className="text-base font-bold text-[var(--gbp-text)]">{editingSyncConfigId ? "Editar sincronización" : "Crear sincronización"}</h3>
+              <button type="button" onClick={() => { setIsCreateSyncOpen(false); setEditingSyncConfigId(null); }}
                 className="rounded-lg p-1 text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]">
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <form onSubmit={(e) => { void handleCreateSync(e); }} className="max-h-[70vh] overflow-y-auto px-6 py-5 space-y-4">
+            <form onSubmit={(e) => { void (editingSyncConfigId ? handleSaveEditSync(e) : handleCreateSync(e)); }} className="max-h-[70vh] overflow-y-auto px-6 py-5 space-y-4">
               {/* Cliente(s) QBO */}
               <div>
                 <h4 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">Clientes QuickBooks (sucursales)</h4>
@@ -1734,7 +1755,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   <label className="block">
                     <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Contraseña</span>
                     <div className="relative">
-                      <input required={mode !== "developer"} type={showNewSyncFtpPass ? "text" : "password"} autoComplete="new-password" data-lpignore="true" value={newSyncFtpPass} onChange={(e) => setNewSyncFtpPass(e.target.value)}
+                      <input required={mode !== "developer" && !editingSyncConfigId} placeholder={editingSyncConfigId ? "Dejar vacío para no cambiarla" : undefined} type={showNewSyncFtpPass ? "text" : "password"} autoComplete="new-password" data-lpignore="true" value={newSyncFtpPass} onChange={(e) => setNewSyncFtpPass(e.target.value)}
                         className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 pr-9 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />
                       <button type="button" onClick={() => setShowNewSyncFtpPass((v) => !v)}
                         className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--gbp-muted)] hover:text-[var(--gbp-text2)]">
@@ -1749,121 +1770,53 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                   </label>
                 </div>
               </div>
-              {/* Importación histórica */}
-              <div>
-                <h4 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">Importación histórica</h4>
-                <label className="flex cursor-pointer items-start gap-3">
-                  <input
-                    type="checkbox"
-                    checked={newSyncBackfillEnabled}
-                    onChange={(e) => {
-                      setNewSyncBackfillEnabled(e.target.checked);
-                      if (!e.target.checked) setNewSyncBackfillFromDate("");
-                    }}
-                    className="mt-0.5 h-4 w-4 accent-[var(--gbp-accent)]"
-                  />
-                  <span className="text-sm text-[var(--gbp-text)]">
-                    Traer facturas anteriores a la fecha de hoy
-                  </span>
-                </label>
-                {newSyncBackfillEnabled && (
-                  <div className="mt-3">
-                    <label className="block">
-                      <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Desde *</span>
-                      <input
-                        required
-                        type="date"
-                        value={newSyncBackfillFromDate}
-                        max={new Date().toISOString().slice(0, 10)}
-                        onChange={(e) => setNewSyncBackfillFromDate(e.target.value)}
-                        className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none"
-                      />
-                      <span className="mt-1 block text-[10px] text-[var(--gbp-muted)]">
-                        Se importarán todas las facturas y notas de crédito de este cliente desde esa fecha. Corre en segundo plano.
-                      </span>
-                    </label>
-                  </div>
-                )}
-              </div>
+              {/* Importación histórica — solo al crear, nunca al editar */}
+              {!editingSyncConfigId && (
+                <div>
+                  <h4 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">Importación histórica</h4>
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={newSyncBackfillEnabled}
+                      onChange={(e) => {
+                        setNewSyncBackfillEnabled(e.target.checked);
+                        if (!e.target.checked) setNewSyncBackfillFromDate("");
+                      }}
+                      className="mt-0.5 h-4 w-4 accent-[var(--gbp-accent)]"
+                    />
+                    <span className="text-sm text-[var(--gbp-text)]">
+                      Traer facturas anteriores a la fecha de hoy
+                    </span>
+                  </label>
+                  {newSyncBackfillEnabled && (
+                    <div className="mt-3">
+                      <label className="block">
+                        <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Desde *</span>
+                        <input
+                          required
+                          type="date"
+                          value={newSyncBackfillFromDate}
+                          max={new Date().toISOString().slice(0, 10)}
+                          onChange={(e) => setNewSyncBackfillFromDate(e.target.value)}
+                          className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none"
+                        />
+                        <span className="mt-1 block text-[10px] text-[var(--gbp-muted)]">
+                          Se importarán todas las facturas y notas de crédito de este cliente desde esa fecha. Corre en segundo plano.
+                        </span>
+                      </label>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setIsCreateSyncOpen(false)}
+                <button type="button" onClick={() => { setIsCreateSyncOpen(false); setEditingSyncConfigId(null); }}
                   className="flex-1 rounded-lg border-[1.5px] border-[var(--gbp-border)] px-4 py-2.5 text-sm font-bold text-[var(--gbp-text)] transition hover:bg-[var(--gbp-bg)]">
                   Cancelar
                 </button>
                 <button type="submit" disabled={isSavingSync}
                   className="flex flex-[2] items-center justify-center gap-2 rounded-lg bg-[var(--gbp-accent)] px-4 py-2.5 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50">
-                  {isSavingSync ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear sincronización"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Agregar sucursal a una sincronización existente */}
-      {addBranchTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md overflow-hidden rounded-2xl border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-2xl">
-            <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-4">
-              <h3 className="text-base font-bold text-[var(--gbp-text)]">Agregar sucursal a {addBranchTarget.configName}</h3>
-              <button type="button" onClick={() => setAddBranchTarget(null)}
-                className="rounded-lg p-1 text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <form onSubmit={(e) => { void handleAddBranch(e); }} className="px-6 py-5 space-y-4">
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Cliente QBO *</span>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={addBranchSearch}
-                    onChange={(e) => { setAddBranchSearch(e.target.value); setAddBranchDropdownOpen(true); if (!e.target.value) setAddBranchPicked(null); }}
-                    onFocus={() => setAddBranchDropdownOpen(true)}
-                    onBlur={() => setTimeout(() => setAddBranchDropdownOpen(false), 150)}
-                    placeholder="Buscar cliente..."
-                    className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none"
-                  />
-                  {addBranchPicked && (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[var(--gbp-success)]">✓</span>
-                  )}
-                  {addBranchDropdownOpen && branchFilteredCustomers.length > 0 && (
-                    <ul className="absolute z-50 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-lg">
-                      {branchFilteredCustomers.map((c) => (
-                        <li
-                          key={c.id}
-                          onMouseDown={() => { setAddBranchPicked({ id: c.id, name: c.displayName }); setAddBranchSearch(c.displayName); setAddBranchDropdownOpen(false); }}
-                          className={`flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--gbp-bg)] ${addBranchPicked?.id === c.id ? "font-bold text-[var(--gbp-accent)]" : "text-[var(--gbp-text)]"}`}
-                        >
-                          <span className="min-w-0 flex-1 truncate">
-                            {c.displayName}
-                            {allUsedCustomerIds.has(c.id) && <span className="ml-1.5 text-[10px] font-normal text-[var(--gbp-muted)]">(ya asignado)</span>}
-                          </span>
-                          {!resolvedAcctNumIds.has(c.id)
-                            ? <span className="shrink-0 rounded bg-[var(--gbp-bg)] px-1.5 py-0.5 text-[10px] text-[var(--gbp-muted)]">Cargando…</span>
-                            : c.acctNum
-                              ? <span className="shrink-0 rounded bg-[var(--gbp-bg)] px-1.5 py-0.5 text-[10px] font-mono text-[var(--gbp-text2)]">Cuenta: {c.acctNum}</span>
-                              : <span className="shrink-0 rounded bg-[var(--gbp-error-soft)] px-1.5 py-0.5 text-[10px] text-[var(--gbp-error)]">⚠ Sin Account No.</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {addBranchDropdownOpen && addBranchSearch.length > 0 && branchFilteredCustomers.length === 0 && (
-                    <div className="absolute z-50 mt-1 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-muted)] shadow-lg">
-                      Sin resultados
-                    </div>
-                  )}
-                </div>
-              </label>
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setAddBranchTarget(null)}
-                  className="flex-1 rounded-lg border-[1.5px] border-[var(--gbp-border)] px-4 py-2.5 text-sm font-bold text-[var(--gbp-text)] transition hover:bg-[var(--gbp-bg)]">
-                  Cancelar
-                </button>
-                <button type="submit" disabled={isSavingBranch || !addBranchPicked}
-                  className="flex flex-[2] items-center justify-center gap-2 rounded-lg bg-[var(--gbp-accent)] px-4 py-2.5 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50">
-                  {isSavingBranch ? <Loader2 className="h-4 w-4 animate-spin" /> : "Agregar sucursal"}
+                  {isSavingSync ? <Loader2 className="h-4 w-4 animate-spin" /> : editingSyncConfigId ? "Guardar cambios" : "Crear sincronización"}
                 </button>
               </div>
             </form>
