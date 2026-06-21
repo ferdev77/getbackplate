@@ -1593,12 +1593,15 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                                   className={`flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--gbp-bg)] ${checked ? "font-semibold text-[var(--gbp-accent)]" : "text-[var(--gbp-text)]"}`}
                                 >
                                   <input type="checkbox" readOnly checked={checked} className="h-3.5 w-3.5 shrink-0 accent-[var(--gbp-accent)]" />
-                                  <span>
+                                  <span className="min-w-0 flex-1 truncate">
                                     {c.displayName}
                                     {mode === "developer" && c.raw && (
                                       <span className="ml-1.5 text-[10px] text-[var(--gbp-muted)]">({JSON.stringify(c.raw)})</span>
                                     )}
                                   </span>
+                                  {c.acctNum
+                                    ? <span className="shrink-0 rounded bg-[var(--gbp-bg)] px-1.5 py-0.5 text-[10px] font-mono text-[var(--gbp-text2)]">Cuenta: {c.acctNum}</span>
+                                    : <span className="shrink-0 rounded bg-[var(--gbp-error-soft)] px-1.5 py-0.5 text-[10px] text-[var(--gbp-error)]">⚠ Sin Account No.</span>}
                                 </li>
                               );
                             })}
@@ -1614,14 +1617,20 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                 </label>
                 {newSyncCustomers.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    {newSyncCustomers.map((c) => (
-                      <span key={c.id} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--gbp-bg)] px-2.5 py-1 text-[11px] font-medium text-[var(--gbp-text)]">
-                        {c.name}
-                        <button type="button" onClick={() => handleRemoveNewSyncCustomer(c.id)} className="text-[var(--gbp-muted)] hover:text-[var(--gbp-error)]">
-                          <X className="h-3 w-3" />
-                        </button>
-                      </span>
-                    ))}
+                    {newSyncCustomers.map((c) => {
+                      const acctNum = qboCustomers.find((q) => q.id === c.id)?.acctNum;
+                      return (
+                        <span key={c.id} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--gbp-bg)] px-2.5 py-1 text-[11px] font-medium text-[var(--gbp-text)]">
+                          {c.name}
+                          <span className={`font-mono text-[10px] ${acctNum ? "text-[var(--gbp-text2)]" : "font-bold text-[var(--gbp-error)]"}`}>
+                            {acctNum ? `· ${acctNum}` : "· ⚠ sin cuenta"}
+                          </span>
+                          <button type="button" onClick={() => handleRemoveNewSyncCustomer(c.id)} className="text-[var(--gbp-muted)] hover:text-[var(--gbp-error)]">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      );
+                    })}
                   </div>
                 )}
                 {newSyncCustomers.length > 1 && (
@@ -1783,9 +1792,12 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                         <li
                           key={c.id}
                           onMouseDown={() => { setAddBranchPicked({ id: c.id, name: c.displayName }); setAddBranchSearch(c.displayName); setAddBranchDropdownOpen(false); }}
-                          className={`cursor-pointer px-3 py-2 text-sm hover:bg-[var(--gbp-bg)] ${addBranchPicked?.id === c.id ? "font-bold text-[var(--gbp-accent)]" : "text-[var(--gbp-text)]"}`}
+                          className={`flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--gbp-bg)] ${addBranchPicked?.id === c.id ? "font-bold text-[var(--gbp-accent)]" : "text-[var(--gbp-text)]"}`}
                         >
-                          {c.displayName}
+                          <span className="min-w-0 flex-1 truncate">{c.displayName}</span>
+                          {c.acctNum
+                            ? <span className="shrink-0 rounded bg-[var(--gbp-bg)] px-1.5 py-0.5 text-[10px] font-mono text-[var(--gbp-text2)]">Cuenta: {c.acctNum}</span>
+                            : <span className="shrink-0 rounded bg-[var(--gbp-error-soft)] px-1.5 py-0.5 text-[10px] text-[var(--gbp-error)]">⚠ Sin Account No.</span>}
                         </li>
                       ))}
                     </ul>
