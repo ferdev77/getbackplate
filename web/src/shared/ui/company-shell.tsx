@@ -1748,12 +1748,6 @@ export function CompanyShell({
                  <MessageSquarePlus className="h-4 w-4" />
                  <TooltipLabel label="Feedback" />
                </button>
-               {canInstall && (
-                 <button type="button" onClick={install} className={`group relative inline-flex items-center justify-center rounded-md border text-[var(--gbp-text2)] transition lg:hidden ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9" : "h-9 flex-1"}`}>
-                   <Download className="h-4 w-4" />
-                   <TooltipLabel label="Instalar app" />
-                 </button>
-               )}
              </div>
           </div>
         </aside>
@@ -2935,6 +2929,19 @@ export function CompanyShell({
                   <TooltipLabel label="Feedback" />
                 </button>
               </div>
+              {canInstall && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    install();
+                  }}
+                  className={`group/tooltip relative mt-1.5 inline-flex w-full items-center justify-center gap-1.5 rounded-md border h-10 text-xs text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 hover:bg-black/10 hover:text-[var(--gbp-text)]"}`}
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Instalar app</span>
+                </button>
+              )}
             </div>
           </aside>
         </div>

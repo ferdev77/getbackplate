@@ -607,7 +607,7 @@ export function EmployeeShell({
               <button
                 type="button"
                 onClick={install}
-                className={`group/tooltip relative inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] py-2 text-xs text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)] lg:hidden ${
+                className={`group/tooltip relative mb-2 inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] py-2 text-xs text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)] lg:hidden ${
                   collapsed ? "h-9 w-9 p-0" : "px-2"
                 }`}
               >
