@@ -1454,7 +1454,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                     return (
                       <span key={key} className="inline-flex items-center gap-1 rounded-full bg-[var(--gbp-bg)] px-2 py-0.5 text-[10px] text-[var(--gbp-text2)]">
                         {c.qboCustomerName}
-                        {config.qboCustomers.length > 1 && (
+                        {mode === "developer" && config.qboCustomers.length > 1 && (
                           <button
                             type="button"
                             disabled={removingBranchKey === key}
@@ -1468,13 +1468,15 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                       </span>
                     );
                   })}
-                  <button
-                    type="button"
-                    onClick={() => { setAddBranchTarget({ syncConfigId: config.id, configName: config.name }); setAddBranchPicked(null); setAddBranchSearch(""); }}
-                    className="inline-flex items-center gap-0.5 rounded-full border border-dashed border-[var(--gbp-border)] px-2 py-0.5 text-[10px] text-[var(--gbp-muted)] hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
-                  >
-                    <Plus className="h-2.5 w-2.5" /> Sucursal
-                  </button>
+                  {mode === "developer" && (
+                    <button
+                      type="button"
+                      onClick={() => { setAddBranchTarget({ syncConfigId: config.id, configName: config.name }); setAddBranchPicked(null); setAddBranchSearch(""); }}
+                      className="inline-flex items-center gap-0.5 rounded-full border border-dashed border-[var(--gbp-border)] px-2 py-0.5 text-[10px] text-[var(--gbp-muted)] hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]"
+                    >
+                      <Plus className="h-2.5 w-2.5" /> Sucursal
+                    </button>
+                  )}
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <span className="rounded bg-[var(--gbp-bg)] px-2 py-0.5 text-[10px] text-[var(--gbp-text2)]">{config.template}</span>
@@ -1492,14 +1494,16 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                     <Eye className="h-3.5 w-3.5" />
                   </button>
 
-                  <button
-                    type="button"
-                    disabled={deletingSyncId === config.id}
-                    onClick={() => handleDeleteSyncConfig(config.id)}
-                    className="inline-flex items-center justify-center rounded-lg border-[1.5px] border-[var(--gbp-error-soft)] bg-[var(--gbp-error-soft)] px-2.5 py-1.5 text-[11px] text-[var(--gbp-error)] transition hover:opacity-80 disabled:opacity-50"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  {mode === "developer" && (
+                    <button
+                      type="button"
+                      disabled={deletingSyncId === config.id}
+                      onClick={() => handleDeleteSyncConfig(config.id)}
+                      className="inline-flex items-center justify-center rounded-lg border-[1.5px] border-[var(--gbp-error-soft)] bg-[var(--gbp-error-soft)] px-2.5 py-1.5 text-[11px] text-[var(--gbp-error)] transition hover:opacity-80 disabled:opacity-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
                 <form onSubmit={(e) => { void handleFetchByDocNumber(e); }} className="mt-3 flex gap-1.5">
                   <input
