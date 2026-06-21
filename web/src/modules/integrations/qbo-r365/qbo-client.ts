@@ -554,6 +554,23 @@ export async function fetchQboTransactionByDocNumber(input: {
   return null;
 }
 
+/**
+ * "Account Number" (el codigo de ubicacion R365) se guarda en QBO como un
+ * CustomField llamado "Account Number" — no en el campo estandar AcctNum.
+ * AcctNum queda solo como respaldo por si algun cliente lo usa directamente.
+ */
+function extractAccountNumberField(c: { CustomField?: unknown; AcctNum?: unknown }): string | undefined {
+  const customFields = Array.isArray(c.CustomField) ? (c.CustomField as Array<Record<string, unknown>>) : [];
+  const acctField = customFields.find((f) => typeof f.Name === "string" && f.Name.toLowerCase() === "account number");
+  if (acctField && typeof acctField.StringValue === "string" && acctField.StringValue.trim()) {
+    return acctField.StringValue.trim();
+  }
+  if (typeof c.AcctNum === "string" && c.AcctNum.trim()) {
+    return c.AcctNum.trim();
+  }
+  return undefined;
+}
+
 export async function fetchQboCustomerById(input: {
   accessToken: string;
   realmId: string;
@@ -575,17 +592,7 @@ export async function fetchQboCustomerById(input: {
   const c = payload?.Customer;
   if (!c || typeof c.Id !== "string" || typeof c.DisplayName !== "string") return null;
 
-  // "Account Number" is stored as a CustomField, not in AcctNum
-  let acctNum: string | undefined;
-  const customFields = Array.isArray(c.CustomField) ? (c.CustomField as Array<Record<string, unknown>>) : [];
-  const acctField = customFields.find((f) => typeof f.Name === "string" && f.Name.toLowerCase() === "account number");
-  if (acctField && typeof acctField.StringValue === "string" && acctField.StringValue.trim()) {
-    acctNum = acctField.StringValue.trim();
-  } else if (typeof c.AcctNum === "string" && c.AcctNum.trim()) {
-    acctNum = c.AcctNum.trim();
-  }
-
-  return { id: c.Id, displayName: c.DisplayName, acctNum, raw: c };
+  return { id: c.Id, displayName: c.DisplayName, acctNum: extractAccountNumberField(c), raw: c };
 }
 
 export async function fetchQboCustomers(input: {
@@ -597,13 +604,19 @@ export async function fetchQboCustomers(input: {
   const output: QboCustomer[] = [];
   let startPosition = 1;
 
-  type RawCustomer = { Id?: string; DisplayName?: string; AcctNum?: string; ParentRef?: { value?: string } };
+  type RawCustomer = {
+    Id?: string;
+    DisplayName?: string;
+    AcctNum?: string;
+    ParentRef?: { value?: string };
+    CustomField?: Array<{ Name?: string; StringValue?: string }>;
+  };
   const raw: RawCustomer[] = [];
 
   while (true) {
-    const query = `select Id, DisplayName, AcctNum, ParentRef from Customer where Active = true startposition ${startPosition} maxresults ${pageSize}`;
+    const query = `select * from Customer where Active = true startposition ${startPosition} maxresults ${pageSize}`;
     const response = await fetch(
-      `${baseUrl}/v3/company/${input.realmId}/query?minorversion=75`,
+      `${baseUrl}/v3/company/${input.realmId}/query?minorversion=75&include=enhancedAllCustomFields`,
       {
         method: "POST",
         headers: {
@@ -630,13 +643,15 @@ export async function fetchQboCustomers(input: {
     startPosition += pageSize;
   }
 
-  // Build AcctNum map — sub-customers inherit parent's AcctNum if they lack their own
+  // Build el mapa de Account Number — sub-customers heredan el del padre si no tienen uno propio
   const acctNumById = new Map<string, string>();
   for (const c of raw) {
-    if (c.Id && c.AcctNum?.trim()) acctNumById.set(c.Id, c.AcctNum.trim());
+    const own = extractAccountNumberField(c);
+    if (c.Id && own) acctNumById.set(c.Id, own);
   }
   const resolveAcctNum = (c: RawCustomer): string | undefined => {
-    if (c.AcctNum?.trim()) return c.AcctNum.trim();
+    const own = extractAccountNumberField(c);
+    if (own) return own;
     const parentId = c.ParentRef?.value;
     if (parentId) return acctNumById.get(parentId);
     return undefined;

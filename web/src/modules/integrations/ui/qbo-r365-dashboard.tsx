@@ -550,13 +550,13 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const filteredCustomers = useMemo(() => {
     const q = customerSearch.trim().toLowerCase();
     if (!q) return qboCustomers;
-    return qboCustomers.filter((c) => c.displayName.toLowerCase().includes(q));
+    return qboCustomers.filter((c) => c.displayName.toLowerCase().includes(q) || c.acctNum?.toLowerCase().includes(q));
   }, [qboCustomers, customerSearch]);
 
   const branchFilteredCustomers = useMemo(() => {
     const q = addBranchSearch.trim().toLowerCase();
     if (!q) return qboCustomers;
-    return qboCustomers.filter((c) => c.displayName.toLowerCase().includes(q));
+    return qboCustomers.filter((c) => c.displayName.toLowerCase().includes(q) || c.acctNum?.toLowerCase().includes(q));
   }, [qboCustomers, addBranchSearch]);
 
   async function handleCreateSync(e: React.FormEvent) {
