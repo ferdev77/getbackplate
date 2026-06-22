@@ -2302,16 +2302,26 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
               ) : (
                 <button
                   type="button"
-                  disabled={sendingUnifiedInvoice || selectedUnifiedRow.pipelineStatus === "enviada"}
-                  onClick={() => void handleSendUnifiedInvoice(selectedUnifiedRow.id)}
+                  disabled={
+                    sendingUnifiedInvoice
+                    || (selectedUnifiedRow.pipelineStatus === "enviada" && mode !== "developer")
+                  }
+                  onClick={() => {
+                    if (selectedUnifiedRow.pipelineStatus === "enviada" && !confirm("Esta factura ya fue enviada a R365. ¿Reenviarla de todas formas?")) return;
+                    void handleSendUnifiedInvoice(selectedUnifiedRow.id);
+                  }}
                   className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-bold transition disabled:opacity-50 ${
-                    selectedUnifiedRow.pipelineStatus === "enviada"
+                    selectedUnifiedRow.pipelineStatus === "enviada" && mode !== "developer"
                       ? "border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"
                       : "bg-[var(--gbp-accent)] text-white hover:opacity-90"
                   }`}
                 >
                   {sendingUnifiedInvoice ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-                  {sendingUnifiedInvoice ? "Enviando..." : selectedUnifiedRow.pipelineStatus === "enviada" ? "Ya enviada" : "Enviar a R365"}
+                  {sendingUnifiedInvoice
+                    ? "Enviando..."
+                    : selectedUnifiedRow.pipelineStatus === "enviada"
+                      ? (mode === "developer" ? "Reenviar a R365" : "Ya enviada")
+                      : "Enviar a R365"}
                 </button>
               )}
             </footer>
