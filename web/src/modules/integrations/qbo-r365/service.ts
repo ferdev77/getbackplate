@@ -20,7 +20,7 @@ import {
   type QboCustomer,
   type QboInvoiceLike,
 } from "@/modules/integrations/qbo-r365/qbo-client";
-import { buildR365Csv, type NormalizedInvoiceLine } from "@/modules/integrations/qbo-r365/r365-csv";
+import { buildR365Csv, parseCsvRows, type NormalizedInvoiceLine } from "@/modules/integrations/qbo-r365/r365-csv";
 import {
   qboR365ConfigUpsertSchema,
   qboR365SettingsSchema,
@@ -2663,35 +2663,10 @@ export async function previewUnifiedInvoiceCsv(input: {
 
   const { csv, rowCount } = buildR365Csv({ template: syncConfig.template, lines });
 
-  const csvLines = csv.split("\n").filter(Boolean);
-  const parseRow = (line: string): string[] => {
-    const result: string[] = [];
-    let i = 0;
-    while (i < line.length) {
-      if (line[i] === '"') {
-        i++;
-        let field = "";
-        while (i < line.length) {
-          if (line[i] === '"' && line[i + 1] === '"') { field += '"'; i += 2; }
-          else if (line[i] === '"') { i++; break; }
-          else { field += line[i]; i++; }
-        }
-        result.push(field);
-        if (line[i] === ",") i++;
-      } else {
-        const end = line.indexOf(",", i);
-        if (end === -1) { result.push(line.slice(i)); break; }
-        result.push(line.slice(i, end));
-        i = end + 1;
-      }
-    }
-    return result;
-  };
-
-  const [headerLine, ...dataLines] = csvLines;
+  const [headerRow, ...dataRows] = parseCsvRows(csv);
   return {
-    headers: parseRow(headerLine ?? ""),
-    rows: dataLines.map(parseRow),
+    headers: headerRow ?? [],
+    rows: dataRows,
     csv,
     rowCount,
     templateUsed: syncConfig.template,
@@ -2752,35 +2727,10 @@ export async function previewSingleInvoiceCsv(input: {
 
   const { csv, rowCount } = buildR365Csv({ template, lines });
 
-  const csvLines = csv.split("\n").filter(Boolean);
-  const parseRow = (line: string): string[] => {
-    const result: string[] = [];
-    let i = 0;
-    while (i < line.length) {
-      if (line[i] === '"') {
-        i++;
-        let field = "";
-        while (i < line.length) {
-          if (line[i] === '"' && line[i + 1] === '"') { field += '"'; i += 2; }
-          else if (line[i] === '"') { i++; break; }
-          else { field += line[i]; i++; }
-        }
-        result.push(field);
-        if (line[i] === ",") i++;
-      } else {
-        const end = line.indexOf(",", i);
-        if (end === -1) { result.push(line.slice(i)); break; }
-        result.push(line.slice(i, end));
-        i = end + 1;
-      }
-    }
-    return result;
-  };
-
-  const [headerLine, ...dataLines] = csvLines;
+  const [headerRow, ...dataRows] = parseCsvRows(csv);
   return {
-    headers: parseRow(headerLine ?? ""),
-    rows: dataLines.map(parseRow),
+    headers: headerRow ?? [],
+    rows: dataRows,
     csv,
     rowCount,
     templateUsed: template,

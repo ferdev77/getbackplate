@@ -86,3 +86,63 @@ export function buildR365Csv(input: {
     rowCount: rows.length,
   };
 }
+
+/**
+ * Parsea texto CSV respetando comillas — a diferencia de un simple split("\n"),
+ * no corta una fila en pedazos cuando un campo entre comillas tiene saltos de
+ * línea adentro (ej. una Description de QBO con varias líneas de texto).
+ */
+export function parseCsvRows(csv: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+  let i = 0;
+
+  while (i < csv.length) {
+    const ch = csv[i];
+
+    if (inQuotes) {
+      if (ch === '"') {
+        if (csv[i + 1] === '"') {
+          field += '"';
+          i += 2;
+        } else {
+          inQuotes = false;
+          i += 1;
+        }
+      } else {
+        field += ch;
+        i += 1;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      inQuotes = true;
+      i += 1;
+    } else if (ch === ",") {
+      row.push(field);
+      field = "";
+      i += 1;
+    } else if (ch === "\r") {
+      i += 1;
+    } else if (ch === "\n") {
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = "";
+      i += 1;
+    } else {
+      field += ch;
+      i += 1;
+    }
+  }
+
+  if (field.length > 0 || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+
+  return rows.filter((r) => !(r.length === 1 && r[0] === ""));
+}
