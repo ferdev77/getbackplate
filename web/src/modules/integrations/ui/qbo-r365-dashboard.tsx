@@ -1892,7 +1892,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                         <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{formatQboDate(item.txnDate)}</td>
                         <td className="px-4 py-3 text-xs font-medium text-[var(--gbp-text)]">{item.docNumber ?? item.entityId.slice(0, 10)}</td>
                         <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{item.entityType}</td>
-                        <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{resolveHistoryCustomerName(item, syncConfigs)}</td>
+                        <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{resolveHistoryCustomerName(item)}</td>
                         <td className="px-4 py-3 text-xs font-semibold text-[var(--gbp-text)]">{item.totalAmount != null ? item.totalAmount.toFixed(2) : "-"}</td>
                         <td className="px-4 py-3">
                           <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
