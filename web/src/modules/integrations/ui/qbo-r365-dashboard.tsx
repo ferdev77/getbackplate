@@ -1456,7 +1456,11 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
           {(maxR365Connections == null || syncConfigs.length < maxR365Connections) && (
             <button
               type="button"
-              onClick={() => { setEditingSyncConfigId(null); setIsCreateSyncOpen(true); }}
+              onClick={() => {
+                setEditingSyncConfigId(null);
+                setNewSyncVendorName(syncConfigs.find((c) => c.r365VendorName)?.r365VendorName ?? "");
+                setIsCreateSyncOpen(true);
+              }}
               className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 py-2 text-xs font-bold text-white transition hover:bg-[var(--gbp-accent)]"
             >
               <Plus className="h-3.5 w-3.5" /> Nueva conexión
@@ -1587,7 +1591,11 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
               <button
                 key={`empty-${i}`}
                 type="button"
-                onClick={() => { setEditingSyncConfigId(null); setIsCreateSyncOpen(true); }}
+                onClick={() => {
+                  setEditingSyncConfigId(null);
+                  setNewSyncVendorName(syncConfigs.find((c) => c.r365VendorName)?.r365VendorName ?? "");
+                  setIsCreateSyncOpen(true);
+                }}
                 className="group flex min-h-[140px] flex-col items-center justify-center gap-2 rounded-[14px] border-[1.5px] border-dashed border-[var(--gbp-border)] bg-transparent px-5 py-6 text-center transition hover:border-[var(--gbp-accent)] hover:bg-[color-mix(in_oklab,var(--gbp-accent)_5%,transparent)]"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-full border-[1.5px] border-dashed border-[var(--gbp-border)] text-[var(--gbp-muted)] transition group-hover:border-[var(--gbp-accent)] group-hover:text-[var(--gbp-accent)]">
