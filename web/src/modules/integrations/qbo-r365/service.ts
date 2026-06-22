@@ -3738,30 +3738,61 @@ export async function backfillFromQboSinceDate(
     const nowIso = new Date().toISOString();
     const detected = invoices.length + creditMemos.length;
 
+    // Las facturas históricas se mapean (no se envían) al mismo tiempo que se capturan:
+    // ya tenemos el raw_entity y la sync config en memoria, así que evitamos un segundo
+    // pase (cron o click manual) solo para llegar a "mapeada". El envío a R365 sigue
+    // siendo siempre una acción manual, factura por factura.
+    const mappings = await getActiveMappings(organizationId);
+    const itemSkuMap = await getQboItemSkuMapForOrganization(organizationId);
+    const groupCustomerIds = syncConfigRow.customers.map((c) => c.qbo_customer_id);
+    const customerAcctNumMap = new Map(
+      syncConfigRow.customers
+        .filter((c) => c.r365_location)
+        .map((c) => [c.qbo_customer_id, c.r365_location as string]),
+    );
+
     const toUpsert = [
       ...invoices.map((data) => ({ type: "Invoice" as const, data })),
       ...creditMemos.map((data) => ({ type: "CreditMemo" as const, data })),
     ]
       .filter((item) => Boolean(item.data.Id))
-      .map(({ type, data }) => ({
-        organization_id: organizationId,
-        sync_config_id: syncConfigId,
-        entity_id: String(data.Id),
-        entity_type: type,
-        import_source: "sync" as const,
-        pipeline_status: "capturada" as const,
-        raw_entity: data as Record<string, unknown>,
-        fetched_at: nowIso,
-        doc_number: data.DocNumber ?? null,
-        txn_date: data.TxnDate ?? null,
-        due_date: data.DueDate ?? null,
-        total_amount: data.TotalAmt !== undefined && data.TotalAmt !== null ? Number(data.TotalAmt) : null,
-        currency: data.CurrencyRef?.value ?? null,
-        customer_name: data.CustomerRef?.name ?? null,
-        vendor_name: data.CustomerRef?.name ?? null,
-      }));
+      .map(({ type, data }) => {
+        const lines = normalizeQboRows({
+          invoices: type === "Invoice" ? [data] : [],
+          salesReceipts: [],
+          creditMemos: type === "CreditMemo" ? [data] : [],
+          template: syncConfigRow.template,
+          taxMode: syncConfigRow.tax_mode,
+          mappings,
+          itemSkuMap,
+          customerAcctNumMap,
+          r365VendorName: syncConfigRow.r365_vendor_name || undefined,
+          r365Location: groupCustomerIds.length === 1 ? (syncConfigRow.r365_location || undefined) : undefined,
+          syncConfigCustomerId: groupCustomerIds[0],
+        });
+        const mapped = lines.length > 0;
+        return {
+          organization_id: organizationId,
+          sync_config_id: syncConfigId,
+          entity_id: String(data.Id),
+          entity_type: type,
+          import_source: "sync" as const,
+          pipeline_status: (mapped ? "mapeada" : "capturada") as "mapeada" | "capturada",
+          mapped_at: mapped ? nowIso : null,
+          raw_entity: data as Record<string, unknown>,
+          fetched_at: nowIso,
+          doc_number: data.DocNumber ?? null,
+          txn_date: data.TxnDate ?? null,
+          due_date: data.DueDate ?? null,
+          total_amount: data.TotalAmt !== undefined && data.TotalAmt !== null ? Number(data.TotalAmt) : null,
+          currency: data.CurrencyRef?.value ?? null,
+          customer_name: data.CustomerRef?.name ?? null,
+          vendor_name: data.CustomerRef?.name ?? null,
+        };
+      });
 
     let upserted = 0;
+    let mappedCount = 0;
     const batchSize = 100;
     for (let i = 0; i < toUpsert.length; i += batchSize) {
       const batch = toUpsert.slice(i, i + batchSize);
@@ -3771,6 +3802,7 @@ export async function backfillFromQboSinceDate(
       });
       if (error) throw new Error(error.message);
       upserted += batch.length;
+      mappedCount += batch.filter((row) => row.pipeline_status === "mapeada").length;
     }
 
     await admin
@@ -3779,10 +3811,10 @@ export async function backfillFromQboSinceDate(
         status: "completed",
         finished_at: new Date().toISOString(),
         total_detected: detected,
-        total_mapped: upserted,
+        total_mapped: mappedCount,
         total_uploaded: 0,
         total_skipped_duplicates: detected - upserted,
-        total_failed: 0,
+        total_failed: upserted - mappedCount,
       })
       .eq("id", runId)
       .eq("organization_id", organizationId);
@@ -3792,8 +3824,8 @@ export async function backfillFromQboSinceDate(
       runId,
       level: "info",
       code: "backfill_completed",
-      message: `Importación histórica desde ${txnDateFrom}: ${detected} detectadas, ${upserted} capturadas en cola`,
-      metadata: { detected, upserted, since: txnDateFrom },
+      message: `Importación histórica desde ${txnDateFrom}: ${detected} detectadas, ${upserted} capturadas, ${mappedCount} mapeadas`,
+      metadata: { detected, upserted, mappedCount, since: txnDateFrom },
     });
 
     return { upserted };
