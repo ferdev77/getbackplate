@@ -5,13 +5,18 @@ import { getCurrentUser } from "@/modules/memberships/queries";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { dispatchSuperadminPushBroadcast } from "@/infrastructure/push/superadmin-broadcast";
 
-const bodySchema = z.object({
-  title: z.string().min(1).max(100),
-  body: z.string().min(1).max(500),
-  orgIds: z.union([z.literal("all"), z.array(z.string().uuid()).min(1)]),
-  image: z.string().url().optional(),
-  scheduledAt: z.string().datetime().optional(),
-});
+const bodySchema = z
+  .object({
+    title: z.string().min(1).max(100),
+    body: z.string().min(1).max(500),
+    orgIds: z.union([z.literal("all"), z.array(z.string().uuid()).min(1)]).optional(),
+    userIds: z.array(z.string().uuid()).min(1).optional(),
+    image: z.string().url().optional(),
+    scheduledAt: z.string().datetime().optional(),
+  })
+  .refine((data) => (data.orgIds !== undefined) !== (data.userIds !== undefined), {
+    message: "Debe especificar orgIds o userIds, no ambos",
+  });
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,7 +33,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Datos inválidos", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { title, body, orgIds, image, scheduledAt } = parsed.data;
+  const { title, body, orgIds, userIds, image, scheduledAt } = parsed.data;
   const sentBy = currentUser?.email ?? "superadmin";
 
   if (scheduledAt) {
@@ -51,8 +56,10 @@ export async function POST(req: NextRequest) {
         title,
         body,
         image_url: image ?? null,
-        target_all: orgIds === "all",
-        org_ids: orgIds === "all" ? [] : orgIds,
+        target_type: userIds ? "users" : "orgs",
+        target_all: userIds ? false : orgIds === "all",
+        org_ids: userIds ? [] : orgIds === "all" ? [] : orgIds,
+        user_ids: userIds ?? [],
         scheduled_at: scheduledDate.toISOString(),
         status: "pending",
       })
@@ -63,6 +70,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ scheduled: true, id: data.id, scheduledAt: data.scheduled_at });
   }
 
-  const result = await dispatchSuperadminPushBroadcast({ title, body, orgIds, image, sentBy });
+  const result = userIds
+    ? await dispatchSuperadminPushBroadcast({ title, body, image, sentBy, targetType: "users", userIds })
+    : await dispatchSuperadminPushBroadcast({ title, body, image, sentBy, targetType: "orgs", orgIds: orgIds! });
   return NextResponse.json(result);
 }

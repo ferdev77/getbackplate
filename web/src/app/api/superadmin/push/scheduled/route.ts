@@ -12,7 +12,7 @@ export async function GET() {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("push_scheduled_sends")
-    .select("id, created_at, created_by, title, body, image_url, target_all, org_ids, scheduled_at, status")
+    .select("id, created_at, created_by, title, body, image_url, target_type, target_all, org_ids, user_ids, scheduled_at, status")
     .eq("status", "pending")
     .order("scheduled_at", { ascending: true });
 

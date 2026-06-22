@@ -23,7 +23,7 @@ export default async function SuperadminPushPage() {
       .order("name"),
     supabase
       .from("push_send_logs")
-      .select("id, created_at, sent_by, title, body, image_url, org_ids, orgs_count, sent, expired, failed")
+      .select("id, created_at, sent_by, title, body, image_url, target_type, org_ids, orgs_count, user_ids, user_count, sent, expired, failed")
       .order("created_at", { ascending: false })
       .limit(50),
     supabase
@@ -33,7 +33,7 @@ export default async function SuperadminPushPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("push_scheduled_sends")
-      .select("id, created_at, created_by, title, body, image_url, target_all, org_ids, scheduled_at, status")
+      .select("id, created_at, created_by, title, body, image_url, target_type, target_all, org_ids, user_ids, scheduled_at, status")
       .eq("status", "pending")
       .order("scheduled_at", { ascending: true }),
   ]);

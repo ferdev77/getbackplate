@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import { Bell, Search, CheckSquare, Square, Send, Loader2, AlertCircle, CheckCircle2, Users, ImagePlus, X, History, Smartphone, CalendarClock, Zap, Ban } from "lucide-react";
+import { Bell, Search, CheckSquare, Square, Send, Loader2, AlertCircle, CheckCircle2, Users, ImagePlus, X, History, Smartphone, CalendarClock, Zap, Ban, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { PageContent } from "@/shared/ui/page-content";
 
@@ -15,8 +15,11 @@ type LogRow = {
   title: string;
   body: string;
   image_url: string | null;
+  target_type?: "orgs" | "users";
   org_ids: string[];
   orgs_count: number;
+  user_ids?: string[];
+  user_count?: number;
   sent: number;
   expired: number;
   failed: number;
@@ -28,8 +31,10 @@ type ScheduledRow = {
   title: string;
   body: string;
   image_url: string | null;
+  target_type?: "orgs" | "users";
   target_all: boolean;
   org_ids: string[];
+  user_ids?: string[];
   scheduled_at: string;
   status: string;
 };
@@ -70,16 +75,23 @@ function parseBrowser(ua: string | null) {
   return "—";
 }
 
+function userDisplayName(s: Subscriber) {
+  return s.first_name || s.last_name ? `${s.first_name ?? ""} ${s.last_name ?? ""}`.trim() : null;
+}
+
 export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, scheduled: initialScheduled }: Props) {
+  const [audienceMode, setAudienceMode] = useState<"orgs" | "users">("orgs");
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [allSelected, setAllSelected] = useState(false);
+  const [userSearch, setUserSearch] = useState("");
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
   const [isPending, setIsPending] = useState(false);
-  const [result, setResult] = useState<{ sent: number; expired: number; failed: number; orgs: number } | null>(null);
+  const [result, setResult] = useState<{ sent: number; expired: number; failed: number; targetType: "orgs" | "users"; targetCount: number } | null>(null);
   const [logs, setLogs] = useState<LogRow[]>(initialLogs);
   const [sendMode, setSendMode] = useState<"now" | "schedule">("now");
   const [scheduleDate, setScheduleDate] = useState(todayLocalDateInput());
@@ -94,6 +106,25 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
     () => orgs.filter((o) => o.name.toLowerCase().includes(search.toLowerCase())),
     [orgs, search],
   );
+
+  const uniqueUsers = useMemo(() => {
+    const byUser = new Map<string, Subscriber>();
+    for (const s of subscribers) {
+      if (!byUser.has(s.user_id)) byUser.set(s.user_id, s);
+    }
+    return Array.from(byUser.values());
+  }, [subscribers]);
+
+  const filteredUsers = useMemo(() => {
+    const q = userSearch.toLowerCase();
+    if (!q) return uniqueUsers;
+    return uniqueUsers.filter((u) => {
+      const name = (userDisplayName(u) ?? "").toLowerCase();
+      const email = (u.email ?? "").toLowerCase();
+      const org = u.org_name.toLowerCase();
+      return name.includes(q) || email.includes(q) || org.includes(q);
+    });
+  }, [uniqueUsers, userSearch]);
 
   function toggleOrg(id: string) {
     setAllSelected(false);
@@ -113,6 +144,15 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
       setAllSelected(true);
       setSelectedIds(new Set());
     }
+  }
+
+  function toggleUser(userId: string) {
+    setSelectedUserIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
   }
 
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -149,7 +189,8 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  const targetCount = allSelected ? orgs.length : selectedIds.size;
+  const targetCount = audienceMode === "users" ? selectedUserIds.size : allSelected ? orgs.length : selectedIds.size;
+  const targetLabel = audienceMode === "users" ? "usuario" : "org";
   const hasMessage = title.trim().length > 0 && body.trim().length > 0;
   const canSend =
     targetCount > 0 &&
@@ -182,7 +223,9 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
         body: JSON.stringify({
           title: title.trim(),
           body: body.trim(),
-          orgIds: allSelected ? "all" : Array.from(selectedIds),
+          ...(audienceMode === "users"
+            ? { userIds: Array.from(selectedUserIds) }
+            : { orgIds: allSelected ? "all" : Array.from(selectedIds) }),
           ...(imageUrl ? { image: imageUrl } : {}),
           ...(scheduledAtIso ? { scheduledAt: scheduledAtIso } : {}),
         }),
@@ -201,8 +244,10 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
             title: title.trim(),
             body: body.trim(),
             image_url: imageUrl,
-            target_all: allSelected,
-            org_ids: allSelected ? [] : Array.from(selectedIds),
+            target_type: audienceMode,
+            target_all: audienceMode === "orgs" && allSelected,
+            org_ids: audienceMode === "orgs" ? (allSelected ? [] : Array.from(selectedIds)) : [],
+            user_ids: audienceMode === "users" ? Array.from(selectedUserIds) : [],
             scheduled_at: data.scheduledAt,
             status: "pending",
           },
@@ -215,7 +260,7 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
       }
 
       setResult(data);
-      toast.success(`Push enviado a ${data.orgs} org${data.orgs !== 1 ? "s" : ""} — ${data.sent} dispositivos`);
+      toast.success(`Push enviado a ${data.targetCount} ${data.targetType === "users" ? "usuario" : "org"}${data.targetCount !== 1 ? "s" : ""} — ${data.sent} dispositivos`);
       // prepend optimistic log row
       setLogs((prev) => [
         {
@@ -225,8 +270,11 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
           title: title.trim(),
           body: body.trim(),
           image_url: imageUrl,
-          org_ids: allSelected ? [] : Array.from(selectedIds),
-          orgs_count: data.orgs,
+          target_type: audienceMode,
+          org_ids: audienceMode === "orgs" ? (allSelected ? [] : Array.from(selectedIds)) : [],
+          orgs_count: audienceMode === "orgs" ? data.targetCount : 0,
+          user_ids: audienceMode === "users" ? Array.from(selectedUserIds) : [],
+          user_count: audienceMode === "users" ? data.targetCount : 0,
           sent: data.sent,
           expired: data.expired,
           failed: data.failed,
@@ -268,78 +316,174 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
             <Bell className="h-6 w-6" /> Push Notifications
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-white/70">
-            Envía notificaciones push directamente a los dispositivos de una o varias organizaciones.
+            Envía notificaciones push directamente a los dispositivos de una o varias organizaciones, o a usuarios puntuales.
           </p>
         </div>
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
-        {/* Org selector */}
+        {/* Audience selector */}
         <article className="overflow-hidden rounded-[2.5rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-sm">
-          <div className="flex items-center justify-between border-b border-[var(--gbp-border)] px-6 py-5">
-            <div>
-              <h2 className="text-sm font-bold tracking-tight text-[var(--gbp-text)]">Seleccionar organizaciones</h2>
-              <p className="text-xs text-[var(--gbp-text2)] mt-0.5">{targetCount} de {orgs.length} seleccionadas</p>
+          <div className="border-b border-[var(--gbp-border)] px-6 py-5">
+            <div className="mb-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setAudienceMode("orgs")}
+                className={`flex items-center justify-center gap-2 rounded-xl border-[1.5px] px-3 py-2 text-xs font-bold transition-all ${
+                  audienceMode === "orgs"
+                    ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
+                    : "border-[var(--gbp-border2)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"
+                }`}
+              >
+                <Users className="h-3.5 w-3.5" /> Organizaciones
+              </button>
+              <button
+                type="button"
+                onClick={() => setAudienceMode("users")}
+                className={`flex items-center justify-center gap-2 rounded-xl border-[1.5px] px-3 py-2 text-xs font-bold transition-all ${
+                  audienceMode === "users"
+                    ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
+                    : "border-[var(--gbp-border2)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"
+                }`}
+              >
+                <UserCheck className="h-3.5 w-3.5" /> Usuarios específicos
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={toggleAll}
-              className={`inline-flex items-center gap-2 rounded-xl border-[1.5px] px-4 py-2 text-xs font-bold transition-all ${
-                allSelected
-                  ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
-                  : "border-[var(--gbp-border2)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"
-              }`}
-            >
-              <Users className="h-3.5 w-3.5" />
-              {allSelected ? "Deseleccionar todas" : "Todas las organizaciones"}
-            </button>
-          </div>
 
-          <div className="px-6 pt-4 pb-2">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--gbp-muted)]" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar organización..."
-                className="w-full rounded-xl border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] py-2 pl-9 pr-3 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="max-h-[420px] overflow-y-auto px-4 pb-4">
-            {filtered.length === 0 ? (
-              <p className="py-8 text-center text-sm text-[var(--gbp-muted)]">Sin resultados</p>
+            {audienceMode === "orgs" ? (
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-bold tracking-tight text-[var(--gbp-text)]">Seleccionar organizaciones</h2>
+                  <p className="text-xs text-[var(--gbp-text2)] mt-0.5">{targetCount} de {orgs.length} seleccionadas</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleAll}
+                  className={`inline-flex items-center gap-2 rounded-xl border-[1.5px] px-4 py-2 text-xs font-bold transition-all ${
+                    allSelected
+                      ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
+                      : "border-[var(--gbp-border2)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"
+                  }`}
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  {allSelected ? "Deseleccionar todas" : "Todas las organizaciones"}
+                </button>
+              </div>
             ) : (
-              <div className="flex flex-col gap-1 pt-2">
-                {filtered.map((org) => {
-                  const checked = allSelected || selectedIds.has(org.id);
-                  return (
-                    <button
-                      key={org.id}
-                      type="button"
-                      onClick={() => toggleOrg(org.id)}
-                      className={`flex w-full items-center gap-3 rounded-xl border-[1.5px] px-4 py-3 text-left transition-all ${
-                        checked
-                          ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]"
-                          : "border-transparent hover:border-[var(--gbp-border2)] hover:bg-[var(--gbp-bg)]"
-                      }`}
-                    >
-                      {checked ? (
-                        <CheckSquare className="h-4 w-4 shrink-0 text-[var(--gbp-accent)]" />
-                      ) : (
-                        <Square className="h-4 w-4 shrink-0 text-[var(--gbp-muted)]" />
-                      )}
-                      <span className={`text-sm font-medium ${checked ? "text-[var(--gbp-accent)]" : "text-[var(--gbp-text)]"}`}>
-                        {org.name}
-                      </span>
-                    </button>
-                  );
-                })}
+              <div>
+                <h2 className="text-sm font-bold tracking-tight text-[var(--gbp-text)]">Seleccionar usuarios</h2>
+                <p className="text-xs text-[var(--gbp-text2)] mt-0.5">
+                  {targetCount} de {uniqueUsers.length} seleccionados · solo usuarios con push activo
+                </p>
               </div>
             )}
           </div>
+
+          {audienceMode === "orgs" ? (
+            <>
+              <div className="px-6 pt-4 pb-2">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--gbp-muted)]" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Buscar organización..."
+                    className="w-full rounded-xl border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] py-2 pl-9 pr-3 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="max-h-[420px] overflow-y-auto px-4 pb-4">
+                {filtered.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-[var(--gbp-muted)]">Sin resultados</p>
+                ) : (
+                  <div className="flex flex-col gap-1 pt-2">
+                    {filtered.map((org) => {
+                      const checked = allSelected || selectedIds.has(org.id);
+                      return (
+                        <button
+                          key={org.id}
+                          type="button"
+                          onClick={() => toggleOrg(org.id)}
+                          className={`flex w-full items-center gap-3 rounded-xl border-[1.5px] px-4 py-3 text-left transition-all ${
+                            checked
+                              ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]"
+                              : "border-transparent hover:border-[var(--gbp-border2)] hover:bg-[var(--gbp-bg)]"
+                          }`}
+                        >
+                          {checked ? (
+                            <CheckSquare className="h-4 w-4 shrink-0 text-[var(--gbp-accent)]" />
+                          ) : (
+                            <Square className="h-4 w-4 shrink-0 text-[var(--gbp-muted)]" />
+                          )}
+                          <span className={`text-sm font-medium ${checked ? "text-[var(--gbp-accent)]" : "text-[var(--gbp-text)]"}`}>
+                            {org.name}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="px-6 pt-4 pb-2">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--gbp-muted)]" />
+                  <input
+                    type="text"
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    placeholder="Buscar por nombre, email u organización..."
+                    className="w-full rounded-xl border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] py-2 pl-9 pr-3 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="max-h-[420px] overflow-y-auto px-4 pb-4">
+                {filteredUsers.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-[var(--gbp-muted)]">
+                    {uniqueUsers.length === 0 ? "Ningún usuario tiene push activo aún." : "Sin resultados"}
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-1 pt-2">
+                    {filteredUsers.map((u) => {
+                      const checked = selectedUserIds.has(u.user_id);
+                      const name = userDisplayName(u);
+                      return (
+                        <button
+                          key={u.user_id}
+                          type="button"
+                          onClick={() => toggleUser(u.user_id)}
+                          className={`flex w-full items-center gap-3 rounded-xl border-[1.5px] px-4 py-3 text-left transition-all ${
+                            checked
+                              ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]"
+                              : "border-transparent hover:border-[var(--gbp-border2)] hover:bg-[var(--gbp-bg)]"
+                          }`}
+                        >
+                          {checked ? (
+                            <CheckSquare className="h-4 w-4 shrink-0 text-[var(--gbp-accent)]" />
+                          ) : (
+                            <Square className="h-4 w-4 shrink-0 text-[var(--gbp-muted)]" />
+                          )}
+                          <span className="min-w-0 flex-1">
+                            <span className={`block truncate text-sm font-medium ${checked ? "text-[var(--gbp-accent)]" : "text-[var(--gbp-text)]"}`}>
+                              {name ?? <span className="italic text-[var(--gbp-muted)]">Sin nombre</span>}
+                            </span>
+                            <span className="block truncate text-xs text-[var(--gbp-text2)]">
+                              {u.email ?? "—"} · {u.org_name}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </article>
 
         {/* Form + result */}
@@ -475,9 +619,9 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
               {isPending ? (
                 <><Loader2 className="h-4 w-4 animate-spin" /> {sendMode === "schedule" ? "Programando..." : "Enviando..."}</>
               ) : sendMode === "schedule" ? (
-                <><CalendarClock className="h-4 w-4" /> Programar para {targetCount} org{targetCount !== 1 ? "s" : ""}</>
+                <><CalendarClock className="h-4 w-4" /> Programar para {targetCount} {targetLabel}{targetCount !== 1 ? "s" : ""}</>
               ) : (
-                <><Send className="h-4 w-4" /> Enviar a {targetCount} org{targetCount !== 1 ? "s" : ""}</>
+                <><Send className="h-4 w-4" /> Enviar a {targetCount} {targetLabel}{targetCount !== 1 ? "s" : ""}</>
               )}
             </button>
           </article>
@@ -489,7 +633,7 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
               </h2>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: "Organizaciones", val: result.orgs, color: "text-[var(--gbp-text)]" },
+                  { label: result.targetType === "users" ? "Usuarios" : "Organizaciones", val: result.targetCount, color: "text-[var(--gbp-text)]" },
                   { label: "Dispositivos enviados", val: result.sent, color: "text-emerald-600" },
                   { label: "Suscripciones vencidas", val: result.expired, color: "text-amber-600" },
                   { label: "Errores", val: result.failed, color: "text-red-600" },
@@ -503,7 +647,7 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
               {result.sent === 0 && (
                 <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                  No se enviaron notificaciones. Los usuarios de las orgs seleccionadas pueden no haber activado push aún.
+                  No se enviaron notificaciones. Los destinatarios elegidos pueden no haber activado push aún.
                 </div>
               )}
             </article>
@@ -519,14 +663,19 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
               </h2>
               <div className="flex flex-col gap-2">
                 {scheduled.map((s) => {
-                  const orgsLabel = s.target_all ? "Todas las orgs" : `${s.org_ids.length} org${s.org_ids.length !== 1 ? "s" : ""}`;
+                  const audienceLabel =
+                    s.target_type === "users"
+                      ? `${(s.user_ids ?? []).length} usuario${(s.user_ids ?? []).length !== 1 ? "s" : ""}`
+                      : s.target_all
+                        ? "Todas las orgs"
+                        : `${s.org_ids.length} org${s.org_ids.length !== 1 ? "s" : ""}`;
                   return (
                     <div key={s.id} className="flex items-start gap-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3">
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{s.title}</p>
                         <p className="truncate text-xs text-[var(--gbp-muted)]">{s.body}</p>
                         <p className="mt-1 text-[11px] font-medium text-[var(--gbp-accent)]">
-                          {new Date(s.scheduled_at).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })} · {orgsLabel}
+                          {new Date(s.scheduled_at).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })} · {audienceLabel}
                         </p>
                       </div>
                       <button
@@ -625,7 +774,7 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
                   <th className="px-6 py-3">Fecha</th>
                   <th className="px-4 py-3">Enviado por</th>
                   <th className="px-4 py-3">Título</th>
-                  <th className="px-4 py-3 text-right">Orgs</th>
+                  <th className="px-4 py-3 text-right">Destino</th>
                   <th className="px-4 py-3 text-right text-emerald-700">Enviados</th>
                   <th className="px-4 py-3 text-right text-amber-700">Vencidos</th>
                   <th className="px-4 py-3 text-right text-red-700">Errores</th>
@@ -651,7 +800,9 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
                       <p className="truncate font-medium text-[var(--gbp-text)]">{log.title}</p>
                       <p className="truncate text-xs text-[var(--gbp-muted)]">{log.body}</p>
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold text-[var(--gbp-text)]">{log.orgs_count}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-[var(--gbp-text)] whitespace-nowrap">
+                      {log.target_type === "users" ? `${log.user_count ?? 0} usuarios` : `${log.orgs_count} orgs`}
+                    </td>
                     <td className="px-4 py-3 text-right font-semibold text-emerald-600">{log.sent}</td>
                     <td className="px-4 py-3 text-right font-semibold text-amber-600">{log.expired}</td>
                     <td className="px-4 py-3 text-right font-semibold text-red-600">{log.failed}</td>

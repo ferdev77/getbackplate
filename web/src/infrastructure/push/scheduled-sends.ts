@@ -28,7 +28,7 @@ export async function processDuePushScheduledSends() {
     .update({ status: "processing" })
     .in("id", candidateIds)
     .eq("status", "pending")
-    .select("id, created_by, title, body, image_url, target_all, org_ids");
+    .select("id, created_by, title, body, image_url, target_type, target_all, org_ids, user_ids");
 
   if (claimError) {
     console.error("[push-scheduled-send] Error reclamando candidatos:", claimError.message);
@@ -44,13 +44,24 @@ export async function processDuePushScheduledSends() {
   await Promise.allSettled(
     claimed.map(async (row) => {
       try {
-        const result = await dispatchSuperadminPushBroadcast({
-          title: row.title,
-          body: row.body,
-          image: row.image_url ?? undefined,
-          orgIds: row.target_all ? "all" : row.org_ids,
-          sentBy: row.created_by,
-        });
+        const result =
+          row.target_type === "users"
+            ? await dispatchSuperadminPushBroadcast({
+                title: row.title,
+                body: row.body,
+                image: row.image_url ?? undefined,
+                sentBy: row.created_by,
+                targetType: "users",
+                userIds: row.user_ids,
+              })
+            : await dispatchSuperadminPushBroadcast({
+                title: row.title,
+                body: row.body,
+                image: row.image_url ?? undefined,
+                sentBy: row.created_by,
+                targetType: "orgs",
+                orgIds: row.target_all ? "all" : row.org_ids,
+              });
         await supabase
           .from("push_scheduled_sends")
           .update({
