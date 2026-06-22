@@ -3,13 +3,14 @@ import { z } from "zod";
 import { requireSuperadmin } from "@/shared/lib/access";
 import { getCurrentUser } from "@/modules/memberships/queries";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { sendPushToOrg } from "@/infrastructure/push/send-to-org";
+import { dispatchSuperadminPushBroadcast } from "@/infrastructure/push/superadmin-broadcast";
 
 const bodySchema = z.object({
   title: z.string().min(1).max(100),
   body: z.string().min(1).max(500),
   orgIds: z.union([z.literal("all"), z.array(z.string().uuid()).min(1)]),
   image: z.string().url().optional(),
+  scheduledAt: z.string().datetime().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -27,55 +28,41 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Datos inválidos", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { title, body, orgIds, image } = parsed.data;
+  const { title, body, orgIds, image, scheduledAt } = parsed.data;
+  const sentBy = currentUser?.email ?? "superadmin";
 
-  const supabase = createSupabaseAdminClient();
-
-  let targetOrgIds: string[];
-  if (orgIds === "all") {
-    const { data, error } = await supabase
-      .from("organizations")
-      .select("id")
-      .eq("status", "active");
-    if (error) return NextResponse.json({ error: "Error leyendo organizaciones" }, { status: 500 });
-    targetOrgIds = (data ?? []).map((o) => o.id);
-  } else {
-    targetOrgIds = orgIds;
-  }
-
-  if (targetOrgIds.length === 0) {
-    return NextResponse.json({ sent: 0, expired: 0, failed: 0, orgs: 0 });
-  }
-
-  const results = await Promise.allSettled(
-    targetOrgIds.map((orgId) => sendPushToOrg(orgId, { title, body, url: "/", ...(image ? { image } : {}) })),
-  );
-
-  let sent = 0;
-  let expired = 0;
-  let failed = 0;
-  for (const result of results) {
-    if (result.status === "fulfilled") {
-      sent += result.value.sent;
-      expired += result.value.expired;
-      failed += result.value.failed;
-    } else {
-      failed++;
+  if (scheduledAt) {
+    const scheduledDate = new Date(scheduledAt);
+    if (Number.isNaN(scheduledDate.getTime())) {
+      return NextResponse.json({ error: "Fecha programada inválida" }, { status: 400 });
     }
+    if (scheduledDate.getUTCMinutes() !== 0 || scheduledDate.getUTCSeconds() !== 0) {
+      return NextResponse.json({ error: "La hora programada debe ser en punto" }, { status: 400 });
+    }
+    if (scheduledDate.getTime() <= Date.now()) {
+      return NextResponse.json({ error: "La hora programada debe ser futura" }, { status: 400 });
+    }
+
+    const supabase = createSupabaseAdminClient();
+    const { data, error } = await supabase
+      .from("push_scheduled_sends")
+      .insert({
+        created_by: sentBy,
+        title,
+        body,
+        image_url: image ?? null,
+        target_all: orgIds === "all",
+        org_ids: orgIds === "all" ? [] : orgIds,
+        scheduled_at: scheduledDate.toISOString(),
+        status: "pending",
+      })
+      .select("id, scheduled_at")
+      .single();
+    if (error) return NextResponse.json({ error: "Error programando el envío" }, { status: 500 });
+
+    return NextResponse.json({ scheduled: true, id: data.id, scheduledAt: data.scheduled_at });
   }
 
-  const { error: logError } = await supabase.from("push_send_logs").insert({
-    sent_by: currentUser?.email ?? "superadmin",
-    title,
-    body,
-    image_url: image ?? null,
-    org_ids: targetOrgIds,
-    orgs_count: targetOrgIds.length,
-    sent,
-    expired,
-    failed,
-  });
-  if (logError) console.error("[push/send] Error guardando log:", logError.message);
-
-  return NextResponse.json({ sent, expired, failed, orgs: targetOrgIds.length });
+  const result = await dispatchSuperadminPushBroadcast({ title, body, orgIds, image, sentBy });
+  return NextResponse.json(result);
 }

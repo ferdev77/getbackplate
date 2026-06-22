@@ -15,7 +15,7 @@ export type Subscriber = {
 export default async function SuperadminPushPage() {
   const supabase = createSupabaseAdminClient();
 
-  const [{ data: orgs }, { data: logs }, { data: rawSubs }] = await Promise.all([
+  const [{ data: orgs }, { data: logs }, { data: rawSubs }, { data: scheduled }] = await Promise.all([
     supabase
       .from("organizations")
       .select("id, name")
@@ -31,6 +31,11 @@ export default async function SuperadminPushPage() {
       .select("user_id, org_id, user_agent, created_at")
       .eq("is_active", true)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("push_scheduled_sends")
+      .select("id, created_at, created_by, title, body, image_url, target_all, org_ids, scheduled_at, status")
+      .eq("status", "pending")
+      .order("scheduled_at", { ascending: true }),
   ]);
 
   const userIds = Array.from(new Set((rawSubs ?? []).map((s) => s.user_id)));
@@ -68,5 +73,12 @@ export default async function SuperadminPushPage() {
     };
   });
 
-  return <PushBroadcastClient orgs={orgs ?? []} logs={logs ?? []} subscribers={subscribers} />;
+  return (
+    <PushBroadcastClient
+      orgs={orgs ?? []}
+      logs={logs ?? []}
+      subscribers={subscribers}
+      scheduled={scheduled ?? []}
+    />
+  );
 }

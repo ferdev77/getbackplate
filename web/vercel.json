@@ -11,6 +11,10 @@
     {
       "path": "/api/webhooks/cron/qbo-r365-sync",
       "schedule": "0 0,4,10,12,14,16,18,20,21,22 * * *"
+    },
+    {
+      "path": "/api/internal/cron/push-scheduled-send",
+      "schedule": "0 * * * *"
     }
   ]
 }

@@ -1,0 +1,22 @@
+import { NextResponse } from "next/server";
+import { requireSuperadmin } from "@/shared/lib/access";
+import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+
+export async function GET() {
+  try {
+    await requireSuperadmin();
+  } catch {
+    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("push_scheduled_sends")
+    .select("id, created_at, created_by, title, body, image_url, target_all, org_ids, scheduled_at, status")
+    .eq("status", "pending")
+    .order("scheduled_at", { ascending: true });
+
+  if (error) return NextResponse.json({ error: "Error leyendo envíos programados" }, { status: 500 });
+
+  return NextResponse.json({ scheduled: data ?? [] });
+}

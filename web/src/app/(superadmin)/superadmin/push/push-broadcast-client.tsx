@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import { Bell, Search, CheckSquare, Square, Send, Loader2, AlertCircle, CheckCircle2, Users, ImagePlus, X, History, Smartphone } from "lucide-react";
+import { Bell, Search, CheckSquare, Square, Send, Loader2, AlertCircle, CheckCircle2, Users, ImagePlus, X, History, Smartphone, CalendarClock, Zap, Ban } from "lucide-react";
 import { toast } from "sonner";
 import { PageContent } from "@/shared/ui/page-content";
 
@@ -21,7 +21,35 @@ type LogRow = {
   expired: number;
   failed: number;
 };
-type Props = { orgs: Org[]; logs: LogRow[]; subscribers: Subscriber[] };
+type ScheduledRow = {
+  id: string;
+  created_at: string;
+  created_by: string;
+  title: string;
+  body: string;
+  image_url: string | null;
+  target_all: boolean;
+  org_ids: string[];
+  scheduled_at: string;
+  status: string;
+};
+type Props = { orgs: Org[]; logs: LogRow[]; subscribers: Subscriber[]; scheduled: ScheduledRow[] };
+
+function todayLocalDateInput() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function buildHourOptions(dateInput: string) {
+  const isToday = dateInput === todayLocalDateInput();
+  const minHour = isToday ? new Date().getHours() + 1 : 0;
+  const hours: string[] = [];
+  for (let h = minHour; h < 24; h++) hours.push(String(h).padStart(2, "0"));
+  return hours;
+}
 
 function parseUserAgent(ua: string | null) {
   if (!ua) return "—";
@@ -42,7 +70,7 @@ function parseBrowser(ua: string | null) {
   return "—";
 }
 
-export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers }: Props) {
+export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, scheduled: initialScheduled }: Props) {
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [allSelected, setAllSelected] = useState(false);
@@ -53,7 +81,14 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers }: Pr
   const [isPending, setIsPending] = useState(false);
   const [result, setResult] = useState<{ sent: number; expired: number; failed: number; orgs: number } | null>(null);
   const [logs, setLogs] = useState<LogRow[]>(initialLogs);
+  const [sendMode, setSendMode] = useState<"now" | "schedule">("now");
+  const [scheduleDate, setScheduleDate] = useState(todayLocalDateInput());
+  const [scheduleHour, setScheduleHour] = useState("");
+  const [scheduled, setScheduled] = useState<ScheduledRow[]>(initialScheduled);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const hourOptions = useMemo(() => buildHourOptions(scheduleDate), [scheduleDate]);
 
   const filtered = useMemo(
     () => orgs.filter((o) => o.name.toLowerCase().includes(search.toLowerCase())),
@@ -115,10 +150,29 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers }: Pr
   }
 
   const targetCount = allSelected ? orgs.length : selectedIds.size;
-  const canSend = targetCount > 0 && title.trim().length > 0 && body.trim().length > 0 && !isPending && !imageUploading;
+  const hasMessage = title.trim().length > 0 && body.trim().length > 0;
+  const canSend =
+    targetCount > 0 &&
+    hasMessage &&
+    !isPending &&
+    !imageUploading &&
+    (sendMode === "now" || scheduleHour !== "");
+
+  function scheduleDateToIso(): string | null {
+    if (!scheduleHour) return null;
+    const local = new Date(`${scheduleDate}T${scheduleHour}:00:00`);
+    if (Number.isNaN(local.getTime()) || local.getTime() <= Date.now()) return null;
+    return local.toISOString();
+  }
 
   async function handleSend() {
     if (!canSend) return;
+    const scheduledAtIso = sendMode === "schedule" ? scheduleDateToIso() : null;
+    if (sendMode === "schedule" && !scheduledAtIso) {
+      toast.error("Elegí una fecha y hora futura");
+      return;
+    }
+
     setIsPending(true);
     setResult(null);
     try {
@@ -130,10 +184,36 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers }: Pr
           body: body.trim(),
           orgIds: allSelected ? "all" : Array.from(selectedIds),
           ...(imageUrl ? { image: imageUrl } : {}),
+          ...(scheduledAtIso ? { scheduledAt: scheduledAtIso } : {}),
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Error al enviar");
+
+      if (data.scheduled) {
+        toast.success(`Envío programado para ${new Date(data.scheduledAt).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`);
+        setScheduled((prev) => [
+          ...prev,
+          {
+            id: data.id,
+            created_at: new Date().toISOString(),
+            created_by: "yo",
+            title: title.trim(),
+            body: body.trim(),
+            image_url: imageUrl,
+            target_all: allSelected,
+            org_ids: allSelected ? [] : Array.from(selectedIds),
+            scheduled_at: data.scheduledAt,
+            status: "pending",
+          },
+        ].sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at)));
+        setTitle("");
+        setBody("");
+        setImageUrl(null);
+        setScheduleHour("");
+        return;
+      }
+
       setResult(data);
       toast.success(`Push enviado a ${data.orgs} org${data.orgs !== 1 ? "s" : ""} — ${data.sent} dispositivos`);
       // prepend optimistic log row
@@ -157,6 +237,21 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers }: Pr
       toast.error(err instanceof Error ? err.message : "Error al enviar");
     } finally {
       setIsPending(false);
+    }
+  }
+
+  async function handleCancelScheduled(id: string) {
+    setCancellingId(id);
+    try {
+      const res = await fetch(`/api/superadmin/push/scheduled/${id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(typeof data?.error === "string" ? data.error : "Error al cancelar");
+      setScheduled((prev) => prev.filter((s) => s.id !== id));
+      toast.success("Envío programado cancelado");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al cancelar");
+    } finally {
+      setCancellingId(null);
     }
   }
 
@@ -252,6 +347,62 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers }: Pr
           <article className="rounded-[2.5rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-sm">
             <h2 className="mb-4 text-sm font-bold tracking-tight text-[var(--gbp-text)]">Mensaje</h2>
 
+            <div className="mb-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setSendMode("now")}
+                className={`flex items-center justify-center gap-2 rounded-xl border-[1.5px] px-3 py-2 text-xs font-bold transition-all ${
+                  sendMode === "now"
+                    ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
+                    : "border-[var(--gbp-border2)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"
+                }`}
+              >
+                <Zap className="h-3.5 w-3.5" /> Enviar ahora
+              </button>
+              <button
+                type="button"
+                onClick={() => setSendMode("schedule")}
+                className={`flex items-center justify-center gap-2 rounded-xl border-[1.5px] px-3 py-2 text-xs font-bold transition-all ${
+                  sendMode === "schedule"
+                    ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
+                    : "border-[var(--gbp-border2)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"
+                }`}
+              >
+                <CalendarClock className="h-3.5 w-3.5" /> Programar
+              </button>
+            </div>
+
+            {sendMode === "schedule" && (
+              <div className="mb-4 grid grid-cols-2 gap-2">
+                <div>
+                  <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Fecha</label>
+                  <input
+                    type="date"
+                    value={scheduleDate}
+                    min={todayLocalDateInput()}
+                    onChange={(e) => { setScheduleDate(e.target.value); setScheduleHour(""); }}
+                    className="w-full rounded-xl border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] focus:border-[var(--gbp-accent)] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Hora</label>
+                  <select
+                    value={scheduleHour}
+                    onChange={(e) => setScheduleHour(e.target.value)}
+                    className="w-full rounded-xl border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] focus:border-[var(--gbp-accent)] focus:outline-none"
+                  >
+                    <option value="">Elegir...</option>
+                    {hourOptions.map((h) => (
+                      <option key={h} value={h}>{h}:00</option>
+                    ))}
+                  </select>
+                </div>
+                {hourOptions.length === 0 && (
+                  <p className="col-span-2 text-[11px] text-amber-600">No quedan horas disponibles hoy — elegí otra fecha.</p>
+                )}
+              </div>
+            )}
+
             <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Título</label>
             <input
               type="text"
@@ -322,7 +473,9 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers }: Pr
               className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--gbp-accent)] px-5 py-3 text-sm font-bold text-white transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {isPending ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</>
+                <><Loader2 className="h-4 w-4 animate-spin" /> {sendMode === "schedule" ? "Programando..." : "Enviando..."}</>
+              ) : sendMode === "schedule" ? (
+                <><CalendarClock className="h-4 w-4" /> Programar para {targetCount} org{targetCount !== 1 ? "s" : ""}</>
               ) : (
                 <><Send className="h-4 w-4" /> Enviar a {targetCount} org{targetCount !== 1 ? "s" : ""}</>
               )}
@@ -353,6 +506,42 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers }: Pr
                   No se enviaron notificaciones. Los usuarios de las orgs seleccionadas pueden no haber activado push aún.
                 </div>
               )}
+            </article>
+          )}
+
+          {scheduled.length > 0 && (
+            <article className="rounded-[2.5rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-sm">
+              <h2 className="mb-4 flex items-center gap-2 text-sm font-bold tracking-tight text-[var(--gbp-text)]">
+                <CalendarClock className="h-4 w-4 text-[var(--gbp-accent)]" /> Programados
+                <span className="ml-auto rounded-full bg-[var(--gbp-bg)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--gbp-text2)]">
+                  {scheduled.length}
+                </span>
+              </h2>
+              <div className="flex flex-col gap-2">
+                {scheduled.map((s) => {
+                  const orgsLabel = s.target_all ? "Todas las orgs" : `${s.org_ids.length} org${s.org_ids.length !== 1 ? "s" : ""}`;
+                  return (
+                    <div key={s.id} className="flex items-start gap-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{s.title}</p>
+                        <p className="truncate text-xs text-[var(--gbp-muted)]">{s.body}</p>
+                        <p className="mt-1 text-[11px] font-medium text-[var(--gbp-accent)]">
+                          {new Date(s.scheduled_at).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })} · {orgsLabel}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCancelScheduled(s.id)}
+                        disabled={cancellingId === s.id}
+                        className="flex shrink-0 items-center gap-1 rounded-lg border-[1.5px] border-red-200 bg-red-50 px-2.5 py-1.5 text-[11px] font-bold text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+                      >
+                        {cancellingId === s.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Ban className="h-3.5 w-3.5" />}
+                        Cancelar
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </article>
           )}
         </div>
