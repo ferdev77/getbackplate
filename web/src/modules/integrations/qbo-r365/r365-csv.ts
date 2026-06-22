@@ -29,8 +29,13 @@ export type NormalizedInvoiceLine = {
 };
 
 function csvEscape(value: string | number) {
-  const raw = typeof value === "number" ? String(value) : value;
-  if (raw.includes(",") || raw.includes("\n") || raw.includes("\r") || raw.includes('"')) {
+  // Ninguna columna de este CSV (Vendor, Location, item, UofM, etc.) es texto libre
+  // multilinea — un salto de linea adentro de un campo entre comillas es CSV valido,
+  // pero el importador de R365 (y cualquier editor de texto simple) lo lee como si
+  // fueran varias filas. Lo colapsamos a un espacio antes de escapar, asi cada fila
+  // del archivo ocupa siempre una sola linea fisica.
+  const raw = typeof value === "number" ? String(value) : value.replace(/\r\n|\r|\n/g, " ").trim();
+  if (raw.includes(",") || raw.includes('"')) {
     return `"${raw.replaceAll('"', '""')}"`;
   }
   return raw;

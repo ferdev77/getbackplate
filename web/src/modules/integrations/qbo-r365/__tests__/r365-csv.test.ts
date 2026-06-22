@@ -44,16 +44,22 @@ describe("parseCsvRows", () => {
 });
 
 describe("buildR365Csv + parseCsvRows (roundtrip)", () => {
-  it("una descripción larga con varios saltos de línea sigue siendo 1 sola fila de 11 columnas", () => {
+  it("una descripción con saltos de línea se colapsa a una sola línea física en el archivo", () => {
     const line = makeLine({
       description: "If you receive this test invoice please confirm at 956-664-1344 or via email at admin@prodeldisribution.com\n\nRegards,\nMartha Marroquin",
     });
     const { csv } = buildR365Csv({ template: "by_item", lines: [line] });
-    const [header, ...rows] = parseCsvRows(csv);
 
+    // El archivo real (el que se sube por FTP) nunca debe tener mas lineas fisicas
+    // que filas logicas — si el importador de R365 no entiende comillas multilinea,
+    // un \n suelto adentro de un campo rompe la fila igual que rompia nuestra preview.
+    expect(csv.split("\n")).toHaveLength(2); // header + 1 fila
+
+    const [header, ...rows] = parseCsvRows(csv);
     expect(header).toHaveLength(11);
     expect(rows).toHaveLength(1);
     expect(rows[0]).toHaveLength(11);
+    expect(rows[0][6]).not.toMatch(/\n|\r/);
   });
 
   it("una descripción corta (caso real de Kumori) tambien produce 1 fila de 11 columnas", () => {
