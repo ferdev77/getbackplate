@@ -130,3 +130,36 @@ export async function deleteManualSubscriptionOrderAction(formData: FormData) {
   revalidatePath("/superadmin/payment-links");
   return { ok: true };
 }
+
+export async function updateInvoicePriceAction(formData: FormData) {
+  await requireSuperadmin();
+
+  const organizationId = String(formData.get("organization_id") ?? "").trim();
+  if (!organizationId) return { ok: false, error: "Organización inválida" };
+
+  const rawPrice = String(formData.get("price_cents") ?? "").trim();
+  const priceCents = rawPrice === "" ? null : Number(rawPrice);
+  if (priceCents !== null && (!Number.isInteger(priceCents) || priceCents < 0)) {
+    return { ok: false, error: "Precio inválido" };
+  }
+
+  const supabase = createSupabaseAdminClient();
+
+  const { data: moduleRow } = await supabase
+    .from("module_catalog")
+    .select("id")
+    .eq("code", "qbo_r365")
+    .maybeSingle();
+  if (!moduleRow) return { ok: false, error: "Módulo qbo_r365 no encontrado" };
+
+  const { error } = await supabase
+    .from("organization_addons")
+    .update({ price_per_invoice_cents: priceCents })
+    .eq("organization_id", organizationId)
+    .eq("module_id", moduleRow.id);
+
+  if (error) return { ok: false, error: "No se pudo actualizar el precio" };
+
+  revalidatePath("/superadmin/payment-links");
+  return { ok: true };
+}

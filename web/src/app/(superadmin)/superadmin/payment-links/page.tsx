@@ -4,6 +4,7 @@ import { PaymentLinkModal } from "./payment-link-modal";
 import { PaymentLinksTable } from "./payment-links-table";
 import { SubscriptionLinkModal } from "./subscription-link-modal";
 import { SubscriptionLinksTable } from "./subscription-links-table";
+import { InvoicePriceList } from "./invoice-price-list";
 
 export const dynamic = "force-dynamic";
 
@@ -39,8 +40,25 @@ export default async function PaymentLinksPage() {
     supabase.from("plans").select("id, name, plan_type, setup_fee_amount").eq("is_active", true).eq("is_enterprise", false).order("name"),
   ]);
 
+  const qboModuleId = (modules ?? []).find(m => m.code === "qbo_r365")?.id ?? null;
+  const { data: integrationAddons } = qboModuleId
+    ? await supabase
+        .from("organization_addons")
+        .select("organization_id, price_per_invoice_cents")
+        .eq("module_id", qboModuleId)
+        .eq("status", "active")
+    : { data: [] as { organization_id: string; price_per_invoice_cents: number | null }[] };
+
   const orgMap = Object.fromEntries((orgs ?? []).map(o => [o.id, o.name]));
   const planMap = Object.fromEntries((plans ?? []).map(p => [p.id, p.name]));
+  const invoicePriceOrgs = (integrationAddons ?? [])
+    .map(a => ({
+      organizationId: a.organization_id,
+      organizationName: orgMap[a.organization_id] ?? "(organización eliminada)",
+      priceCents: a.price_per_invoice_cents,
+    }))
+    .filter(o => orgMap[o.organizationId])
+    .sort((a, b) => a.organizationName.localeCompare(b.organizationName));
   const platformPlans = (plans ?? []).filter(p => p.plan_type === "platform").map(p => ({ id: p.id, name: p.name, setupFeeAmount: p.setup_fee_amount }));
   const integrationPlans = (plans ?? []).filter(p => p.plan_type === "qbo_r365").map(p => ({ id: p.id, name: p.name, setupFeeAmount: p.setup_fee_amount }));
   const totalPaid    = (orders ?? []).filter(o => o.status === "paid").length;
@@ -109,6 +127,15 @@ export default async function PaymentLinksPage() {
       ) : (
         <SubscriptionLinksTable orders={subscriptionOrders} orgMap={orgMap} planMap={planMap} />
       )}
+
+      {/* Precio por factura enviada */}
+      <div className="mb-6 mt-14 border-t border-[var(--gbp-border)] pt-10">
+        <h2 className="text-2xl font-bold text-foreground">Precio por factura enviada</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Cobro de uso opcional por organización con integración QBO-R365 activa. Dejalo vacío para no cobrar.
+        </p>
+      </div>
+      <InvoicePriceList organizations={invoicePriceOrgs} />
     </PageContent>
   );
 }

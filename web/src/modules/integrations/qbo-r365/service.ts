@@ -3238,6 +3238,15 @@ async function mapAndSendUnifiedRow(input: {
     uploaded_at: nowIso,
   });
 
+  // first_sent_at se fija una sola vez (no se toca en reenvios) -- es la base
+  // del conteo de facturacion por uso, para que reenviar no duplique el cobro.
+  await admin
+    .from("qbo_unified_invoices")
+    .update({ first_sent_at: nowIso })
+    .eq("id", input.unifiedInvoiceId)
+    .eq("organization_id", input.organizationId)
+    .is("first_sent_at", null);
+
   await admin
     .from("qbo_unified_invoices")
     .update({ pipeline_status: "enviada", sent_at: nowIso })
@@ -3996,6 +4005,7 @@ export async function backfillSyncConfigToUnified(
       vendor_name: typeof p.vendor === "string" ? p.vendor : null,
       mapped_at: String(row.created_at),
       sent_at: isSent ? String(row.created_at) : null,
+      first_sent_at: isSent ? String(row.created_at) : null,
     };
   });
 
