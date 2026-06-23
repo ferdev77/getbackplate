@@ -2,22 +2,24 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, Plus, Copy, CheckCheck, Loader2, Link2, Building2, Plug, Zap, CheckCircle2 } from "lucide-react";
+import { X, Plus, Copy, CheckCheck, Loader2, Link2, Building2, Plug, Zap, CheckCircle2, Receipt } from "lucide-react";
 import { toast } from "sonner";
-import { SuperadminSelectField } from "@/shared/ui/superadmin-form-fields";
+import { SuperadminInputField, SuperadminSelectField } from "@/shared/ui/superadmin-form-fields";
 
 type Org = { id: string; name: string };
 type Plan = { id: string; name: string; setupFeeAmount: number | null };
 type PlanKind = "platform" | "integration";
 type BillingPeriod = "monthly" | "yearly";
+type InvoicePricing = { organizationId: string; priceCents: number | null; unbilledInvoiceCount: number };
 
 type Props = {
   organizations: Org[];
   platformPlans: Plan[];
   integrationPlans: Plan[];
+  invoicePricing: InvoicePricing[];
 };
 
-export function SubscriptionLinkModal({ organizations, platformPlans, integrationPlans }: Props) {
+export function SubscriptionLinkModal({ organizations, platformPlans, integrationPlans, invoicePricing }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -29,16 +31,29 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
   const [planId, setPlanId] = useState("");
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("monthly");
   const [includeSetupFee, setIncludeSetupFee] = useState(true);
+  const [extraChargeDescription, setExtraChargeDescription] = useState("");
+  const [extraChargeAmount, setExtraChargeAmount] = useState("");
   const [copied, setCopied] = useState(false);
 
   const plans = planKind === "integration" ? integrationPlans : platformPlans;
   const selectedOrg = organizations.find((o) => o.id === orgId);
   const selectedPlan = plans.find((p) => p.id === planId);
   const canChargeSetupFee = planKind === "integration" && !!selectedPlan?.setupFeeAmount;
+  const orgPricing = planKind === "integration" ? invoicePricing.find((p) => p.organizationId === orgId) : undefined;
+  const suggestedCharge = orgPricing?.priceCents && orgPricing.unbilledInvoiceCount > 0
+    ? { count: orgPricing.unbilledInvoiceCount, unitCents: orgPricing.priceCents, totalCents: orgPricing.unbilledInvoiceCount * orgPricing.priceCents }
+    : null;
+
+  function applySuggestedCharge() {
+    if (!suggestedCharge) return;
+    setExtraChargeDescription(`Facturas enviadas sin facturar (${suggestedCharge.count} × $${(suggestedCharge.unitCents / 100).toFixed(2)})`);
+    setExtraChargeAmount((suggestedCharge.totalCents / 100).toFixed(2));
+  }
 
   function reset() {
     setOrgId(""); setPlanKind("integration"); setPlanId(""); setBillingPeriod("monthly");
-    setIncludeSetupFee(true); setGeneratedUrl(null); setUpgraded(false); setCopied(false);
+    setIncludeSetupFee(true); setExtraChargeDescription(""); setExtraChargeAmount("");
+    setGeneratedUrl(null); setUpgraded(false); setCopied(false);
   }
 
   function close() { setOpen(false); setTimeout(reset, 300); }
@@ -52,6 +67,12 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
     e.preventDefault();
     if (!orgId || !planId) return;
 
+    const extraChargeCents = extraChargeAmount.trim() ? Math.round(parseFloat(extraChargeAmount) * 100) : 0;
+    if (extraChargeAmount.trim() && (!Number.isFinite(extraChargeCents) || extraChargeCents <= 0)) {
+      toast.error("Monto de cargo único inválido");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/stripe/checkout-manual-subscription", {
@@ -63,6 +84,9 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
           planId,
           billingPeriod,
           includeSetupFee: canChargeSetupFee && includeSetupFee,
+          ...(extraChargeCents > 0
+            ? { extraChargeCents, extraChargeDescription: extraChargeDescription.trim() || undefined }
+            : {}),
         }),
       });
       const data = (await res.json()) as { url?: string; upgraded?: boolean; error?: string };
@@ -252,6 +276,48 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
                         <p className="mt-0.5 text-[11px] text-muted-foreground">Se agrega como cargo único en el primer pago, con el descuento anual si aplica.</p>
                       </div>
                     </button>
+                  )}
+
+                  {planKind === "integration" && (
+                    <div className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-5 space-y-3">
+                      <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                        <Receipt className="h-3.5 w-3.5" /> Cargo único adicional (opcional)
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Se suma una sola vez en la primera factura, junto con el primer pago de la suscripción. Solo aplica si esta organización termina siendo alta nueva — no se puede agregar a un upgrade.
+                      </p>
+                      {suggestedCharge && (
+                        <button
+                          type="button"
+                          onClick={applySuggestedCharge}
+                          className="flex w-full items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-left text-[11px] font-semibold text-amber-700 transition hover:bg-amber-100"
+                        >
+                          <span>
+                            Sugerido: {suggestedCharge.count} facturas sin facturar × ${(suggestedCharge.unitCents / 100).toFixed(2)} = ${(suggestedCharge.totalCents / 100).toFixed(2)}
+                          </span>
+                          <span className="underline">Usar este monto</span>
+                        </button>
+                      )}
+                      <div className="grid gap-3 sm:grid-cols-[1fr_140px]">
+                        <SuperadminInputField
+                          label="Descripción"
+                          name="extra_charge_description"
+                          value={extraChargeDescription}
+                          onChange={(e) => setExtraChargeDescription(e.target.value)}
+                          placeholder="p.ej: Facturas ya enviadas sin facturar"
+                        />
+                        <SuperadminInputField
+                          label="Monto ($)"
+                          name="extra_charge_amount"
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          value={extraChargeAmount}
+                          onChange={(e) => setExtraChargeAmount(e.target.value)}
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
                   )}
 
                   <p className="text-[11px] text-muted-foreground">

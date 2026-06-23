@@ -32,6 +32,8 @@ interface CreateManualSubscriptionBody {
   planId: string;
   billingPeriod: BillingPeriod;
   includeSetupFee?: boolean;
+  extraChargeCents?: number;
+  extraChargeDescription?: string;
 }
 
 async function resolveTargetPriceForPeriod(params: {
@@ -60,7 +62,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = (await req.json()) as CreateManualSubscriptionBody;
-  const { organizationId, planKind, planId, billingPeriod, includeSetupFee } = body;
+  const { organizationId, planKind, planId, billingPeriod, includeSetupFee, extraChargeDescription } = body;
 
   if (!organizationId) return NextResponse.json({ error: "organizationId requerido." }, { status: 400 });
   if (planKind !== "platform" && planKind !== "integration") {
@@ -70,6 +72,10 @@ export async function POST(req: NextRequest) {
   if (billingPeriod !== "monthly" && billingPeriod !== "yearly") {
     return NextResponse.json({ error: "billingPeriod inválido." }, { status: 400 });
   }
+
+  const extraChargeCents = typeof body.extraChargeCents === "number" && body.extraChargeCents > 0
+    ? Math.round(body.extraChargeCents)
+    : null;
 
   const supabase = createSupabaseAdminClient();
 
@@ -142,6 +148,13 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
     return data?.stripe_subscription_id ?? null;
   })();
+
+  if (existingSubscriptionId && extraChargeCents) {
+    return NextResponse.json(
+      { error: "Esta organización ya tiene una suscripción activa; el cargo único no se puede agregar a un upgrade. Usá un Link de Pago normal para ese cobro." },
+      { status: 400 },
+    );
+  }
 
   if (existingSubscriptionId) {
     const subscription = await stripe.subscriptions.retrieve(existingSubscriptionId);
@@ -232,6 +245,8 @@ export async function POST(req: NextRequest) {
       plan_id: plan.id,
       billing_period: billingPeriod,
       include_setup_fee: planKind === "integration" && includeSetupFee === true,
+      extra_charge_cents: extraChargeCents,
+      extra_charge_description: extraChargeCents ? (extraChargeDescription?.trim() || "Cargo adicional") : null,
       status: "pending",
       expires_at: new Date(Date.now() + 86_400_000).toISOString(),
     })
@@ -289,10 +304,23 @@ export async function POST(req: NextRequest) {
           manualSubscriptionOrderId: order.id,
         };
 
+  const extraChargeLineItem = extraChargeCents
+    ? [
+        {
+          price_data: {
+            currency: "usd" as const,
+            product_data: { name: extraChargeDescription?.trim() || "Cargo adicional" },
+            unit_amount: extraChargeCents,
+          },
+          quantity: 1,
+        },
+      ]
+    : [];
+
   const sessionParams = (customerId: string | null) => ({
     mode: "subscription" as const,
     payment_method_types: ["card" as const],
-    line_items: [{ price: targetPriceId, quantity: 1 }, ...setupLineItem],
+    line_items: [{ price: targetPriceId, quantity: 1 }, ...setupLineItem, ...extraChargeLineItem],
     ...(customerId ? { customer: customerId } : {}),
     success_url: `${appUrl}/pay/success`,
     cancel_url: `${appUrl}/pay/canceled`,

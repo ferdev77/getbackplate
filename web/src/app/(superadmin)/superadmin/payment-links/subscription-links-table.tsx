@@ -33,6 +33,8 @@ type Order = {
   plan_id: string;
   billing_period: string;
   include_setup_fee: boolean;
+  extra_charge_cents: number | null;
+  extra_charge_description: string | null;
   status: string;
   checkout_url: string | null;
   completed_at: string | null;
@@ -179,6 +181,12 @@ export function SubscriptionLinksTable({ orders, orgMap, planMap }: Props) {
                             </div>
                           </div>
                         ) : null}
+                        {order.extra_charge_cents != null && (
+                          <p className="mt-2 text-[11px] text-muted-foreground">
+                            Cargo único: <strong className="text-foreground">${(order.extra_charge_cents / 100).toFixed(2)}</strong>
+                            {order.extra_charge_description && <> — {order.extra_charge_description}</>}
+                          </p>
+                        )}
                       </div>
                     </td>
                   </tr>

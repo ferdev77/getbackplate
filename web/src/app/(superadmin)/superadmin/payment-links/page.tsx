@@ -34,7 +34,7 @@ export default async function PaymentLinksPage() {
     supabase.from("module_catalog").select("id, code, name").order("name"),
     supabase
       .from("manual_subscription_orders")
-      .select("id, organization_id, plan_kind, plan_id, billing_period, include_setup_fee, status, checkout_url, completed_at, expires_at, created_at")
+      .select("id, organization_id, plan_kind, plan_id, billing_period, include_setup_fee, extra_charge_cents, extra_charge_description, status, checkout_url, completed_at, expires_at, created_at")
       .order("created_at", { ascending: false })
       .limit(200),
     supabase.from("plans").select("id, name, plan_type, setup_fee_amount").eq("is_active", true).eq("is_enterprise", false).order("name"),
@@ -51,11 +51,26 @@ export default async function PaymentLinksPage() {
 
   const orgMap = Object.fromEntries((orgs ?? []).map(o => [o.id, o.name]));
   const planMap = Object.fromEntries((plans ?? []).map(p => [p.id, p.name]));
+
+  const unbilledCounts = await Promise.all(
+    (integrationAddons ?? []).map(a =>
+      supabase
+        .from("qbo_unified_invoices")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", a.organization_id)
+        .eq("pipeline_status", "enviada")
+        .not("first_sent_at", "is", null)
+        .then(({ count }) => [a.organization_id, count ?? 0] as const),
+    ),
+  );
+  const unbilledCountMap = Object.fromEntries(unbilledCounts);
+
   const invoicePriceOrgs = (integrationAddons ?? [])
     .map(a => ({
       organizationId: a.organization_id,
       organizationName: orgMap[a.organization_id] ?? "(organización eliminada)",
       priceCents: a.price_per_invoice_cents,
+      unbilledInvoiceCount: unbilledCountMap[a.organization_id] ?? 0,
     }))
     .filter(o => orgMap[o.organizationId])
     .sort((a, b) => a.organizationName.localeCompare(b.organizationName));
@@ -116,6 +131,11 @@ export default async function PaymentLinksPage() {
           organizations={(orgs ?? []).map(o => ({ id: o.id, name: o.name }))}
           platformPlans={platformPlans}
           integrationPlans={integrationPlans}
+          invoicePricing={invoicePriceOrgs.map(o => ({
+            organizationId: o.organizationId,
+            priceCents: o.priceCents,
+            unbilledInvoiceCount: o.unbilledInvoiceCount,
+          }))}
         />
       </div>
 
