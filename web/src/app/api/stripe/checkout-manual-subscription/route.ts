@@ -267,6 +267,32 @@ export async function POST(req: NextRequest) {
 
   const planName = typeof plan.name === "string" && plan.name.trim() ? plan.name.trim() : planKind === "integration" ? "Integración" : "Plan";
 
+  // ── Aviso de cargo por uso en el propio Checkout de Stripe ──────────────
+  // Stripe solo conoce el precio fijo de la suscripcion; el cargo por factura
+  // se agrega aparte en cada renovacion (usage-billing.ts), asi que Stripe no
+  // puede reflejarlo en su resumen "Luego $X por mes". Lo aclaramos via
+  // custom_text.submit, el unico lugar de Checkout donde podemos meter texto
+  // propio.
+  let usageBillingNote: string | null = null;
+  if (planKind === "integration") {
+    const { data: addonPricing } = await supabase
+      .from("organization_addons")
+      .select("price_per_invoice_cents")
+      .eq("organization_id", organizationId)
+      .eq("module_id", moduleId ?? "")
+      .maybeSingle();
+
+    const perInvoiceCents = addonPricing?.price_per_invoice_cents ?? null;
+    if (perInvoiceCents && perInvoiceCents > 0) {
+      const basePrice = await stripe.prices.retrieve(targetPriceId);
+      const baseAmount = ((basePrice.unit_amount ?? 0) / 100).toFixed(2);
+      const perInvoiceAmount = (perInvoiceCents / 100).toFixed(2);
+      const periodLabel = billingPeriod === "yearly" ? "annual" : "monthly";
+      usageBillingNote = `Your ${periodLabel} subscription is $${baseAmount} plus $${perInvoiceAmount} per document successfully delivered. Usage charges appear on the following month's invoice.`;
+    }
+  }
+  // ── END aviso de cargo por uso ───────────────────────────────────────────
+
   const setupLineItem =
     setupFeeAmountCents > 0
       ? [
@@ -328,6 +354,7 @@ export async function POST(req: NextRequest) {
     tax_id_collection: { enabled: true },
     metadata: sharedMetadata,
     subscription_data: { metadata: sharedMetadata },
+    ...(usageBillingNote ? { custom_text: { submit: { message: usageBillingNote } } } : {}),
   });
 
   let session: Awaited<ReturnType<typeof stripe.checkout.sessions.create>>;

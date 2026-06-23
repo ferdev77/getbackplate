@@ -69,9 +69,10 @@ type SubscriptionLinkEmailProps = {
   billingPeriodLabel: string;
   checkoutUrl: string;
   extraCharge?: { description: string; amountFormatted: string } | null;
+  usageBillingNote?: string | null;
 };
 
-export function subscriptionLinkEmailTemplate({ planName, billingPeriodLabel, checkoutUrl, extraCharge }: SubscriptionLinkEmailProps) {
+export function subscriptionLinkEmailTemplate({ planName, billingPeriodLabel, checkoutUrl, extraCharge, usageBillingNote }: SubscriptionLinkEmailProps) {
   const extraChargeHtml = extraCharge
     ? `
       <div style="padding:16px 24px 0 24px;">
@@ -97,6 +98,7 @@ export function subscriptionLinkEmailTemplate({ planName, billingPeriodLabel, ch
         <p style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Plan</p>
         <p style="margin:0;color:#111827;font-size:18px;font-weight:800;">${planName}</p>
         <p style="margin:6px 0 0 0;color:#374151;font-size:13px;">Billed ${billingPeriodLabel}</p>
+        ${usageBillingNote ? `<p style="margin:8px 0 0 0;color:#374151;font-size:13px;line-height:1.5;">${usageBillingNote}</p>` : ""}
       </div>
     </div>
 

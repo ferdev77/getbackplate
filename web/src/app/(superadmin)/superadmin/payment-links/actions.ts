@@ -201,6 +201,21 @@ export async function updateInvoiceAllowanceOverrideAction(formData: FormData) {
   return { ok: true };
 }
 
+async function resolvePriceAmountForPeriod(basePriceId: string, billingPeriod: string): Promise<number | null> {
+  const basePrice = await stripe.prices.retrieve(basePriceId);
+  if (!basePrice.recurring) return basePrice.unit_amount ?? null;
+
+  const targetInterval = billingPeriod === "yearly" ? "year" : "month";
+  if (basePrice.recurring.interval === targetInterval) return basePrice.unit_amount ?? null;
+
+  const productId = typeof basePrice.product === "string" ? basePrice.product : (basePrice.product as { id: string } | null)?.id;
+  if (!productId) return basePrice.unit_amount ?? null;
+
+  const { data: prices } = await stripe.prices.list({ product: productId, active: true, limit: 100 });
+  const match = prices.find((p) => p.recurring?.interval === targetInterval && p.currency === basePrice.currency);
+  return match?.unit_amount ?? basePrice.unit_amount ?? null;
+}
+
 function fmtAmount(cents: number, currency: string) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase(), minimumFractionDigits: 2 }).format(cents / 100);
 }
@@ -260,7 +275,7 @@ export async function sendSubscriptionLinkEmailAction(formData: FormData) {
 
   const { data: order } = await supabase
     .from("manual_subscription_orders")
-    .select("plan_id, billing_period, checkout_url, status, extra_charge_cents, extra_charge_description")
+    .select("organization_id, plan_kind, plan_id, billing_period, checkout_url, status, extra_charge_cents, extra_charge_description")
     .eq("id", orderId)
     .maybeSingle();
 
@@ -268,7 +283,33 @@ export async function sendSubscriptionLinkEmailAction(formData: FormData) {
     return { ok: false, error: "Este link ya no está disponible para enviar" };
   }
 
-  const { data: plan } = await supabase.from("plans").select("name").eq("id", order.plan_id).maybeSingle();
+  const { data: plan } = await supabase.from("plans").select("name, stripe_price_id").eq("id", order.plan_id).maybeSingle();
+
+  let usageBillingNote: string | null = null;
+  if (order.plan_kind === "integration" && order.organization_id) {
+    const { data: moduleRow } = await supabase.from("module_catalog").select("id").eq("code", "qbo_r365").maybeSingle();
+    const { data: addonPricing } = moduleRow
+      ? await supabase
+          .from("organization_addons")
+          .select("price_per_invoice_cents")
+          .eq("organization_id", order.organization_id)
+          .eq("module_id", moduleRow.id)
+          .maybeSingle()
+      : { data: null };
+
+    const perInvoiceCents = addonPricing?.price_per_invoice_cents ?? null;
+    if (perInvoiceCents && perInvoiceCents > 0 && plan?.stripe_price_id) {
+      try {
+        const baseAmountCents = await resolvePriceAmountForPeriod(plan.stripe_price_id, order.billing_period);
+        const baseAmount = ((baseAmountCents ?? 0) / 100).toFixed(2);
+        const perInvoiceAmount = (perInvoiceCents / 100).toFixed(2);
+        const periodLabel = order.billing_period === "yearly" ? "annual" : "monthly";
+        usageBillingNote = `Your ${periodLabel} subscription is $${baseAmount} plus $${perInvoiceAmount} per document successfully delivered. Usage charges appear on the following month's invoice.`;
+      } catch (err) {
+        console.error("[sendSubscriptionLinkEmailAction] Error fetching base price for usage note:", err);
+      }
+    }
+  }
 
   const html = subscriptionLinkEmailTemplate({
     planName: plan?.name ?? "Subscription Plan",
@@ -277,6 +318,7 @@ export async function sendSubscriptionLinkEmailAction(formData: FormData) {
     extraCharge: order.extra_charge_cents
       ? { description: order.extra_charge_description ?? "Additional charge", amountFormatted: fmtAmount(order.extra_charge_cents, "usd") }
       : null,
+    usageBillingNote,
   });
 
   const result = await sendTransactionalEmail({
