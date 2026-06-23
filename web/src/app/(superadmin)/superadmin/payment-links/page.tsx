@@ -37,20 +37,29 @@ export default async function PaymentLinksPage() {
       .select("id, organization_id, plan_kind, plan_id, billing_period, include_setup_fee, extra_charge_cents, extra_charge_description, status, checkout_url, completed_at, expires_at, created_at")
       .order("created_at", { ascending: false })
       .limit(200),
-    supabase.from("plans").select("id, name, plan_type, setup_fee_amount").eq("is_active", true).eq("is_enterprise", false).order("name"),
+    supabase.from("plans").select("id, name, plan_type, setup_fee_amount, invoices_included").eq("is_active", true).eq("is_enterprise", false).order("name"),
   ]);
 
   const qboModuleId = (modules ?? []).find(m => m.code === "qbo_r365")?.id ?? null;
   const { data: integrationAddons } = qboModuleId
     ? await supabase
         .from("organization_addons")
-        .select("organization_id, price_per_invoice_cents")
+        .select("organization_id, price_per_invoice_cents, invoice_balance, invoice_allowance_override, integration_plan_id")
         .eq("module_id", qboModuleId)
         .eq("status", "active")
-    : { data: [] as { organization_id: string; price_per_invoice_cents: number | null }[] };
+    : {
+        data: [] as {
+          organization_id: string;
+          price_per_invoice_cents: number | null;
+          invoice_balance: number | null;
+          invoice_allowance_override: number | null;
+          integration_plan_id: string | null;
+        }[],
+      };
 
   const orgMap = Object.fromEntries((orgs ?? []).map(o => [o.id, o.name]));
   const planMap = Object.fromEntries((plans ?? []).map(p => [p.id, p.name]));
+  const planInvoicesIncludedMap = Object.fromEntries((plans ?? []).map(p => [p.id, p.invoices_included ?? 0]));
 
   const unbilledCounts = await Promise.all(
     (integrationAddons ?? []).map(a =>
@@ -71,6 +80,9 @@ export default async function PaymentLinksPage() {
       organizationName: orgMap[a.organization_id] ?? "(organización eliminada)",
       priceCents: a.price_per_invoice_cents,
       unbilledInvoiceCount: unbilledCountMap[a.organization_id] ?? 0,
+      planIncluded: a.integration_plan_id ? (planInvoicesIncludedMap[a.integration_plan_id] ?? 0) : 0,
+      invoiceBalance: a.invoice_balance ?? 0,
+      allowanceOverride: a.invoice_allowance_override,
     }))
     .filter(o => orgMap[o.organizationId])
     .sort((a, b) => a.organizationName.localeCompare(b.organizationName));

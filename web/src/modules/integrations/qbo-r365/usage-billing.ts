@@ -2,14 +2,20 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { stripe } from "@/infrastructure/stripe/client";
 
 /**
- * Suma un cargo por las facturas enviadas a R365 durante el periodo que
- * termina, como un "pending invoice item" sobre la suscripcion de
- * integracion -- Stripe lo absorbe automaticamente en la factura de
- * renovacion que esta a punto de generar (disparado desde invoice.upcoming).
+ * Suma un cargo por el EXCEDENTE de facturas enviadas a R365 sobre lo que el
+ * plan ya incluye, durante el periodo que termina -- como un "pending
+ * invoice item" sobre la suscripcion de integracion. Stripe lo absorbe
+ * automaticamente en la factura de renovacion que esta a punto de generar
+ * (disparado desde invoice.upcoming).
+ *
+ * El "incluido" del periodo es plan.invoices_included + organization_addons.invoice_balance,
+ * salvo que la organizacion tenga invoice_allowance_override seteado (caso
+ * especial, ej. un cliente sin setup fee pagado al que se le cobra todo) --
+ * en ese caso el override reemplaza por completo ese calculo.
  *
  * Solo actua si la organizacion tiene `price_per_invoice_cents` configurado
  * desde superadmin. Es idempotente via `last_usage_billed_through`: si ya
- * se factuo este periodo, no hace nada.
+ * se facturo este periodo, no hace nada.
  */
 export async function billInvoiceUsageForRenewal(params: {
   organizationId: string;
@@ -30,7 +36,7 @@ export async function billInvoiceUsageForRenewal(params: {
 
   const { data: addon } = await supabase
     .from("organization_addons")
-    .select("price_per_invoice_cents, last_usage_billed_through")
+    .select("price_per_invoice_cents, last_usage_billed_through, invoice_balance, invoice_allowance_override, integration_plan_id")
     .eq("organization_id", organizationId)
     .eq("module_id", moduleRow.id)
     .maybeSingle();
@@ -44,6 +50,18 @@ export async function billInvoiceUsageForRenewal(params: {
     return;
   }
 
+  let allowance: number;
+  if (addon?.invoice_allowance_override != null) {
+    allowance = addon.invoice_allowance_override;
+  } else {
+    const { data: plan } = addon?.integration_plan_id
+      ? await supabase.from("plans").select("invoices_included").eq("id", addon.integration_plan_id).maybeSingle()
+      : { data: null };
+    const planInvoices = plan?.invoices_included ?? 0;
+    const extraBalance = addon?.invoice_balance ?? 0;
+    allowance = planInvoices + extraBalance;
+  }
+
   const { count } = await supabase
     .from("qbo_unified_invoices")
     .select("id", { count: "exact", head: true })
@@ -51,8 +69,9 @@ export async function billInvoiceUsageForRenewal(params: {
     .gte("first_sent_at", periodStart.toISOString())
     .lt("first_sent_at", periodEnd.toISOString());
 
-  const invoiceCount = count ?? 0;
-  const amountCents = invoiceCount * priceCents;
+  const sentCount = count ?? 0;
+  const billableCount = Math.max(0, sentCount - allowance);
+  const amountCents = billableCount * priceCents;
   const unitPrice = (priceCents / 100).toFixed(2);
 
   await stripe.invoiceItems.create({
@@ -60,7 +79,7 @@ export async function billInvoiceUsageForRenewal(params: {
     subscription: stripeSubscriptionId,
     currency: "usd",
     amount: amountCents,
-    description: `Facturas enviadas a R365 (${invoiceCount} × $${unitPrice})`,
+    description: `Facturas enviadas a R365 (${sentCount} enviadas, ${allowance} incluidas, ${billableCount} × $${unitPrice})`,
   });
 
   await supabase
@@ -69,5 +88,5 @@ export async function billInvoiceUsageForRenewal(params: {
     .eq("organization_id", organizationId)
     .eq("module_id", moduleRow.id);
 
-  console.info(`[usage-billing] org ${organizationId}: billed ${invoiceCount} invoices × $${unitPrice} = $${(amountCents / 100).toFixed(2)}`);
+  console.info(`[usage-billing] org ${organizationId}: ${sentCount} enviadas, ${allowance} incluidas, billed ${billableCount} × $${unitPrice} = $${(amountCents / 100).toFixed(2)}`);
 }

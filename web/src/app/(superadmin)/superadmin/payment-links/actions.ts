@@ -163,3 +163,36 @@ export async function updateInvoicePriceAction(formData: FormData) {
   revalidatePath("/superadmin/payment-links");
   return { ok: true };
 }
+
+export async function updateInvoiceAllowanceOverrideAction(formData: FormData) {
+  await requireSuperadmin();
+
+  const organizationId = String(formData.get("organization_id") ?? "").trim();
+  if (!organizationId) return { ok: false, error: "Organización inválida" };
+
+  const raw = String(formData.get("allowance_override") ?? "").trim();
+  const allowanceOverride = raw === "" ? null : Number(raw);
+  if (allowanceOverride !== null && (!Number.isInteger(allowanceOverride) || allowanceOverride < 0)) {
+    return { ok: false, error: "Valor inválido" };
+  }
+
+  const supabase = createSupabaseAdminClient();
+
+  const { data: moduleRow } = await supabase
+    .from("module_catalog")
+    .select("id")
+    .eq("code", "qbo_r365")
+    .maybeSingle();
+  if (!moduleRow) return { ok: false, error: "Módulo qbo_r365 no encontrado" };
+
+  const { error } = await supabase
+    .from("organization_addons")
+    .update({ invoice_allowance_override: allowanceOverride })
+    .eq("organization_id", organizationId)
+    .eq("module_id", moduleRow.id);
+
+  if (error) return { ok: false, error: "No se pudo actualizar las facturas incluidas" };
+
+  revalidatePath("/superadmin/payment-links");
+  return { ok: true };
+}
