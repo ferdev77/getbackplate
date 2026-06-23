@@ -2,19 +2,28 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { PageContent } from "@/shared/ui/page-content";
 import { PaymentLinkModal } from "./payment-link-modal";
 import { PaymentLinksTable } from "./payment-links-table";
+import { SubscriptionLinkModal } from "./subscription-link-modal";
+import { SubscriptionLinksTable } from "./subscription-links-table";
 
 export const dynamic = "force-dynamic";
 
 export default async function PaymentLinksPage() {
   const supabase = createSupabaseAdminClient();
 
-  await supabase
-    .from("manual_payment_orders")
-    .update({ status: "expired" })
-    .eq("status", "pending")
-    .lt("expires_at", new Date().toISOString());
+  await Promise.all([
+    supabase
+      .from("manual_payment_orders")
+      .update({ status: "expired" })
+      .eq("status", "pending")
+      .lt("expires_at", new Date().toISOString()),
+    supabase
+      .from("manual_subscription_orders")
+      .update({ status: "expired" })
+      .eq("status", "pending")
+      .lt("expires_at", new Date().toISOString()),
+  ]);
 
-  const [{ data: orders }, { data: orgs }, { data: modules }] = await Promise.all([
+  const [{ data: orders }, { data: orgs }, { data: modules }, { data: subscriptionOrders }, { data: plans }] = await Promise.all([
     supabase
       .from("manual_payment_orders")
       .select("id, organization_id, description, internal_notes, amount_cents, currency, action_type, action_payload, items, status, checkout_url, paid_at, expires_at, created_at, stripe_payment_intent_id, customer_email")
@@ -22,9 +31,18 @@ export default async function PaymentLinksPage() {
       .limit(200),
     supabase.from("organizations").select("id, name").eq("status", "active").order("name"),
     supabase.from("module_catalog").select("id, code, name").order("name"),
+    supabase
+      .from("manual_subscription_orders")
+      .select("id, organization_id, plan_kind, plan_id, billing_period, include_setup_fee, status, checkout_url, completed_at, expires_at, created_at")
+      .order("created_at", { ascending: false })
+      .limit(200),
+    supabase.from("plans").select("id, name, plan_type, setup_fee_amount").eq("is_active", true).eq("is_enterprise", false).order("name"),
   ]);
 
   const orgMap = Object.fromEntries((orgs ?? []).map(o => [o.id, o.name]));
+  const planMap = Object.fromEntries((plans ?? []).map(p => [p.id, p.name]));
+  const platformPlans = (plans ?? []).filter(p => p.plan_type === "platform").map(p => ({ id: p.id, name: p.name, setupFeeAmount: p.setup_fee_amount }));
+  const integrationPlans = (plans ?? []).filter(p => p.plan_type === "qbo_r365").map(p => ({ id: p.id, name: p.name, setupFeeAmount: p.setup_fee_amount }));
   const totalPaid    = (orders ?? []).filter(o => o.status === "paid").length;
   const totalPending = (orders ?? []).filter(o => o.status === "pending").length;
 
@@ -66,6 +84,30 @@ export default async function PaymentLinksPage() {
         </div>
       ) : (
         <PaymentLinksTable orders={orders} orgMap={orgMap} />
+      )}
+
+      {/* Links de Suscripción */}
+      <div className="mb-8 mt-14 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--gbp-border)] pt-10">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">Links de Suscripción</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Alta de plan recurrente (plataforma o integración QBO-R365) sin que el cliente tenga que loguearse.
+          </p>
+        </div>
+        <SubscriptionLinkModal
+          organizations={(orgs ?? []).map(o => ({ id: o.id, name: o.name }))}
+          platformPlans={platformPlans}
+          integrationPlans={integrationPlans}
+        />
+      </div>
+
+      {!subscriptionOrders || subscriptionOrders.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-[var(--gbp-border)] px-8 py-16 text-center">
+          <p className="text-sm font-semibold text-muted-foreground">Todavía no hay links de suscripción generados.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Creá el primero con el botón de arriba.</p>
+        </div>
+      ) : (
+        <SubscriptionLinksTable orders={subscriptionOrders} orgMap={orgMap} planMap={planMap} />
       )}
     </PageContent>
   );

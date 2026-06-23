@@ -208,6 +208,21 @@ export async function POST(req: Request) {
 
         console.info(`[Webhook] checkout.session.completed - customer: ${session.customer}, subscription: ${session.subscription}`);
 
+        // ── MANUAL SUBSCRIPTION ORDER (tracking only) ─────────────
+        // Created from superadmin/payment-links "Links de Suscripción". The
+        // actual provisioning runs unchanged in the addon/platform branches
+        // below — this only marks the link as completed for the superadmin UI.
+        const manualSubscriptionOrderId = session.metadata?.manualSubscriptionOrderId ?? null;
+        const markManualSubscriptionOrderCompleted = async () => {
+          if (!manualSubscriptionOrderId) return;
+          const { error } = await supabase
+            .from('manual_subscription_orders')
+            .update({ status: 'completed', completed_at: new Date().toISOString() })
+            .eq('id', manualSubscriptionOrderId)
+            .eq('status', 'pending');
+          if (error) console.error('[Webhook][manual-subscription] Error marking order completed:', error);
+        };
+
         // ── MANUAL PAYMENT ORDER ─────────────────────────────────
         // Created from superadmin/payment-links. One-time payment mode.
         // Actions are stored in the DB items column (new orders) or metadata (legacy).
@@ -428,6 +443,8 @@ export async function POST(req: Request) {
           console.info(`[Webhook][addon] billing_onboarding_required cleared for integration-only org ${addonOrgId}`);
           // ── END BILLING GATE FIX ─────────────────────────────────────────────
 
+          await markManualSubscriptionOrderCompleted();
+
           break;
         }
         // ── END ADD-ON CHECKOUT ──────────────────────────────────
@@ -580,6 +597,8 @@ export async function POST(req: Request) {
 
         if (subError) console.error('[Webhook] Error upserting subscription:', subError);
         else console.info('[Webhook] subscriptions upserted OK');
+
+        await markManualSubscriptionOrderCompleted();
 
         break;
       }

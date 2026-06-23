@@ -45,6 +45,9 @@ and takes the union of both plans modules when activating an org.
 ### Manual payment orders (ad-hoc, no Price ID required)
 `/api/stripe/checkout-manual` → Stripe Checkout (**payment mode**, `price_data`) → webhook → manual payment branch.
 
+### Manual subscription orders (recurring plan, no login required)
+`/api/stripe/checkout-manual-subscription` → Stripe Checkout (**subscription mode**) reusing the exact `metadata` shape of the platform/addon branches → webhook → same platform/addon branch as the logged-in flows (zero provisioning changes, only an extra tracking update).
+
 ---
 
 ## Manual Payment Orders
@@ -127,6 +130,80 @@ Modal (client component): org selector + amount + currency + action type + actio
 - API route uses `assertSuperadminApi()` — returns 401/403 if caller is not superadmin.
 - DB table has RLS policy `mpo_superadmin_all` — only `is_superadmin()` users can read/write.
 - Webhook verifies Stripe signature via `stripe.webhooks.constructEvent` before any processing.
+
+---
+
+## Manual Subscription Orders
+
+**Purpose:** Superadmin starts a recurring plan (platform or QBO-R365 integration) for an
+organization whose admin will never log in (e.g. clients the team manages directly via
+QuickBooks only). Sends a real Stripe Checkout link (subscription mode) instead of requiring
+the org admin to subscribe from `/app/billing` or `/app/integrations/quickbooks`.
+
+**Upgrade rule — the key difference from manual payment orders:** if the organization already
+has an active subscription of the requested `plan_kind`, **no link is generated**. The endpoint
+applies the plan change immediately via `stripe.subscriptions.update()` with proration on the
+card already on file — exactly what the logged-in flows (`/api/stripe/checkout`,
+`/api/stripe/checkout-integration`) already do for their own upgrade path. The order row is still
+inserted, with `status = 'upgraded'`, purely for traceability — there is never a `checkout_url`
+for that case.
+
+### Table: `manual_subscription_orders`
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UUID | PK |
+| `organization_id` | UUID | FK → organizations |
+| `created_by` | UUID | FK → auth.users (superadmin who created it) |
+| `plan_kind` | TEXT | `platform` / `integration` |
+| `plan_id` | UUID | FK → plans (filtered by `plan_type = 'platform'` or `'qbo_r365'`) |
+| `billing_period` | TEXT | `monthly` / `yearly` |
+| `include_setup_fee` | BOOLEAN | Only meaningful for `plan_kind = 'integration'` |
+| `status` | TEXT | `pending` / `completed` / `expired` / `canceled` / `upgraded` |
+| `stripe_session_id` | TEXT | NULL for `upgraded` orders (no Checkout Session was ever created) |
+| `checkout_url` | TEXT | NULL for `upgraded` orders |
+| `completed_at` | TIMESTAMPTZ | Set by webhook (`completed`) or by the endpoint itself (`upgraded`) |
+| `expires_at` | TIMESTAMPTZ | +24h from creation, only relevant for `pending` |
+
+### Endpoint: `POST /api/stripe/checkout-manual-subscription`
+
+File: `web/src/app/api/stripe/checkout-manual-subscription/route.ts`
+
+1. `assertSuperadminApi()`.
+2. Resolves the plan (filtered by `plan_type`) and the target Stripe price for the requested period.
+3. Detects an existing active subscription of that `plan_kind` (`subscriptions` table for platform,
+   `organization_addons` for integration).
+4. Same plan → returns a Billing Portal URL. Different plan → instant proration update,
+   inserts `status='upgraded'`. No active subscription → creates the Checkout Session and inserts
+   `status='pending'`.
+5. The Checkout Session's `metadata`/`subscription_data.metadata` is built to look **identical** to
+   what `/api/stripe/checkout` and `/api/stripe/checkout-integration` already send — the only
+   addition is `manualSubscriptionOrderId`, used solely by the webhook to flip the tracking row to
+   `completed`. `success_url`/`cancel_url` point to the public `/pay/success` / `/pay/canceled`
+   pages (not `/app/...`), since the customer is never logged in.
+6. Reuses the existing `stripe_customers` mapping when present, with the same "stale customer"
+   retry safeguard as `checkout-manual.ts` (deletes the mapping and retries without `customer` if
+   Stripe returns "No such customer").
+
+### Webhook handler
+
+File: `web/src/app/api/stripe/webhook/route.ts`, event `checkout.session.completed`.
+No provisioning logic was added or changed — the addon branch and the normal plan branch run
+exactly as they do for the logged-in flows. The only addition is
+`markManualSubscriptionOrderCompleted()`, called at the end of each of those two branches when
+`session.metadata?.manualSubscriptionOrderId` is present, to flip the row to `completed`.
+
+### Superadmin UI
+
+`/superadmin/payment-links` — second section "Links de Suscripción" below the ad-hoc payments
+table. Modal: org selector + plan kind (platform/integration) + plan + billing period + optional
+setup fee checkbox. If the response is `{ upgraded: true }`, shows a success message with no link
+to copy; if `{ url }`, same copy-link UX as ad-hoc payment links.
+
+### Security
+
+Same as Manual Payment Orders: `assertSuperadminApi()` on the route, RLS policy
+`mso_superadmin_all` (`is_superadmin()` only), Stripe signature verification in the webhook.
 
 ---
 
