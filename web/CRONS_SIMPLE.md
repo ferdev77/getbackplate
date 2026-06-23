@@ -9,6 +9,7 @@ Este proyecto usa **solo Vercel Cron**. Definidos en `web/vercel.json`.
 | `/api/internal/cron/daily` | `0 8 * * *` | Una vez al día (08:00 UTC) |
 | `/api/webhooks/cron/process-recurrence` | `0 9 * * *` | Una vez al día (09:00 UTC) |
 | `/api/webhooks/cron/qbo-r365-sync` | `0 0,4,10,12,14,16,18,20,21,22 * * *` | 10 veces al día |
+| `/api/internal/cron/push-scheduled-send` | `0 * * * *` | Cada hora en punto |
 
 ## Que hace cada uno
 
@@ -33,6 +34,11 @@ En palabras simples: dispara tareas que estaban agendadas para hoy.
 Ejecuta sincronizaciones activas de QuickBooks -> R365.
 
 En palabras simples: trae facturas y corre la integracion automaticamente.
+
+### 4) `/api/internal/cron/push-scheduled-send`
+Procesa la cola de notificaciones push que el superadmin programo para una hora especifica desde `/superadmin/push` (tabla `push_scheduled_sends`).
+
+En palabras simples: cada hora en punto, revisa si hay algun push programado para ese momento y lo envia. Corre cada hora (no una vez al dia) porque la programacion solo admite horas en punto.
 
 ## Seguridad
 

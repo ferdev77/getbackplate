@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-06-23 — Sistema de push notifications: PWA, programación, segmentación y alertas de integración QBO → R365
+
+Guía técnica completa en [`DOCS/4_Operaciones_y_Guias/GUIA_PUSH_NOTIFICATIONS.md`](DOCS/4_Operaciones_y_Guias/GUIA_PUSH_NOTIFICATIONS.md).
+
+- **Instalación de la PWA**: ícono `apple-touch-icon` corregido para iOS (`web/src/app/layout.tsx`). Botón "Instalar app" nuevo (`web/src/shared/lib/use-pwa-install.ts`), visible solo en mobile/tablet, oculto en ambas landings y cuando la app ya corre en modo standalone (`display-mode: standalone` / `navigator.standalone`).
+- **Envío programado**: el superadmin puede programar un push para una hora en punto futura (no rango libre) desde `/superadmin/push`, y cancelarlo antes de que se dispare. Cron nuevo `/api/internal/cron/push-scheduled-send` (cada hora, ver `web/CRONS_SIMPLE.md`). Tabla `push_scheduled_sends`.
+- **Segmentación por usuario**: además de por organización, el superadmin puede enviar (ahora o programado) a usuarios específicos que ya tengan push activo. `push_send_logs` y `push_scheduled_sends` ganan `target_type`/`user_ids`/`user_count`.
+- **Alertas de integración QBO → R365 para superadmin**: el superadmin puede suscribirse (`notify_integration_alerts` en `push_subscriptions`, gateado a superadmin en `/api/push/subscribe`) para recibir un push de cualquier organización cuando un webhook no se puede identificar, cuando una factura se envía con éxito a R365, o cuando falla el envío. Nunca notifica el descarte legítimo de clientes sin sync config.
+- **Fix de fondo en el pipeline QBO**: antes de este trabajo, un error de token/conexión/FTP en el envío en vivo a R365 podía perderse sin dejar rastro (solo consola). Ahora siempre queda en `integration_runs.error_summary` o `qbo_webhook_events.last_error`, tanto en el camino en vivo (`web/src/modules/integrations/qbo-r365/service.ts`) como en el cron de recovery `processQboUnifiedQueue()`.
+
+Migraciones: `20260618000001`, `20260618000002`, `20260621000002`, `20260622000001`, `20260623000004` (ver `SUPABASE_MIGRATIONS.md` filas 128–132). Aplicadas en DEV y PROD.
+
+---
+
 ## 2026-06-04 — Auditoría y corrección de bugs
 
 Auditoría completa de la app de punta a punta. Se identificaron y corrigieron 6 bugs.

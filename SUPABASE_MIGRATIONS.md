@@ -135,6 +135,11 @@ Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 | 125 | `20260603000002_organization_addons_extra_r365_slots.sql` | Campo `extra_r365_connections` en `organization_addons` |
 | 126 | `20260604000001_announcement_deliveries_processing_status.sql` | Agrega `processing` al CHECK constraint de `announcement_deliveries.status` |
 | 127 | `20260604000002_manual_payment_add_slot_and_status_guards.sql` | Agrega `add_slot` al CHECK constraint de `manual_payment_orders.action_type` |
+| 128 | `20260618000001_push_subscriptions.sql` | Tabla `push_subscriptions` — suscripciones Web Push por usuario/dispositivo |
+| 129 | `20260618000002_push_send_logs.sql` | Tabla `push_send_logs` — historial de broadcasts manuales de superadmin |
+| 130 | `20260621000002_push_scheduled_sends.sql` | Tabla `push_scheduled_sends` — cola de envíos push programados por hora |
+| 131 | `20260622000001_push_broadcast_target_users.sql` | Agrega `target_type`/`user_ids`/`user_count` a `push_send_logs` y `push_scheduled_sends` (segmentación por usuario) |
+| 132 | `20260623000004_push_integration_alerts.sql` | Columna `notify_integration_alerts` en `push_subscriptions` — alertas de superadmin del pipeline QBO → R365 |
 
 ## Convención de naming
 
