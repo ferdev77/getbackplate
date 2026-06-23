@@ -5,6 +5,8 @@ import { CheckCircle2, Clock, XCircle, Ban, Zap, FileStack, Tag, Plug, ChevronDo
 import { CopyUrlButton } from "./copy-url-button";
 import { CancelOrderButton } from "./cancel-order-button";
 import { DeleteOrderButton } from "./delete-order-button";
+import { SendLinkEmailButton } from "./send-link-email-button";
+import { sendPaymentLinkEmailAction } from "./actions";
 
 const STATUS_CONFIG = {
   pending:  { label: "Pendiente",  cls: "text-amber-600  bg-amber-50  border-amber-200",   Icon: Clock },
@@ -57,6 +59,7 @@ type Order = {
   created_at: string;
   stripe_payment_intent_id: string | null;
   customer_email: string | null;
+  email_sent_to: string | null;
 };
 
 type Props = {
@@ -244,6 +247,9 @@ export function PaymentLinksTable({ orders, orgMap }: Props) {
                     <div className="flex items-center gap-2">
                       {order.checkout_url && order.status === "pending" && (
                         <CopyUrlButton url={order.checkout_url} />
+                      )}
+                      {order.checkout_url && order.status === "pending" && (
+                        <SendLinkEmailButton orderId={order.id} sentTo={order.email_sent_to} action={sendPaymentLinkEmailAction} />
                       )}
                       {order.status === "pending" && (
                         <CancelOrderButton orderId={order.id} />

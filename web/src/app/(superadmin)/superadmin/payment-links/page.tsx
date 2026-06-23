@@ -27,14 +27,14 @@ export default async function PaymentLinksPage() {
   const [{ data: orders }, { data: orgs }, { data: modules }, { data: subscriptionOrders }, { data: plans }] = await Promise.all([
     supabase
       .from("manual_payment_orders")
-      .select("id, organization_id, description, internal_notes, amount_cents, currency, action_type, action_payload, items, status, checkout_url, paid_at, expires_at, created_at, stripe_payment_intent_id, customer_email")
+      .select("id, organization_id, description, internal_notes, amount_cents, currency, action_type, action_payload, items, status, checkout_url, paid_at, expires_at, created_at, stripe_payment_intent_id, customer_email, email_sent_to")
       .order("created_at", { ascending: false })
       .limit(200),
     supabase.from("organizations").select("id, name").eq("status", "active").order("name"),
     supabase.from("module_catalog").select("id, code, name").order("name"),
     supabase
       .from("manual_subscription_orders")
-      .select("id, organization_id, plan_kind, plan_id, billing_period, include_setup_fee, extra_charge_cents, extra_charge_description, status, checkout_url, completed_at, expires_at, created_at")
+      .select("id, organization_id, plan_kind, plan_id, billing_period, include_setup_fee, extra_charge_cents, extra_charge_description, status, checkout_url, completed_at, expires_at, created_at, email_sent_to")
       .order("created_at", { ascending: false })
       .limit(200),
     supabase.from("plans").select("id, name, plan_type, setup_fee_amount, invoices_included").eq("is_active", true).eq("is_enterprise", false).order("name"),

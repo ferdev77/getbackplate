@@ -5,6 +5,8 @@ import { CheckCircle2, Clock, XCircle, Ban, TrendingUp, Building2, Plug, Chevron
 import { CopyUrlButton } from "./copy-url-button";
 import { CancelSubscriptionOrderButton } from "./cancel-subscription-order-button";
 import { DeleteSubscriptionOrderButton } from "./delete-subscription-order-button";
+import { SendLinkEmailButton } from "./send-link-email-button";
+import { sendSubscriptionLinkEmailAction } from "./actions";
 
 const STATUS_CONFIG = {
   pending:   { label: "Pendiente",   cls: "text-amber-600  bg-amber-50  border-amber-200",   Icon: Clock },
@@ -40,6 +42,7 @@ type Order = {
   completed_at: string | null;
   expires_at: string | null;
   created_at: string;
+  email_sent_to: string | null;
 };
 
 type Props = {
@@ -146,6 +149,9 @@ export function SubscriptionLinksTable({ orders, orgMap, planMap }: Props) {
                     <div className="flex items-center gap-2">
                       {order.checkout_url && order.status === "pending" && (
                         <CopyUrlButton url={order.checkout_url} />
+                      )}
+                      {order.checkout_url && order.status === "pending" && (
+                        <SendLinkEmailButton orderId={order.id} sentTo={order.email_sent_to} action={sendSubscriptionLinkEmailAction} />
                       )}
                       {order.status === "pending" && (
                         <CancelSubscriptionOrderButton orderId={order.id} />

@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { stripe } from "@/infrastructure/stripe/client";
 import { requireSuperadmin } from "@/shared/lib/access";
+import { sendTransactionalEmail } from "@/infrastructure/email/client";
+import { paymentLinkEmailTemplate, subscriptionLinkEmailTemplate } from "@/shared/lib/email-templates/payment-links";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function cancelManualPaymentOrderAction(formData: FormData) {
   await requireSuperadmin();
@@ -192,6 +196,101 @@ export async function updateInvoiceAllowanceOverrideAction(formData: FormData) {
     .eq("module_id", moduleRow.id);
 
   if (error) return { ok: false, error: "No se pudo actualizar las facturas incluidas" };
+
+  revalidatePath("/superadmin/payment-links");
+  return { ok: true };
+}
+
+function fmtAmount(cents: number, currency: string) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase(), minimumFractionDigits: 2 }).format(cents / 100);
+}
+
+export async function sendPaymentLinkEmailAction(formData: FormData) {
+  await requireSuperadmin();
+
+  const orderId = String(formData.get("order_id") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  if (!orderId) return { ok: false, error: "ID de orden inválido" };
+  if (!EMAIL_RE.test(email)) return { ok: false, error: "Email inválido" };
+
+  const supabase = createSupabaseAdminClient();
+
+  const { data: order } = await supabase
+    .from("manual_payment_orders")
+    .select("description, amount_cents, currency, checkout_url, status")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (!order || !order.checkout_url || order.status !== "pending") {
+    return { ok: false, error: "Este link ya no está disponible para enviar" };
+  }
+
+  const html = paymentLinkEmailTemplate({
+    description: order.description,
+    amountFormatted: fmtAmount(order.amount_cents, order.currency),
+    checkoutUrl: order.checkout_url,
+  });
+
+  const result = await sendTransactionalEmail({
+    to: email,
+    subject: "Your GetBackplate payment request is ready",
+    html,
+  });
+
+  if (!result.ok) return { ok: false, error: result.error };
+
+  await supabase
+    .from("manual_payment_orders")
+    .update({ email_sent_to: email, email_sent_at: new Date().toISOString() })
+    .eq("id", orderId);
+
+  revalidatePath("/superadmin/payment-links");
+  return { ok: true };
+}
+
+export async function sendSubscriptionLinkEmailAction(formData: FormData) {
+  await requireSuperadmin();
+
+  const orderId = String(formData.get("order_id") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  if (!orderId) return { ok: false, error: "ID de orden inválido" };
+  if (!EMAIL_RE.test(email)) return { ok: false, error: "Email inválido" };
+
+  const supabase = createSupabaseAdminClient();
+
+  const { data: order } = await supabase
+    .from("manual_subscription_orders")
+    .select("plan_id, billing_period, checkout_url, status, extra_charge_cents, extra_charge_description")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (!order || !order.checkout_url || order.status !== "pending") {
+    return { ok: false, error: "Este link ya no está disponible para enviar" };
+  }
+
+  const { data: plan } = await supabase.from("plans").select("name").eq("id", order.plan_id).maybeSingle();
+
+  const html = subscriptionLinkEmailTemplate({
+    planName: plan?.name ?? "Subscription Plan",
+    billingPeriodLabel: order.billing_period === "yearly" ? "annually" : "monthly",
+    checkoutUrl: order.checkout_url,
+    extraCharge: order.extra_charge_cents
+      ? { description: order.extra_charge_description ?? "Additional charge", amountFormatted: fmtAmount(order.extra_charge_cents, "usd") }
+      : null,
+  });
+
+  const result = await sendTransactionalEmail({
+    to: email,
+    subject: "Activate your GetBackplate subscription",
+    html,
+  });
+
+  if (!result.ok) return { ok: false, error: result.error };
+
+  await supabase
+    .from("manual_subscription_orders")
+    .update({ email_sent_to: email, email_sent_at: new Date().toISOString() })
+    .eq("id", orderId);
 
   revalidatePath("/superadmin/payment-links");
   return { ok: true };
