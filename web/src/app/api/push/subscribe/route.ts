@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { isCurrentUserSuperadmin } from "@/modules/memberships/queries";
 
 export async function POST(req: NextRequest) {
   const supabase = await createSupabaseServerClient();
@@ -13,16 +14,21 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { endpoint, keys, orgId, userAgent } = body as {
+  const { endpoint, keys, orgId, userAgent, notifyIntegrationAlerts } = body as {
     endpoint: string;
     keys: { p256dh: string; auth: string };
     orgId?: string;
     userAgent?: string;
+    notifyIntegrationAlerts?: boolean;
   };
 
   if (!endpoint || !keys?.p256dh || !keys?.auth) {
     return NextResponse.json({ error: "Suscripción inválida" }, { status: 400 });
   }
+
+  // notify_integration_alerts expone eventos de TODAS las organizaciones — solo
+  // un superadmin puede activarlo en su propia suscripción.
+  const canSetIntegrationAlerts = notifyIntegrationAlerts !== undefined && (await isCurrentUserSuperadmin());
 
   const admin = createSupabaseAdminClient();
   const { error } = await admin.from("push_subscriptions").upsert(
@@ -35,6 +41,7 @@ export async function POST(req: NextRequest) {
       is_active: true,
       user_agent: userAgent ?? null,
       updated_at: new Date().toISOString(),
+      ...(canSetIntegrationAlerts ? { notify_integration_alerts: notifyIntegrationAlerts } : {}),
     },
     { onConflict: "user_id,endpoint" }
   );

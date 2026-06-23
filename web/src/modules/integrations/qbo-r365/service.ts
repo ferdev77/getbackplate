@@ -2,6 +2,7 @@ import { after } from "next/server";
 import { Client as FtpClient } from "basic-ftp";
 import { Readable } from "stream";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { notifyIntegrationEvent } from "@/infrastructure/push/integration-alerts";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { getCanonicalAppUrl } from "@/shared/lib/app-url";
 import { decryptJsonPayload, encryptJsonPayload } from "@/modules/integrations/qbo-r365/crypto";
@@ -3165,6 +3166,62 @@ async function mapAndSendUnifiedRow(input: {
 }): Promise<{ fileName: string; runId: string; uploaded: number }> {
   const admin = createSupabaseAdminClient();
 
+  const customerRef = (input.rawEntity as unknown as Record<string, unknown>).CustomerRef as Record<string, unknown> | undefined;
+  const customerName = typeof customerRef?.name === "string" ? customerRef.name : null;
+
+  // La corrida se crea primero, antes de cualquier paso que pueda fallar,
+  // para que un error en cualquier etapa siempre tenga un run_id donde quedar registrado.
+  const runId = await createRun(input.organizationId, input.actorId, input.triggerSource, input.syncConfig.id);
+
+  try {
+    const result = await mapAndSendUnifiedRowInner({ ...input, runId, customerName });
+    await notifyIntegrationEvent({
+      kind: "send_success",
+      organizationId: input.organizationId,
+      customerName,
+      docNumber: result.docNumber,
+    });
+    return result;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Error desconocido enviando a R365";
+    await admin
+      .from("integration_runs")
+      .update({ status: "failed", finished_at: new Date().toISOString(), error_summary: { message } })
+      .eq("id", runId)
+      .eq("organization_id", input.organizationId);
+    await appendIntegrationAudit({
+      organizationId: input.organizationId,
+      runId,
+      level: "error",
+      code: "invoice_send_failed",
+      message: `Error enviando ${input.entityId} (${input.entityType}) a R365: ${message}`,
+      metadata: { entityId: input.entityId, entityType: input.entityType },
+    });
+    await notifyIntegrationEvent({
+      kind: "send_failed",
+      organizationId: input.organizationId,
+      customerName,
+      entityId: input.entityId,
+      errorMessage: message,
+    });
+    throw err;
+  }
+}
+
+async function mapAndSendUnifiedRowInner(input: {
+  organizationId: string;
+  unifiedInvoiceId: string;
+  entityId: string;
+  entityType: "Invoice" | "CreditMemo";
+  rawEntity: QboInvoiceLike;
+  syncConfig: SyncConfigRow & { customers: SyncConfigCustomerRow[] };
+  actorId: string | null;
+  triggerSource: "manual" | "scheduled" | "retry";
+  runId: string;
+  customerName: string | null;
+}): Promise<{ fileName: string; runId: string; uploaded: number; docNumber: string | null }> {
+  const admin = createSupabaseAdminClient();
+
   const mappings = await getActiveMappings(input.organizationId);
   const itemSkuMap = await getQboItemSkuMapForOrganization(input.organizationId);
   const groupCustomerIds = input.syncConfig.customers.map((c) => c.qbo_customer_id);
@@ -3218,8 +3275,7 @@ async function mapAndSendUnifiedRow(input: {
   const invoiceNumber = lines[0]?.invoiceNumber;
   const vendorSlug = (lines[0]?.vendor ?? "r365_inv").replace(/[^a-zA-Z0-9_\-]/g, "_").slice(0, 20);
   const fileName = buildFileName(vendorSlug, invoiceNumber);
-
-  const runId = await createRun(input.organizationId, input.actorId, input.triggerSource, input.syncConfig.id);
+  const runId = input.runId;
 
   await uploadCsvToFtp({ ...ftp, fileName, content: csvBuild.csv });
 
@@ -3279,7 +3335,7 @@ async function mapAndSendUnifiedRow(input: {
     metadata: { fileName, entityId: input.entityId, entityType: input.entityType },
   });
 
-  return { fileName, runId, uploaded: lines.length };
+  return { fileName, runId, uploaded: lines.length, docNumber: invoiceNumber ?? null };
 }
 
 async function fetchAndCaptureWebhookInvoice(input: {
@@ -3290,19 +3346,47 @@ async function fetchAndCaptureWebhookInvoice(input: {
 }): Promise<void> {
   const admin = createSupabaseAdminClient();
 
-  const qboConnection = await getConnection(input.organizationId, "quickbooks_online");
-  if (!qboConnection || qboConnection.status !== "connected") return;
+  async function markIdentificationFailed(errorMessage: string) {
+    await admin.from("qbo_webhook_events").update({
+      status: "failed",
+      last_error: errorMessage,
+      processed_at: new Date().toISOString(),
+    }).eq("id", input.webhookEventId);
+    await notifyIntegrationEvent({
+      kind: "identification_failed",
+      organizationId: input.organizationId,
+      entityId: input.entityId,
+      entityType: input.entityType,
+      errorMessage,
+    });
+  }
 
-  const qboAuth = await ensureFreshQboToken({ organizationId: input.organizationId, actorId: null, qboConnection });
-  const raw = await fetchQboRawTransaction({
-    accessToken: qboAuth.accessToken,
-    realmId: qboAuth.realmId,
-    invoiceId: input.entityId,
-  });
+  let entity: Record<string, unknown>;
+  try {
+    const qboConnection = await getConnection(input.organizationId, "quickbooks_online");
+    if (!qboConnection || qboConnection.status !== "connected") {
+      await markIdentificationFailed("La conexión a QBO no está activa para esta organización");
+      return;
+    }
 
-  if (!raw?.data) return;
+    const qboAuth = await ensureFreshQboToken({ organizationId: input.organizationId, actorId: null, qboConnection });
+    const raw = await fetchQboRawTransaction({
+      accessToken: qboAuth.accessToken,
+      realmId: qboAuth.realmId,
+      invoiceId: input.entityId,
+    });
 
-  const entity = raw.data as Record<string, unknown>;
+    if (!raw?.data) {
+      await markIdentificationFailed("QBO no devolvió datos para esta entidad");
+      return;
+    }
+
+    entity = raw.data as Record<string, unknown>;
+  } catch (err) {
+    await markIdentificationFailed(err instanceof Error ? err.message : "Error desconocido identificando el webhook");
+    return;
+  }
+
   const docNumber = typeof entity.DocNumber === "string" ? entity.DocNumber : null;
   const txnDate = typeof entity.TxnDate === "string" ? entity.TxnDate : null;
   const dueDate = typeof entity.DueDate === "string" ? entity.DueDate : null;
@@ -4063,7 +4147,7 @@ export async function processQboUnifiedQueue(): Promise<{
 
   const { data: stuck, error } = await admin
     .from("qbo_unified_invoices")
-    .select("id, organization_id, entity_id, entity_type, raw_entity, sync_config_id, pipeline_status")
+    .select("id, organization_id, entity_id, entity_type, raw_entity, sync_config_id, pipeline_status, webhook_event_id")
     .in("pipeline_status", ["en_cola", "capturada", "mapeada"])
     .eq("import_source", "webhook")
     .limit(100);
@@ -4072,6 +4156,17 @@ export async function processQboUnifiedQueue(): Promise<{
 
   const rows = stuck ?? [];
   const results: QueueResult[] = [];
+
+  async function markIdentificationFailed(row: { webhook_event_id: string | null }, organizationId: string, entityId: string, entityType: string, errorMessage: string) {
+    if (row.webhook_event_id) {
+      await admin.from("qbo_webhook_events").update({
+        status: "failed",
+        last_error: errorMessage,
+        processed_at: new Date().toISOString(),
+      }).eq("id", row.webhook_event_id);
+    }
+    await notifyIntegrationEvent({ kind: "identification_failed", organizationId, entityId, entityType, errorMessage });
+  }
 
   for (const row of rows) {
     const unifiedInvoiceId = String(row.id);
@@ -4084,6 +4179,7 @@ export async function processQboUnifiedQueue(): Promise<{
       if (row.pipeline_status === "en_cola" || !rawEntity) {
         const qboConnection = await getConnection(organizationId, "quickbooks_online");
         if (!qboConnection || qboConnection.status !== "connected") {
+          await markIdentificationFailed(row, organizationId, String(row.entity_id), String(row.entity_type), "QBO no conectado");
           results.push({ unifiedInvoiceId, status: "failed", error: "QBO no conectado" });
           continue;
         }
@@ -4094,6 +4190,7 @@ export async function processQboUnifiedQueue(): Promise<{
           invoiceId: String(row.entity_id),
         });
         if (!raw?.data) {
+          await markIdentificationFailed(row, organizationId, String(row.entity_id), String(row.entity_type), "Entidad no encontrada en QBO");
           results.push({ unifiedInvoiceId, status: "failed", error: "Entidad no encontrada en QBO" });
           continue;
         }

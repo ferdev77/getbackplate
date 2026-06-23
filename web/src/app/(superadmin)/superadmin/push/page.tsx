@@ -1,4 +1,5 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { getCurrentUser } from "@/modules/memberships/queries";
 import { PushBroadcastClient } from "./push-broadcast-client";
 
 export type Subscriber = {
@@ -14,8 +15,9 @@ export type Subscriber = {
 
 export default async function SuperadminPushPage() {
   const supabase = createSupabaseAdminClient();
+  const currentUser = await getCurrentUser();
 
-  const [{ data: orgs }, { data: logs }, { data: rawSubs }, { data: scheduled }] = await Promise.all([
+  const [{ data: orgs }, { data: logs }, { data: rawSubs }, { data: scheduled }, { data: ownAlertSubs }] = await Promise.all([
     supabase
       .from("organizations")
       .select("id, name")
@@ -36,6 +38,15 @@ export default async function SuperadminPushPage() {
       .select("id, created_at, created_by, title, body, image_url, target_type, target_all, org_ids, user_ids, scheduled_at, status")
       .eq("status", "pending")
       .order("scheduled_at", { ascending: true }),
+    currentUser
+      ? supabase
+          .from("push_subscriptions")
+          .select("id")
+          .eq("user_id", currentUser.id)
+          .eq("notify_integration_alerts", true)
+          .eq("is_active", true)
+          .limit(1)
+      : Promise.resolve({ data: [] }),
   ]);
 
   const userIds = Array.from(new Set((rawSubs ?? []).map((s) => s.user_id)));
@@ -79,6 +90,7 @@ export default async function SuperadminPushPage() {
       logs={logs ?? []}
       subscribers={subscribers}
       scheduled={scheduled ?? []}
+      integrationAlertsEnabled={(ownAlertSubs ?? []).length > 0}
     />
   );
 }

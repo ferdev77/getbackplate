@@ -4,6 +4,7 @@ import { useState, useMemo, useRef } from "react";
 import { Bell, Search, CheckSquare, Square, Send, Loader2, AlertCircle, CheckCircle2, Users, ImagePlus, X, History, Smartphone, CalendarClock, Zap, Ban, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { PageContent } from "@/shared/ui/page-content";
+import { IntegrationAlertsCard } from "./integration-alerts-card";
 
 import type { Subscriber } from "./page";
 
@@ -38,7 +39,7 @@ type ScheduledRow = {
   scheduled_at: string;
   status: string;
 };
-type Props = { orgs: Org[]; logs: LogRow[]; subscribers: Subscriber[]; scheduled: ScheduledRow[] };
+type Props = { orgs: Org[]; logs: LogRow[]; subscribers: Subscriber[]; scheduled: ScheduledRow[]; integrationAlertsEnabled: boolean };
 
 function todayLocalDateInput() {
   const d = new Date();
@@ -79,7 +80,7 @@ function userDisplayName(s: Subscriber) {
   return s.first_name || s.last_name ? `${s.first_name ?? ""} ${s.last_name ?? ""}`.trim() : null;
 }
 
-export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, scheduled: initialScheduled }: Props) {
+export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, scheduled: initialScheduled, integrationAlertsEnabled }: Props) {
   const [audienceMode, setAudienceMode] = useState<"orgs" | "users">("orgs");
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -320,6 +321,8 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
           </p>
         </div>
       </section>
+
+      <IntegrationAlertsCard initialEnabled={integrationAlertsEnabled} />
 
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         {/* Audience selector */}
