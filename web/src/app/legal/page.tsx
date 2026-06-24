@@ -43,7 +43,7 @@ export default function LegalIndexPage() {
       <header className="border-b border-[#e5e7f0] bg-white px-6 py-5 sm:px-10">
         <div className="mx-auto flex max-w-[1000px] items-center justify-between">
           <Link href="/" className="inline-flex items-center" aria-label="GetBackplate home">
-            <Image src="/getbackplate-logo-light.svg" alt="GetBackplate" width={150} height={22} className="h-[22px] w-auto" />
+            <Image src="/getbackplate-logo-light.svg" alt="GetBackplate" width={200} height={29} className="h-[29px] w-auto" />
           </Link>
           <Link
             href="/"
@@ -60,7 +60,7 @@ export default function LegalIndexPage() {
         <div className="text-center">
           <span
             className="mb-4 inline-block rounded-full px-4 py-1 text-xs font-bold uppercase tracking-[0.08em]"
-            style={{ background: "#fef3ee", color: "#c04a17" }}
+            style={{ background: "#fbe0cd", color: "#c04a17" }}
           >
             Legal
           </span>
