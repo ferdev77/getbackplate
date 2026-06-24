@@ -138,6 +138,7 @@ export async function POST(req: NextRequest) {
     success_url: `${appUrl}/pay/success`,
     cancel_url:  `${appUrl}/pay/canceled`,
     expires_at:  stripeExpiresAt,
+    automatic_tax: { enabled: true },
     metadata: {
       manualPaymentOrderId: order.id,
       organizationId,

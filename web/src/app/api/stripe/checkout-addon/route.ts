@@ -121,6 +121,7 @@ export async function POST(request: Request) {
       line_items: [{ price: addonModule.addon_stripe_price_id, quantity: 1 }],
       success_url: `${baseUrl}/app/dashboard?addon_success=1&module=${addonModule.code}`,
       cancel_url: `${baseUrl}/app/dashboard`,
+      automatic_tax: { enabled: true },
       metadata: sharedMetadata,
       subscription_data: { metadata: sharedMetadata },
       ...buildTermsConsentParams(consentKind),

@@ -357,6 +357,7 @@ export async function POST(req: NextRequest) {
     cancel_url: `${appUrl}/pay/canceled`,
     client_reference_id: organizationId,
     tax_id_collection: { enabled: true },
+    automatic_tax: { enabled: true },
     metadata: sharedMetadata,
     subscription_data: { metadata: sharedMetadata },
     consent_collection: termsConsentParams.consent_collection,

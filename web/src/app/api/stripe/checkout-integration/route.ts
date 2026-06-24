@@ -236,6 +236,7 @@ export async function POST(request: Request) {
       success_url: `${appUrl}/app/integrations/quickbooks?integration_upgraded=1`,
       cancel_url: `${appUrl}/integrations/qbo-r365`,
       tax_id_collection: { enabled: true },
+      automatic_tax: { enabled: true },
       metadata: sharedMeta,
       subscription_data: { metadata: sharedMeta },
       ...buildTermsConsentParams("integration"),

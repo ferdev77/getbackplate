@@ -262,6 +262,7 @@ export async function POST(request: Request) {
       success_url: `${baseUrl}/app/dashboard?session_id={CHECKOUT_SESSION_ID}&success=true&selectPlanId=${encodeURIComponent(planId)}&billingPeriod=${requestedPeriod}`,
       cancel_url: `${baseUrl}/app/dashboard?canceled=true&selectPlanId=${encodeURIComponent(planId)}&billingPeriod=${requestedPeriod}`,
       tax_id_collection: { enabled: true },
+      automatic_tax: { enabled: true },
       client_reference_id: organizationId,
       metadata: {
         organizationId,
