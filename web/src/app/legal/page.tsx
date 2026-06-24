@@ -11,6 +11,8 @@ const PRODUCTS = [
   {
     kind: "Product",
     accent: "#c04a17",
+    rowHoverClass: "hover:bg-[#fef3ee] hover:border-[#c04a17]/30",
+    iconHoverClass: "group-hover:text-[#c04a17]",
     title: "Operations Platform",
     description:
       "The full restaurant operations management platform — employee management, checklists, kitchen systems, document storage, scheduling, communication, and AI-powered insights.",
@@ -22,6 +24,8 @@ const PRODUCTS = [
   {
     kind: "Integration",
     accent: "#6d28d9",
+    rowHoverClass: "hover:bg-[#f3effd] hover:border-[#6d28d9]/30",
+    iconHoverClass: "group-hover:text-[#6d28d9]",
     title: "QuickBooks Online → Restaurant365",
     description:
       "Automated middleware that delivers QuickBooks Online invoices to Restaurant365 via FTP, with field mapping and audit logging. For vendors invoicing R365-based clients.",
@@ -42,7 +46,7 @@ export default function LegalIndexPage() {
         </Link>
         <Link
           href="/"
-          className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold text-white transition hover:opacity-90"
+          className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white transition hover:opacity-90"
           style={{ background: "#c04a17" }}
         >
           <ArrowLeft className="h-4 w-4" />
@@ -60,7 +64,10 @@ export default function LegalIndexPage() {
 
         <div className="mt-12 grid gap-6 sm:grid-cols-2">
           {PRODUCTS.map((product) => (
-            <div key={product.title} className="overflow-hidden rounded-2xl border border-[#e5e7f0] bg-white">
+            <div
+              key={product.title}
+              className="overflow-hidden rounded-2xl border border-[#e5e7f0] bg-white transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/[0.06]"
+            >
               <div className="h-[3px] w-12 m-6 mb-0" style={{ background: product.accent }} />
               <div className="px-6 pb-6 pt-3">
                 <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#9ca3af]">{product.kind}</p>
@@ -72,13 +79,13 @@ export default function LegalIndexPage() {
                     <Link
                       key={doc.href}
                       href={doc.href}
-                      className="flex items-center justify-between rounded-xl border border-[#e5e7f0] bg-[#fafafb] px-4 py-3 transition hover:border-[#d1d5e0]"
+                      className={`group flex items-center justify-between rounded-xl border border-[#e5e7f0] bg-[#fafafb] px-4 py-3 transition-colors ${product.rowHoverClass}`}
                     >
                       <span>
                         <span className="block text-sm font-semibold text-[#1a1a1a]">{doc.label}</span>
                         <span className="block text-xs text-[#9ca3af]">{doc.description}</span>
                       </span>
-                      <ArrowRight className="h-4 w-4 flex-shrink-0 text-[#9ca3af]" />
+                      <ArrowRight className={`h-4 w-4 flex-shrink-0 text-[#9ca3af] transition-colors ${product.iconHoverClass}`} />
                     </Link>
                   ))}
                 </div>
