@@ -9,6 +9,7 @@ import { assertCompanyAdminModuleApi } from '@/shared/lib/access';
 import { logAuditEvent } from '@/shared/lib/audit';
 import { resolveCanonicalAppUrl } from '@/shared/lib/app-url';
 import { resolveTenantAppUrlByOrganizationId } from '@/shared/lib/custom-domains';
+import { buildTermsConsentParams, legalConsentMetadata } from '@/shared/lib/legal-consent';
 
 type BillingPeriod = 'monthly' | 'yearly';
 
@@ -269,6 +270,7 @@ export async function POST(request: Request) {
         billingPeriod: requestedPeriod,
         trialApplied: trialPolicy.eligible ? 'true' : 'false',
         trialDays: trialPolicy.eligible ? String(trialPolicy.trialDays) : '0',
+        ...legalConsentMetadata(),
       },
       subscription_data: {
         metadata: {
@@ -281,6 +283,7 @@ export async function POST(request: Request) {
         },
         ...(trialPolicy.eligible ? { trial_period_days: trialPolicy.trialDays } : {}),
       },
+      ...buildTermsConsentParams('platform'),
     };
 
     if (stripeCustomerId) {

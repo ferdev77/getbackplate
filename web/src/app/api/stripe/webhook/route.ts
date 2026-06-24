@@ -11,6 +11,7 @@ import {
 } from '@/modules/billing/services/billing-notifications.service';
 import { sendPlanChangeAppliedEmail } from '@/modules/billing/services/plan-change-notifications.service';
 import { billInvoiceUsageForRenewal } from '@/modules/integrations/qbo-r365/usage-billing';
+import { logAuditEvent } from '@/shared/lib/audit';
 
 // Deduplication is handled via the stripe_processed_events table in Supabase.
 // This works correctly across all Vercel serverless instances (unlike an in-memory Map).
@@ -208,6 +209,27 @@ export async function POST(req: Request) {
         const session = event.data.object as Stripe.Checkout.Session;
 
         console.info(`[Webhook] checkout.session.completed - customer: ${session.customer}, subscription: ${session.subscription}`);
+
+        // ── REGISTRO DE ACEPTACION DE TERMINOS ────────────────────
+        // Si la sesion tenia consent_collection.terms_of_service: "required"
+        // (ver web/src/shared/lib/legal-consent.ts) y el cliente lo acepto,
+        // dejamos constancia en audit_logs. No incluye IP (Stripe no la expone
+        // via API), solo fecha, organizacion, email y version del documento.
+        if (session.consent?.terms_of_service === 'accepted') {
+          await logAuditEvent({
+            action: 'organization.billing.terms_accepted',
+            entityType: 'stripe_checkout',
+            organizationId: session.metadata?.organizationId ?? null,
+            eventDomain: 'settings',
+            outcome: 'success',
+            severity: 'low',
+            metadata: {
+              customer_email: session.customer_details?.email ?? null,
+              legal_version: session.metadata?.legalVersion ?? null,
+              stripe_session_id: session.id,
+            },
+          });
+        }
 
         // ── MANUAL SUBSCRIPTION ORDER (tracking only) ─────────────
         // Created from superadmin/payment-links "Links de Suscripción". The

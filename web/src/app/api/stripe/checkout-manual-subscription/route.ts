@@ -22,6 +22,7 @@ import { stripe } from "@/infrastructure/stripe/client";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { assertSuperadminApi } from "@/shared/lib/access";
 import { syncOrganizationPlan } from "@/modules/organizations/services/organization.service";
+import { buildTermsConsentParams, legalConsentMetadata } from "@/shared/lib/legal-consent";
 
 type PlanKind = "platform" | "integration";
 type BillingPeriod = "monthly" | "yearly";
@@ -320,6 +321,7 @@ export async function POST(req: NextRequest) {
           setupFeePaid: setupFeeAmountCents > 0 ? "true" : "false",
           setupFeeAmount: String(setupFeeAmountCents),
           manualSubscriptionOrderId: order.id,
+          ...legalConsentMetadata(),
         }
       : {
           organizationId,
@@ -328,7 +330,10 @@ export async function POST(req: NextRequest) {
           trialApplied: "false",
           trialDays: "0",
           manualSubscriptionOrderId: order.id,
+          ...legalConsentMetadata(),
         };
+
+  const termsConsentParams = buildTermsConsentParams(planKind);
 
   const extraChargeLineItem = extraChargeCents
     ? [
@@ -354,7 +359,11 @@ export async function POST(req: NextRequest) {
     tax_id_collection: { enabled: true },
     metadata: sharedMetadata,
     subscription_data: { metadata: sharedMetadata },
-    ...(usageBillingNote ? { custom_text: { submit: { message: usageBillingNote } } } : {}),
+    consent_collection: termsConsentParams.consent_collection,
+    custom_text: {
+      ...termsConsentParams.custom_text,
+      ...(usageBillingNote ? { submit: { message: usageBillingNote } } : {}),
+    },
   });
 
   let session: Awaited<ReturnType<typeof stripe.checkout.sessions.create>>;

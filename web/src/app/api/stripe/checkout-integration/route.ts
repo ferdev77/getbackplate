@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { stripe } from "@/infrastructure/stripe/client";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
+import { buildTermsConsentParams, legalConsentMetadata } from "@/shared/lib/legal-consent";
 
 type BillingPeriod = "monthly" | "annual";
 
@@ -140,6 +141,7 @@ export async function POST(request: Request) {
       billingPeriod: period,
       setupFeePaid: includeSetupFee && setupFeeAmountCents > 0 ? "true" : "false",
       setupFeeAmount: includeSetupFee && setupFeeAmountCents > 0 ? String(setupFeeAmountCents) : "0",
+      ...legalConsentMetadata(),
     };
 
     // ── UPGRADE / DOWNGRADE: org already has an active integration subscription ──
@@ -236,6 +238,7 @@ export async function POST(request: Request) {
       tax_id_collection: { enabled: true },
       metadata: sharedMeta,
       subscription_data: { metadata: sharedMeta },
+      ...buildTermsConsentParams("integration"),
     });
 
     return NextResponse.json({ url: session.url });

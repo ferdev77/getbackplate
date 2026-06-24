@@ -6,6 +6,7 @@ import { assertCompanyAdminModuleApi } from '@/shared/lib/access';
 import { logAuditEvent } from '@/shared/lib/audit';
 import { resolveCanonicalAppUrl } from '@/shared/lib/app-url';
 import { resolveTenantAppUrlByOrganizationId } from '@/shared/lib/custom-domains';
+import { buildTermsConsentParams, legalConsentMetadata } from '@/shared/lib/legal-consent';
 
 export async function POST(request: Request) {
   try {
@@ -110,7 +111,10 @@ export async function POST(request: Request) {
       moduleId,
       moduleCode: addonModule.code,
       isAddon: 'true',
+      ...legalConsentMetadata(),
     };
+
+    const consentKind = addonModule.code === 'qbo_r365' ? 'integration' : 'platform';
 
     const baseSessionParams = {
       mode: 'subscription' as const,
@@ -119,6 +123,7 @@ export async function POST(request: Request) {
       cancel_url: `${baseUrl}/app/dashboard`,
       metadata: sharedMetadata,
       subscription_data: { metadata: sharedMetadata },
+      ...buildTermsConsentParams(consentKind),
     };
 
     const session = await stripe.checkout.sessions.create(
