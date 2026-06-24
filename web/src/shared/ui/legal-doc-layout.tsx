@@ -246,7 +246,12 @@ export function LegalDocLayout({ docLabel, title, subtitle, effective, lastUpdat
           flex-wrap: wrap;
           gap: 16px;
         }
-        .legal-doc .footer a { color: var(--legal-text-muted); }
+        .legal-doc .footer a {
+          color: var(--legal-text-muted);
+          text-decoration: underline;
+          text-decoration-thickness: 1px;
+          text-underline-offset: 2px;
+        }
         @media (max-width: 640px) {
           .legal-doc h1 { font-size: 30px; }
           .legal-doc h2 { font-size: 19px; }

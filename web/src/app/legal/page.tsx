@@ -40,22 +40,30 @@ const PRODUCTS = [
 export default function LegalIndexPage() {
   return (
     <div className="min-h-screen" style={{ background: "#f5f6f8", fontFamily: "var(--font-plus-jakarta-sans), sans-serif" }}>
-      <header className="flex items-center justify-between border-b border-[#e5e7f0] bg-white px-6 py-5 sm:px-10">
-        <Link href="/" className="inline-flex items-center" aria-label="GetBackplate home">
-          <Image src="/getbackplate-logo-light.svg" alt="GetBackplate" width={150} height={22} className="h-[22px] w-auto" />
-        </Link>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white transition hover:opacity-90"
-          style={{ background: "#c04a17" }}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to GetBackplate
-        </Link>
+      <header className="border-b border-[#e5e7f0] bg-white px-6 py-5 sm:px-10">
+        <div className="mx-auto flex max-w-[1000px] items-center justify-between">
+          <Link href="/" className="inline-flex items-center" aria-label="GetBackplate home">
+            <Image src="/getbackplate-logo-light.svg" alt="GetBackplate" width={150} height={22} className="h-[22px] w-auto" />
+          </Link>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white transition hover:opacity-90"
+            style={{ background: "#c04a17" }}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to GetBackplate
+          </Link>
+        </div>
       </header>
 
       <main className="mx-auto max-w-[1000px] px-6 py-16 sm:px-10">
         <div className="text-center">
+          <span
+            className="mb-4 inline-block rounded-full px-4 py-1 text-xs font-bold uppercase tracking-[0.08em]"
+            style={{ background: "#fef3ee", color: "#c04a17" }}
+          >
+            Legal
+          </span>
           <h1 className="text-4xl font-extrabold tracking-tight text-[#1a1a1a]">Legal Documents</h1>
           <p className="mx-auto mt-3 max-w-xl text-[15px] text-[#6b7280]">
             Terms of service and privacy policies for all GetBackplate products. Select the service to view its specific documentation.
