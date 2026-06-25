@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Menu, X } from "lucide-react";
 import { RequestSeatModal } from "./request-seat-modal";
 
 type PlanInput = {
@@ -112,6 +112,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
   const [lang, setLang] = useState<Lang>("en");
   const [billingMode, setBillingMode] = useState<"monthly" | "annual">("monthly");
   const [megaOpen, setMegaOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
   const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
   const [floatPaused, setFloatPaused] = useState(false);
@@ -154,12 +155,18 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setMegaOpen(false);
+      if (event.key === "Escape") {
+        setMegaOpen(false);
+        setMobileMenuOpen(false);
+      }
     }
     function onClick(event: MouseEvent) {
       const target = event.target as HTMLElement | null;
       if (!target) return;
-      if (!target.closest("#marketing-nav")) setMegaOpen(false);
+      if (!target.closest("#marketing-nav")) {
+        setMegaOpen(false);
+        setMobileMenuOpen(false);
+      }
     }
     document.addEventListener("keydown", onKeyDown);
     document.addEventListener("click", onClick);
@@ -504,14 +511,14 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
         id="marketing-nav"
         className={`fixed left-0 right-0 top-0 z-50 h-16 bg-[var(--gbp-bg)]/92 backdrop-blur-xl transition-all duration-300 ${navScrolled ? "border-b border-[var(--gbp-border)]" : "border-b border-transparent"}`}
       >
-        <div className="mx-auto flex h-full w-full max-w-[1400px] items-center justify-between px-10">
+        <div className="mx-auto flex h-full w-full max-w-[1400px] items-center justify-between px-4 sm:px-6 md:px-10">
           <Link href="/" className="inline-flex items-center" aria-label="GetBackplate home">
             <Image
               src={darkMode ? "/getbackplate-logo-dark.svg" : "/getbackplate-logo-light.svg"}
               alt="GetBackplate"
               width={190}
               height={34}
-              className="h-[34px] w-auto max-w-[190px]"
+              className="h-[26px] w-auto max-w-[130px] md:h-[34px] md:max-w-[190px]"
               priority
             />
           </Link>
@@ -532,7 +539,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
             <a href="#faq" className="rounded-md px-3 py-1.5 text-[13px] font-medium text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">{copy.nav.faq}</a>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Language toggle */}
             <button
               type="button"
@@ -564,16 +571,54 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
               </button>
             </div>
 
-            <Link href="/auth/login" className="rounded-md border border-[var(--gbp-border2)] px-3 py-1.5 text-[13px] font-semibold text-[var(--gbp-text)] hover:bg-[var(--gbp-surface2)]">{copy.nav.login}</Link>
+            <Link href="/auth/login" className="hidden rounded-md border border-[var(--gbp-border2)] px-3 py-1.5 text-[13px] font-semibold text-[var(--gbp-text)] hover:bg-[var(--gbp-surface2)] md:inline-flex">{copy.nav.login}</Link>
             <button
               type="button"
               onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })}
-              className="rounded-md bg-[var(--gbp-accent)] px-[18px] py-2 text-[12px] font-bold tracking-[0.03em] text-white transition-all hover:bg-[var(--gbp-accent-hover)] hover:-translate-y-px"
+              className="rounded-md bg-[var(--gbp-accent)] px-3 py-2 text-[11px] font-bold tracking-[0.03em] text-white transition-all hover:bg-[var(--gbp-accent-hover)] hover:-translate-y-px md:px-[18px] md:text-[12px]"
             >
               {lang === "es" ? "Prueba 30d" : "Trial 30d"}
             </button>
+            <button
+              type="button"
+              aria-label={mobileMenuOpen ? "Cerrar menu" : "Abrir menu"}
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--gbp-border2)] text-[var(--gbp-text)] hover:bg-[var(--gbp-surface2)] md:hidden"
+            >
+              {mobileMenuOpen ? <X className="h-[18px] w-[18px]" /> : <Menu className="h-[18px] w-[18px]" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile menu panel */}
+        {mobileMenuOpen && (
+          <div className="border-b border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-4 py-4 sm:px-6 md:hidden">
+            <nav className="flex flex-col gap-0.5">
+              <a href="#platform" onClick={() => setMobileMenuOpen(false)} className="rounded-md px-3 py-2.5 text-[14px] font-medium text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">{copy.nav.platform}</a>
+              <a href="#modules" onClick={() => setMobileMenuOpen(false)} className="rounded-md px-3 py-2.5 text-[14px] font-medium text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">{copy.nav.modules}</a>
+              <a href="#ai" onClick={() => setMobileMenuOpen(false)} className="rounded-md px-3 py-2.5 text-[14px] font-medium text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">{copy.nav.ai}</a>
+              <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="rounded-md px-3 py-2.5 text-[14px] font-medium text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">{copy.nav.pricing}</a>
+              <a href="#integrations" onClick={() => setMobileMenuOpen(false)} className="rounded-md px-3 py-2.5 text-[14px] font-medium text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">{copy.nav.integrations}</a>
+              <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="rounded-md px-3 py-2.5 text-[14px] font-medium text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">{copy.nav.faq}</a>
+              <Link href="/auth/login" onClick={() => setMobileMenuOpen(false)} className="rounded-md px-3 py-2.5 text-[14px] font-medium text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">{copy.nav.login}</Link>
+            </nav>
+            <div className="mt-2 flex items-center justify-between border-t border-[var(--gbp-border)] px-3 pt-3">
+              <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">
+                {darkMode ? (lang === "es" ? "Turno Noche" : "Night Shift") : (lang === "es" ? "Turno Día" : "Day Shift")}
+              </span>
+              <button
+                type="button"
+                aria-label="Toggle day or night shift"
+                onClick={() => setDarkMode((v) => !v)}
+                className={`relative inline-flex h-[26px] w-12 shrink-0 cursor-pointer items-center rounded-full border-none p-0 outline-none transition-colors duration-200 ${darkMode ? "bg-[var(--gbp-violet)]" : "bg-[var(--gbp-border2)]"}`}
+              >
+                <span className={`absolute left-[3px] top-[3px] flex h-5 w-5 items-center justify-center rounded-full bg-white text-[11px] shadow-sm transition-transform duration-[280ms] ${darkMode ? "translate-x-[22px]" : "translate-x-0"}`}>
+                  {darkMode ? "🌙" : "☀️"}
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Mega menu */}
         {megaOpen && (
