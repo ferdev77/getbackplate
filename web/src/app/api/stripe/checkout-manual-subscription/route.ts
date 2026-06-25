@@ -389,7 +389,7 @@ export async function POST(req: NextRequest) {
   const sessionParams = (customerId: string | null) => ({
     mode: "subscription" as const,
     payment_method_types: ["card" as const],
-    line_items: [{ price: targetPriceId, quantity: 1 }, ...setupLineItem, ...extraChargeLineItem, ...extraConnectionLineItem],
+    line_items: [{ price: targetPriceId, quantity: 1 }, ...extraConnectionLineItem, ...setupLineItem, ...extraChargeLineItem],
     ...(customerId ? { customer: customerId } : {}),
     success_url: `${appUrl}/pay/success`,
     cancel_url: `${appUrl}/pay/canceled`,
