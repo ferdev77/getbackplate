@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, Plus, Copy, CheckCheck, Check, Loader2, Link2, Zap, FileStack, Tag, Plug, Trash2 } from "lucide-react";
+import { X, Plus, Copy, CheckCheck, Loader2, Link2, Zap, FileStack, Tag, Plug, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { SuperadminInputField, SuperadminSelectField } from "@/shared/ui/superadmin-form-fields";
 
@@ -60,8 +60,6 @@ type Props = {
   modules: Module[];
 };
 
-const TAX_RATE = 0.0825;
-
 function fmtTotal(cents: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency", currency: "USD", minimumFractionDigits: 2,
@@ -97,8 +95,6 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
     const c = Math.round(parseFloat(item.amount || "0") * 100);
     return sum + (isNaN(c) ? 0 : c);
   }, 0);
-  const taxCents = Math.round(totalCents * TAX_RATE);
-  const grandTotalCents = totalCents + taxCents;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -112,27 +108,16 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
       if (item.actionType === "add_slot" && (!item.slotCount || Number(item.slotCount) <= 0)) return;
     }
 
-    const subtotalCents = items.reduce((sum, item) => sum + Math.round(parseFloat(item.amount) * 100), 0);
-    const taxCentsSubmit = Math.round(subtotalCents * TAX_RATE);
-
-    const apiItems = [
-      ...items.map(item => ({
-        description: item.description.trim(),
-        amountCents: Math.round(parseFloat(item.amount) * 100),
-        actionType: item.actionType,
-        actionPayload:
-          item.actionType === "activate_module" ? { moduleCode: item.moduleCode } :
-          item.actionType === "add_invoices"    ? { invoiceCount: Number(item.invoiceCount) } :
-          item.actionType === "add_slot"        ? { slotCount: Number(item.slotCount) } :
-          undefined,
-      })),
-      ...(taxCentsSubmit > 0 ? [{
-        description: "Taxes (8.25%)",
-        amountCents: taxCentsSubmit,
-        actionType: "custom" as const,
-        actionPayload: undefined,
-      }] : []),
-    ];
+    const apiItems = items.map(item => ({
+      description: item.description.trim(),
+      amountCents: Math.round(parseFloat(item.amount) * 100),
+      actionType: item.actionType,
+      actionPayload:
+        item.actionType === "activate_module" ? { moduleCode: item.moduleCode } :
+        item.actionType === "add_invoices"    ? { invoiceCount: Number(item.invoiceCount) } :
+        item.actionType === "add_slot"        ? { slotCount: Number(item.slotCount) } :
+        undefined,
+    }));
 
     setLoading(true);
     try {
@@ -268,19 +253,14 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
                   {totalCents > 0 && (
                     <div className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-5 py-4 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">
-                          Subtotal{items.length > 1 ? ` (${items.length} items)` : ""}
+                        <span className="text-sm font-bold text-foreground">
+                          Total{items.length > 1 ? ` (${items.length} items)` : ""}
                         </span>
-                        <span className="text-sm font-semibold text-foreground">{fmtTotal(totalCents)}</span>
+                        <span className="text-lg font-extrabold text-foreground">{fmtTotal(totalCents)}</span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Taxes (8.25%)</span>
-                        <span className="text-sm font-semibold text-foreground">{fmtTotal(taxCents)}</span>
-                      </div>
-                      <div className="flex items-center justify-between border-t border-[var(--gbp-border)] pt-2.5">
-                        <span className="text-sm font-bold text-foreground">Total</span>
-                        <span className="text-lg font-extrabold text-foreground">{fmtTotal(grandTotalCents)}</span>
-                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Stripe calcula e incluye el impuesto correspondiente al pagar, según la ubicación del cliente.
+                      </p>
                     </div>
                   )}
 
@@ -302,16 +282,7 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
                 </div>
 
                 {/* Footer — siempre visible */}
-                <div className="flex shrink-0 items-center justify-between border-t border-[var(--gbp-border)] px-10 py-6">
-                  {/* Taxes — siempre activo, no se puede desactivar */}
-                  <div className="flex cursor-default select-none items-center gap-2.5">
-                    <div className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded bg-[var(--gbp-accent)]">
-                      <Check className="h-3 w-3 text-white" strokeWidth={3} />
-                    </div>
-                    <span className="text-sm font-semibold text-foreground">Incluir taxes</span>
-                    <span className="text-xs text-muted-foreground">(8.25%)</span>
-                  </div>
-
+                <div className="flex shrink-0 items-center justify-end border-t border-[var(--gbp-border)] px-10 py-6">
                   <div className="flex items-center gap-3">
                     <button type="button" onClick={close} className="rounded-xl border border-[var(--gbp-border)] px-6 py-2.5 text-sm font-bold text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg)]">
                       Cancelar
