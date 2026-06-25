@@ -47,7 +47,7 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
 
   function applySuggestedCharge() {
     if (!suggestedCharge) return;
-    setExtraChargeDescription(`Facturas enviadas sin facturar (${suggestedCharge.count} × $${(suggestedCharge.unitCents / 100).toFixed(2)})`);
+    setExtraChargeDescription(`Successful deliveries — previous period (${suggestedCharge.count} × $${(suggestedCharge.unitCents / 100).toFixed(2)})`);
     setExtraChargeAmount((suggestedCharge.totalCents / 100).toFixed(2));
   }
 
