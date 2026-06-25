@@ -41,7 +41,7 @@ export async function GET() {
         ? supabase.from("plans").select("invoices_included, billing_period").eq("id", integrationPlanId).maybeSingle()
         : Promise.resolve({ data: null }),
       supabase.from("organization_addons")
-        .select("current_period_end, invoice_balance")
+        .select("current_period_end, invoice_balance, invoice_allowance_override")
         .eq("organization_id", organizationId)
         .eq("status", "active")
         .limit(1)
@@ -51,8 +51,14 @@ export async function GET() {
     const planData = planRow.data as { invoices_included?: number | null; billing_period?: string | null } | null;
     const basePlanInvoices = planData?.invoices_included ?? null;
     const billingPeriod = planData?.billing_period ?? "monthly";
-    const extraInvoiceBalance = ((addonRow.data as { invoice_balance?: number | null } | null)?.invoice_balance) ?? 0;
-    const invoicesIncluded = basePlanInvoices != null ? basePlanInvoices + extraInvoiceBalance : null;
+    const addonData = addonRow.data as { invoice_balance?: number | null; invoice_allowance_override?: number | null } | null;
+    const extraInvoiceBalance = addonData?.invoice_balance ?? 0;
+    // El override (cuando esta seteado) reemplaza por completo el calculo normal,
+    // igual que en usage-billing.ts -- ej. orgs sin setup fee pagado, a las que
+    // se les cobra el 100% de las facturas (override = 0, sin cuota gratis).
+    const invoicesIncluded = addonData?.invoice_allowance_override != null
+      ? addonData.invoice_allowance_override
+      : (basePlanInvoices != null ? basePlanInvoices + extraInvoiceBalance : null);
     const currentPeriodEnd = (addonRow.data as { current_period_end?: string | null } | null)?.current_period_end ?? null;
     const periodStart = currentPeriodEnd
       ? (() => {
