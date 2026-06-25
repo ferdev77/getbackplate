@@ -275,7 +275,7 @@ export async function sendSubscriptionLinkEmailAction(formData: FormData) {
 
   const { data: order } = await supabase
     .from("manual_subscription_orders")
-    .select("organization_id, plan_kind, plan_id, billing_period, checkout_url, status, extra_charge_cents, extra_charge_description")
+    .select("organization_id, plan_kind, plan_id, billing_period, checkout_url, status, extra_charge_cents, extra_charge_description, extra_connection_count, include_setup_fee")
     .eq("id", orderId)
     .maybeSingle();
 
@@ -283,7 +283,17 @@ export async function sendSubscriptionLinkEmailAction(formData: FormData) {
     return { ok: false, error: "Este link ya no está disponible para enviar" };
   }
 
-  const { data: plan } = await supabase.from("plans").select("name, stripe_price_id").eq("id", order.plan_id).maybeSingle();
+  const { data: plan } = await supabase
+    .from("plans")
+    .select("name, stripe_price_id, max_r365_connections, setup_fee_amount, setup_fee_annual_discount_pct")
+    .eq("id", order.plan_id)
+    .maybeSingle();
+
+  const { data: org } = await supabase
+    .from("organizations")
+    .select("name")
+    .eq("id", order.organization_id)
+    .maybeSingle();
 
   let usageBillingNote: string | null = null;
   if (order.plan_kind === "integration" && order.organization_id) {
@@ -311,13 +321,42 @@ export async function sendSubscriptionLinkEmailAction(formData: FormData) {
     }
   }
 
+  const basePriceCents = plan?.stripe_price_id
+    ? await resolvePriceAmountForPeriod(plan.stripe_price_id, order.billing_period)
+    : null;
+
+  const includedConnectionsLabel =
+    order.plan_kind === "integration" && plan?.max_r365_connections
+      ? `${plan.max_r365_connections} R365 customer connection${plan.max_r365_connections === 1 ? "" : "s"} included`
+      : null;
+
+  const extraConnections =
+    order.extra_connection_count && order.extra_connection_count > 0
+      ? { count: order.extra_connection_count, totalFormatted: fmtAmount(order.extra_connection_count * 8000, "usd") }
+      : null;
+
+  const rawSetupFee = plan?.setup_fee_amount ?? null;
+  const discountPct = plan?.setup_fee_annual_discount_pct ?? 25;
+  const setupFeeAmountCents =
+    order.include_setup_fee && rawSetupFee
+      ? Math.round((order.billing_period === "yearly" && discountPct > 0 ? rawSetupFee * (1 - discountPct / 100) : rawSetupFee) * 100)
+      : 0;
+
   const html = subscriptionLinkEmailTemplate({
+    organizationName: org?.name ?? "there",
+    planKind: order.plan_kind,
     planName: plan?.name ?? "Subscription Plan",
-    billingPeriodLabel: order.billing_period === "yearly" ? "annually" : "monthly",
-    checkoutUrl: order.checkout_url,
+    periodSuffix: order.billing_period === "yearly" ? "yr" : "mo",
+    basePriceFormatted: fmtAmount(basePriceCents ?? 0, "usd"),
+    includedConnectionsLabel,
+    extraConnections,
     extraCharge: order.extra_charge_cents
       ? { description: order.extra_charge_description ?? "Additional charge", amountFormatted: fmtAmount(order.extra_charge_cents, "usd") }
       : null,
+    setupFee: setupFeeAmountCents > 0
+      ? { included: false, amountFormatted: fmtAmount(setupFeeAmountCents, "usd") }
+      : { included: true },
+    checkoutUrl: order.checkout_url,
     usageBillingNote,
   });
 

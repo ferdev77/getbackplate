@@ -280,6 +280,7 @@ export async function POST(req: NextRequest) {
       include_setup_fee: planKind === "integration" && includeSetupFee === true,
       extra_charge_cents: extraChargeCents,
       extra_charge_description: extraChargeCents ? (extraChargeDescription?.trim() || "Cargo adicional") : null,
+      extra_connection_count: extraConnectionCount,
       status: "pending",
       expires_at: new Date(Date.now() + 86_400_000).toISOString(),
     })
