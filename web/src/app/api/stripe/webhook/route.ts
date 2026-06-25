@@ -354,6 +354,36 @@ export async function POST(req: Request) {
           );
           if (addonErr) console.error('[Webhook][addon] Error upserting organization_addons:', addonErr);
 
+          // ── EXTRA CONNECTION SLOTS (recurring, sumadas en el alta nueva) ─────
+          // Mismo mecanismo que el slot de pago unico (actionType "add_slot"),
+          // reusado aca para el item recurrente de $80/mes agregado en
+          // checkout-manual-subscription. Ver web/src/app/legal/integration/msa
+          // Schedule B ("Additional Connection Fee").
+          const extraSlotCount = Number(session.metadata?.extraSlotCount ?? 0);
+          if (extraSlotCount > 0) {
+            const { error: slotErr } = await supabase.rpc('increment_r365_slots', {
+              p_organization_id: addonOrgId,
+              p_amount: extraSlotCount,
+            });
+            if (slotErr) {
+              console.warn('[Webhook][addon] RPC increment_r365_slots failed, trying direct update:', slotErr);
+              const { data: addonRow } = await supabase
+                .from('organization_addons')
+                .select('id, extra_r365_connections')
+                .eq('organization_id', addonOrgId)
+                .eq('module_id', addonModuleId)
+                .maybeSingle();
+              if (addonRow) {
+                await supabase
+                  .from('organization_addons')
+                  .update({ extra_r365_connections: ((addonRow.extra_r365_connections as number) ?? 0) + extraSlotCount })
+                  .eq('id', addonRow.id);
+              }
+            }
+            console.info(`[Webhook][addon] extra_r365_connections +${extraSlotCount} for org ${addonOrgId}`);
+          }
+          // ── END EXTRA CONNECTION SLOTS ────────────────────────────────────────
+
           // Enable the module for the organization.
           // Also fetch addon_companion_module_codes so we can provision companion
           // modules when the org has no active plan (see below).

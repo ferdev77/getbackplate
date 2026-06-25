@@ -33,6 +33,7 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
   const [includeSetupFee, setIncludeSetupFee] = useState(true);
   const [extraChargeDescription, setExtraChargeDescription] = useState("");
   const [extraChargeAmount, setExtraChargeAmount] = useState("");
+  const [extraConnectionCount, setExtraConnectionCount] = useState("");
   const [copied, setCopied] = useState(false);
 
   const plans = planKind === "integration" ? integrationPlans : platformPlans;
@@ -53,6 +54,7 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
   function reset() {
     setOrgId(""); setPlanKind("integration"); setPlanId(""); setBillingPeriod("monthly");
     setIncludeSetupFee(true); setExtraChargeDescription(""); setExtraChargeAmount("");
+    setExtraConnectionCount("");
     setGeneratedUrl(null); setUpgraded(false); setCopied(false);
   }
 
@@ -73,6 +75,12 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
       return;
     }
 
+    const extraConnectionCountNum = extraConnectionCount.trim() ? parseInt(extraConnectionCount, 10) : 0;
+    if (extraConnectionCount.trim() && (!Number.isFinite(extraConnectionCountNum) || extraConnectionCountNum <= 0)) {
+      toast.error("Cantidad de conexiones extra inválida");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/stripe/checkout-manual-subscription", {
@@ -87,6 +95,7 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
           ...(extraChargeCents > 0
             ? { extraChargeCents, extraChargeDescription: extraChargeDescription.trim() || undefined }
             : {}),
+          ...(extraConnectionCountNum > 0 ? { extraConnectionCount: extraConnectionCountNum } : {}),
         }),
       });
       const data = (await res.json()) as { url?: string; upgraded?: boolean; error?: string };
@@ -317,6 +326,40 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
                           placeholder="0.00"
                         />
                       </div>
+                    </div>
+                  )}
+
+                  {planKind === "integration" && (
+                    <div className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-5 space-y-3">
+                      <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                        <Plug className="h-3.5 w-3.5" /> Conexiones extra (slots) — recurrente
+                      </p>
+                      {billingPeriod === "monthly" ? (
+                        <>
+                          <p className="text-[11px] text-muted-foreground">
+                            Se suma como un segundo cargo recurrente de <strong>$80.00 USD/mes c/u</strong>, junto con el plan base. Se cobra automáticamente todos los meses. Solo aplica en alta nueva.
+                          </p>
+                          <SuperadminInputField
+                            label="Cantidad de slots"
+                            name="extra_connection_count"
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={extraConnectionCount}
+                            onChange={(e) => setExtraConnectionCount(e.target.value)}
+                            placeholder="0"
+                          />
+                          {Number(extraConnectionCount) > 0 && (
+                            <p className="text-[11px] font-semibold text-foreground">
+                              Total recurrente extra: ${(Number(extraConnectionCount) * 80).toFixed(2)} USD/mes
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground">
+                          Las conexiones extra recurrentes solo están disponibles con facturación mensual — Stripe no permite combinar un precio mensual con uno anual en la misma suscripción.
+                        </p>
+                      )}
                     </div>
                   )}
 

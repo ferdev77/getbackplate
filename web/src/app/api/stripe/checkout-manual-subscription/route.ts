@@ -35,6 +35,7 @@ interface CreateManualSubscriptionBody {
   includeSetupFee?: boolean;
   extraChargeCents?: number;
   extraChargeDescription?: string;
+  extraConnectionCount?: number;
 }
 
 async function resolveTargetPriceForPeriod(params: {
@@ -78,6 +79,20 @@ export async function POST(req: NextRequest) {
     ? Math.round(body.extraChargeCents)
     : null;
 
+  const extraConnectionCount = typeof body.extraConnectionCount === "number" && body.extraConnectionCount > 0
+    ? Math.round(body.extraConnectionCount)
+    : 0;
+
+  if (extraConnectionCount > 0 && planKind !== "integration") {
+    return NextResponse.json({ error: "Las conexiones extra solo aplican a planes de integración." }, { status: 400 });
+  }
+  if (extraConnectionCount > 0 && billingPeriod !== "monthly") {
+    return NextResponse.json(
+      { error: "Las conexiones extra recurrentes solo están disponibles con facturación mensual." },
+      { status: 400 },
+    );
+  }
+
   const supabase = createSupabaseAdminClient();
 
   const { data: org } = await supabase
@@ -114,10 +129,20 @@ export async function POST(req: NextRequest) {
   }
 
   let moduleId: string | null = null;
+  let extraConnectionPriceId: string | null = null;
   if (planKind === "integration") {
-    const { data: moduleRow } = await supabase.from("module_catalog").select("id").eq("code", "qbo_r365").maybeSingle();
+    const { data: moduleRow } = await supabase
+      .from("module_catalog")
+      .select("id, extra_connection_stripe_price_id")
+      .eq("code", "qbo_r365")
+      .maybeSingle();
     moduleId = moduleRow?.id ?? null;
+    extraConnectionPriceId = moduleRow?.extra_connection_stripe_price_id ?? null;
     if (!moduleId) return NextResponse.json({ error: "Módulo qbo_r365 no encontrado en el catálogo." }, { status: 500 });
+  }
+
+  if (extraConnectionCount > 0 && !extraConnectionPriceId) {
+    return NextResponse.json({ error: "No hay un precio de conexión extra configurado en Stripe." }, { status: 400 });
   }
 
   const { data: stripeMapping } = await supabase
@@ -153,6 +178,13 @@ export async function POST(req: NextRequest) {
   if (existingSubscriptionId && extraChargeCents) {
     return NextResponse.json(
       { error: "Esta organización ya tiene una suscripción activa; el cargo único no se puede agregar a un upgrade. Usá un Link de Pago normal para ese cobro." },
+      { status: 400 },
+    );
+  }
+
+  if (existingSubscriptionId && extraConnectionCount > 0) {
+    return NextResponse.json(
+      { error: "Esta organización ya tiene una suscripción activa; las conexiones extra no se pueden agregar a un upgrade todavía." },
       { status: 400 },
     );
   }
@@ -308,6 +340,11 @@ export async function POST(req: NextRequest) {
         ]
       : [];
 
+  const extraConnectionLineItem =
+    extraConnectionCount > 0 && extraConnectionPriceId
+      ? [{ price: extraConnectionPriceId, quantity: extraConnectionCount }]
+      : [];
+
   const sharedMetadata: Record<string, string> =
     planKind === "integration"
       ? {
@@ -321,6 +358,7 @@ export async function POST(req: NextRequest) {
           setupFeePaid: setupFeeAmountCents > 0 ? "true" : "false",
           setupFeeAmount: String(setupFeeAmountCents),
           manualSubscriptionOrderId: order.id,
+          extraSlotCount: String(extraConnectionCount),
           ...legalConsentMetadata(),
         }
       : {
@@ -351,7 +389,7 @@ export async function POST(req: NextRequest) {
   const sessionParams = (customerId: string | null) => ({
     mode: "subscription" as const,
     payment_method_types: ["card" as const],
-    line_items: [{ price: targetPriceId, quantity: 1 }, ...setupLineItem, ...extraChargeLineItem],
+    line_items: [{ price: targetPriceId, quantity: 1 }, ...setupLineItem, ...extraChargeLineItem, ...extraConnectionLineItem],
     ...(customerId ? { customer: customerId } : {}),
     success_url: `${appUrl}/pay/success`,
     cancel_url: `${appUrl}/pay/canceled`,
