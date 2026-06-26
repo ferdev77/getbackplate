@@ -30,7 +30,10 @@ export async function sendPushNotification(
         endpoint: subscription.endpoint,
         keys: { p256dh: subscription.p256dh, auth: subscription.auth },
       },
-      JSON.stringify(payload)
+      JSON.stringify(payload),
+      // "high" le pide al proveedor (FCM/APNs/etc.) entregar de inmediato en vez de
+      // esperar a una ventana de ahorro de batería del dispositivo.
+      { urgency: "high" }
     );
     return { success: true };
   } catch (err: unknown) {

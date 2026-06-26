@@ -9,7 +9,14 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("push", (event) => {
   if (!event.data) return;
 
-  const data = event.data.json();
+  let data;
+  try {
+    data = event.data.json();
+  } catch {
+    // Payload no es JSON valido: mostramos un cartel generico en vez de
+    // dejar que el navegador muestre su propio mensaje de "se actualizo".
+    data = { title: "Tenés una notificación nueva", body: "" };
+  }
 
   const options = {
     body: data.body,
