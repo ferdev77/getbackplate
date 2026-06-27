@@ -1,5 +1,12 @@
+// Uso: node --env-file=web/.env.local scripts/run-migration-prod.mjs
 import pg from "../web/node_modules/pg/lib/index.js";
 const { Client } = pg;
+
+if (!process.env.SUPABASE_DB_POOLER_URL_PROD) {
+  console.error("❌ Falta SUPABASE_DB_POOLER_URL_PROD en el entorno.");
+  console.error("   Corré con: node --env-file=web/.env.local scripts/run-migration-prod.mjs");
+  process.exit(1);
+}
 
 const sql = `
 CREATE TABLE IF NOT EXISTS public.push_subscriptions (
@@ -52,8 +59,7 @@ CREATE INDEX IF NOT EXISTS idx_push_subscriptions_active ON public.push_subscrip
 `;
 
 const client = new Client({
-  connectionString:
-    "postgresql://postgres.mfhyemwypuzsqjqxtbjf:dy.7nci4Mfbfv+v@aws-0-us-west-2.pooler.supabase.com:5432/postgres",
+  connectionString: process.env.SUPABASE_DB_POOLER_URL_PROD,
   ssl: { rejectUnauthorized: false },
 });
 

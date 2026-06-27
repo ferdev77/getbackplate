@@ -1,3 +1,4 @@
+// Uso: node --env-file=web/.env.local scripts/run-push-send-logs-migration.mjs
 import pg from "../web/node_modules/pg/lib/index.js";
 const { Client } = pg;
 
@@ -30,16 +31,20 @@ END $body$;
 CREATE INDEX IF NOT EXISTS idx_push_send_logs_created_at ON public.push_send_logs (created_at DESC);
 `;
 
+if (!process.env.SUPABASE_DB_POOLER_URL || !process.env.SUPABASE_DB_POOLER_URL_PROD) {
+  console.error("❌ Faltan SUPABASE_DB_POOLER_URL y/o SUPABASE_DB_POOLER_URL_PROD en el entorno.");
+  console.error("   Corré con: node --env-file=web/.env.local scripts/run-push-send-logs-migration.mjs");
+  process.exit(1);
+}
+
 const DATABASES = [
   {
     label: "DEV (uubdslmtfxwraszinpao)",
-    connectionString:
-      "postgresql://postgres.uubdslmtfxwraszinpao:wfr9Rhcq28L8Dg90@aws-1-us-east-1.pooler.supabase.com:5432/postgres",
+    connectionString: process.env.SUPABASE_DB_POOLER_URL,
   },
   {
     label: "PROD (mfhyemwypuzsqjqxtbjf)",
-    connectionString:
-      "postgresql://postgres.mfhyemwypuzsqjqxtbjf:dy.7nci4Mfbfv+v@aws-0-us-west-2.pooler.supabase.com:5432/postgres",
+    connectionString: process.env.SUPABASE_DB_POOLER_URL_PROD,
   },
 ];
 
