@@ -2,7 +2,7 @@
 
 Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 
-> **Última actualización:** 2026-06-04 (127 migraciones)
+> **Última actualización:** 2026-06-29 07:50 (145 migraciones: 144 en `supabase/migrations/` + 1 en `web/supabase/migrations/`, fila 114) — todas aplicadas y verificadas en DEV y PROD ese mismo día (ver `CHANGELOG.md`)
 
 ## Todas las migraciones (orden cronológico)
 
@@ -137,12 +137,22 @@ Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 | 127 | `20260604000002_manual_payment_add_slot_and_status_guards.sql` | Agrega `add_slot` al CHECK constraint de `manual_payment_orders.action_type` |
 | 128 | `20260618000001_push_subscriptions.sql` | Tabla `push_subscriptions` — suscripciones Web Push por usuario/dispositivo |
 | 129 | `20260618000002_push_send_logs.sql` | Tabla `push_send_logs` — historial de broadcasts manuales de superadmin |
-| 130 | `20260621000002_push_scheduled_sends.sql` | Tabla `push_scheduled_sends` — cola de envíos push programados por hora |
-| 131 | `20260622000001_push_broadcast_target_users.sql` | Agrega `target_type`/`user_ids`/`user_count` a `push_send_logs` y `push_scheduled_sends` (segmentación por usuario) |
-| 132 | `20260623000004_push_integration_alerts.sql` | Columna `notify_integration_alerts` en `push_subscriptions` — alertas de superadmin del pipeline QBO → R365 |
-| 133 | `20260629000001_fix_announcement_deliveries_channel.sql` | Quita `whatsapp` y agrega `push` al CHECK de `announcement_deliveries.channel` (WhatsApp eliminado de la plataforma) |
-| 134 | `20260629000002_notifications.sql` | Tabla `notifications` — centro de notificaciones in-app, registra cada email y push enviado por la plataforma |
-| 135 | `20260629000003_notification_broadcasts.sql` | Tabla `notification_broadcasts` — generaliza `push_send_logs`/`push_scheduled_sends` para soportar broadcasts de push y/o email desde superadmin (con backfill del historico) |
+| 130 | `20260620000001_qbo_r365_template_only_by_item.sql` | Restringe `qbo_r365_template`/`template` a solo `'by_item'` (único formato que R365 acepta en producción) |
+| 131 | `20260620000002_qbo_r365_sync_config_customers.sql` | Tabla `qbo_r365_sync_config_customers` — agrupa varios clientes QBO bajo una misma sync config (sucursales que comparten FTP/vendor/template) |
+| 132 | `20260621000001_qbo_r365_sync_config_customers_location.sql` | Columna `r365_location` cacheada por cliente en `qbo_r365_sync_config_customers` |
+| 133 | `20260621000002_push_scheduled_sends.sql` | Tabla `push_scheduled_sends` — cola de envíos push programados por hora |
+| 134 | `20260622000001_push_broadcast_target_users.sql` | Agrega `target_type`/`user_ids`/`user_count` a `push_send_logs` y `push_scheduled_sends` (segmentación por usuario) |
+| 135 | `20260623000001_manual_subscription_orders.sql` | Tabla `manual_subscription_orders` — links de suscripción recurrente generados desde superadmin (espejo de `manual_payment_orders` en modo subscription) |
+| 136 | `20260623000002_invoice_usage_billing.sql` | Cobro por factura enviada (uso): `qbo_unified_invoices.first_sent_at`, `organization_addons.price_per_invoice_cents`/`last_usage_billed_through` |
+| 137 | `20260623000003_subscription_order_extra_charge.sql` | Cargo único adicional (catch-up) en `manual_subscription_orders` |
+| 138 | `20260623000004_invoice_allowance_override.sql` | Columna `invoice_allowance_override` en `organization_addons` — fuerza el "incluido" de facturas para una organización puntual, ignorando el cálculo normal de plan+balance |
+| 139 | `20260623000005_link_email_sent.sql` | Estado "enviado por email" (`email_sent_to`/`email_sent_at`) en `manual_payment_orders` y `manual_subscription_orders` |
+| 140 | `20260623000006_push_integration_alerts.sql` | Columna `notify_integration_alerts` en `push_subscriptions` — alertas de superadmin del pipeline QBO → R365 *(corregido 2026-06-29: este archivo estaba documentado por error como `20260623000004` en versiones previas de este índice — `20260623000004` real es `invoice_allowance_override`, fila 138)* |
+| 141 | `20260625000002_extra_connection_price.sql` | Columna `extra_connection_stripe_price_id` en `module_catalog` — precio recurrente de conexiones R365 extra |
+| 142 | `20260625000003_subscription_order_extra_connections.sql` | Columna `extra_connection_count` en `manual_subscription_orders` |
+| 143 | `20260629000001_fix_announcement_deliveries_channel.sql` | Quita `whatsapp` y agrega `push` al CHECK de `announcement_deliveries.channel` (WhatsApp eliminado de la plataforma) |
+| 144 | `20260629000002_notifications.sql` | Tabla `notifications` — centro de notificaciones in-app, registra cada email y push enviado por la plataforma |
+| 145 | `20260629000003_notification_broadcasts.sql` | Tabla `notification_broadcasts` — generaliza `push_send_logs`/`push_scheduled_sends` para soportar broadcasts de push y/o email desde superadmin (con backfill del historico) |
 
 ## Convención de naming
 
@@ -156,3 +166,5 @@ Se utilizan dos formatos de timestamp (ambos válidos para Supabase que ordena a
 ```bash
 npm run verify:migrations-sync
 ```
+
+**Advertencia conocida (detectada 2026-06-29):** la columna "DEV" de este script en realidad lee el proyecto que tiene linkeado el Supabase CLI local (`supabase migration list --linked`) — y ese link hoy apunta al proyecto de **producción** (`mfhyemwypuzsqjqxtbjf`, el mismo que usa Vercel), no al proyecto real de desarrollo (`uubdslmtfxwraszinpao`, el que usa `web/.env.local`). En la práctica el script compara producción contra sí misma dos veces y nunca toca el dev real. Para chequear el dev real, conectar manualmente con `SUPABASE_DB_POOLER_URL` de `web/.env.local` contra `supabase_migrations.schema_migrations`. Detalle completo en la memoria de proyecto `project_supabase_envs`.

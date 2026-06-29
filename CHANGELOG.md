@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-06-29 — Centro de notificaciones unificado (email+push), WhatsApp eliminado, backlog de migraciones reconciliado
+
+Guía técnica completa en [`DOCS/4_Operaciones_y_Guias/GUIA_PUSH_NOTIFICATIONS.md`](DOCS/4_Operaciones_y_Guias/GUIA_PUSH_NOTIFICATIONS.md).
+
+- **WhatsApp eliminado** como canal de notificación en toda la plataforma (avisos y checklists). El código de Twilio sigue existiendo, solo se dejó de invocar con ese canal.
+- **SMS oculto** de la UI (constante `SHOW_SMS_CHANNEL = false` en los modales de avisos y checklists) sin tocar el backend — reactivarlo es solo volver a mostrar el botón.
+- **Tabla `notifications` nueva**: registra automáticamente todo email y todo push que la plataforma envía (no solo avisos — billing, invitaciones, recordatorios de documentos, links de pago, todo). Logging centralizado e instrumentado dentro de `sendTransactionalEmail()` y `sendPushToOrg()`/`sendPushToUsers()`.
+- **Campanita (`NotificationBell`)** nueva, visible para los 4 tipos de usuario: superadmin, admin de empresa, empleado, y usuario de organización sin ficha de empleado. Badge de canal (email/push), click navega a `action_url`, tiempo real vía Supabase Realtime.
+- **Panel de superadmin migrado**: `/superadmin/push` (solo push) → `/superadmin/notifications` (push y/o email, a un usuario, una organización, o todas). `/superadmin/push` quedó como redirect para no romper bookmarks. Tabla `notification_broadcasts` reemplaza a `push_send_logs`/`push_scheduled_sends`, con backfill del histórico.
+- **Bug de fondo corregido de paso**: el CHECK constraint de `announcement_deliveries.channel` permitía `whatsapp` pero nunca incluyó `push`, aunque el código ya permitía elegirlo — cualquier aviso con canal push fallaba el insert.
+- **Backlog de 13 migraciones previas (QBO/facturación) reconciliado**: estaban con drift real entre archivo local, tracking (`schema_migrations`) y estado físico en dev/prod desde antes de este trabajo. Se auditó cada una contra el esquema real de ambas bases (no solo contra el tracking) y se aplicaron las que faltaban de verdad. Se encontró y corrigió un caso de tracking falso en DEV: `20260620000001` (restringe `qbo_r365_template`/`template` a `'by_item'`) estaba marcada como aplicada pero el constraint real seguía permitiendo los 4 valores viejos — 2 filas de prueba en `integration_settings` tenían `'by_account'`, lo que hacía fallar el `ALTER` silenciosamente. Se migraron esas 2 filas a `'by_item'` y se aplicó el constraint correctamente.
+- **Índice de migraciones (`SUPABASE_MIGRATIONS.md`) reordenado y corregido**: tenía un hueco real de 9 migraciones (`20260620000001/2`, `20260621000001`, `20260623000001/2/3/5`, `20260625000002/3`) nunca documentadas, el encabezado decía 127 migraciones cuando ya había 144/145, y una fila tenía el archivo equivocado (`20260623000004` estaba documentado con el contenido de `push_integration_alerts`, cuando ese archivo real es `20260623000006` — el verdadero `20260623000004` es `invoice_allowance_override.sql`, nunca documentado). Verificado fila por fila contra los archivos reales en disco (`supabase/migrations/` + `web/supabase/migrations/`): ahora son 145 filas, sin huecos, en orden cronológico exacto.
+
+Migraciones nuevas: `20260629000001`, `20260629000002`, `20260629000003`. Aplicadas en DEV y PROD el mismo día, junto con la reconciliación completa del backlog previo (ver `SUPABASE_MIGRATIONS.md` filas 130–144).
+
+---
+
 ## 2026-06-23 — Sistema de push notifications: PWA, programación, segmentación y alertas de integración QBO → R365
 
 Guía técnica completa en [`DOCS/4_Operaciones_y_Guias/GUIA_PUSH_NOTIFICATIONS.md`](DOCS/4_Operaciones_y_Guias/GUIA_PUSH_NOTIFICATIONS.md).

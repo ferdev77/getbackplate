@@ -36,9 +36,9 @@ Ejecuta sincronizaciones activas de QuickBooks -> R365.
 En palabras simples: trae facturas y corre la integracion automaticamente.
 
 ### 4) `/api/internal/cron/push-scheduled-send`
-Procesa la cola de notificaciones push que el superadmin programo para una hora especifica desde `/superadmin/push` (tabla `push_scheduled_sends`).
+Procesa la cola de notificaciones (push y/o email) que el superadmin programo para una hora especifica desde `/superadmin/notifications` (tabla `notification_broadcasts`, reemplaza desde 2026-06-29 a las viejas `push_send_logs`/`push_scheduled_sends`).
 
-En palabras simples: cada hora en punto, revisa si hay algun push programado para ese momento y lo envia. Corre cada hora (no una vez al dia) porque la programacion solo admite horas en punto.
+En palabras simples: cada hora en punto, revisa si hay algun envio programado para ese momento y lo manda. Corre cada hora (no una vez al dia) porque la programacion solo admite horas en punto.
 
 ## Seguridad
 
