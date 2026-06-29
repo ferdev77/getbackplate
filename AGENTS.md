@@ -249,3 +249,5 @@ When adding new cached queries in `cached-queries.ts`, bump the version suffix
 - RLS policies: always `DROP POLICY IF EXISTS` before `CREATE POLICY`
 - Triggers: always `DROP TRIGGER IF EXISTS` before `CREATE TRIGGER`
 - After adding columns to cached queries, bump the cache key version string
+- If a migration is applied manually or by an AI outside the normal Supabase migration runner, the agent must also reconcile `supabase_migrations.schema_migrations` in that environment before finishing. Do not leave schema changes applied without the matching migration-history row.
+- Before considering migration work complete, verify that the versions present in `supabase/migrations/` match the rows recorded in `supabase_migrations.schema_migrations` for the target environment, and explicitly fix any drift.
