@@ -54,6 +54,7 @@ async function main() {
     html: `<p>Prueba de branding activo para <strong>${brandedName}</strong>.</p>`,
     text: `Prueba de branding activo para ${brandedName}.`,
     senderName: brandedName,
+    notification: { source: "debug_script", userId: null },
   });
 
   const fallbackSubject = buildBrandedEmailSubject("Prueba branding email", "GetBackplate");
@@ -63,6 +64,7 @@ async function main() {
     html: "<p>Prueba de fallback sin custom branding.</p>",
     text: "Prueba de fallback sin custom branding.",
     senderName: "GetBackplate",
+    notification: { source: "debug_script", userId: null },
   });
 
   console.log(

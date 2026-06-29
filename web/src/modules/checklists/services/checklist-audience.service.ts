@@ -38,7 +38,7 @@ export async function resolveChecklistAudienceContacts(input: ChecklistAudienceI
     },
     templateBranchId: input.templateBranchId,
   });
-  return { emails: contacts.emails, phones: contacts.phones };
+  return { emails: contacts.emails, phones: contacts.phones, userIdByEmail: contacts.userIdByEmail };
 }
 
 // ---------------------------------------------------------------------------
@@ -88,16 +88,33 @@ export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput &
       ? `Nuevo checklist creado\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nCreado por: ${input.actorEmail ?? "Usuario interno"}\nVer checklists: ${reportsUrl}`
       : `Checklist enviado\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nIncidencias: ${input.flaggedCount ?? 0}\nEnviado por: ${input.actorEmail ?? "Usuario interno"}\nVer en reportes: ${reportsUrl}`;
 
-  await Promise.allSettled(contacts.emails.map((to) => sendTransactionalEmail({ to, subject: brandedSubject, html, text, senderName: resolveEmailSenderName(branding) })));
+  await Promise.allSettled(
+    contacts.emails.map((to) =>
+      sendTransactionalEmail({
+        to,
+        subject: brandedSubject,
+        html,
+        text,
+        senderName: resolveEmailSenderName(branding),
+        notification: {
+          source: "checklist",
+          organizationId: input.organizationId,
+          userId: contacts.userIdByEmail[to],
+          actionUrl: reportsUrl.startsWith("http") ? "/app/reports" : reportsUrl,
+          title: subject,
+        },
+      }),
+    ),
+  );
   return contacts.emails.length;
 }
 
 // ---------------------------------------------------------------------------
-// SMS / WhatsApp Delivery
+// SMS Delivery
 // ---------------------------------------------------------------------------
 
 export async function sendChecklistAudienceTwilio(input: ChecklistAudienceInput & {
-  channel: "sms" | "whatsapp";
+  channel: "sms";
   templateName: string;
   itemsCount: number;
   actorEmail?: string;
@@ -105,10 +122,7 @@ export async function sendChecklistAudienceTwilio(input: ChecklistAudienceInput 
   const contacts = await resolveChecklistAudienceContacts(input);
   if (!contacts.phones.length) return 0;
 
-  const body =
-    input.channel === "whatsapp"
-      ? `*Nuevo checklist creado*\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nCreado por: ${input.actorEmail ?? "Usuario interno"}`
-      : `Nuevo checklist creado\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nCreado por: ${input.actorEmail ?? "Usuario interno"}`;
+  const body = `Nuevo checklist creado\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nCreado por: ${input.actorEmail ?? "Usuario interno"}`;
 
   const results = await Promise.allSettled(
     contacts.phones.map((phone) => sendTwilioMessage(phone, body, input.channel)),

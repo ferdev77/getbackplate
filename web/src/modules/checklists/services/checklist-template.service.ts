@@ -29,7 +29,7 @@ export type UpsertChecklistTemplateInput = {
   positionScopes: string[];
   userScopes: string[];
   normalizedSections: Array<{ name: string; items: string[] }>;
-  notifyVia: Array<"whatsapp" | "sms">;
+  notifyVia: Array<"sms">;
 };
 
 export type UpsertChecklistTemplateResult =

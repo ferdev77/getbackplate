@@ -1,34 +1,37 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import { Bell, Search, CheckSquare, Square, Send, Loader2, AlertCircle, CheckCircle2, Users, ImagePlus, X, History, Smartphone, CalendarClock, Zap, Ban, UserCheck } from "lucide-react";
+import { Bell, Mail, Search, CheckSquare, Square, Send, Loader2, AlertCircle, CheckCircle2, Users, ImagePlus, X, History, Smartphone, CalendarClock, Zap, Ban, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { PageContent } from "@/shared/ui/page-content";
 import { IntegrationAlertsCard } from "./integration-alerts-card";
 
 import type { Subscriber } from "./page";
 
+type Channel = "push" | "email";
 type Org = { id: string; name: string };
 type LogRow = {
   id: string;
   created_at: string;
-  sent_by: string;
+  created_by: string;
+  channels: Channel[];
   title: string;
   body: string;
   image_url: string | null;
   target_type?: "orgs" | "users";
   org_ids: string[];
-  orgs_count: number;
   user_ids?: string[];
-  user_count?: number;
-  sent: number;
-  expired: number;
-  failed: number;
+  push_sent: number;
+  push_expired: number;
+  push_failed: number;
+  email_sent: number;
+  email_failed: number;
 };
 type ScheduledRow = {
   id: string;
   created_at: string;
   created_by: string;
+  channels: Channel[];
   title: string;
   body: string;
   image_url: string | null;
@@ -80,7 +83,25 @@ function userDisplayName(s: Subscriber) {
   return s.first_name || s.last_name ? `${s.first_name ?? ""} ${s.last_name ?? ""}`.trim() : null;
 }
 
-export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, scheduled: initialScheduled, integrationAlertsEnabled }: Props) {
+function ChannelsBadges({ channels }: { channels: Channel[] }) {
+  return (
+    <div className="flex gap-1">
+      {channels.includes("push") ? (
+        <span className="inline-flex items-center gap-1 rounded-full bg-[var(--gbp-accent-glow)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--gbp-accent)]">
+          <Bell className="h-3 w-3" /> Push
+        </span>
+      ) : null}
+      {channels.includes("email") ? (
+        <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold text-blue-600">
+          <Mail className="h-3 w-3" /> Email
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribers, scheduled: initialScheduled, integrationAlertsEnabled }: Props) {
+  const [channels, setChannels] = useState<Set<Channel>>(new Set(["push"]));
   const [audienceMode, setAudienceMode] = useState<"orgs" | "users">("orgs");
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -92,7 +113,7 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
   const [isPending, setIsPending] = useState(false);
-  const [result, setResult] = useState<{ sent: number; expired: number; failed: number; targetType: "orgs" | "users"; targetCount: number } | null>(null);
+  const [result, setResult] = useState<{ targetType: "orgs" | "users"; targetCount: number; pushSent: number; pushExpired: number; pushFailed: number; emailSent: number; emailFailed: number } | null>(null);
   const [logs, setLogs] = useState<LogRow[]>(initialLogs);
   const [sendMode, setSendMode] = useState<"now" | "schedule">("now");
   const [scheduleDate, setScheduleDate] = useState(todayLocalDateInput());
@@ -126,6 +147,15 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
       return name.includes(q) || email.includes(q) || org.includes(q);
     });
   }, [uniqueUsers, userSearch]);
+
+  function toggleChannel(channel: Channel) {
+    setChannels((prev) => {
+      const next = new Set(prev);
+      if (next.has(channel)) next.delete(channel);
+      else next.add(channel);
+      return next;
+    });
+  }
 
   function toggleOrg(id: string) {
     setAllSelected(false);
@@ -196,6 +226,7 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
   const canSend =
     targetCount > 0 &&
     hasMessage &&
+    channels.size > 0 &&
     !isPending &&
     !imageUploading &&
     (sendMode === "now" || scheduleHour !== "");
@@ -218,12 +249,13 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
     setIsPending(true);
     setResult(null);
     try {
-      const res = await fetch("/api/superadmin/push/send", {
+      const res = await fetch("/api/superadmin/notifications/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
           body: body.trim(),
+          channels: Array.from(channels),
           ...(audienceMode === "users"
             ? { userIds: Array.from(selectedUserIds) }
             : { orgIds: allSelected ? "all" : Array.from(selectedIds) }),
@@ -242,6 +274,7 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
             id: data.id,
             created_at: new Date().toISOString(),
             created_by: "yo",
+            channels: Array.from(channels),
             title: title.trim(),
             body: body.trim(),
             image_url: imageUrl,
@@ -261,24 +294,24 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
       }
 
       setResult(data);
-      toast.success(`Push enviado a ${data.targetCount} ${data.targetType === "users" ? "usuario" : "org"}${data.targetCount !== 1 ? "s" : ""} — ${data.sent} dispositivos`);
-      // prepend optimistic log row
+      toast.success(`Notificación enviada a ${data.targetCount} ${data.targetType === "users" ? "usuario" : "org"}${data.targetCount !== 1 ? "s" : ""}`);
       setLogs((prev) => [
         {
           id: `optimistic-${Date.now()}`,
           created_at: new Date().toISOString(),
-          sent_by: "yo",
+          created_by: "yo",
+          channels: Array.from(channels),
           title: title.trim(),
           body: body.trim(),
           image_url: imageUrl,
           target_type: audienceMode,
           org_ids: audienceMode === "orgs" ? (allSelected ? [] : Array.from(selectedIds)) : [],
-          orgs_count: audienceMode === "orgs" ? data.targetCount : 0,
           user_ids: audienceMode === "users" ? Array.from(selectedUserIds) : [],
-          user_count: audienceMode === "users" ? data.targetCount : 0,
-          sent: data.sent,
-          expired: data.expired,
-          failed: data.failed,
+          push_sent: data.pushSent,
+          push_expired: data.pushExpired,
+          push_failed: data.pushFailed,
+          email_sent: data.emailSent,
+          email_failed: data.emailFailed,
         },
         ...prev,
       ]);
@@ -292,7 +325,7 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
   async function handleCancelScheduled(id: string) {
     setCancellingId(id);
     try {
-      const res = await fetch(`/api/superadmin/push/scheduled/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/superadmin/notifications/scheduled/${id}`, { method: "DELETE" });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(typeof data?.error === "string" ? data.error : "Error al cancelar");
       setScheduled((prev) => prev.filter((s) => s.id !== id));
@@ -314,10 +347,10 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
             <span className="rounded-full bg-brand/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-light ring-1 ring-brand/30">Superadmin</span>
           </div>
           <h1 className="mt-1 flex items-center gap-3 text-2xl font-bold tracking-tight text-white">
-            <Bell className="h-6 w-6" /> Push Notifications
+            <Bell className="h-6 w-6" /> Centro de Notificaciones
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-white/70">
-            Envía notificaciones push directamente a los dispositivos de una o varias organizaciones, o a usuarios puntuales.
+            Envía push y/o email directamente a una o varias organizaciones, o a usuarios puntuales.
           </p>
         </div>
       </section>
@@ -494,6 +527,32 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
           <article className="rounded-[2.5rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-sm">
             <h2 className="mb-4 text-sm font-bold tracking-tight text-[var(--gbp-text)]">Mensaje</h2>
 
+            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Canales</label>
+            <div className="mb-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => toggleChannel("push")}
+                className={`flex items-center justify-center gap-2 rounded-xl border-[1.5px] px-3 py-2 text-xs font-bold transition-all ${
+                  channels.has("push")
+                    ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
+                    : "border-[var(--gbp-border2)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"
+                }`}
+              >
+                <Bell className="h-3.5 w-3.5" /> Push
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleChannel("email")}
+                className={`flex items-center justify-center gap-2 rounded-xl border-[1.5px] px-3 py-2 text-xs font-bold transition-all ${
+                  channels.has("email")
+                    ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
+                    : "border-[var(--gbp-border2)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"
+                }`}
+              >
+                <Mail className="h-3.5 w-3.5" /> Email
+              </button>
+            </div>
+
             <div className="mb-4 grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -575,7 +634,7 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
             {/* Image upload */}
             <div className="mt-4">
               <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">
-                Imagen <span className="normal-case font-normal text-[var(--gbp-muted)]">(opcional — solo Chrome/Edge)</span>
+                Imagen <span className="normal-case font-normal text-[var(--gbp-muted)]">(opcional — solo push, Chrome/Edge)</span>
               </label>
 
               {imageUrl ? (
@@ -637,9 +696,11 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
               <div className="grid grid-cols-2 gap-3">
                 {[
                   { label: result.targetType === "users" ? "Usuarios" : "Organizaciones", val: result.targetCount, color: "text-[var(--gbp-text)]" },
-                  { label: "Dispositivos enviados", val: result.sent, color: "text-emerald-600" },
-                  { label: "Suscripciones vencidas", val: result.expired, color: "text-amber-600" },
-                  { label: "Errores", val: result.failed, color: "text-red-600" },
+                  { label: "Push enviados", val: result.pushSent, color: "text-emerald-600" },
+                  { label: "Push vencidos", val: result.pushExpired, color: "text-amber-600" },
+                  { label: "Push con error", val: result.pushFailed, color: "text-red-600" },
+                  { label: "Emails enviados", val: result.emailSent, color: "text-emerald-600" },
+                  { label: "Emails con error", val: result.emailFailed, color: "text-red-600" },
                 ].map((item) => (
                   <div key={item.label} className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">{item.label}</p>
@@ -647,10 +708,10 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
                   </div>
                 ))}
               </div>
-              {result.sent === 0 && (
+              {result.pushSent === 0 && result.emailSent === 0 && (
                 <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                  No se enviaron notificaciones. Los destinatarios elegidos pueden no haber activado push aún.
+                  No se enviaron notificaciones. Los destinatarios elegidos pueden no tener push activo ni email conocido.
                 </div>
               )}
             </article>
@@ -675,6 +736,7 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
                   return (
                     <div key={s.id} className="flex items-start gap-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3">
                       <div className="min-w-0 flex-1">
+                        <div className="mb-1"><ChannelsBadges channels={s.channels} /></div>
                         <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{s.title}</p>
                         <p className="truncate text-xs text-[var(--gbp-muted)]">{s.body}</p>
                         <p className="mt-1 text-[11px] font-medium text-[var(--gbp-accent)]">
@@ -776,10 +838,11 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
                 <tr className="border-b border-[var(--gbp-border)] text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">
                   <th className="px-6 py-3">Fecha</th>
                   <th className="px-4 py-3">Enviado por</th>
+                  <th className="px-4 py-3">Canales</th>
                   <th className="px-4 py-3">Título</th>
-                  <th className="px-4 py-3 text-right">Destino</th>
-                  <th className="px-4 py-3 text-right text-emerald-700">Enviados</th>
-                  <th className="px-4 py-3 text-right text-amber-700">Vencidos</th>
+                  <th className="px-4 py-3 text-right text-emerald-700">Push OK</th>
+                  <th className="px-4 py-3 text-right text-amber-700">Push vencidos</th>
+                  <th className="px-4 py-3 text-right text-emerald-700">Email OK</th>
                   <th className="px-4 py-3 text-right text-red-700">Errores</th>
                 </tr>
               </thead>
@@ -798,17 +861,16 @@ export function PushBroadcastClient({ orgs, logs: initialLogs, subscribers, sche
                         minute: "2-digit",
                       })}
                     </td>
-                    <td className="max-w-[140px] truncate px-4 py-3 text-xs text-[var(--gbp-text2)]">{log.sent_by}</td>
+                    <td className="max-w-[140px] truncate px-4 py-3 text-xs text-[var(--gbp-text2)]">{log.created_by}</td>
+                    <td className="px-4 py-3"><ChannelsBadges channels={log.channels} /></td>
                     <td className="max-w-[200px] px-4 py-3">
                       <p className="truncate font-medium text-[var(--gbp-text)]">{log.title}</p>
                       <p className="truncate text-xs text-[var(--gbp-muted)]">{log.body}</p>
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold text-[var(--gbp-text)] whitespace-nowrap">
-                      {log.target_type === "users" ? `${log.user_count ?? 0} usuarios` : `${log.orgs_count} orgs`}
-                    </td>
-                    <td className="px-4 py-3 text-right font-semibold text-emerald-600">{log.sent}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-amber-600">{log.expired}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-red-600">{log.failed}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-emerald-600">{log.push_sent}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-amber-600">{log.push_expired}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-emerald-600">{log.email_sent}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-red-600">{log.push_failed + log.email_failed}</td>
                   </tr>
                 ))}
               </tbody>

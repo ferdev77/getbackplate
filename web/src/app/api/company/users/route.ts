@@ -61,6 +61,11 @@ async function resolveOrCreateAuthUser(params: {
             recoveryUrl: recoveryUrl ?? `${appUrl}/auth/forgot-password`,
             branding,
           }),
+          notification: {
+            source: "user_provisioning",
+            organizationId: params.organizationId,
+            actionUrl: loginUrl,
+          },
         });
       } catch (e) {
         console.error("Error sending cross-tenant join email:", e);
@@ -94,6 +99,11 @@ async function resolveOrCreateAuthUser(params: {
           loginUrl,
           branding,
         }),
+        notification: {
+          source: "user_provisioning",
+          organizationId: params.organizationId,
+          actionUrl: loginUrl,
+        },
       });
     } catch (e) {
       console.error("Error sending invite email for existing user:", e);
@@ -131,6 +141,11 @@ async function resolveOrCreateAuthUser(params: {
           loginUrl,
           branding,
         }),
+        notification: {
+          source: "user_provisioning",
+          organizationId: params.organizationId,
+          actionUrl: loginUrl,
+        },
       });
   } catch (e) {
     console.error("Error sending invite email for new user:", e);

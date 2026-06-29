@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageSquare, Pin, Smartphone, Clock3, Mail, Bell } from "lucide-react";
+import { Pin, Smartphone, Clock3, Mail, Bell } from "lucide-react";
 import { useActionState, useEffect, useState, startTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -10,6 +10,9 @@ import { ScopeSelector } from "@/shared/ui/scope-selector";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import { RecurrenceSelector } from "@/shared/ui/recurrence-selector";
 import type { BranchOption, DepartmentOption, PositionOption, ScopedUserOption } from "@/shared/contracts/scope-options";
+
+// SMS sigue funcionando en el backend; se oculta de la UI por ahora.
+const SHOW_SMS_CHANNEL = false;
 
 type AnnouncementCreateModalProps = {
   onClose?: () => void;
@@ -66,7 +69,6 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(createAnnouncementAction, { success: false, message: "" });
   const [isApiPending, setIsApiPending] = useState(false);
-  const [notifyWhatsapp, setNotifyWhatsapp] = useState(false);
   const [notifySms, setNotifySms] = useState(false);
   const [notifyEmail, setNotifyEmail] = useState(false);
   const [notifyPush, setNotifyPush] = useState(false);
@@ -255,28 +257,19 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
 
                 <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Notificar tambien via</label>
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setNotifyWhatsapp((prev) => !prev)}
-                    className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
-                      notifyWhatsapp
-                        ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
-                        : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"
-                    }`}
-                  >
-                    <MessageSquare className="h-3.5 w-3.5" /> WhatsApp
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setNotifySms((prev) => !prev)}
-                    className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
-                      notifySms
-                        ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
-                        : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"
-                    }`}
-                  >
-                    <Smartphone className="h-3.5 w-3.5" /> SMS
-                  </button>
+                  {SHOW_SMS_CHANNEL ? (
+                    <button
+                      type="button"
+                      onClick={() => setNotifySms((prev) => !prev)}
+                      className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
+                        notifySms
+                          ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
+                          : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"
+                      }`}
+                    >
+                      <Smartphone className="h-3.5 w-3.5" /> SMS
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => setNotifyEmail((prev) => !prev)}
@@ -300,7 +293,6 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
                     <Bell className="h-3.5 w-3.5" /> Push
                   </button>
                 </div>
-                {notifyWhatsapp ? <input type="hidden" name="notify_channel" value="whatsapp" /> : null}
                 {notifySms ? <input type="hidden" name="notify_channel" value="sms" /> : null}
                 {notifyEmail ? <input type="hidden" name="notify_channel" value="email" /> : null}
                 {notifyPush ? <input type="hidden" name="notify_channel" value="push" /> : null}

@@ -5,9 +5,15 @@ export interface SendEmailOptions {
   subject: string;
   htmlContent: string;
   senderName?: string;
+  notification: {
+    source: string;
+    organizationId?: string | null;
+    actionUrl?: string | null;
+    sourceId?: string | null;
+  };
 }
 
-export async function sendEmail({ to, subject, htmlContent, senderName }: SendEmailOptions) {
+export async function sendEmail({ to, subject, htmlContent, senderName, notification }: SendEmailOptions) {
   if (!to.length) {
     return { ok: false, error: "No hay destinatarios para enviar el correo." };
   }
@@ -20,6 +26,12 @@ export async function sendEmail({ to, subject, htmlContent, senderName }: SendEm
       subject,
       html: htmlContent,
       senderName,
+      notification: {
+        source: notification.source,
+        organizationId: notification.organizationId ?? null,
+        actionUrl: notification.actionUrl ?? null,
+        sourceId: notification.sourceId ?? null,
+      },
     });
 
     if (!result.ok && !firstError) {

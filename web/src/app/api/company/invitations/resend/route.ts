@@ -121,6 +121,11 @@ export async function POST(request: Request) {
       recoveryUrl: recoveryUrl ?? `${appUrl}/auth/forgot-password`,
       branding,
     }),
+    notification: {
+      source: "organization_invitation",
+      organizationId: tenant.organizationId,
+      actionUrl: loginUrl,
+    },
   });
 
   if (!emailResult.ok) {

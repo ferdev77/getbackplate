@@ -65,7 +65,10 @@ export async function notifyIntegrationEvent(input: IntegrationAlertInput): Prom
     const orgName = org?.name ?? "organización desconocida";
 
     const payload = buildPayload(orgName, input);
-    await sendPushToUsers(userIds, { ...payload, url: "/superadmin/push" });
+    await sendPushToUsers(userIds, { ...payload, url: "/superadmin/notifications" }, {
+      source: "integration_alert",
+      organizationId: input.organizationId,
+    });
   } catch (err) {
     console.error("[integration-alerts] Error notificando:", err instanceof Error ? err.message : err);
   }

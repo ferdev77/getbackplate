@@ -89,6 +89,13 @@ export async function POST(request: Request) {
     html,
     text: `Te compartieron el documento ${document.title}. Enlace: ${signed.signedUrl}. Expira en 24 horas.`,
     senderName: resolveEmailSenderName(branding),
+    notification: {
+      source: "document_share",
+      sourceId: document.id,
+      organizationId: tenant.organizationId,
+      actionUrl: signed.signedUrl,
+      title: `Documento compartido: ${document.title}`,
+    },
   });
 
   if (!emailResult.ok) {

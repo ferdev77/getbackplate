@@ -59,6 +59,11 @@ export async function provisionOrganizationUserAccount(input: {
             recoveryUrl: recoveryUrl ?? `${appUrl}/auth/forgot-password`,
             branding,
           }),
+          notification: {
+            source: "user_provisioning",
+            organizationId,
+            actionUrl: loginUrl,
+          },
         });
 
         return { ok: true, userId: linkedUserId, isNewUser: false };
@@ -91,8 +96,13 @@ export async function provisionOrganizationUserAccount(input: {
           loginUrl,
           branding,
         }),
+        notification: {
+          source: "user_provisioning",
+          organizationId,
+          actionUrl: loginUrl,
+        },
       });
-      
+
       return { ok: true, userId: linkedUserId, isNewUser: false };
     } else {
       const { data: created, error: createError } = await admin.auth.admin.createUser({
@@ -126,8 +136,13 @@ export async function provisionOrganizationUserAccount(input: {
           loginUrl,
           branding,
         }),
+        notification: {
+          source: "user_provisioning",
+          organizationId,
+          actionUrl: loginUrl,
+        },
       });
-      
+
       return { ok: true, userId: linkedUserId, isNewUser: true };
     }
   } catch (error) {

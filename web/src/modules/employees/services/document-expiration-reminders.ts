@@ -111,6 +111,10 @@ export async function processEmployeeDocumentExpirationReminders() {
       continue;
     }
 
+    const userIdByEmail = new Map<string, string>();
+    if (employeeEmail && employee.user_id) userIdByEmail.set(employeeEmail, employee.user_id);
+    if (reviewerEmail && link.reviewed_by) userIdByEmail.set(reviewerEmail, link.reviewed_by);
+
     const dueDateLabel = new Date(`${link.expires_at}T00:00:00.000Z`).toLocaleDateString("es-US", {
       day: "2-digit",
       month: "2-digit",
@@ -141,6 +145,14 @@ export async function processEmployeeDocumentExpirationReminders() {
         subject: brandedSubject,
         html,
         senderName: resolveEmailSenderName(branding),
+        notification: {
+          source: "document_expiration",
+          sourceId: `${link.employee_id}:${link.document_id}`,
+          organizationId: link.organization_id,
+          userId: userIdByEmail.get(email),
+          actionUrl: "/portal/documents",
+          title: subject,
+        },
       });
       if (!result.ok) {
         deliveryFailed = true;
@@ -153,11 +165,15 @@ export async function processEmployeeDocumentExpirationReminders() {
     const pushUserIds = [employee.user_id, link.reviewed_by]
       .filter((v): v is string => typeof v === "string" && v.length > 0);
     if (pushUserIds.length > 0) {
-      void sendPushToUsers(pushUserIds, {
-        title: "Documento por vencer",
-        body: `"${doc.title}" vence en ${link.reminder_days} días (${dueDateLabel}).`,
-        url: "/portal/documents",
-      }).catch(() => {});
+      void sendPushToUsers(
+        pushUserIds,
+        {
+          title: "Documento por vencer",
+          body: `"${doc.title}" vence en ${link.reminder_days} días (${dueDateLabel}).`,
+          url: "/portal/documents",
+        },
+        { source: "document_expiration", sourceId: `${link.employee_id}:${link.document_id}`, organizationId: link.organization_id },
+      ).catch(() => {});
     }
 
     if (deliveryFailed) {
@@ -274,6 +290,7 @@ export async function processEmployeeDocumentPendingReminders() {
   );
 
   const managerEmailsByOrg = new Map<string, string[]>();
+  const managerUserIdByEmail = new Map<string, string>();
   for (const membership of managerMemberships ?? []) {
     const profile = profileByOrgAndUser.get(`${membership.organization_id}:${membership.user_id}`);
     const email = profile?.email?.trim();
@@ -281,6 +298,7 @@ export async function processEmployeeDocumentPendingReminders() {
     const list = managerEmailsByOrg.get(membership.organization_id) ?? [];
     if (!list.includes(email)) list.push(email);
     managerEmailsByOrg.set(membership.organization_id, list);
+    if (membership.user_id) managerUserIdByEmail.set(email, membership.user_id);
   }
 
   let sent = 0;
@@ -341,6 +359,14 @@ export async function processEmployeeDocumentPendingReminders() {
         subject: brandedSubject,
         html,
         senderName: resolveEmailSenderName(branding),
+        notification: {
+          source: "document_pending",
+          sourceId: `${link.employee_id}:${link.document_id}`,
+          organizationId: link.organization_id,
+          userId: link.requested_without_file ? employee.user_id ?? undefined : managerUserIdByEmail.get(email),
+          actionUrl: link.requested_without_file ? "/portal/documents" : "/app/employees",
+          title: subject,
+        },
       });
       if (!result.ok) {
         failed += 1;
@@ -358,11 +384,15 @@ export async function processEmployeeDocumentPendingReminders() {
       ? [employee.user_id].filter((v): v is string => Boolean(v))
       : managerUserIdsForOrg;
     if (pushUserIds.length > 0) {
-      void sendPushToUsers(pushUserIds, {
-        title: link.requested_without_file ? "Documento pendiente de carga" : "Documento pendiente de revisión",
-        body: `"${doc.title}" requiere tu atención.`,
-        url: link.requested_without_file ? "/portal/documents" : "/app/employees",
-      }).catch(() => {});
+      void sendPushToUsers(
+        pushUserIds,
+        {
+          title: link.requested_without_file ? "Documento pendiente de carga" : "Documento pendiente de revisión",
+          body: `"${doc.title}" requiere tu atención.`,
+          url: link.requested_without_file ? "/portal/documents" : "/app/employees",
+        },
+        { source: "document_pending", sourceId: `${link.employee_id}:${link.document_id}`, organizationId: link.organization_id },
+      ).catch(() => {});
     }
 
     if (delivered === 0) {

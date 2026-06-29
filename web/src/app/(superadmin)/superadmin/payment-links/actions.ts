@@ -250,6 +250,12 @@ export async function sendPaymentLinkEmailAction(formData: FormData) {
     to: email,
     subject: "Your GetBackplate payment request is ready",
     html,
+    notification: {
+      source: "payment_link",
+      sourceId: orderId,
+      actionUrl: order.checkout_url,
+      title: "Solicitud de pago enviada",
+    },
   });
 
   if (!result.ok) return { ok: false, error: result.error };
@@ -364,6 +370,13 @@ export async function sendSubscriptionLinkEmailAction(formData: FormData) {
     to: email,
     subject: "Activate your GetBackplate subscription",
     html,
+    notification: {
+      source: "subscription_link",
+      sourceId: orderId,
+      organizationId: order.organization_id,
+      actionUrl: order.checkout_url,
+      title: "Activación de suscripción enviada",
+    },
   });
 
   if (!result.ok) return { ok: false, error: result.error };

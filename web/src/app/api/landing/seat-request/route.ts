@@ -111,6 +111,10 @@ export async function POST(req: NextRequest) {
     subject: `Seat Request — ${restaurant} (${state})`,
     html: buildHtml({ name, email, phone, state, restaurant, locations, planName: planName ?? "GetBackplate", source: source ?? "Platform" }),
     text: `New seat request\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone || "—"}\nState: ${state}\nRestaurant: ${restaurant}\nLocations: ${locations}\nPlan: ${planName}\nSource: ${source ?? "Platform"}`,
+    notification: {
+      source: "landing_seat_request",
+      userId: null,
+    },
   });
 
   if (!result.ok) {

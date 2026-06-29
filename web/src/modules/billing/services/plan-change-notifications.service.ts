@@ -268,6 +268,13 @@ export async function sendPlanChangeDecisionEmail(params: {
     subject: buildBrandedEmailSubject(`Cambio de plan solicitado: ${targetPlan.name}`, branding),
     html,
     senderName: resolveEmailSenderName(branding),
+    notification: {
+      source: "plan_change",
+      sourceId: "requested",
+      organizationId: params.organizationId,
+      actionUrl: "/app/billing",
+      title: `Cambio de plan solicitado: ${targetPlan.name}`,
+    },
   });
 
   return result;
@@ -363,6 +370,14 @@ export async function sendPlanChangeAppliedEmail(params: {
     subject: buildBrandedEmailSubject(`Cambio de plan aplicado: ${targetPlan.name}`, branding),
     html,
     senderName: resolveEmailSenderName(branding),
+    notification: {
+      source: "plan_change",
+      sourceId: "applied",
+      organizationId: params.organizationId,
+      userId: params.actorUserId ?? undefined,
+      actionUrl: "/app/billing",
+      title: `Cambio de plan aplicado: ${targetPlan.name}`,
+    },
   });
 
   return result;

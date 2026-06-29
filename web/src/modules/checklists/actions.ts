@@ -50,7 +50,7 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   // --- Parse notify channels ---
   const notifyChannels = [...new Set(formData.getAll("notify_channel").map(String))];
   const notifyVia = notifyChannels.filter(
-    (channel): channel is "whatsapp" | "sms" => channel === "whatsapp" || channel === "sms",
+    (channel): channel is "sms" => channel === "sms",
   );
   const notifyByEmail = notifyChannels.includes("email");
 
@@ -185,7 +185,6 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   // --- Notifications (only for new templates) ---
   let checklistAudienceEmailCount = 0;
   let checklistAudienceSmsCount = 0;
-  let checklistAudienceWhatsappCount = 0;
   const scopePayload = {
     locations: parsed.data.location_scope,
     department_ids: parsed.data.department_scope,
@@ -219,19 +218,6 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
     });
   }
 
-  if (!parsed.data.template_id && notifyVia.includes("whatsapp")) {
-    checklistAudienceWhatsappCount = await sendChecklistAudienceTwilio({
-      supabase,
-      organizationId: tenant.organizationId,
-      channel: "whatsapp",
-      templateName: parsed.data.name,
-      itemsCount: result.totalItems,
-      actorEmail: authData.user?.email ?? "Usuario interno",
-      targetScope: scopePayload,
-      templateBranchId: parsed.data.branch_id,
-    });
-  }
-
   // --- Build response ---
   const notificationsSummary: string[] = [];
   if (notifyByEmail) {
@@ -239,9 +225,6 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   }
   if (notifyVia.includes("sms")) {
     notificationsSummary.push(`SMS enviados: ${checklistAudienceSmsCount}`);
-  }
-  if (notifyVia.includes("whatsapp")) {
-    notificationsSummary.push(`WhatsApp enviados: ${checklistAudienceWhatsappCount}`);
   }
 
   return {

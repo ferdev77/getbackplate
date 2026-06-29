@@ -15,7 +15,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
   const supabase = createSupabaseAdminClient();
   const { error } = await supabase
-    .from("push_scheduled_sends")
+    .from("notification_broadcasts")
     .update({
       status: "cancelled",
       cancelled_at: new Date().toISOString(),

@@ -11,6 +11,8 @@ export type AudienceContacts = {
   emails: string[];
   phones: string[];
   userIds: string[];
+  /** Permite resolver el user_id a partir de un email resuelto, para el centro de notificaciones. */
+  userIdByEmail: Record<string, string>;
 };
 
 type EmployeeRow = {
@@ -139,6 +141,10 @@ export async function resolveAudienceContacts(input: AudienceResolverInput): Pro
 
   const emailByUserId = await getAuthEmailByUserId([...recipientUserIds]);
   const emails = [...new Set([...emailByUserId.values()].filter(Boolean))] as string[];
+  const userIdByEmail: Record<string, string> = {};
+  for (const [userId, email] of emailByUserId) {
+    if (email) userIdByEmail[email] = userId;
+  }
 
   const phones = new Set<string>();
   for (const emp of (employees as EmployeeRow[]) ?? []) {
@@ -165,5 +171,6 @@ export async function resolveAudienceContacts(input: AudienceResolverInput): Pro
     emails,
     phones: [...phones],
     userIds: [...recipientUserIds],
+    userIdByEmail,
   };
 }

@@ -28,6 +28,7 @@ import { CollapsibleSidebarNavItem } from "@/shared/ui/collapsible-sidebar-nav-i
 import { DevClientCachePanel } from "@/shared/ui/dev-client-cache-panel";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
 import { GetBackplateMark } from "@/shared/ui/getbackplate-mark";
+import { NotificationBell } from "@/shared/ui/notification-bell";
 
 // ── Lazy-loaded modals (code-split — only downloaded when opened) ────
 const AnnouncementCreateModal = dynamic(
@@ -1780,6 +1781,7 @@ export function CompanyShell({
             <div className="flex items-center gap-2">
               {organizationLabel ? <span className={`hidden rounded-full border px-2.5 py-1 text-xs sm:inline ${isDarkTheme ? "border-white/15 bg-white/5 text-white/80" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"}`}>{organizationLabel}</span> : null}
               <span className={`hidden rounded-full border px-2.5 py-1 text-xs sm:inline ${isDarkTheme ? "border-[var(--gbp-accent)]/40 bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]" : "border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"}`}>{sessionRoleLabel}</span>
+              <NotificationBell viewAllHref="/app/notifications" />
             </div>
             </div>
           </header>

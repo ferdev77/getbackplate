@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { processDuePushScheduledSends } from "@/infrastructure/push/scheduled-sends";
+import { processDueNotificationBroadcasts } from "@/infrastructure/notifications/process-due-broadcasts";
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await processDuePushScheduledSends();
+    const result = await processDueNotificationBroadcasts();
     return NextResponse.json(result);
   } catch (error: unknown) {
     console.error("[push-scheduled-send] cron error:", error);

@@ -127,6 +127,11 @@ export async function sendOrganizationAdminInvitation(params: {
           loginUrl,
           branding,
         }),
+        notification: {
+          source: "organization_invitation",
+          organizationId: params.organizationId,
+          actionUrl: loginUrl,
+        },
       });
       deliveryMode = "recovery";
       await logAuditEvent({
@@ -184,6 +189,11 @@ export async function sendOrganizationAdminInvitation(params: {
           loginUrl,
           branding,
         }),
+        notification: {
+          source: "organization_invitation",
+          organizationId: params.organizationId,
+          actionUrl: loginUrl,
+        },
       });
     } catch (inviteError: unknown) {
       const inviteMessage = inviteError instanceof Error ? inviteError.message : "Error";

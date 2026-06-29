@@ -140,15 +140,6 @@ async function processRecurrence(req: Request) {
                      actorEmail: "Sistema (Recurrencia)",
                    });
                  }
-                 if (notifyChannels.includes("whatsapp") || notifyVia === "whatsapp" || notifyVia === "all") {
-                   await sendChecklistAudienceTwilio({
-                     ...audienceInput,
-                     channel: "whatsapp",
-                     templateName: template.name,
-                     itemsCount: 0,
-                     actorEmail: "Sistema (Recurrencia)",
-                   });
-                 }
                  if (notifyChannels.includes("sms") || notifyVia === "sms") {
                    await sendChecklistAudienceTwilio({
                      ...audienceInput,

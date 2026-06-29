@@ -414,6 +414,10 @@ export async function requestPasswordRecoveryAction(formData: FormData) {
       recoveryUrl: recoveryBridgeUrl,
       branding,
     }),
+    notification: {
+      source: "password_recovery",
+      organizationId: resolvedOrganizationId,
+    },
   });
 
   if (!mailResult.ok) {

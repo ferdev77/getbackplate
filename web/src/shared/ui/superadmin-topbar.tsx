@@ -8,11 +8,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { logoutAction } from "@/modules/auth/actions";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
+import { NotificationBell } from "@/shared/ui/notification-bell";
 
 const ITEMS = [
   { href: "/superadmin/dashboard", label: "Dashboard" },
   { href: "/superadmin/organizations", label: "Organizaciones" },
-  { href: "/superadmin/push", label: "Push" },
+  { href: "/superadmin/notifications", label: "Notificaciones" },
   { href: "/superadmin/feedback", label: "Feedback" },
   { href: "/superadmin/modules", label: "Módulos" },
   { href: "/superadmin/plans", label: "Planes" },
@@ -82,8 +83,10 @@ export function SuperadminTopbar() {
       </div>
 
       <div className="flex items-center gap-3">
+        <NotificationBell viewAllHref="/superadmin/notifications" />
+
         {/* Mobile menu toggle */}
-        <button 
+        <button
           onClick={() => setIsOpen(!isOpen)}
           className="grid h-10 w-10 place-items-center rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] transition-colors hover:text-[var(--gbp-text)] md:hidden"
         >

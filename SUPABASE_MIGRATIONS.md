@@ -140,6 +140,9 @@ Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 | 130 | `20260621000002_push_scheduled_sends.sql` | Tabla `push_scheduled_sends` — cola de envíos push programados por hora |
 | 131 | `20260622000001_push_broadcast_target_users.sql` | Agrega `target_type`/`user_ids`/`user_count` a `push_send_logs` y `push_scheduled_sends` (segmentación por usuario) |
 | 132 | `20260623000004_push_integration_alerts.sql` | Columna `notify_integration_alerts` en `push_subscriptions` — alertas de superadmin del pipeline QBO → R365 |
+| 133 | `20260629000001_fix_announcement_deliveries_channel.sql` | Quita `whatsapp` y agrega `push` al CHECK de `announcement_deliveries.channel` (WhatsApp eliminado de la plataforma) |
+| 134 | `20260629000002_notifications.sql` | Tabla `notifications` — centro de notificaciones in-app, registra cada email y push enviado por la plataforma |
+| 135 | `20260629000003_notification_broadcasts.sql` | Tabla `notification_broadcasts` — generaliza `push_send_logs`/`push_scheduled_sends` para soportar broadcasts de push y/o email desde superadmin (con backfill del historico) |
 
 ## Convención de naming
 

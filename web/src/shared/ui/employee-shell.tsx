@@ -19,6 +19,7 @@ import { FloatingAiAssistant } from "@/shared/ui/floating-ai-assistant";
 import { usePwaInstall } from "@/shared/lib/use-pwa-install";
 import { DevClientCachePanel } from "@/shared/ui/dev-client-cache-panel";
 import { ScopePillsOverflow } from "@/shared/ui/scope-pills-overflow";
+import { NotificationBell } from "@/shared/ui/notification-bell";
 
 const CHECKLIST_PREVIEW_GUARD_KEY = "portal-checklist-preview-guard";
 const CHECKLIST_PREVIEW_GUARD_TTL_MS = 15000;
@@ -665,6 +666,7 @@ export function EmployeeShell({
               <span className="hidden rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-2.5 py-1 text-xs text-[var(--gbp-accent)] sm:inline shadow-sm">
                 Empleado
               </span>
+              <NotificationBell viewAllHref="/portal/notifications" />
             </div>
           </header>
           

@@ -209,11 +209,19 @@ export async function processAnnouncementDeliveries() {
       if (primary.channel === "push") {
         try {
           await withTimeout(
-            sendPushToOrg(primary.organization_id, {
-              title: announcement.title,
-              body: announcement.body,
-              url: "/portal/announcements",
-            }),
+            sendPushToOrg(
+              primary.organization_id,
+              {
+                title: announcement.title,
+                body: announcement.body,
+                url: "/portal/announcements",
+              },
+              {
+                source: "announcement",
+                sourceId: primary.announcement_id,
+                organizationId: primary.organization_id,
+              },
+            ),
             DELIVERY_SEND_TIMEOUT_MS,
             `announcement push to org ${primary.organization_id}`,
           );
@@ -244,7 +252,11 @@ export async function processAnnouncementDeliveries() {
               brandingByOrganizationId.set(primary.organization_id, branding);
             }
             return withTimeout(
-              sendAnnouncementEmail(contact, announcement.title, announcement.body, branding),
+              sendAnnouncementEmail(contact, announcement.title, announcement.body, branding, {
+                organizationId: primary.organization_id,
+                announcementId: primary.announcement_id,
+                userId: audience.userIdByEmail[contact],
+              }),
               DELIVERY_SEND_TIMEOUT_MS,
               `announcement email to ${contact}`,
             );
@@ -254,7 +266,7 @@ export async function processAnnouncementDeliveries() {
             sendTwilioMessage(
               contact,
               `*${announcement.title}*\n\n${announcement.body}`,
-              primary.channel as "whatsapp" | "sms",
+              "sms",
             ),
             DELIVERY_SEND_TIMEOUT_MS,
             `announcement ${primary.channel} to ${contact}`,
@@ -291,7 +303,13 @@ export async function processAnnouncementDeliveries() {
   };
 }
 
-async function sendAnnouncementEmail(email: string, title: string, body: string, branding: TenantEmailBranding) {
+async function sendAnnouncementEmail(
+  email: string,
+  title: string,
+  body: string,
+  branding: TenantEmailBranding,
+  notification: { organizationId: string; announcementId: string; userId?: string },
+) {
   const brandName = branding.companyName;
   const result = await sendTransactionalEmail({
     to: email,
@@ -303,6 +321,14 @@ async function sendAnnouncementEmail(email: string, title: string, body: string,
     `,
     text: `${title}\n\n${body}\n\nIngresa a ${brandName} para ver el aviso completo.`,
     senderName: resolveEmailSenderName(branding),
+    notification: {
+      source: "announcement",
+      sourceId: notification.announcementId,
+      organizationId: notification.organizationId,
+      userId: notification.userId,
+      actionUrl: "/portal/announcements",
+      title: `Nuevo aviso: ${title}`,
+    },
   });
 
   return result.ok

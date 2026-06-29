@@ -3,15 +3,17 @@ import { z } from "zod";
 import { requireSuperadmin } from "@/shared/lib/access";
 import { getCurrentUser } from "@/modules/memberships/queries";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { dispatchSuperadminPushBroadcast } from "@/infrastructure/push/superadmin-broadcast";
+import { dispatchNotificationBroadcast } from "@/infrastructure/notifications/dispatch-broadcast";
 
 const bodySchema = z
   .object({
     title: z.string().min(1).max(100),
     body: z.string().min(1).max(500),
+    channels: z.array(z.enum(["push", "email"])).min(1),
     orgIds: z.union([z.literal("all"), z.array(z.string().uuid()).min(1)]).optional(),
     userIds: z.array(z.string().uuid()).min(1).optional(),
     image: z.string().url().optional(),
+    actionUrl: z.string().url().optional(),
     scheduledAt: z.string().datetime().optional(),
   })
   .refine((data) => (data.orgIds !== undefined) !== (data.userIds !== undefined), {
@@ -33,7 +35,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Datos inválidos", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { title, body, orgIds, userIds, image, scheduledAt } = parsed.data;
+  const { title, body, channels, orgIds, userIds, image, actionUrl, scheduledAt } = parsed.data;
   const sentBy = currentUser?.email ?? "superadmin";
 
   if (scheduledAt) {
@@ -50,12 +52,14 @@ export async function POST(req: NextRequest) {
 
     const supabase = createSupabaseAdminClient();
     const { data, error } = await supabase
-      .from("push_scheduled_sends")
+      .from("notification_broadcasts")
       .insert({
         created_by: sentBy,
+        channels,
         title,
         body,
         image_url: image ?? null,
+        action_url: actionUrl ?? null,
         target_type: userIds ? "users" : "orgs",
         target_all: userIds ? false : orgIds === "all",
         org_ids: userIds ? [] : orgIds === "all" ? [] : orgIds,
@@ -71,7 +75,8 @@ export async function POST(req: NextRequest) {
   }
 
   const result = userIds
-    ? await dispatchSuperadminPushBroadcast({ title, body, image, sentBy, targetType: "users", userIds })
-    : await dispatchSuperadminPushBroadcast({ title, body, image, sentBy, targetType: "orgs", orgIds: orgIds! });
+    ? await dispatchNotificationBroadcast({ title, body, channels, imageUrl: image, actionUrl, createdBy: sentBy, targetType: "users", userIds })
+    : await dispatchNotificationBroadcast({ title, body, channels, imageUrl: image, actionUrl, createdBy: sentBy, targetType: "orgs", orgIds: orgIds! });
+
   return NextResponse.json(result);
 }
