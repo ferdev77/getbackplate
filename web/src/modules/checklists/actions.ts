@@ -7,7 +7,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { requireTenantModule } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 
-import { sendChecklistAudienceEmail, sendChecklistAudienceTwilio } from "./services/checklist-audience.service";
+import { sendChecklistAudienceEmail, sendChecklistAudiencePush, sendChecklistAudienceTwilio } from "./services/checklist-audience.service";
 import { upsertChecklistTemplate, deleteChecklistTemplate } from "./services/checklist-template.service";
 
 import { z } from "zod";
@@ -184,6 +184,7 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
 
   // --- Notifications (only for new templates) ---
   let checklistAudienceEmailCount = 0;
+  let checklistAudiencePushCount = 0;
   let checklistAudienceSmsCount = 0;
   const scopePayload = {
     locations: parsed.data.location_scope,
@@ -200,6 +201,18 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
       event: "created",
       itemsCount: result.totalItems,
       actorEmail: authData.user?.email ?? "Usuario interno",
+      targetScope: scopePayload,
+      templateBranchId: parsed.data.branch_id,
+    });
+  }
+
+  if (!parsed.data.template_id) {
+    checklistAudiencePushCount = await sendChecklistAudiencePush({
+      supabase,
+      organizationId: tenant.organizationId,
+      templateName: parsed.data.name,
+      event: "created",
+      itemsCount: result.totalItems,
       targetScope: scopePayload,
       templateBranchId: parsed.data.branch_id,
     });
@@ -222,6 +235,9 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   const notificationsSummary: string[] = [];
   if (notifyByEmail) {
     notificationsSummary.push(`Emails enviados: ${checklistAudienceEmailCount}`);
+  }
+  if (!parsed.data.template_id) {
+    notificationsSummary.push(`Push enviados: ${checklistAudiencePushCount}`);
   }
   if (notifyVia.includes("sms")) {
     notificationsSummary.push(`SMS enviados: ${checklistAudienceSmsCount}`);

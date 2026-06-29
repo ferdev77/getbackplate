@@ -15,6 +15,11 @@ Guía técnica completa en [`DOCS/4_Operaciones_y_Guias/GUIA_PUSH_NOTIFICATIONS.
 
 Migraciones nuevas: `20260629000001`, `20260629000002`, `20260629000003`. Aplicadas en DEV y PROD el mismo día, junto con la reconciliación completa del backlog previo (ver `SUPABASE_MIGRATIONS.md` filas 130–144).
 
+**Actualización 09:55 — push pasa a ser siempre automático en avisos y checklists, email queda como la única opción real:**
+- **Avisos**: se quitó el botón "Push" del modal de creación (ya no es una elección) — queda fijo siempre activo vía `<input type="hidden" name="notify_channel" value="push" />` más un forzado del lado servidor en `modules/announcements/actions.ts` (no depende solo del cliente). El botón "Email" sigue siendo la única opción real.
+- **Checklists**: no existía ninguna llamada de push para este feature — se construyó de cero (`sendChecklistAudiencePush()` en `checklist-audience.service.ts`, usa `sendPushToUsers()` con los `userIds` que ya resolvía `resolveAudienceContacts` para el email, antes sin usar). Se llama siempre, sin condicionarla al botón de email.
+- **Documentos** (recordatorios de vencimiento/pendiente): sin cambios — sigue mandando push y email siempre, sin ninguna opción, porque es 100% automático por cron y no se pidió construir un toggle ahí todavía.
+
 ---
 
 ## 2026-06-23 — Sistema de push notifications: PWA, programación, segmentación y alertas de integración QBO → R365

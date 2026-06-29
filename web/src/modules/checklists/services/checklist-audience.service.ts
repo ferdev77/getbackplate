@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { sendTwilioMessage } from "@/infrastructure/twilio/client";
+import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
 import { resolveTenantAppUrlByOrganizationId } from "@/shared/lib/custom-domains";
 import { buildBrandedEmailSubject, getTenantEmailBranding, resolveEmailSenderName } from "@/shared/lib/email-branding";
 import { resolveAudienceContacts } from "@/shared/lib/audience-resolver";
@@ -38,7 +39,12 @@ export async function resolveChecklistAudienceContacts(input: ChecklistAudienceI
     },
     templateBranchId: input.templateBranchId,
   });
-  return { emails: contacts.emails, phones: contacts.phones, userIdByEmail: contacts.userIdByEmail };
+  return {
+    emails: contacts.emails,
+    phones: contacts.phones,
+    userIds: contacts.userIds,
+    userIdByEmail: contacts.userIdByEmail,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -107,6 +113,37 @@ export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput &
     ),
   );
   return contacts.emails.length;
+}
+
+// ---------------------------------------------------------------------------
+// Push Delivery (siempre activo, no es opcional)
+// ---------------------------------------------------------------------------
+
+export async function sendChecklistAudiencePush(input: ChecklistAudienceInput & {
+  templateName: string;
+  event: "created" | "submitted";
+  itemsCount: number;
+  flaggedCount?: number;
+}) {
+  const contacts = await resolveChecklistAudienceContacts(input);
+  if (!contacts.userIds.length) return 0;
+
+  const title =
+    input.event === "created"
+      ? `Nuevo checklist: ${input.templateName}`
+      : `Checklist enviado: ${input.templateName}`;
+  const body =
+    input.event === "created"
+      ? `Items: ${input.itemsCount}`
+      : `Items: ${input.itemsCount}${input.flaggedCount ? ` · Incidencias: ${input.flaggedCount}` : ""}`;
+
+  const result = await sendPushToUsers(
+    contacts.userIds,
+    { title, body, url: "/app/reports" },
+    { source: "checklist", organizationId: input.organizationId },
+  );
+
+  return result.sent;
 }
 
 // ---------------------------------------------------------------------------
