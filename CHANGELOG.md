@@ -20,6 +20,12 @@ Migraciones nuevas: `20260629000001`, `20260629000002`, `20260629000003`. Aplica
 - **Checklists**: no existía ninguna llamada de push para este feature — se construyó de cero (`sendChecklistAudiencePush()` en `checklist-audience.service.ts`, usa `sendPushToUsers()` con los `userIds` que ya resolvía `resolveAudienceContacts` para el email, antes sin usar). Se llama siempre, sin condicionarla al botón de email.
 - **Documentos** (recordatorios de vencimiento/pendiente): sin cambios — sigue mandando push y email siempre, sin ninguna opción, porque es 100% automático por cron y no se pidió construir un toggle ahí todavía.
 
+**Actualización 11:27 — firma de documentos (DocuSeal) ahora notifica en los dos sentidos, antes no avisaba a nadie:**
+- Se confirmó que ni nuestro código ni DocuSeal (`send_email: false` a propósito) notificaban nada en todo el ciclo de firma — ni al pedir, ni al completarse.
+- `app/api/company/employees/documents/signature/request/route.ts`: ahora manda email + push al empleado cuando se le pide firmar un documento (`source: "document_signature_requested"`).
+- `app/api/integrations/docuseal/webhook/route.ts`: ahora manda email + push al admin que pidió la firma cuando el empleado la completa (`source: "document_signature_completed"`), detectando la transición a `completed` para no disparar en webhooks duplicados. El email del admin se resuelve por `getAuthEmailByUserId()`.
+- Sin checkbox de "email opcional" en ningún lado de este flujo (decisión explícita): es un botón de un click sin modal, y la confirmación llega por webhook sin nadie presente — push y email van siempre juntos.
+
 ---
 
 ## 2026-06-23 — Sistema de push notifications: PWA, programación, segmentación y alertas de integración QBO → R365

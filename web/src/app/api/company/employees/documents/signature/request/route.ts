@@ -9,6 +9,8 @@ import { isActiveSignatureStatus } from "@/infrastructure/docuseal/status-mapper
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { sendTransactionalEmail } from "@/infrastructure/email/client";
+import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
 
 export async function POST(request: Request) {
   const moduleAccess = await assertCompanyAdminModuleApi("employees");
@@ -230,6 +232,33 @@ export async function POST(request: Request) {
         source: "company.employees.modal",
       },
     });
+
+    const notificationSourceId = `${employeeId}:${documentId}`;
+    const notificationTitle = "Tenés un documento para firmar";
+    const notificationBody = `"${linkedDocument.title}" necesita tu firma.`;
+
+    void sendTransactionalEmail({
+      to: employeeEmail,
+      subject: notificationTitle,
+      html: `<p>${notificationBody}</p><p><a href="/portal/documents">Ir a Documentos</a></p>`,
+      text: `${notificationBody}\nIr a Documentos: /portal/documents`,
+      notification: {
+        source: "document_signature_requested",
+        sourceId: notificationSourceId,
+        organizationId: tenant.organizationId,
+        userId: employee.user_id,
+        actionUrl: "/portal/documents",
+        title: notificationTitle,
+      },
+    });
+
+    if (employee.user_id) {
+      void sendPushToUsers(
+        [employee.user_id],
+        { title: notificationTitle, body: notificationBody, url: "/portal/documents" },
+        { source: "document_signature_requested", sourceId: notificationSourceId, organizationId: tenant.organizationId },
+      );
+    }
 
     return NextResponse.json({
       ok: true,

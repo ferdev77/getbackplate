@@ -8,6 +8,9 @@ import {
   shouldKeepCurrentSignatureStatus,
 } from "@/infrastructure/docuseal/status-mapper";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { sendTransactionalEmail } from "@/infrastructure/email/client";
+import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
+import { getAuthEmailByUserId } from "@/shared/lib/auth-users";
 
 const DOCUSEAL_WEBHOOK_SECRET = process.env.DOCUSEAL_WEBHOOK_SECRET || "";
 
@@ -134,7 +137,9 @@ export async function POST(request: Request) {
   // 4. Buscar registros afectados
   const { data: affectedRows } = await admin
     .from("employee_documents")
-    .select("organization_id, employee_id, document_id, signature_status, signature_completed_at, signature_last_webhook_event_id")
+    .select(
+      "organization_id, employee_id, document_id, signature_status, signature_completed_at, signature_last_webhook_event_id, signature_requested_by, linked_document:documents(title)",
+    )
     .eq("signature_submission_id", submissionId);
 
   if (!affectedRows || affectedRows.length === 0) {
@@ -164,6 +169,7 @@ export async function POST(request: Request) {
 
   // 7. Actualizar estado + guardar event_id para idempotencia futura
   let updatedCount = 0;
+  const newlyCompletedRows: typeof affectedRows = [];
   for (const row of affectedRows) {
     const signatureStatus = shouldKeepCurrentSignatureStatus(
       row.signature_status,
@@ -174,6 +180,10 @@ export async function POST(request: Request) {
     const completedAt = signatureStatus === "completed"
       ? (row.signature_completed_at ?? incomingCompletedAt)
       : null;
+
+    if (signatureStatus === "completed" && !row.signature_completed_at) {
+      newlyCompletedRows.push(row);
+    }
 
     const { error: updateError } = await admin
       .from("employee_documents")
@@ -225,6 +235,47 @@ export async function POST(request: Request) {
         source: "docuseal.webhook",
       },
     });
+  }
+
+  // 9. Notificar al admin que pidio la firma (solo la primera vez que se completa)
+  const requesterIds = [
+    ...new Set(newlyCompletedRows.map((row) => row.signature_requested_by).filter((id): id is string => Boolean(id))),
+  ];
+  const requesterEmailById = requesterIds.length ? await getAuthEmailByUserId(requesterIds) : new Map<string, string>();
+
+  for (const row of newlyCompletedRows) {
+    if (!row.signature_requested_by) continue;
+
+    const linkedDocument = Array.isArray(row.linked_document) ? row.linked_document[0] : row.linked_document;
+    const notificationSourceId = `${row.employee_id}:${row.document_id}`;
+    const notificationTitle = "Documento firmado";
+    const notificationBody = linkedDocument?.title
+      ? `El empleado firmo "${linkedDocument.title}".`
+      : "El empleado firmo el documento solicitado.";
+
+    void sendPushToUsers(
+      [row.signature_requested_by],
+      { title: notificationTitle, body: notificationBody, url: "/app/employees" },
+      { source: "document_signature_completed", sourceId: notificationSourceId, organizationId: row.organization_id },
+    );
+
+    const requesterEmail = requesterEmailById.get(row.signature_requested_by);
+    if (requesterEmail) {
+      void sendTransactionalEmail({
+        to: requesterEmail,
+        subject: notificationTitle,
+        html: `<p>${notificationBody}</p><p><a href="/app/employees">Ir a Empleados</a></p>`,
+        text: `${notificationBody}\nIr a Empleados: /app/employees`,
+        notification: {
+          source: "document_signature_completed",
+          sourceId: notificationSourceId,
+          organizationId: row.organization_id,
+          userId: row.signature_requested_by,
+          actionUrl: "/app/employees",
+          title: notificationTitle,
+        },
+      });
+    }
   }
 
   return NextResponse.json({
