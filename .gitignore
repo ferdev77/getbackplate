@@ -63,5 +63,8 @@ AI_BRIDGE_*
 scripts/vercel_envs.json
 .claude/settings.local.json
 
+# Documentacion de control interno del desarrollador, 100% local, nunca se sube (2026-06-29)
+DOCS/
+
 # Local web cleanup scripts (do not commit)
 web/scripts/cleanup-*.mjs
