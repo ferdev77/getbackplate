@@ -1530,58 +1530,62 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                     </button>
                   )}
                 </div>
-                <form onSubmit={(e) => { void handleFetchByDocNumber(e); }} className="mt-3 flex gap-1.5">
-                  <input
-                    type="text"
-                    placeholder="Doc Number"
-                    value={fetchDocNumber}
-                    onChange={(e) => { setFetchDocNumber(e.target.value); setFetchDocNumberResult(null); setPendingConfirm(null); }}
-                    className="min-w-0 flex-1 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2.5 py-1.5 text-[11px] text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:outline-none"
-                  />
-                  <button
-                    type="submit"
-                    disabled={fetchDocNumberLoading || !fetchDocNumber.trim()}
-                    className="inline-flex items-center justify-center gap-1 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
-                  >
-                    {fetchDocNumberLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}
-                    Traer
-                  </button>
-                </form>
-                {pendingConfirm && (
-                  <div className="mt-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
-                    <p className="text-[10px] font-bold text-amber-800">
-                      {pendingConfirm.entityType === "CreditMemo" ? "Nota de crédito" : "Factura"} {pendingConfirm.docNumber} ya existe en el historial
-                    </p>
-                    <p className="mt-0.5 text-[10px] text-amber-700">
-                      {"Estado: "}
-                      {{ en_cola: "En cola", capturada: "Capturada", mapeada: "Mapeada", enviada: "Enviada" }[pendingConfirm.pipelineStatus] ?? pendingConfirm.pipelineStatus}
-                      {" · Fuente: "}
-                      {{ sync: "Sync", webhook: "Webhook", manual: "Manual" }[pendingConfirm.importSource] ?? pendingConfirm.importSource}
-                      {pendingConfirm.sentAt ? ` · Enviada ${formatQboDate(pendingConfirm.sentAt.slice(0, 10))}` : ""}
-                    </p>
-                    <div className="mt-2 flex gap-1.5">
+                {mode === "developer" && (
+                  <>
+                    <form onSubmit={(e) => { void handleFetchByDocNumber(e); }} className="mt-3 flex gap-1.5">
+                      <input
+                        type="text"
+                        placeholder="Doc Number"
+                        value={fetchDocNumber}
+                        onChange={(e) => { setFetchDocNumber(e.target.value); setFetchDocNumberResult(null); setPendingConfirm(null); }}
+                        className="min-w-0 flex-1 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2.5 py-1.5 text-[11px] text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] focus:border-[var(--gbp-accent)] focus:outline-none"
+                      />
                       <button
-                        type="button"
-                        onClick={() => { void handleConfirmReplace(); }}
-                        disabled={fetchDocNumberLoading}
-                        className="rounded-md bg-amber-600 px-2.5 py-1 text-[10px] font-bold text-white transition hover:bg-amber-700 disabled:opacity-50"
+                        type="submit"
+                        disabled={fetchDocNumberLoading || !fetchDocNumber.trim()}
+                        className="inline-flex items-center justify-center gap-1 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
                       >
-                        Reemplazar
+                        {fetchDocNumberLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}
+                        Traer
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => { setPendingConfirm(null); setFetchDocNumber(""); }}
-                        className="rounded-md border border-amber-200 px-2.5 py-1 text-[10px] font-bold text-amber-700 transition hover:bg-amber-100"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                )}
-                {fetchDocNumberResult && (
-                  <p className={`mt-1.5 text-[10px] font-medium leading-snug ${fetchDocNumberResult.ok ? "text-[var(--gbp-success)]" : "text-[var(--gbp-error)]"}`}>
-                    {fetchDocNumberResult.ok ? "✓" : "✗"} {fetchDocNumberResult.message}
-                  </p>
+                    </form>
+                    {pendingConfirm && (
+                      <div className="mt-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+                        <p className="text-[10px] font-bold text-amber-800">
+                          {pendingConfirm.entityType === "CreditMemo" ? "Nota de crédito" : "Factura"} {pendingConfirm.docNumber} ya existe en el historial
+                        </p>
+                        <p className="mt-0.5 text-[10px] text-amber-700">
+                          {"Estado: "}
+                          {{ en_cola: "En cola", capturada: "Capturada", mapeada: "Mapeada", enviada: "Enviada" }[pendingConfirm.pipelineStatus] ?? pendingConfirm.pipelineStatus}
+                          {" · Fuente: "}
+                          {{ sync: "Sync", webhook: "Webhook", manual: "Manual" }[pendingConfirm.importSource] ?? pendingConfirm.importSource}
+                          {pendingConfirm.sentAt ? ` · Enviada ${formatQboDate(pendingConfirm.sentAt.slice(0, 10))}` : ""}
+                        </p>
+                        <div className="mt-2 flex gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => { void handleConfirmReplace(); }}
+                            disabled={fetchDocNumberLoading}
+                            className="rounded-md bg-amber-600 px-2.5 py-1 text-[10px] font-bold text-white transition hover:bg-amber-700 disabled:opacity-50"
+                          >
+                            Reemplazar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setPendingConfirm(null); setFetchDocNumber(""); }}
+                            className="rounded-md border border-amber-200 px-2.5 py-1 text-[10px] font-bold text-amber-700 transition hover:bg-amber-100"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {fetchDocNumberResult && (
+                      <p className={`mt-1.5 text-[10px] font-medium leading-snug ${fetchDocNumberResult.ok ? "text-[var(--gbp-success)]" : "text-[var(--gbp-error)]"}`}>
+                        {fetchDocNumberResult.ok ? "✓" : "✗"} {fetchDocNumberResult.message}
+                      </p>
+                    )}
+                  </>
                 )}
               </article>
             ))}
@@ -1883,7 +1887,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                       <th className="px-4 py-3">Tipo</th>
                       <th className="px-4 py-3">Cliente</th>
                       <th className="px-4 py-3">Monto</th>
-                      <th className="px-4 py-3">Fuente</th>
+                      {mode === "developer" && <th className="px-4 py-3">Fuente</th>}
                       <th className="px-4 py-3">Pipeline</th>
                       <th className="cursor-pointer select-none px-4 py-3 hover:text-[var(--gbp-text)]" onClick={() => handleUnifiedSort("createdAt")}>
                         <span className="inline-flex items-center gap-1">Recibida <SortIcon col="createdAt" /></span>
@@ -1902,15 +1906,17 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                         <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{item.entityType}</td>
                         <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{resolveHistoryCustomerName(item)}</td>
                         <td className="px-4 py-3 text-xs font-semibold text-[var(--gbp-text)]">{item.totalAmount != null ? item.totalAmount.toFixed(2) : "-"}</td>
-                        <td className="px-4 py-3">
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-                            item.importSource === "webhook" ? "bg-purple-50 text-purple-600"
-                            : item.importSource === "manual" ? "bg-amber-50 text-amber-600"
-                            : "bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"
-                          }`}>
-                            {item.importSource === "webhook" ? "Webhook" : item.importSource === "manual" ? "Manual" : "Sync"}
-                          </span>
-                        </td>
+                        {mode === "developer" && (
+                          <td className="px-4 py-3">
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                              item.importSource === "webhook" ? "bg-purple-50 text-purple-600"
+                              : item.importSource === "manual" ? "bg-amber-50 text-amber-600"
+                              : "bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"
+                            }`}>
+                              {item.importSource === "webhook" ? "Webhook" : item.importSource === "manual" ? "Manual" : "Sync"}
+                            </span>
+                          </td>
+                        )}
                         <td className="px-4 py-3">
                           <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] ${pipelineColors[item.pipelineStatus] ?? ""}`}>
                             {pipelineLabels[item.pipelineStatus] ?? item.pipelineStatus}
@@ -1974,6 +1980,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       </section>
 
       {/* Runs Table */}
+      {mode === "developer" && (
       <section>
         <h2 className="mb-3 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Historial de Sincronizaciones</h2>
         <div className="overflow-hidden rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)]">
@@ -2035,6 +2042,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
           {!filteredRuns.length && <EmptyState icon={Link2} title="Sin sincronizaciones" description="No se encontraron corridas para los filtros aplicados." />}
         </div>
       </section>
+      )}
 
       {/* Side Panel */}
       {selectedRun && (
