@@ -30,21 +30,32 @@ async function resolveOrg(orgArg: string): Promise<{ id: string; name: string }>
   return { id: data.id, name: data.name };
 }
 
-async function getFirstCustomer(orgId: string): Promise<{ id: string; name: string } | null> {
+async function getFirstCustomerWithInvoices(orgId: string): Promise<{ id: string; name: string } | null> {
   const admin = createSupabaseAdminClient();
-  const { data } = await admin
+  const { data: customers } = await admin
     .from("qbo_r365_sync_config_customers")
     .select("id, qbo_customer_name")
-    .eq("organization_id", orgId)
-    .limit(1)
-    .maybeSingle();
-  if (!data) return null;
-  return { id: data.id as string, name: data.qbo_customer_name as string };
+    .eq("organization_id", orgId);
+  if (!customers) return null;
+
+  for (const customer of customers) {
+    const { count } = await admin
+      .from("qbo_unified_invoices")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId)
+      .ilike("customer_name", customer.qbo_customer_name as string)
+      .eq("pipeline_status", "enviada");
+    if (count && count > 0) {
+      return { id: customer.id as string, name: customer.qbo_customer_name as string };
+    }
+  }
+  return null;
 }
 
 async function main() {
   const orgArg = getArg("org");
   const override = getArg("override");
+  const historical = process.argv.includes("--historical");
 
   if (!orgArg || !override) {
     console.error("Uso: --org=<nombre o id> --override=<email>");
@@ -69,7 +80,7 @@ async function main() {
     organizationId: org.id,
     periodStart,
     periodEnd,
-    isHistorical: false,
+    isHistorical: historical,
     overrideRecipientEmail: override,
     recordRun: false,
   });
@@ -78,17 +89,17 @@ async function main() {
   console.log("  Branches sin email:", result.skippedBranches);
   console.log("");
 
-  // Email 3: outreach al vendor referido
-  const firstCustomer = await getFirstCustomer(org.id);
-  if (!firstCustomer) {
-    console.log("No se encontraron sucursales para preview del email 3.");
+  // Email 3: outreach al vendor referido (referente real con facturas, vendor = la org misma)
+  const referrer = await getFirstCustomerWithInvoices(org.id);
+  if (!referrer) {
+    console.log("No se encontraron sucursales con facturas para preview del email 3.");
   } else {
-    console.log(`Enviando email 3 (outreach vendor referido) desde "${firstCustomer.name}"...`);
+    console.log(`Enviando email 3 (outreach vendor referido) desde "${referrer.name}" refiriendo a "${org.name}"...`);
     await sendVendorReferral({
       organizationId: org.id,
-      syncConfigCustomerId: firstCustomer.id,
-      referrerBranchName: firstCustomer.name,
-      vendorCompany: "Acme Foods Distribution",
+      syncConfigCustomerId: referrer.id,
+      referrerBranchName: referrer.name,
+      vendorCompany: org.name,
       vendorContactName: "John Smith",
       vendorEmail: override,
       vendorPhone: "+1 (555) 000-0000",
