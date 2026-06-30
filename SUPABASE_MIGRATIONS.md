@@ -2,7 +2,7 @@
 
 Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 
-> **Última actualización:** 2026-06-29 07:50 (145 migraciones: 144 en `supabase/migrations/` + 1 en `web/supabase/migrations/`, fila 114) — todas aplicadas y verificadas en DEV y PROD ese mismo día (ver `CHANGELOG.md`)
+> **Última actualización:** 2026-06-29 (147 migraciones: 146 en `supabase/migrations/` + 1 en `web/supabase/migrations/`, fila 114) — migraciones 146 y 147 aplicadas en DEV y PROD el 2026-06-29 (flujo reporte semanal + referidos de vendors)
 
 ## Todas las migraciones (orden cronológico)
 
@@ -153,6 +153,8 @@ Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 | 143 | `20260629000001_fix_announcement_deliveries_channel.sql` | Quita `whatsapp` y agrega `push` al CHECK de `announcement_deliveries.channel` (WhatsApp eliminado de la plataforma) |
 | 144 | `20260629000002_notifications.sql` | Tabla `notifications` — centro de notificaciones in-app, registra cada email y push enviado por la plataforma |
 | 145 | `20260629000003_notification_broadcasts.sql` | Tabla `notification_broadcasts` — generaliza `push_send_logs`/`push_scheduled_sends` para soportar broadcasts de push y/o email desde superadmin (con backfill del historico) |
+| 146 | `20260629000004_qbo_weekly_invoice_report.sql` | Columna `contact_email_override` en `qbo_r365_sync_config_customers` + tabla `qbo_weekly_invoice_report_runs` (control de deduplicación semanal por organización) |
+| 147 | `20260629000005_qbo_vendor_referrals.sql` | Tabla `qbo_vendor_referrals` — registro de vendors referidos por sucursales (Taco, Kumori, etc.) vía el formulario del email semanal |
 
 ## Convención de naming
 

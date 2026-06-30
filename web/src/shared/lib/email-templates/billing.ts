@@ -33,7 +33,7 @@ type PlanChangeDecisionProps = {
   branding?: TenantEmailBranding;
 };
 
-function renderBrandingHeader(branding?: TenantEmailBranding) {
+export function renderBrandingHeader(branding?: TenantEmailBranding) {
   const defaultLogo = `${(process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://getbackplate.com").replace(/\/$/, "")}/getbackplate-logo-light.svg`;
 
   if (!branding?.isCustom) {
