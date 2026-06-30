@@ -16,6 +16,7 @@ export type WeeklyReportTemplateInput = {
   referralUrl: string | null;
   platformUrl: string;
   recurrenceNotice: string;
+  isFirstReport: boolean;
 };
 
 function fmt(amount: number): string {
@@ -129,7 +130,13 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
     referralUrl,
     platformUrl,
     recurrenceNotice,
+    isFirstReport,
   } = input;
+
+  const heroSubtitle = isFirstReport
+    ? "Here's a summary of every invoice your integration has delivered automatically to your Restaurant365 so far."
+    : "Here's your weekly summary of invoices delivered automatically to your Restaurant365.";
+  const metricEyebrow = isFirstReport ? "Delivered so far" : "This week";
 
   const totalCount = invoiceLines.length;
   const totalAmount = invoiceLines.reduce((sum, inv) => sum + (inv.totalAmount ?? 0), 0);
@@ -186,7 +193,9 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
 <body style="margin:0;padding:0;background-color:#F7F8FC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
 
 <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">
-  Your weekly summary of invoices delivered to Restaurant365 — ${totalCount} invoice${totalCount === 1 ? "" : "s"} this week.
+  ${isFirstReport
+    ? `Everything delivered to Restaurant365 so far — ${totalCount} invoice${totalCount === 1 ? "" : "s"}.`
+    : `Your weekly summary of invoices delivered to Restaurant365 — ${totalCount} invoice${totalCount === 1 ? "" : "s"} this week.`}
 </div>
 
 <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#F7F8FC;">
@@ -213,7 +222,7 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
             </p>
 
             <p style="margin:0 0 24px 0;font-size:15px;color:#595B66;line-height:1.6;">
-              Here's your weekly summary of invoices delivered automatically to your Restaurant365.
+              ${heroSubtitle}
             </p>
 
             <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"
@@ -221,7 +230,7 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
               <tr>
                 <td style="background-color:#FCE9DF;border-left:3px solid #D4531A;border-radius:8px;padding:20px 24px;">
                   <p style="margin:0 0 6px 0;font-size:11px;color:#A23E12;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">
-                    This week
+                    ${metricEyebrow}
                   </p>
                   <p class="metric-value"
                     style="margin:0 0 4px 0;font-size:26px;color:#14151A;font-weight:700;letter-spacing:-0.02em;line-height:1.1;">

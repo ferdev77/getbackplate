@@ -1,13 +1,16 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
-import {
-  buildBrandedEmailSubject,
-  getTenantEmailBranding,
-  resolveEmailSenderName,
-} from "@/shared/lib/email-branding";
 import { buildWeeklyReportHtml } from "./weekly-report-template";
 import { createReferralToken } from "./referral-token";
+
+// These emails are GetBackplate's own operational communication about the
+// integration it runs — the brand must always read "GetBackplate", never the
+// recipient organization's own custom branding.
+const FIXED_SENDER_NAME = "GetBackplate";
+function brandedSubject(subject: string): string {
+  return `[${FIXED_SENDER_NAME}] ${subject}`;
+}
 
 type BranchInvoiceLine = {
   docNumber: string;
@@ -46,6 +49,10 @@ type OrgVendorDisplayInfo = {
 
 export const WEEKLY_RECURRENCE_NOTICE =
   "You'll receive this report every Monday around 10am your local time.";
+
+export const FIRST_REPORT_NOTICE =
+  "This is a one-time summary of everything delivered since your integration went live. " +
+  "Starting next Monday, you'll receive this report weekly, covering just that week's invoices.";
 
 function getAppBaseUrl(): string {
   return (process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://app.getbackplate.com").replace(/\/$/, "");
@@ -277,9 +284,9 @@ export async function buildOrgWeeklyReportData(input: {
         if (override && !ownEmails.has(override)) {
           resolvedEmail = override;
         } else if (billEmail && ownEmails.has(billEmail)) {
-          skipReason = "el email que trae QuickBooks coincide con tu propio email, no con el del cliente";
+          skipReason = "the email QuickBooks has on file matches your own email, not the client's";
         } else {
-          skipReason = "QuickBooks no tiene un email cargado para este cliente y no hay email de respaldo configurado";
+          skipReason = "QuickBooks has no email on file for this client and no backup email is configured";
         }
       }
 
@@ -408,7 +415,7 @@ export async function sendWeeklyInvoiceReport(input: {
   const { data: org } = await admin.from("organizations").select("name").eq("id", input.organizationId).single();
   const organizationName = org?.name ?? "Your Company";
 
-  const [data, branding, vendorDisplay] = await Promise.all([
+  const [data, vendorDisplay] = await Promise.all([
     buildOrgWeeklyReportData({
       organizationId: input.organizationId,
       organizationName,
@@ -416,11 +423,8 @@ export async function sendWeeklyInvoiceReport(input: {
       periodEnd: input.periodEnd,
       isHistorical: input.isHistorical,
     }),
-    getTenantEmailBranding(input.organizationId),
     getOrgVendorDisplayInfo(input.organizationId),
   ]);
-
-  const senderName = resolveEmailSenderName(branding);
 
   const pLabel = periodLabel(data);
   const orgReport = buildOrgReportText(data);
@@ -432,6 +436,7 @@ export async function sendWeeklyInvoiceReport(input: {
 
   // Recopilar todos los invoices de la org para el resumen total
   const allOrgInvoices = data.groups.flatMap((g) => g.branches.flatMap((b) => b.invoices));
+  const recurrenceNotice = data.isHistorical ? FIRST_REPORT_NOTICE : WEEKLY_RECURRENCE_NOTICE;
 
   let orgEmailSent = false;
   if (orgEmailTarget) {
@@ -450,15 +455,16 @@ export async function sendWeeklyInvoiceReport(input: {
       showReferralCta: false,
       referralUrl: null,
       platformUrl: orgPlatformUrl,
-      recurrenceNotice: WEEKLY_RECURRENCE_NOTICE,
+      recurrenceNotice,
+      isFirstReport: data.isHistorical,
     });
 
     await sendTransactionalEmail({
       to: orgEmailTarget,
-      subject: buildBrandedEmailSubject(subject, branding),
+      subject: brandedSubject(subject),
       html,
-      text: `${orgReport.text}\n\n${WEEKLY_RECURRENCE_NOTICE}`,
-      senderName,
+      text: `${orgReport.text}\n\n${recurrenceNotice}`,
+      senderName: FIXED_SENDER_NAME,
       notification: {
         source: "qbo_weekly_invoice_report",
         organizationId: input.organizationId,
@@ -508,15 +514,16 @@ export async function sendWeeklyInvoiceReport(input: {
         showReferralCta: true,
         referralUrl,
         platformUrl: branchPlatformUrl,
-        recurrenceNotice: WEEKLY_RECURRENCE_NOTICE,
+        recurrenceNotice,
+        isFirstReport: data.isHistorical,
       });
 
       await sendTransactionalEmail({
         to: target,
-        subject: buildBrandedEmailSubject(subject, branding),
+        subject: brandedSubject(subject),
         html,
-        text: `${branchReport.text}\n\n${WEEKLY_RECURRENCE_NOTICE}`,
-        senderName,
+        text: `${branchReport.text}\n\n${recurrenceNotice}`,
+        senderName: FIXED_SENDER_NAME,
         notification: {
           source: "qbo_weekly_invoice_report",
           organizationId: input.organizationId,

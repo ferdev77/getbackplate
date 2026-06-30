@@ -50,15 +50,25 @@ export async function GET(request: Request) {
       continue;
     }
 
+    // First run ever for this org: send everything delivered to date instead
+    // of just the last 7 days, with a one-time framing notice in the email.
+    const { data: anyPriorRun } = await admin
+      .from("qbo_weekly_invoice_report_runs")
+      .select("id")
+      .eq("organization_id", org.id)
+      .limit(1)
+      .maybeSingle();
+    const isFirstRun = !anyPriorRun;
+
     try {
       const result = await sendWeeklyInvoiceReport({
         organizationId: org.id,
         periodStart,
         periodEnd,
-        isHistorical: false,
+        isHistorical: isFirstRun,
         recordRun: true,
       });
-      results.push({ organizationId: org.id, organizationName: org.name, ...result });
+      results.push({ organizationId: org.id, organizationName: org.name, isFirstRun, ...result });
     } catch (error) {
       results.push({
         organizationId: org.id,

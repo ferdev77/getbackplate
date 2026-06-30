@@ -77,7 +77,6 @@ export default async function ReferPage({ params }: Props) {
           </span>
           <div style={{ display: "flex", gap: 24, fontSize: 14, fontWeight: 500 }}>
             <a href="/legal/" style={{ color: "#595B66", textDecoration: "none" }}>Legal</a>
-            <a href="/trust/" style={{ color: "#595B66", textDecoration: "none" }}>Trust</a>
           </div>
         </div>
       </nav>
