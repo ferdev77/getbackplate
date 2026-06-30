@@ -1888,7 +1888,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
                       <th className="px-4 py-3">Cliente</th>
                       <th className="px-4 py-3">Monto</th>
                       {mode === "developer" && <th className="px-4 py-3">Fuente</th>}
-                      <th className="px-4 py-3">Pipeline</th>
+                      <th className="px-4 py-3">Estado</th>
                       <th className="cursor-pointer select-none px-4 py-3 hover:text-[var(--gbp-text)]" onClick={() => handleUnifiedSort("createdAt")}>
                         <span className="inline-flex items-center gap-1">Recibida <SortIcon col="createdAt" /></span>
                       </th>
