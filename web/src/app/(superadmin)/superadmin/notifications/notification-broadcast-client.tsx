@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import { Bell, Mail, Search, CheckSquare, Square, Send, Loader2, AlertCircle, CheckCircle2, Users, ImagePlus, X, History, Smartphone, CalendarClock, Zap, Ban, UserCheck } from "lucide-react";
+import { Bell, Mail, Search, CheckSquare, Square, Send, Loader2, AlertCircle, CheckCircle2, Users, ImagePlus, X, History, Smartphone, CalendarClock, Zap, Ban, UserCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageContent } from "@/shared/ui/page-content";
 import { IntegrationAlertsCard } from "./integration-alerts-card";
@@ -120,6 +120,9 @@ export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribe
   const [scheduleHour, setScheduleHour] = useState("");
   const [scheduled, setScheduled] = useState<ScheduledRow[]>(initialScheduled);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [subs, setSubs] = useState<Subscriber[]>(subscribers);
+  const [deletingSubId, setDeletingSubId] = useState<string | null>(null);
+  const [deletingLogId, setDeletingLogId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hourOptions = useMemo(() => buildHourOptions(scheduleDate), [scheduleDate]);
@@ -131,11 +134,11 @@ export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribe
 
   const uniqueUsers = useMemo(() => {
     const byUser = new Map<string, Subscriber>();
-    for (const s of subscribers) {
+    for (const s of subs) {
       if (!byUser.has(s.user_id)) byUser.set(s.user_id, s);
     }
     return Array.from(byUser.values());
-  }, [subscribers]);
+  }, [subs]);
 
   const filteredUsers = useMemo(() => {
     const q = userSearch.toLowerCase();
@@ -319,6 +322,36 @@ export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribe
       toast.error(err instanceof Error ? err.message : "Error al enviar");
     } finally {
       setIsPending(false);
+    }
+  }
+
+  async function handleDeleteSubscriber(id: string) {
+    setDeletingSubId(id);
+    try {
+      const res = await fetch(`/api/superadmin/push/subscriptions/${id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(typeof data?.error === "string" ? data.error : "Error al eliminar");
+      setSubs((prev) => prev.filter((s) => s.id !== id));
+      toast.success("Suscripción eliminada");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al eliminar");
+    } finally {
+      setDeletingSubId(null);
+    }
+  }
+
+  async function handleDeleteLog(id: string) {
+    setDeletingLogId(id);
+    try {
+      const res = await fetch(`/api/superadmin/notifications/logs/${id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(typeof data?.error === "string" ? data.error : "Error al eliminar");
+      setLogs((prev) => prev.filter((l) => l.id !== id));
+      toast.success("Registro eliminado");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al eliminar");
+    } finally {
+      setDeletingLogId(null);
     }
   }
 
@@ -767,11 +800,11 @@ export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribe
           <Smartphone className="h-4 w-4 text-[var(--gbp-text2)]" />
           <h2 className="text-sm font-bold tracking-tight text-[var(--gbp-text)]">Usuarios con push activo</h2>
           <span className="ml-auto rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
-            {subscribers.length}
+            {subs.length}
           </span>
         </div>
 
-        {subscribers.length === 0 ? (
+        {subs.length === 0 ? (
           <p className="py-10 text-center text-sm text-[var(--gbp-muted)]">Ningún usuario tiene push activo aún.</p>
         ) : (
           <div className="overflow-x-auto">
@@ -784,12 +817,13 @@ export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribe
                   <th className="px-4 py-3">Dispositivo</th>
                   <th className="px-4 py-3">Browser</th>
                   <th className="px-4 py-3 whitespace-nowrap">Suscripto desde</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
-                {subscribers.map((sub, i) => (
+                {subs.map((sub) => (
                   <tr
-                    key={`${sub.org_id}:${sub.user_id}:${i}`}
+                    key={sub.id}
                     className="border-b border-[var(--gbp-border)] transition-colors hover:bg-[var(--gbp-bg)]"
                   >
                     <td className="px-6 py-3 font-medium text-[var(--gbp-text)]">{sub.org_name}</td>
@@ -810,6 +844,20 @@ export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribe
                         month: "2-digit",
                         year: "numeric",
                       })}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteSubscriber(sub.id)}
+                        disabled={deletingSubId === sub.id}
+                        className="flex items-center justify-center rounded-lg border border-red-200 bg-red-50 p-1.5 text-red-500 transition hover:bg-red-100 disabled:opacity-50"
+                        title="Eliminar suscripción"
+                      >
+                        {deletingSubId === sub.id
+                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          : <Trash2 className="h-3.5 w-3.5" />
+                        }
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -844,35 +892,55 @@ export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribe
                   <th className="px-4 py-3 text-right text-amber-700">Push vencidos</th>
                   <th className="px-4 py-3 text-right text-emerald-700">Email OK</th>
                   <th className="px-4 py-3 text-right text-red-700">Errores</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
-                {logs.map((log, i) => (
-                  <tr
-                    key={log.id}
-                    className={`border-b border-[var(--gbp-border)] transition-colors hover:bg-[var(--gbp-bg)] ${i % 2 === 0 ? "" : "bg-[var(--gbp-surface-alt,var(--gbp-bg))]"}`}
-                  >
-                    <td className="whitespace-nowrap px-6 py-3 text-xs text-[var(--gbp-text2)]">
-                      {new Date(log.created_at).toLocaleString("es-US", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </td>
-                    <td className="max-w-[140px] truncate px-4 py-3 text-xs text-[var(--gbp-text2)]">{log.created_by}</td>
-                    <td className="px-4 py-3"><ChannelsBadges channels={log.channels} /></td>
-                    <td className="max-w-[200px] px-4 py-3">
-                      <p className="truncate font-medium text-[var(--gbp-text)]">{log.title}</p>
-                      <p className="truncate text-xs text-[var(--gbp-muted)]">{log.body}</p>
-                    </td>
-                    <td className="px-4 py-3 text-right font-semibold text-emerald-600">{log.push_sent}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-amber-600">{log.push_expired}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-emerald-600">{log.email_sent}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-red-600">{log.push_failed + log.email_failed}</td>
-                  </tr>
-                ))}
+                {logs.map((log, i) => {
+                  const isOptimistic = log.id.startsWith("optimistic-");
+                  return (
+                    <tr
+                      key={log.id}
+                      className={`border-b border-[var(--gbp-border)] transition-colors hover:bg-[var(--gbp-bg)] ${i % 2 === 0 ? "" : "bg-[var(--gbp-surface-alt,var(--gbp-bg))]"}`}
+                    >
+                      <td className="whitespace-nowrap px-6 py-3 text-xs text-[var(--gbp-text2)]">
+                        {new Date(log.created_at).toLocaleString("es-US", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </td>
+                      <td className="max-w-[140px] truncate px-4 py-3 text-xs text-[var(--gbp-text2)]">{log.created_by}</td>
+                      <td className="px-4 py-3"><ChannelsBadges channels={log.channels} /></td>
+                      <td className="max-w-[200px] px-4 py-3">
+                        <p className="truncate font-medium text-[var(--gbp-text)]">{log.title}</p>
+                        <p className="truncate text-xs text-[var(--gbp-muted)]">{log.body}</p>
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold text-emerald-600">{log.push_sent}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-amber-600">{log.push_expired}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-emerald-600">{log.email_sent}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-red-600">{log.push_failed + log.email_failed}</td>
+                      <td className="px-4 py-3">
+                        {!isOptimistic && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteLog(log.id)}
+                            disabled={deletingLogId === log.id}
+                            className="flex items-center justify-center rounded-lg border border-red-200 bg-red-50 p-1.5 text-red-500 transition hover:bg-red-100 disabled:opacity-50"
+                            title="Eliminar registro"
+                          >
+                            {deletingLogId === log.id
+                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              : <Trash2 className="h-3.5 w-3.5" />
+                            }
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

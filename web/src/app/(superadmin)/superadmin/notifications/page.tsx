@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/modules/memberships/queries";
 import { NotificationBroadcastClient } from "./notification-broadcast-client";
 
 export type Subscriber = {
+  id: string;
   user_id: string;
   org_id: string | null;
   org_name: string;
@@ -31,7 +32,7 @@ export default async function SuperadminNotificationsPage() {
       .limit(50),
     supabase
       .from("push_subscriptions")
-      .select("user_id, org_id, user_agent, created_at")
+      .select("id, user_id, org_id, user_agent, created_at")
       .eq("is_active", true)
       .order("created_at", { ascending: false }),
     supabase
@@ -97,6 +98,7 @@ export default async function SuperadminNotificationsPage() {
     const authFallback = !profile ? authUserById.get(sub.user_id) : null;
     const nameParts = authFallback?.full_name ? authFallback.full_name.trim().split(/\s+/) : [];
     return {
+      id: sub.id,
       user_id: sub.user_id,
       org_id: sub.org_id,
       org_name: sub.org_id ? (orgNameById.get(sub.org_id) ?? "—") : "Superadmin",
