@@ -88,7 +88,7 @@ async function _sendToSubscriptions(
       .in("id", expiredIds);
   }
 
-  void logNotificationsBulk(
+  logNotificationsBulk(
     Array.from(new Set(sentUserIds)).map((userId) => ({
       channel: "push" as const,
       userId,
@@ -101,6 +101,8 @@ async function _sendToSubscriptions(
       status: "sent" as const,
       createdBy: options.createdBy ?? null,
     })),
+  ).catch((err) =>
+    console.error("[push] logNotificationsBulk falló:", err instanceof Error ? err.message : err),
   );
 
   return { sent, expired, failed };

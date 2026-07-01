@@ -71,15 +71,38 @@ export default async function SuperadminNotificationsPage() {
     (profiles ?? []).map((p) => [`${p.organization_id}:${p.user_id}`, p]),
   );
 
+  // Fallback para admins y superadmins que no tienen fila en organization_user_profiles
+  const foundUserIds = new Set((profiles ?? []).map((p) => p.user_id));
+  const missingUserIds = [...new Set(userIds.filter((id) => !foundUserIds.has(id)))];
+  const authUserById = new Map<string, { email: string | null; full_name: string | null }>();
+  if (missingUserIds.length > 0) {
+    const results = await Promise.all(
+      missingUserIds.map((id) =>
+        supabase.auth.admin
+          .getUserById(id)
+          .then(({ data }) => ({ id, user: data?.user ?? null }))
+          .catch(() => ({ id, user: null })),
+      ),
+    );
+    for (const { id, user } of results) {
+      authUserById.set(id, {
+        email: user?.email ?? null,
+        full_name: (user?.user_metadata?.full_name as string | null) ?? null,
+      });
+    }
+  }
+
   const subscribers: Subscriber[] = (rawSubs ?? []).map((sub) => {
     const profile = profileByOrgUser.get(`${sub.org_id}:${sub.user_id}`);
+    const authFallback = !profile ? authUserById.get(sub.user_id) : null;
+    const nameParts = authFallback?.full_name ? authFallback.full_name.trim().split(/\s+/) : [];
     return {
       user_id: sub.user_id,
       org_id: sub.org_id,
       org_name: orgNameById.get(sub.org_id) ?? "—",
-      first_name: profile?.first_name ?? null,
-      last_name: profile?.last_name ?? null,
-      email: profile?.email ?? null,
+      first_name: profile?.first_name ?? nameParts[0] ?? null,
+      last_name: profile?.last_name ?? (nameParts.slice(1).join(" ") || null),
+      email: profile?.email ?? authFallback?.email ?? null,
       user_agent: sub.user_agent,
       created_at: sub.created_at,
     };
