@@ -4,7 +4,7 @@ import { NotificationBroadcastClient } from "./notification-broadcast-client";
 
 export type Subscriber = {
   user_id: string;
-  org_id: string;
+  org_id: string | null;
   org_name: string;
   first_name: string | null;
   last_name: string | null;
@@ -99,7 +99,7 @@ export default async function SuperadminNotificationsPage() {
     return {
       user_id: sub.user_id,
       org_id: sub.org_id,
-      org_name: orgNameById.get(sub.org_id) ?? "—",
+      org_name: sub.org_id ? (orgNameById.get(sub.org_id) ?? "—") : "Superadmin",
       first_name: profile?.first_name ?? nameParts[0] ?? null,
       last_name: profile?.last_name ?? (nameParts.slice(1).join(" ") || null),
       email: profile?.email ?? authFallback?.email ?? null,
