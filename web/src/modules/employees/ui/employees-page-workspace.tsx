@@ -66,6 +66,8 @@ type EmployeesPageWorkspaceProps = {
   enabledModules?: string[];
   basePath?: string;
   canCreate?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
   hideDelegatedPermissions?: boolean;
   apiEndpoint?: string;
 };
@@ -86,6 +88,8 @@ export function EmployeesPageWorkspace({
   enabledModules,
   basePath = "/app/employees",
   canCreate = true,
+  canEdit = true,
+  canDelete = true,
   hideDelegatedPermissions = false,
   apiEndpoint = "/api/company/employees",
 }: EmployeesPageWorkspaceProps) {
@@ -166,7 +170,13 @@ export function EmployeesPageWorkspace({
         </section>
       ) : null}
 
-      <EmployeesTableWorkspace employees={effectiveRows} />
+      <EmployeesTableWorkspace
+        employees={effectiveRows}
+        canEdit={canEdit}
+        canDelete={canDelete}
+        apiEndpoint={apiEndpoint}
+        basePath={basePath}
+      />
 
       {isCreateModalOpen ? (
         <NewEmployeeModal

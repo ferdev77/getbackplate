@@ -50,6 +50,10 @@ export type EmployeeRow = {
 
 type EmployeesTableWorkspaceProps = {
   employees: EmployeeRow[];
+  canEdit?: boolean;
+  canDelete?: boolean;
+  apiEndpoint?: string;
+  basePath?: string;
 };
 
 const ACTION_BTN_NEUTRAL = "group/tooltip relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] [.theme-dark-pro_&]:border-[var(--gbp-border2)] [.theme-dark-pro_&]:bg-[var(--gbp-surface)] [.theme-dark-pro_&]:text-[var(--gbp-text2)] [.theme-dark-pro_&]:hover:bg-[var(--gbp-surface2)]";
@@ -93,7 +97,13 @@ function formatDate(dateText: string | null) {
   return new Date(dateText).toLocaleDateString("es-US");
 }
 
-export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspaceProps) {
+export function EmployeesTableWorkspace({
+  employees,
+  canEdit = true,
+  canDelete = true,
+  apiEndpoint = "/api/company/employees",
+  basePath = "/app/employees",
+}: EmployeesTableWorkspaceProps) {
   const [rows, setRows] = useState<EmployeeRow[]>(employees);
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
@@ -172,7 +182,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
             membershipId: target.membershipId,
           };
 
-      const response = await fetch("/api/company/employees", {
+      const response = await fetch(apiEndpoint, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -210,12 +220,12 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
 
     try {
       const response = isEmployee
-        ? await fetch("/api/company/employees", {
+        ? await fetch(apiEndpoint, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ employeeId: selectedId, status: newStatus }),
           })
-        : await fetch("/api/company/employees", {
+        : await fetch(apiEndpoint, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -463,12 +473,13 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                 </p>
                 <div className="flex items-center justify-end gap-1">
                   <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedEmployeeId(row.id); }} className={ACTION_BTN_NEUTRAL}><Eye className="h-3.5 w-3.5" /><TooltipLabel label="Ver perfil" /></button>
+                  {canEdit ? (
                   <Link
                     onClick={(event) => event.stopPropagation()}
                     href={
                       row.recordType === "employee"
-                        ? `/app/employees?action=edit&employeeId=${row.id}`
-                        : `/app/employees?action=edit-user&profileId=${row.organizationUserProfileId ?? ""}`
+                        ? `${basePath}?action=edit&employeeId=${row.id}`
+                        : `${basePath}?action=edit-user&profileId=${row.organizationUserProfileId ?? ""}`
                     }
                     className={`hidden sm:inline-flex ${ACTION_BTN_NEUTRAL}`}
                     data-testid="edit-employee-btn"
@@ -476,8 +487,11 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                     <Pencil className="h-3.5 w-3.5" />
                     <TooltipLabel label="Editar" />
                   </Link>
+                  ) : null}
                   <button type="button" onClick={(event) => { event.stopPropagation(); downloadProfile(row); }} className={`hidden md:inline-flex ${ACTION_BTN_NEUTRAL}`}><Download className="h-3.5 w-3.5" /><TooltipLabel label="Descargar perfil" /></button>
+                  {canDelete ? (
                   <button type="button" onClick={(event) => { event.stopPropagation(); setDeleteTargetId(row.id); }} className={ACTION_BTN_DANGER} data-testid="delete-employee-btn"><Trash2 className="h-3.5 w-3.5" /><TooltipLabel label="Eliminar" /></button>
+                  ) : null}
                 </div>
               </div>
             );
@@ -530,6 +544,7 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
               ) : null}
               <div><p className="text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Docs</p><p className="text-sm text-[var(--gbp-text)]">{selected.recordType === "employee" ? `${6 - selected.pendingDocuments}/6 · ${selected.docsCompletionStatus === "complete" ? "Completa" : `Incompleta (${selected.pendingDocuments} faltantes)`}` : `${selected.docsUploadedCount ?? 0} cargados`}</p></div>
             </div>
+            {canEdit ? (
             <div className="mx-6 mb-5 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
               <p className="mb-1 text-[10px] font-bold tracking-[0.1em] text-[var(--gbp-muted)] uppercase">Cambiar estado laboral</p>
               <div className="flex items-center gap-2">
@@ -553,11 +568,12 @@ export function EmployeesTableWorkspace({ employees }: EmployeesTableWorkspacePr
                 </button>
               </div>
             </div>
+            ) : null}
             <div className="flex items-center justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
               <button type="button" className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]" onClick={() => downloadProfile(selected)}>Descargar</button>
               <button type="button" className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]" onClick={() => setSelectedEmployeeId(null)}>Cerrar</button>
-                {selected.recordType === "employee" ? (
-                 <Link href={`/app/employees?action=edit&employeeId=${selected.id}`} className="rounded-lg bg-[var(--gbp-accent)] px-5 py-2 text-sm font-bold text-white hover:bg-[var(--gbp-accent-hover)]">Editar</Link>
+                {canEdit && selected.recordType === "employee" ? (
+                 <Link href={`${basePath}?action=edit&employeeId=${selected.id}`} className="rounded-lg bg-[var(--gbp-accent)] px-5 py-2 text-sm font-bold text-white hover:bg-[var(--gbp-accent-hover)]">Editar</Link>
                ) : null}
              </div>
           </div>

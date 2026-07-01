@@ -42,6 +42,8 @@ export default async function PortalEmployeesPage({
       deferredDataUrl="/api/employee/employees?catalog=directory_page&limit=100&page=1"
       basePath="/portal/employees"
       canCreate={permissions.employees.create}
+      canEdit={permissions.employees.edit}
+      canDelete={permissions.employees.delete}
       hideDelegatedPermissions
       apiEndpoint="/api/employee/employees"
     />
