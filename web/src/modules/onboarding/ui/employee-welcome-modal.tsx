@@ -168,34 +168,37 @@ export function EmployeeWelcomeModal({
   const progress = Math.round(((step + 1) / sections.length) * 100);
 
   return (
-    <div className="fixed inset-0 z-[1050] flex items-center justify-center bg-black/55 p-4">
-      <div className="max-h-[90vh] w-[940px] max-w-[97vw] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.3)]">
-        <div className="relative overflow-hidden border-b border-black/30 bg-[linear-gradient(145deg,var(--gbp-text)_0%,color-mix(in_oklab,var(--gbp-text)_88%,black)_100%)] px-8 py-5 text-white">
+    <div className="fixed inset-0 z-[1050] flex items-center justify-center bg-black/55 p-2 sm:p-4">
+      <div className="flex max-h-[96vh] w-[940px] max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.3)] sm:max-h-[90vh] sm:max-w-[97vw]">
+
+        {/* Header */}
+        <div className="relative shrink-0 overflow-hidden border-b border-black/30 bg-[linear-gradient(145deg,var(--gbp-text)_0%,color-mix(in_oklab,var(--gbp-text)_88%,black)_100%)] px-4 py-3 text-white sm:px-8 sm:py-5">
           <div className="absolute -right-8 -top-10 h-40 w-40 rounded-full bg-[radial-gradient(circle,rgba(192,57,43,.35),transparent_70%)]" />
           <div className="absolute -left-8 -bottom-10 h-36 w-36 rounded-full bg-[radial-gradient(circle,rgba(192,57,43,.2),transparent_70%)]" />
           <div className="relative flex items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold tracking-[0.12em] text-white/65 uppercase">Portal Interno - Empleados</p>
-              <h2 className="mt-1 font-serif text-3xl font-bold leading-tight">Recorrido del portal</h2>
-               <p className="mt-1 text-sm text-white/70">Revisa estas secciones para entender dónde encontrar cada herramienta de trabajo.</p>
+              <p className="hidden text-[11px] font-semibold uppercase tracking-[0.12em] text-white/65 sm:block">Portal Interno - Empleados</p>
+              <h2 className="mt-0 font-serif text-xl font-bold leading-tight sm:mt-1 sm:text-3xl">Recorrido del portal</h2>
+              <p className="hidden text-sm text-white/70 sm:mt-1 sm:block">Revisa estas secciones para entender dónde encontrar cada herramienta de trabajo.</p>
             </div>
-            <div className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85">
-              Paso {step + 1}/{sections.length}
+            <div className="shrink-0 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85">
+              {step + 1}/{sections.length}
             </div>
           </div>
         </div>
 
-        <div className="border-b border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-8 py-3">
-          <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--gbp-bg)]">
+        {/* Tabs y progreso */}
+        <div className="shrink-0 border-b border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-4 py-2 sm:px-8 sm:py-3">
+          <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--gbp-bg)] sm:mb-3">
             <div className="h-full rounded-full bg-[var(--gbp-accent)] transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {sections.map((section, index) => (
               <button
                 key={section.id}
                 type="button"
                 onClick={() => goTo(index)}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-all duration-200 ${
+                className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-all duration-200 sm:gap-1.5 sm:px-3 sm:py-1 sm:text-xs ${
                   index === step
                     ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)] shadow-[0_4px_14px_rgba(192,57,43,.15)]"
                     : readChecks[index]
@@ -203,27 +206,28 @@ export function EmployeeWelcomeModal({
                       : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:border-[var(--gbp-border2)] hover:bg-[var(--gbp-bg)]"
                 }`}
               >
-                {readChecks[index] ? <CheckCircle2 className="h-3.5 w-3.5" /> : null}
+                {readChecks[index] ? <CheckCircle2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> : null}
                 {section.tab}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="max-h-[56vh] overflow-y-auto px-8 py-6">
-          <article className={`rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-7 transition-all duration-200 ${panelVisible ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"}`}>
-            <div className="mb-4 flex items-center gap-3">
-              <div className={`grid h-11 w-11 place-items-center rounded-xl ${current.iconBg}`}>
-                <CurrentIcon className={`h-5 w-5 ${current.iconColor}`} />
+        {/* Contenido scrolleable — ocupa todo el espacio restante entre header y footer */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-8 sm:py-6">
+          <article className={`rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 transition-all duration-200 sm:p-7 ${panelVisible ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"}`}>
+            <div className="mb-3 flex items-center gap-3 sm:mb-4">
+              <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl sm:h-11 sm:w-11 ${current.iconBg}`}>
+                <CurrentIcon className={`h-4 w-4 sm:h-5 sm:w-5 ${current.iconColor}`} />
               </div>
               <div>
-                <h3 className="font-serif text-2xl font-bold text-[var(--gbp-text)]">{current.title}</h3>
+                <h3 className="font-serif text-xl font-bold text-[var(--gbp-text)] sm:text-2xl">{current.title}</h3>
                 <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">{current.tab}</p>
               </div>
             </div>
-            <p className="mt-2 text-sm leading-8 text-[var(--gbp-text2)]">{current.description}</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--gbp-text2)] sm:leading-8">{current.description}</p>
 
-            <div className="mt-5 space-y-2">
+            <div className="mt-4 space-y-2 sm:mt-5">
               {current.points.map((point) => (
                 <div key={point} className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] transition-colors hover:border-[var(--gbp-border2)] hover:bg-[var(--gbp-surface)]">
                   {point}
@@ -231,7 +235,7 @@ export function EmployeeWelcomeModal({
               ))}
             </div>
 
-            <label className="mt-6 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]">
+            <label className="mt-5 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] sm:mt-6">
               <input
                 type="checkbox"
                 checked={currentChecked}
@@ -250,7 +254,8 @@ export function EmployeeWelcomeModal({
           </article>
         </div>
 
-        <div className="flex items-center justify-between border-t border-[var(--gbp-border)] px-8 py-4">
+        {/* Footer — siempre visible */}
+        <div className="shrink-0 flex items-center justify-between border-t border-[var(--gbp-border)] px-4 py-3 sm:px-8 sm:py-4">
           <button
             type="button"
             onClick={() => goTo(Math.max(0, step - 1))}
