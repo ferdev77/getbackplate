@@ -15,7 +15,7 @@ type ModalDocument = { id: string; title: string; created_at: string };
 export type ModalDepartment = { id: string; name: string };
 export type ModalPosition = { id: string; department_id: string; name: string; is_active: boolean };
 
-type DelegatedPermissionModuleCode = "announcements" | "checklists" | "documents" | "vendors" | "ai_assistant" | "maintenance";
+type DelegatedPermissionModuleCode = "announcements" | "checklists" | "documents" | "vendors" | "ai_assistant" | "maintenance" | "employees";
 type DelegatedPermissionsState = Record<
   DelegatedPermissionModuleCode,
   Record<"view" | "create" | "edit" | "delete", boolean>
@@ -28,6 +28,7 @@ const EMPTY_DELEGATED_PERMISSIONS: DelegatedPermissionsState = {
   vendors: { view: false, create: false, edit: false, delete: false },
   ai_assistant: { view: false, create: false, edit: false, delete: false },
   maintenance: { view: false, create: false, edit: false, delete: false },
+  employees: { view: false, create: false, edit: false, delete: false },
 };
 
 export type EmployeeModalInitialDocument = {
@@ -90,6 +91,8 @@ type NewEmployeeModalProps = {
   selfProfileUploadEndpoint?: string;
   recentDocuments?: ModalDocument[];
   enabledModules?: string[];
+  hideDelegatedPermissions?: boolean;
+  apiEndpoint?: string;
 };
 
 type SlotUploadUiState = {
@@ -126,6 +129,8 @@ export function NewEmployeeModal({
   initialEmployee,
   selfProfileUploadEndpoint = "/api/employee/profile/documents",
   enabledModules,
+  hideDelegatedPermissions = false,
+  apiEndpoint = "/api/company/employees",
 }: NewEmployeeModalProps) {
   const isEmployeeSelfMode = mode === "employee_self";
   const [isActionPending, setIsActionPending] = useState(false);
@@ -478,7 +483,7 @@ export function NewEmployeeModal({
 
     try {
       const formData = new FormData(event.currentTarget);
-      const response = await fetch("/api/company/employees", {
+      const response = await fetch(apiEndpoint, {
         method: "POST",
         body: formData,
       });
@@ -908,9 +913,9 @@ export function NewEmployeeModal({
       { key: "documents", label: "Documentos" },
       ...(isEmployeeProfile ? [{ key: "contract", label: "Contrato" }] : []),
       ...(isEmployeeSelfMode ? [] : [{ key: "account", label: "Cuenta (App)" }]),
-      ...(!isEmployeeSelfMode && createAccount ? [{ key: "permissions", label: "Permisos" }] : []),
+      ...(!isEmployeeSelfMode && createAccount && !hideDelegatedPermissions ? [{ key: "permissions", label: "Permisos" }] : []),
     ],
-    [isEmployeeProfile, isEmployeeSelfMode, createAccount],
+    [isEmployeeProfile, isEmployeeSelfMode, createAccount, hideDelegatedPermissions],
   );
 
   const currentTabIndex = activeTab <= tabs.length - 1 ? activeTab : 0;

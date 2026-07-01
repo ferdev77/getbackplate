@@ -678,7 +678,7 @@ export function PlanFormModal({
 
                 {features.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-[var(--gbp-border)] px-4 py-6 text-center text-xs text-muted-foreground">
-                    Sin features aún. Hacé clic en "Agregar feature" para comenzar.
+                    Sin features aún. Hacé clic en &quot;Agregar feature&quot; para comenzar.
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">

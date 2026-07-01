@@ -73,7 +73,7 @@ export function ReferralFormClient({ token, referrerName, referrerInitials }: Pr
           Referral sent!
         </p>
         <p style={{ margin: 0, fontSize: 14, color: "#595B66", lineHeight: 1.55 }}>
-          We'll reach out to them shortly. Thanks for spreading the word!
+          We&apos;ll reach out to them shortly. Thanks for spreading the word!
         </p>
       </div>
     );

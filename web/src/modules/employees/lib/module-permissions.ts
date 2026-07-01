@@ -1,6 +1,6 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 
-export const EMPLOYEE_PERMISSION_MODULES = ["announcements", "checklists", "documents", "vendors", "ai_assistant", "maintenance"] as const;
+export const EMPLOYEE_PERMISSION_MODULES = ["announcements", "checklists", "documents", "vendors", "ai_assistant", "maintenance", "employees"] as const;
 export type EmployeePermissionModuleCode = (typeof EMPLOYEE_PERMISSION_MODULES)[number];
 export type EmployeePermissionCapability = "view" | "create" | "edit" | "delete";
 
@@ -21,6 +21,7 @@ export function getEmptyEmployeeDelegatedPermissions(): EmployeeDelegatedPermiss
     vendors: { view: false, create: false, edit: false, delete: false },
     ai_assistant: { view: false, create: false, edit: false, delete: false },
     maintenance: { view: false, create: false, edit: false, delete: false },
+    employees: { view: false, create: false, edit: false, delete: false },
   };
 }
 
@@ -44,7 +45,7 @@ export function normalizeEmployeeDelegatedPermissions(input: unknown): EmployeeD
       delete: toBoolean(moduleRecord.delete),
     };
 
-    if ((moduleCode === "vendors" || moduleCode === "maintenance") && (base[moduleCode].create || base[moduleCode].edit || base[moduleCode].delete)) {
+    if ((moduleCode === "vendors" || moduleCode === "maintenance" || moduleCode === "employees") && (base[moduleCode].create || base[moduleCode].edit || base[moduleCode].delete)) {
       base[moduleCode].view = true;
     }
   }
@@ -84,7 +85,7 @@ export async function getEmployeeDelegatedPermissionsByMembership(
       delete: row.can_delete === true,
     };
 
-    if ((moduleCode === "vendors" || moduleCode === "maintenance") && (result[moduleCode].create || result[moduleCode].edit || result[moduleCode].delete)) {
+    if ((moduleCode === "vendors" || moduleCode === "maintenance" || moduleCode === "employees") && (result[moduleCode].create || result[moduleCode].edit || result[moduleCode].delete)) {
       result[moduleCode].view = true;
     }
   }

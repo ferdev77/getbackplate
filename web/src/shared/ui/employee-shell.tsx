@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { isDndActive } from "@/modules/documents/hooks/use-dnd-safety-net";
-import { ChevronDown, Download, LayoutDashboard, ClipboardList, Folder, Bell, FileText, FileBarChart, PanelsLeftRight, LogOut, Menu, Trash2, User, Truck, MessageSquarePlus, X, Loader2, Wrench, type LucideIcon } from "lucide-react";
+import { ChevronDown, Download, LayoutDashboard, ClipboardList, Folder, Bell, FileText, FileBarChart, PanelsLeftRight, LogOut, Menu, Trash2, User, Truck, MessageSquarePlus, X, Loader2, Wrench, Users, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { NewEmployeeModal, type EmployeeModalInitialData, type ModalBranch, type ModalDepartment, type ModalPosition } from "@/modules/employees/ui/new-employee-modal";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
@@ -53,6 +53,7 @@ type EmployeeShellProps = {
   canViewMaintenance: boolean;
   canCreateMaintenance: boolean;
   canRespondMaintenance: boolean;
+  canViewEmployees: boolean;
   customBrandingEnabled: boolean;
   companyLogoUrl: string;
   employeeProfile: EmployeeModalInitialData;
@@ -99,6 +100,7 @@ export function EmployeeShell({
   canViewMaintenance,
   canCreateMaintenance,
   canRespondMaintenance,
+  canViewEmployees,
   customBrandingEnabled,
   companyLogoUrl,
   employeeProfile,
@@ -331,11 +333,14 @@ export function EmployeeShell({
     if (enabledModules.maintenance && (canViewMaintenance || canCreateMaintenance || canRespondMaintenance)) {
       result.push({ href: "/portal/maintenance", label: "Mantenimiento", icon: Wrench });
     }
+    if (canViewEmployees) {
+      result.push({ href: "/portal/employees", label: "Recursos Humanos", icon: Users });
+    }
     if (enabledModules.onboarding) {
       result.push({ href: "/portal/onboarding", label: "Instrucciones", icon: FileText });
     }
     return result;
-  }, [canCreateChecklistReports, canCreateMaintenance, canDeleteDocuments, canRespondMaintenance, canViewMaintenance, canViewVendors, enabledModules.announcements, enabledModules.checklists, enabledModules.documents, enabledModules.maintenance, enabledModules.onboarding, enabledModules.vendors]);
+  }, [canCreateChecklistReports, canCreateMaintenance, canDeleteDocuments, canRespondMaintenance, canViewEmployees, canViewMaintenance, canViewVendors, enabledModules.announcements, enabledModules.checklists, enabledModules.documents, enabledModules.maintenance, enabledModules.onboarding, enabledModules.vendors]);
 
   const sidebarWidth = collapsed ? "w-[56px]" : "w-[240px]";
   const sidebarPaddingX = collapsed ? "px-2" : "px-4";

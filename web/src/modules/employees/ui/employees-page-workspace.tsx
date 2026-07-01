@@ -64,6 +64,10 @@ type EmployeesPageWorkspaceProps = {
   initialEmployee?: InitialEmployeePayload;
   deferredDataUrl?: string;
   enabledModules?: string[];
+  basePath?: string;
+  canCreate?: boolean;
+  hideDelegatedPermissions?: boolean;
+  apiEndpoint?: string;
 };
 
 export function EmployeesPageWorkspace({
@@ -80,6 +84,10 @@ export function EmployeesPageWorkspace({
   initialEmployee,
   deferredDataUrl,
   enabledModules,
+  basePath = "/app/employees",
+  canCreate = true,
+  hideDelegatedPermissions = false,
+  apiEndpoint = "/api/company/employees",
 }: EmployeesPageWorkspaceProps) {
   const router = useRouter();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(initialModalOpen && initialModalMode === "create");
@@ -119,8 +127,8 @@ export function EmployeesPageWorkspace({
 
   const closeCreateModal = useCallback(() => {
     setIsCreateModalOpen(false);
-    router.replace("/app/employees");
-  }, [router]);
+    router.replace(basePath);
+  }, [router, basePath]);
 
   const effectiveRows = deferredSnapshot?.employees ?? employees;
   const effectiveBranches = deferredSnapshot?.branches ?? branches;
@@ -138,6 +146,7 @@ export function EmployeesPageWorkspace({
             <h1 className="mb-1 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Usuarios / Empleados</h1>
             <p className="text-sm text-[var(--gbp-text2)]">Crea usuarios con o sin perfil de empleado y gestiona su estado laboral. El acceso a la plataforma se controla por separado.</p>
           </div>
+          {canCreate ? (
           <div className="flex gap-2">
             <button
               type="button"
@@ -147,6 +156,7 @@ export function EmployeesPageWorkspace({
               <Plus className="h-4 w-4" /> Nuevo Usuario / Empleado
             </button>
           </div>
+          ) : null}
         </div>
       </section>
 
@@ -169,6 +179,8 @@ export function EmployeesPageWorkspace({
           publisherName={effectivePublisherName}
           companyName={effectiveCompanyName}
           enabledModules={enabledModules}
+          hideDelegatedPermissions={hideDelegatedPermissions}
+          apiEndpoint={apiEndpoint}
         />
       ) : null}
 
@@ -176,7 +188,7 @@ export function EmployeesPageWorkspace({
         <NewEmployeeModal
           open
           mode="edit"
-          onClose={() => router.replace("/app/employees")}
+          onClose={() => router.replace(basePath)}
           initialEmployee={initialEmployee}
           branches={effectiveBranches}
           departments={effectiveDepartments}
@@ -184,6 +196,8 @@ export function EmployeesPageWorkspace({
           publisherName={effectivePublisherName}
           companyName={effectiveCompanyName}
           enabledModules={enabledModules}
+          hideDelegatedPermissions={hideDelegatedPermissions}
+          apiEndpoint={apiEndpoint}
         />
       ) : null}
     </PageContent>

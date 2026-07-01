@@ -2,7 +2,7 @@
 
 Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 
-> **Última actualización:** 2026-06-29 (147 migraciones: 146 en `supabase/migrations/` + 1 en `web/supabase/migrations/`, fila 114) — migraciones 146 y 147 aplicadas en DEV y PROD el 2026-06-29 (flujo reporte semanal + referidos de vendors)
+> **Última actualización:** 2026-07-01 (148 migraciones: 147 en `supabase/migrations/` + 1 en `web/supabase/migrations/`, fila 114) — migración 148 aplicada en DEV y PROD el 2026-07-01 (delegación HR de empleados)
 
 ## Todas las migraciones (orden cronológico)
 
@@ -155,6 +155,7 @@ Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 | 145 | `20260629000003_notification_broadcasts.sql` | Tabla `notification_broadcasts` — generaliza `push_send_logs`/`push_scheduled_sends` para soportar broadcasts de push y/o email desde superadmin (con backfill del historico) |
 | 146 | `20260629000004_qbo_weekly_invoice_report.sql` | Columna `contact_email_override` en `qbo_r365_sync_config_customers` + tabla `qbo_weekly_invoice_report_runs` (control de deduplicación semanal por organización) |
 | 147 | `20260629000005_qbo_vendor_referrals.sql` | Tabla `qbo_vendor_referrals` — registro de vendors referidos por sucursales (Taco, Kumori, etc.) vía el formulario del email semanal |
+| 148 | `20260701000001_hr_employee_delegation.sql` | Amplía el CHECK constraint `employee_module_permissions_module_ck` para incluir `'employees'` — habilita delegación de permisos de RRHH a empleados |
 
 ## Convención de naming
 

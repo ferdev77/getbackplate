@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { Dispatch, SetStateAction } from "react";
 
-type DelegatedPermissionModuleCode = "announcements" | "checklists" | "documents" | "vendors" | "ai_assistant" | "maintenance";
+type DelegatedPermissionModuleCode = "announcements" | "checklists" | "documents" | "vendors" | "ai_assistant" | "maintenance" | "employees";
 type DelegatedPermissionCapability = "view" | "create" | "edit" | "delete";
 
 type DelegatedPermissionsState = Record<
@@ -24,6 +24,7 @@ const MODULES: Array<{ code: DelegatedPermissionModuleCode; label: string }> = [
   { code: "vendors", label: "Proveedores" },
   { code: "ai_assistant", label: "Asistente IA" },
   { code: "maintenance", label: "Mantenimiento" },
+  { code: "employees", label: "Recursos Humanos" },
 ];
 
 const CAPABILITIES: DelegatedPermissionCapability[] = ["view", "create", "edit", "delete"];
@@ -57,6 +58,12 @@ function capabilityLabel(moduleCode: DelegatedPermissionModuleCode, capability: 
     if (capability === "create") return "Crear request";
     if (capability === "edit") return "Responder request";
   }
+  if (moduleCode === "employees") {
+    if (capability === "view") return "Ver empleados";
+    if (capability === "create") return "Crear";
+    if (capability === "edit") return "Editar";
+    if (capability === "delete") return "Eliminar";
+  }
   return CAPABILITY_LABELS[capability];
 }
 
@@ -69,6 +76,9 @@ function visibleCapabilities(moduleCode: DelegatedPermissionModuleCode) {
   }
   if (moduleCode === "maintenance") {
     return ["view", "create", "edit"] as DelegatedPermissionCapability[];
+  }
+  if (moduleCode === "employees") {
+    return ["view", "create", "edit", "delete"] as DelegatedPermissionCapability[];
   }
   return CAPABILITIES;
 }
@@ -131,6 +141,7 @@ export function DelegatedPermissionsSection({ delegatedPermissions, setDelegated
         En <strong>Proveedores</strong>, <strong>Ver</strong> habilita el acceso a la pantalla y luego podés delegar Crear, Editar o Eliminar.
         En <strong>Asistente IA</strong>, el permiso <strong>Usar IA</strong> habilita el asistente en el panel del empleado.
         En <strong>Mantenimiento</strong>, Crear o Responder activan Ver request automaticamente.
+        En <strong>Recursos Humanos</strong>, el permiso <strong>Ver empleados</strong> se activa automáticamente al habilitar Crear, Editar o Eliminar. El empleado solo gestiona usuarios dentro de sus locaciones asignadas.
       </p>
 
       <div className="space-y-4">
@@ -152,10 +163,10 @@ export function DelegatedPermissionsSection({ delegatedPermissions, setDelegated
                           [moduleItem.code]: {
                             ...prev[moduleItem.code],
                             [capability]: !prev[moduleItem.code][capability],
-                            ...((moduleItem.code === "vendors" || moduleItem.code === "maintenance") && capability !== "view" && !prev[moduleItem.code][capability]
+                            ...((moduleItem.code === "vendors" || moduleItem.code === "maintenance" || moduleItem.code === "employees") && capability !== "view" && !prev[moduleItem.code][capability]
                               ? { view: true }
                               : {}),
-                            ...((moduleItem.code === "vendors" || moduleItem.code === "maintenance") && capability === "view" && prev[moduleItem.code].view
+                            ...((moduleItem.code === "vendors" || moduleItem.code === "maintenance" || moduleItem.code === "employees") && capability === "view" && prev[moduleItem.code].view
                               ? { create: false, edit: false, delete: false }
                               : {}),
                             ...(moduleItem.code === "ai_assistant" ? { edit: false, delete: false } : {}),

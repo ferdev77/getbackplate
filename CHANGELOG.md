@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07-01 — Módulo HR: delegación de gestión de empleados a empleados
+
+- **Nuevo permiso `employees`** en el sistema de delegación de capacidades (`employee_module_permissions`). Un admin de empresa puede ahora delegar a un empleado los permisos `view`, `create`, `edit` y `delete` sobre otros empleados, dentro del alcance de locaciones del empleado delegado.
+- **Portal de empleados — pestaña Recursos Humanos**: los empleados con permiso `employees.view` ven un nuevo ítem "Recursos Humanos" en el menú lateral del portal (`/portal/employees`). La UI reutiliza el mismo `EmployeesPageWorkspace` del panel admin, con restricciones para el portal: sin pestaña de Permisos en el modal de creación (`hideDelegatedPermissions=true`), rutas adaptadas vía prop `basePath`, y creación condicional según `canCreate`.
+- **API portal** (`/api/employee/employees`): maneja GET, POST, PATCH y DELETE con verificación de capability via `assertEmployeeCapabilityApi` y filtrado por scope de locaciones del HR (`all_locations`, `location_scope_ids`, `branch_id`). El empleado solo puede gestionar empleados dentro de su alcance; intentar operar fuera devuelve 403.
+- **Restricción de delegación**: el empleado con permisos HR no puede delegar permisos a otros empleados. La delegación sigue siendo exclusiva del panel de Admin Company.
+- **Migración `20260701000001_hr_employee_delegation.sql`**: amplía el CHECK constraint `employee_module_permissions_module_ck` para incluir `'employees'`. Aplicada en DEV y PROD.
+
+---
+
 ## 2026-06-29 — Centro de notificaciones unificado (email+push), WhatsApp eliminado, backlog de migraciones reconciliado
 
 Guía técnica completa en [`DOCS/4_Operaciones_y_Guias/GUIA_PUSH_NOTIFICATIONS.md`](DOCS/4_Operaciones_y_Guias/GUIA_PUSH_NOTIFICATIONS.md).

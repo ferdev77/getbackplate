@@ -119,7 +119,7 @@ export default async function ReferPage({ params }: Props) {
             lineHeight: 1.5,
             textAlign: "center",
           }}>
-            We'll send them an email introducing GetBackplate on your behalf.
+            We&apos;ll send them an email introducing GetBackplate on your behalf.
           </p>
 
         </div>

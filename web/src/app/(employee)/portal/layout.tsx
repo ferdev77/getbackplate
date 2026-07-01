@@ -447,6 +447,7 @@ export default async function EmployeeLayout({
   const isVendorsEnabled = enabledModuleCodes.has("vendors");
   const isAiAssistantEnabled = enabledModuleCodes.has("ai_assistant") && delegatedPermissions.ai_assistant.create;
   const isMaintenanceEnabled = enabledModuleCodes.has("maintenance");
+  const canViewEmployees = enabledModuleCodes.has("employees") && delegatedPermissions.employees.view;
 
   const docsCount = 0;
 
@@ -699,6 +700,7 @@ export default async function EmployeeLayout({
       canViewMaintenance={delegatedPermissions.maintenance.view}
       canCreateMaintenance={delegatedPermissions.maintenance.create}
       canRespondMaintenance={delegatedPermissions.maintenance.edit}
+      canViewEmployees={canViewEmployees}
       customBrandingEnabled={customBrandingEnabled}
       companyLogoUrl={brandingSettings?.company_logo_url ?? ""}
       employeeProfile={employeeProfile}
