@@ -145,7 +145,7 @@ export default async function ReferPage({ params }: Props) {
           <div style={{ display: "flex", gap: 0 }}>
             <a href="/trust/" style={{ color: "#8A8C95", textDecoration: "none" }}>Trust</a>
             <span style={{ margin: "0 8px" }}>·</span>
-            <a href="mailto:angelo@getbackplate.com" style={{ color: "#8A8C95", textDecoration: "none" }}>Contact</a>
+            <a href="mailto:referrals@getbackplate.com" style={{ color: "#8A8C95", textDecoration: "none" }}>Contact</a>
           </div>
         </div>
       </footer>

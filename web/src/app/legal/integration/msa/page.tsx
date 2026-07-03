@@ -167,7 +167,7 @@ export default function IntegrationMsaPage() {
       <p>Notwithstanding the foregoing, either Party may seek injunctive or other equitable relief in any court of competent jurisdiction to protect its intellectual property or Confidential Information.</p>
 
       <h2><span className="section-num">16.</span>Notices</h2>
-      <p>All notices under this Agreement shall be in writing and delivered by email with confirmation of receipt, or by certified mail or recognized overnight courier. Notices to Provider shall be sent to <a href="mailto:angelo@getbackplate.com">angelo@getbackplate.com</a> with a copy to 1321 Upland Dr., Suite 9894, Houston, Texas 77043. Notices to Customer shall be sent to the email address provided by Customer during electronic acceptance.</p>
+      <p>All notices under this Agreement shall be in writing and delivered by email with confirmation of receipt, or by certified mail or recognized overnight courier. Notices to Provider shall be sent to <a href="mailto:security@getbackplate.com">security@getbackplate.com</a> with a copy to 1321 Upland Dr., Suite 9894, Houston, Texas 77043. Notices to Customer shall be sent to the email address provided by Customer during electronic acceptance.</p>
 
       <h2><span className="section-num">17.</span>Miscellaneous</h2>
       <h3><span className="sub-num">17.1</span>Entire agreement</h3>

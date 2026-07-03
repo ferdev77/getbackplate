@@ -145,7 +145,7 @@ export default function IntegrationTermsPage() {
         1321 Upland Dr., Suite 9894<br />
         Houston, Texas 77043<br />
         United States<br />
-        <a href="mailto:angelo@getbackplate.com">angelo@getbackplate.com</a> · +1 (956) 802-9639
+        <a href="mailto:security@getbackplate.com">security@getbackplate.com</a> · +1 (956) 802-9639
       </div>
       <p style={{ marginTop: 28 }}>By using the Service, you acknowledge that you have read this Agreement, understand it, and agree to be bound by its terms and conditions.</p>
     </LegalDocLayout>

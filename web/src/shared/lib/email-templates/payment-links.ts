@@ -383,7 +383,7 @@ export function subscriptionLinkEmailTemplate({
               <p style="margin:0 0 8px 0; font-family:'Plus Jakarta Sans', Arial, sans-serif; font-size:12px; line-height:1.55; color:#9ca3af;">
                 <strong style="color:#6b7280; font-weight:600;">Backplate Technologies LLC</strong>, d/b/a GetBackplate<br>
                 1321 Upland Dr., Suite 9894 &middot; Houston, TX 77043 &middot; United States<br>
-                <a href="mailto:angelo@getbackplate.com" style="color:#9ca3af; text-decoration:underline;">angelo@getbackplate.com</a> &middot; <a href="tel:+19568029639" style="color:#9ca3af; text-decoration:underline;">(956) 802-9639</a>
+                <a href="mailto:support@getbackplate.com" style="color:#9ca3af; text-decoration:underline;">support@getbackplate.com</a> &middot; <a href="tel:+19568029639" style="color:#9ca3af; text-decoration:underline;">(956) 802-9639</a>
               </p>
               <p style="margin:16px 0 0 0; font-family:'Plus Jakarta Sans', Arial, sans-serif; font-size:12px; line-height:1.6; color:#9ca3af;">
                 ${legalLinks.map((l) => `<a href="${l.url}" style="color:#9ca3af; text-decoration:underline;">${l.label}</a>`).join(" &nbsp;&middot;&nbsp; ")}
