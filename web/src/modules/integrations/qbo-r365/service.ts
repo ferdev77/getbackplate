@@ -3150,6 +3150,38 @@ export async function importQboWebhookEventManually(input: { organizationId: str
 
 // ─── Unified Invoice Pipeline ─────────────────────────────────────────────────
 
+// El webhook (fast-path) y el cron de recovery pueden llegar a la misma factura
+// en paralelo. Un claim vencido (proceso que murió a medias) vuelve a estar
+// disponible después de este tiempo — mismo umbral que la limpieza de
+// integration_runs "zombies" en processQboUnifiedQueue.
+const UNIFIED_INVOICE_CLAIM_STALE_MS = 15 * 60 * 1000;
+
+/**
+ * Reserva atómicamente una fila de qbo_unified_invoices para que un solo camino
+ * automático (webhook fast-path o cron de recovery) la procese.
+ *
+ * Devuelve true si este llamado "ganó" el claim y debe continuar; false si otro
+ * proceso ya la tomó recientemente o ya quedó 'enviada' — en ese caso el llamador
+ * debe retirarse sin subir el archivo ni notificar, para evitar duplicados.
+ */
+async function claimUnifiedInvoiceForAutoSend(organizationId: string, unifiedInvoiceId: string): Promise<boolean> {
+  const admin = createSupabaseAdminClient();
+  const staleThreshold = new Date(Date.now() - UNIFIED_INVOICE_CLAIM_STALE_MS).toISOString();
+
+  const { data, error } = await admin
+    .from("qbo_unified_invoices")
+    .update({ claimed_at: new Date().toISOString() })
+    .eq("id", unifiedInvoiceId)
+    .eq("organization_id", organizationId)
+    .neq("pipeline_status", "enviada")
+    .or(`claimed_at.is.null,claimed_at.lt.${staleThreshold}`)
+    .select("id")
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return Boolean(data);
+}
+
 /**
  * Ejecuta los pasos 3 y 4 del pipeline unificado: capturada → mapeada → enviada.
  * Usada por el flujo de webhook (background), el envío manual y el cron de recovery.
@@ -3453,6 +3485,12 @@ async function fetchAndCaptureWebhookInvoice(input: {
   const unifiedInvoiceId = updatedRow?.id ? String(updatedRow.id) : null;
   if (unifiedInvoiceId && syncConfigId) {
     try {
+      // El self-trigger al cron de recovery puede estar corriendo en paralelo sobre
+      // esta misma fila (ver insertQboWebhookEvents) — solo uno de los dos caminos
+      // debe enviar el archivo, para no duplicar el FTP y la notificación push.
+      const claimed = await claimUnifiedInvoiceForAutoSend(input.organizationId, unifiedInvoiceId);
+      if (!claimed) return;
+
       const fullSyncConfig = await getSyncConfigRow(input.organizationId, syncConfigId);
       if (fullSyncConfig.r365_ftp_host) {
         await mapAndSendUnifiedRow({
@@ -4110,7 +4148,7 @@ export async function backfillSyncConfigToUnified(
 
 type QueueResult = {
   unifiedInvoiceId: string;
-  status: "completed" | "failed";
+  status: "completed" | "failed" | "skipped";
   error?: string;
 };
 
@@ -4127,6 +4165,7 @@ export async function processQboUnifiedQueue(): Promise<{
   processed: number;
   completed: number;
   failed: number;
+  skipped: number;
   results: QueueResult[];
 }> {
   const admin = createSupabaseAdminClient();
@@ -4173,6 +4212,15 @@ export async function processQboUnifiedQueue(): Promise<{
     const organizationId = String(row.organization_id);
 
     try {
+      // El fast-path del webhook puede estar procesando esta misma fila en paralelo
+      // (ver claimUnifiedInvoiceForAutoSend) — si no se puede reservar, es porque el
+      // otro camino ya la tomó o ya la envió; no duplicar.
+      const claimed = await claimUnifiedInvoiceForAutoSend(organizationId, unifiedInvoiceId);
+      if (!claimed) {
+        results.push({ unifiedInvoiceId, status: "skipped" });
+        continue;
+      }
+
       let rawEntity = row.raw_entity as QboInvoiceLike | null;
 
       // Para en_cola o sin raw_entity: re-fetch desde QBO
@@ -4270,6 +4318,7 @@ export async function processQboUnifiedQueue(): Promise<{
     processed: rows.length,
     completed: results.filter((r) => r.status === "completed").length,
     failed: results.filter((r) => r.status === "failed").length,
+    skipped: results.filter((r) => r.status === "skipped").length,
     results,
   };
 }

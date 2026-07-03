@@ -2,7 +2,7 @@
 
 Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 
-> **Última actualización:** 2026-07-01 (148 migraciones: 147 en `supabase/migrations/` + 1 en `web/supabase/migrations/`, fila 114) — migración 148 aplicada en DEV y PROD el 2026-07-01 (delegación HR de empleados)
+> **Última actualización:** 2026-07-03 (149 migraciones: 148 en `supabase/migrations/` + 1 en `web/supabase/migrations/`, fila 114) — migración 149 aplicada en DEV y PROD el 2026-07-03 (claim atómico en pipeline QBO → R365)
 
 ## Todas las migraciones (orden cronológico)
 
@@ -156,6 +156,7 @@ Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 | 146 | `20260629000004_qbo_weekly_invoice_report.sql` | Columna `contact_email_override` en `qbo_r365_sync_config_customers` + tabla `qbo_weekly_invoice_report_runs` (control de deduplicación semanal por organización) |
 | 147 | `20260629000005_qbo_vendor_referrals.sql` | Tabla `qbo_vendor_referrals` — registro de vendors referidos por sucursales (Taco, Kumori, etc.) vía el formulario del email semanal |
 | 148 | `20260701000001_hr_employee_delegation.sql` | Amplía el CHECK constraint `employee_module_permissions_module_ck` para incluir `'employees'` — habilita delegación de permisos de RRHH a empleados |
+| 149 | `20260703000001_qbo_unified_invoices_claim.sql` | Columna `claimed_at` en `qbo_unified_invoices` + índice — claim atómico para evitar que el fast-path del webhook y el cron de recovery envíen la misma factura dos veces a R365 |
 
 ## Convención de naming
 
