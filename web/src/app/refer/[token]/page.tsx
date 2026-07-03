@@ -73,7 +73,7 @@ export default async function ReferPage({ params }: Props) {
           height: 64,
         }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/getbackplate-logo-light.svg" alt="GetBackplate" style={{ height: 22, width: "auto" }} />
+          <img src="/getbackplate-logo-light.svg" alt="GetBackplate" style={{ height: 32, width: "auto" }} />
         </div>
       </nav>
 
