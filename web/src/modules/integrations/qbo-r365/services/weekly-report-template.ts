@@ -91,26 +91,15 @@ function referralCtaBlock(referralUrl: string): string {
     </table>`;
 }
 
-function supportBlock(vendorCompany: string, vendorPhone: string | null, vendorEmail: string | null): string {
-  let contact = "";
-  if (vendorPhone) {
-    contact = `<a href="tel:${vendorPhone.replace(/\s/g, "")}"
-      style="color:#D4531A;text-decoration:none;font-weight:600;white-space:nowrap;">${vendorPhone}</a>`;
-  } else if (vendorEmail) {
-    contact = `<a href="mailto:${vendorEmail}"
-      style="color:#D4531A;text-decoration:none;font-weight:600;">${vendorEmail}</a>`;
-  }
-
-  if (!contact) return "";
-
+function supportBlock(): string {
   return `
     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"
       style="margin:0 0 28px 0;">
       <tr>
         <td style="border-top:1px solid #E6E8EE;padding-top:20px;">
           <p style="margin:0;font-size:13px;color:#595B66;line-height:1.55;">
-            <strong style="color:#14151A;font-weight:600;">Questions or reconciliations?</strong>
-            Reach out to ${vendorCompany} at ${contact}
+            Reach out to us at <a href="mailto:support@getbackplate.com"
+              style="color:#D4531A;text-decoration:none;font-weight:600;">support@getbackplate.com</a>
           </p>
         </td>
       </tr>
@@ -134,7 +123,9 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
   } = input;
 
   const heroSubtitle = isFirstReport
-    ? "Here's a summary of every invoice your integration has delivered automatically to your Restaurant365 so far."
+    ? showReferralCta
+      ? `Here's a summary of every invoice you've received automatically in your R365 from ${vendorCompany} since the integration went live.`
+      : "Here's a summary of every invoice your integration has delivered automatically to Restaurant365 so far."
     : "Here's your weekly summary of invoices delivered automatically to your Restaurant365.";
   const metricEyebrow = isFirstReport ? "Delivered so far" : "This week";
 
@@ -256,7 +247,7 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
               ${recurrenceNotice}
             </p>
 
-            ${supportBlock(vendorCompany, vendorPhone, vendorEmail)}
+            ${supportBlock()}
 
             ${showReferralCta && referralUrl ? referralCtaBlock(referralUrl) : ""}
 
@@ -273,7 +264,7 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
             <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
               <tr>
                 <td align="center" style="padding-bottom:14px;">
-                  <span style="color:#D4531A;font-size:22px;font-weight:700;line-height:1;vertical-align:middle;">[</span><span style="color:#FFFFFF;font-size:18px;font-weight:700;letter-spacing:-0.01em;vertical-align:middle;padding:0 4px;">GetBackplate</span><span style="color:#D4531A;font-size:22px;font-weight:700;line-height:1;vertical-align:middle;">]</span>
+                  <a href="https://app.getbackplate.com" style="text-decoration:none;"><span style="color:#D4531A;font-size:22px;font-weight:700;line-height:1;vertical-align:middle;">[</span><span style="color:#FFFFFF;font-size:18px;font-weight:700;letter-spacing:-0.01em;vertical-align:middle;padding:0 4px;">GetBackplate</span><span style="color:#D4531A;font-size:22px;font-weight:700;line-height:1;vertical-align:middle;">]</span></a>
                 </td>
               </tr>
             </table>
@@ -286,7 +277,7 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
             <div style="height:1px;background-color:#2A2B33;line-height:1px;font-size:0;margin-bottom:18px;">&nbsp;</div>
 
             <p style="margin:0;font-size:12px;color:#595B66;line-height:1.6;text-align:center;">
-              <a href="${platformUrl}" style="color:#8A8C95;text-decoration:none;font-weight:500;">${platformUrl.replace(/^https?:\/\//, "")}</a>
+              <a href="${platformUrl}" style="color:#8A8C95;text-decoration:none;font-weight:500;">www.getbackplate.com/integrations</a>
               <span style="color:#595B66;padding:0 8px;">&middot;</span>
               <a href="mailto:support@getbackplate.com" style="color:#8A8C95;text-decoration:none;font-weight:500;">support@getbackplate.com</a>
             </p>

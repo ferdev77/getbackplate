@@ -431,8 +431,8 @@ export async function sendWeeklyInvoiceReport(input: {
   const orgRecipient = await getOrgReportRecipient(input.organizationId);
   const orgEmailTarget = input.overrideRecipientEmail ?? orgRecipient.email;
 
-  // Org email: no CTA de referido, link directo al dashboard de la integracion
-  const orgPlatformUrl = `${appBase}/app/integrations/quickbooks`;
+  // Org email: link a la landing pública de la integración
+  const orgPlatformUrl = `${appBase}/integrations/qbo-r365`;
 
   // Recopilar todos los invoices de la org para el resumen total
   const allOrgInvoices = data.groups.flatMap((g) => g.branches.flatMap((b) => b.invoices));
@@ -441,7 +441,7 @@ export async function sendWeeklyInvoiceReport(input: {
   let orgEmailSent = false;
   if (orgEmailTarget) {
     const subject = input.overrideRecipientEmail
-      ? `[TEST - would go to ${organizationName}] ${orgReport.subject}`
+      ? `[test] ${orgReport.subject}`
       : orgReport.subject;
 
     const html = buildWeeklyReportHtml({
@@ -500,7 +500,7 @@ export async function sendWeeklyInvoiceReport(input: {
 
       const branchReport = buildBranchReportText(data, branch);
       const subject = input.overrideRecipientEmail
-        ? `[TEST - would go to ${branch.branchName}] ${branchReport.subject}`
+        ? `[test] ${branchReport.subject}`
         : branchReport.subject;
 
       const html = buildWeeklyReportHtml({

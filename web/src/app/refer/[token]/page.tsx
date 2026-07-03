@@ -72,12 +72,8 @@ export default async function ReferPage({ params }: Props) {
           justifyContent: "space-between",
           height: 64,
         }}>
-          <span style={{ fontWeight: 700, fontSize: 18, color: "#14151A", letterSpacing: "-0.01em" }}>
-            GetBackplate<span style={{ color: "#D4531A" }}>.</span>
-          </span>
-          <div style={{ display: "flex", gap: 24, fontSize: 14, fontWeight: 500 }}>
-            <a href="/legal/" style={{ color: "#595B66", textDecoration: "none" }}>Legal</a>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/getbackplate-logo-light.svg" alt="GetBackplate" style={{ height: 22, width: "auto" }} />
         </div>
       </nav>
 
@@ -125,28 +121,29 @@ export default async function ReferPage({ params }: Props) {
         </div>
       </main>
 
-      <footer style={{ background: "#14151A", color: "#8A8C95", padding: "28px 0" }}>
+      <footer style={{ background: "#13161e", color: "rgba(255,255,255,0.5)", padding: "40px 0" }}>
         <div style={{
-          maxWidth: 560,
+          maxWidth: 1200,
           margin: "0 auto",
           padding: "0 24px",
-          display: "flex",
-          justifyContent: "space-between",
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr 1fr",
           alignItems: "center",
-          fontSize: 13,
-          gap: 16,
-          flexWrap: "wrap",
+          gap: 12,
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={{ color: "#D4531A", fontWeight: 700, fontSize: 18 }}>[</span>
-            <span style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 15, letterSpacing: "-0.01em" }}>GetBackplate</span>
-            <span style={{ color: "#D4531A", fontWeight: 700, fontSize: 18 }}>]</span>
-          </div>
-          <div style={{ display: "flex", gap: 0 }}>
-            <a href="/trust/" style={{ color: "#8A8C95", textDecoration: "none" }}>Trust</a>
-            <span style={{ margin: "0 8px" }}>·</span>
-            <a href="mailto:referrals@getbackplate.com" style={{ color: "#8A8C95", textDecoration: "none" }}>Contact</a>
-          </div>
+          <p style={{ margin: 0 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/getbackplate-logo-footer.svg" alt="GetBackplate" style={{ height: 22, width: "auto" }} />
+          </p>
+          <p style={{ margin: 0, textAlign: "center", fontSize: 12, fontStyle: "italic", color: "rgba(255,255,255,0.6)" }}>
+            Run your restaurant. Not just your register.
+          </p>
+          <p style={{ margin: 0, textAlign: "right", fontSize: 11, color: "rgba(255,255,255,0.5)", lineHeight: 1.8 }}>
+            © 2026 GetBackplate. All rights reserved.<br />
+            Site by <a href="https://marketingsolutions.formstack.com/forms/webform" target="_blank" rel="noopener noreferrer" style={{ color: "#ff6b35", textDecoration: "none" }}>Marketing Solutions</a>
+            {" · "}
+            <a href="/legal/" style={{ textDecoration: "underline", textUnderlineOffset: 2, color: "rgba(255,255,255,0.5)" }}>Legal</a>
+          </p>
         </div>
       </footer>
 
