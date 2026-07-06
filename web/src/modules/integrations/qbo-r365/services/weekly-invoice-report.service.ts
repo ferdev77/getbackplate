@@ -50,9 +50,17 @@ type OrgVendorDisplayInfo = {
 export const WEEKLY_RECURRENCE_NOTICE =
   "You'll receive this report every Monday around 10am your local time.";
 
+export const MONTHLY_RECURRENCE_NOTICE =
+  "You'll receive this report on the 20th of every month.";
+
 export const FIRST_REPORT_NOTICE =
   "This is a one-time summary of everything delivered since your integration went live. " +
   "Starting next Monday, you'll receive this report weekly, covering just that week's invoices.";
+
+export const FIRST_ORG_REPORT_NOTICE =
+  "This is a summary of everything delivered since your integration went live. " +
+  "Going forward, you'll receive this report at the end of each monthly reporting cycle, " +
+  "covering all invoices delivered during that period.";
 
 function getAppBaseUrl(): string {
   return (process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://app.getbackplate.com").replace(/\/$/, "");
@@ -408,7 +416,8 @@ export async function sendWeeklyInvoiceReport(input: {
   isHistorical: boolean;
   overrideRecipientEmail?: string;
   recordRun?: boolean;
-}): Promise<{ orgEmailSent: boolean; branchEmailsSent: number; skippedBranches: number }> {
+  sendTo?: "all" | "org" | "branches";
+}): Promise<{ orgEmailsSent: number; branchEmailsSent: number; skippedBranches: number }> {
   const admin = createSupabaseAdminClient();
   const appBase = getAppBaseUrl();
 
@@ -434,15 +443,22 @@ export async function sendWeeklyInvoiceReport(input: {
   // Org email: link a la landing pública de la integración
   const orgPlatformUrl = `${appBase}/integrations/qbo-r365`;
 
-  // Recopilar todos los invoices de la org para el resumen total
-  const allOrgInvoices = data.groups.flatMap((g) => g.branches.flatMap((b) => b.invoices));
-  const recurrenceNotice = data.isHistorical ? FIRST_REPORT_NOTICE : WEEKLY_RECURRENCE_NOTICE;
+  const sendTo = input.sendTo ?? "all";
+  const orgRecurrenceNotice = data.isHistorical ? FIRST_ORG_REPORT_NOTICE : MONTHLY_RECURRENCE_NOTICE;
+  const branchRecurrenceNotice = data.isHistorical ? FIRST_REPORT_NOTICE : WEEKLY_RECURRENCE_NOTICE;
 
-  let orgEmailSent = false;
-  if (orgEmailTarget) {
+  // Org email: un solo mail agregado con todas las facturas, solo si sendTo incluye "org"
+  let orgEmailsSent = 0;
+  if ((sendTo === "all" || sendTo === "org") && orgEmailTarget) {
+    const allOrgInvoices = data.groups.flatMap((g) => g.branches.flatMap((b) => b.invoices));
+    const orgSubjectBase = data.isHistorical
+      ? `Historical invoice delivery summary — ${pLabel}`
+      : sendTo === "org"
+        ? `Monthly invoice delivery summary — ${pLabel}`
+        : `Weekly invoice delivery summary — ${pLabel}`;
     const subject = input.overrideRecipientEmail
-      ? `[test] ${orgReport.subject}`
-      : orgReport.subject;
+      ? `[test] ${orgSubjectBase}`
+      : orgSubjectBase;
 
     const html = buildWeeklyReportHtml({
       recipientName: organizationName,
@@ -455,7 +471,7 @@ export async function sendWeeklyInvoiceReport(input: {
       showReferralCta: false,
       referralUrl: null,
       platformUrl: orgPlatformUrl,
-      recurrenceNotice,
+      recurrenceNotice: orgRecurrenceNotice,
       isFirstReport: data.isHistorical,
     });
 
@@ -463,74 +479,80 @@ export async function sendWeeklyInvoiceReport(input: {
       to: orgEmailTarget,
       subject: brandedSubject(subject),
       html,
-      text: `${orgReport.text}\n\n${recurrenceNotice}`,
+      text: `${orgReport.text}\n\n${orgRecurrenceNotice}`,
       senderName: FIXED_SENDER_NAME,
       notification: {
         source: "qbo_weekly_invoice_report",
         organizationId: input.organizationId,
-        title: orgReport.subject,
+        title: orgSubjectBase,
       },
     });
-    orgEmailSent = true;
+    orgEmailsSent = 1;
 
     if (!input.overrideRecipientEmail && orgRecipient.pushUserIds.length) {
       await sendPushToUsers(
         orgRecipient.pushUserIds,
-        { title: orgReport.subject, body: "Your weekly invoice delivery summary is ready.", url: "/app/integrations/quickbooks" },
+        { title: orgSubjectBase, body: "Your monthly invoice delivery summary is ready.", url: "/app/integrations/quickbooks" },
         { source: "qbo_weekly_invoice_report", organizationId: input.organizationId },
       );
     }
   }
 
-  // Branch emails: con CTA de referido, link a la pagina publica de la integracion
+  // Branch emails: con CTA de referido, solo si sendTo incluye "branches"
   const branchPlatformUrl = `${appBase}/integrations/qbo-r365`;
   let branchEmailsSent = 0;
   let skippedBranches = 0;
 
-  for (const group of data.groups) {
-    for (const branch of group.branches) {
-      const target = input.overrideRecipientEmail ?? branch.resolvedEmail;
-      if (!target) {
-        skippedBranches += 1;
-        continue;
+  if (sendTo === "all" || sendTo === "branches") {
+    for (const group of data.groups) {
+      for (const branch of group.branches) {
+        if (branch.invoices.length === 0) {
+          skippedBranches += 1;
+          continue;
+        }
+        const target = input.overrideRecipientEmail ?? branch.resolvedEmail;
+        if (!target) {
+          skippedBranches += 1;
+          continue;
+        }
+
+        const referralToken = createReferralToken(input.organizationId, branch.syncConfigCustomerId);
+        const referralUrl = `${appBase}/refer/${referralToken}`;
+
+        const branchReport = buildBranchReportText(data, branch);
+        const subject = input.overrideRecipientEmail
+          ? `[test] ${branchReport.subject}`
+          : branchReport.subject;
+
+        const html = buildWeeklyReportHtml({
+          recipientName: branch.branchName,
+          periodLabel: pLabel,
+          invoiceLines: branch.invoices,
+          vendorCompany: vendorDisplay.vendorCompany,
+          vendorLogoUrl: vendorDisplay.vendorLogoUrl,
+          vendorPhone: vendorDisplay.vendorPhone,
+          vendorEmail: vendorDisplay.vendorEmail,
+          showReferralCta: true,
+          referralUrl,
+          platformUrl: branchPlatformUrl,
+          recurrenceNotice: branchRecurrenceNotice,
+          isFirstReport: data.isHistorical,
+        });
+
+        await sendTransactionalEmail({
+          to: target,
+          subject: brandedSubject(subject),
+          html,
+          text: `${branchReport.text}\n\n${branchRecurrenceNotice}`,
+          senderName: FIXED_SENDER_NAME,
+          notification: {
+            source: "qbo_weekly_invoice_report",
+            organizationId: input.organizationId,
+            title: branchReport.subject,
+          },
+        });
+        branchEmailsSent += 1;
       }
-
-      const referralToken = createReferralToken(input.organizationId, branch.syncConfigCustomerId);
-      const referralUrl = `${appBase}/refer/${referralToken}`;
-
-      const branchReport = buildBranchReportText(data, branch);
-      const subject = input.overrideRecipientEmail
-        ? `[test] ${branchReport.subject}`
-        : branchReport.subject;
-
-      const html = buildWeeklyReportHtml({
-        recipientName: branch.branchName,
-        periodLabel: pLabel,
-        invoiceLines: branch.invoices,
-        vendorCompany: vendorDisplay.vendorCompany,
-        vendorLogoUrl: vendorDisplay.vendorLogoUrl,
-        vendorPhone: vendorDisplay.vendorPhone,
-        vendorEmail: vendorDisplay.vendorEmail,
-        showReferralCta: true,
-        referralUrl,
-        platformUrl: branchPlatformUrl,
-        recurrenceNotice,
-        isFirstReport: data.isHistorical,
-      });
-
-      await sendTransactionalEmail({
-        to: target,
-        subject: brandedSubject(subject),
-        html,
-        text: `${branchReport.text}\n\n${recurrenceNotice}`,
-        senderName: FIXED_SENDER_NAME,
-        notification: {
-          source: "qbo_weekly_invoice_report",
-          organizationId: input.organizationId,
-          title: branchReport.subject,
-        },
-      });
-      branchEmailsSent += 1;
     }
   }
 
@@ -542,5 +564,5 @@ export async function sendWeeklyInvoiceReport(input: {
     });
   }
 
-  return { orgEmailSent, branchEmailsSent, skippedBranches };
+  return { orgEmailsSent, branchEmailsSent, skippedBranches };
 }

@@ -126,8 +126,10 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
     ? showReferralCta
       ? `Here's a summary of every invoice you've received automatically in your R365 from ${vendorCompany} since the integration went live.`
       : "Here's a summary of every invoice your integration has delivered automatically to Restaurant365 so far."
-    : "Here's your weekly summary of invoices delivered automatically to your Restaurant365.";
-  const metricEyebrow = isFirstReport ? "Delivered so far" : "This week";
+    : showReferralCta
+      ? "Here's your weekly summary of invoices delivered automatically to your Restaurant365."
+      : "Here's your monthly summary of invoices delivered automatically to your Restaurant365.";
+  const metricEyebrow = isFirstReport ? "Delivered so far" : showReferralCta ? "This week" : "This month";
 
   const totalCount = invoiceLines.length;
   const totalAmount = invoiceLines.reduce((sum, inv) => sum + (inv.totalAmount ?? 0), 0);
@@ -186,7 +188,9 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
 <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">
   ${isFirstReport
     ? `Everything delivered to Restaurant365 so far — ${totalCount} invoice${totalCount === 1 ? "" : "s"}.`
-    : `Your weekly summary of invoices delivered to Restaurant365 — ${totalCount} invoice${totalCount === 1 ? "" : "s"} this week.`}
+    : showReferralCta
+      ? `Your weekly summary of invoices delivered to Restaurant365 — ${totalCount} invoice${totalCount === 1 ? "" : "s"} this week.`
+      : `Your monthly summary of invoices delivered to Restaurant365 — ${totalCount} invoice${totalCount === 1 ? "" : "s"} this month.`}
 </div>
 
 <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#F7F8FC;">

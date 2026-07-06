@@ -56,6 +56,8 @@ async function main() {
   const orgArg = getArg("org");
   const override = getArg("override");
   const historical = process.argv.includes("--historical");
+  const sendToArg = getArg("send-to") as "all" | "org" | "branches" | undefined;
+  const sendTo = sendToArg ?? "all";
 
   if (!orgArg || !override) {
     console.error("Uso: --org=<nombre o id> --override=<email>");
@@ -68,10 +70,11 @@ async function main() {
   console.log("");
 
   // Email 1 y 2: reporte semanal (org + sucursales)
+  // Ventana Mon-Sun: cuando se ejecuta en domingo, periodEnd = hoy, periodStart = hoy-6 (lunes)
   const today = new Date();
-  const periodEndDate = new Date(today);
+  const periodEndDate = new Date(today);           // domingo
   const periodStartDate = new Date(today);
-  periodStartDate.setDate(periodStartDate.getDate() - 7);
+  periodStartDate.setDate(periodStartDate.getDate() - 6); // lunes anterior
   const periodStart = periodStartDate.toISOString().slice(0, 10);
   const periodEnd = periodEndDate.toISOString().slice(0, 10);
 
@@ -83,8 +86,9 @@ async function main() {
     isHistorical: historical,
     overrideRecipientEmail: override,
     recordRun: false,
+    sendTo,
   });
-  console.log("  Org email:", result.orgEmailSent ? "enviado" : "sin destinatario");
+  console.log("  Org emails enviados:", result.orgEmailsSent);
   console.log("  Branch emails enviados:", result.branchEmailsSent);
   console.log("  Branches sin email:", result.skippedBranches);
   console.log("");

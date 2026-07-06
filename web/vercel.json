@@ -15,6 +15,14 @@
     {
       "path": "/api/internal/cron/push-scheduled-send",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/internal/cron/qbo-weekly-invoice-report",
+      "schedule": "0 16 * * 1"
+    },
+    {
+      "path": "/api/internal/cron/qbo-monthly-org-report",
+      "schedule": "0 16 20 * *"
     }
   ]
 }

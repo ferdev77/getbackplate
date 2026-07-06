@@ -24,16 +24,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Este cron corre los lunes a las 16:00 UTC. Reporta la semana calendario
-  // que acaba de terminar: lunes a domingo. "Hoy" es lunes, así que:
-  //   periodEnd   = ayer (domingo)
-  //   periodStart = hace 7 días (lunes anterior)
+  // Corre el día 20 de cada mes a las 16:00 UTC.
+  // Período de servicio: del 21 del mes anterior al 20 del mes actual
+  // (coincide con el ciclo de facturación de los clientes de integración).
   const today = new Date();
-  const periodEndDate = new Date(today);
-  periodEndDate.setDate(periodEndDate.getDate() - 1); // domingo
+  const periodEndDate = new Date(today.getFullYear(), today.getMonth(), 20); // día 20 del mes actual
+  const periodStartDate = new Date(today.getFullYear(), today.getMonth() - 1, 21); // día 21 del mes anterior
   const periodEnd = isoDate(periodEndDate);
-  const periodStartDate = new Date(today);
-  periodStartDate.setDate(periodStartDate.getDate() - 7); // lunes anterior
   const periodStart = isoDate(periodStartDate);
 
   const admin = createSupabaseAdminClient();
@@ -41,11 +38,13 @@ export async function GET(request: Request) {
   const results = [];
 
   for (const org of orgs) {
+    // Dedup: no enviar si ya se mandó el reporte de este período
     const { data: existingRun } = await admin
       .from("qbo_weekly_invoice_report_runs")
       .select("id")
       .eq("organization_id", org.id)
       .eq("period_start", periodStart)
+      .eq("period_end", periodEnd)
       .maybeSingle();
 
     if (existingRun) {
@@ -53,8 +52,7 @@ export async function GET(request: Request) {
       continue;
     }
 
-    // First run ever for this org: send everything delivered to date instead
-    // of just the last 7 days, with a one-time framing notice in the email.
+    // Si nunca hubo ningún reporte (ni semanal ni mensual), es el primer envío histórico
     const { data: anyPriorRun } = await admin
       .from("qbo_weekly_invoice_report_runs")
       .select("id")
@@ -66,11 +64,11 @@ export async function GET(request: Request) {
     try {
       const result = await sendWeeklyInvoiceReport({
         organizationId: org.id,
-        periodStart,
-        periodEnd,
+        periodStart: isFirstRun ? null : periodStart,
+        periodEnd: isFirstRun ? null : periodEnd,
         isHistorical: isFirstRun,
         recordRun: true,
-        sendTo: "branches",
+        sendTo: "org",
       });
       results.push({ organizationId: org.id, organizationName: org.name, isFirstRun, ...result });
     } catch (error) {
