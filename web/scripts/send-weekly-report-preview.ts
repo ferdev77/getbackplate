@@ -1,17 +1,11 @@
-// Preview de los 3 emails del flujo de reporte semanal + referido.
+// Script para enviar reportes de facturas QBO→R365 manualmente.
 //
 // Uso:
 //   node --env-file=.env.production.local node_modules/tsx/dist/cli.mjs scripts/send-weekly-report-preview.ts \
-//     --org="Prodel" --override=tucorreo@ejemplo.com
-//
-// Envia a --override:
-//   1. Email de Prodel (reporte org, sin CTA referido)
-//   2. Email de sucursal Taco Palenque (con CTA referido)
-//   3. Email de outreach al vendor referido
+//     --org="Prodel" [--override=tucorreo@ejemplo.com] [--historical] [--send-to=all|org|branches] [--record]
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { sendWeeklyInvoiceReport } from "@/modules/integrations/qbo-r365/services/weekly-invoice-report.service";
-import { sendVendorReferral } from "@/modules/integrations/qbo-r365/services/vendor-referral.service";
 
 function getArg(name: string): string | undefined {
   const prefix = `--${name}=`;
@@ -30,27 +24,6 @@ async function resolveOrg(orgArg: string): Promise<{ id: string; name: string }>
   return { id: data.id, name: data.name };
 }
 
-async function getFirstCustomerWithInvoices(orgId: string): Promise<{ id: string; name: string } | null> {
-  const admin = createSupabaseAdminClient();
-  const { data: customers } = await admin
-    .from("qbo_r365_sync_config_customers")
-    .select("id, qbo_customer_name")
-    .eq("organization_id", orgId);
-  if (!customers) return null;
-
-  for (const customer of customers) {
-    const { count } = await admin
-      .from("qbo_unified_invoices")
-      .select("id", { count: "exact", head: true })
-      .eq("organization_id", orgId)
-      .ilike("customer_name", customer.qbo_customer_name as string)
-      .eq("pipeline_status", "enviada");
-    if (count && count > 0) {
-      return { id: customer.id as string, name: customer.qbo_customer_name as string };
-    }
-  }
-  return null;
-}
 
 async function main() {
   const orgArg = getArg("org");
@@ -59,8 +32,8 @@ async function main() {
   const sendToArg = getArg("send-to") as "all" | "org" | "branches" | undefined;
   const sendTo = sendToArg ?? "all";
 
-  if (!orgArg || !override) {
-    console.error("Uso: --org=<nombre o id> --override=<email>");
+  if (!orgArg) {
+    console.error("Uso: --org=<nombre o id> [--override=<email>]");
     process.exit(1);
   }
 
@@ -85,33 +58,14 @@ async function main() {
     periodEnd,
     isHistorical: historical,
     overrideRecipientEmail: override,
-    recordRun: false,
+    recordRun: process.argv.includes("--record"),
     sendTo,
   });
   console.log("  Org emails enviados:", result.orgEmailsSent);
   console.log("  Branch emails enviados:", result.branchEmailsSent);
   console.log("  Branches sin email:", result.skippedBranches);
-  console.log("");
 
-  // Email 3: outreach al vendor referido (referente real con facturas, vendor = la org misma)
-  const referrer = await getFirstCustomerWithInvoices(org.id);
-  if (!referrer) {
-    console.log("No se encontraron sucursales con facturas para preview del email 3.");
-  } else {
-    console.log(`Enviando email 3 (outreach vendor referido) desde "${referrer.name}" refiriendo a "${org.name}"...`);
-    await sendVendorReferral({
-      organizationId: org.id,
-      syncConfigCustomerId: referrer.id,
-      referrerBranchName: referrer.name,
-      vendorCompany: org.name,
-      vendorContactName: "John Smith",
-      vendorEmail: override,
-      vendorPhone: "+1 (555) 000-0000",
-    });
-    console.log("  Outreach email: enviado");
-  }
-
-  console.log("\nListo. Revisá tu bandeja de entrada en:", override);
+  console.log("\nListo.");
 }
 
 main()
