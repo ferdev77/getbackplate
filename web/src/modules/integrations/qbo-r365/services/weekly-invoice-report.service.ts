@@ -51,7 +51,7 @@ export const WEEKLY_RECURRENCE_NOTICE =
   "You'll receive this report every Monday around 10am your local time.";
 
 export const MONTHLY_RECURRENCE_NOTICE =
-  "You'll receive this report on the 20th of every month.";
+  "You'll receive this report at the close of each billing cycle, when your subscription renews.";
 
 export const FIRST_REPORT_NOTICE =
   "This is a one-time summary of everything delivered since your integration went live. " +
@@ -274,9 +274,27 @@ export async function buildOrgWeeklyReportData(input: {
 
       const { data: invoices, error: invoicesError } = await invoiceQuery;
       if (invoicesError) throw new Error(invoicesError.message);
-      if (!invoices?.length) continue;
 
-      const billEmailRaw = (invoices[0].raw_entity as Record<string, unknown> | null)?.["BillEmail"] as
+      // Sin facturas en esta ventana: igual se incluye la sucursal (para poder
+      // mandarle el correo de "sin facturas esta semana"), resolviendo el email
+      // de contacto a partir de su factura mas reciente en cualquier momento.
+      let emailSourceRawEntity: unknown = invoices?.[0]?.raw_entity ?? null;
+      if (!invoices?.length) {
+        const { data: lastEver, error: lastEverError } = await admin
+          .from("qbo_unified_invoices")
+          .select("raw_entity")
+          .eq("organization_id", input.organizationId)
+          .eq("sync_config_id", config.id)
+          .ilike("customer_name", customer.qbo_customer_name)
+          .eq("pipeline_status", "enviada")
+          .order("sent_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (lastEverError) throw new Error(lastEverError.message);
+        emailSourceRawEntity = lastEver?.raw_entity ?? null;
+      }
+
+      const billEmailRaw = (emailSourceRawEntity as Record<string, unknown> | null)?.["BillEmail"] as
         | Record<string, unknown>
         | undefined;
       const billEmail =
@@ -301,7 +319,7 @@ export async function buildOrgWeeklyReportData(input: {
       branches.push({
         syncConfigCustomerId: customer.id as string,
         branchName: customer.qbo_customer_name,
-        invoices: invoices
+        invoices: (invoices ?? [])
           .slice()
           .reverse()
           .map((inv) => ({
@@ -398,8 +416,12 @@ export function buildBranchReportText(data: OrgWeeklyReportData, branch: BranchR
       : `Here is your weekly report: a summary of invoices you received in your FTP ${periodLabel(data)}.`,
   );
   lines.push("");
-  for (const inv of branch.invoices) {
-    lines.push(`  • Invoice #${inv.docNumber} — ${formatDate(inv.sentAt)}`);
+  if (!data.isHistorical && branch.invoices.length === 0) {
+    lines.push(`No invoices this week. Your integration is active and monitoring — nothing was issued between ${periodLabel(data)}.`);
+  } else {
+    for (const inv of branch.invoices) {
+      lines.push(`  • Invoice #${inv.docNumber} — ${formatDate(inv.sentAt)}`);
+    }
   }
 
   return { subject, text: lines.join("\n") };
@@ -450,7 +472,9 @@ export async function sendWeeklyInvoiceReport(input: {
   // Org email: un solo mail agregado con todas las facturas, solo si sendTo incluye "org"
   let orgEmailsSent = 0;
   if ((sendTo === "all" || sendTo === "org") && orgEmailTarget) {
-    const allOrgInvoices = data.groups.flatMap((g) => g.branches.flatMap((b) => b.invoices));
+    const allOrgInvoices = data.groups.flatMap((g) =>
+      g.branches.flatMap((b) => b.invoices.map((inv) => ({ ...inv, clientName: b.branchName }))),
+    );
     const orgSubjectBase = data.isHistorical
       ? `Historical invoice delivery summary — ${pLabel}`
       : sendTo === "org"
@@ -469,6 +493,7 @@ export async function sendWeeklyInvoiceReport(input: {
       vendorPhone: vendorDisplay.vendorPhone,
       vendorEmail: vendorDisplay.vendorEmail,
       showReferralCta: false,
+      showClientColumn: true,
       referralUrl: null,
       platformUrl: orgPlatformUrl,
       recurrenceNotice: orgRecurrenceNotice,
@@ -506,7 +531,18 @@ export async function sendWeeklyInvoiceReport(input: {
   if (sendTo === "all" || sendTo === "branches") {
     for (const group of data.groups) {
       for (const branch of group.branches) {
-        if (branch.invoices.length === 0) {
+        // Primer envio historico de una sucursal que nunca tuvo ninguna factura:
+        // no hay nada que reportar todavia, se omite (no aplica el estado "sin
+        // facturas esta semana", que es solo para la cadencia semanal normal).
+        if (branch.invoices.length === 0 && data.isHistorical) {
+          skippedBranches += 1;
+          continue;
+        }
+        // Sucursal que nunca tuvo ninguna factura y no tiene ningun contacto
+        // resuelto: nunca fue parte activa de la integracion, no se le manda
+        // nada ni siquiera en modo de prueba (--override), para no generar
+        // ruido con sucursales configuradas pero jamas activadas.
+        if (branch.invoices.length === 0 && !branch.resolvedEmail) {
           skippedBranches += 1;
           continue;
         }
