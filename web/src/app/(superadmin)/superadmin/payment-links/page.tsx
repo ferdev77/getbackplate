@@ -143,11 +143,6 @@ export default async function PaymentLinksPage() {
           organizations={(orgs ?? []).map(o => ({ id: o.id, name: o.name }))}
           platformPlans={platformPlans}
           integrationPlans={integrationPlans}
-          invoicePricing={invoicePriceOrgs.map(o => ({
-            organizationId: o.organizationId,
-            priceCents: o.priceCents,
-            unbilledInvoiceCount: o.unbilledInvoiceCount,
-          }))}
         />
       </div>
 

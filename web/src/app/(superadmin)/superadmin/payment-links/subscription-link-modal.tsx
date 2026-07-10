@@ -10,16 +10,14 @@ type Org = { id: string; name: string };
 type Plan = { id: string; name: string; setupFeeAmount: number | null };
 type PlanKind = "platform" | "integration";
 type BillingPeriod = "monthly" | "yearly";
-type InvoicePricing = { organizationId: string; priceCents: number | null; unbilledInvoiceCount: number };
 
 type Props = {
   organizations: Org[];
   platformPlans: Plan[];
   integrationPlans: Plan[];
-  invoicePricing: InvoicePricing[];
 };
 
-export function SubscriptionLinkModal({ organizations, platformPlans, integrationPlans, invoicePricing }: Props) {
+export function SubscriptionLinkModal({ organizations, platformPlans, integrationPlans }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -40,16 +38,6 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
   const selectedOrg = organizations.find((o) => o.id === orgId);
   const selectedPlan = plans.find((p) => p.id === planId);
   const canChargeSetupFee = planKind === "integration" && !!selectedPlan?.setupFeeAmount;
-  const orgPricing = planKind === "integration" ? invoicePricing.find((p) => p.organizationId === orgId) : undefined;
-  const suggestedCharge = orgPricing?.priceCents && orgPricing.unbilledInvoiceCount > 0
-    ? { count: orgPricing.unbilledInvoiceCount, unitCents: orgPricing.priceCents, totalCents: orgPricing.unbilledInvoiceCount * orgPricing.priceCents }
-    : null;
-
-  function applySuggestedCharge() {
-    if (!suggestedCharge) return;
-    setExtraChargeDescription(`Successful deliveries — previous period (${suggestedCharge.count} × $${(suggestedCharge.unitCents / 100).toFixed(2)})`);
-    setExtraChargeAmount((suggestedCharge.totalCents / 100).toFixed(2));
-  }
 
   function reset() {
     setOrgId(""); setPlanKind("integration"); setPlanId(""); setBillingPeriod("monthly");
@@ -295,25 +283,13 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
                       <p className="text-[11px] text-muted-foreground">
                         Se suma una sola vez en la primera factura, junto con el primer pago de la suscripción. Solo aplica si esta organización termina siendo alta nueva — no se puede agregar a un upgrade.
                       </p>
-                      {suggestedCharge && (
-                        <button
-                          type="button"
-                          onClick={applySuggestedCharge}
-                          className="flex w-full items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-left text-[11px] font-semibold text-amber-700 transition hover:bg-amber-100"
-                        >
-                          <span>
-                            Sugerido: {suggestedCharge.count} facturas sin facturar × ${(suggestedCharge.unitCents / 100).toFixed(2)} = ${(suggestedCharge.totalCents / 100).toFixed(2)}
-                          </span>
-                          <span className="underline">Usar este monto</span>
-                        </button>
-                      )}
                       <div className="grid gap-3 sm:grid-cols-[1fr_140px]">
                         <SuperadminInputField
                           label="Descripción"
                           name="extra_charge_description"
                           value={extraChargeDescription}
                           onChange={(e) => setExtraChargeDescription(e.target.value)}
-                          placeholder="p.ej: Facturas ya enviadas sin facturar"
+                          placeholder="p.ej: Successful deliveries — previous period"
                         />
                         <SuperadminInputField
                           label="Monto ($)"
