@@ -18,7 +18,6 @@ import {
   fetchQboSalesTransactions,
   fetchQboTransactionByDocNumber,
   refreshQboAccessToken,
-  revokeQboToken,
   type QboCustomer,
   type QboInvoiceLike,
 } from "@/modules/integrations/qbo-r365/qbo-client";
@@ -1156,57 +1155,6 @@ export async function completeQboOAuthCallback(input: {
     metadata: {
       realm_id: input.realmId,
     },
-  });
-}
-
-export async function disconnectQboConnection(input: {
-  organizationId: string;
-  actorId: string;
-}) {
-  const connection = await getConnection(input.organizationId, "quickbooks_online");
-  if (!connection || connection.status !== "connected") {
-    throw new Error("QuickBooks no esta conectado");
-  }
-
-  const secrets = parseConnectionSecrets<QboStoredSecrets>(connection);
-  const globalQbo = getGlobalQboOAuthConfig();
-
-  let revokeError: string | null = null;
-  if (globalQbo.ready && secrets?.refreshToken) {
-    try {
-      await revokeQboToken({
-        clientId: globalQbo.clientId,
-        clientSecret: globalQbo.clientSecret,
-        token: secrets.refreshToken,
-      });
-    } catch (error) {
-      // Seguimos desconectando localmente aunque Intuit rechace la
-      // revocacion (por ejemplo, si el usuario ya la revoco desde su
-      // cuenta de Intuit y el token ya esta muerto).
-      revokeError = error instanceof Error ? error.message : "No se pudo revocar el token en Intuit";
-    }
-  }
-
-  await upsertConnection({
-    organizationId: input.organizationId,
-    provider: "quickbooks_online",
-    actorId: input.actorId,
-    status: "disconnected",
-    config: {},
-    secretPayload: {},
-    connectedAt: null,
-    lastError: null,
-  });
-
-  await logAuditEvent({
-    action: "integration.qbo_r365.qbo.disconnected",
-    entityType: "integration",
-    organizationId: input.organizationId,
-    actorId: input.actorId,
-    eventDomain: "settings",
-    outcome: "success",
-    severity: "medium",
-    metadata: revokeError ? { revoke_error: revokeError } : {},
   });
 }
 
