@@ -3168,18 +3168,20 @@ async function claimUnifiedInvoiceForAutoSend(organizationId: string, unifiedInv
   const admin = createSupabaseAdminClient();
   const staleThreshold = new Date(Date.now() - UNIFIED_INVOICE_CLAIM_STALE_MS).toISOString();
 
-  const { data, error } = await admin
+  // No usar .select() acá: PostgREST devuelve "column ... does not exist" al combinar
+  // Prefer: return=representation con un filtro .or() sobre la misma tabla (bug de
+  // PostgREST/Supabase, reproducido y confirmado — no es un problema de esquema real).
+  // Prefer: count=exact evita ese código y alcanza para saber si el claim se ganó.
+  const { count, error } = await admin
     .from("qbo_unified_invoices")
-    .update({ claimed_at: new Date().toISOString() })
+    .update({ claimed_at: new Date().toISOString() }, { count: "exact" })
     .eq("id", unifiedInvoiceId)
     .eq("organization_id", organizationId)
     .neq("pipeline_status", "enviada")
-    .or(`claimed_at.is.null,claimed_at.lt.${staleThreshold}`)
-    .select("id")
-    .maybeSingle();
+    .or(`claimed_at.is.null,claimed_at.lt.${staleThreshold}`);
 
   if (error) throw new Error(error.message);
-  return Boolean(data);
+  return Boolean(count && count > 0);
 }
 
 /**
@@ -3484,13 +3486,30 @@ async function fetchAndCaptureWebhookInvoice(input: {
   // Continuar pipeline: mapeada → enviada en el mismo background call
   const unifiedInvoiceId = updatedRow?.id ? String(updatedRow.id) : null;
   if (unifiedInvoiceId && syncConfigId) {
+    let claimed = false;
     try {
       // El self-trigger al cron de recovery puede estar corriendo en paralelo sobre
       // esta misma fila (ver insertQboWebhookEvents) — solo uno de los dos caminos
       // debe enviar el archivo, para no duplicar el FTP y la notificación push.
-      const claimed = await claimUnifiedInvoiceForAutoSend(input.organizationId, unifiedInvoiceId);
-      if (!claimed) return;
+      claimed = await claimUnifiedInvoiceForAutoSend(input.organizationId, unifiedInvoiceId);
+    } catch (err) {
+      // La factura queda en 'capturada' — el cron de recovery la reintentará.
+      // A diferencia de mapAndSendUnifiedRow, este paso no tenía alerta propia
+      // (causa del incidente 2026-07: quedaba en silencio sin notificar a nadie).
+      const message = err instanceof Error ? err.message : "Error desconocido reclamando factura";
+      console.error("[qbo-webhook-pipeline]", input.entityId, message);
+      await notifyIntegrationEvent({
+        kind: "send_failed",
+        organizationId: input.organizationId,
+        customerName,
+        entityId: input.entityId,
+        errorMessage: message,
+      });
+      return;
+    }
+    if (!claimed) return;
 
+    try {
       const fullSyncConfig = await getSyncConfigRow(input.organizationId, syncConfigId);
       if (fullSyncConfig.r365_ftp_host) {
         await mapAndSendUnifiedRow({
@@ -3505,7 +3524,7 @@ async function fetchAndCaptureWebhookInvoice(input: {
         });
       }
     } catch (err) {
-      // La factura queda en 'capturada' — el cron de recovery la reintentará
+      // mapAndSendUnifiedRow ya notifica sus propios fallos antes de relanzar el error.
       console.error("[qbo-webhook-pipeline]", input.entityId, err instanceof Error ? err.message : err);
     }
   }
@@ -4211,16 +4230,32 @@ export async function processQboUnifiedQueue(): Promise<{
     const unifiedInvoiceId = String(row.id);
     const organizationId = String(row.organization_id);
 
+    let claimed = false;
     try {
       // El fast-path del webhook puede estar procesando esta misma fila en paralelo
       // (ver claimUnifiedInvoiceForAutoSend) — si no se puede reservar, es porque el
       // otro camino ya la tomó o ya la envió; no duplicar.
-      const claimed = await claimUnifiedInvoiceForAutoSend(organizationId, unifiedInvoiceId);
-      if (!claimed) {
-        results.push({ unifiedInvoiceId, status: "skipped" });
-        continue;
-      }
+      claimed = await claimUnifiedInvoiceForAutoSend(organizationId, unifiedInvoiceId);
+    } catch (err) {
+      // Este paso no tenía alerta propia — causa del incidente 2026-07: el cron
+      // corría y fallaba en silencio, sin notificar a nadie, para todas las orgs.
+      const message = err instanceof Error ? err.message : "Error desconocido reclamando factura";
+      results.push({ unifiedInvoiceId, status: "failed", error: message });
+      await notifyIntegrationEvent({
+        kind: "send_failed",
+        organizationId,
+        customerName: null,
+        entityId: String(row.entity_id),
+        errorMessage: message,
+      });
+      continue;
+    }
+    if (!claimed) {
+      results.push({ unifiedInvoiceId, status: "skipped" });
+      continue;
+    }
 
+    try {
       let rawEntity = row.raw_entity as QboInvoiceLike | null;
 
       // Para en_cola o sin raw_entity: re-fetch desde QBO
