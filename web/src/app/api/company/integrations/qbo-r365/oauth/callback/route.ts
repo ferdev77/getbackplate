@@ -17,6 +17,13 @@ export async function GET(request: Request) {
   const code = url.searchParams.get("code") ?? "";
   const realmId = url.searchParams.get("realmId") ?? "";
   const state = url.searchParams.get("state") ?? "";
+  const oauthError = url.searchParams.get("error");
+
+  if (oauthError === "access_denied") {
+    return NextResponse.redirect(
+      buildRedirectUrl(request.url, "error", "qbo_cancelado"),
+    );
+  }
 
   if (!code || !realmId || !state) {
     return NextResponse.redirect(

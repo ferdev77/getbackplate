@@ -67,6 +67,22 @@ export async function GET(request: Request) {
       ...pendingReminderResult,
     });
 
+    // 7. Purge raw QuickBooks invoice payloads older than 12 months.
+    // Keeps the summary columns (amount, customer, dates) for history/reporting,
+    // only clears the full raw_entity payload we no longer need functionally.
+    const qboRetentionCutoff = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
+    const { error: qboRawEntityCleanupError } = await admin
+      .from("qbo_unified_invoices")
+      .update({ raw_entity: null })
+      .lt("created_at", qboRetentionCutoff)
+      .not("raw_entity", "is", null);
+
+    results.push({
+      task: "purgeQboUnifiedInvoicesRawEntity",
+      status: qboRawEntityCleanupError ? 500 : 200,
+      error: qboRawEntityCleanupError?.message ?? null,
+    });
+
     return NextResponse.json({ ok: true, results });
   } catch (error: unknown) {
     console.error("Master daily cron error:", error);

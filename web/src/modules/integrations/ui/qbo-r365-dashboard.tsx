@@ -384,6 +384,10 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       toast.success("QuickBooks conectado", {
         description: "La conexión con QuickBooks Online se realizó correctamente.",
       });
+    } else if (status === "error" && message === "qbo_cancelado") {
+      toast.info("Conexión cancelada", {
+        description: "Cancelaste la autorización de QuickBooks. Podés volver a intentarlo cuando quieras.",
+      });
     } else if (status === "error") {
       toast.error("Error al conectar QuickBooks", {
         description: message ?? "No se pudo completar la conexión.",

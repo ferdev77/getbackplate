@@ -51,6 +51,7 @@ export type QboStoredSecrets = {
   accessToken?: string;
   tokenType?: string;
   expiresAtEpochSec?: number;
+  realmId?: string;
 };
 
 export type FtpStoredSecrets = {

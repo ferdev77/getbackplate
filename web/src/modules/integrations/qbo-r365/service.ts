@@ -991,7 +991,7 @@ export async function getQboR365Snapshot(
       clientId: options?.includeSensitive && globalQbo.clientId ? globalQbo.clientId : null,
       clientSecret: options?.includeSensitive && globalQbo.clientSecret ? globalQbo.clientSecret : null,
       redirectUri: options?.includeSensitive && globalQbo.redirectUri ? globalQbo.redirectUri : null,
-      realmId: ((qboConnection?.config as Record<string, unknown> | undefined)?.realmId as string | undefined) ?? null,
+      realmId: qboSecrets?.realmId ?? ((qboConnection?.config as Record<string, unknown> | undefined)?.realmId as string | undefined) ?? null,
       tokenExpiresAtEpochSec: qboSecrets?.expiresAtEpochSec ?? null,
       hasRefreshToken: Boolean(qboSecrets?.refreshToken),
       lastError: qboConnection?.last_error ?? null,
@@ -1129,17 +1129,20 @@ export async function completeQboOAuthCallback(input: {
     refreshToken: token.refresh_token,
     tokenType: token.token_type,
     expiresAtEpochSec,
+    realmId: input.realmId,
   };
+
+  // El realmId ya no se guarda en `config` (texto plano) -- vive cifrado
+  // dentro de `secretPayload`, igual que los tokens.
+  const { realmId: _staleRealmId, ...configWithoutRealmId } = config;
+  void _staleRealmId;
 
   await upsertConnection({
     organizationId: input.organizationId,
     provider: "quickbooks_online",
     actorId: input.actorId,
     status: "connected",
-    config: {
-      ...config,
-      realmId: input.realmId,
-    },
+    config: configWithoutRealmId,
     secretPayload: mergedSecrets,
     connectedAt: new Date().toISOString(),
     lastError: null,
@@ -1219,8 +1222,10 @@ async function ensureFreshQboToken(input: {
   const config = input.qboConnection.config ?? {};
   const globalQbo = getGlobalQboOAuthConfig();
   const clientId = globalQbo.clientId;
-  const realmId = typeof config.realmId === "string" ? config.realmId : "";
   const secrets = parseConnectionSecrets<QboStoredSecrets>(input.qboConnection);
+  // Compatibilidad con conexiones viejas que aun tienen el realmId en
+  // `config` (texto plano) en vez de cifrado en `secrets.realmId`.
+  const realmId = secrets?.realmId ?? (typeof config.realmId === "string" ? config.realmId : "");
 
   if (!globalQbo.ready || !realmId || !secrets?.refreshToken) {
     throw new Error("QuickBooks no esta configurado completamente");
@@ -1236,11 +1241,28 @@ async function ensureFreshQboToken(input: {
     };
   }
 
-  const refreshed = await refreshQboAccessToken({
-    clientId,
-    clientSecret: globalQbo.clientSecret,
-    refreshToken: secrets.refreshToken,
-  });
+  let refreshed;
+  try {
+    refreshed = await refreshQboAccessToken({
+      clientId,
+      clientSecret: globalQbo.clientSecret,
+      refreshToken: secrets.refreshToken,
+    });
+  } catch (error) {
+    // El refresh token ya no sirve (el usuario revoco el acceso desde su
+    // cuenta de Intuit, o expiro por 100 dias de inactividad). Guardamos el
+    // estado real en vez de dejar la conexion marcada como "connected"
+    // mintiendo sobre si las llamadas a la API funcionan.
+    const message = error instanceof Error ? error.message : "No se pudo refrescar el token de QuickBooks";
+    await upsertConnection({
+      organizationId: input.organizationId,
+      provider: "quickbooks_online",
+      actorId: input.actorId,
+      status: "error",
+      lastError: message,
+    });
+    throw error;
+  }
 
   const nextSecrets: QboStoredSecrets = {
     ...secrets,
@@ -1248,14 +1270,20 @@ async function ensureFreshQboToken(input: {
     refreshToken: refreshed.refresh_token,
     tokenType: refreshed.token_type,
     expiresAtEpochSec: Math.floor(Date.now() / 1000) + refreshed.expires_in,
+    realmId,
   };
+
+  // Si la conexion todavia tenia el realmId en `config` (texto plano, de
+  // antes de cifrarlo), lo sacamos de ahi de una vez al refrescar el token.
+  const { realmId: _staleRealmId, ...configWithoutRealmId } = config;
+  void _staleRealmId;
 
   await upsertConnection({
     organizationId: input.organizationId,
     provider: "quickbooks_online",
     actorId: input.actorId,
     status: "connected",
-    config,
+    config: configWithoutRealmId,
     secretPayload: nextSecrets,
     lastError: null,
   });
@@ -3042,14 +3070,37 @@ export type QboWebhookEventRow = {
 
 async function getOrganizationIdByRealmId(realmId: string): Promise<string | null> {
   const admin = createSupabaseAdminClient();
+  // El realmId vive cifrado dentro de `secrets_*` (junto a los tokens), asi
+  // que no se puede filtrar directo en la base de datos como antes -- hay
+  // que traer las conexiones y comparar en memoria despues de descifrar.
+  // Se deja `config.realmId` como fallback para conexiones viejas que
+  // todavia no pasaron por un connect/refresh desde que se cifro.
   const { data, error } = await admin
     .from("integration_connections")
-    .select("organization_id")
+    .select("organization_id, config, secrets_ciphertext, secrets_iv, secrets_tag")
     .eq("provider", "quickbooks_online")
-    .contains("config", { realmId })
-    .maybeSingle();
+    .eq("status", "connected");
   if (error) throw new Error(error.message);
-  return (data?.organization_id as string | undefined) ?? null;
+
+  for (const row of data ?? []) {
+    const config = (row.config as Record<string, unknown> | null) ?? {};
+    let rowRealmId: string | undefined = typeof config.realmId === "string" ? config.realmId : undefined;
+
+    if (!rowRealmId && row.secrets_ciphertext && row.secrets_iv && row.secrets_tag) {
+      const secrets = decryptJsonPayload<QboStoredSecrets>({
+        ciphertext: row.secrets_ciphertext,
+        iv: row.secrets_iv,
+        tag: row.secrets_tag,
+      });
+      rowRealmId = secrets?.realmId;
+    }
+
+    if (rowRealmId === realmId) {
+      return row.organization_id as string;
+    }
+  }
+
+  return null;
 }
 
 export async function insertQboWebhookEvents(input: QboWebhookEventInsert[]) {

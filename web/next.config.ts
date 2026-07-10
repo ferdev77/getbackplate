@@ -94,6 +94,16 @@ const nextConfig: NextConfig = {
           { key: "Content-Security-Policy", value: previewCspDirectives },
         ],
       },
+      {
+        // Paginas y rutas que muestran datos de QuickBooks (montos, clientes)
+        // nunca deben quedar cacheadas por el navegador ni por proxies.
+        source: "/api/company/integrations/qbo-r365/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store, no-cache, must-revalidate" }],
+      },
+      {
+        source: "/app/integrations/quickbooks",
+        headers: [{ key: "Cache-Control", value: "no-store, no-cache, must-revalidate" }],
+      },
     ];
   },
 
