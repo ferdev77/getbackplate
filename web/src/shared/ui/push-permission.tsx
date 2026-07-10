@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { subscribeToPush } from "@/shared/lib/push-subscribe";
 
-type Props = { orgId: string };
+type Props = { orgId?: string };
 
 export function PushPermissionManager({ orgId }: Props) {
   useEffect(() => {

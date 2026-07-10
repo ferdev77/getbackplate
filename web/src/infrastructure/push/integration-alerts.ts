@@ -47,11 +47,19 @@ export async function notifyIntegrationEvent(input: IntegrationAlertInput): Prom
   try {
     const admin = createSupabaseAdminClient();
 
+    const { data: superadmins, error: superadminsError } = await admin
+      .from("superadmin_users")
+      .select("user_id");
+    if (superadminsError) throw new Error(superadminsError.message);
+
+    const superadminIds = Array.from(new Set((superadmins ?? []).map((s) => String(s.user_id))));
+    if (superadminIds.length === 0) return;
+
     const { data: subs, error: subsError } = await admin
       .from("push_subscriptions")
       .select("user_id")
-      .eq("notify_integration_alerts", true)
-      .eq("is_active", true);
+      .eq("is_active", true)
+      .in("user_id", superadminIds);
     if (subsError) throw new Error(subsError.message);
 
     const userIds = Array.from(new Set((subs ?? []).map((s) => String(s.user_id))));

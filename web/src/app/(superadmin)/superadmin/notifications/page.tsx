@@ -45,7 +45,6 @@ export default async function SuperadminNotificationsPage() {
           .from("push_subscriptions")
           .select("id")
           .eq("user_id", currentUser.id)
-          .eq("notify_integration_alerts", true)
           .eq("is_active", true)
           .limit(1)
       : Promise.resolve({ data: [] }),

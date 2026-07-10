@@ -1,6 +1,7 @@
 import { logoutAction } from "@/modules/auth/actions";
 import { requireSuperadmin } from "@/shared/lib/access";
 import { PageContent } from "@/shared/ui/page-content";
+import { PushPermissionManager } from "@/shared/ui/push-permission";
 import { SuperadminRealtimeListener } from "@/shared/ui/superadmin-realtime-listener";
 import { SuperadminTopbar } from "@/shared/ui/superadmin-topbar";
 
@@ -14,6 +15,7 @@ export default async function SuperadminLayout({
   return (
     <div data-theme="default" className="min-h-screen bg-[linear-gradient(180deg,var(--gbp-bg)_0%,var(--gbp-bg)_42%,var(--gbp-bg2)_100%)]">
       <SuperadminRealtimeListener />
+      <PushPermissionManager />
       <header className="sticky top-0 z-40 border-b border-[var(--gbp-border)]/70 bg-[color:color-mix(in_oklab,var(--gbp-surface)_82%,transparent)] backdrop-blur-xl">
         <PageContent as="div" spacing="none" className="flex items-center justify-between gap-4 py-2.5">
           <SuperadminTopbar />

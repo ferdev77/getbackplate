@@ -16,10 +16,10 @@ export async function DELETE() {
   const admin = createSupabaseAdminClient();
   const { error } = await admin
     .from("push_subscriptions")
-    .update({ notify_integration_alerts: false, updated_at: new Date().toISOString() })
+    .update({ is_active: false, updated_at: new Date().toISOString() })
     .eq("user_id", currentUser.id);
 
-  if (error) return NextResponse.json({ error: "Error desactivando alertas" }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Error desactivando notificaciones" }, { status: 500 });
 
   return NextResponse.json({ ok: true });
 }
