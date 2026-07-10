@@ -31,7 +31,7 @@ const PRODUCTS = [
       "Automated middleware that delivers QuickBooks Online invoices to Restaurant365 via FTP, with field mapping and audit logging. For vendors invoicing R365-based clients.",
     docs: [
       { label: "End-User License Agreement", description: "Terms of service for the Integration", href: "/legal/integration/terms" },
-      { label: "Privacy Policy", description: "Data handling for QBO and R365", href: "/legal/integration/privacy" },
+      { label: "Privacy Policy", description: "Data handling for QuickBooks and R365", href: "/legal/integration/privacy" },
       { label: "Master Services Agreement", description: "Subscription terms, fees, and SLA", href: "/legal/integration/msa" },
     ],
   },

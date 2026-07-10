@@ -148,7 +148,7 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
               <div className={`rounded-2xl border p-5 ${qboConnected ? "border-emerald-200 bg-emerald-50" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                 <div className="flex items-center gap-4">
                   <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl font-bold text-lg ${qboConnected ? "bg-emerald-500 text-white" : "bg-[#2CA01C] text-white"}`}>
-                    QB
+                    <Link2 className="h-6 w-6" />
                   </div>
                   <div className="flex-1">
                     <p className="font-bold text-foreground">QuickBooks Online</p>

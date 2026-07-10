@@ -49,7 +49,7 @@ type Lang = "en" | "es";
 
 function formatPrice(value: number | null | undefined) {
   if (!value && value !== 0) return "Custom";
-  return `$${value}`;
+  return `$${value} USD`;
 }
 
 function parsePlanFeatures(raw: unknown): PlanFeature[] {
@@ -1590,7 +1590,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                   {intTab === "send" && (
                     <motion.div key="send" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.22 }}>
                       <div className="mb-3 flex items-center gap-2">
-                        <span className="inline-flex rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-white">QBO → R365</span>
+                        <span className="inline-flex rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-white">QuickBooks → R365</span>
                         <p className="text-[14px] font-semibold text-[var(--gbp-text2)]">
                           {lang === "es" ? "Tus clientes están en R365. Tus facturas también deberían estarlo." : "Your restaurant clients are on R365. Your invoices should be too."}
                         </p>
@@ -1632,9 +1632,9 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                   {intTab === "receive" && (
                     <motion.div key="receive" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.22 }}>
                       <div className="mb-3 flex items-center gap-2">
-                        <span className="inline-flex rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-white">QBO → R365</span>
+                        <span className="inline-flex rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-white">QuickBooks → R365</span>
                         <p className="text-[14px] font-semibold text-[var(--gbp-text2)]">
-                          {lang === "es" ? "Tus proveedores están en QBO. Sus facturas deben llegar a R365 — no a tu bandeja." : "Your vendors are on QBO. Their invoices should land in R365 — not your inbox."}
+                          {lang === "es" ? "Tus proveedores están en QuickBooks. Sus facturas deben llegar a R365 — no a tu bandeja." : "Your vendors are on QuickBooks. Their invoices should land in R365 — not your inbox."}
                         </p>
                       </div>
                       <div className="mt-3.5 overflow-hidden rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg2)]">
@@ -1771,6 +1771,9 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
             <a href="/legal/" className="underline underline-offset-2 opacity-70 hover:opacity-100">Legal</a>
           </p>
         </div>
+        <p className="mx-auto mt-4 max-w-[1200px] text-center text-[10px] text-white/40">
+          Intuit and QuickBooks are registered trademarks of Intuit Inc. Used with permission.
+        </p>
       </footer>
 
       <style jsx>{`
