@@ -5,6 +5,7 @@ import {
   listQboIntegrationOrganizations,
   sendWeeklyInvoiceReport,
 } from "@/modules/integrations/qbo-r365/services/weekly-invoice-report.service";
+import { sendOwnerWeeklyOpsReport } from "@/modules/integrations/qbo-r365/services/owner-weekly-ops.service";
 
 export const maxDuration = 60;
 
@@ -82,5 +83,12 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, periodStart, periodEnd, results });
+  let ownerReport;
+  try {
+    ownerReport = await sendOwnerWeeklyOpsReport({ periodStart, periodEnd });
+  } catch (error) {
+    ownerReport = { sent: false, reason: error instanceof Error ? error.message : "error desconocido" };
+  }
+
+  return NextResponse.json({ ok: true, periodStart, periodEnd, results, ownerReport });
 }
