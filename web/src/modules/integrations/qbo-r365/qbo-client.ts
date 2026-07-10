@@ -1,5 +1,6 @@
 const QBO_AUTHORIZE_URL = "https://appcenter.intuit.com/connect/oauth2";
 const QBO_TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer";
+const QBO_REVOKE_URL = "https://developer.api.intuit.com/v2/oauth2/tokens/revoke";
 const QBO_API_BASE_URL = "https://quickbooks.api.intuit.com";
 
 type ExchangeTokenInput = {
@@ -130,6 +131,32 @@ export async function refreshQboAccessToken(input: RefreshTokenInput) {
   form.set("refresh_token", input.refreshToken);
 
   return fetchToken(form, input.clientId, input.clientSecret);
+}
+
+/**
+ * Revoca un token ante Intuit (revocar el refresh token invalida tambien el
+ * access token asociado). Debe llamarse antes de borrar la conexion local.
+ */
+export async function revokeQboToken(input: {
+  clientId: string;
+  clientSecret: string;
+  token: string;
+}) {
+  const response = await fetch(QBO_REVOKE_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${basicAuth(input.clientId, input.clientSecret)}`,
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ token: input.token }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const data = (await response.json().catch(() => ({}))) as QboFaultError;
+    throw new Error(data.message || data.Message || "No se pudo revocar el acceso en QuickBooks");
+  }
 }
 
 /**

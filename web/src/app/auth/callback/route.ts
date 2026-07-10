@@ -5,6 +5,10 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { logAuditEvent } from "@/shared/lib/audit";
 
+function isSafeRedirectPath(path: string | null): path is string {
+  return !!path && path.startsWith("/") && !path.startsWith("//") && !path.startsWith("/\\");
+}
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
@@ -13,7 +17,8 @@ export async function GET(request: Request) {
   const email = requestUrl.searchParams.get("email");
   const type = requestUrl.searchParams.get("type");
   const org = requestUrl.searchParams.get("org");
-  const next = requestUrl.searchParams.get("next") ?? (type === "recovery" ? "/auth/change-password?reason=recovery" : "/");
+  const rawNext = requestUrl.searchParams.get("next");
+  const next = isSafeRedirectPath(rawNext) ? rawNext : type === "recovery" ? "/auth/change-password?reason=recovery" : "/";
 
   const supabase = await createSupabaseServerClient();
   let authErrorMessage: string | null = null;

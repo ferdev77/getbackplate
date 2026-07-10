@@ -314,6 +314,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   const [invoiceDetail, setInvoiceDetail] = useState<InvoiceDetailData | null>(null);
   const [invoiceDetailLoading, setInvoiceDetailLoading] = useState(false);
   const [oauthConnecting, setOauthConnecting] = useState(false);
+  const [oauthDisconnecting, setOauthDisconnecting] = useState(false);
   const [mode, setMode] = useState<"operation" | "developer">("operation");
   const [sendingInvoice, setSendingInvoice] = useState(false);
   const [sendingUnifiedInvoice, setSendingUnifiedInvoice] = useState(false);
@@ -925,6 +926,26 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     }
   }
 
+  async function handleDisconnectQbo() {
+    if (!confirm("¿Desconectar QuickBooks? Las sincronizaciones dejarán de funcionar hasta que vuelvas a conectar.")) return;
+    setOauthDisconnecting(true);
+    try {
+      const response = await fetch("/api/company/integrations/qbo-r365/oauth/disconnect", {
+        method: "POST",
+        cache: "no-store",
+      });
+      const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || "No se pudo desconectar QuickBooks");
+      }
+      toast.success("QuickBooks desconectado");
+      window.location.reload();
+    } catch (error) {
+      presentIntegrationError(normalizeApiError(error, "No se pudo desconectar QuickBooks"), "oauth");
+      setOauthDisconnecting(false);
+    }
+  }
+
 
   async function handlePreviewUnifiedCsv(unifiedInvoiceId: string) {
     setPreviewingCsv(true);
@@ -1431,14 +1452,25 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
           </div>
           {conns.qbo.realmId && <p className="mt-2 text-xs text-[var(--gbp-text2)]">Realm: {String(conns.qbo.realmId).slice(0, 12)}...</p>}
           {conns.qbo.lastRefreshed && <p className="mt-1 text-[11px] text-[var(--gbp-muted)]">Actualizado: {relativeTime(conns.qbo.lastRefreshed)}</p>}
-          <button
-            type="button"
-            disabled={oauthConnecting}
-            onClick={handleConnectQbo}
-            className="mt-3 inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-1.5 text-[11px] font-semibold text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
-          >
-            <Link2 className="h-3.5 w-3.5" /> {oauthConnecting ? "Conectando..." : (conns.qbo.status === "connected" ? "Reconectar QBO" : "Conectar QBO")}
-          </button>
+          {conns.qbo.status === "connected" ? (
+            <button
+              type="button"
+              disabled={oauthDisconnecting}
+              onClick={handleDisconnectQbo}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-1.5 text-[11px] font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-50 disabled:opacity-50"
+            >
+              <X className="h-3.5 w-3.5" /> {oauthDisconnecting ? "Desconectando..." : "Desconectar QBO"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={oauthConnecting}
+              onClick={handleConnectQbo}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-1.5 text-[11px] font-semibold text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
+            >
+              <Link2 className="h-3.5 w-3.5" /> {oauthConnecting ? "Conectando..." : "Conectar QBO"}
+            </button>
+          )}
         </article>
       </section>
 
