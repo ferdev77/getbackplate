@@ -148,6 +148,7 @@ export default function IntegrationTermsPage() {
         <a href="mailto:security@getbackplate.com">security@getbackplate.com</a> · +1 (956) 802-9639
       </div>
       <p style={{ marginTop: 28 }}>By using the Service, you acknowledge that you have read this Agreement, understand it, and agree to be bound by its terms and conditions.</p>
+      <p style={{ marginTop: 12, fontSize: 12, opacity: 0.7 }}>Intuit and QuickBooks are registered trademarks of Intuit Inc. Used with permission.</p>
     </LegalDocLayout>
   );
 }

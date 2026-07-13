@@ -289,6 +289,9 @@ export default function IntegrationMsaPage() {
       <p style={{ marginTop: 56, paddingTop: 24, borderTop: "1px solid var(--legal-border)", color: "var(--legal-text-muted)", fontSize: 14, textAlign: "center" }}>
         By accepting this Agreement electronically, Customer acknowledges that they have read, understood, and agreed to be bound by its terms and conditions.
       </p>
+      <p style={{ marginTop: 8, color: "var(--legal-text-muted)", fontSize: 12, textAlign: "center" }}>
+        Intuit and QuickBooks are registered trademarks of Intuit Inc. Used with permission.
+      </p>
     </LegalDocLayout>
   );
 }

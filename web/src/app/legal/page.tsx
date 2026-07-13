@@ -105,6 +105,9 @@ export default function LegalIndexPage() {
         <p className="mt-12 text-center text-[13px] italic text-[#9ca3af]">
           For legal inquiries, contact GetBackplate at 1321 Upland Dr., Suite 9894, Houston, Texas 77043 — Phone +1 (956) 802-9639.
         </p>
+        <p className="mt-3 text-center text-[11px] text-[#9ca3af]">
+          Intuit and QuickBooks are registered trademarks of Intuit Inc. Used with permission.
+        </p>
       </main>
     </div>
   );
