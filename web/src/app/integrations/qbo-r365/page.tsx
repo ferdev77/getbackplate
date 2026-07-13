@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
-import { Fraunces, Inter_Tight } from "next/font/google";
+import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 
 import { stripe } from "@/infrastructure/stripe/client";
 import { getActivePlansForIntegration } from "@/modules/plans/queries";
 import { IntegrationPricingClient } from "./integration-pricing-client";
 
-const fraunces = Fraunces({
+const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-fraunces",
+  variable: "--font-jakarta",
   weight: ["400", "500", "600", "700", "800"],
 });
 
-const interTight = Inter_Tight({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-inter-tight",
-  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-mono",
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -85,7 +85,7 @@ export default async function QboR365IntegrationPage() {
   );
 
   return (
-    <div className={`${fraunces.variable} ${interTight.variable}`}>
+    <div className={`${plusJakartaSans.variable} ${jetbrainsMono.variable}`}>
       <IntegrationPricingClient plans={plans} />
     </div>
   );

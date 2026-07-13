@@ -30,98 +30,53 @@ export type IntegrationPlan = {
   has_stripe_prices: boolean;
 };
 
-const INTEGRATION_EXTRAS = [
-  {
-    icon: "✦",
-    title: "25% off setup on annual.",
-    desc: "Commit annually and the one-time setup fee drops by 25% — saving you up to $1,250. You also lock in your rate forever.",
-  },
-  {
-    icon: "∞",
-    title: "Scale across multiple R365 customers.",
-    desc: "Each plan supports a defined number of R365 customer connections. Add more anytime — no full plan upgrade needed if you only add one or two.",
-  },
-  {
-    icon: "⚡",
-    title: "Real-time, not delayed.",
-    desc: "The moment you finalize and send an invoice in QuickBooks Online, it lands in your customer's R365. No exports, no manual uploads.",
-  },
-] as const;
+const MARQUEE_ITEMS = [
+  "Food Distributors",
+  "Beverage Suppliers",
+  "Produce Vendors",
+  "Meat & Seafood Purveyors",
+  "Bakery & Pastry Suppliers",
+  "Coffee Roasters",
+  "Dairy Distributors",
+  "Specialty Food Providers",
+  "Janitorial & Cleaning Suppliers",
+  "Disposables & Packaging Suppliers",
+  "Uniform & Linen Suppliers",
+];
 
-const INTEGRATION_NOTES = [
-  [
-    "About overage:",
-    "If you exceed your monthly invoice allowance, additional invoices are billed at the per-invoice rate of your plan. No overage on Scale annual plans.",
-  ],
-  [
-    "About R365 customer connections:",
-    "Each connection represents one Restaurant365 customer (restaurant group or location) that receives your invoices. Each has its own configuration: vendor name in their R365, account number, FTP credentials, and item catalog mapping.",
-  ],
-  [
-    "Adding connections beyond your plan:",
-    "$500 one-time setup + $99/mo per additional connection ($79/mo on Scale). Grow gradually without changing plans — until the math points to an upgrade naturally.",
-  ],
-  [
-    "About setup:",
-    "Includes initial configuration, FTP setup with R365 Support, item catalog mapping, test transactions, and go-live monitoring. Typically completed within 5 business days from kickoff.",
-  ],
-  [
-    "Standalone product:",
-    "No GetBackplate platform subscription required to use the QBO ↔ R365 integration.",
-  ],
-] as const;
+const FAQ_ITEMS: { q: string; a: React.ReactNode }[] = [
+  {
+    q: "Who pays — the vendor or the restaurant?",
+    a: "The vendor or distributor sending the invoices pays. Your restaurant customers receive invoices into their Restaurant365 at no cost — and if you're a restaurant, you can refer a vendor to get set up for free.",
+  },
+  {
+    q: "How fast do invoices arrive in Restaurant365?",
+    a: "Every invoice is picked up automatically the moment you finalize it in QuickBooks Online and delivered to your customer's Restaurant365 on its next import — no manual steps, no waiting on email.",
+  },
+  {
+    q: "Do credit memos get delivered too, not just invoices?",
+    a: "Yes. When you finalize an invoice or a credit memo in QuickBooks Online, it's delivered to your customer's Restaurant365 automatically — no re-keying and no email attachments. Each document is delivered as finalized in QuickBooks.",
+  },
+  {
+    q: "Do I have to change how I use QuickBooks?",
+    a: "No. You keep invoicing in QuickBooks Online exactly as you do today. Once connected, delivery happens in the background on every invoice.",
+  },
+  {
+    q: "Is my QuickBooks data secure?",
+    a: "Yes. Your connection is authorized through QuickBooks Online's secure OAuth flow, credentials are encrypted, and you can disconnect at any time.",
+  },
+  {
+    q: "I'm a restaurant — my vendor isn't set up. What do I do?",
+    a: "Refer them and we'll reach out and handle the setup so their invoices start landing in your Restaurant365 automatically — at no cost to you.",
+  },
+  {
+    q: "Does this work with QuickBooks Desktop?",
+    a: "This integration is built for QuickBooks Online. If you're on QuickBooks Desktop, reach out and we'll let you know what's possible.",
+  },
+];
 
 function formatPrice(amount: number) {
   return amount.toLocaleString("en-US");
-}
-
-function CheckIcon({ dark }: { dark?: boolean }) {
-  return (
-    <svg
-      style={{
-        flexShrink: 0,
-        width: 18,
-        height: 18,
-        marginTop: 2,
-        background: dark ? "rgba(194,74,30,0.2)" : "#FCE9DD",
-        borderRadius: "50%",
-      }}
-      viewBox="0 0 10 10"
-      fill="none"
-    >
-      <path
-        d="M1.5 5L4 7.5L8.5 2.5"
-        stroke={dark ? "#FCB69D" : "#C24A1E"}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function PlusIcon({ dark }: { dark?: boolean }) {
-  return (
-    <svg
-      style={{
-        flexShrink: 0,
-        width: 18,
-        height: 18,
-        marginTop: 2,
-        background: dark ? "rgba(194,74,30,0.2)" : "#FCE9DD",
-        borderRadius: "50%",
-      }}
-      viewBox="0 0 10 10"
-      fill="none"
-    >
-      <path
-        d="M5 1V9M1 5H9"
-        stroke={dark ? "#FCB69D" : "#C24A1E"}
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
 }
 
 function PlanCard({
@@ -142,8 +97,7 @@ function PlanCard({
   const monthlyPrice = plan.price_amount ?? 0;
 
   // Annual per-month: prefer Stripe-resolved value, fall back to ×10/12 computation
-  const annualPerMonth =
-    plan.annual_per_month ?? Math.round((monthlyPrice * 10) / 12);
+  const annualPerMonth = plan.annual_per_month ?? Math.round((monthlyPrice * 10) / 12);
   const annualTotal = plan.annual_total ?? monthlyPrice * 10;
 
   const displayPrice = isAnnual ? annualPerMonth : monthlyPrice;
@@ -153,15 +107,9 @@ function PlanCard({
   const isEnterprise = plan.is_enterprise;
   const isLoading = checkoutLoading === plan.id;
 
-  const textLight = isFeatured ? "#A8A39B" : "#6B6760";
-  const textMuted = isFeatured ? "#A8A39B" : "#9B968D";
-  const borderColor = isFeatured ? "#2A2A26" : "#E5DFD3";
-
   const setupAmount = plan.setup_fee_amount;
-  const setupText =
-    setupAmount != null ? `$${formatPrice(setupAmount)} one-time` : "Negotiated";
+  const setupText = setupAmount != null ? `$${formatPrice(setupAmount)}` : "Negotiated";
 
-  // CTA: enterprise → seat request modal; all other plans → checkout (handles auth check / 401 → register)
   function handleCta() {
     if (isEnterprise) {
       onSeatRequest(plan.cta_email ?? "", plan.name);
@@ -173,228 +121,62 @@ function PlanCard({
   const ctaLabel = plan.cta_text ?? (isEnterprise ? "Talk to Sales →" : "Get Started →");
 
   return (
-    <div
-      className={`int-plan-card${isFeatured ? " featured" : ""}`}
-      style={{
-        background: isFeatured ? "#161614" : isEnterprise ? "transparent" : "#FFFFFF",
-        border: `1px ${isEnterprise ? "dashed" : "solid"} ${isFeatured ? "#2A2A26" : "#E5DFD3"}`,
-        borderRadius: 18,
-        padding: "32px 28px",
-        display: "flex",
-        flexDirection: "column",
-        position: "relative",
-        color: isFeatured ? "#F7F4EE" : "#161614",
-      }}
-    >
-      {isFeatured && (
-        <span
-          style={{
-            position: "absolute",
-            top: -12,
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "#C24A1E",
-            color: "white",
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            padding: "5px 12px",
-            borderRadius: 100,
-            whiteSpace: "nowrap",
-          }}
-        >
-          Most Popular
-        </span>
+    <div className={`tier${isFeatured ? " dark" : ""}`}>
+      {isFeatured && <span className="poptag">Most popular</span>}
+
+      <div className="tname">{plan.name}</div>
+      <div className="tdesc">{plan.description ?? ""}</div>
+
+      {isEnterprise ? (
+        <>
+          <div className="tprice custom">Custom</div>
+          <div className="tbilled">Tailored to your operation</div>
+        </>
+      ) : (
+        <>
+          <div className="tprice">
+            ${formatPrice(displayPrice)}
+            <span className="per">/mo</span>
+          </div>
+          <div className="tbilled">
+            {isAnnual ? `Billed annually · $${formatPrice(annualTotal)}/yr` : "Billed monthly"}
+          </div>
+          {isAnnual && savings > 0 && (
+            <div className="savebadge">Save ${formatPrice(savings)} per year</div>
+          )}
+        </>
       )}
 
-      <div
-        style={{
-          fontFamily: "var(--font-fraunces, serif)",
-          fontSize: 28,
-          fontWeight: 600,
-          letterSpacing: "-0.02em",
-          marginBottom: 6,
-        }}
-      >
-        {plan.name}
-      </div>
-
-      <div style={{ fontSize: 13, color: textLight, marginBottom: 24, minHeight: 36 }}>
-        {plan.description ?? ""}
-      </div>
-
-      {/* Price block */}
-      <div
-        style={{
-          marginBottom: 24,
-          paddingBottom: 24,
-          borderBottom: `1px solid ${borderColor}`,
-          minHeight: 142,
-        }}
-      >
-        {isEnterprise ? (
-          <>
-            <div
-              style={{
-                fontFamily: "var(--font-fraunces, serif)",
-                fontSize: 40,
-                fontWeight: 600,
-                letterSpacing: "-0.04em",
-                lineHeight: 1,
-              }}
-            >
-              Custom
-            </div>
-            <div style={{ fontSize: 14, color: textLight, marginTop: 4 }}>
-              tailored to your operation
-            </div>
-            <div style={{ fontSize: 13, color: textMuted, marginTop: 6 }}>&nbsp;</div>
-          </>
-        ) : (
-          <>
-            <div
-              style={{
-                fontFamily: "var(--font-fraunces, serif)",
-                fontSize: 52,
-                fontWeight: 600,
-                letterSpacing: "-0.04em",
-                lineHeight: 1,
-                display: "flex",
-                alignItems: "baseline",
-                gap: 4,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 24,
-                  fontWeight: 500,
-                  color: textLight,
-                  alignSelf: "flex-start",
-                  paddingTop: 8,
-                }}
-              >
-                $
-              </span>
-              <span>{formatPrice(displayPrice)}</span>
-            </div>
-            <div style={{ fontSize: 14, color: textLight, marginTop: 4 }}>per month</div>
-            <div style={{ fontSize: 13, color: textMuted, marginTop: 6 }}>
-              {isAnnual ? `Billed $${formatPrice(annualTotal)}/year` : "Billed monthly"}
-            </div>
-            {isAnnual && savings > 0 && (
-              <div
-                style={{
-                  display: "inline-block",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: isFeatured ? "#7FD89D" : "#2D7A4A",
-                  background: isFeatured
-                    ? "rgba(80,200,120,0.15)"
-                    : "rgba(45,122,74,0.1)",
-                  padding: "3px 8px",
-                  borderRadius: 4,
-                  marginTop: 8,
-                }}
-              >
-                Save ${formatPrice(savings)} per year
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* Setup row */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "14px 0",
-          marginBottom: 24,
-          fontSize: 13,
-          borderBottom: `1px dashed ${borderColor}`,
-        }}
-      >
-        <span style={{ color: textLight, fontWeight: 500 }}>Setup fee</span>
-        {isAnnual && setupAmount != null ? (
-          <span style={{ fontWeight: 600 }}>
-            <span
-              style={{
-                textDecoration: "line-through",
-                color: textMuted,
-                fontWeight: 400,
-                marginRight: 6,
-              }}
-            >
-              {setupText}
+      <div className="setup">
+        <div className="setup-row">
+          <span className="tsetup-lab">Setup fee</span>
+          {isAnnual && setupAmount != null ? (
+            <span className="tsetup-amt">
+              <s className="tsetup-strike">{setupText}</s> <span className="tsetup-waived">Waived</span>
             </span>
-            <span style={{ color: isFeatured ? "#7FD89D" : "#2D7A4A" }}>Waived</span>
-          </span>
-        ) : (
-          <span style={{ fontWeight: 600 }}>{setupText}</span>
-        )}
+          ) : (
+            <span className="tsetup-amt">{setupText}</span>
+          )}
+        </div>
       </div>
 
-      {/* Features list */}
-      <ul style={{ listStyle: "none", flexGrow: 1, marginBottom: 24, padding: 0 }}>
+      <ul className="feat">
         {features
           .filter((f) => !f.annual_only || isAnnual)
           .map((feature, i) => (
-            <li
-              key={i}
-              style={{
-                padding: "8px 0",
-                fontSize: 14,
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 10,
-                lineHeight: 1.45,
-                fontWeight: feature.everything ? 700 : feature.highlight ? 600 : 400,
-                ...(feature.everything
-                  ? {
-                      marginTop: 6,
-                      paddingTop: 14,
-                      borderTop: `1px dashed ${borderColor}`,
-                    }
-                  : {}),
-              }}
-            >
-              {feature.everything ? (
-                <PlusIcon dark={isFeatured} />
-              ) : (
-                <CheckIcon dark={isFeatured} />
-              )}
-              {feature.text}
+            <li key={i} className={feature.everything ? "head" : undefined}>
+              <span className="ck">{feature.everything ? "+" : "✓"}</span>
+              <span className="txt" style={{ fontWeight: feature.everything || feature.highlight ? 700 : 400 }}>
+                {feature.text}
+              </span>
             </li>
           ))}
       </ul>
 
-      {/* CTA */}
       <button
         onClick={handleCta}
         disabled={isLoading}
-        style={{
-          display: "block",
-          width: "100%",
-          textAlign: "center",
-          padding: "14px 24px",
-          borderRadius: 100,
-          fontWeight: 600,
-          fontSize: 14,
-          textDecoration: "none",
-          cursor: isLoading ? "wait" : "pointer",
-          transition: "all 0.2s ease",
-          fontFamily: "inherit",
-          opacity: isLoading ? 0.7 : 1,
-          ...(isFeatured
-            ? { background: "#C24A1E", color: "white", border: "none" }
-            : {
-                background: "transparent",
-                color: "#161614",
-                border: "1.5px solid #161614",
-              }),
-        }}
+        className={`tbtn${isFeatured ? " solid" : ""}`}
       >
         {isLoading ? "Redirecting…" : ctaLabel}
       </button>
@@ -402,27 +184,246 @@ function PlanCard({
   );
 }
 
-const CARD_STYLES = `
-  .int-plan-card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-  .int-plan-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 32px rgba(22,22,20,0.08);
-  }
-  .int-plan-card.featured:hover {
-    box-shadow: 0 16px 40px rgba(22,22,20,0.22);
-  }
+const STYLES = `
+.int-landing{
+  --accent:#D4531A; --accent-light:#FCE9DF; --accent-dark:#A23E12; --accent-2:#F0843F;
+  --bg:#F7F8FC; --surface:#FFFFFF; --ink:#14151A; --text:#14151A;
+  --text-secondary:#595B66; --text-muted:#8A8C95;
+  --border:#E6E8EE; --border-strong:#D6D8E0;
+  --success:#15803D; --success-bg:#E7F5EC;
+  --radius-sm:6px; --radius:10px; --radius-lg:16px; --radius-xl:22px;
+  font-family:var(--font-jakarta,'Plus Jakarta Sans',system-ui,-apple-system,sans-serif);
+  background:var(--bg); color:var(--text); line-height:1.6;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+}
+.int-landing *{box-sizing:border-box;}
+.int-landing h1,.int-landing h2,.int-landing h3,.int-landing p,.int-landing ul{margin:0;padding:0;}
+.int-landing ul{list-style:none;}
+.int-landing a{color:inherit;}
+.int-landing .mono{font-family:var(--font-mono,'JetBrains Mono',ui-monospace,monospace);}
+.int-landing .container{max-width:1180px;margin:0 auto;padding:0 24px;}
+.int-landing section[id]{scroll-margin-top:78px;}
+
+/* NAV */
+.int-landing .nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.86);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);}
+.int-landing .nav-inner{max-width:1180px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;gap:20px;}
+.int-landing .logo{display:inline-flex;text-decoration:none;}
+.int-landing .navlinks{display:flex;align-items:center;gap:28px;}
+@media(max-width:760px){.int-landing .navlinks{display:none;}}
+.int-landing .navlinks a{font-size:14px;font-weight:600;color:var(--text-secondary);text-decoration:none;transition:.15s;}
+.int-landing .navlinks a:hover{color:var(--text);}
+.int-landing .nav-btns{display:flex;align-items:center;gap:10px;}
+.int-landing .nav-ghost{font-size:14px;font-weight:700;color:var(--accent);text-decoration:none;padding:9px 14px;border:1px solid var(--accent-light);border-radius:8px;white-space:nowrap;cursor:default;}
+@media(max-width:760px){.int-landing .nav-ghost{display:none;}}
+.int-landing .nav-cta{background:var(--accent);color:#fff;font-size:14px;font-weight:700;padding:9px 16px;border-radius:8px;text-decoration:none;transition:.15s;white-space:nowrap;}
+.int-landing .nav-cta:hover{background:var(--accent-dark);}
+
+/* HERO */
+.int-landing .hero{padding:62px 0 40px;background:linear-gradient(180deg,#FFFFFF 0%,var(--bg) 100%);}
+.int-landing .hero-grid{display:grid;grid-template-columns:1fr 1.05fr;gap:56px;align-items:center;}
+@media(max-width:900px){.int-landing .hero-grid{grid-template-columns:1fr;gap:36px;}}
+.int-landing .badge{display:inline-flex;align-items:center;background:var(--accent);color:#fff;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:7px 15px;border-radius:20px;margin-bottom:26px;}
+.int-landing .h1{font-size:56px;line-height:1.03;font-weight:800;letter-spacing:-.035em;color:var(--text);}
+.int-landing .h1 .fix{background:linear-gradient(100deg,#A23E12 0%,#D4531A 45%,#F0843F 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;}
+@media(max-width:900px){.int-landing .h1{font-size:42px;}}
+.int-landing .lead{margin-top:22px;font-size:17px;line-height:1.6;color:var(--text-secondary);max-width:460px;}
+
+.int-landing .module{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);overflow:hidden;box-shadow:0 1px 2px rgba(20,21,26,.04),0 12px 40px rgba(20,21,26,.06);}
+.int-landing .tabs{display:grid;grid-template-columns:1fr 1fr;}
+.int-landing .tab{padding:20px 24px;background:var(--bg);border:none;border-bottom:2px solid transparent;text-align:left;cursor:pointer;font-family:inherit;transition:.15s;}
+.int-landing .tab.active{background:var(--surface);border-bottom-color:var(--accent);}
+.int-landing .tab .tt{font-size:17px;font-weight:700;letter-spacing:-.01em;color:var(--text-muted);}
+.int-landing .tab.active .tt{color:var(--accent);}
+.int-landing .tab .ts{font-size:12.5px;color:var(--text-muted);margin-top:2px;}
+.int-landing .tab.active .ts{color:var(--text-secondary);}
+.int-landing .panel{padding:26px 26px 28px;display:none;}
+.int-landing .panel.active{display:block;}
+.int-landing .pill{display:inline-flex;align-items:center;background:var(--accent);color:#fff;font-family:var(--font-mono,monospace);font-size:11px;font-weight:600;letter-spacing:.04em;padding:5px 11px;border-radius:16px;margin-bottom:16px;}
+.int-landing .pline{font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--text);margin-bottom:18px;line-height:1.4;}
+.int-landing .feed{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+.int-landing .feed-h{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);}
+.int-landing .feed-h .dots{display:flex;gap:4px;}
+.int-landing .feed-h .dots i{width:7px;height:7px;border-radius:50%;background:#C9D2D9;display:block;}
+.int-landing .feed-h .ftitle{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);}
+.int-landing .inv{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-top:1px solid var(--border);}
+.int-landing .inv:first-of-type{border-top:none;}
+.int-landing .inv .il .in{font-size:14px;font-weight:700;color:var(--text);}
+.int-landing .inv .il .im{font-family:var(--font-mono,monospace);font-size:12px;color:var(--text-muted);margin-top:2px;}
+.int-landing .stat{font-family:var(--font-mono,monospace);font-size:11px;font-weight:600;padding:4px 10px;border-radius:14px;white-space:nowrap;background:var(--success-bg);color:var(--success);}
+.int-landing .refbox{margin-top:16px;background:var(--accent-light);border-radius:var(--radius-lg);padding:16px 18px;}
+.int-landing .refbox .rt{font-size:14px;font-weight:700;color:var(--accent-dark);}
+.int-landing .refbox .rd{font-size:13.5px;color:var(--text-secondary);margin-top:3px;line-height:1.5;}
+.int-landing .pcta{margin-top:20px;}
+.int-landing .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:15px;font-weight:700;padding:13px 22px;border-radius:var(--radius);text-decoration:none;transition:.15s;font-family:inherit;cursor:pointer;border:none;width:100%;}
+.int-landing .btn.primary{background:var(--accent);color:#fff;}
+.int-landing .btn.primary:hover{background:var(--accent-dark);}
+.int-landing .btn.inert{background:var(--accent-light);color:var(--accent-dark);cursor:default;}
+
+/* MARQUEE */
+.int-landing .marquee{display:flex;align-items:center;background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);overflow:hidden;}
+.int-landing .marquee-label{flex:none;font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--text);padding:16px 24px;white-space:nowrap;position:relative;z-index:2;}
+.int-landing .marquee-vp{overflow:hidden;flex:1;-webkit-mask-image:linear-gradient(to right,transparent,#000 52px,#000 calc(100% - 52px),transparent);mask-image:linear-gradient(to right,transparent,#000 52px,#000 calc(100% - 52px),transparent);}
+.int-landing .marquee-track{display:inline-flex;align-items:center;white-space:nowrap;animation:int-scroll 40s linear infinite;}
+.int-landing .marquee:hover .marquee-track{animation-play-state:paused;}
+.int-landing .marquee-track .cat{font-size:15px;font-weight:700;color:#37414A;padding:16px 0;}
+.int-landing .marquee-track .cat.o{color:var(--accent);}
+.int-landing .marquee-track .sep{color:var(--border-strong);padding:0 22px;font-weight:600;font-size:15px;}
+@keyframes int-scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+
+/* SECTIONS */
+.int-landing .section{padding:80px 0;}
+.int-landing .sec-head{text-align:center;max-width:640px;margin:0 auto 32px;}
+.int-landing .eyebrow{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);}
+.int-landing .h2{font-size:34px;font-weight:800;letter-spacing:-.03em;margin-top:8px;line-height:1.12;}
+.int-landing .sec-sub{margin-top:12px;font-size:15.5px;color:var(--text-secondary);}
+
+/* CASE STUDY */
+.int-landing .case{background:var(--bg);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.int-landing .case-grid{display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:center;}
+@media(max-width:820px){.int-landing .case-grid{grid-template-columns:1fr;gap:28px;}}
+.int-landing .case .plive{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono,monospace);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--success);}
+.int-landing .case .plive .pulse{width:8px;height:8px;border-radius:50%;background:#22C55E;box-shadow:0 0 0 0 rgba(34,197,94,.6);animation:int-pulse 2s infinite;}
+@keyframes int-pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.5);}70%{box-shadow:0 0 0 8px rgba(34,197,94,0);}100%{box-shadow:0 0 0 0 rgba(34,197,94,0);}}
+.int-landing .case h3{font-size:30px;font-weight:800;letter-spacing:-.03em;margin-top:12px;line-height:1.14;}
+.int-landing .case p{margin-top:14px;font-size:15.5px;color:var(--text-secondary);line-height:1.6;max-width:460px;}
+.int-landing .metrics{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.int-landing .metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px 20px;}
+.int-landing .metric .mn{font-family:var(--font-mono,monospace);font-size:32px;font-weight:700;letter-spacing:-.02em;background:linear-gradient(100deg,#A23E12 0%,#D4531A 45%,#F0843F 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;}
+.int-landing .metric .mk{font-size:13px;color:var(--text-secondary);margin-top:4px;font-weight:600;}
+
+/* COLOR BANNER */
+.int-landing .cbanner{position:relative;overflow:hidden;text-align:center;padding:52px 24px;background:linear-gradient(115deg,#A23E12 0%,#D4531A 32%,#F0843F 58%,#D4531A 80%,#A23E12 100%);background-size:280% 280%;animation:int-grad 9s ease infinite;}
+@keyframes int-grad{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}
+.int-landing .cbanner::before,.int-landing .cbanner::after{content:"";position:absolute;border-radius:50%;filter:blur(50px);opacity:.4;}
+.int-landing .cbanner::before{width:280px;height:280px;background:#FFD9BF;top:-120px;left:8%;}
+.int-landing .cbanner::after{width:240px;height:240px;background:#B4310A;bottom:-120px;right:10%;}
+.int-landing .cbanner .ct{position:relative;z-index:2;font-size:26px;font-weight:800;color:#fff;letter-spacing:-.02em;max-width:820px;margin:0 auto;line-height:1.28;text-shadow:0 1px 12px rgba(0,0,0,.12);}
+.int-landing .cbanner .ct .u{text-decoration:underline;text-decoration-color:rgba(255,255,255,.5);text-underline-offset:4px;}
+@media(max-width:600px){.int-landing .cbanner .ct{font-size:21px;}}
+
+/* BILLING TOGGLE */
+.int-landing .billing{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:34px;}
+.int-landing .togrow{display:flex;align-items:center;gap:12px;}
+.int-landing .togrow .lbl{font-size:14.5px;font-weight:700;color:var(--text-muted);cursor:pointer;background:none;border:none;font-family:inherit;padding:0;}
+.int-landing .togrow .lbl.on{color:var(--text);}
+.int-landing .switch{width:52px;height:28px;border-radius:20px;background:var(--border-strong);position:relative;cursor:pointer;transition:.2s;border:none;padding:0;}
+.int-landing .switch.annual{background:var(--accent);}
+.int-landing .switch .knob{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.int-landing .switch.annual .knob{left:27px;}
+.int-landing .freebadge{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:var(--success-bg);color:var(--success);padding:4px 9px;border-radius:12px;}
+.int-landing .bnote{font-size:12.5px;color:var(--text-muted);}
+
+/* TIERS */
+.int-landing .tiers{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:stretch;}
+@media(max-width:940px){.int-landing .tiers{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:560px){.int-landing .tiers{grid-template-columns:1fr;}}
+.int-landing .tier{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px 20px;display:flex;flex-direction:column;position:relative;transition:transform .2s ease,box-shadow .2s ease;}
+.int-landing .tier:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(20,21,26,.08);}
+.int-landing .tier.dark{background:var(--ink);border-color:var(--ink);}
+.int-landing .tier.dark:hover{box-shadow:0 16px 40px rgba(20,21,26,.28);}
+.int-landing .tier.dark .tname,.int-landing .tier.dark .tprice{color:#fff;}
+.int-landing .tier.dark .tdesc,.int-landing .tier.dark .tbilled,.int-landing .tier.dark li .txt{color:#B9C0C9;}
+.int-landing .tier.dark .setup{border-color:rgba(255,255,255,.16);}
+.int-landing .poptag{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 11px;border-radius:12px;white-space:nowrap;}
+.int-landing .tname{font-size:19px;font-weight:800;letter-spacing:-.01em;}
+.int-landing .tdesc{font-size:12.5px;color:var(--text-secondary);margin-top:5px;line-height:1.45;min-height:34px;}
+.int-landing .tprice{margin-top:16px;font-size:38px;font-weight:800;letter-spacing:-.03em;line-height:1;}
+.int-landing .tprice .per{font-size:14px;font-weight:600;color:var(--text-secondary);letter-spacing:0;}
+.int-landing .tprice.custom{font-size:26px;}
+.int-landing .tbilled{font-size:12px;color:var(--text-muted);margin-top:6px;min-height:16px;}
+.int-landing .savebadge{display:inline-block;font-size:12px;font-weight:600;color:var(--success);background:var(--success-bg);padding:3px 8px;border-radius:4px;margin-top:8px;}
+.int-landing .setup{margin-top:16px;padding-top:14px;border-top:1px dashed var(--border-strong);}
+.int-landing .setup-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
+.int-landing .tsetup-lab{font-size:12.5px;color:var(--text-secondary);font-weight:600;}
+.int-landing .tier.dark .tsetup-lab{color:#DDE2E8;}
+.int-landing .tsetup-amt{font-family:var(--font-mono,monospace);font-size:13px;font-weight:700;color:var(--text);}
+.int-landing .tier.dark .tsetup-amt{color:#fff;}
+.int-landing .tsetup-strike{text-decoration:line-through;color:var(--text-muted);font-weight:400;}
+.int-landing .tsetup-waived{color:var(--success);}
+.int-landing ul.feat{margin-top:16px;display:flex;flex-direction:column;gap:9px;flex:1;}
+.int-landing ul.feat li{font-size:13px;display:flex;gap:8px;align-items:flex-start;line-height:1.4;}
+.int-landing ul.feat li .ck{color:var(--accent);font-weight:700;flex:none;font-size:12px;margin-top:1px;}
+.int-landing ul.feat li .txt{color:var(--text-secondary);}
+.int-landing ul.feat li.head{margin-top:4px;padding-top:12px;border-top:1px dashed var(--border-strong);}
+.int-landing .tier.dark ul.feat li.head{border-color:rgba(255,255,255,.14);}
+.int-landing ul.feat li.head .txt{font-weight:700;color:var(--text);}
+.int-landing .tier.dark ul.feat li.head .txt{color:#fff;}
+.int-landing .tbtn{margin-top:20px;display:block;width:100%;text-align:center;font-size:14px;font-weight:700;padding:12px;border-radius:var(--radius);text-decoration:none;transition:.15s;border:1px solid var(--border-strong);color:var(--text);background:transparent;font-family:inherit;cursor:pointer;}
+.int-landing .tbtn:hover{border-color:var(--text);}
+.int-landing .tier.dark .tbtn{border-color:rgba(255,255,255,.25);color:#fff;}
+.int-landing .tbtn.solid{background:var(--accent);border-color:var(--accent);color:#fff;}
+.int-landing .tbtn.solid:hover{background:var(--accent-dark);}
+.int-landing .tbtn:disabled{opacity:.7;cursor:wait;}
+
+/* CHECKOUT ERROR */
+.int-landing .checkout-error{background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:12px 20px;color:#B91C1C;font-size:14px;font-weight:500;margin-bottom:24px;}
+
+/* FAQ */
+.int-landing .faqwrap{max-width:760px;margin:0 auto;}
+.int-landing .faq{border-top:1px solid var(--border);}
+.int-landing .faq:last-child{border-bottom:1px solid var(--border);}
+.int-landing .faq-q{width:100%;text-align:left;background:none;border:none;cursor:pointer;padding:20px 4px;display:flex;align-items:center;justify-content:space-between;gap:16px;font-family:inherit;}
+.int-landing .faq-q .qt{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.01em;}
+.int-landing .faq-q .ic{flex:none;width:22px;height:22px;color:var(--accent);transition:transform .2s;}
+.int-landing .faq.open .faq-q .ic{transform:rotate(45deg);}
+.int-landing .faq-a{display:grid;grid-template-rows:0fr;transition:grid-template-rows .25s ease;}
+.int-landing .faq.open .faq-a{grid-template-rows:1fr;}
+.int-landing .faq-a .inner{overflow:hidden;min-height:0;}
+.int-landing .faq-a .inner .pad{padding:0 4px 20px;font-size:14.5px;color:var(--text-secondary);line-height:1.6;}
+
+/* REFER BAND */
+.int-landing .referband{background:var(--accent-light);border-top:1px solid var(--border);}
+.int-landing .referband-inner{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:38px 0;flex-wrap:wrap;}
+.int-landing .rb-eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);}
+.int-landing .rb-title{font-size:25px;font-weight:800;letter-spacing:-.02em;margin-top:6px;color:var(--text);}
+.int-landing .rb-sub{font-size:14.5px;color:var(--text-secondary);margin-top:8px;max-width:520px;}
+.int-landing .rb-btn{flex:none;background:var(--accent-dark);opacity:.55;color:#fff;font-size:15px;font-weight:700;padding:15px 26px;border-radius:10px;white-space:nowrap;cursor:default;border:none;font-family:inherit;}
+
+/* FOOTER */
+.int-landing .footer{background:var(--ink);color:#B9C0C9;padding:52px 0 30px;}
+.int-landing .foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:32px;}
+@media(max-width:760px){.int-landing .foot-grid{grid-template-columns:1fr 1fr;gap:28px;}}
+.int-landing .footer .ftag{margin-top:12px;font-size:13.5px;line-height:1.6;max-width:280px;}
+.int-landing .footer .faddr{margin-top:14px;font-size:12px;color:#8A929C;line-height:1.5;}
+.int-landing .footer h4{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A929C;margin-bottom:14px;}
+.int-landing .footer ul{display:flex;flex-direction:column;gap:9px;}
+.int-landing .footer ul a{font-size:13.5px;color:#B9C0C9;text-decoration:none;transition:.15s;}
+.int-landing .footer ul a:hover{color:#fff;}
+.int-landing .footer ul span.inert{font-size:13.5px;color:#6B717C;}
+.int-landing .foot-bottom{margin-top:40px;padding-top:22px;border-top:1px solid rgba(255,255,255,.1);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:12.5px;color:#8A929C;}
 `;
+
+function PlusIcon() {
+  return (
+    <svg className="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
 
 export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }) {
   const [isAnnual, setIsAnnual] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
-  const [seatModal, setSeatModal] = useState<{ open: boolean; email: string; planName: string }>({ open: false, email: "", planName: "" });
+  const [seatModal, setSeatModal] = useState<{ open: boolean; email: string; planName: string }>({
+    open: false,
+    email: "",
+    planName: "",
+  });
+  const [activeTab, setActiveTab] = useState<"send" | "recv">("send");
+  const [openFaqs, setOpenFaqs] = useState<Set<number>>(new Set());
 
   function openSeatModal(email: string, planName: string) {
     setSeatModal({ open: true, email, planName });
+  }
+
+  function toggleFaq(i: number) {
+    setOpenFaqs((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
   }
 
   async function handleCheckout(planId: string, period: "monthly" | "annual") {
@@ -455,324 +456,313 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
 
   return (
     <>
-    <style dangerouslySetInnerHTML={{ __html: CARD_STYLES }} />
-    <div
-      style={{
-        fontFamily:
-          "var(--font-inter-tight, 'Inter Tight', -apple-system, system-ui, sans-serif)",
-        background: "#F7F4EE",
-        color: "#161614",
-        lineHeight: 1.55,
-        minHeight: "100vh",
-        WebkitFontSmoothing: "antialiased",
-        MozOsxFontSmoothing: "grayscale",
-      }}
-    >
-      {/* Header */}
-      <header style={{ padding: "24px 0", borderBottom: "1px solid #E5DFD3" }}>
-        <div
-          style={{
-            maxWidth: 1280,
-            margin: "0 auto",
-            padding: "0 32px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Link href="/" style={{ textDecoration: "none" }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/getbackplate-logo-light.svg"
-              alt="GetBackplate"
-              style={{ height: 28, width: "auto", display: "block" }}
-            />
-          </Link>
-          <nav style={{ display: "flex" }}>
-            {(
-              [
-                ["Platform", "/"],
-                ["Integrations", "/integrations/qbo-r365"],
-              ] as [string, string][]
-            ).map(([label, href]) => (
-              <a
-                key={label}
-                href={href}
-                style={{
-                  color: "#6B6760",
-                  textDecoration: "none",
-                  fontWeight: 500,
-                  fontSize: 15,
-                  marginLeft: 28,
-                }}
-              >
-                {label}
+      <style dangerouslySetInnerHTML={{ __html: STYLES }} />
+      <div className="int-landing">
+        {/* NAV */}
+        <nav className="nav">
+          <div className="nav-inner">
+            <Link href="/" className="logo">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/getbackplate-logo-light.svg" alt="GetBackplate" style={{ height: 28, width: "auto", display: "block" }} />
+            </Link>
+            <div className="navlinks">
+              <Link href="/">Platform</Link>
+              <a href="#integrations">Integration</a>
+              <a href="#proof">Case study</a>
+              <a href="#pricing">Pricing</a>
+              <a href="#faq">FAQ</a>
+            </div>
+            <div className="nav-btns">
+              <span className="nav-ghost">Refer a vendor</span>
+              <a className="nav-cta" href="#pricing">
+                Start sending →
               </a>
-            ))}
-          </nav>
-        </div>
-      </header>
-
-      {/* Hero */}
-      <section style={{ padding: "80px 0 56px", textAlign: "center" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 32px" }}>
-          <span
-            style={{
-              display: "inline-block",
-              fontSize: 13,
-              fontWeight: 600,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: "#C24A1E",
-              background: "#FCE9DD",
-              padding: "6px 14px",
-              borderRadius: 100,
-              marginBottom: 24,
-            }}
-          >
-            QBO ↔ R365 Integration
-          </span>
-
-          <h1
-            style={{
-              fontFamily: "var(--font-fraunces, serif)",
-              fontSize: "clamp(40px, 6vw, 72px)",
-              fontWeight: 600,
-              lineHeight: 1.02,
-              letterSpacing: "-0.03em",
-              marginBottom: 24,
-              maxWidth: 900,
-              marginLeft: "auto",
-              marginRight: "auto",
-            }}
-          >
-            The only native connector between{" "}
-            <em style={{ fontStyle: "italic", color: "#C24A1E", fontWeight: 500 }}>
-              QuickBooks Online
-            </em>{" "}
-            and{" "}
-            <em style={{ fontStyle: "italic", color: "#C24A1E", fontWeight: 500 }}>
-              Restaurant365
-            </em>
-            .
-          </h1>
-
-          <p
-            style={{
-              fontSize: 19,
-              color: "#6B6760",
-              maxWidth: 640,
-              margin: "0 auto 40px",
-              lineHeight: 1.5,
-            }}
-          >
-            Built for food vendors and distributors selling to R365 restaurants. Send
-            invoices and credit memos automatically, in real time, from your QuickBooks
-            Online directly to your customers&apos; R365.
-          </p>
-
-          {/* Billing toggle */}
-          <div
-            style={{ display: "inline-flex", alignItems: "center", gap: 16, marginBottom: 10 }}
-          >
-            <button
-              onClick={() => setIsAnnual(false)}
-              style={{
-                fontSize: 16,
-                fontWeight: 600,
-                color: isAnnual ? "#9B968D" : "#161614",
-                cursor: "pointer",
-                userSelect: "none",
-                background: "none",
-                border: "none",
-                padding: 0,
-                fontFamily: "inherit",
-                transition: "color 0.25s ease",
-              }}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setIsAnnual(!isAnnual)}
-              aria-label="Toggle billing period"
-              style={{
-                width: 54,
-                height: 30,
-                background: isAnnual ? "#161614" : "#D9D5CC",
-                border: "none",
-                borderRadius: 100,
-                position: "relative",
-                cursor: "pointer",
-                transition: "background 0.3s ease",
-                padding: 0,
-                flexShrink: 0,
-              }}
-            >
-              <span
-                style={{
-                  position: "absolute",
-                  top: 3,
-                  left: 3,
-                  width: 24,
-                  height: 24,
-                  background: "white",
-                  borderRadius: "50%",
-                  boxShadow: "0 2px 4px rgba(22,22,20,0.18)",
-                  transition: "transform 0.3s cubic-bezier(0.25,0.1,0.25,1)",
-                  transform: isAnnual ? "translateX(24px)" : "translateX(0)",
-                  display: "block",
-                }}
-              />
-            </button>
-            <button
-              onClick={() => setIsAnnual(true)}
-              style={{
-                fontSize: 16,
-                fontWeight: 600,
-                color: isAnnual ? "#161614" : "#9B968D",
-                cursor: "pointer",
-                userSelect: "none",
-                background: "none",
-                border: "none",
-                padding: 0,
-                fontFamily: "inherit",
-                transition: "color 0.25s ease",
-              }}
-            >
-              Annual{" "}
-              <span
-                style={{
-                  display: "inline-block",
-                  background: "#2D7A4A",
-                  color: "white",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: "0.04em",
-                  padding: "3px 8px",
-                  borderRadius: 4,
-                  marginLeft: 6,
-                  verticalAlign: "1px",
-                }}
-              >
-                2 MONTHS FREE
-              </span>
-            </button>
+            </div>
           </div>
+        </nav>
 
-          <div style={{ fontSize: 13, color: "#9B968D", marginTop: 12 }}>
-            Annual billing = pay 10 months, get 12. Setup fee waived.
-          </div>
-        </div>
-      </section>
-
-      {/* Checkout error banner */}
-      {checkoutError && (
-        <div
-          style={{
-            maxWidth: 1280,
-            margin: "0 auto 24px",
-            padding: "0 32px",
-          }}
-        >
-          <div
-            style={{
-              background: "#FEF2F2",
-              border: "1px solid #FECACA",
-              borderRadius: 12,
-              padding: "12px 20px",
-              color: "#B91C1C",
-              fontSize: 14,
-              fontWeight: 500,
-            }}
-          >
-            {checkoutError}
-          </div>
-        </div>
-      )}
-
-      {/* Pricing grid */}
-      <section style={{ padding: "56px 0 80px" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 32px" }}>
-          <div
-            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"
-            style={{ alignItems: "stretch" }}
-          >
-            {plans.map((plan) => (
-              <PlanCard
-                key={plan.id}
-                plan={plan}
-                isAnnual={isAnnual}
-                onCheckout={handleCheckout}
-                onSeatRequest={openSeatModal}
-                checkoutLoading={checkoutLoading}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Extras */}
-      <section style={{ padding: "60px 0", borderTop: "1px solid #E5DFD3" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 32px" }}>
-          <div className="grid grid-cols-1 gap-10 md:grid-cols-3" style={{ alignItems: "start" }}>
-            {INTEGRATION_EXTRAS.map((extra) => (
-              <div key={extra.title} style={{ maxWidth: 340 }}>
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    background: "#FCE9DD",
-                    borderRadius: 8,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginBottom: 16,
-                    color: "#C24A1E",
-                    fontWeight: 700,
-                    fontSize: 18,
-                  }}
-                >
-                  {extra.icon}
-                </div>
-                <h3
-                  style={{
-                    fontFamily: "var(--font-fraunces, serif)",
-                    fontSize: 22,
-                    fontWeight: 600,
-                    marginBottom: 12,
-                    letterSpacing: "-0.02em",
-                  }}
-                >
-                  {extra.title}
-                </h3>
-                <p style={{ color: "#6B6760", fontSize: 15, lineHeight: 1.55 }}>
-                  {extra.desc}
+        {/* HERO */}
+        <section className="hero" id="integrations">
+          <div className="container">
+            <div className="hero-grid">
+              <div>
+                <span className="badge">Integrations</span>
+                <h1 className="h1">
+                  Your QuickBooks invoices don&apos;t land in your customers&apos; Restaurant365.{" "}
+                  <span className="fix">We fixed that.</span>
+                </h1>
+                <p className="lead">
+                  Send every invoice from QuickBooks Online into your customers&apos; Restaurant365 —
+                  automatically, no manual steps. No exports. No email chains. No re-typing.
                 </p>
               </div>
-            ))}
+              <div className="module">
+                <div className="tabs">
+                  <button className={`tab${activeTab === "send" ? " active" : ""}`} onClick={() => setActiveTab("send")}>
+                    <div className="tt">I send invoices.</div>
+                    <div className="ts">From QuickBooks Online to Restaurant365</div>
+                  </button>
+                  <button className={`tab${activeTab === "recv" ? " active" : ""}`} onClick={() => setActiveTab("recv")}>
+                    <div className="tt">I receive invoices.</div>
+                    <div className="ts">Into my Restaurant365</div>
+                  </button>
+                </div>
+
+                <div className={`panel${activeTab === "send" ? " active" : ""}`}>
+                  <span className="pill">QuickBooks Online → R365</span>
+                  <div className="pline">Your restaurant clients are on R365. Your invoices should be too.</div>
+                  <div className="feed">
+                    <div className="feed-h">
+                      <span className="dots"><i></i><i></i><i></i></span>
+                      <span className="ftitle">QuickBooks Online · Invoice sent</span>
+                    </div>
+                    <div className="inv">
+                      <div className="il"><div className="in">INV-1084 · Northside Grill</div><div className="im">$4,218.00 · just now</div></div>
+                      <span className="stat">Sent</span>
+                    </div>
+                    <div className="inv">
+                      <div className="il"><div className="in">INV-1083 · Northside Grill</div><div className="im">$1,875.50 · 2 hrs ago</div></div>
+                      <span className="stat">Sent</span>
+                    </div>
+                    <div className="inv">
+                      <div className="il"><div className="in">INV-1081 · Riverside Kitchen</div><div className="im">$3,140.00 · yesterday</div></div>
+                      <span className="stat">Sent</span>
+                    </div>
+                  </div>
+                  <div className="pcta">
+                    <a className="btn primary" href="#pricing">
+                      Start sending →
+                    </a>
+                  </div>
+                </div>
+
+                <div className={`panel${activeTab === "recv" ? " active" : ""}`}>
+                  <span className="pill">R365 ← QuickBooks Online</span>
+                  <div className="pline">Get your vendors&apos; invoices into your Restaurant365 — automatically, no manual entry.</div>
+                  <div className="feed">
+                    <div className="feed-h">
+                      <span className="dots"><i></i><i></i><i></i></span>
+                      <span className="ftitle">Restaurant365 · Invoice received</span>
+                    </div>
+                    <div className="inv">
+                      <div className="il"><div className="in">Costa Produce Co.</div><div className="im">INV-4471 · $2,090.00</div></div>
+                      <span className="stat">Received</span>
+                    </div>
+                    <div className="inv">
+                      <div className="il"><div className="in">Rio Grande Meats</div><div className="im">INV-8820 · $5,430.75</div></div>
+                      <span className="stat">Received</span>
+                    </div>
+                    <div className="inv">
+                      <div className="il"><div className="in">Gulf Seafood Supply</div><div className="im">INV-1902 · $1,265.40</div></div>
+                      <span className="stat">Received</span>
+                    </div>
+                  </div>
+                  <div className="refbox">
+                    <div className="rt">Know a vendor who bills you?</div>
+                    <div className="rd">
+                      Refer them and we&apos;ll set up the integration so their invoices land in your R365
+                      automatically — free for you.
+                    </div>
+                  </div>
+                  <div className="pcta">
+                    <span className="btn inert">Refer a vendor →</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* MARQUEE */}
+        <div className="marquee">
+          <span className="marquee-label">Built for</span>
+          <div className="marquee-vp">
+            <div className="marquee-track">
+              {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, i) => (
+                <span key={i}>
+                  <span className={`cat${i % 2 === 0 ? " o" : ""}`}>{item}</span>
+                  <span className="sep">—</span>
+                </span>
+              ))}
+            </div>
           </div>
         </div>
-      </section>
 
-      {/* Notes */}
-      <section
-        style={{
-          padding: "40px 0 80px",
-          borderTop: "1px solid #E5DFD3",
-          fontSize: 13,
-          color: "#9B968D",
-          lineHeight: 1.8,
-        }}
-      >
-        <div style={{ maxWidth: 760, margin: "0 auto", padding: "0 32px", textAlign: "left" }}>
-          {INTEGRATION_NOTES.map(([label, text], i) => (
-            <p key={label} style={{ marginTop: i === 0 ? 0 : 14 }}>
-              <strong style={{ color: "#6B6760" }}>{label}</strong> {text}
-            </p>
-          ))}
+        {/* CASE STUDY */}
+        <section className="section case" id="proof">
+          <div className="container">
+            <div className="case-grid">
+              <div>
+                <span className="plive">
+                  <span className="pulse"></span> In production
+                </span>
+                <h3>Already delivering, every day.</h3>
+                <p>
+                  A South Texas food distributor delivers every invoice to 24 restaurant locations
+                  across 2 brands in Restaurant365 — fully automated, with no manual entry on either
+                  side.
+                </p>
+              </div>
+              <div className="metrics">
+                <div className="metric"><div className="mn">24</div><div className="mk">R365 locations served</div></div>
+                <div className="metric"><div className="mn">2</div><div className="mk">restaurant brands</div></div>
+                <div className="metric"><div className="mn">0</div><div className="mk">manual entries</div></div>
+                <div className="metric"><div className="mn">0</div><div className="mk">failed deliveries</div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* COLOR BANNER */}
+        <div className="cbanner">
+          <div className="ct">
+            Works with <span className="u">QuickBooks Online</span> and{" "}
+            <span className="u">Restaurant365</span> — no manual entry, no PDFs.
+          </div>
         </div>
-      </section>
-    </div>
+
+        {/* PRICING */}
+        <section className="section" id="pricing" style={{ background: "var(--surface)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
+          <div className="container">
+            <div className="sec-head">
+              <div className="eyebrow">Pricing</div>
+              <h2 className="h2">Pricing that scales with your R365 reach.</h2>
+              <p className="sec-sub">
+                Built for food vendors and distributors selling to Restaurant365. Send invoices and
+                credit memos automatically — from QuickBooks Online straight to your customers&apos;
+                R365.
+              </p>
+            </div>
+
+            <div className="billing">
+              <div className="togrow">
+                <button className={`lbl${!isAnnual ? " on" : ""}`} onClick={() => setIsAnnual(false)}>
+                  Monthly
+                </button>
+                <button
+                  className={`switch${isAnnual ? " annual" : ""}`}
+                  aria-label="Toggle billing period"
+                  onClick={() => setIsAnnual(!isAnnual)}
+                >
+                  <span className="knob"></span>
+                </button>
+                <button className={`lbl${isAnnual ? " on" : ""}`} onClick={() => setIsAnnual(true)}>
+                  Annual
+                </button>
+                <span className="freebadge">2 months free</span>
+              </div>
+              <div className="bnote">Annual billing = pay 10 months, get 12. Setup fee waived.</div>
+            </div>
+
+            {checkoutError && <div className="checkout-error">{checkoutError}</div>}
+
+            <div className="tiers">
+              {plans.map((plan) => (
+                <PlanCard
+                  key={plan.id}
+                  plan={plan}
+                  isAnnual={isAnnual}
+                  onCheckout={handleCheckout}
+                  onSeatRequest={openSeatModal}
+                  checkoutLoading={checkoutLoading}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section className="section" id="faq">
+          <div className="container">
+            <div className="sec-head">
+              <div className="eyebrow">FAQ</div>
+              <h2 className="h2">Questions, answered.</h2>
+            </div>
+            <div className="faqwrap">
+              {FAQ_ITEMS.map((item, i) => (
+                <div key={item.q} className={`faq${openFaqs.has(i) ? " open" : ""}`}>
+                  <button className="faq-q" onClick={() => toggleFaq(i)}>
+                    <span className="qt">{item.q}</span>
+                    <PlusIcon />
+                  </button>
+                  <div className="faq-a">
+                    <div className="inner">
+                      <div className="pad">{item.a}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* REFER BAND */}
+        <section className="referband">
+          <div className="container">
+            <div className="referband-inner">
+              <div>
+                <div className="rb-eyebrow">For restaurants</div>
+                <h3 className="rb-title">Want a vendor to send you invoices this way?</h3>
+                <p className="rb-sub">
+                  Refer them and we&apos;ll handle the setup — their invoices land in your Restaurant365
+                  automatically, at no cost to you.
+                </p>
+              </div>
+              <span className="rb-btn">Refer a vendor →</span>
+            </div>
+          </div>
+        </section>
+
+        {/* FOOTER */}
+        <footer className="footer">
+          <div className="container">
+            <div className="foot-grid">
+              <div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/getbackplate-logo-footer.svg" alt="GetBackplate" style={{ height: 22, width: "auto" }} />
+                <div className="ftag">
+                  Automated invoice delivery from QuickBooks Online into your customers&apos;
+                  Restaurant365 — built for food vendors and distributors.
+                </div>
+                <div className="faddr">
+                  1321 Upland Dr., Suite 9894
+                  <br />
+                  Houston, TX 77043
+                </div>
+              </div>
+              <div>
+                <h4>Product</h4>
+                <ul>
+                  <li><a href="#integrations">Integration</a></li>
+                  <li><a href="#pricing">Pricing</a></li>
+                  <li><a href="#proof">Case study</a></li>
+                  <li><a href="#faq">FAQ</a></li>
+                </ul>
+              </div>
+              <div>
+                <h4>Company</h4>
+                <ul>
+                  <li><span className="inert">Trust Center</span></li>
+                  <li><span className="inert">Refer a vendor</span></li>
+                  <li><a href="mailto:hello@getbackplate.com">Contact</a></li>
+                </ul>
+              </div>
+              <div>
+                <h4>Legal</h4>
+                <ul>
+                  <li><a href="/legal/integration/privacy">Privacy</a></li>
+                  <li><a href="/legal/integration/terms">Terms</a></li>
+                  <li><a href="/legal/integration/msa">MSA</a></li>
+                </ul>
+              </div>
+            </div>
+            <div className="foot-bottom">
+              <span>© 2026 Backplate Technologies LLC. All rights reserved.</span>
+              <span>hello@getbackplate.com</span>
+            </div>
+          </div>
+        </footer>
+      </div>
       <RequestSeatModal
         open={seatModal.open}
         onClose={() => setSeatModal((s) => ({ ...s, open: false }))}
