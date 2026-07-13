@@ -200,7 +200,17 @@ export async function sendOwnerWeeklyOpsReport(input: {
   const subject = input.overrideRecipientEmail ? `[test] ${subjectBase}` : subjectBase;
 
   for (const recipient of recipients) {
-    await sendTransactionalEmail({
+    if (!input.overrideRecipientEmail) {
+      const { data: existingRun } = await admin
+        .from("qbo_owner_weekly_report_runs")
+        .select("id")
+        .eq("period_start", input.periodStart)
+        .eq("recipient_email", recipient)
+        .maybeSingle();
+      if (existingRun) continue;
+    }
+
+    const result = await sendTransactionalEmail({
       to: recipient,
       subject: `[${FIXED_SENDER_NAME}] ${subject}`,
       html,
@@ -211,6 +221,14 @@ export async function sendOwnerWeeklyOpsReport(input: {
         title: subject,
       },
     });
+
+    if (result.ok && !input.overrideRecipientEmail) {
+      await admin.from("qbo_owner_weekly_report_runs").insert({
+        period_start: input.periodStart,
+        period_end: input.periodEnd,
+        recipient_email: recipient,
+      });
+    }
   }
 
   return { sent: true };

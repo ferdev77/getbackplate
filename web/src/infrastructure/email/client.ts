@@ -33,6 +33,8 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+const BREVO_TIMEOUT_MS = 20_000;
+
 export async function sendTransactionalEmail(input: SendEmailInput): Promise<SendEmailResult> {
   const apiKey = process.env.BREVO_API_KEY?.trim();
   const { senderEmail, senderName } = getSender(input.senderName);
@@ -44,29 +46,37 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
   } else if (!senderEmail) {
     result = { ok: false, error: "BREVO_SENDER_EMAIL/MAIL_FROM no configurado" };
   } else {
-    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "api-key": apiKey,
-      },
-      body: JSON.stringify({
-        sender: { email: senderEmail, name: senderName },
-        to: [{ email: input.to }],
-        subject: input.subject,
-        htmlContent: input.html,
-        textContent: input.text,
-      }),
-    });
+    try {
+      const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "api-key": apiKey,
+        },
+        body: JSON.stringify({
+          sender: { email: senderEmail, name: senderName },
+          to: [{ email: input.to }],
+          subject: input.subject,
+          htmlContent: input.html,
+          textContent: input.text,
+        }),
+        signal: AbortSignal.timeout(BREVO_TIMEOUT_MS),
+      });
 
-    if (!response.ok) {
-      const bodyText = await response.text().catch(() => "");
+      if (!response.ok) {
+        const bodyText = await response.text().catch(() => "");
+        result = {
+          ok: false,
+          error: `Brevo error ${response.status}: ${bodyText || "request failed"}`,
+        };
+      } else {
+        result = { ok: true };
+      }
+    } catch (error) {
       result = {
         ok: false,
-        error: `Brevo error ${response.status}: ${bodyText || "request failed"}`,
+        error: error instanceof Error ? `Brevo request failed: ${error.message}` : "Brevo request failed",
       };
-    } else {
-      result = { ok: true };
     }
   }
 
