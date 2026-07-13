@@ -213,7 +213,8 @@ const STYLES = `
 .int-landing .navlinks a{font-size:14px;font-weight:600;color:var(--text-secondary);text-decoration:none;transition:.15s;}
 .int-landing .navlinks a:hover{color:var(--text);}
 .int-landing .nav-btns{display:flex;align-items:center;gap:10px;}
-.int-landing .nav-ghost{font-size:14px;font-weight:700;color:var(--accent);text-decoration:none;padding:9px 14px;border:1px solid var(--accent-light);border-radius:8px;white-space:nowrap;cursor:default;}
+.int-landing .nav-ghost{font-size:14px;font-weight:700;color:var(--accent);text-decoration:none;padding:9px 14px;border:1px solid var(--accent-light);border-radius:8px;white-space:nowrap;transition:.15s;}
+.int-landing .nav-ghost:hover{background:var(--accent-light);}
 @media(max-width:760px){.int-landing .nav-ghost{display:none;}}
 .int-landing .nav-cta{background:var(--accent);color:#fff;font-size:14px;font-weight:700;padding:9px 16px;border-radius:8px;text-decoration:none;transition:.15s;white-space:nowrap;}
 .int-landing .nav-cta:hover{background:var(--accent-dark);}
@@ -377,7 +378,8 @@ const STYLES = `
 .int-landing .rb-eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);}
 .int-landing .rb-title{font-size:25px;font-weight:800;letter-spacing:-.02em;margin-top:6px;color:var(--text);}
 .int-landing .rb-sub{font-size:14.5px;color:var(--text-secondary);margin-top:8px;max-width:520px;}
-.int-landing .rb-btn{flex:none;background:var(--accent-dark);opacity:.55;color:#fff;font-size:15px;font-weight:700;padding:15px 26px;border-radius:10px;white-space:nowrap;cursor:default;border:none;font-family:inherit;}
+.int-landing .rb-btn{flex:none;background:var(--accent);color:#fff;font-size:15px;font-weight:700;padding:15px 26px;border-radius:10px;text-decoration:none;white-space:nowrap;transition:.15s;}
+.int-landing .rb-btn:hover{background:var(--accent-dark);}
 
 /* FOOTER */
 .int-landing .footer{background:var(--ink);color:#B9C0C9;padding:52px 0 30px;}
@@ -473,7 +475,9 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
               <a href="#faq">FAQ</a>
             </div>
             <div className="nav-btns">
-              <span className="nav-ghost">Refer a vendor</span>
+              <Link href="/refer" className="nav-ghost">
+                Refer a vendor
+              </Link>
               <a className="nav-cta" href="#pricing">
                 Start sending →
               </a>
@@ -565,7 +569,9 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
                     </div>
                   </div>
                   <div className="pcta">
-                    <span className="btn inert">Refer a vendor →</span>
+                    <Link href="/refer" className="btn primary">
+                      Refer a vendor →
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -708,7 +714,9 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
                   automatically, at no cost to you.
                 </p>
               </div>
-              <span className="rb-btn">Refer a vendor →</span>
+              <Link href="/refer" className="rb-btn">
+                Refer a vendor →
+              </Link>
             </div>
           </div>
         </section>
@@ -743,7 +751,7 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
                 <h4>Company</h4>
                 <ul>
                   <li><span className="inert">Trust Center</span></li>
-                  <li><span className="inert">Refer a vendor</span></li>
+                  <li><Link href="/refer">Refer a vendor</Link></li>
                   <li><a href="mailto:hello@getbackplate.com">Contact</a></li>
                 </ul>
               </div>

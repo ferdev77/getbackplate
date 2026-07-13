@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { verifyReferralToken } from "@/modules/integrations/qbo-r365/services/referral-token";
 import { sendVendorReferral } from "@/modules/integrations/qbo-r365/services/vendor-referral.service";
+import { isValidEmail } from "@/shared/lib/validate-email";
 
 type ReferralBody = {
   token: string;
@@ -10,10 +11,6 @@ type ReferralBody = {
   vendorEmail: string;
   vendorPhone: string;
 };
-
-function isValidEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
 
 export async function POST(request: Request) {
   let body: ReferralBody;

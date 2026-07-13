@@ -141,6 +141,62 @@ function buildOutreachSubject(referrerName: string): string {
   return `${referrerName} thought of you for Restaurant365 invoice automation`;
 }
 
+export type PublicVendorReferralInput = {
+  referrerName: string;
+  vendorEmail: string;
+  visitorIp?: string | null;
+  userAgent?: string | null;
+};
+
+export async function sendPublicVendorReferral(input: PublicVendorReferralInput): Promise<void> {
+  const admin = createSupabaseAdminClient();
+
+  const subject = buildOutreachSubject(input.referrerName);
+  const html = buildOutreachEmailHtml(input.referrerName, "");
+  const appBase = (process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://app.getbackplate.com").replace(/\/$/, "");
+  const text = `Hi there,
+
+I'm Angelo Ramos, founder of GetBackplate.
+
+${input.referrerName} uses our platform to automate invoice delivery from one of their vendors directly into their Restaurant365 — no manual entry, no PDFs, no reconciliation errors. They mentioned you as another vendor who might benefit from the same setup.
+
+What we do: we connect your QuickBooks Online to your restaurant customers' Restaurant365 via SFTP. Your invoices land in their system automatically, in the exact format R365 expects. We operate within the Restaurant365 ecosystem, delivering in production to multiple restaurant brands today.
+
+For your team, this means zero manual entry on your customers' side, zero PDF exports on yours, cleaner reconciliation, and positioning as a tech-forward vendor that R365 restaurants prefer.
+
+Onboarding takes a few days, no long-term contracts.
+
+Worth a 15-minute call to see if it fits your operation? Reply with a few times that work for you and I'll send a calendar invite.
+
+Best,
+
+Angelo Ramos
+Founder, GetBackplate
+angelo@getbackplate.com · (956) 802-9639
+${appBase}/integrations/qbo-r365`;
+
+  await sendTransactionalEmail({
+    to: input.vendorEmail,
+    subject,
+    html,
+    text,
+    senderName: "Angelo at GetBackplate",
+    notification: {
+      source: "qbo_public_vendor_referral",
+      organizationId: null,
+      title: subject,
+    },
+  });
+
+  await admin.from("qbo_public_vendor_referrals").insert({
+    referrer_name: input.referrerName,
+    vendor_email: input.vendorEmail,
+    visitor_ip: input.visitorIp ?? null,
+    user_agent: input.userAgent ?? null,
+    outreach_sent_at: new Date().toISOString(),
+  });
+}
+
 export async function sendVendorReferral(input: VendorReferralInput): Promise<void> {
   const admin = createSupabaseAdminClient();
 
