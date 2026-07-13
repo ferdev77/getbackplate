@@ -119,8 +119,13 @@ export async function sendOwnerWeeklyOpsReport(input: {
   periodEnd: string;
   overrideRecipientEmail?: string;
 }): Promise<{ sent: boolean; reason?: string }> {
-  const recipient = input.overrideRecipientEmail ?? process.env.OWNER_WEEKLY_REPORT_EMAIL?.trim();
-  if (!recipient) {
+  const recipients = input.overrideRecipientEmail
+    ? [input.overrideRecipientEmail]
+    : (process.env.OWNER_WEEKLY_REPORT_EMAIL ?? "")
+        .split(",")
+        .map((email) => email.trim())
+        .filter(Boolean);
+  if (!recipients.length) {
     return { sent: false, reason: "OWNER_WEEKLY_REPORT_EMAIL no configurada" };
   }
 
@@ -194,17 +199,19 @@ export async function sendOwnerWeeklyOpsReport(input: {
   const subjectBase = `Weekly Operations — ${periodLabel}`;
   const subject = input.overrideRecipientEmail ? `[test] ${subjectBase}` : subjectBase;
 
-  await sendTransactionalEmail({
-    to: recipient,
-    subject: `[${FIXED_SENDER_NAME}] ${subject}`,
-    html,
-    text: `Weekly Operations ${periodLabel}: ${totalDelivered} invoices delivered, ${activeLocations}/${totalLocations} active locations, ${quietLocations} quiet, ${failed} failed after retries.`,
-    senderName: FIXED_SENDER_NAME,
-    notification: {
-      source: "qbo_owner_weekly_ops_report",
-      title: subject,
-    },
-  });
+  for (const recipient of recipients) {
+    await sendTransactionalEmail({
+      to: recipient,
+      subject: `[${FIXED_SENDER_NAME}] ${subject}`,
+      html,
+      text: `Weekly Operations ${periodLabel}: ${totalDelivered} invoices delivered, ${activeLocations}/${totalLocations} active locations, ${quietLocations} quiet, ${failed} failed after retries.`,
+      senderName: FIXED_SENDER_NAME,
+      notification: {
+        source: "qbo_owner_weekly_ops_report",
+        title: subject,
+      },
+    });
+  }
 
   return { sent: true };
 }

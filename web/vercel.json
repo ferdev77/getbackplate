@@ -18,7 +18,7 @@
     },
     {
       "path": "/api/internal/cron/qbo-weekly-invoice-report",
-      "schedule": "0 16 * * 1"
+      "schedule": "30 15 * * 1"
     },
     {
       "path": "/api/internal/cron/qbo-monthly-org-report",
