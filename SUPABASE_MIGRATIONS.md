@@ -157,6 +157,11 @@ Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 | 147 | `20260629000005_qbo_vendor_referrals.sql` | Tabla `qbo_vendor_referrals` — registro de vendors referidos por sucursales (Taco, Kumori, etc.) vía el formulario del email semanal |
 | 148 | `20260701000001_hr_employee_delegation.sql` | Amplía el CHECK constraint `employee_module_permissions_module_ck` para incluir `'employees'` — habilita delegación de permisos de RRHH a empleados |
 | 149 | `20260703000001_qbo_unified_invoices_claim.sql` | Columna `claimed_at` en `qbo_unified_invoices` + índice — claim atómico para evitar que el fast-path del webhook y el cron de recovery envíen la misma factura dos veces a R365 |
+| 150 | `20260708000001_rls_superadmin_impersonation_sessions.sql` | RLS habilitado en `superadmin_impersonation_sessions` — gap de seguridad detectado en auditoría para Intuit App Store |
+| 151 | `20260709000001_qbo_recovery_run_log.sql` | Tabla `qbo_recovery_run_log` — historial de corridas del cron de recovery (`processed`/`completed`/`failed`/`skipped`) para poder sumarlas por semana en el reporte operativo del owner |
+| 152 | `20260710000001_rls_auto_enable_event_trigger.sql` | Replica en dev el event trigger `ensure_rls` que ya existía en prod (creado fuera de banda) — fuerza RLS automáticamente en cualquier tabla nueva del schema `public` |
+| 153 | `20260713000001_qbo_public_vendor_referrals.sql` | Tabla `qbo_public_vendor_referrals` — referidos de vendors enviados desde el formulario público (sin token) en `/refer`, sin policy de INSERT para anon/authenticated (solo vía service_role) |
+| 154 | `20260713000002_qbo_owner_weekly_report_runs.sql` | Tabla `qbo_owner_weekly_report_runs` — control de deduplicación del reporte semanal de operaciones al owner, por destinatario individual (a diferencia de `qbo_weekly_invoice_report_runs` que dedupe por organización) |
 
 ## Convención de naming
 
