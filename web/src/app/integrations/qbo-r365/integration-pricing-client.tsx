@@ -63,7 +63,13 @@ const FAQ_ITEMS: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "Is my QuickBooks data secure?",
-    a: "Yes. Your connection is authorized through QuickBooks Online's secure OAuth flow, credentials are encrypted, and you can disconnect at any time.",
+    a: (
+      <>
+        Yes. Your connection is authorized through QuickBooks Online&apos;s secure OAuth flow,
+        credentials are encrypted, and you can disconnect at any time. See our{" "}
+        <Link href="/trust">Trust Center</Link> for details.
+      </>
+    ),
   },
   {
     q: "I'm a restaurant — my vendor isn't set up. What do I do?",
@@ -750,7 +756,7 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
               <div>
                 <h4>Company</h4>
                 <ul>
-                  <li><span className="inert">Trust Center</span></li>
+                  <li><Link href="/trust">Trust Center</Link></li>
                   <li><Link href="/refer">Refer a vendor</Link></li>
                   <li><a href="mailto:hello@getbackplate.com">Contact</a></li>
                 </ul>
