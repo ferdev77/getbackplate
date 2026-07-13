@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Fraunces, Inter_Tight } from "next/font/google";
+import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 
-const fraunces = Fraunces({
+const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-fraunces",
-  weight: ["400", "500", "600", "700"],
+  variable: "--font-jakarta",
+  weight: ["400", "500", "600", "700", "800"],
 });
 
-const interTight = Inter_Tight({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-inter-tight",
+  variable: "--font-mono",
   weight: ["400", "500", "600"],
 });
 
@@ -29,19 +29,19 @@ export default async function IntegrationSuccessPage({ searchParams }: Props) {
 
   return (
     <div
-      className={`${fraunces.variable} ${interTight.variable}`}
+      className={`${plusJakartaSans.variable} ${jetbrainsMono.variable}`}
       style={{
         fontFamily:
-          "var(--font-inter-tight, 'Inter Tight', -apple-system, system-ui, sans-serif)",
-        background: "#F7F4EE",
-        color: "#161614",
+          "var(--font-jakarta, 'Plus Jakarta Sans', -apple-system, system-ui, sans-serif)",
+        background: "#F7F8FC",
+        color: "#14151A",
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
       }}
     >
       {/* Header */}
-      <header style={{ padding: "24px 0", borderBottom: "1px solid #E5DFD3" }}>
+      <header style={{ padding: "24px 0", borderBottom: "1px solid #E6E8EE" }}>
         <div
           style={{
             maxWidth: 1280,
@@ -81,7 +81,7 @@ export default async function IntegrationSuccessPage({ searchParams }: Props) {
               width: 64,
               height: 64,
               borderRadius: "50%",
-              background: "rgba(45,122,74,0.1)",
+              background: "#E7F5EC",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -91,7 +91,7 @@ export default async function IntegrationSuccessPage({ searchParams }: Props) {
             <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
               <path
                 d="M5 14L11 20L23 8"
-                stroke="#2D7A4A"
+                stroke="#15803D"
                 strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -101,9 +101,9 @@ export default async function IntegrationSuccessPage({ searchParams }: Props) {
 
           <h1
             style={{
-              fontFamily: "var(--font-fraunces, serif)",
+              fontFamily: "var(--font-jakarta, sans-serif)",
               fontSize: "clamp(32px, 5vw, 52px)",
-              fontWeight: 600,
+              fontWeight: 800,
               lineHeight: 1.05,
               letterSpacing: "-0.03em",
               marginBottom: 20,
@@ -112,15 +112,15 @@ export default async function IntegrationSuccessPage({ searchParams }: Props) {
             You&apos;re in.
           </h1>
 
-          <p style={{ fontSize: 18, color: "#6B6760", lineHeight: 1.6, marginBottom: 12 }}>
+          <p style={{ fontSize: 18, color: "#595B66", lineHeight: 1.6, marginBottom: 12 }}>
             Your{" "}
-            <strong style={{ color: "#161614" }}>
+            <strong style={{ color: "#14151A" }}>
               {decodeURIComponent(planName)}
             </strong>{" "}
             {period} subscription is confirmed.
           </p>
 
-          <p style={{ fontSize: 15, color: "#9B968D", lineHeight: 1.6, marginBottom: 40 }}>
+          <p style={{ fontSize: 15, color: "#8A8C95", lineHeight: 1.6, marginBottom: 40 }}>
             Our team will reach out within one business day to kick off your setup —
             including FTP configuration with R365 Support, item catalog mapping, and
             go-live monitoring.
@@ -133,9 +133,9 @@ export default async function IntegrationSuccessPage({ searchParams }: Props) {
               padding: "13px 28px",
               borderRadius: 100,
               background: "transparent",
-              color: "#161614",
-              border: "1.5px solid #161614",
-              fontWeight: 600,
+              color: "#14151A",
+              border: "1.5px solid #14151A",
+              fontWeight: 700,
               fontSize: 14,
               textDecoration: "none",
               transition: "all 0.2s ease",

@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Fraunces, Inter_Tight } from "next/font/google";
+import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 
-const fraunces = Fraunces({
+const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-fraunces",
-  weight: ["400", "500", "600", "700"],
+  variable: "--font-jakarta",
+  weight: ["400", "500", "600", "700", "800"],
 });
 
-const interTight = Inter_Tight({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-inter-tight",
+  variable: "--font-mono",
   weight: ["400", "500", "600"],
 });
 
@@ -21,19 +21,19 @@ export const metadata: Metadata = {
 export default function IntegrationDisconnectedPage() {
   return (
     <div
-      className={`${fraunces.variable} ${interTight.variable}`}
+      className={`${plusJakartaSans.variable} ${jetbrainsMono.variable}`}
       style={{
         fontFamily:
-          "var(--font-inter-tight, 'Inter Tight', -apple-system, system-ui, sans-serif)",
-        background: "#F7F4EE",
-        color: "#161614",
+          "var(--font-jakarta, 'Plus Jakarta Sans', -apple-system, system-ui, sans-serif)",
+        background: "#F7F8FC",
+        color: "#14151A",
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
       }}
     >
       {/* Header */}
-      <header style={{ padding: "24px 0", borderBottom: "1px solid #E5DFD3" }}>
+      <header style={{ padding: "24px 0", borderBottom: "1px solid #E6E8EE" }}>
         <div
           style={{
             maxWidth: 1280,
@@ -72,7 +72,7 @@ export default function IntegrationDisconnectedPage() {
               width: 64,
               height: 64,
               borderRadius: "50%",
-              background: "rgba(180,58,46,0.1)",
+              background: "#FDE7E6",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -82,7 +82,7 @@ export default function IntegrationDisconnectedPage() {
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
               <path
                 d="M6 6l12 12M18 6L6 18"
-                stroke="#B23A2E"
+                stroke="#B42318"
                 strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -92,9 +92,9 @@ export default function IntegrationDisconnectedPage() {
 
           <h1
             style={{
-              fontFamily: "var(--font-fraunces, serif)",
+              fontFamily: "var(--font-jakarta, sans-serif)",
               fontSize: "clamp(32px, 5vw, 52px)",
-              fontWeight: 600,
+              fontWeight: 800,
               lineHeight: 1.05,
               letterSpacing: "-0.03em",
               marginBottom: 20,
@@ -103,12 +103,12 @@ export default function IntegrationDisconnectedPage() {
             QuickBooks desconectado.
           </h1>
 
-          <p style={{ fontSize: 18, color: "#6B6760", lineHeight: 1.6, marginBottom: 12 }}>
+          <p style={{ fontSize: 18, color: "#595B66", lineHeight: 1.6, marginBottom: 12 }}>
             La conexión entre GetBackplate y tu cuenta de QuickBooks Online{" "}
-            <strong style={{ color: "#161614" }}>fue terminada</strong>.
+            <strong style={{ color: "#14151A" }}>fue terminada</strong>.
           </p>
 
-          <p style={{ fontSize: 15, color: "#9B968D", lineHeight: 1.6, marginBottom: 40 }}>
+          <p style={{ fontSize: 15, color: "#8A8C95", lineHeight: 1.6, marginBottom: 40 }}>
             Las sincronizaciones automáticas hacia Restaurant365 quedaron pausadas hasta que
             vuelvas a conectar tu cuenta. Para reconectar: iniciá sesión en tu cuenta de
             GetBackplate, entrá a Integraciones → QuickBooks Online, y elegí &ldquo;Conectar
@@ -121,10 +121,10 @@ export default function IntegrationDisconnectedPage() {
               display: "inline-block",
               padding: "13px 28px",
               borderRadius: 100,
-              background: "#161614",
-              color: "#F7F4EE",
-              border: "1.5px solid #161614",
-              fontWeight: 600,
+              background: "#14151A",
+              color: "#F7F8FC",
+              border: "1.5px solid #14151A",
+              fontWeight: 700,
               fontSize: 14,
               textDecoration: "none",
               transition: "all 0.2s ease",
