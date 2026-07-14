@@ -301,18 +301,13 @@ export default function TrustCenterPage() {
                 <table className="spec-table">
                   <tbody>
                     <tr><th>Transport encryption</th><td>TLS enforced for all HTTP traffic, with HSTS (Strict-Transport-Security) on every response</td></tr>
+                    <tr><th>Invoice delivery encryption</th><td>FTPS (TLS) enforced on every Restaurant365 delivery connection</td></tr>
                     <tr><th>Credential encryption</th><td>AES-256-GCM, applied at the application layer to OAuth tokens and Restaurant365 delivery credentials before storage</td></tr>
                     <tr><th>Database encryption</th><td>Managed Postgres (Supabase) with encryption at rest on the underlying volume</td></tr>
                     <tr><th>Token refresh</th><td>QuickBooks Online access tokens are refreshed automatically before they expire; a failed refresh marks the connection as disconnected rather than failing silently</td></tr>
                     <tr><th>Webhook verification</th><td>HMAC-SHA256 signature check with constant-time comparison on every incoming Intuit webhook</td></tr>
                   </tbody>
                 </table>
-
-                <div className="note-callout">
-                  <strong>Note on invoice delivery:</strong> invoices are delivered to Restaurant365
-                  over FTP. Encryption in transit for that specific connection (FTPS) is configurable
-                  per connection and is not enabled by default — see the roadmap in section 09.
-                </div>
               </div>
             </div>
           </div>
@@ -364,7 +359,7 @@ export default function TrustCenterPage() {
                   <tbody>
                     <tr><th>Compute</th><td>Vercel — serverless functions and scheduled cron jobs</td></tr>
                     <tr><th>Database</th><td>Supabase-managed PostgreSQL, hosted on AWS (us-west-2)</td></tr>
-                    <tr><th>Outbound delivery</th><td>FTP to a Restaurant365 endpoint, configurable per customer connection</td></tr>
+                    <tr><th>Outbound delivery</th><td>FTPS to a Restaurant365 endpoint, configurable per customer connection</td></tr>
                     <tr><th>Data residency</th><td>United States only — no international data transfer</td></tr>
                     <tr><th>Underlying provider</th><td>Amazon Web Services (AWS) — independently certified SOC 2 Type 2, ISO 27001, PCI DSS Level 1</td></tr>
                   </tbody>
@@ -534,6 +529,7 @@ export default function TrustCenterPage() {
                   <div className="section-title" style={{ marginBottom: 12, fontSize: 18 }}>What we have today</div>
                   <ul className="check-list">
                     <li><span className="ck-icon" /><span className="ck-text">Encryption in transit and at rest across production data.</span></li>
+                    <li><span className="ck-icon" /><span className="ck-text">FTPS (encrypted transport) enforced on every Restaurant365 delivery connection.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Row-Level Security enforcing tenant isolation, with a database trigger that auto-enables it on new tables.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Role-based access control and a functioning audit log.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Tech E&amp;O and Cyber Liability coverage committed at $1M / $2M USD via our Master Services Agreement.</span></li>
@@ -544,7 +540,6 @@ export default function TrustCenterPage() {
                 <div className="transparency-block">
                   <div className="section-title" style={{ marginBottom: 12, fontSize: 18 }}>What&apos;s on the roadmap</div>
                   <ul className="check-list is-planned">
-                    <li><span className="ck-icon" /><span className="ck-text"><strong>FTPS by default —</strong> require encrypted transport for Restaurant365 delivery instead of leaving it as an opt-in.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text"><strong>Documented security policy &amp; incident response plan —</strong> formalize what is today informal practice.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text"><strong>Audit log retention policy —</strong> automate purging of operational logs past a defined retention window.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text"><strong>Third-party penetration test —</strong> first external test, cadence to follow.</span></li>
