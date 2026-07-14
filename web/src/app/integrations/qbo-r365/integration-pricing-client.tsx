@@ -767,6 +767,7 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
                   <li><a href="/legal/integration/privacy">Privacy</a></li>
                   <li><a href="/legal/integration/terms">Terms</a></li>
                   <li><a href="/legal/integration/msa">MSA</a></li>
+                  <li><a href="/legal/integration/incident-response">Incident Response</a></li>
                 </ul>
               </div>
             </div>
