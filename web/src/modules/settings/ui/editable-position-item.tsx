@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Edit2, Trash2, Check, X, ShieldAlert, GripVertical } from "lucide-react";
 import type { PointerEventHandler } from "react";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
+import { createTranslator } from "./settings.i18n";
 
 interface Position {
   id: string;
@@ -13,6 +14,7 @@ interface Position {
 }
 
 interface EditablePositionItemProps {
+  locale?: "es" | "en";
   position: Position;
   updateAction: (formData: FormData) => Promise<void>;
   deleteAction: (formData: FormData) => Promise<void>;
@@ -23,12 +25,14 @@ interface EditablePositionItemProps {
 }
 
 export function EditablePositionItem({
+  locale,
   position,
   updateAction,
   deleteAction,
   toggleStatusAction,
   dragHandleProps,
 }: EditablePositionItemProps) {
+  const t = createTranslator(locale);
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
@@ -98,14 +102,14 @@ export function EditablePositionItem({
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Nombre del puesto"
+            placeholder={t("Nombre del puesto")}
             className="w-full rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-2.5 py-1.5 text-sm text-[var(--gbp-text)] outline-none focus:border-[var(--gbp-accent)]"
             disabled={busy}
           />
           <input
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Descripción (opcional)"
+            placeholder={t("Descripción (opcional)")}
             className="w-full rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-2.5 py-1.5 text-xs text-[var(--gbp-text2)] outline-none focus:border-[var(--gbp-accent)]"
             disabled={busy}
           />
@@ -144,7 +148,7 @@ export function EditablePositionItem({
             <span className="text-sm font-medium text-[var(--gbp-text)]">{position.name}</span>
           {!position.is_active && (
             <span className="rounded bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--gbp-muted)]">
-              Inactivo
+              {t("Inactivo")}
             </span>
           )}
         </div>
@@ -158,7 +162,7 @@ export function EditablePositionItem({
         <button
           onClick={() => setIsEditing(true)}
           className="grid h-7 w-7 place-items-center rounded-md text-[var(--gbp-muted)] transition-colors hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"
-          title="Editar"
+          title={t("Editar")}
         >
           <Edit2 className="h-3.5 w-3.5" />
         </button>
@@ -166,14 +170,14 @@ export function EditablePositionItem({
           onClick={handleToggleStatus}
           disabled={isToggling}
           className={`grid h-7 w-7 place-items-center rounded-md transition-colors hover:bg-[var(--gbp-surface2)] ${position.is_active ? "text-[var(--gbp-muted)] hover:text-orange-500" : "text-orange-500 hover:text-orange-600"}`}
-          title={position.is_active ? "Desactivar" : "Activar"}
+          title={position.is_active ? t("Desactivar") : t("Activar")}
         >
           {isToggling ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <ShieldAlert className="h-3.5 w-3.5" />}
         </button>
         <button
           onClick={() => setIsDeleting(true)}
           className="grid h-7 w-7 place-items-center rounded-md text-[var(--gbp-muted)] transition-colors hover:bg-[var(--gbp-error-soft)] hover:text-[var(--gbp-error)]"
-          title="Eliminar"
+          title={t("Eliminar")}
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
@@ -181,8 +185,8 @@ export function EditablePositionItem({
 
       {isDeleting && (
         <ConfirmDeleteDialog
-          title={`Eliminar puesto: ${position.name}`}
-          description="¿Estás seguro de eliminar este puesto? Esta acción no se puede deshacer si no está en uso."
+          title={`${t("Eliminar puesto")}: ${position.name}`}
+          description={t("¿Estás seguro de eliminar este puesto? Esta acción no se puede deshacer si no está en uso.")}
           busy={busy}
           onCancel={() => setIsDeleting(false)}
           onConfirm={handleDelete}

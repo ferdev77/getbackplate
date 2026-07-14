@@ -3,8 +3,10 @@
 import { Settings2 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { createTranslator } from "./settings.i18n";
 
 type CompanyContactSettingsCardProps = {
+  locale?: "es" | "en";
   organizationName: string;
   supportEmail: string;
   supportPhone: string;
@@ -17,6 +19,7 @@ type CompanyContactSettingsCardProps = {
 };
 
 export function CompanyContactSettingsCard({
+  locale,
   organizationName,
   supportEmail,
   supportPhone,
@@ -27,6 +30,7 @@ export function CompanyContactSettingsCard({
   companyFaviconUrl,
   customBrandingEnabled,
 }: CompanyContactSettingsCardProps) {
+  const t = createTranslator(locale);
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -62,17 +66,17 @@ export function CompanyContactSettingsCard({
     setIsSaving(false);
 
     if (!response.ok || !payload?.ok) {
-      setNotice({ tone: "error", message: payload?.error ?? "No se pudieron guardar los datos" });
+      setNotice({ tone: "error", message: payload?.error ?? t("No se pudieron guardar los datos") });
       return;
     }
 
     setSavedPulse(true);
-    setNotice({ tone: "success", message: "Datos guardados con exito" });
+    setNotice({ tone: "success", message: t("Datos guardados con exito") });
     setIsEditing(false);
     setTimeout(() => setSavedPulse(false), 1400);
   }
 
-  const buttonLabel = isSaving ? "Guardando..." : savedPulse ? "Datos guardados" : isEditing ? "Guardar" : "Editar";
+  const buttonLabel = isSaving ? t("Guardando...") : savedPulse ? t("Datos guardados") : isEditing ? t("Guardar") : t("Editar");
 
   async function handleLogoUpload(file: File | null, variant: "light" | "dark" | "favicon") {
     if (!file || uploadingLogo) return;
@@ -93,19 +97,19 @@ export function CompanyContactSettingsCard({
     setUploadingLogo(false);
 
     if (!response.ok || !payload?.ok || !payload.logoUrl) {
-      setNotice({ tone: "error", message: payload?.error ?? "No se pudo cargar la imagen" });
+      setNotice({ tone: "error", message: payload?.error ?? t("No se pudo cargar la imagen") });
       return;
     }
 
     if (variant === "dark") {
       setDarkLogoUrl(payload.logoUrl);
-      setNotice({ tone: "success", message: "Logo dark actualizado correctamente" });
+      setNotice({ tone: "success", message: t("Logo dark actualizado correctamente") });
     } else if (variant === "favicon") {
       setFaviconUrl(payload.logoUrl);
-      setNotice({ tone: "success", message: "Favicon actualizado correctamente" });
+      setNotice({ tone: "success", message: t("Favicon actualizado correctamente") });
     } else {
       setLightLogoUrl(payload.logoUrl);
-      setNotice({ tone: "success", message: "Logo claro actualizado correctamente" });
+      setNotice({ tone: "success", message: t("Logo claro actualizado correctamente") });
     }
     router.refresh();
   }
@@ -113,23 +117,23 @@ export function CompanyContactSettingsCard({
   return (
     <article className="rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-5">
       <p className="mb-3 inline-flex items-center gap-1 text-xs font-semibold tracking-[0.1em] text-[var(--gbp-text2)] uppercase">
-        <Settings2 className="h-3.5 w-3.5" /> Datos de la empresa
+        <Settings2 className="h-3.5 w-3.5" /> {t("Datos de la empresa")}
       </p>
       <p className="mb-1 text-base font-semibold text-[var(--gbp-text)]">{organizationName}</p>
-      <p className="text-sm text-[var(--gbp-text2)]">Canales de contacto visibles para la operación diaria.</p>
+      <p className="text-sm text-[var(--gbp-text2)]">{t("Canales de contacto visibles para la operación diaria.")}</p>
 
       {customBrandingEnabled ? (
         <div className="mt-4 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Branding personalizado</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">{t("Branding personalizado")}</p>
           <div className="grid gap-3 md:grid-cols-3">
             <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3">
-              <p className="mb-2 text-[11px] font-semibold text-[var(--gbp-text2)]">Logo claro</p>
+              <p className="mb-2 text-[11px] font-semibold text-[var(--gbp-text2)]">{t("Logo claro")}</p>
               <div className="mb-2 grid min-h-[92px] w-full place-items-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] p-2">
                 {lightLogoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={lightLogoUrl} alt="Logo claro de empresa" className="block h-auto max-h-[76px] w-auto max-w-full object-contain" />
+                  <img src={lightLogoUrl} alt={t("Logo claro de empresa")} className="block h-auto max-h-[76px] w-auto max-w-full object-contain" />
                 ) : (
-                  <span className="text-[10px] font-bold text-[var(--gbp-muted)]">Sin logo</span>
+                  <span className="text-[10px] font-bold text-[var(--gbp-muted)]">{t("Sin logo")}</span>
                 )}
               </div>
               <label className="inline-flex cursor-pointer items-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]">
@@ -144,7 +148,7 @@ export function CompanyContactSettingsCard({
                   }}
                   disabled={uploadingLogo}
                 />
-                {uploadingLogo ? "Subiendo..." : "Cargar logo claro"}
+                {uploadingLogo ? t("Subiendo...") : t("Cargar logo claro")}
               </label>
             </div>
             <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg2)] p-3">
@@ -152,9 +156,9 @@ export function CompanyContactSettingsCard({
               <div className="mb-2 grid min-h-[92px] w-full place-items-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] p-2">
                 {darkLogoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={darkLogoUrl} alt="Logo dark de empresa" className="block h-auto max-h-[76px] w-auto max-w-full object-contain" />
+                  <img src={darkLogoUrl} alt={t("Logo dark de empresa")} className="block h-auto max-h-[76px] w-auto max-w-full object-contain" />
                 ) : (
-                  <span className="text-[10px] font-bold text-[var(--gbp-muted)]">Sin logo dark</span>
+                  <span className="text-[10px] font-bold text-[var(--gbp-muted)]">{t("Sin logo dark")}</span>
                 )}
               </div>
               <label className="inline-flex cursor-pointer items-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text)] hover:bg-[var(--gbp-surface2)]">
@@ -169,7 +173,7 @@ export function CompanyContactSettingsCard({
                   }}
                   disabled={uploadingLogo}
                 />
-                {uploadingLogo ? "Subiendo..." : "Cargar logo dark"}
+                {uploadingLogo ? t("Subiendo...") : t("Cargar logo dark")}
               </label>
             </div>
             <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3">
@@ -177,9 +181,9 @@ export function CompanyContactSettingsCard({
               <div className="mb-2 grid min-h-[92px] w-full place-items-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] p-2">
                 {faviconUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={faviconUrl} alt="Favicon de empresa" className="block h-8 w-8 object-contain" />
+                  <img src={faviconUrl} alt={t("Favicon de empresa")} className="block h-8 w-8 object-contain" />
                 ) : (
-                  <span className="text-[10px] font-bold text-[var(--gbp-muted)]">Sin favicon</span>
+                  <span className="text-[10px] font-bold text-[var(--gbp-muted)]">{t("Sin favicon")}</span>
                 )}
               </div>
               <label className="inline-flex cursor-pointer items-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-xs font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]">
@@ -194,7 +198,7 @@ export function CompanyContactSettingsCard({
                   }}
                   disabled={uploadingLogo}
                 />
-                {uploadingLogo ? "Subiendo..." : "Cargar favicon"}
+                {uploadingLogo ? t("Subiendo...") : t("Cargar favicon")}
               </label>
             </div>
             <p className="text-[11px] text-[var(--gbp-text2)] md:col-span-3">PNG/JPG/WebP/GIF/SVG · Max 5MB</p>
@@ -202,7 +206,7 @@ export function CompanyContactSettingsCard({
         </div>
       ) : (
         <div className="mt-4 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3 text-xs text-[var(--gbp-text2)]">
-          El módulo <strong>Custom Branding</strong> está desactivado para esta empresa. Un superadmin puede activarlo desde el panel de módulos.
+          {t("El módulo")} <strong>Custom Branding</strong> {t("está desactivado para esta empresa. Un superadmin puede activarlo desde el panel de módulos.")}
         </div>
       )}
 
@@ -220,7 +224,7 @@ export function CompanyContactSettingsCard({
           />
         </label>
         <label className="grid gap-1 text-xs font-semibold text-[var(--gbp-text2)]">
-          Teléfono
+          {t("Teléfono")}
           <input
             name="support_phone"
             value={phoneValue}

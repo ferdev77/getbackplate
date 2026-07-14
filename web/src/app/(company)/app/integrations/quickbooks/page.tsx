@@ -2,6 +2,7 @@ import { QboR365Dashboard } from "@/modules/integrations/ui/qbo-r365-dashboard";
 import { getCurrentUser } from "@/modules/memberships/queries";
 import { requireTenantModule } from "@/shared/lib/access";
 import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impersonation";
+import { resolveUserLocale } from "@/shared/lib/locale";
 import { getOrganizationByIdCached, getOrganizationSettingsCached } from "@/modules/organizations/cached-queries";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 
@@ -9,17 +10,18 @@ export default async function IntegrationQuickbooksPage() {
   const tenant = await requireTenantModule("qbo_r365");
   const user = await getCurrentUser();
 
-  const [impersonationSession, org, orgSettings] = await Promise.all([
+  const [impersonationSession, org, orgSettings, locale] = await Promise.all([
     user ? resolveActiveSuperadminImpersonationSession(user.id) : Promise.resolve(null),
     getOrganizationByIdCached(tenant.organizationId),
     getOrganizationSettingsCached(tenant.organizationId),
+    resolveUserLocale({ organizationId: tenant.organizationId, userId: user?.id ?? null }),
   ]);
 
   // Fetch integration plan info + onboarding state
   let maxR365Connections: number | null = null;
   let showOnboarding = false;
   let vendorProfile: Record<string, string> | null = null;
-  let planName = "QBO";
+  let planName = "QuickBooks";
 
   {
     const supabase = createSupabaseAdminClient();
@@ -44,7 +46,7 @@ export default async function IntegrationQuickbooksPage() {
       const base = (planData.data as Record<string, unknown> | null)?.max_r365_connections as number | null ?? null;
       const extra = ((addonData.data as Record<string, unknown> | null)?.extra_r365_connections as number) ?? 0;
       maxR365Connections = base != null ? base + extra : null;
-      planName = (planData.data as Record<string, unknown> | null)?.name as string ?? "QBO";
+      planName = (planData.data as Record<string, unknown> | null)?.name as string ?? "QuickBooks";
     }
   }
 
@@ -53,6 +55,7 @@ export default async function IntegrationQuickbooksPage() {
   return (
     <QboR365Dashboard
       organizationId={tenant.organizationId}
+      locale={locale}
       deferredDataUrl="/api/company/integrations/qbo-r365/dashboard"
       showDeveloperMode={showDeveloperMode}
       orgName={org?.name ?? undefined}

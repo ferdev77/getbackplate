@@ -5,6 +5,7 @@ import { Reorder, useDragControls } from "framer-motion";
 import { toast } from "sonner";
 import { EditableDepartmentItem } from "./editable-department-item";
 import { reorderDepartmentsAction } from "@/modules/organizations/actions";
+import { createTranslator } from "./settings.i18n";
 
 interface Position {
   id: string;
@@ -23,6 +24,7 @@ interface Department {
 }
 
 interface ReorderableDepartmentListProps {
+  locale?: "es" | "en";
   initialDepartments: Department[];
   positionsByDepartment: Record<string, Position[]>;
   updateDepartmentAction: (formData: FormData) => Promise<void>;
@@ -35,6 +37,7 @@ interface ReorderableDepartmentListProps {
 }
 
 export function ReorderableDepartmentList({
+  locale,
   initialDepartments,
   positionsByDepartment,
   updateDepartmentAction,
@@ -45,6 +48,7 @@ export function ReorderableDepartmentList({
   deletePositionAction,
   togglePositionStatusAction,
 }: ReorderableDepartmentListProps) {
+  const t = createTranslator(locale);
   const [items, setItems] = useState(initialDepartments);
 
   useEffect(() => {
@@ -55,15 +59,15 @@ export function ReorderableDepartmentList({
     const ids = newOrder.map((item) => item.id);
     const result = await reorderDepartmentsAction(ids);
     if (result.ok) {
-      toast.success("Orden de departamentos actualizado");
+      toast.success(t("Orden de departamentos actualizado"));
     } else {
-      toast.error("Error al sincronizar el orden");
+      toast.error(t("Error al sincronizar el orden"));
       setItems(initialDepartments);
     }
-  }, [initialDepartments]);
+  }, [initialDepartments, t]);
 
   if (!items?.length) {
-    return <p className="text-center py-8 rounded-xl border border-dashed border-[var(--gbp-border2)] text-sm text-[var(--gbp-text2)]">Aún no hay departamentos.</p>;
+    return <p className="text-center py-8 rounded-xl border border-dashed border-[var(--gbp-border2)] text-sm text-[var(--gbp-text2)]">{t("Aún no hay departamentos.")}</p>;
   }
 
   return (
@@ -76,6 +80,7 @@ export function ReorderableDepartmentList({
       {items.map((department) => (
         <ReorderDepartmentWrapper
           key={department.id}
+          locale={locale}
           department={department}
           positionsByDepartment={positionsByDepartment}
           updateDepartmentAction={updateDepartmentAction}
@@ -93,6 +98,7 @@ export function ReorderableDepartmentList({
 }
 
 function ReorderDepartmentWrapper({
+  locale,
   department,
   positionsByDepartment,
   updateDepartmentAction,
@@ -104,6 +110,7 @@ function ReorderDepartmentWrapper({
   togglePositionStatusAction,
   onReorderFinish,
 }: {
+  locale?: "es" | "en";
   department: Department;
   positionsByDepartment: Record<string, Position[]>;
   updateDepartmentAction: (formData: FormData) => Promise<void>;
@@ -126,6 +133,7 @@ function ReorderDepartmentWrapper({
       className="relative list-none"
     >
       <EditableDepartmentItem
+        locale={locale}
         department={department}
         positions={positionsByDepartment[department.id] ?? []}
         updateDepartmentAction={updateDepartmentAction}

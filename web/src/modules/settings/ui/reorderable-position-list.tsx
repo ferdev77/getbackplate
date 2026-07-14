@@ -5,6 +5,7 @@ import { Reorder, useDragControls } from "framer-motion";
 import { toast } from "sonner";
 import { EditablePositionItem } from "./editable-position-item";
 import { reorderDepartmentPositionsAction } from "@/modules/organizations/actions";
+import { createTranslator } from "./settings.i18n";
 
 interface Position {
   id: string;
@@ -15,6 +16,7 @@ interface Position {
 }
 
 interface ReorderablePositionListProps {
+  locale?: "es" | "en";
   departmentId: string;
   initialPositions: Position[];
   updateAction: (formData: FormData) => Promise<void>;
@@ -23,12 +25,14 @@ interface ReorderablePositionListProps {
 }
 
 export function ReorderablePositionList({
+  locale,
   departmentId,
   initialPositions,
   updateAction,
   deleteAction,
   toggleStatusAction,
 }: ReorderablePositionListProps) {
+  const t = createTranslator(locale);
   const [items, setItems] = useState(initialPositions);
 
   useEffect(() => {
@@ -42,17 +46,17 @@ export function ReorderablePositionList({
       positionIds: ids,
     });
     if (result.ok) {
-      toast.success("Orden de puestos actualizado");
+      toast.success(t("Orden de puestos actualizado"));
     } else {
-      toast.error("Error al sincronizar el orden");
+      toast.error(t("Error al sincronizar el orden"));
       setItems(initialPositions);
     }
-  }, [departmentId, initialPositions]);
+  }, [departmentId, initialPositions, t]);
 
   if (!items?.length) {
     return (
       <div className="rounded-lg border border-dashed border-[var(--gbp-border2)] p-6 text-center">
-        <p className="text-xs text-[var(--gbp-muted)]">No hay puestos en este departamento.</p>
+        <p className="text-xs text-[var(--gbp-muted)]">{t("No hay puestos en este departamento.")}</p>
       </div>
     );
   }
@@ -67,6 +71,7 @@ export function ReorderablePositionList({
       {items.map((position) => (
         <ReorderPositionWrapper
           key={position.id}
+          locale={locale}
           position={position}
           updateAction={updateAction}
           deleteAction={deleteAction}
@@ -79,12 +84,14 @@ export function ReorderablePositionList({
 }
 
 function ReorderPositionWrapper({
+  locale,
   position,
   updateAction,
   deleteAction,
   toggleStatusAction,
   onReorderFinish,
 }: {
+  locale?: "es" | "en";
   position: Position;
   updateAction: (formData: FormData) => Promise<void>;
   deleteAction: (formData: FormData) => Promise<void>;
@@ -102,6 +109,7 @@ function ReorderPositionWrapper({
       className="relative list-none"
     >
       <EditablePositionItem
+        locale={locale}
         position={position}
         updateAction={updateAction}
         deleteAction={deleteAction}

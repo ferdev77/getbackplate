@@ -140,17 +140,26 @@ export default async function CompanyLayout({
     ...(enabledModuleCodesSet.has("qbo_r365") ? ["qbo_r365"] : []),
   ];
 
-  const roleLabelByCode: Record<string, string> = {
-    company_admin: "Admin de empresa",
-    employee: "Empleado",
-  };
+  // El idioma se elige automatico segun el plan (ingles para cuentas con
+  // la integracion QBO/R365 activa, espanol para el resto) salvo que el
+  // usuario ya haya guardado una preferencia explicita desde Ajustes --
+  // `preferences.language` queda null hasta que eso pase (ver migracion
+  // 20260714000002). Misma logica que usan las paginas hijas via
+  // resolveUserLocale (settings, integrations/quickbooks).
+  const resolvedLocale = preferences?.language === "en" || preferences?.language === "es"
+    ? preferences.language
+    : (enabledModuleCodesSet.has("qbo_r365") ? "en" : "es");
+
+  const roleLabelByCode: Record<string, string> = resolvedLocale === "en"
+    ? { company_admin: "Company admin", employee: "Employee" }
+    : { company_admin: "Admin de empresa", employee: "Empleado" };
 
   const profileName =
     typeof user?.user_metadata?.full_name === "string" && user.user_metadata.full_name.trim()
       ? user.user_metadata.full_name.trim()
       : typeof user?.user_metadata?.name === "string" && user.user_metadata.name.trim()
         ? user.user_metadata.name.trim()
-        : user?.email ?? "Usuario";
+        : user?.email ?? (resolvedLocale === "en" ? "User" : "Usuario");
   const avatarUrl =
     typeof user?.user_metadata?.avatar_url === "string"
       ? user.user_metadata.avatar_url
@@ -163,20 +172,21 @@ export default async function CompanyLayout({
       sessionUserEmail={user?.email ?? ""}
       sessionRoleLabel={
         impersonationSession
-          ? "Superadmin (impersonando)"
+          ? (resolvedLocale === "en" ? "Superadmin (impersonating)" : "Superadmin (impersonando)")
           : (roleLabelByCode[tenant.roleCode] ?? tenant.roleCode)
       }
       sessionAvatarUrl={avatarUrl}
       tenantId={tenant.organizationId}
+      locale={resolvedLocale}
       settingsSnapshot={{
-        billingPlan: inferredCurrentPlan?.name ?? orgSettings?.billing_plan ?? "Sin plan",
+        billingPlan: inferredCurrentPlan?.name ?? orgSettings?.billing_plan ?? (resolvedLocale === "en" ? "No plan" : "Sin plan"),
         billingPeriod: orgSettings?.billing_period ?? inferredCurrentPlan?.billing_period ?? "monthly",
         billedTo: orgSettings?.billed_to ?? organization?.name ?? "",
         billingEmail: orgSettings?.billing_email ?? user?.email ?? "",
         paymentLast4: orgSettings?.payment_last4 ?? "",
         invoiceEmailsEnabled: orgSettings?.invoice_emails_enabled ?? true,
         theme: preferences?.theme ?? "default",
-        language: preferences?.language ?? "es",
+        language: resolvedLocale,
         dateFormat: preferences?.date_format ?? "DD/MM/YYYY",
         timezoneMode: preferences?.timezone_mode ?? "auto",
         timezoneManual: preferences?.timezone_manual ?? "America/Chicago (CST)",
@@ -197,7 +207,7 @@ export default async function CompanyLayout({
         stripePriceId: plan.stripe_price_id ?? null,
       }))}
       currentPlanCode={inferredCurrentPlan?.code ?? null}
-      currentPlanName={inferredCurrentPlan?.name ?? "Sin plan"}
+      currentPlanName={inferredCurrentPlan?.name ?? (resolvedLocale === "en" ? "No plan" : "Sin plan")}
       companyLogoUrl={orgSettings?.company_logo_url ?? ""}
       companyLogoDarkUrl={orgSettings?.company_logo_dark_url ?? ""}
       customBrandingEnabled={enabledModuleCodesSet.has("custom_branding")}

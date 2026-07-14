@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { PointerEventHandler } from "react";
 import { Edit2, Trash2, MapPin, ShieldAlert, GripVertical } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
+import { createTranslator } from "./settings.i18n";
 
 interface Branch {
   id: string;
@@ -17,6 +18,7 @@ interface Branch {
 }
 
 interface EditableBranchItemProps {
+  locale?: "es" | "en";
   branch: Branch;
   updateAction: (formData: FormData) => Promise<void>;
   deleteAction: (formData: FormData) => Promise<void>;
@@ -27,12 +29,14 @@ interface EditableBranchItemProps {
 }
 
 export function EditableBranchItem({
+  locale,
   branch,
   updateAction,
   deleteAction,
   toggleStatusAction,
   dragHandleProps,
 }: EditableBranchItemProps) {
+  const t = createTranslator(locale);
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -103,7 +107,7 @@ export function EditableBranchItem({
         className="animate-in fade-in slide-in-from-top-2 space-y-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4 shadow-sm"
       >
         <div className="flex items-center justify-between">
-          <p className="text-sm font-bold text-[var(--gbp-text)]">Editar Locación</p>
+          <p className="text-sm font-bold text-[var(--gbp-text)]">{t("Editar Locación")}</p>
           <button
             type="button"
             onClick={() => setIsEditing(false)}
@@ -119,7 +123,7 @@ export function EditableBranchItem({
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Nombre de locación"
+            placeholder={t("Nombre de locación")}
             className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none focus:border-[var(--gbp-accent)]"
             disabled={busy}
           />
@@ -127,7 +131,7 @@ export function EditableBranchItem({
             name="city"
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            placeholder="Ciudad"
+            placeholder={t("Ciudad")}
             className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none focus:border-[var(--gbp-accent)]"
             disabled={busy}
           />
@@ -135,7 +139,7 @@ export function EditableBranchItem({
             name="state"
             value={state}
             onChange={(e) => setState(e.target.value)}
-            placeholder="Estado"
+            placeholder={t("Estado")}
             className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none focus:border-[var(--gbp-accent)]"
             disabled={busy}
           />
@@ -143,7 +147,7 @@ export function EditableBranchItem({
             name="country"
             value={country}
             onChange={(e) => setCountry(e.target.value)}
-            placeholder="País"
+            placeholder={t("País")}
             className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none focus:border-[var(--gbp-accent)]"
             disabled={busy}
           />
@@ -151,7 +155,7 @@ export function EditableBranchItem({
             name="phone"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="Teléfono"
+            placeholder={t("Teléfono")}
             className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none focus:border-[var(--gbp-accent)] sm:col-span-2"
             disabled={busy}
           />
@@ -159,7 +163,7 @@ export function EditableBranchItem({
             name="address"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            placeholder="Dirección"
+            placeholder={t("Dirección")}
             className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none focus:border-[var(--gbp-accent)] sm:col-span-2"
             disabled={busy}
           />
@@ -171,14 +175,14 @@ export function EditableBranchItem({
             disabled={busy}
             className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-4 py-2 text-xs font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
           >
-            Cancelar
+            {t("Cancelar")}
           </button>
           <button
             type="submit"
             disabled={busy || !name.trim()}
             className="rounded-lg bg-[var(--gbp-text)] px-4 py-2 text-xs font-bold text-white hover:bg-[var(--gbp-accent)] disabled:opacity-50"
           >
-            {busy ? "Guardando..." : "Guardar cambios"}
+            {busy ? t("Guardando...") : t("Guardar cambios")}
           </button>
         </div>
       </form>
@@ -203,11 +207,11 @@ export function EditableBranchItem({
             <h3 className="text-sm font-bold text-[var(--gbp-text)]">{branch.name}</h3>
             {!branch.is_active && (
               <span className="rounded bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--gbp-muted)]">
-                Inactiva
+                {t("Inactiva")}
               </span>
             )}
           </div>
-          <p className="text-xs text-[var(--gbp-text2)]">{locationStr || "Sin locación definida"}</p>
+          <p className="text-xs text-[var(--gbp-text2)]">{locationStr || t("Sin locación definida")}</p>
           {branch.phone && <p className="mt-0.5 text-[11px] text-[var(--gbp-muted)]">{branch.phone}</p>}
         </div>
       </div>
@@ -216,7 +220,7 @@ export function EditableBranchItem({
         <button
           onClick={() => setIsEditing(true)}
           className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] transition-colors hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"
-          title="Editar"
+          title={t("Editar")}
         >
           <Edit2 className="h-4 w-4" />
         </button>
@@ -224,14 +228,14 @@ export function EditableBranchItem({
           onClick={handleToggleStatus}
           disabled={busy}
           className={`grid h-8 w-8 place-items-center rounded-md transition-colors hover:bg-[var(--gbp-surface2)] ${branch.is_active ? "text-[var(--gbp-muted)] hover:text-orange-500" : "text-orange-500 hover:text-orange-600"}`}
-          title={branch.is_active ? "Desactivar" : "Activar"}
+          title={branch.is_active ? t("Desactivar") : t("Activar")}
         >
           <ShieldAlert className="h-4 w-4" />
         </button>
         <button
           onClick={() => setIsDeleting(true)}
           className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] transition-colors hover:bg-[var(--gbp-error-soft)] hover:text-[var(--gbp-error)]"
-          title="Eliminar"
+          title={t("Eliminar")}
         >
           <Trash2 className="h-4 w-4" />
         </button>
@@ -239,8 +243,8 @@ export function EditableBranchItem({
 
       {isDeleting && (
         <ConfirmDeleteDialog
-          title={`Eliminar locación: ${branch.name}`}
-          description="¿Seguro que deseas eliminar esta locación de forma permanente? Solo se podrá eliminar si no tiene personal asignado."
+          title={`${t("Eliminar locación")}: ${branch.name}`}
+          description={t("¿Seguro que deseas eliminar esta locación de forma permanente? Solo se podrá eliminar si no tiene personal asignado.")}
           busy={busy}
           onCancel={() => setIsDeleting(false)}
           onConfirm={handleDelete}

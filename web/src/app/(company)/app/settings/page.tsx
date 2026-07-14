@@ -25,6 +25,9 @@ import { isModuleEnabledForOrganization, requireTenantModule } from "@/shared/li
 import { DEFAULT_CUSTOM_DOMAIN_CNAME_TARGET } from "@/shared/lib/custom-domains";
 import { PageContent } from "@/shared/ui/page-content";
 import { hasMissingColumnError } from "@/shared/lib/supabase-compat";
+import { resolveUserLocale } from "@/shared/lib/locale";
+import { getCurrentUser } from "@/modules/memberships/queries";
+import { createTranslator } from "@/modules/settings/ui/settings.i18n";
 
 type CompanySettingsPageProps = {
   searchParams: Promise<{ status?: string; message?: string; action?: string; departmentId?: string }>;
@@ -67,7 +70,12 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
   const params = await searchParams;
   const tenant = await requireTenantModule("settings");
   const supabase = await createSupabaseServerClient();
-  const customBrandingEnabled = await isModuleEnabledForOrganization(tenant.organizationId, "custom_branding");
+  const user = await getCurrentUser();
+  const [customBrandingEnabled, locale] = await Promise.all([
+    isModuleEnabledForOrganization(tenant.organizationId, "custom_branding"),
+    resolveUserLocale({ organizationId: tenant.organizationId, userId: user?.id ?? null }),
+  ]);
+  const t = createTranslator(locale);
 
   const [
     { data: organization },
@@ -201,7 +209,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
       <section className="mb-1 flex flex-wrap items-center justify-between gap-3">
         <div className={`inline-flex items-center gap-2 ${TEXT_STRONG}`}>
           <Settings2 className="h-4 w-4" />
-          <h1 className="text-lg font-bold">Ajustes de Empresa</h1>
+          <h1 className="text-lg font-bold">{t("Ajustes de Empresa")}</h1>
         </div>
         <div className="flex flex-wrap gap-2">
           {/* Header buttons removed; actions are now closely placed inline to their respective sections */}
@@ -209,10 +217,10 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <article className={`rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Empresa</p><p className={`mt-1 truncate text-lg font-bold ${TEXT_STRONG}`}>{organization?.name ?? "Empresa"}</p></article>
-        <article className={`rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Locaciones activas</p><p className={`mt-1 text-lg font-bold ${TEXT_STRONG}`}>{activeBranches}</p></article>
-        <article className={`rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Departamentos activos</p><p className={`mt-1 text-lg font-bold ${TEXT_STRONG}`}>{activeDepartments}</p></article>
-        <article className={`rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>Puestos activos</p><p className={`mt-1 text-lg font-bold ${TEXT_STRONG}`}>{activePositions}</p></article>
+        <article className={`rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>{t("Empresa")}</p><p className={`mt-1 truncate text-lg font-bold ${TEXT_STRONG}`}>{organization?.name ?? t("Empresa")}</p></article>
+        <article className={`rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>{t("Locaciones activas")}</p><p className={`mt-1 text-lg font-bold ${TEXT_STRONG}`}>{activeBranches}</p></article>
+        <article className={`rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>{t("Departamentos activos")}</p><p className={`mt-1 text-lg font-bold ${TEXT_STRONG}`}>{activeDepartments}</p></article>
+        <article className={`rounded-xl border p-4 ${CARD}`}><p className={`text-xs ${TEXT_MUTED}`}>{t("Puestos activos")}</p><p className={`mt-1 text-lg font-bold ${TEXT_STRONG}`}>{activePositions}</p></article>
       </section>
 
       {params.message ? (
@@ -235,6 +243,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
 
       <section className="grid gap-4">
         <CompanyContactSettingsCard
+          locale={locale}
           organizationName={organization?.name ?? "Empresa"}
           supportEmail={orgSettings?.support_email ?? ""}
           supportPhone={orgSettings?.support_phone ?? ""}
@@ -246,19 +255,20 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
           customBrandingEnabled={customBrandingEnabled}
         />
         <CustomDomainSettingsCard
+          locale={locale}
           enabled={customBrandingEnabled}
           initialRows={(customDomains ?? []).map((row) => ({
             ...row,
             statusLabel:
               row.status === "active"
-                ? "Activo"
+                ? t("Activo")
                 : row.status === "verifying_ssl"
-                  ? "Verificando SSL"
+                  ? t("Verificando SSL")
                   : row.status === "error"
-                    ? "Error"
+                    ? t("Error")
                     : row.status === "disabled"
-                      ? "Deshabilitado"
-                      : "Pendiente DNS",
+                      ? t("Deshabilitado")
+                      : t("Pendiente DNS"),
           }))}
           defaultCnameTarget={DEFAULT_CUSTOM_DOMAIN_CNAME_TARGET}
         />
@@ -269,15 +279,16 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
           <div className="mb-4 flex items-center justify-between gap-2">
             <div>
               <p className={`inline-flex items-center gap-1 text-[11px] font-bold tracking-[0.1em] uppercase ${TEXT_MUTED}`}>
-                <MapPin className="h-3.5 w-3.5" /> Cobertura Geográfica
+                <MapPin className="h-3.5 w-3.5" /> {t("Cobertura Geográfica")}
               </p>
-              <h2 className="mt-1 text-lg font-bold text-[var(--gbp-text)]">Locaciones / Locaciones</h2>
+              <h2 className="mt-1 text-lg font-bold text-[var(--gbp-text)]">{t("Locaciones")}</h2>
             </div>
-            <InlineBranchForm createAction={createBranchAction} />
+            <InlineBranchForm locale={locale} createAction={createBranchAction} />
           </div>
 
           <div className="space-y-3">
             <BranchList
+              locale={locale}
               initialBranches={branchesData}
               updateAction={updateBranchAction}
               deleteAction={deleteBranchAction}
@@ -290,15 +301,16 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
           <div className="mb-4 flex items-center justify-between gap-2">
             <div>
               <p className={`inline-flex items-center gap-1 text-[11px] font-bold tracking-[0.1em] uppercase ${TEXT_MUTED}`}>
-                <Building2 className="h-3.5 w-3.5" /> Estructura Organizacional
+                <Building2 className="h-3.5 w-3.5" /> {t("Estructura Organizacional")}
               </p>
-              <h2 className="mt-1 text-lg font-bold text-[var(--gbp-text)]">Departamentos y Puestos</h2>
+              <h2 className="mt-1 text-lg font-bold text-[var(--gbp-text)]">{t("Departamentos y Puestos")}</h2>
             </div>
-            <InlineDepartmentForm createAction={createDepartmentAction} />
+            <InlineDepartmentForm locale={locale} createAction={createDepartmentAction} />
           </div>
 
           <div className="space-y-3">
             <ReorderableDepartmentList
+              locale={locale}
               initialDepartments={departmentsData}
               positionsByDepartment={positionsByDepartment}
               updateDepartmentAction={updateDepartmentAction}

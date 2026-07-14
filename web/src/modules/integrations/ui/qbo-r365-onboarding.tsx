@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { CheckCircle2, ChevronRight, Loader2, Link2, Zap, ArrowRight, X, Layers } from "lucide-react";
 import { toast } from "sonner";
+import { createTranslator } from "@/modules/integrations/ui/qbo-r365.i18n";
 
 type VendorProfile = {
   company: string;
@@ -14,6 +15,7 @@ type VendorProfile = {
 };
 
 type Props = {
+  locale?: "es" | "en";
   qboConnected: boolean;
   vendorProfile: Partial<VendorProfile> | null;
   maxConnections: number | null;
@@ -24,19 +26,21 @@ type Props = {
 
 type Step = "auth" | "vendor" | "slots";
 
-const STEPS: { id: Step; label: string }[] = [
-  { id: "auth",   label: "Conectar QBO" },
-  { id: "vendor", label: "Tu empresa" },
-  { id: "slots",  label: "Conexiones" },
-];
+function useSteps(t: (s: string) => string): { id: Step; label: string }[] {
+  return [
+    { id: "auth",   label: t("Conectar QuickBooks") },
+    { id: "vendor", label: t("Tu empresa") },
+    { id: "slots",  label: t("Conexiones") },
+  ];
+}
 
-function StepIndicator({ current, connected }: { current: Step; connected: boolean }) {
+function StepIndicator({ current, connected, steps }: { current: Step; connected: boolean; steps: { id: Step; label: string }[] }) {
   const order: Step[] = ["auth", "vendor", "slots"];
   const currentIdx = order.indexOf(current);
 
   return (
     <div className="flex items-center justify-center gap-0">
-      {STEPS.map((step, i) => {
+      {steps.map((step, i) => {
         const done = i < currentIdx || (step.id === "auth" && connected && currentIdx > 0);
         const active = order[currentIdx] === step.id;
         return (
@@ -53,7 +57,7 @@ function StepIndicator({ current, connected }: { current: Step; connected: boole
                 {step.label}
               </span>
             </div>
-            {i < STEPS.length - 1 && (
+            {i < steps.length - 1 && (
               <div className={`mx-3 h-px w-8 ${i < currentIdx ? "bg-[var(--gbp-success)]" : "bg-[var(--gbp-border)]"}`} />
             )}
           </div>
@@ -63,7 +67,9 @@ function StepIndicator({ current, connected }: { current: Step; connected: boole
   );
 }
 
-export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorProfile, maxConnections, syncConfigsCount, planName, onComplete }: Props) {
+export function QboR365Onboarding({ locale, qboConnected: initialQboConnected, vendorProfile, maxConnections, syncConfigsCount, planName, onComplete }: Props) {
+  const t = useMemo(() => createTranslator(locale), [locale]);
+  const STEPS = useSteps(t);
   const [step, setStep] = useState<Step>(initialQboConnected ? "vendor" : "auth");
   const [qboConnected, setQboConnected] = useState(initialQboConnected);
   const [oauthLoading, setOauthLoading] = useState(false);
@@ -85,7 +91,7 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
       if (!res.ok || !payload.authorizeUrl) throw new Error(payload.error ?? "Error OAuth");
       window.location.href = payload.authorizeUrl;
     } catch {
-      toast.error("No se pudo iniciar la conexión con QuickBooks");
+      toast.error(t("No se pudo iniciar la conexión con QuickBooks"));
       setOauthLoading(false);
     }
   }
@@ -102,10 +108,10 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
         }),
       });
       if (!res.ok) throw new Error();
-      toast.success("¡Onboarding completado! Ya podés gestionar tus conexiones.");
+      toast.success(t("¡Onboarding completado! Ya podés gestionar tus conexiones."));
       onComplete();
     } catch {
-      toast.error("No se pudo guardar la configuración");
+      toast.error(t("No se pudo guardar la configuración"));
     } finally {
       fn(false);
     }
@@ -123,20 +129,20 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
           <div className="mb-5 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-accent)]">
-                Plan {planName} · Configuración inicial
+                {t("Plan")} {planName} · {t("Configuración inicial")}
               </p>
-              <h2 className="mt-0.5 text-xl font-bold text-foreground">Activá tu integración QBO → R365</h2>
+              <h2 className="mt-0.5 text-xl font-bold text-foreground">{t("Activá tu integración QuickBooks → R365")}</h2>
             </div>
             <button
               type="button"
               onClick={() => void completeOnboarding(true)}
               className="rounded-xl p-2 text-muted-foreground transition hover:bg-muted"
-              title="Configurar más tarde"
+              title={t("Configurar más tarde")}
             >
               <X className="h-4 w-4" />
             </button>
           </div>
-          <StepIndicator current={step} connected={qboConnected} />
+          <StepIndicator current={step} connected={qboConnected} steps={STEPS} />
         </div>
 
         {/* Body */}
@@ -153,7 +159,7 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
                   <div className="flex-1">
                     <p className="font-bold text-foreground">QuickBooks Online</p>
                     <p className="text-xs text-muted-foreground">
-                      {qboConnected ? "Cuenta conectada correctamente" : "Necesitás autorizar el acceso de solo lectura a tus facturas."}
+                      {qboConnected ? t("Cuenta conectada correctamente") : t("Necesitás autorizar el acceso de solo lectura a tus facturas.")}
                     </p>
                   </div>
                   {qboConnected && <CheckCircle2 className="h-5 w-5 text-emerald-500" />}
@@ -165,13 +171,13 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
                     disabled={oauthLoading}
                     className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#2CA01C] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#23830f] disabled:opacity-60"
                   >
-                    {oauthLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Conectando...</> : <><Link2 className="h-4 w-4" /> Conectar QuickBooks</>}
+                    {oauthLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> {t("Conectando...")}</> : <><Link2 className="h-4 w-4" /> {t("Conectar QuickBooks")}</>}
                   </button>
                 )}
               </div>
               {qboConnected && (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                  ✓ QuickBooks ya está conectado. Podés continuar al siguiente paso.
+                  ✓ {t("QuickBooks ya está conectado. Podés continuar al siguiente paso.")}
                 </div>
               )}
             </div>
@@ -181,32 +187,32 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
           {step === "vendor" && (
             <div className="space-y-5">
               <p className="text-sm text-muted-foreground">
-                Esta información identifica a tu empresa como vendor en las facturas que se envían a R365.
+                {t("Esta información identifica a tu empresa como vendor en las facturas que se envían a R365.")}
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  <label className={labelCls}>Compañía</label>
+                  <label className={labelCls}>{t("Compañía")}</label>
                   <input className={inputCls} value={company} onChange={e => setCompany(e.target.value)} placeholder="Prodel Distribution Inc" />
                 </div>
                 <div>
-                  <label className={labelCls}>Nombre de contacto</label>
-                  <input className={inputCls} value={contactName} onChange={e => setContactName(e.target.value)} placeholder="Nombre Apellido" />
+                  <label className={labelCls}>{t("Nombre de contacto")}</label>
+                  <input className={inputCls} value={contactName} onChange={e => setContactName(e.target.value)} placeholder={t("Nombre Apellido")} />
                 </div>
                 <div>
                   <label className={labelCls}>Email</label>
                   <input className={inputCls} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="ops@empresa.com" />
                 </div>
                 <div>
-                  <label className={labelCls}>Teléfono</label>
+                  <label className={labelCls}>{t("Teléfono")}</label>
                   <input className={inputCls} value={phone} onChange={e => setPhone(e.target.value)} placeholder="+1 555 0000" />
                 </div>
                 <div>
-                  <label className={labelCls}>Sitio web</label>
+                  <label className={labelCls}>{t("Sitio web")}</label>
                   <input className={inputCls} value={website} onChange={e => setWebsite(e.target.value)} placeholder="empresa.com" />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className={labelCls}>Dirección</label>
-                  <input className={inputCls} value={address} onChange={e => setAddress(e.target.value)} placeholder="Calle, Ciudad, Estado" />
+                  <label className={labelCls}>{t("Dirección")}</label>
+                  <input className={inputCls} value={address} onChange={e => setAddress(e.target.value)} placeholder={t("Calle, Ciudad, Estado")} />
                 </div>
               </div>
             </div>
@@ -221,11 +227,11 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
                     <Layers className="h-5 w-5 text-[var(--gbp-accent)]" />
                   </div>
                   <div>
-                    <p className="font-bold text-foreground">Plan {planName}</p>
+                    <p className="font-bold text-foreground">{t("Plan")} {planName}</p>
                     <p className="text-xs text-muted-foreground">
                       {maxConnections != null
-                        ? `${maxConnections} slots de conexión R365 disponibles`
-                        : "Conexiones ilimitadas a R365"}
+                        ? (locale === "en" ? `${maxConnections} R365 connection slots available` : `${maxConnections} slots de conexión R365 disponibles`)
+                        : t("Conexiones ilimitadas a R365")}
                     </p>
                   </div>
                 </div>
@@ -240,7 +246,7 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
                           ? "border-[var(--gbp-accent)]/40 bg-[var(--gbp-accent)]/5 text-[var(--gbp-accent)]"
                           : "border-dashed border-[var(--gbp-border)] text-muted-foreground"
                       }`}>
-                        {isFilled ? "● Configurado" : "○ Libre"}
+                        {isFilled ? `● ${t("Configurado")}` : `○ ${t("Libre")}`}
                       </div>
                     );
                   })}
@@ -248,9 +254,9 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
               </div>
 
               <div className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-4 text-sm text-muted-foreground">
-                <p className="font-semibold text-foreground">¿Cómo configurar una conexión?</p>
+                <p className="font-semibold text-foreground">{t("¿Cómo configurar una conexión?")}</p>
                 <p className="mt-1 text-xs leading-relaxed">
-                  Desde el dashboard de integración podés configurar cada slot: nombre del cliente en R365, Account Number de QBO y credenciales FTP del servidor de R365. Podés hacerlo ahora o en cualquier momento.
+                  {t("Desde el dashboard de integración podés configurar cada slot: nombre del cliente en R365, Account Number de QuickBooks y credenciales FTP del servidor de R365. Podés hacerlo ahora o en cualquier momento.")}
                 </p>
               </div>
             </div>
@@ -266,7 +272,7 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
             className="text-sm text-muted-foreground transition hover:text-foreground disabled:opacity-50"
           >
             {skipping ? <Loader2 className="inline h-3 w-3 animate-spin mr-1" /> : null}
-            Configurar más tarde
+            {t("Configurar más tarde")}
           </button>
 
           <div className="flex gap-3">
@@ -276,7 +282,7 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
                 onClick={() => setStep("auth")}
                 className="rounded-xl border border-[var(--gbp-border)] px-5 py-2.5 text-sm font-bold text-muted-foreground transition hover:bg-muted"
               >
-                ← Atrás
+                ← {t("Atrás")}
               </button>
             )}
             {step === "slots" && (
@@ -285,7 +291,7 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
                 onClick={() => setStep("vendor")}
                 className="rounded-xl border border-[var(--gbp-border)] px-5 py-2.5 text-sm font-bold text-muted-foreground transition hover:bg-muted"
               >
-                ← Atrás
+                ← {t("Atrás")}
               </button>
             )}
 
@@ -296,7 +302,7 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
                 disabled={!qboConnected}
                 className="inline-flex items-center gap-2 rounded-xl bg-[var(--gbp-accent)] px-6 py-2.5 text-sm font-bold text-white shadow-[var(--gbp-shadow-accent)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Continuar <ChevronRight className="h-4 w-4" />
+                {t("Continuar")} <ChevronRight className="h-4 w-4" />
               </button>
             )}
 
@@ -306,7 +312,7 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
                 onClick={() => setStep("slots")}
                 className="inline-flex items-center gap-2 rounded-xl bg-[var(--gbp-accent)] px-6 py-2.5 text-sm font-bold text-white shadow-[var(--gbp-shadow-accent)] transition hover:opacity-90"
               >
-                Continuar <ChevronRight className="h-4 w-4" />
+                {t("Continuar")} <ChevronRight className="h-4 w-4" />
               </button>
             )}
 
@@ -317,7 +323,7 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
                 disabled={saving}
                 className="inline-flex items-center gap-2 rounded-xl bg-[var(--gbp-accent)] px-6 py-2.5 text-sm font-bold text-white shadow-[var(--gbp-shadow-accent)] transition hover:opacity-90 disabled:opacity-60"
               >
-                {saving ? <><Loader2 className="h-4 w-4 animate-spin" /> Guardando...</> : <>Finalizar <ArrowRight className="h-4 w-4" /></>}
+                {saving ? <><Loader2 className="h-4 w-4 animate-spin" /> {t("Guardando...")}</> : <>{t("Finalizar")} <ArrowRight className="h-4 w-4" /></>}
               </button>
             )}
           </div>

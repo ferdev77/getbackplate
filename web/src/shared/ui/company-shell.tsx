@@ -29,6 +29,7 @@ import { DevClientCachePanel } from "@/shared/ui/dev-client-cache-panel";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
 import { GetBackplateMark } from "@/shared/ui/getbackplate-mark";
 import { NotificationBell } from "@/shared/ui/notification-bell";
+import { createTranslator } from "@/shared/ui/company-shell.i18n";
 
 // ── Lazy-loaded modals (code-split — only downloaded when opened) ────
 const AnnouncementCreateModal = dynamic(
@@ -123,6 +124,7 @@ type CompanyShellProps = {
   sessionRoleLabel: string;
   sessionAvatarUrl: string;
   tenantId: string;
+  locale?: "es" | "en";
   settingsSnapshot: SettingsSnapshot;
   availablePlans: Array<{
     id: string;
@@ -198,6 +200,7 @@ export function CompanyShell({
   sessionRoleLabel,
   sessionAvatarUrl,
   tenantId,
+  locale,
   settingsSnapshot,
   availablePlans,
   currentPlanCode,
@@ -216,7 +219,8 @@ export function CompanyShell({
   integrationPlans = [],
   children,
 }: CompanyShellProps) {
-  const brandingName = customBrandingEnabled ? (organizationLabel || "Empresa") : "GetBackplate";
+  const t = useMemo(() => createTranslator(locale), [locale]);
+  const brandingName = customBrandingEnabled ? (organizationLabel || t("Empresa")) : "GetBackplate";
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -1510,7 +1514,7 @@ export function CompanyShell({
                 </div>
               )}
             </div>
-            {!collapsed ? <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--gbp-muted)]">Administrador</p> : null}
+            {!collapsed ? <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--gbp-muted)]">{t("Administrador")}</p> : null}
           </div>
 
           <nav className={`flex min-h-0 flex-1 flex-col py-2 ${collapsed ? "overflow-visible" : "overflow-y-auto overflow-x-hidden"}`}>
@@ -1523,7 +1527,7 @@ export function CompanyShell({
                     onClick={() => toggleSection(section.label)}
                     className={`flex w-full items-center justify-between px-5 pb-1 pt-3 text-left text-[10px] font-bold uppercase tracking-[0.13em] ${isDarkTheme ? "text-white/45" : "text-black/35"}`}
                   >
-                    <span>{section.label}</span>
+                    <span>{t(section.label)}</span>
                     <ChevronDown className={`h-3.5 w-3.5 transition ${expandedSections[section.label] ? "rotate-180" : ""}`} />
                   </button>
                 ) : null}
@@ -1539,7 +1543,7 @@ export function CompanyShell({
                               key={item.href}
                               href={hrefWithBranch(item.href)}
                               icon={item.icon}
-                              label={item.label}
+                              label={t(item.label)}
                               collapsed={collapsed}
                               className={`flex items-center gap-2.5 border-l-[2.5px] text-sm transition ${
                                 collapsed ? "justify-center px-0 py-2.5" : "px-5 py-2"
@@ -1634,7 +1638,7 @@ export function CompanyShell({
                               key={item.href}
                               href={hrefWithBranch(item.href)}
                               icon={item.icon}
-                              label={item.label}
+                              label={t(item.label)}
                               collapsed={collapsed}
                               className={`flex items-center gap-2.5 border-l-[2.5px] text-sm transition ${
                                 collapsed ? "justify-center px-0 py-2.5" : "px-5 py-2"
@@ -1659,7 +1663,7 @@ export function CompanyShell({
                               key={item.href}
                               kind="button"
                               icon={item.icon}
-                              label={item.label}
+                              label={t(item.label)}
                               collapsed={collapsed}
                               className={itemClassName}
                               onClick={() => handleSidebarItemClick(item)}
@@ -1673,7 +1677,7 @@ export function CompanyShell({
                             key={item.href}
                             href={hrefWithBranch(item.href)}
                             icon={item.icon}
-                            label={item.label}
+                            label={t(item.label)}
                             collapsed={collapsed}
                             className={itemClassName}
                             style={active ? { borderLeftColor: palette.accent } : undefined}
@@ -1740,15 +1744,15 @@ export function CompanyShell({
             <div className={`flex gap-1.5 ${collapsed ? "flex-col items-center" : "items-center"}`}>
                <Link prefetch={false} href="/auth/logout" className={`group relative inline-flex items-center justify-center rounded-md border text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9" : "h-9 flex-1"}`}>
                  <LogOut className="h-4 w-4" />
-                 <TooltipLabel label="Cerrar sesión" />
+                 <TooltipLabel label={t("Cerrar sesión")} />
                </Link>
                <button type="button" onClick={() => { setSettingsOpen(true); setSettingsView("main"); }} className={`group relative inline-flex items-center justify-center rounded-md border text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9" : "h-9 flex-1"}`}>
                  <Settings className="h-4 w-4" />
-                 <TooltipLabel label="Configuración" />
+                 <TooltipLabel label={t("Configuración")} />
                </button>
                <button type="button" onClick={() => setFeedbackOpen(true)} className={`group relative inline-flex items-center justify-center rounded-md border text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9" : "h-9 flex-1"}`}>
                  <MessageSquarePlus className="h-4 w-4" />
-                 <TooltipLabel label="Feedback" />
+                 <TooltipLabel label={t("Feedback")} />
                </button>
              </div>
           </div>
@@ -1758,7 +1762,7 @@ export function CompanyShell({
           <header className={`sticky top-0 z-30 border-b-[1.5px] ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`} style={{ background: palette.headerBg }}>
             {impersonationMode ? (
               <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900 sm:px-8">
-                <p className="font-semibold">Modo superadmin activo: estás operando dentro de una organización en modo impersonación.</p>
+                <p className="font-semibold">{t("Modo superadmin activo: estás operando dentro de una organización en modo impersonación.")}</p>
                 <button
                   type="button"
                   disabled={stoppingImpersonation}
@@ -1770,14 +1774,14 @@ export function CompanyShell({
                   className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-white px-2.5 py-1 text-[11px] font-bold text-amber-800 transition hover:bg-amber-100 disabled:cursor-wait disabled:opacity-90"
                 >
                   {stoppingImpersonation ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogOut className="h-3.5 w-3.5" />}
-                  {stoppingImpersonation ? "Saliendo..." : "Salir de impersonación"}
+                  {stoppingImpersonation ? t("Saliendo...") : t("Salir de impersonación")}
                 </button>
               </div>
             ) : null}
             <div className="flex h-[60px] items-center justify-between gap-3 px-4 sm:px-8">
             <div className="flex items-center gap-3">
-              <button type="button" className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border lg:hidden ${isDarkTheme ? "border-white/15 bg-white/5 text-white/80" : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"}`} onClick={() => setMenuOpen((prev) => !prev)} aria-label="Abrir menu">☰</button>
-              <p className="font-serif text-lg font-bold text-[var(--gbp-text)]">{currentLabel}</p>
+              <button type="button" className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border lg:hidden ${isDarkTheme ? "border-white/15 bg-white/5 text-white/80" : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"}`} onClick={() => setMenuOpen((prev) => !prev)} aria-label={t("Abrir menu")}>☰</button>
+              <p className="font-serif text-lg font-bold text-[var(--gbp-text)]">{t(currentLabel)}</p>
             </div>
             <div className="flex items-center gap-2">
               {organizationLabel ? <span className={`hidden rounded-full border px-2.5 py-1 text-xs sm:inline ${isDarkTheme ? "border-white/15 bg-white/5 text-white/80" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"}`}>{organizationLabel}</span> : null}
@@ -1824,7 +1828,7 @@ export function CompanyShell({
                 {billingGate?.reason === "trial_expired" ? "Tu prueba venció — reactivá tu suscripción" : "Elegí tu plan para desbloquear el panel"}
               </h2>
               <p className={`mt-1.5 text-sm ${isDarkTheme ? "text-white/65" : "text-[var(--gbp-text2)]"}`}>
-                Contratá un plan de plataforma para gestionar tu operación, o un plan de integración para conectar QBO con R365.
+                Contratá un plan de plataforma para gestionar tu operación, o un plan de integración para conectar QuickBooks con R365.
               </p>
 
               {/* Tab switcher */}
@@ -1842,7 +1846,7 @@ export function CompanyShell({
                     onClick={() => setLockedViewTab("integration")}
                     className={`rounded-lg px-4 py-2 text-xs font-bold transition ${lockedViewTab === "integration" ? "bg-[var(--gbp-accent)] text-white shadow-sm" : (isDarkTheme ? "text-white/60 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
                   >
-                    Integración QBO
+                    Integración QuickBooks
                   </button>
                 )}
               </div>
@@ -1918,7 +1922,7 @@ export function CompanyShell({
                 </div>
               )}
 
-              {/* ── Integración QBO ─────────────────────────────── */}
+              {/* ── Integración QuickBooks ───────────────────────── */}
               {lockedViewTab === "integration" && integrationPlans.length > 0 && (
                 <div className="mt-5">
                   <p className={`mb-4 text-xs ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>
@@ -1994,7 +1998,7 @@ export function CompanyShell({
                             </label>
                           )}
                           {plan.isEnterprise ? (
-                            <a href={`mailto:${plan.ctaEmail ?? "angelo@mkthelp.com"}?subject=QBO R365 - ${plan.name} Plan`} className={`mt-auto block w-full rounded-lg px-3 py-2 text-center text-[11px] font-bold transition ${isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]"}`}>
+                            <a href={`mailto:${plan.ctaEmail ?? "angelo@mkthelp.com"}?subject=QuickBooks R365 - ${plan.name} Plan`} className={`mt-auto block w-full rounded-lg px-3 py-2 text-center text-[11px] font-bold transition ${isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]"}`}>
                               Contactar ventas →
                             </a>
                           ) : (
@@ -2017,11 +2021,11 @@ export function CompanyShell({
               {/* Footer */}
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--gbp-border)] pt-4">
                 <p className={`text-xs ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-text2)]"}`}>
-                  El acceso al panel permanece bloqueado hasta confirmar la suscripción en Stripe.
+                  {t("El acceso al panel permanece bloqueado hasta confirmar la suscripción en Stripe.")}
                 </p>
                 <Link prefetch={false} href="/auth/logout" className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-semibold ${isDarkTheme ? "border-white/15 bg-white/5 text-white/80 hover:bg-white/10" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)]"}`}>
                   <LogOut className="h-3.5 w-3.5" />
-                  Cerrar sesión
+                  {t("Cerrar sesión")}
                 </Link>
               </div>
 
@@ -2039,7 +2043,7 @@ export function CompanyShell({
                 <div className="overflow-y-auto" style={{ maxHeight: availableAddons.length > 0 ? "444px" : "374px" }}>
                   <button type="button" onClick={() => setSettingsView("profile")} className={`flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm ${isDarkTheme ? "text-white/70 hover:bg-white/10 hover:text-white" : "text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"}`}><User className="h-4 w-4 opacity-70" /><span className="flex-1">Profile</span><span className="opacity-40">›</span></button>
                   <div className={`my-1 h-px ${isDarkTheme ? "bg-white/10" : "bg-[var(--gbp-border)]"}`} />
-                  <p className="px-3.5 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.09em] text-[var(--gbp-text2)]">Tema</p>
+                  <p className="px-3.5 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.09em] text-[var(--gbp-text2)]">{t("Tema")}</p>
                   <div className="grid grid-cols-4 gap-1.5 px-3.5">
                     {THEME_PICKER_ORDER.map((item) => (
                       <button
@@ -2188,11 +2192,11 @@ export function CompanyShell({
                         }}
                         className="rounded-md border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-accent)]"
                       >
-                        Cambiar contraseña
+                        {t("Cambiar contraseña")}
                       </button>
                     </div>
                     <div className="mt-2">
-                      <span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Nombre</span>
+                      <span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>{t("Nombre")}</span>
                       <input
                         value={profileName}
                         readOnly
@@ -2211,19 +2215,19 @@ export function CompanyShell({
                   <div className={`rounded-lg border p-3 ${isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                     <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.08em] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>Plan</p>
                     <div className="flex items-center justify-between"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Current Plan</span><span className="rounded-full bg-[var(--gbp-accent-glow)] px-2 py-[2px] text-[10px] font-bold text-[var(--gbp-accent)]">{billingPlan}</span></div>
-                    <div className="mt-2"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Plan asignado</span><select value={billingPlan} onChange={(event) => setBillingPlan(event.target.value)} disabled className={`mt-1 w-full rounded-md border px-2 py-1.5 disabled:opacity-60 ${isDarkTheme ? "border-white/10 bg-white/5 text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text)]"}`}>{plansForDisplay.map((plan) => <option key={plan.id} value={plan.name}>{plan.name}</option>)}</select></div>
-                    <p className={`mt-2 text-[11px] ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>El cambio de plan se gestiona desde Superadmin para mantener consistencia del tenant.</p>
+                    <div className="mt-2"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>{t("Plan asignado")}</span><select value={billingPlan} onChange={(event) => setBillingPlan(event.target.value)} disabled className={`mt-1 w-full rounded-md border px-2 py-1.5 disabled:opacity-60 ${isDarkTheme ? "border-white/10 bg-white/5 text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text)]"}`}>{plansForDisplay.map((plan) => <option key={plan.id} value={plan.name}>{plan.name}</option>)}</select></div>
+                    <p className={`mt-2 text-[11px] ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>{t("El cambio de plan se gestiona desde Superadmin para mantener consistencia del tenant.")}</p>
                     <div className="mt-2"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Billing Period</span><div className={`mt-1 flex gap-2 ${isDarkTheme ? "text-white/80" : "text-[var(--gbp-text)]"}`}><label className="inline-flex items-center gap-1.5"><input type="radio" name="bp" checked={billingPeriod === "monthly"} onChange={() => setBillingPeriod("monthly")} />Monthly</label><label className="inline-flex items-center gap-1.5"><input type="radio" name="bp" checked={billingPeriod === "annual"} onChange={() => setBillingPeriod("annual")} />Annual</label></div></div>
                   </div>
                   <div className={`rounded-lg border p-3 ${isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                     <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.08em] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>Add-ons</p>
-                    <div className={`flex items-center justify-between border-b py-1.5 ${isDarkTheme ? "border-white/5" : "border-[var(--gbp-border)]"}`}><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Extra Storage</span><button type="button" onClick={() => toast.info("Próximamente")} className="rounded-md border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-accent)]">Add Storage</button></div>
-                    <div className="flex items-center justify-between py-1.5"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Extra Users</span><button type="button" onClick={() => toast.info("Próximamente")} className="rounded-md border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-accent)]">Add Users</button></div>
+                    <div className={`flex items-center justify-between border-b py-1.5 ${isDarkTheme ? "border-white/5" : "border-[var(--gbp-border)]"}`}><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Extra Storage</span><button type="button" onClick={() => toast.info(t("Próximamente"))} className="rounded-md border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-accent)]">Add Storage</button></div>
+                    <div className="flex items-center justify-between py-1.5"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Extra Users</span><button type="button" onClick={() => toast.info(t("Próximamente"))} className="rounded-md border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-accent)]">Add Users</button></div>
                   </div>
                   <div className={`rounded-lg border p-3 ${isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
-                    <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.08em] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>Pago y Facturación</p>
+                    <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.08em] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>{t("Pago y Facturación")}</p>
                     <p className={`mb-3 text-[11px] ${isDarkTheme ? "text-white/65" : "text-[var(--gbp-text2)]"}`}>
-                      Gestiona tus métodos de pago, datos de facturación y descarga tus facturas de forma segura a través del portal de Stripe.
+                      {t("Gestiona tus métodos de pago, datos de facturación y descarga tus facturas de forma segura a través del portal de Stripe.")}
                     </p>
                     <button
                       type="button"
@@ -2231,7 +2235,7 @@ export function CompanyShell({
                       disabled={busy}
                       className={`w-full rounded-md px-2 py-2 font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${isDarkTheme ? "bg-white text-[var(--gbp-text)] hover:bg-gray-200" : "bg-[var(--gbp-text)] text-white hover:bg-[var(--gbp-accent)]"}`}
                     >
-                        Abrir Portal de Pagos
+                        {t("Abrir Portal de Pagos")}
                     </button>
                   </div>
                 </div>
@@ -2255,14 +2259,14 @@ export function CompanyShell({
                   </div>
                   <div className={`rounded-lg border p-3 ${isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                     <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.08em] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>Privacy</p>
-                    <div className="flex items-center justify-between"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Cookie Settings</span><button type="button" onClick={() => toast.info("Administrar cookies") } className="rounded-md border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-accent)]">Manage</button></div>
+                    <div className="flex items-center justify-between"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Cookie Settings</span><button type="button" onClick={() => toast.info(t("Administrar cookies")) } className="rounded-md border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-accent)]">Manage</button></div>
                     <label className={`mt-2 inline-flex items-center gap-2 ${isDarkTheme ? "text-white/80" : "text-[var(--gbp-text)]"}`}><input type="checkbox" checked={analyticsEnabled} onChange={(event) => setAnalyticsEnabled(event.target.checked)} /><span>Analytics</span></label>
                   </div>
                   <div className={`rounded-lg border p-3 ${isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                     <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.08em] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>Security</p>
                     {enabledModuleSet.has("qbo_r365") ? (
                       <p className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>
-                        La verificación en dos pasos por email es obligatoria para cuentas con la integración de QuickBooks activa.
+                        {t("La verificación en dos pasos por email es obligatoria para cuentas con la integración de QuickBooks activa.")}
                       </p>
                     ) : (
                       <>
@@ -2272,7 +2276,7 @@ export function CompanyShell({
                             checked={twoFactorEnabled}
                             onChange={(event) => setTwoFactorEnabled(event.target.checked)}
                           />
-                          <span>Pedir código por email al iniciar sesión</span>
+                          <span>{t("Pedir código por email al iniciar sesión")}</span>
                         </label>
                         <button
                           type="button"
@@ -2280,12 +2284,12 @@ export function CompanyShell({
                           onClick={() => saveSettings("profile", { twoFactorEnabled, twoFactorMethod: "email" })}
                           className={`mt-2 w-full rounded-md px-2 py-2 font-semibold disabled:opacity-60 ${isDarkTheme ? "bg-white text-[var(--gbp-text)]" : "bg-[var(--gbp-text)] text-white"}`}
                         >
-                          Guardar seguridad
+                          {t("Guardar seguridad")}
                         </button>
                       </>
                     )}
                   </div>
-                  <button type="button" disabled={busy} onClick={() => saveSettings("preferences", { theme, language, dateFormat, timezoneMode, timezoneManual, analyticsEnabled })} className={`w-full rounded-md px-2 py-2 font-semibold disabled:opacity-60 ${isDarkTheme ? "bg-white text-[var(--gbp-text)]" : "bg-[var(--gbp-text)] text-white"}`}>Guardar preferences</button>
+                  <button type="button" disabled={busy} onClick={() => saveSettings("preferences", { theme, language, dateFormat, timezoneMode, timezoneManual, analyticsEnabled })} className={`w-full rounded-md px-2 py-2 font-semibold disabled:opacity-60 ${isDarkTheme ? "bg-white text-[var(--gbp-text)]" : "bg-[var(--gbp-text)] text-white"}`}>{t("Guardar preferences")}</button>
                 </div>
               </div>
             ) : null}
@@ -2303,20 +2307,20 @@ export function CompanyShell({
             <div className="relative p-6 pb-2">
               <button type="button" onClick={() => setFeedbackOpen(false)} className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"><X className="h-4 w-4" /></button>
               <p className="font-serif text-lg font-bold text-[var(--gbp-text)]">Feedback</p>
-              <p className="text-sm text-[var(--gbp-muted)]">iAyudanos a mejorar!</p>
+              <p className="text-sm text-[var(--gbp-muted)]">{t("iAyudanos a mejorar!")}</p>
             </div>
             <div className="grid grid-cols-2 gap-2 px-6 pb-4">
-              <button type="button" onClick={() => setFbType("bug")} className={`rounded-[10px] border-[1.5px] px-3 py-2 text-sm font-semibold ${fbType === "bug" ? "bg-[var(--gbp-error-soft)]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"}`} style={fbType === "bug" ? { borderColor: palette.accent, color: palette.accent } : undefined}>Reportar problema</button>
-              <button type="button" onClick={() => setFbType("idea")} className={`rounded-[10px] border-[1.5px] px-3 py-2 text-sm font-semibold ${fbType === "idea" ? "border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"}`}>Nueva idea / integracion</button>
+              <button type="button" onClick={() => setFbType("bug")} className={`rounded-[10px] border-[1.5px] px-3 py-2 text-sm font-semibold ${fbType === "bug" ? "bg-[var(--gbp-error-soft)]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"}`} style={fbType === "bug" ? { borderColor: palette.accent, color: palette.accent } : undefined}>{t("Reportar problema")}</button>
+              <button type="button" onClick={() => setFbType("idea")} className={`rounded-[10px] border-[1.5px] px-3 py-2 text-sm font-semibold ${fbType === "idea" ? "border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"}`}>{t("Nueva idea / integracion")}</button>
             </div>
             <div className="px-6 pb-6">
-              <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Titulo del mensaje</label>
-              <input value={fbTitle} onChange={(event) => setFbTitle(event.target.value)} className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]" placeholder="Resume el problema o idea en una linea..." />
-              <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Descripcion detallada</label>
-              <textarea value={fbMessage} onChange={(event) => setFbMessage(event.target.value)} rows={4} className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]" placeholder="Cuentanos con detalle..." />
+              <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">{t("Titulo del mensaje")}</label>
+              <input value={fbTitle} onChange={(event) => setFbTitle(event.target.value)} className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]" placeholder={t("Resume el problema o idea en una linea...")} />
+              <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">{t("Descripcion detallada")}</label>
+              <textarea value={fbMessage} onChange={(event) => setFbMessage(event.target.value)} rows={4} className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]" placeholder={t("Cuentanos con detalle...")} />
               <button type="button" disabled={busy || !fbTitle.trim() || !fbMessage.trim()} onClick={sendFeedback} className="mt-4 flex w-full items-center justify-center gap-2 flex-row rounded-lg px-3 py-2.5 text-sm font-bold text-white disabled:opacity-60" style={{ background: palette.accent }}>
                 {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                {busy ? "Enviando msj..." : "Enviar mensaje"}
+                {busy ? t("Enviando msj...") : t("Enviar mensaje")}
               </button>
             </div>
           </div>
@@ -2670,7 +2674,7 @@ export function CompanyShell({
             {/* Header */}
             <div className={`flex items-center justify-between border-b px-6 py-4 ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`}>
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">QBO ↔ R365 Integration</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">QuickBooks ↔ R365 Integration</p>
                 <p className="mt-0.5 text-base font-bold">Selecciona un plan</p>
               </div>
               <div className="flex items-center gap-3">
@@ -2786,7 +2790,7 @@ export function CompanyShell({
                     )}
                     {plan.isEnterprise ? (
                       <a
-                        href={`mailto:${plan.ctaEmail ?? "angelo@mkthelp.com"}?subject=QBO R365 - ${plan.name} Plan`}
+                        href={`mailto:${plan.ctaEmail ?? "angelo@mkthelp.com"}?subject=QuickBooks R365 - ${plan.name} Plan`}
                         className={`block w-full rounded-lg px-3 py-2 text-center text-[11px] font-bold transition ${
                           isDarkTheme
                             ? "border border-white/20 bg-white/5 text-white hover:bg-white/10"
@@ -2849,7 +2853,7 @@ export function CompanyShell({
                   <GetBackplateLogo variant={isDarkTheme ? "dark" : "light"} width={220} height={40} className={`${BRAND_SCALE.sidebarMobileHeight} w-auto`} />
                 </div>
               )}
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--gbp-muted)]">Administrador</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--gbp-muted)]">{t("Administrador")}</p>
             </div>
             <div className="flex-1 overflow-y-auto py-2">
               {visibleSections.map((section, idx) => (
@@ -2859,7 +2863,7 @@ export function CompanyShell({
                     onClick={() => toggleSection(section.label)}
                     className={`flex w-full items-center justify-between px-4 pb-1 pt-3 text-left text-[10px] font-bold uppercase tracking-[0.13em] ${isDarkTheme ? "text-white/45" : "text-black/35"}`}
                   >
-                    <span>{section.label}</span>
+                    <span>{t(section.label)}</span>
                     <ChevronDown className={`h-3.5 w-3.5 transition ${expandedSections[section.label] ? "rotate-180" : ""}`} />
                   </button>
                   {expandedSections[section.label] ? (
@@ -2879,7 +2883,7 @@ export function CompanyShell({
                               onMouseEnter={() => prefetchQuickActionCatalog(item)}
                             >
                               <item.icon className="h-4 w-4" />
-                              <span>{item.label}</span>
+                              <span>{t(item.label)}</span>
                             </button>
                           );
                         }
@@ -2894,7 +2898,7 @@ export function CompanyShell({
                             onMouseEnter={() => router.prefetch(hrefWithBranch(item.href))}
                           >
                             <item.icon className="h-4 w-4" />
-                            <span>{item.label}</span>
+                            <span>{t(item.label)}</span>
                           </Link>
                         );
                       })}
@@ -2933,7 +2937,7 @@ export function CompanyShell({
                   className={`group/tooltip relative inline-flex flex-1 items-center justify-center rounded-md border h-10 text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 hover:bg-black/10 hover:text-[var(--gbp-text)]"}`}
                 >
                   <LogOut className="h-4 w-4" />
-                  <TooltipLabel label="Cerrar sesión" />
+                  <TooltipLabel label={t("Cerrar sesión")} />
                 </Link>
                 <button
                   type="button"
@@ -2945,7 +2949,7 @@ export function CompanyShell({
                   className={`group/tooltip relative inline-flex flex-1 items-center justify-center rounded-md border h-10 text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 hover:bg-black/10 hover:text-[var(--gbp-text)]"}`}
                 >
                   <Settings className="h-4 w-4" />
-                  <TooltipLabel label="Configuración" />
+                  <TooltipLabel label={t("Configuración")} />
                 </button>
                 <button
                   type="button"
@@ -2956,7 +2960,7 @@ export function CompanyShell({
                   className={`group/tooltip relative inline-flex flex-1 items-center justify-center rounded-md border h-10 text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 hover:bg-black/10 hover:text-[var(--gbp-text)]"}`}
                 >
                   <MessageSquarePlus className="h-4 w-4" />
-                  <TooltipLabel label="Feedback" />
+                  <TooltipLabel label={t("Feedback")} />
                 </button>
               </div>
               {canInstall && (

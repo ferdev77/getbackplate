@@ -6,6 +6,7 @@ import { Edit2, Trash2, ShieldAlert, ChevronDown, ChevronUp, Briefcase, GripVert
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
 import { InlinePositionForm } from "./inline-position-form";
 import { ReorderablePositionList } from "./reorderable-position-list";
+import { createTranslator } from "./settings.i18n";
 
 interface Position {
   id: string;
@@ -23,6 +24,7 @@ interface Department {
 }
 
 interface EditableDepartmentItemProps {
+  locale?: "es" | "en";
   department: Department;
   positions: Position[];
   updateDepartmentAction: (formData: FormData) => Promise<void>;
@@ -38,6 +40,7 @@ interface EditableDepartmentItemProps {
 }
 
 export function EditableDepartmentItem({
+  locale,
   department,
   positions,
   updateDepartmentAction,
@@ -49,6 +52,7 @@ export function EditableDepartmentItem({
   togglePositionStatusAction,
   dragHandleProps,
 }: EditableDepartmentItemProps) {
+  const t = createTranslator(locale);
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -126,13 +130,13 @@ export function EditableDepartmentItem({
               <h3 className="text-sm font-bold text-[var(--gbp-text)]">{department.name}</h3>
               {!department.is_active && (
                 <span className="rounded bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--gbp-muted)]">
-                  Inactivo
+                  {t("Inactivo")}
                 </span>
               )}
             </div>
-            <p className="line-clamp-1 text-xs text-[var(--gbp-text2)]">{department.description || "Sin descripción"}</p>
+            <p className="line-clamp-1 text-xs text-[var(--gbp-text2)]">{department.description || t("Sin descripción")}</p>
             <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-[var(--gbp-muted)]">
-              {positions.length} {positions.length === 1 ? "Puesto" : "Puestos"}
+              {positions.length} {positions.length === 1 ? t("Puesto") : t("Puestos")}
             </p>
           </div>
         </div>
@@ -142,7 +146,7 @@ export function EditableDepartmentItem({
             <button
               onClick={() => setIsEditing(true)}
               className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] transition-colors hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"
-              title="Editar departamento"
+              title={t("Editar departamento")}
             >
               <Edit2 className="h-4 w-4" />
             </button>
@@ -150,14 +154,14 @@ export function EditableDepartmentItem({
               onClick={handleToggleStatus}
               disabled={busy}
               className={`grid h-8 w-8 place-items-center rounded-md transition-colors hover:bg-[var(--gbp-surface2)] ${department.is_active ? "text-[var(--gbp-muted)] hover:text-orange-500" : "text-orange-500 hover:text-orange-600"}`}
-              title={department.is_active ? "Desactivar" : "Activar"}
+              title={department.is_active ? t("Desactivar") : t("Activar")}
             >
               <ShieldAlert className="h-4 w-4" />
             </button>
             <button
               onClick={() => setIsDeleting(true)}
               className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] transition-colors hover:bg-[var(--gbp-error-soft)] hover:text-[var(--gbp-error)]"
-              title="Eliminar departamento"
+              title={t("Eliminar departamento")}
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -173,7 +177,7 @@ export function EditableDepartmentItem({
         <div className="border-t border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4">
           <form onSubmit={handleUpdate} className="grid gap-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-bold uppercase tracking-widest text-[var(--gbp-muted)]">Editando Departamento</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-[var(--gbp-muted)]">{t("Editando Departamento")}</p>
               <button type="button" onClick={() => setIsEditing(false)} className="text-[var(--gbp-muted)] hover:text-[var(--gbp-text)]">✕</button>
             </div>
             <input
@@ -181,14 +185,14 @@ export function EditableDepartmentItem({
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Nombre de departamento"
+              placeholder={t("Nombre de departamento")}
               className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none focus:border-[var(--gbp-accent)]"
               disabled={busy}
             />
             <input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Descripción"
+              placeholder={t("Descripción")}
               className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none focus:border-[var(--gbp-accent)]"
               disabled={busy}
             />
@@ -199,14 +203,14 @@ export function EditableDepartmentItem({
                 disabled={busy}
                 className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-4 py-2 text-xs font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
               >
-                Cancelar
+                {t("Cancelar")}
               </button>
               <button
                 type="submit"
                 disabled={busy || !name.trim()}
                 className="rounded-lg bg-[var(--gbp-text)] px-4 py-2 text-xs font-bold text-white hover:bg-[var(--gbp-accent)] disabled:opacity-50"
               >
-                {busy ? "Guardando..." : "Guardar cambios"}
+                {busy ? t("Guardando...") : t("Guardar cambios")}
               </button>
             </div>
           </form>
@@ -217,16 +221,18 @@ export function EditableDepartmentItem({
       {isExpanded && !isEditing && (
         <div className="border-t border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4 animate-in fade-in slide-in-from-top-2">
           <div className="mb-4 flex items-center justify-between">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--gbp-muted)]">Puestos de Trabajo</p>
-            <InlinePositionForm 
-              departmentId={department.id} 
-              departmentName={department.name} 
-              createAction={createPositionAction} 
+            <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--gbp-muted)]">{t("Puestos de Trabajo")}</p>
+            <InlinePositionForm
+              locale={locale}
+              departmentId={department.id}
+              departmentName={department.name}
+              createAction={createPositionAction}
             />
           </div>
 
           <div className="space-y-1">
             <ReorderablePositionList
+              locale={locale}
               departmentId={department.id}
               initialPositions={positions}
               updateAction={updatePositionAction}
@@ -239,8 +245,8 @@ export function EditableDepartmentItem({
 
       {isDeleting && (
         <ConfirmDeleteDialog
-          title={`Eliminar departamento: ${department.name}`}
-          description="¿Estás seguro de eliminar este departamento? Se eliminará permanentemente si no tiene puestos asociados ni personal asignado."
+          title={`${t("Eliminar departamento")}: ${department.name}`}
+          description={t("¿Estás seguro de eliminar este departamento? Se eliminará permanentemente si no tiene puestos asociados ni personal asignado.")}
           busy={busy}
           onCancel={() => setIsDeleting(false)}
           onConfirm={handleDelete}
