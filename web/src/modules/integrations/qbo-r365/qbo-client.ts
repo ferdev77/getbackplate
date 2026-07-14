@@ -270,7 +270,7 @@ async function queryQboTable<T>(input: {
       if (errorCode === "3100") {
         throw new Error("QBO_3100:La autorizacion de la app con esta company no es valida. Reconecta QuickBooks.");
       }
-      throw new Error(detail || message || `Error consultando ${input.table} en QBO`);
+      throw new Error(detail || message || `Error consultando ${input.table} en QuickBooks`);
     }
 
     const queryResponse = payload.QueryResponse ?? payload.queryResponse;
@@ -570,7 +570,7 @@ export async function fetchQboTransactionByDocNumber(input: {
     };
     if (!response.ok) {
       const fault = payload.Fault?.Error?.[0];
-      throw new Error(fault?.Detail ?? fault?.Message ?? `Error consultando ${type} por DocNumber en QBO`);
+      throw new Error(fault?.Detail ?? fault?.Message ?? `Error consultando ${type} por DocNumber en QuickBooks`);
     }
     const qr = payload.QueryResponse ?? payload.queryResponse;
     const items = (type === "Invoice" ? qr?.Invoice : qr?.CreditMemo) ?? [];
@@ -670,7 +670,7 @@ export async function fetchQboCustomers(input: {
     };
 
     if (!response.ok) {
-      throw new Error("Error consultando clientes en QBO");
+      throw new Error("Error consultando clientes en QuickBooks");
     }
 
     const batch = payload.QueryResponse?.Customer ?? [];

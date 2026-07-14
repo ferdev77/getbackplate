@@ -18,7 +18,7 @@ const STATUS_CONFIG = {
 
 const PLAN_KIND_CONFIG = {
   platform:    { label: "Plataforma",        Icon: Building2, cls: "text-violet-600" },
-  integration: { label: "Integración QBO-R365", Icon: Plug,    cls: "text-sky-600" },
+  integration: { label: "Integración QuickBooks-R365", Icon: Plug,    cls: "text-sky-600" },
 } as const;
 
 function fmtDate(iso: string) {

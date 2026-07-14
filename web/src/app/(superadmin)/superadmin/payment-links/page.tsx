@@ -136,7 +136,7 @@ export default async function PaymentLinksPage() {
         <div>
           <h2 className="text-2xl font-bold text-foreground">Links de Suscripción</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Alta de plan recurrente (plataforma o integración QBO-R365) sin que el cliente tenga que loguearse.
+            Alta de plan recurrente (plataforma o integración QuickBooks-R365) sin que el cliente tenga que loguearse.
           </p>
         </div>
         <SubscriptionLinkModal
@@ -159,7 +159,7 @@ export default async function PaymentLinksPage() {
       <div className="mb-6 mt-14 border-t border-[var(--gbp-border)] pt-10">
         <h2 className="text-2xl font-bold text-foreground">Precio por factura enviada</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Cobro de uso opcional por organización con integración QBO-R365 activa. Dejalo vacío para no cobrar.
+          Cobro de uso opcional por organización con integración QuickBooks-R365 activa. Dejalo vacío para no cobrar.
         </p>
       </div>
       <InvoicePriceList organizations={invoicePriceOrgs} />

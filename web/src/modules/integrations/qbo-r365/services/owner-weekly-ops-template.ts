@@ -258,7 +258,7 @@ export function buildOwnerWeeklyOpsHtml(input: OwnerWeeklyOpsTemplateInput): str
 
         <tr>
           <td style="padding:12px 28px 22px;font-family:'Courier New',monospace;font-size:12.5px;color:#8A8C95;">
-            ${input.periodLabel} &middot; QBO &rarr; R365
+            ${input.periodLabel} &middot; QuickBooks &rarr; R365
           </td>
         </tr>
 

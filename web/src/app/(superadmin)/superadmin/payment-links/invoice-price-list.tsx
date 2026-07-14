@@ -180,7 +180,7 @@ export function InvoicePriceList({ organizations }: { organizations: Org[] }) {
   if (organizations.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-[var(--gbp-border)] px-8 py-10 text-center">
-        <p className="text-sm font-semibold text-muted-foreground">No hay organizaciones con integración QBO-R365 activa.</p>
+        <p className="text-sm font-semibold text-muted-foreground">No hay organizaciones con integración QuickBooks-R365 activa.</p>
       </div>
     );
   }

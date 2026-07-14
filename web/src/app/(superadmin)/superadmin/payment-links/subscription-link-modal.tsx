@@ -207,7 +207,7 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
                         }`}
                       >
                         <Plug className="h-4 w-4 shrink-0" />
-                        <span className="text-xs font-bold">Integración QBO-R365</span>
+                        <span className="text-xs font-bold">Integración QuickBooks-R365</span>
                       </button>
                       <button
                         type="button"

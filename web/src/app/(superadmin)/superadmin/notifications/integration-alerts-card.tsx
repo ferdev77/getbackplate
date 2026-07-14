@@ -56,7 +56,7 @@ export function IntegrationAlertsCard({ initialEnabled }: { initialEnabled: bool
         <Radio className="h-4 w-4 text-[var(--gbp-accent)]" /> Notificaciones push
       </h2>
       <p className="text-xs text-[var(--gbp-text2)]">
-        Como superadmin recibís automáticamente un push cuando un webhook de QBO → R365 no se pueda identificar,
+        Como superadmin recibís automáticamente un push cuando un webhook de QuickBooks → R365 no se pueda identificar,
         se envíe con éxito, o falle — de cualquier organización. Esto requiere tener las notificaciones push
         activadas en el navegador.
       </p>

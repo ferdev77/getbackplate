@@ -21,13 +21,13 @@ const ACTION_META: Record<ActionType, { label: string; icon: React.ElementType; 
     label: "Agregar facturas",
     icon: FileStack,
     color: "emerald",
-    description: "Suma N facturas al balance de la organización (requiere módulo QBO activo).",
+    description: "Suma N facturas al balance de la organización (requiere módulo QuickBooks activo).",
   },
   add_slot: {
     label: "Slot + Setup Fee",
     icon: Plug,
     color: "sky",
-    description: "Suma un slot de sync QBO-R365 a la organización al confirmar el pago.",
+    description: "Suma un slot de sync QuickBooks-R365 a la organización al confirmar el pago.",
   },
   custom: {
     label: "Cobro personalizado",

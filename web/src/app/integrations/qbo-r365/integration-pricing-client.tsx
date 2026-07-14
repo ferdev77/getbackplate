@@ -782,7 +782,7 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
         onClose={() => setSeatModal((s) => ({ ...s, open: false }))}
         toEmail={seatModal.email}
         planName={seatModal.planName}
-        source="QBO ↔ R365 Integration"
+        source="QuickBooks ↔ R365 Integration"
       />
     </>
   );

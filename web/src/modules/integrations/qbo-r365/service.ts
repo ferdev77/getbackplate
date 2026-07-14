@@ -339,7 +339,7 @@ export async function createSyncConfig(
   if (customersError) {
     await admin.from("qbo_r365_sync_configs").delete().eq("id", syncConfigId);
     if (customersError.code === "23505") {
-      throw new Error("Uno de los clientes de QBO elegidos ya está asignado a otra sincronización.");
+      throw new Error("Uno de los clientes de QuickBooks elegidos ya está asignado a otra sincronización.");
     }
     throw new Error(customersError.message);
   }
@@ -422,7 +422,7 @@ export async function addCustomerToSyncConfig(
 
   if (error) {
     if (error.code === "23505") {
-      throw new Error("Este cliente de QBO ya está asignado a otra sincronización.");
+      throw new Error("Este cliente de QuickBooks ya está asignado a otra sincronización.");
     }
     throw new Error(error.message);
   }
@@ -1474,7 +1474,7 @@ export async function runQboR365Sync(input: {
         sinceIso,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Error consultando Invoice en QBO";
+      const message = error instanceof Error ? error.message : "Error consultando Invoice en QuickBooks";
       const looksLikeAuthError = /QBO_3100|ApplicationAuthorizationFailed|401|forbidden|unauthorized/i.test(message);
       if (!looksLikeAuthError) {
         throw error;
@@ -2708,7 +2708,7 @@ export async function previewUnifiedInvoiceCsv(input: {
 
   if (error) throw new Error(error.message);
   if (!row) throw new Error("Factura no encontrada en el historial");
-  if (!row.raw_entity) throw new Error("La factura no tiene datos QBO almacenados — no se puede previsualizar");
+  if (!row.raw_entity) throw new Error("La factura no tiene datos QuickBooks almacenados — no se puede previsualizar");
 
   const syncConfigId = row.sync_config_id ? String(row.sync_config_id) : null;
   if (!syncConfigId) throw new Error("Esta factura no tiene sincronización asociada");
@@ -3227,7 +3227,7 @@ export async function importQboWebhookEventManually(input: { organizationId: str
     invoiceId: String(data.entity_id ?? ""),
   });
   if (!raw || raw.type !== data.entity) {
-    throw new Error("No se pudo obtener la entidad desde QBO para este webhook");
+    throw new Error("No se pudo obtener la entidad desde QuickBooks para este webhook");
   }
 
   await admin
@@ -3502,7 +3502,7 @@ async function fetchAndCaptureWebhookInvoice(input: {
   try {
     const qboConnection = await getConnection(input.organizationId, "quickbooks_online");
     if (!qboConnection || qboConnection.status !== "connected") {
-      await markIdentificationFailed("La conexión a QBO no está activa para esta organización");
+      await markIdentificationFailed("La conexión a QuickBooks no está activa para esta organización");
       return;
     }
 
@@ -3514,7 +3514,7 @@ async function fetchAndCaptureWebhookInvoice(input: {
     });
 
     if (!raw?.data) {
-      await markIdentificationFailed("QBO no devolvió datos para esta entidad");
+      await markIdentificationFailed("QuickBooks no devolvió datos para esta entidad");
       return;
     }
 
@@ -3722,7 +3722,7 @@ export async function fetchInvoiceByDocNumber(
   });
 
   if (!result) {
-    throw new Error(`No se encontró ninguna factura o nota de crédito con DocNumber "${docNumber}" en QBO`);
+    throw new Error(`No se encontró ninguna factura o nota de crédito con DocNumber "${docNumber}" en QuickBooks`);
   }
 
   const { type: entityType, data: entity } = result;
@@ -4080,7 +4080,7 @@ export async function mapOnlyUnifiedInvoice(input: {
 
   if (rowError) throw new Error(rowError.message);
   if (!row) throw new Error("Factura no encontrada en el historial");
-  if (!row.raw_entity) throw new Error("La factura no tiene datos QBO almacenados — no se puede mapear");
+  if (!row.raw_entity) throw new Error("La factura no tiene datos QuickBooks almacenados — no se puede mapear");
   if (row.pipeline_status === "enviada") throw new Error("La factura ya fue enviada a R365 y no se puede remapear");
 
   const syncConfigId = row.sync_config_id ? String(row.sync_config_id) : null;
@@ -4162,7 +4162,7 @@ export async function sendSingleUnifiedInvoice(input: {
 
   if (rowError) throw new Error(rowError.message);
   if (!row) throw new Error("Factura no encontrada en el historial");
-  if (!row.raw_entity) throw new Error("La factura no tiene datos QBO almacenados — no se puede enviar");
+  if (!row.raw_entity) throw new Error("La factura no tiene datos QuickBooks almacenados — no se puede enviar");
 
   const syncConfigId = row.sync_config_id ? String(row.sync_config_id) : null;
   if (!syncConfigId) throw new Error("Esta factura no tiene sincronización asociada");
@@ -4365,8 +4365,8 @@ export async function processQboUnifiedQueue(): Promise<{
       if (row.pipeline_status === "en_cola" || !rawEntity) {
         const qboConnection = await getConnection(organizationId, "quickbooks_online");
         if (!qboConnection || qboConnection.status !== "connected") {
-          await markIdentificationFailed(row, organizationId, String(row.entity_id), String(row.entity_type), "QBO no conectado");
-          results.push({ unifiedInvoiceId, status: "failed", error: "QBO no conectado" });
+          await markIdentificationFailed(row, organizationId, String(row.entity_id), String(row.entity_type), "QuickBooks no conectado");
+          results.push({ unifiedInvoiceId, status: "failed", error: "QuickBooks no conectado" });
           continue;
         }
         const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
@@ -4376,8 +4376,8 @@ export async function processQboUnifiedQueue(): Promise<{
           invoiceId: String(row.entity_id),
         });
         if (!raw?.data) {
-          await markIdentificationFailed(row, organizationId, String(row.entity_id), String(row.entity_type), "Entidad no encontrada en QBO");
-          results.push({ unifiedInvoiceId, status: "failed", error: "Entidad no encontrada en QBO" });
+          await markIdentificationFailed(row, organizationId, String(row.entity_id), String(row.entity_type), "Entidad no encontrada en QuickBooks");
+          results.push({ unifiedInvoiceId, status: "failed", error: "Entidad no encontrada en QuickBooks" });
           continue;
         }
         rawEntity = raw.data as QboInvoiceLike;

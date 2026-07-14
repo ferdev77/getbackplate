@@ -18,7 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Pricing — QBO ↔ R365 Integration | GetBackplate",
+  title: "Pricing — QuickBooks ↔ R365 Integration | GetBackplate",
   description:
     "The only native connector between QuickBooks Online and Restaurant365. Send invoices automatically, in real time.",
 };

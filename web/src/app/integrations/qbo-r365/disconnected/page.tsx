@@ -112,7 +112,7 @@ export default function IntegrationDisconnectedPage() {
             Las sincronizaciones automáticas hacia Restaurant365 quedaron pausadas hasta que
             vuelvas a conectar tu cuenta. Para reconectar: iniciá sesión en tu cuenta de
             GetBackplate, entrá a Integraciones → QuickBooks Online, y elegí &ldquo;Conectar
-            QBO&rdquo;.
+            QuickBooks&rdquo;.
           </p>
 
           <a
