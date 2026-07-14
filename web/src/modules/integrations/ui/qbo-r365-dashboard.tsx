@@ -503,19 +503,24 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       void Promise.all(
         idsToResolve.map((id) =>
           fetch(`/api/company/integrations/qbo-r365/customers/${id}`)
-            .then((r) => (r.ok ? r.json() : null))
-            .then((d: { customer?: QboCustomer } | null) => ({ id, acctNum: d?.customer?.acctNum }))
-            .catch(() => ({ id, acctNum: undefined })),
+            .then(async (r) => {
+              if (!r.ok) return { id, acctNum: undefined, ok: false };
+              const d = (await r.json()) as { customer?: QboCustomer };
+              return { id, acctNum: d.customer?.acctNum, ok: true };
+            })
+            .catch(() => ({ id, acctNum: undefined, ok: false })),
         ),
       ).then((results) => {
         if (cancelled) return;
         setQboCustomers((prev) => {
-          const updates = new Map(results.map((r) => [r.id, r.acctNum]));
+          const updates = new Map(results.filter((r) => r.ok).map((r) => [r.id, r.acctNum]));
           return prev.map((c) => (updates.has(c.id) ? { ...c, acctNum: updates.get(c.id) } : c));
         });
+        // Los que fallaron (ej. 429 por rate limit) no se marcan como
+        // resueltos, para que la siguiente tanda los reintente.
         setResolvedAcctNumIds((prev) => {
           const next = new Set(prev);
-          for (const r of results) next.add(r.id);
+          for (const r of results) if (r.ok) next.add(r.id);
           return next;
         });
       });
@@ -529,7 +534,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
       resolveBatch();
       return () => { cancelled = true; };
     }
-    const timer = setTimeout(resolveBatch, 4000);
+    const timer = setTimeout(resolveBatch, 1200);
     return () => { cancelled = true; clearTimeout(timer); };
   }, [qboCustomers, resolvedAcctNumIds]);
 
