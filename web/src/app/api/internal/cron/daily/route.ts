@@ -67,20 +67,46 @@ export async function GET(request: Request) {
       ...pendingReminderResult,
     });
 
+    // Shared 12-month retention cutoff for steps 7-9 below.
+    const twelveMonthRetentionCutoff = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
+
     // 7. Purge raw QuickBooks invoice payloads older than 12 months.
     // Keeps the summary columns (amount, customer, dates) for history/reporting,
     // only clears the full raw_entity payload we no longer need functionally.
-    const qboRetentionCutoff = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
     const { error: qboRawEntityCleanupError } = await admin
       .from("qbo_unified_invoices")
       .update({ raw_entity: null })
-      .lt("created_at", qboRetentionCutoff)
+      .lt("created_at", twelveMonthRetentionCutoff)
       .not("raw_entity", "is", null);
 
     results.push({
       task: "purgeQboUnifiedInvoicesRawEntity",
       status: qboRawEntityCleanupError ? 500 : 200,
       error: qboRawEntityCleanupError?.message ?? null,
+    });
+
+    // 8. Purge general audit_logs older than 12 months.
+    const { error: auditLogsCleanupError } = await admin
+      .from("audit_logs")
+      .delete()
+      .lt("created_at", twelveMonthRetentionCutoff);
+
+    results.push({
+      task: "purgeAuditLogs",
+      status: auditLogsCleanupError ? 500 : 200,
+      error: auditLogsCleanupError?.message ?? null,
+    });
+
+    // 9. Purge QBO/R365 integration_audit_logs older than 12 months.
+    const { error: integrationAuditLogsCleanupError } = await admin
+      .from("integration_audit_logs")
+      .delete()
+      .lt("created_at", twelveMonthRetentionCutoff);
+
+    results.push({
+      task: "purgeIntegrationAuditLogs",
+      status: integrationAuditLogsCleanupError ? 500 : 200,
+      error: integrationAuditLogsCleanupError?.message ?? null,
     });
 
     return NextResponse.json({ ok: true, results });

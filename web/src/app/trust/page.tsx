@@ -331,6 +331,7 @@ export default function TrustCenterPage() {
                   <li><span className="ck-icon" /><span className="ck-text"><strong>OAuth 2.0 with Intuit.</strong> Customers authorize access to their QuickBooks Online data through Intuit&apos;s own hosted flow.</span></li>
                   <li><span className="ck-icon" /><span className="ck-text"><strong>Tenant isolation via Row-Level Security.</strong> Every tenant-scoped table enforces RLS keyed to <code className="mono">organization_id</code>; membership and role tables are RLS-protected as well.</span></li>
                   <li><span className="ck-icon" /><span className="ck-text"><strong>Role-based access within each organization.</strong> Permissions are assigned per role (e.g. company admin vs. employee), enforced by policy, not just application logic.</span></li>
+                  <li><span className="ck-icon" /><span className="ck-text"><strong>Email-based two-step verification.</strong> Required on every login for administrative accounts on organizations with the QuickBooks integration active; available as an opt-in for other accounts.</span></li>
                 </ul>
 
                 <div className="note-callout">
@@ -402,8 +403,8 @@ export default function TrustCenterPage() {
                 </ul>
 
                 <div className="note-callout">
-                  <strong>Note on log retention:</strong> operational audit logs are currently
-                  retained without an automated purge policy — see the roadmap in section 09.
+                  <strong>Note on log retention:</strong> operational audit logs are automatically
+                  purged after 12 months via a scheduled daily job.
                 </div>
               </div>
             </div>
@@ -534,6 +535,8 @@ export default function TrustCenterPage() {
                     <li><span className="ck-icon" /><span className="ck-text">Role-based access control and a functioning audit log.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Tech E&amp;O and Cyber Liability coverage committed at $1M / $2M USD via our Master Services Agreement.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Privacy Policy and Terms of Service published and versioned for both products.</span></li>
+                    <li><span className="ck-icon" /><span className="ck-text">Audit log retention policy — operational logs are purged automatically after 12 months via a scheduled daily job.</span></li>
+                    <li><span className="ck-icon" /><span className="ck-text">Email-based two-step verification, required for administrative accounts on organizations with the QuickBooks integration active.</span></li>
                   </ul>
                 </div>
 
@@ -541,7 +544,6 @@ export default function TrustCenterPage() {
                   <div className="section-title" style={{ marginBottom: 12, fontSize: 18 }}>What&apos;s on the roadmap</div>
                   <ul className="check-list is-planned">
                     <li><span className="ck-icon" /><span className="ck-text"><strong>Documented security policy &amp; incident response plan —</strong> formalize what is today informal practice.</span></li>
-                    <li><span className="ck-icon" /><span className="ck-text"><strong>Audit log retention policy —</strong> automate purging of operational logs past a defined retention window.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text"><strong>Third-party penetration test —</strong> first external test, cadence to follow.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text"><strong>SOC 2 —</strong> considered for a future date, subject to customer demand.</span></li>
                   </ul>
