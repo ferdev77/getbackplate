@@ -20,7 +20,7 @@ export default function IntegrationMsaPage() {
         This Master Services Agreement (the <strong>&quot;Agreement&quot;</strong>) governs your subscription to the Service. By checking the acceptance box during Stripe Checkout or otherwise affirmatively accepting these terms via Provider&apos;s electronic acceptance mechanism (the <strong>&quot;Acceptance Date&quot;</strong>), you agree to be bound by this Agreement.
       </div>
 
-      <p>This Agreement is entered into by and between <strong>Backplate Technologies LLC</strong>, a Texas limited liability company, doing business as <strong>GetBackplate</strong>, located at 1321 Upland Dr., Suite 9894, Houston, Texas 77043, United States (hereinafter referred to as <strong>&quot;GetBackplate&quot;</strong> or <strong>&quot;Provider&quot;</strong>), and the legal entity identified during electronic acceptance and on whose behalf the individual completing checkout represents and warrants they have authority to bind (hereinafter referred to as <strong>&quot;Customer&quot;</strong>).</p>
+      <p>This Agreement is entered into by and between <strong>Backplate Technologies LLC</strong>, a Texas limited liability company, doing business as <strong>GetBackplate</strong>, located at 1001 S. 10th St., Suite G#784, McAllen, Texas 78501, United States (hereinafter referred to as <strong>&quot;GetBackplate&quot;</strong> or <strong>&quot;Provider&quot;</strong>), and the legal entity identified during electronic acceptance and on whose behalf the individual completing checkout represents and warrants they have authority to bind (hereinafter referred to as <strong>&quot;Customer&quot;</strong>).</p>
 
       <p>GetBackplate and Customer are sometimes referred to herein individually as a <em>&quot;Party&quot;</em> and collectively as the <em>&quot;Parties.&quot;</em></p>
 
@@ -87,7 +87,7 @@ export default function IntegrationMsaPage() {
       <p>Provider shall provide email support during business hours (Monday through Friday, 9:00 AM to 5:00 PM Central Time, excluding U.S. federal holidays) with the following response time targets: Critical issues (Service unavailable): four (4) business hours; High priority issues: one (1) business day; Other issues: three (3) business days.</p>
 
       <h2><span className="section-num">6.</span>Customer responsibilities</h2>
-      <h3><span className="sub-num">6.1</span>QBO connection</h3>
+      <h3><span className="sub-num">6.1</span>QuickBooks Online connection</h3>
       <p>Customer shall maintain a valid OAuth connection between its QuickBooks Online account and the Service. Customer shall re-authenticate the connection upon request from Provider or when required by Intuit.</p>
       <h3><span className="sub-num">6.2</span>Account Number management</h3>
       <p>Customer is responsible for maintaining accurate Account Number assignments at the customer profile level in QuickBooks Online for each Restaurant365 customer to whom invoices are to be delivered through the Service.</p>
@@ -167,7 +167,7 @@ export default function IntegrationMsaPage() {
       <p>Notwithstanding the foregoing, either Party may seek injunctive or other equitable relief in any court of competent jurisdiction to protect its intellectual property or Confidential Information.</p>
 
       <h2><span className="section-num">16.</span>Notices</h2>
-      <p>All notices under this Agreement shall be in writing and delivered by email with confirmation of receipt, or by certified mail or recognized overnight courier. Notices to Provider shall be sent to <a href="mailto:security@getbackplate.com">security@getbackplate.com</a> with a copy to 1321 Upland Dr., Suite 9894, Houston, Texas 77043. Notices to Customer shall be sent to the email address provided by Customer during electronic acceptance.</p>
+      <p>All notices under this Agreement shall be in writing and delivered by email with confirmation of receipt, or by certified mail or recognized overnight courier. Notices to Provider shall be sent to <a href="mailto:security@getbackplate.com">security@getbackplate.com</a> with a copy to 1001 S. 10th St., Suite G#784, McAllen, Texas 78501. Notices to Customer shall be sent to the email address provided by Customer during electronic acceptance.</p>
 
       <h2><span className="section-num">17.</span>Miscellaneous</h2>
       <h3><span className="sub-num">17.1</span>Entire agreement</h3>
@@ -236,39 +236,55 @@ export default function IntegrationMsaPage() {
       <div className="schedule">
         <div className="schedule-label">Schedule B</div>
         <h2>Fees and Pricing</h2>
-        <p>Customer shall pay Provider the following fees, all of which are exclusive of applicable taxes:</p>
+        <p>GetBackplate offers multiple subscription Plans (Connect, Grow, Scale, and Enterprise), each consisting of a Base Subscription Fee, a one-time Setup Fee, a number of included R365 customer connections, and a monthly allowance of Invoices and Credit Memos, with a per-document Overage Fee applicable above that allowance. Customer selects a Plan during Stripe Checkout; the fees for the selected Plan are confirmed at that time and are also published at <Link href="/integrations/qbo-r365">getbackplate.com/integrations/qbo-r365</Link>, which is incorporated herein by reference and controls in the event this Schedule B becomes out of date.</p>
 
         <table>
           <thead>
             <tr>
-              <th>Fee Component</th>
-              <th>Amount</th>
-              <th>Billing</th>
+              <th>Plan</th>
+              <th>Base Subscription Fee</th>
+              <th>Setup Fee</th>
+              <th>Included Connections / Invoices</th>
+              <th>Overage</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td><strong>Base Subscription Fee</strong></td>
-              <td>$269.00 USD per month — includes one (1) R365 customer connection</td>
-              <td>In advance, monthly</td>
+              <td><strong>Connect</strong></td>
+              <td>$269.00 USD / month</td>
+              <td>$799.00 USD, one-time</td>
+              <td>1 R365 connection · 75 invoices/mo</td>
+              <td>+50-invoice pack for $39.00 USD, activated automatically when the monthly allowance is exceeded</td>
             </tr>
             <tr>
-              <td><strong>Additional Connection Fee</strong></td>
-              <td>$80.00 USD per month, for each additional R365 customer connection beyond the first</td>
-              <td>In advance, monthly</td>
+              <td><strong>Grow</strong></td>
+              <td>$649.00 USD / month</td>
+              <td>$2,099.00 USD, one-time</td>
+              <td>Up to 3 R365 connections · 250 invoices/mo</td>
+              <td>$0.79 USD per invoice or credit memo over 250</td>
             </tr>
             <tr>
-              <td><strong>Per-Document Usage Fee</strong></td>
-              <td>$0.99 USD per Invoice or Credit Memo successfully delivered to R365</td>
-              <td>In arrears, monthly</td>
+              <td><strong>Scale</strong></td>
+              <td>$1,199.00 USD / month</td>
+              <td>$4,999.00 USD, one-time</td>
+              <td>Up to 10 R365 connections · 1,000 invoices/mo</td>
+              <td>$0.49 USD per invoice or credit memo over 1,000 (waived entirely under Annual Billing)</td>
+            </tr>
+            <tr>
+              <td><strong>Enterprise</strong></td>
+              <td>Custom — contact <a href="mailto:hello@getbackplate.com">hello@getbackplate.com</a></td>
+              <td>Custom</td>
+              <td>Unlimited connections and invoices</td>
+              <td>N/A</td>
             </tr>
           </tbody>
         </table>
 
         <h3>Notes</h3>
         <ul>
-          <li>Setup and onboarding for each R365 customer connection are included in the connection fees (no separate setup charge).</li>
-          <li>Usage Fees apply to each unique Invoice or Credit Memo successfully delivered to R365, regardless of the number of locations within a given R365 customer.</li>
+          <li><strong>Annual Billing.</strong> Customer may elect Annual Billing for any Plan, under which Customer is charged ten (10) months of the Base Subscription Fee in exchange for twelve (12) months of Service, and the Setup Fee is discounted twenty-five percent (25%).</li>
+          <li><strong>Additional connections.</strong> Customer may add R365 customer connections beyond the number included in their Plan for a one-time fee of $500.00 USD per additional connection plus a recurring fee of $99.00 USD per month per additional connection ($79.00 USD per month on the Scale Plan).</li>
+          <li>Overage Fees apply to each unique Invoice or Credit Memo successfully delivered to R365 above the Plan&apos;s monthly allowance, regardless of the number of locations within a given R365 customer.</li>
           <li>Deduplication logic ensures that retries of the same document do not result in duplicate billing.</li>
           <li>Documents that fail to deliver and are flagged as permanently failed are not billed.</li>
           <li>All fees are exclusive of taxes. Applicable sales, use, value-added, or similar taxes are calculated and added at billing based on Customer&apos;s jurisdiction. The Service is treated as a taxable service in Texas and may be taxable in other jurisdictions.</li>
@@ -278,11 +294,10 @@ export default function IntegrationMsaPage() {
 
         <div className="pricing-example">
           <strong>Pricing example</strong>
-          A Customer with two (2) connected R365 customers processing 50 invoices in a billing month would be billed as follows (pre-tax):
-          <p>Base Subscription Fee: $269.00<br />
-          Additional Connection Fee (1 × $80): $80.00<br />
-          Usage Fee (50 × $0.99): $49.50</p>
-          <div className="total">Subtotal: $398.50 (plus applicable taxes)</div>
+          A Customer on the Grow Plan processing 300 invoices in a billing month would be billed as follows (pre-tax, monthly billing):
+          <p>Base Subscription Fee (Grow): $649.00<br />
+          Overage (50 × $0.79): $39.50</p>
+          <div className="total">Subtotal: $688.50 (plus applicable taxes)</div>
         </div>
       </div>
 

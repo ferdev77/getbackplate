@@ -37,7 +37,7 @@ export function LegalDocLayout({ docLabel, title, subtitle, effective, lastUpdat
       <footer className="footer">
         <div>
           <strong>Backplate Technologies LLC, d/b/a GetBackplate</strong><br />
-          1321 Upland Dr., Suite 9894 · Houston, TX 77043 · United States
+          1001 S. 10th St., Suite G#784 · McAllen, TX 78501 · United States
         </div>
         <div style={{ textAlign: "right" }}>
           <Link href="/legal">Back to Legal</Link><br />

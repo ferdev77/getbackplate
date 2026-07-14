@@ -464,9 +464,16 @@ export default function TrustCenterPage() {
               </aside>
               <div className="section-content">
                 <p>
-                  Customers affected by any confirmed security incident will be notified directly
-                  within 72 hours of discovery, in line with common industry practice and applicable
-                  breach notification laws.
+                  We maintain a documented Incident Response and Breach Notification Protocol,
+                  following the NIST SP 800-61 framework. Customers affected by any confirmed
+                  security incident will be notified directly within 72 hours of discovery, in line
+                  with applicable breach notification laws.
+                </p>
+                <p>
+                  <Link href="/legal/integration/incident-response">Read our Incident Response documentation</Link>{" "}
+                  for our detection sources, response phases, notification commitments, and recovery
+                  objectives. The full internal Protocol is available under confidentiality upon
+                  request for security review or vendor risk assessment.
                 </p>
               </div>
             </div>
@@ -537,13 +544,13 @@ export default function TrustCenterPage() {
                     <li><span className="ck-icon" /><span className="ck-text">Privacy Policy and Terms of Service published and versioned for both products.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Audit log retention policy — operational logs are purged automatically after 12 months via a scheduled daily job.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Email-based two-step verification, required for administrative accounts on organizations with the QuickBooks integration active.</span></li>
+                    <li><span className="ck-icon" /><span className="ck-text">Documented Incident Response and Breach Notification Protocol, following the NIST SP 800-61 framework — see our <Link href="/legal/integration/incident-response">Incident Response documentation</Link>.</span></li>
                   </ul>
                 </div>
 
                 <div className="transparency-block">
                   <div className="section-title" style={{ marginBottom: 12, fontSize: 18 }}>What&apos;s on the roadmap</div>
                   <ul className="check-list is-planned">
-                    <li><span className="ck-icon" /><span className="ck-text"><strong>Documented security policy &amp; incident response plan —</strong> formalize what is today informal practice.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text"><strong>Third-party penetration test —</strong> first external test, cadence to follow.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text"><strong>SOC 2 —</strong> considered for a future date, subject to customer demand.</span></li>
                   </ul>
@@ -601,6 +608,7 @@ export default function TrustCenterPage() {
               <h4>Trust</h4>
               <ul>
                 <li><Link href="/trust">Trust Center</Link></li>
+                <li><Link href="/legal/integration/incident-response">Incident Response</Link></li>
                 <li><a href="mailto:security@getbackplate.com">Report a security issue</a></li>
                 <li><a href="mailto:privacy@getbackplate.com">Privacy inquiries</a></li>
               </ul>
@@ -614,7 +622,7 @@ export default function TrustCenterPage() {
             </div>
           </div>
           <div className="footer-bottom">
-            <div><strong>Backplate Technologies LLC</strong>, d/b/a GetBackplate · 1321 Upland Dr., Suite 9894, Houston, TX 77043</div>
+            <div><strong>Backplate Technologies LLC</strong>, d/b/a GetBackplate · 1001 S. 10th St., Suite G#784, McAllen, TX 78501</div>
             <div>Last reviewed July 13, 2026</div>
           </div>
         </div>

@@ -16,8 +16,8 @@ export default function IntegrationPrivacyPage() {
       version="2026.07.23"
     >
       <h2><span className="section-num">1.</span>Introduction</h2>
-      <p>This Privacy Policy explains how <strong>Backplate Technologies LLC</strong>, a Texas limited liability company, doing business as <strong>GetBackplate</strong> (&quot;GetBackplate,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) collects, uses, stores, shares, and protects information when you use our middleware integration that connects QuickBooks Online (&quot;QBO&quot;) with Restaurant365 (&quot;R365&quot;) (the &quot;Service&quot; or &quot;Application&quot;).</p>
-      <p>GetBackplate is headquartered at 1321 Upland Dr., Suite 9894, Houston, Texas 77043, United States.</p>
+      <p>This Privacy Policy explains how <strong>Backplate Technologies LLC</strong>, a Texas limited liability company, doing business as <strong>GetBackplate</strong> (&quot;GetBackplate,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) collects, uses, stores, shares, and protects information when you use our middleware integration that connects QuickBooks Online with Restaurant365 (&quot;R365&quot;) (the &quot;Service&quot; or &quot;Application&quot;).</p>
+      <p>GetBackplate is headquartered at 1001 S. 10th St., Suite G#784, McAllen, Texas 78501, United States.</p>
       <p>This Privacy Policy applies to all users of the Service. By using the Service, you consent to the practices described in this Policy. If you do not agree, you must not use the Service.</p>
       <p>This Privacy Policy is intended to comply with the disclosure requirements of the Intuit Developer Program, applicable U.S. state privacy laws (including the California Consumer Privacy Act, where applicable), and other relevant data protection regulations.</p>
 
@@ -27,12 +27,12 @@ export default function IntegrationPrivacyPage() {
       <p>When you register or are authorized to use the Service, we may collect:</p>
       <ul>
         <li><strong>Contact information:</strong> name, business name, email address, phone number.</li>
-        <li><strong>Account credentials:</strong> OAuth 2.0 authorization tokens granted by you through QuickBooks Online (we do <strong>not</strong> receive or store your QBO username or password).</li>
+        <li><strong>Account credentials:</strong> OAuth 2.0 authorization tokens granted by you through QuickBooks Online (we do <strong>not</strong> receive or store your QuickBooks Online username or password).</li>
         <li><strong>Configuration data:</strong> Restaurant365 FTP endpoint details, field-mapping preferences, and delivery schedules that you or your administrator provide.</li>
       </ul>
 
       <h3><span className="sub-num">2.2</span>Information We Access From QuickBooks Online</h3>
-      <p>When you authorize the Application via Intuit&apos;s OAuth flow, the Service accesses the following data from your QBO company file, limited to scopes you have approved:</p>
+      <p>When you authorize the Application via Intuit&apos;s OAuth flow, the Service accesses the following data from your QuickBooks Online company file, limited to scopes you have approved:</p>
       <ul>
         <li>Invoice records (invoice number, date, due date, status, totals, taxes, terms)</li>
         <li>Customer records associated with invoices (name, billing address, contact information)</li>
@@ -44,7 +44,7 @@ export default function IntegrationPrivacyPage() {
       <p>We access this data <strong>only</strong> to perform the integration&apos;s stated purpose: transforming and delivering invoice data to your designated Restaurant365 FTP endpoint.</p>
       <p>We do <strong>not</strong> access, collect, or process:</p>
       <ul>
-        <li>QBO usernames, passwords, or other login credentials</li>
+        <li>QuickBooks Online usernames, passwords, or other login credentials</li>
         <li>Payroll or employee personal information beyond what may be incidentally referenced on an invoice</li>
         <li>Bank account or credit card numbers</li>
         <li>Social Security Numbers or other government identifiers</li>
@@ -61,14 +61,14 @@ export default function IntegrationPrivacyPage() {
       <h2><span className="section-num">3.</span>How We Use Information</h2>
       <p>We use the information collected for the following purposes:</p>
       <ol>
-        <li><strong>Service delivery:</strong> to retrieve QBO invoices, transform them into Restaurant365-compatible formats (CSV, TXT, or EDI 810), and deliver them to your designated FTP endpoint;</li>
+        <li><strong>Service delivery:</strong> to retrieve QuickBooks Online invoices, transform them into Restaurant365-compatible formats (CSV, TXT, or EDI 810), and deliver them to your designated FTP endpoint;</li>
         <li><strong>Operational monitoring:</strong> to log job execution, detect errors, alert on failures, and maintain service reliability;</li>
         <li><strong>Support and troubleshooting:</strong> to investigate issues you or your counterparty report;</li>
         <li><strong>Security:</strong> to detect, prevent, and respond to fraud, abuse, or unauthorized access;</li>
         <li><strong>Compliance:</strong> to comply with applicable laws, regulations, court orders, and Intuit Developer Program requirements; and</li>
         <li><strong>Communication:</strong> to send service-related notices, security alerts, and administrative messages.</li>
       </ol>
-      <p>We do <strong>not</strong> use your QBO data for advertising, marketing, profiling, training of artificial intelligence models, or any purpose unrelated to providing the Service.</p>
+      <p>We do <strong>not</strong> use your QuickBooks Online data for advertising, marketing, profiling, training of artificial intelligence models, or any purpose unrelated to providing the Service.</p>
 
       <h2><span className="section-num">4.</span>How We Share Information</h2>
       <p>We share information only as described below:</p>
@@ -107,7 +107,7 @@ export default function IntegrationPrivacyPage() {
       <h2><span className="section-num">6.</span>Data Security</h2>
       <p>We implement industry-standard administrative, technical, and physical safeguards designed to protect information against unauthorized access, alteration, disclosure, or destruction, including:</p>
       <ul>
-        <li>TLS 1.2+ encryption for all data in transit between QBO, GetBackplate, and Restaurant365 (FTP transmission uses encrypted channels where supported by the receiving endpoint).</li>
+        <li>TLS 1.2+ encryption for all data in transit between QuickBooks Online, GetBackplate, and Restaurant365 (FTP transmission uses encrypted channels where supported by the receiving endpoint).</li>
         <li>Encryption at rest for stored OAuth tokens and database records.</li>
         <li>Role-based access controls for personnel.</li>
         <li>Logging and monitoring of administrative access.</li>
@@ -137,7 +137,7 @@ export default function IntegrationPrivacyPage() {
         <li>Locate <strong>GetBackplate</strong> in the list.</li>
         <li>Click <strong>Disconnect</strong> and confirm.</li>
       </ol>
-      <p>Once disconnected, the Service will no longer be able to access your QBO data. Cached operational data will be deleted in accordance with the retention schedule in Section 5, or sooner upon written request.</p>
+      <p>Once disconnected, the Service will no longer be able to access your QuickBooks Online data. Cached operational data will be deleted in accordance with the retention schedule in Section 5, or sooner upon written request.</p>
 
       <h2><span className="section-num">8.</span>International Data Transfers</h2>
       <p>The Service is hosted and operated in the United States. If you access the Service from outside the United States, your information will be transferred to, stored, and processed in the United States, which may have data protection laws different from those in your jurisdiction. By using the Service, you consent to such transfers.</p>
@@ -156,8 +156,8 @@ export default function IntegrationPrivacyPage() {
       <p>If you have questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact:</p>
       <div className="contact-block">
         <strong>Backplate Technologies LLC, d/b/a GetBackplate — Privacy Officer</strong>
-        1321 Upland Dr., Suite 9894<br />
-        Houston, Texas 77043<br />
+        1001 S. 10th St., Suite G#784<br />
+        McAllen, Texas 78501<br />
         United States<br />
         <a href="mailto:privacy@getbackplate.com">privacy@getbackplate.com</a> · +1 (956) 802-9639
       </div>

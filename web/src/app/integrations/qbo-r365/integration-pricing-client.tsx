@@ -739,9 +739,9 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
                   Restaurant365 — built for food vendors and distributors.
                 </div>
                 <div className="faddr">
-                  1321 Upland Dr., Suite 9894
+                  1001 S. 10th St., Suite G#784
                   <br />
-                  Houston, TX 77043
+                  McAllen, TX 78501
                 </div>
               </div>
               <div>

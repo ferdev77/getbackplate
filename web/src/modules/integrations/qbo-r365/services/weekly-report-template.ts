@@ -319,7 +319,7 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
 
             <p style="margin:14px 0 0 0;font-size:11px;color:#595B66;line-height:1.5;text-align:center;">
               Backplate Technologies LLC, d/b/a GetBackplate<br>
-              1321 Upland Dr., Suite 9894, Houston, TX 77043
+              1001 S. 10th St., Suite G#784, McAllen, TX 78501
             </p>
 
           </td>

@@ -33,6 +33,7 @@ const PRODUCTS = [
       { label: "End-User License Agreement", description: "Terms of service for the Integration", href: "/legal/integration/terms" },
       { label: "Privacy Policy", description: "Data handling for QuickBooks and R365", href: "/legal/integration/privacy" },
       { label: "Master Services Agreement", description: "Subscription terms, fees, and SLA", href: "/legal/integration/msa" },
+      { label: "Incident Response", description: "How we detect, respond to, and communicate security incidents", href: "/legal/integration/incident-response" },
     ],
   },
 ];
@@ -103,7 +104,7 @@ export default function LegalIndexPage() {
         </div>
 
         <p className="mt-12 text-center text-[13px] italic text-[#9ca3af]">
-          For legal inquiries, contact GetBackplate at 1321 Upland Dr., Suite 9894, Houston, Texas 77043 — Phone +1 (956) 802-9639.
+          For legal inquiries, contact GetBackplate at 1001 S. 10th St., Suite G#784, McAllen, Texas 78501 — Phone +1 (956) 802-9639.
         </p>
         <p className="mt-3 text-center text-[11px] text-[#9ca3af]">
           Intuit and QuickBooks are registered trademarks of Intuit Inc. Used with permission.
