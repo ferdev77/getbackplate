@@ -252,5 +252,5 @@ export const getUserPreferencesCached = unstable_cache(
     return data;
   },
   ["user-preferences-v1"],
-  { revalidate: 60 },
+  { revalidate: 60, tags: ["user-preferences-v1"] },
 );

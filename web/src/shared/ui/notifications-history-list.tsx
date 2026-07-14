@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, Loader2 } from "lucide-react";
 import { NotificationItemRow, type NotificationListItem } from "@/shared/ui/notification-item";
+import { createTranslator } from "@/shared/ui/company-shell.i18n";
 
 type ChannelFilter = "all" | "email" | "push";
 
-export function NotificationsHistoryList() {
+export function NotificationsHistoryList({ locale = "es" }: { locale?: "es" | "en" }) {
   const router = useRouter();
+  const t = createTranslator(locale);
   const [items, setItems] = useState<NotificationListItem[]>([]);
   const [filter, setFilter] = useState<ChannelFilter>("all");
   const [isLoading, setIsLoading] = useState(true);
@@ -80,7 +82,7 @@ export function NotificationsHistoryList() {
                   : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"
               }`}
             >
-              {option === "all" ? "Todas" : option === "email" ? "Email" : "Push"}
+              {option === "all" ? t("Todas") : option === "email" ? "Email" : "Push"}
             </button>
           ))}
         </div>
@@ -90,7 +92,7 @@ export function NotificationsHistoryList() {
             onClick={handleMarkAllRead}
             className="text-xs font-semibold text-[var(--gbp-accent)] hover:underline"
           >
-            Marcar todas como leídas
+            {t("Marcar todas como leídas")}
           </button>
         ) : null}
       </div>
@@ -102,12 +104,12 @@ export function NotificationsHistoryList() {
       ) : filteredItems.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-16 text-center text-[var(--gbp-text2)]">
           <Bell className="h-6 w-6" />
-          <p className="text-sm">No hay notificaciones para mostrar.</p>
+          <p className="text-sm">{t("No hay notificaciones para mostrar.")}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-1.5">
           {filteredItems.map((item) => (
-            <NotificationItemRow key={item.id} item={item} onClick={handleItemClick} />
+            <NotificationItemRow key={item.id} item={item} onClick={handleItemClick} locale={locale} />
           ))}
         </div>
       )}
@@ -119,7 +121,7 @@ export function NotificationsHistoryList() {
           disabled={isLoadingMore}
           className="self-center rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-4 py-2 text-xs font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] disabled:opacity-60"
         >
-          {isLoadingMore ? "Cargando..." : "Cargar más"}
+          {isLoadingMore ? t("Cargando más") : t("Cargar más")}
         </button>
       ) : null}
     </div>

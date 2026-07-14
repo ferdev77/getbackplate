@@ -2,6 +2,8 @@
 
 import { Mail, Bell } from "lucide-react";
 
+type Locale = "es" | "en";
+
 export type NotificationListItem = {
   id: string;
   channel: "email" | "push";
@@ -13,16 +15,16 @@ export type NotificationListItem = {
   read_at: string | null;
 };
 
-function formatRelativeTime(iso: string): string {
+function formatRelativeTime(iso: string, locale: Locale): string {
   const diffMs = Date.now() - new Date(iso).getTime();
   const diffMin = Math.round(diffMs / 60000);
-  if (diffMin < 1) return "Ahora";
-  if (diffMin < 60) return `Hace ${diffMin} min`;
+  if (diffMin < 1) return locale === "en" ? "Now" : "Ahora";
+  if (diffMin < 60) return locale === "en" ? `${diffMin} min ago` : `Hace ${diffMin} min`;
   const diffH = Math.round(diffMin / 60);
-  if (diffH < 24) return `Hace ${diffH} h`;
+  if (diffH < 24) return locale === "en" ? `${diffH} h ago` : `Hace ${diffH} h`;
   const diffD = Math.round(diffH / 24);
-  if (diffD < 7) return `Hace ${diffD} d`;
-  return new Date(iso).toLocaleDateString("es-US", { day: "2-digit", month: "2-digit", year: "numeric" });
+  if (diffD < 7) return locale === "en" ? `${diffD} d ago` : `Hace ${diffD} d`;
+  return new Date(iso).toLocaleDateString(locale === "en" ? "en-US" : "es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 export function NotificationChannelBadge({ channel }: { channel: "email" | "push" }) {
@@ -43,9 +45,11 @@ export function NotificationChannelBadge({ channel }: { channel: "email" | "push
 export function NotificationItemRow({
   item,
   onClick,
+  locale = "es",
 }: {
   item: NotificationListItem;
   onClick: (item: NotificationListItem) => void;
+  locale?: Locale;
 }) {
   const isUnread = !item.read_at;
 
@@ -62,7 +66,7 @@ export function NotificationItemRow({
           <NotificationChannelBadge channel={item.channel} />
           {isUnread ? <span className="h-1.5 w-1.5 rounded-full bg-[var(--gbp-accent)]" /> : null}
         </div>
-        <span className="shrink-0 text-[11px] text-[var(--gbp-text2)]">{formatRelativeTime(item.created_at)}</span>
+        <span className="shrink-0 text-[11px] text-[var(--gbp-text2)]">{formatRelativeTime(item.created_at, locale)}</span>
       </div>
       <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{item.title}</p>
       <p className="line-clamp-2 text-xs text-[var(--gbp-text2)]">{item.body}</p>

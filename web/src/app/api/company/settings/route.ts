@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
@@ -190,6 +191,8 @@ export async function POST(request: Request) {
       });
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
+
+    revalidateTag("user-preferences-v1", "max");
 
     await logAuditEvent({
       action: "settings.preferences.update",

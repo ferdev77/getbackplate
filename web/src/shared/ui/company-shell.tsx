@@ -805,6 +805,7 @@ export function CompanyShell({
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No se pudo guardar");
       toast.success("Configuración guardada");
+      if (kind === "preferences") router.refresh();
       return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Error al guardar");
@@ -1786,7 +1787,7 @@ export function CompanyShell({
             <div className="flex items-center gap-2">
               {organizationLabel ? <span className={`hidden rounded-full border px-2.5 py-1 text-xs sm:inline ${isDarkTheme ? "border-white/15 bg-white/5 text-white/80" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"}`}>{organizationLabel}</span> : null}
               <span className={`hidden rounded-full border px-2.5 py-1 text-xs sm:inline ${isDarkTheme ? "border-[var(--gbp-accent)]/40 bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]" : "border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"}`}>{sessionRoleLabel}</span>
-              <NotificationBell viewAllHref="/app/notifications" />
+              <NotificationBell viewAllHref="/app/notifications" locale={locale} />
             </div>
             </div>
           </header>

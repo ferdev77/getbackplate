@@ -7,13 +7,16 @@ import { Bell } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { NotificationItemRow, type NotificationListItem } from "@/shared/ui/notification-item";
+import { createTranslator } from "@/shared/ui/company-shell.i18n";
 
 type NotificationBellProps = {
   viewAllHref: string;
+  locale?: "es" | "en";
 };
 
-export function NotificationBell({ viewAllHref }: NotificationBellProps) {
+export function NotificationBell({ viewAllHref, locale = "es" }: NotificationBellProps) {
   const router = useRouter();
+  const t = createTranslator(locale);
   const [isOpen, setIsOpen] = useState(false);
   const [items, setItems] = useState<NotificationListItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -91,7 +94,7 @@ export function NotificationBell({ viewAllHref }: NotificationBellProps) {
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
         className="relative grid h-10 w-10 place-items-center rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] transition-colors hover:text-[var(--gbp-text)]"
-        aria-label="Centro de notificaciones"
+        aria-label={t("Centro de notificaciones")}
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 ? (
@@ -111,19 +114,19 @@ export function NotificationBell({ viewAllHref }: NotificationBellProps) {
             className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-2xl"
           >
             <div className="flex items-center justify-between border-b border-[var(--gbp-border)] px-4 py-3">
-              <span className="text-sm font-bold text-[var(--gbp-text)]">Notificaciones</span>
+              <span className="text-sm font-bold text-[var(--gbp-text)]">{t("Notificaciones")}</span>
               {unreadCount > 0 ? (
-                <span className="text-[11px] font-semibold text-[var(--gbp-accent)]">{unreadCount} sin leer</span>
+                <span className="text-[11px] font-semibold text-[var(--gbp-accent)]">{unreadCount} {t("sin leer")}</span>
               ) : null}
             </div>
 
             <div className="max-h-96 overflow-y-auto p-2">
               {items.length === 0 ? (
-                <p className="px-3 py-8 text-center text-sm text-[var(--gbp-text2)]">No tenés notificaciones todavía.</p>
+                <p className="px-3 py-8 text-center text-sm text-[var(--gbp-text2)]">{t("No tenés notificaciones todavía.")}</p>
               ) : (
                 <div className="flex flex-col gap-1">
                   {items.map((item) => (
-                    <NotificationItemRow key={item.id} item={item} onClick={handleItemClick} />
+                    <NotificationItemRow key={item.id} item={item} onClick={handleItemClick} locale={locale} />
                   ))}
                 </div>
               )}
@@ -134,7 +137,7 @@ export function NotificationBell({ viewAllHref }: NotificationBellProps) {
               onClick={() => setIsOpen(false)}
               className="block border-t border-[var(--gbp-border)] px-4 py-2.5 text-center text-sm font-semibold text-[var(--gbp-accent)] hover:bg-[var(--gbp-surface2)]"
             >
-              Ver todas
+              {t("Ver todas")}
             </Link>
           </motion.div>
         ) : null}
