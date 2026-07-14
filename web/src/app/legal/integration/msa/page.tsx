@@ -13,7 +13,7 @@ export default function IntegrationMsaPage() {
       title="Master Services Agreement"
       subtitle="QuickBooks Online to Restaurant365 Integration"
       effective="July 23, 2026"
-      lastUpdated="July 23, 2026"
+      lastUpdated="July 1, 2026"
       version="2026.07.23"
     >
       <div className="preamble">

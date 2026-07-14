@@ -13,7 +13,7 @@ export default function IntegrationTermsPage() {
       title="End-User License Agreement"
       subtitle="QuickBooks Online to Restaurant365 Integration"
       effective="July 23, 2026"
-      lastUpdated="July 23, 2026"
+      lastUpdated="July 1, 2026"
       version="2026.07.23"
     >
       <h2><span className="section-num">1.</span>Acceptance of Terms</h2>
