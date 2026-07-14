@@ -26,6 +26,7 @@ export async function registerPublicAction(formData: FormData) {
     const email = String(formData.get("email") ?? "").trim().toLowerCase();
     const password = String(formData.get("password") ?? "");
     const planIdParam = String(formData.get("planId") ?? "").trim();
+    const integrationPlanIdParam = String(formData.get("integrationPlanId") ?? "").trim();
     const billingPeriodParam = String(formData.get("billingPeriod") ?? "").trim();
     const normalizedBillingPeriod =
       billingPeriodParam === "yearly" || billingPeriodParam === "annual" ? "yearly" : "monthly";
@@ -40,6 +41,19 @@ export async function registerPublicAction(formData: FormData) {
     }
 
     const supabaseAdmin = createSupabaseAdminClient();
+
+    if (integrationPlanIdParam) {
+      const { data: integrationPlan } = await supabaseAdmin
+        .from("plans")
+        .select("id")
+        .eq("id", integrationPlanIdParam)
+        .eq("plan_type", "qbo_r365")
+        .eq("is_active", true)
+        .maybeSingle();
+      if (!integrationPlan) {
+        redirect("/auth/register?error=" + qs("El plan de integración seleccionado no está disponible"));
+      }
+    }
 
     // 1. Create the Auth User
     const { data: createdUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
@@ -165,7 +179,12 @@ export async function registerPublicAction(formData: FormData) {
     // Set the tenant cookie
     await setActiveOrganizationIdCookie(org.id);
 
-    // 6. Direct them to the dashboard, highlighting the plan if selected
+    // 6. Continue the selected checkout flow after the new session is established.
+    if (integrationPlanIdParam) {
+      const integrationPeriod = billingPeriodParam === "annual" ? "annual" : "monthly";
+      redirect(`/app/dashboard?welcome=true&selectIntegrationPlanId=${encodeURIComponent(integrationPlanIdParam)}&billingPeriod=${integrationPeriod}`);
+    }
+
     if (planIdParam) {
         redirect(`/app/dashboard?welcome=true&selectPlanId=${planIdParam}&billingPeriod=${normalizedBillingPeriod}`);
     }

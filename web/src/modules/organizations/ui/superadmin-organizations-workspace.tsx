@@ -79,6 +79,7 @@ export function SuperadminOrganizationsWorkspace({
 }: Props) {
   const [modalAction, setModalAction] = useState<string>(initialAction ?? "");
   const [modalOrgId, setModalOrgId] = useState<string>(initialOrgId ?? "");
+  const [creationMode, setCreationMode] = useState<"platform" | "integration" | "platform_integration">("platform");
 
   const moduleMap = useMemo(() => {
     const map = new Map<string, boolean>();
@@ -175,6 +176,7 @@ export function SuperadminOrganizationsWorkspace({
   const openModal = (action: string, orgId = "") => {
     setModalAction(action);
     setModalOrgId(orgId);
+    if (action === "create") setCreationMode("platform");
   };
 
   const closeModal = () => {
@@ -285,14 +287,23 @@ export function SuperadminOrganizationsWorkspace({
                 <form action={createOrganizationAction} autoComplete="off" className="space-y-6">
                   <div className="grid gap-4 md:grid-cols-2">
                     <SuperadminInputField label="Organización" name="name" required className="md:col-span-2" />
-                    <SuperadminSelectField label="Plan de Plataforma" name="plan_id" defaultValue="">
-                      <option value="">Sin plan</option>
-                      {plans.filter((p) => p.plan_type === "platform").map((plan) => <option key={plan.id} value={plan.id}>{plan.name} ({plan.code})</option>)}
+                    <SuperadminSelectField label="Tipo de Provisioning" name="creation_mode" value={creationMode} onChange={(event) => setCreationMode(event.target.value as typeof creationMode)} className="md:col-span-2">
+                      <option value="platform">Solo plataforma</option>
+                      <option value="integration">Solo integración QuickBooks</option>
+                      <option value="platform_integration">Plataforma + integración QuickBooks</option>
                     </SuperadminSelectField>
-                    <SuperadminSelectField label="Plan de Integración" name="integration_plan_id" defaultValue="">
-                      <option value="">Sin plan</option>
-                      {plans.filter((p) => p.plan_type === "qbo_r365").map((plan) => <option key={plan.id} value={plan.id}>{plan.name} ({plan.code})</option>)}
-                    </SuperadminSelectField>
+                    {(creationMode === "platform" || creationMode === "platform_integration") && (
+                      <SuperadminSelectField label="Plan de Plataforma" name="plan_id" defaultValue="" required>
+                        <option value="" disabled>Elegí un plan</option>
+                        {plans.filter((p) => p.plan_type === "platform").map((plan) => <option key={plan.id} value={plan.id}>{plan.name} ({plan.code})</option>)}
+                      </SuperadminSelectField>
+                    )}
+                    {(creationMode === "integration" || creationMode === "platform_integration") && (
+                      <SuperadminSelectField label="Plan de Integración" name="integration_plan_id" defaultValue="" required>
+                        <option value="" disabled>Elegí un plan</option>
+                        {plans.filter((p) => p.plan_type === "qbo_r365").map((plan) => <option key={plan.id} value={plan.id}>{plan.name} ({plan.code})</option>)}
+                      </SuperadminSelectField>
+                    )}
                     <SuperadminInputField label="Nombre Completo" name="admin_full_name" required className="md:col-span-2" />
                     <SuperadminInputField label="Email Corporativo" name="admin_email" type="email" required />
                     <SuperadminInputField label="Contraseña" name="admin_password" type="password" required minLength={8} />

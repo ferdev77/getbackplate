@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ChevronDown,
@@ -255,6 +255,10 @@ export function CompanyShell({
   const [integrationPlanBusy, setIntegrationPlanBusy] = useState<string | null>(null);
   const [setupFeeSelected, setSetupFeeSelected] = useState<Record<string, boolean>>({});
   const [lockedViewTab, setLockedViewTab] = useState<"platform" | "integration">("platform");
+  const autoIntegrationCheckoutStarted = useRef(false);
+  const startSelectedIntegrationCheckout = useEffectEvent((planId: string, period: "monthly" | "annual") => {
+    void startIntegrationPlanCheckout(planId, period);
+  });
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(SECTIONS.map((section) => [section.label, false])),
   );
@@ -313,6 +317,7 @@ export function CompanyShell({
   };
   const selectedBranch = searchParams.get("branch") ?? "";
   const selectedPlanIdFromUrl = searchParams.get("selectPlanId");
+  const selectedIntegrationPlanIdFromUrl = searchParams.get("selectIntegrationPlanId");
   const selectedBillingPeriodFromUrl = searchParams.get("billingPeriod");
   const shouldLockDashboard = Boolean(billingGate?.required && billingGate?.isBlocked && !impersonationMode);
   const lockScreenQboAddon = availableAddons.find((a) => a.integrationPlanType === "qbo_r365");
@@ -636,6 +641,18 @@ export function CompanyShell({
 
   useEffect(() => {
     if (!shouldLockDashboard) return;
+    if (selectedIntegrationPlanIdFromUrl && integrationPlans.some((plan) => plan.id === selectedIntegrationPlanIdFromUrl)) {
+      const integrationPeriod = selectedBillingPeriodFromUrl === "annual" || selectedBillingPeriodFromUrl === "yearly"
+        ? "annual"
+        : "monthly";
+      setLockedViewTab("integration");
+      setIntegrationPlanBillingCycle(integrationPeriod);
+      if (!autoIntegrationCheckoutStarted.current) {
+        autoIntegrationCheckoutStarted.current = true;
+        startSelectedIntegrationCheckout(selectedIntegrationPlanIdFromUrl, integrationPeriod);
+      }
+      return;
+    }
     if (selectedBillingPeriodFromUrl === "yearly" || selectedBillingPeriodFromUrl === "annual") {
       setPlanBillingCycle("yearly");
       return;
@@ -643,7 +660,7 @@ export function CompanyShell({
     if (selectedBillingPeriodFromUrl === "monthly") {
       setPlanBillingCycle("monthly");
     }
-  }, [selectedBillingPeriodFromUrl, shouldLockDashboard]);
+  }, [integrationPlans, selectedBillingPeriodFromUrl, selectedIntegrationPlanIdFromUrl, shouldLockDashboard]);
 
   useEffect(() => {
     if (!planOpen) return;

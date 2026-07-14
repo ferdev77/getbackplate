@@ -445,7 +445,7 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
       });
 
       if (res.status === 401) {
-        window.location.href = `/auth/register?returnTo=${encodeURIComponent("/integrations/qbo-r365")}`;
+        window.location.href = `/auth/register?integrationPlanId=${encodeURIComponent(planId)}&billingPeriod=${period}`;
         return;
       }
 

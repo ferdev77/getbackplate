@@ -17,6 +17,7 @@ import {
   slugify,
   toNullableInt,
   provisionOrganizationFromPlan,
+  provisionManualIntegrationEntitlement,
   syncOrganizationPlan,
   cleanupTenantStorageArtifacts,
 } from "./services/organization.service";
@@ -40,6 +41,7 @@ export async function createOrganizationAction(formData: FormData) {
   const providedSlug = String(formData.get("slug") ?? "").trim();
   const planId = String(formData.get("plan_id") ?? "").trim() || null;
   const integrationPlanId = String(formData.get("integration_plan_id") ?? "").trim() || null;
+  const creationMode = String(formData.get("creation_mode") ?? "").trim();
   const adminEmail = String(formData.get("admin_email") ?? "").trim().toLowerCase();
   const adminFullName = String(formData.get("admin_full_name") ?? "").trim();
   const adminPassword = String(formData.get("admin_password") ?? "");
@@ -58,9 +60,36 @@ export async function createOrganizationAction(formData: FormData) {
     );
   }
 
+  const isValidMode =
+    (creationMode === "platform" && Boolean(planId) && !integrationPlanId) ||
+    (creationMode === "integration" && !planId && Boolean(integrationPlanId)) ||
+    (creationMode === "platform_integration" && Boolean(planId) && Boolean(integrationPlanId));
+  if (!isValidMode) {
+    redirect(
+      "/superadmin/organizations?action=create&status=error&message=" +
+        qs("Elegí una configuración válida de plataforma e integración"),
+    );
+  }
+
   const supabase = createSupabaseAdminClient();
   const supabaseUser = await createSupabaseServerClient();
   const { data: authData } = await supabaseUser.auth.getUser();
+
+  const [{ data: platformPlan }, { data: integrationPlan }] = await Promise.all([
+    planId
+      ? supabase.from("plans").select("id").eq("id", planId).eq("plan_type", "platform").maybeSingle()
+      : Promise.resolve({ data: null }),
+    integrationPlanId
+      ? supabase.from("plans").select("id").eq("id", integrationPlanId).eq("plan_type", "qbo_r365").maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  if ((planId && !platformPlan) || (integrationPlanId && !integrationPlan)) {
+    redirect(
+      "/superadmin/organizations?action=create&status=error&message=" +
+        qs("El plan seleccionado no corresponde al tipo de provisioning elegido"),
+    );
+  }
 
   const slugBase = providedSlug ? slugify(providedSlug) : slugify(name);
   const slug = slugBase || `org-${Math.random().toString(36).slice(2, 8)}`;
@@ -72,6 +101,8 @@ export async function createOrganizationAction(formData: FormData) {
       slug,
       plan_id: planId,
       integration_plan_id: integrationPlanId,
+      billing_activation_status: "active",
+      billing_onboarding_required: false,
       created_by: authData.user?.id ?? null,
     })
     .select("id")
@@ -86,6 +117,9 @@ export async function createOrganizationAction(formData: FormData) {
 
   // Provision modules + limits from plan
   await provisionOrganizationFromPlan({ organizationId: org.id, planId, integrationPlanId });
+  if (integrationPlanId) {
+    await provisionManualIntegrationEntitlement({ organizationId: org.id, integrationPlanId });
+  }
 
   // Send admin invitation
   const invitation = await sendOrganizationAdminInvitation({
@@ -112,7 +146,7 @@ export async function createOrganizationAction(formData: FormData) {
     eventDomain: "superadmin",
     outcome: "success",
     severity: "high",
-    metadata: { name, slug, planId, adminEmail },
+    metadata: { name, slug, creationMode, planId, integrationPlanId, adminEmail },
   });
 
   revalidatePath("/superadmin/organizations");
@@ -242,6 +276,21 @@ export async function updateOrganizationAction(formData: FormData) {
 
   const planChanged = (currentOrg?.plan_id ?? null) !== planId;
   const integrationPlanChanged = ((currentOrg as Record<string, unknown> | null)?.integration_plan_id as string | null ?? null) !== integrationPlanId;
+  const targetIsIntegrationOnly = !planId && Boolean(integrationPlanId);
+
+  // The database permits disabling core modules only once the organization is
+  // marked as integration-only, so persist that target before module sync.
+  if (targetIsIntegrationOnly && (planChanged || integrationPlanChanged)) {
+    const { error: targetPlanError } = await supabase
+      .from("organizations")
+      .update({ plan_id: null, integration_plan_id: integrationPlanId })
+      .eq("id", organizationId);
+    if (targetPlanError) {
+      redirect(
+        "/superadmin/organizations?status=error&message=" + qs(targetPlanError.message),
+      );
+    }
+  }
 
   // Sync modules if any plan changed
   if (planChanged || integrationPlanChanged) {

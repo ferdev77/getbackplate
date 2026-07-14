@@ -16,6 +16,7 @@ type RegisterPageProps = {
     error?: string; 
     priceId?: string;
     planId?: string;
+    integrationPlanId?: string;
     billingPeriod?: string;
   }>;
 };
@@ -24,6 +25,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
   const params = await searchParams;
   const error = params.error;
   const planId = params.planId;
+  const integrationPlanId = params.integrationPlanId;
   const billingPeriod = params.billingPeriod;
 
   return (
@@ -51,6 +53,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
             
             {/* Hidden fields to remember what plan they were trying to buy */}
             {planId && <input type="hidden" name="planId" value={planId} />}
+            {integrationPlanId && <input type="hidden" name="integrationPlanId" value={integrationPlanId} />}
             {billingPeriod && <input type="hidden" name="billingPeriod" value={billingPeriod} />}
 
             <div>
@@ -113,7 +116,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
             </div>
 
             <SubmitButton
-              label={planId ? "Crear cuenta y activar trial" : "Crear cuenta"}
+              label={planId || integrationPlanId ? "Crear cuenta y continuar" : "Crear cuenta"}
               pendingLabel="Registrando..."
               className="w-full mt-2"
             />

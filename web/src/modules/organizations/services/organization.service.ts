@@ -4,6 +4,12 @@ import {
   getPlanLimitErrorMessage,
 } from "@/shared/lib/plan-limits";
 
+const INTEGRATION_ONLY_MODULE_CODES = new Set([
+  "qbo_r365",
+  "settings",
+  "custom_branding",
+]);
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -39,7 +45,9 @@ export async function provisionOrganizationFromPlan(params: {
 
   const { data: modules } = await supabase
     .from("module_catalog")
-    .select("id, is_core");
+    .select("id, code, is_core");
+
+  const isIntegrationOnly = !params.planId && Boolean(params.integrationPlanId);
 
   const planModuleIds = new Set<string>();
   const planIds = [params.planId, params.integrationPlanId ?? null].filter(Boolean) as string[];
@@ -57,8 +65,12 @@ export async function provisionOrganizationFromPlan(params: {
       modules.map((mod) => ({
         organization_id: params.organizationId,
         module_id: mod.id,
-        is_enabled: Boolean(mod.is_core) || planModuleIds.has(mod.id),
-        enabled_at: Boolean(mod.is_core) || planModuleIds.has(mod.id) ? new Date().toISOString() : null,
+        is_enabled: isIntegrationOnly
+          ? INTEGRATION_ONLY_MODULE_CODES.has(mod.code)
+          : Boolean(mod.is_core) || planModuleIds.has(mod.id),
+        enabled_at: (isIntegrationOnly
+          ? INTEGRATION_ONLY_MODULE_CODES.has(mod.code)
+          : Boolean(mod.is_core) || planModuleIds.has(mod.id)) ? new Date().toISOString() : null,
       })),
     );
   }
@@ -81,6 +93,34 @@ export async function provisionOrganizationFromPlan(params: {
     },
     { onConflict: "organization_id" },
   );
+}
+
+export async function provisionManualIntegrationEntitlement(params: {
+  organizationId: string;
+  integrationPlanId: string;
+}) {
+  const supabase = createSupabaseAdminClient();
+  const { data: qboModule, error: moduleError } = await supabase
+    .from("module_catalog")
+    .select("id")
+    .eq("code", "qbo_r365")
+    .maybeSingle();
+
+  if (moduleError || !qboModule) {
+    throw new Error(moduleError?.message ?? "No se encontró el módulo de integración QuickBooks");
+  }
+
+  const { error: addonError } = await supabase.from("organization_addons").upsert(
+    {
+      organization_id: params.organizationId,
+      module_id: qboModule.id,
+      integration_plan_id: params.integrationPlanId,
+      status: "active",
+    },
+    { onConflict: "organization_id,module_id" },
+  );
+
+  if (addonError) throw new Error(addonError.message);
 }
 
 // ---------------------------------------------------------------------------
@@ -132,7 +172,9 @@ export async function syncOrganizationPlan(params: {
   // Sync modules — union de ambos planes
   const { data: modules } = await supabase
     .from("module_catalog")
-    .select("id, is_core");
+    .select("id, code, is_core");
+
+  const isIntegrationOnly = !params.planId && Boolean(params.integrationPlanId);
 
   const planModuleIds = new Set<string>();
   const planIds = [params.planId, params.integrationPlanId ?? null].filter(Boolean) as string[];
@@ -148,7 +190,9 @@ export async function syncOrganizationPlan(params: {
   if (modules?.length) {
     await supabase.from("organization_modules").upsert(
       modules.map((mod) => {
-        const shouldEnable = Boolean(mod.is_core) || planModuleIds.has(mod.id);
+        const shouldEnable = isIntegrationOnly
+          ? INTEGRATION_ONLY_MODULE_CODES.has(mod.code)
+          : Boolean(mod.is_core) || planModuleIds.has(mod.id);
         return {
           organization_id: params.organizationId,
           module_id: mod.id,
