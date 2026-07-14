@@ -25,6 +25,7 @@ import {
 import { sendEmail } from "@/shared/lib/brevo";
 import { passwordRecoveryTemplate } from "@/shared/lib/email-templates/recovery";
 import { buildRecoveryBridgeUrl } from "@/shared/lib/recovery-link";
+import { isEmailMfaRequired, createEmailMfaChallenge } from "@/modules/auth/mfa.service";
 
 function getEmailDomain(email: string) {
   const parts = email.split("@");
@@ -283,6 +284,42 @@ export async function loginWithPasswordAction(formData: FormData) {
     if (
       roleCodesInResolvedOrganization.has("company_admin")
     ) {
+      if (resolvedOrganizationId) {
+        const mfaRequired = await isEmailMfaRequired({
+          organizationId: resolvedOrganizationId,
+          userId: authData.user.id,
+        });
+
+        if (mfaRequired) {
+          const challenge = await createEmailMfaChallenge({
+            userId: authData.user.id,
+            organizationId: resolvedOrganizationId,
+            email: authData.user.email ?? email,
+          });
+
+          if (!challenge.ok) {
+            await logAuthEvent({
+              action: "login.mfa_challenge_failed",
+              outcome: "error",
+              organizationId: resolvedOrganizationId,
+              severity: "high",
+              metadata: { error: challenge.error },
+            });
+            redirect(buildLoginPath({ error: challenge.error, organizationIdHint: organizationHint }));
+          }
+
+          await logAuthEvent({
+            action: "login.mfa_challenge_sent",
+            outcome: "success",
+            organizationId: resolvedOrganizationId,
+            severity: "low",
+            metadata: { provider: "password" },
+          });
+
+          redirect(`/auth/verify-mfa?next=${encodeURIComponent("/app/dashboard")}`);
+        }
+      }
+
       await logAuthEvent({
         action: "login.success",
         outcome: "success",

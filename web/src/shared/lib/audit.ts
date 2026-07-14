@@ -136,7 +136,14 @@ export async function logModuleAccessDeniedEvent(input: ModuleAccessDeniedAuditI
 }
 
 type AuthAuditInput = {
-  action: "login.success" | "login.failed" | "logout.success";
+  action:
+    | "login.success"
+    | "login.failed"
+    | "logout.success"
+    | "login.mfa_challenge_sent"
+    | "login.mfa_challenge_failed"
+    | "login.mfa_failed"
+    | "login.mfa_verified";
   organizationId?: string | null;
   outcome: AuditOutcome;
   severity?: AuditSeverity;

@@ -1,4 +1,3 @@
-import { cache } from "react";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
@@ -18,6 +17,9 @@ import {
 import { resolveOrganizationIdFromActiveDomain } from "@/shared/lib/custom-domains";
 import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impersonation";
 import { markInvitedAdminFirstLoginIfNeeded } from "@/shared/lib/invited-admin-first-login";
+import { isEmailMfaRequired } from "@/modules/auth/mfa.service";
+import { isMfaVerifiedForUser } from "@/shared/lib/mfa-verification";
+import { isModuleEnabledForOrganization, isTenantModuleEnabled } from "@/shared/lib/tenant-modules";
 import { getBillingGateForOrganization } from "@/modules/billing/services/billing-gate.service";
 import {
   getEmployeeDelegatedPermissionsByMembership,
@@ -126,23 +128,7 @@ async function resolveTenantFromCookie(options?: {
   };
 }
 
-const isTenantModuleEnabled = cache(async function isTenantModuleEnabled(organizationId: string, moduleCode: string) {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("is_module_enabled", {
-    org_id: organizationId,
-    module_code: moduleCode,
-  });
-
-  return {
-    enabled: Boolean(data),
-    hasError: Boolean(error),
-  };
-});
-
-export async function isModuleEnabledForOrganization(organizationId: string, moduleCode: string) {
-  const moduleAccess = await isTenantModuleEnabled(organizationId, moduleCode);
-  return moduleAccess.enabled;
-}
+export { isModuleEnabledForOrganization, isTenantModuleEnabled };
 
 export async function requireAuthenticatedUser() {
   const user = await getCurrentUser();
@@ -618,6 +604,23 @@ export async function requireCompanyAccess() {
       "/portal/home?status=error&message=" +
         encodeURIComponent("Tu usuario no tiene acceso al panel de empresa"),
     );
+  }
+
+  // La verificacion en dos pasos ya se resuelve durante el login (ver
+  // loginWithPasswordAction). Esto es una segunda barrera para el caso de
+  // que alguien navegue directo a una URL de /app/* sin haber pasado por
+  // ahi (sesion vieja, link guardado, etc). Se excluye impersonacion: el
+  // codigo le llegaria al email del company_admin real, no al superadmin.
+  const isImpersonating = companyMembership.roleId === "impersonation";
+  if (!isImpersonating) {
+    const mfaRequired = await isEmailMfaRequired({
+      organizationId: companyMembership.organizationId,
+      userId: user.id,
+    });
+
+    if (mfaRequired && !(await isMfaVerifiedForUser(user.id))) {
+      redirect("/auth/verify-mfa?next=" + encodeURIComponent("/app/dashboard"));
+    }
   }
 
   await markInvitedAdminFirstLoginIfNeeded({

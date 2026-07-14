@@ -71,35 +71,57 @@ export async function POST(request: Request) {
   }
 
   if (kind === "profile") {
-    const fullName = body.fullName ?? "";
-
-    const { error: authError } = await supabase.auth.updateUser({
-      data: { full_name: fullName },
-    });
-
-    if (authError) {
-      await logAuditEvent({
-        action: "settings.profile.update",
-        entityType: "user_preference",
-        entityId: userId,
-        organizationId: tenant.organizationId,
-        eventDomain: "settings",
-        outcome: "error",
-        severity: "medium",
-        metadata: {
-          kind,
-          error: authError.message,
-        },
+    // fullName es opcional en este payload: un guardado que solo toca el
+    // toggle de MFA no debe pisar el nombre existente con un string vacío.
+    if (body.fullName !== undefined) {
+      const { error: authError } = await supabase.auth.updateUser({
+        data: { full_name: body.fullName },
       });
-      return NextResponse.json({ error: authError.message }, { status: 400 });
+
+      if (authError) {
+        await logAuditEvent({
+          action: "settings.profile.update",
+          entityType: "user_preference",
+          entityId: userId,
+          organizationId: tenant.organizationId,
+          eventDomain: "settings",
+          outcome: "error",
+          severity: "medium",
+          metadata: {
+            kind,
+            error: authError.message,
+          },
+        });
+        return NextResponse.json({ error: authError.message }, { status: 400 });
+      }
+    }
+
+    // Solo se pisan two_factor_* si vinieron en el payload: un guardado que
+    // solo toca el nombre no debe desactivar el MFA que el usuario ya tenía
+    // activado (y viceversa).
+    let nextTwoFactorEnabled = false;
+    let nextTwoFactorMethod = "app";
+
+    if (body.twoFactorEnabled === undefined && body.twoFactorMethod === undefined) {
+      const { data: existingPrefs } = await supabase
+        .from("user_preferences")
+        .select("two_factor_enabled, two_factor_method")
+        .eq("organization_id", tenant.organizationId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      nextTwoFactorEnabled = Boolean(existingPrefs?.two_factor_enabled);
+      nextTwoFactorMethod = existingPrefs?.two_factor_method ?? "app";
+    } else {
+      nextTwoFactorEnabled = Boolean(body.twoFactorEnabled);
+      nextTwoFactorMethod = body.twoFactorMethod ?? "app";
     }
 
     const { error: prefError } = await supabase.from("user_preferences").upsert(
       {
         user_id: userId,
         organization_id: tenant.organizationId,
-        two_factor_enabled: Boolean(body.twoFactorEnabled),
-        two_factor_method: body.twoFactorMethod ?? "app",
+        two_factor_enabled: nextTwoFactorEnabled,
+        two_factor_method: nextTwoFactorMethod,
       },
       { onConflict: "organization_id,user_id" },
     );

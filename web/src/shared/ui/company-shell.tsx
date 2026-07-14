@@ -366,6 +366,7 @@ export function CompanyShell({
   const [timezoneMode, setTimezoneMode] = useState(settingsSnapshot.timezoneMode);
   const [timezoneManual, setTimezoneManual] = useState(settingsSnapshot.timezoneManual);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(settingsSnapshot.analyticsEnabled);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(settingsSnapshot.twoFactorEnabled);
   const [fbType, setFbType] = useState<"bug" | "idea">("bug");
   const [fbTitle, setFbTitle] = useState("");
   const [fbMessage, setFbMessage] = useState("");
@@ -2256,6 +2257,33 @@ export function CompanyShell({
                     <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.08em] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>Privacy</p>
                     <div className="flex items-center justify-between"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Cookie Settings</span><button type="button" onClick={() => toast.info("Administrar cookies") } className="rounded-md border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-accent)]">Manage</button></div>
                     <label className={`mt-2 inline-flex items-center gap-2 ${isDarkTheme ? "text-white/80" : "text-[var(--gbp-text)]"}`}><input type="checkbox" checked={analyticsEnabled} onChange={(event) => setAnalyticsEnabled(event.target.checked)} /><span>Analytics</span></label>
+                  </div>
+                  <div className={`rounded-lg border p-3 ${isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
+                    <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.08em] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>Security</p>
+                    {enabledModuleSet.has("qbo_r365") ? (
+                      <p className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>
+                        La verificación en dos pasos por email es obligatoria para cuentas con la integración de QuickBooks activa.
+                      </p>
+                    ) : (
+                      <>
+                        <label className={`inline-flex items-center gap-2 ${isDarkTheme ? "text-white/80" : "text-[var(--gbp-text)]"}`}>
+                          <input
+                            type="checkbox"
+                            checked={twoFactorEnabled}
+                            onChange={(event) => setTwoFactorEnabled(event.target.checked)}
+                          />
+                          <span>Pedir código por email al iniciar sesión</span>
+                        </label>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => saveSettings("profile", { twoFactorEnabled, twoFactorMethod: "email" })}
+                          className={`mt-2 w-full rounded-md px-2 py-2 font-semibold disabled:opacity-60 ${isDarkTheme ? "bg-white text-[var(--gbp-text)]" : "bg-[var(--gbp-text)] text-white"}`}
+                        >
+                          Guardar seguridad
+                        </button>
+                      </>
+                    )}
                   </div>
                   <button type="button" disabled={busy} onClick={() => saveSettings("preferences", { theme, language, dateFormat, timezoneMode, timezoneManual, analyticsEnabled })} className={`w-full rounded-md px-2 py-2 font-semibold disabled:opacity-60 ${isDarkTheme ? "bg-white text-[var(--gbp-text)]" : "bg-[var(--gbp-text)] text-white"}`}>Guardar preferences</button>
                 </div>
