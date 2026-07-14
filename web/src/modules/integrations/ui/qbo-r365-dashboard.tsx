@@ -399,8 +399,8 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   useEffect(() => {
     const ctrl = new AbortController();
     void fetch(deferredDataUrl, { cache: "no-store", signal: ctrl.signal })
-      .then((r) => r.json())
-      .then((d) => { if (!ctrl.signal.aborted) setData(d as DashboardData); })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!ctrl.signal.aborted && d) setData(d as DashboardData); })
       .catch(() => {});
     return () => ctrl.abort();
   }, [deferredDataUrl, refreshKey]);
@@ -498,26 +498,39 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     const idsToResolve = qboCustomers.filter((c) => !resolvedAcctNumIds.has(c.id)).map((c) => c.id).slice(0, 10);
     if (idsToResolve.length === 0) return;
     let cancelled = false;
-    void Promise.all(
-      idsToResolve.map((id) =>
-        fetch(`/api/company/integrations/qbo-r365/customers/${id}`)
-          .then((r) => (r.ok ? r.json() : null))
-          .then((d: { customer?: QboCustomer } | null) => ({ id, acctNum: d?.customer?.acctNum }))
-          .catch(() => ({ id, acctNum: undefined })),
-      ),
-    ).then((results) => {
-      if (cancelled) return;
-      setQboCustomers((prev) => {
-        const updates = new Map(results.map((r) => [r.id, r.acctNum]));
-        return prev.map((c) => (updates.has(c.id) ? { ...c, acctNum: updates.get(c.id) } : c));
+
+    function resolveBatch() {
+      void Promise.all(
+        idsToResolve.map((id) =>
+          fetch(`/api/company/integrations/qbo-r365/customers/${id}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .then((d: { customer?: QboCustomer } | null) => ({ id, acctNum: d?.customer?.acctNum }))
+            .catch(() => ({ id, acctNum: undefined })),
+        ),
+      ).then((results) => {
+        if (cancelled) return;
+        setQboCustomers((prev) => {
+          const updates = new Map(results.map((r) => [r.id, r.acctNum]));
+          return prev.map((c) => (updates.has(c.id) ? { ...c, acctNum: updates.get(c.id) } : c));
+        });
+        setResolvedAcctNumIds((prev) => {
+          const next = new Set(prev);
+          for (const r of results) next.add(r.id);
+          return next;
+        });
       });
-      setResolvedAcctNumIds((prev) => {
-        const next = new Set(prev);
-        for (const r of results) next.add(r.id);
-        return next;
-      });
-    });
-    return () => { cancelled = true; };
+    }
+
+    // Espaciamos las tandas (salvo la primera) para no saturar el rate
+    // limit compartido de la API (20 req/10s por IP) cuando hay muchos
+    // clientes de QBO para resolver.
+    const isFirstBatch = resolvedAcctNumIds.size === 0;
+    if (isFirstBatch) {
+      resolveBatch();
+      return () => { cancelled = true; };
+    }
+    const timer = setTimeout(resolveBatch, 4000);
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [qboCustomers, resolvedAcctNumIds]);
 
   async function handleDeleteSyncConfig(id: string) {
@@ -863,7 +876,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
   }
 
   const filteredRuns = useMemo(() => {
-    if (!data) return [];
+    if (!data?.runs) return [];
     const q = query.trim().toLowerCase();
     return data.runs.filter((r) => {
       if (statusFilter && r.status !== statusFilter) return false;
@@ -872,7 +885,7 @@ export function QboR365Dashboard({ organizationId, deferredDataUrl, showDevelope
     });
   }, [data, query, statusFilter]);
 
-  const selectedRun = useMemo(() => data?.runs.find((r) => r.id === selectedRunId) ?? null, [data, selectedRunId]);
+  const selectedRun = useMemo(() => data?.runs?.find((r) => r.id === selectedRunId) ?? null, [data, selectedRunId]);
   const sortedUnifiedHistory = useMemo(() => {
     return [...unifiedHistory].sort((a, b) => {
       const aVal = unifiedSort.col === "txnDate" ? (a.txnDate ?? "") : a.createdAt;
