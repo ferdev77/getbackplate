@@ -61,6 +61,7 @@ errors-*.json
 # Local AI bridge files (do not commit)
 AI_BRIDGE_*
 scripts/vercel_envs.json
+.claude/settings.json
 .claude/settings.local.json
 
 # Documentacion de control interno del desarrollador, 100% local, nunca se sube (2026-06-29)
