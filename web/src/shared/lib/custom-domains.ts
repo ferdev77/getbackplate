@@ -113,7 +113,18 @@ export function isReservedPlatformHost(host: string | null | undefined) {
     })(),
   );
 
-  return Boolean(canonicalHost && canonicalHost === normalized);
+  if (canonicalHost && canonicalHost === normalized) {
+    return true;
+  }
+
+  // The marketing domain (and its www alias) must never be assignable as a
+  // customer's own custom domain — it hosts the public integration landing.
+  const marketingRootHost = canonicalHost?.replace(/^app\./, "") ?? null;
+  if (marketingRootHost && (normalized === marketingRootHost || normalized === `www.${marketingRootHost}`)) {
+    return true;
+  }
+
+  return false;
 }
 
 export async function getActiveDomainByOrganizationId(organizationId: string) {

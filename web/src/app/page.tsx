@@ -7,14 +7,11 @@ import {
   isCurrentUserSuperadmin,
 } from "@/modules/memberships/queries";
 import {
-  getActivePlansForIntegration,
-  getActivePlansForLanding,
-} from "@/modules/plans/queries";
-import { LandingExperience } from "@/modules/landing/ui/landing-experience";
-import {
   resolveOrganizationIdFromAuthContext,
   resolvePublicOrganizationHintById,
 } from "@/shared/lib/tenant-auth-branding";
+import { resolveCanonicalAppUrl } from "@/shared/lib/app-url";
+import { normalizeRequestHost } from "@/shared/lib/custom-domains";
 
 export const dynamic = "force-dynamic";
 
@@ -55,12 +52,16 @@ export default async function Home() {
     redirect(`/auth/login${orgQuery}`);
   }
 
-  const [plans, integrationPlans] = await Promise.all([
-    getActivePlansForLanding(),
-    getActivePlansForIntegration("qbo_r365"),
-  ]);
+  // app.getbackplate.com is reserved for the app (login/dashboard/portal) — anonymous
+  // visitors go straight to login. Every other host (getbackplate.com, its www alias,
+  // getbackplate.vercel.app, local dev, etc.) is the marketing entry point, which is
+  // the QBO<->R365 integration landing rather than the full platform landing.
+  const canonicalAppHost = normalizeRequestHost(new URL(resolveCanonicalAppUrl()).hostname);
+  const isAppHost = normalizeRequestHost(requestHost) === canonicalAppHost;
 
-  return (
-    <LandingExperience plans={plans} integrationPlans={integrationPlans} />
-  );
+  if (isAppHost) {
+    redirect("/auth/login");
+  }
+
+  redirect("/integrations/qbo-r365");
 }

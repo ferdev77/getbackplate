@@ -474,7 +474,7 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
               <img src="/getbackplate-logo-light.svg" alt="GetBackplate" style={{ height: 28, width: "auto", display: "block" }} />
             </Link>
             <div className="navlinks">
-              <Link href="/">Platform</Link>
+              <Link href="/platform">Platform</Link>
               <a href="#integrations">Integration</a>
               <a href="#proof">Case study</a>
               <a href="#pricing">Pricing</a>
