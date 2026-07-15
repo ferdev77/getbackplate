@@ -59,13 +59,13 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
 
     const extraChargeCents = extraChargeAmount.trim() ? Math.round(parseFloat(extraChargeAmount) * 100) : 0;
     if (extraChargeAmount.trim() && (!Number.isFinite(extraChargeCents) || extraChargeCents <= 0)) {
-      toast.error("Monto de cargo único inválido");
+      toast.error("Invalid one-time charge amount");
       return;
     }
 
     const extraConnectionCountNum = extraConnectionCount.trim() ? parseInt(extraConnectionCount, 10) : 0;
     if (extraConnectionCount.trim() && (!Number.isFinite(extraConnectionCountNum) || extraConnectionCountNum <= 0)) {
-      toast.error("Cantidad de conexiones extra inválida");
+      toast.error("Invalid extra connection count");
       return;
     }
 
@@ -88,15 +88,15 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
       });
       const data = (await res.json()) as { url?: string; upgraded?: boolean; error?: string };
       if (!res.ok) {
-        toast.error(data.error ?? "Error al generar el link de suscripción");
+        toast.error(data.error ?? "Could not generate subscription link");
         return;
       }
       if (data.upgraded) {
         setUpgraded(true);
-        toast.success("Plan actualizado al instante");
+        toast.success("Plan updated immediately");
       } else if (data.url) {
         setGeneratedUrl(data.url);
-        toast.success("Link de suscripción generado correctamente");
+        toast.success("Subscription link generated successfully");
       }
       router.refresh();
     } finally {
@@ -120,7 +120,7 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-2 rounded-xl border-[1.5px] border-[var(--gbp-accent)] px-6 py-3 text-xs font-bold text-[var(--gbp-accent)] transition-all hover:bg-[var(--gbp-accent)] hover:text-white"
       >
-        <Plus className="h-4 w-4" /> Nuevo link de suscripción
+        <Plus className="h-4 w-4" /> New subscription link
       </button>
 
       {open && (
@@ -129,9 +129,9 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
 
             <div className="flex shrink-0 items-center justify-between border-b border-[var(--gbp-border)] px-10 py-7">
               <div>
-                <h3 className="text-2xl font-bold text-foreground">Nuevo link de suscripción</h3>
+                <h3 className="text-2xl font-bold text-foreground">New subscription link</h3>
                 <p className="mt-0.5 text-sm text-muted-foreground">
-                  Alta de plan recurrente sin login. Si la org ya tiene plan activo, se actualiza al instante.
+                  Start a recurring plan without login. If the organization already has an active plan, it is updated immediately.
                 </p>
               </div>
               <button type="button" onClick={close} className="rounded-xl p-2 text-muted-foreground transition-colors hover:bg-muted">
@@ -145,18 +145,18 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
                   <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
                     <div className="mb-2 flex items-center gap-2 text-emerald-700">
                       <CheckCircle2 className="h-4 w-4" />
-                      <p className="text-xs font-bold uppercase tracking-widest">Plan actualizado</p>
+                      <p className="text-xs font-bold uppercase tracking-widest">Plan updated</p>
                     </div>
                     <p className="text-sm text-emerald-800">
-                      <strong>{selectedOrg?.name}</strong> ya tenía una suscripción activa de este tipo — el cambio de plan
-                      se aplicó al instante con prorateo sobre la tarjeta guardada. No hay link para enviar.
+                      <strong>{selectedOrg?.name}</strong> already had an active subscription of this type. The plan change
+                      was applied immediately with proration on the saved card. There is no link to send.
                     </p>
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
-                    <p className="mb-1 text-xs font-bold uppercase tracking-widest text-emerald-700">Link generado</p>
+                    <p className="mb-1 text-xs font-bold uppercase tracking-widest text-emerald-700">Link generated</p>
                     <p className="mb-4 text-sm text-emerald-800">
-                      Copiá el link y enviáselo a <strong>{selectedOrg?.name}</strong>. Expira en <strong>24 horas</strong> (límite de Stripe).
+                      Copy the link and send it to <strong>{selectedOrg?.name}</strong>. It expires in <strong>24 hours</strong> (Stripe limit).
                     </p>
                     <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-3.5 text-xs font-mono text-emerald-900 break-all">
                       <Link2 className="h-4 w-4 shrink-0 text-emerald-500" />
@@ -171,11 +171,11 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
                       onClick={copyUrl}
                       className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition ${copied ? "bg-emerald-500 text-white" : "bg-[var(--gbp-accent)] text-white hover:opacity-90"}`}
                     >
-                      {copied ? <><CheckCheck className="h-4 w-4" /> Copiado</> : <><Copy className="h-4 w-4" /> Copiar link</>}
+                      {copied ? <><CheckCheck className="h-4 w-4" /> Copied</> : <><Copy className="h-4 w-4" /> Copy link</>}
                     </button>
                   )}
                   <button type="button" onClick={close} className="rounded-xl border border-[var(--gbp-border)] px-5 py-3 text-sm font-bold text-[var(--gbp-text2)]">
-                    Cerrar
+                    Close
                   </button>
                 </div>
               </div>
@@ -184,20 +184,20 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
                 <div className="flex-1 overflow-y-auto px-10 py-7 space-y-6">
 
                   <SuperadminSelectField
-                    label="Organización"
+                    label="Organization"
                     name="org"
                     value={orgId}
                     onChange={(e) => setOrgId(e.target.value)}
                     required
                   >
-                    <option value="">Seleccioná una org…</option>
+                    <option value="">Select an organization…</option>
                     {organizations.map((o) => (
                       <option key={o.id} value={o.id}>{o.name}</option>
                     ))}
                   </SuperadminSelectField>
 
                   <div>
-                    <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Tipo de plan</p>
+                    <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Plan type</p>
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
@@ -207,7 +207,7 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
                         }`}
                       >
                         <Plug className="h-4 w-4 shrink-0" />
-                        <span className="text-xs font-bold">Integración QuickBooks-R365</span>
+                        <span className="text-xs font-bold">QuickBooks-R365 Integration</span>
                       </button>
                       <button
                         type="button"
@@ -217,7 +217,7 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
                         }`}
                       >
                         <Building2 className="h-4 w-4 shrink-0" />
-                        <span className="text-xs font-bold">Plataforma</span>
+                        <span className="text-xs font-bold">Platform</span>
                       </button>
                     </div>
                   </div>
@@ -229,14 +229,14 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
                     onChange={(e) => setPlanId(e.target.value)}
                     required
                   >
-                    <option value="">Seleccioná un plan…</option>
+                    <option value="">Select a plan…</option>
                     {plans.map((p) => (
                       <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
                   </SuperadminSelectField>
 
                   <div>
-                    <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Período de facturación</p>
+                    <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Billing period</p>
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
@@ -245,7 +245,7 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
                           billingPeriod === "monthly" ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent)]/10 text-[var(--gbp-accent)]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"
                         }`}
                       >
-                        Mensual
+                        Monthly
                       </button>
                       <button
                         type="button"
@@ -254,7 +254,7 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
                           billingPeriod === "yearly" ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent)]/10 text-[var(--gbp-accent)]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"
                         }`}
                       >
-                        Anual
+                        Annual
                       </button>
                     </div>
                   </div>
@@ -269,8 +269,8 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
                         {includeSetupFee && <CheckCheck className="h-3 w-3 text-white" strokeWidth={3} />}
                       </div>
                       <div className="flex-1">
-                        <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground"><Zap className="h-3.5 w-3.5" /> Cobrar setup fee</span>
-                        <p className="mt-0.5 text-[11px] text-muted-foreground">Se agrega como cargo único en el primer pago, con el descuento anual si aplica.</p>
+                        <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground"><Zap className="h-3.5 w-3.5" /> Charge setup fee</span>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">Added as a one-time charge to the first payment, with the annual discount when applicable.</p>
                       </div>
                     </button>
                   )}
@@ -278,21 +278,21 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
                   {planKind === "integration" && (
                     <div className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-5 space-y-3">
                       <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                        <Receipt className="h-3.5 w-3.5" /> Cargo único adicional (opcional)
+                        <Receipt className="h-3.5 w-3.5" /> Additional one-time charge (optional)
                       </p>
                       <p className="text-[11px] text-muted-foreground">
-                        Se suma una sola vez en la primera factura, junto con el primer pago de la suscripción. Solo aplica si esta organización termina siendo alta nueva — no se puede agregar a un upgrade.
+                        Added once to the first invoice with the first subscription payment. It applies only to new subscriptions and cannot be added to an upgrade.
                       </p>
                       <div className="grid gap-3 sm:grid-cols-[1fr_140px]">
                         <SuperadminInputField
-                          label="Descripción"
+                          label="Description"
                           name="extra_charge_description"
                           value={extraChargeDescription}
                           onChange={(e) => setExtraChargeDescription(e.target.value)}
-                          placeholder="p.ej: Successful deliveries — previous period"
+                          placeholder="e.g.: Successful deliveries — previous period"
                         />
                         <SuperadminInputField
-                          label="Monto ($)"
+                          label="Amount ($)"
                           name="extra_charge_amount"
                           type="number"
                           min="0.01"
@@ -308,15 +308,15 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
                   {planKind === "integration" && (
                     <div className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-5 space-y-3">
                       <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                        <Plug className="h-3.5 w-3.5" /> Conexiones extra (slots) — recurrente
+                        <Plug className="h-3.5 w-3.5" /> Extra connections (slots) — recurring
                       </p>
                       {billingPeriod === "monthly" ? (
                         <>
                           <p className="text-[11px] text-muted-foreground">
-                            Se suma como un segundo cargo recurrente de <strong>$80.00 USD/mes c/u</strong>, junto con el plan base. Se cobra automáticamente todos los meses. Solo aplica en alta nueva.
+                            Added as a second recurring charge of <strong>$80.00 USD/month each</strong> with the base plan. It is billed automatically every month and applies only to new subscriptions.
                           </p>
                           <SuperadminInputField
-                            label="Cantidad de slots"
+                            label="Number of slots"
                             name="extra_connection_count"
                             type="number"
                             min="1"
@@ -327,33 +327,33 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
                           />
                           {Number(extraConnectionCount) > 0 && (
                             <p className="text-[11px] font-semibold text-foreground">
-                              Total recurrente extra: ${(Number(extraConnectionCount) * 80).toFixed(2)} USD/mes
+                              Total extra recurring charge: ${(Number(extraConnectionCount) * 80).toFixed(2)} USD/month
                             </p>
                           )}
                         </>
                       ) : (
                         <p className="text-[11px] text-muted-foreground">
-                          Las conexiones extra recurrentes solo están disponibles con facturación mensual — Stripe no permite combinar un precio mensual con uno anual en la misma suscripción.
+                          Extra recurring connections are available only with monthly billing. Stripe does not allow a monthly and annual price in the same subscription.
                         </p>
                       )}
                     </div>
                   )}
 
                   <p className="text-[11px] text-muted-foreground">
-                    Si <strong>{selectedOrg?.name ?? "la organización"}</strong> ya tiene una suscripción activa de este tipo, no se genera link — el cambio de plan se aplica al instante con prorateo.
+                    If <strong>{selectedOrg?.name ?? "the organization"}</strong> already has an active subscription of this type, no link is generated. The plan change is applied immediately with proration.
                   </p>
                 </div>
 
                 <div className="flex shrink-0 items-center justify-end gap-3 border-t border-[var(--gbp-border)] px-10 py-6">
                   <button type="button" onClick={close} className="rounded-xl border border-[var(--gbp-border)] px-6 py-2.5 text-sm font-bold text-[var(--gbp-text2)] transition hover:bg-[var(--gbp-bg)]">
-                    Cancelar
+                    Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={loading || !orgId || !planId}
                     className="inline-flex items-center gap-2 rounded-xl bg-[var(--gbp-accent)] px-8 py-2.5 text-sm font-bold text-white shadow-[var(--gbp-shadow-accent)] transition hover:opacity-90 disabled:opacity-60"
                   >
-                    {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Procesando…</> : "Generar →"}
+                    {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</> : "Generate →"}
                   </button>
                 </div>
               </form>

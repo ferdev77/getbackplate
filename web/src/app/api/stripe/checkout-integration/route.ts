@@ -209,7 +209,7 @@ export async function POST(request: Request) {
 
     const planName = typeof (plan as Record<string, unknown>).name === "string"
       ? (plan as Record<string, unknown>).name as string
-      : "Integración";
+      : "Integration";
 
     // Setup fee: precio one-time agregado directamente a line_items.
     // En subscription mode, Stripe cobra los items sin `recurring` solo en el
@@ -219,7 +219,7 @@ export async function POST(request: Request) {
           price_data: {
             currency: "usd" as const,
             product_data: {
-              name: `Setup · ${planName}${period === "annual" ? " (25% off anual)" : ""}`,
+              name: `Setup · ${planName}${period === "annual" ? " (25% annual discount)" : ""}`,
             },
             unit_amount: setupFeeAmountCents,
           },

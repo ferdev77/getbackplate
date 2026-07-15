@@ -9,20 +9,20 @@ import { SendLinkEmailButton } from "./send-link-email-button";
 import { sendSubscriptionLinkEmailAction } from "./actions";
 
 const STATUS_CONFIG = {
-  pending:   { label: "Pendiente",   cls: "text-amber-600  bg-amber-50  border-amber-200",   Icon: Clock },
-  completed: { label: "Completado",  cls: "text-emerald-600 bg-emerald-50 border-emerald-200", Icon: CheckCircle2 },
-  upgraded:  { label: "Actualizado", cls: "text-violet-600 bg-violet-50 border-violet-200",   Icon: TrendingUp },
-  expired:   { label: "Expirado",    cls: "text-slate-500  bg-slate-50  border-slate-200",   Icon: XCircle },
-  canceled:  { label: "Cancelado",   cls: "text-rose-500   bg-rose-50   border-rose-200",    Icon: Ban },
+  pending:   { label: "Pending",   cls: "text-amber-600  bg-amber-50  border-amber-200",   Icon: Clock },
+  completed: { label: "Completed", cls: "text-emerald-600 bg-emerald-50 border-emerald-200", Icon: CheckCircle2 },
+  upgraded:  { label: "Upgraded",  cls: "text-violet-600 bg-violet-50 border-violet-200",   Icon: TrendingUp },
+  expired:   { label: "Expired",   cls: "text-slate-500  bg-slate-50  border-slate-200",   Icon: XCircle },
+  canceled:  { label: "Canceled",  cls: "text-rose-500   bg-rose-50   border-rose-200",    Icon: Ban },
 } as const;
 
 const PLAN_KIND_CONFIG = {
-  platform:    { label: "Plataforma",        Icon: Building2, cls: "text-violet-600" },
-  integration: { label: "Integración QuickBooks-R365", Icon: Plug,    cls: "text-sky-600" },
+  platform:    { label: "Platform", Icon: Building2, cls: "text-violet-600" },
+  integration: { label: "QuickBooks-R365 Integration", Icon: Plug, cls: "text-sky-600" },
 } as const;
 
 function fmtDate(iso: string) {
-  return new Intl.DateTimeFormat("es-AR", {
+  return new Intl.DateTimeFormat("en-US", {
     day: "2-digit", month: "short", year: "numeric",
     hour: "2-digit", minute: "2-digit",
   }).format(new Date(iso));
@@ -61,7 +61,7 @@ function CountdownTimer({ expiresAt }: { expiresAt: string }) {
     return () => clearInterval(id);
   }, [expiresAt]);
 
-  if (secs <= 0) return <span className="text-[11px] font-semibold text-rose-500">Expirado</span>;
+  if (secs <= 0) return <span className="text-[11px] font-semibold text-rose-500">Expired</span>;
 
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs % 3600) / 60);
@@ -87,7 +87,7 @@ export function SubscriptionLinksTable({ orders, orgMap, planMap }: Props) {
       <table className="w-full min-w-[800px] text-sm">
         <thead>
           <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)]">
-            {["", "Organización", "Tipo", "Plan", "Período", "Estado", "Creado", ""].map((h, i) => (
+            {["", "Organization", "Type", "Plan", "Period", "Status", "Created", ""].map((h, i) => (
               <th key={i} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground first:pl-3 last:pr-5">
                 {h}
               </th>
@@ -114,7 +114,7 @@ export function SubscriptionLinksTable({ orders, orgMap, planMap }: Props) {
 
                   <td className="px-4 py-4">
                     <p className="font-semibold text-foreground">
-                      {orgMap[order.organization_id ?? ""] ?? <span className="italic text-muted-foreground">eliminada</span>}
+                      {orgMap[order.organization_id ?? ""] ?? <span className="italic text-muted-foreground">deleted</span>}
                     </p>
                   </td>
 
@@ -130,7 +130,7 @@ export function SubscriptionLinksTable({ orders, orgMap, planMap }: Props) {
                   </td>
 
                   <td className="px-4 py-4 text-[11px] text-muted-foreground">
-                    {order.billing_period === "yearly" ? "Anual" : "Mensual"}
+                    {order.billing_period === "yearly" ? "Annual" : "Monthly"}
                     {order.include_setup_fee && <span className="ml-1.5 text-amber-600">· +setup</span>}
                   </td>
 
@@ -169,12 +169,12 @@ export function SubscriptionLinksTable({ orders, orgMap, planMap }: Props) {
                       <div className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4">
                         {order.status === "upgraded" ? (
                           <p className="text-[11px] text-muted-foreground">
-                            Cambio de plan aplicado al instante con prorateo — no se generó link de Stripe.
-                            {order.completed_at && <> Aplicado el {fmtDate(order.completed_at)}.</>}
+                            Plan change applied immediately with proration. No Stripe link was generated.
+                            {order.completed_at && <> Applied on {fmtDate(order.completed_at)}.</>}
                           </p>
                         ) : order.status === "completed" ? (
                           <p className="text-[11px] text-muted-foreground">
-                            Suscripción activada{order.completed_at ? ` el ${fmtDate(order.completed_at)}` : ""}.
+                            Subscription activated{order.completed_at ? ` on ${fmtDate(order.completed_at)}` : ""}.
                           </p>
                         ) : order.expires_at ? (
                           <div className="flex items-start gap-2.5">
@@ -182,14 +182,14 @@ export function SubscriptionLinksTable({ orders, orgMap, planMap }: Props) {
                               <Timer className="h-3.5 w-3.5 text-muted-foreground" />
                             </div>
                             <div>
-                              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Expira en</p>
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Expires in</p>
                               <div className="mt-0.5"><CountdownTimer expiresAt={order.expires_at} /></div>
                             </div>
                           </div>
                         ) : null}
                         {order.extra_charge_cents != null && (
                           <p className="mt-2 text-[11px] text-muted-foreground">
-                            Cargo único: <strong className="text-foreground">${(order.extra_charge_cents / 100).toFixed(2)}</strong>
+                            One-time charge: <strong className="text-foreground">${(order.extra_charge_cents / 100).toFixed(2)}</strong>
                             {order.extra_charge_description && <> — {order.extra_charge_description}</>}
                           </p>
                         )}

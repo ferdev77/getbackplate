@@ -723,11 +723,11 @@ export function CompanyShell({
       } else if (toastCode === 'subscription-canceled') {
         toast.error('No se completó la activación de la suscripción.');
       } else if (toastCode === 'integration-plan-upgraded') {
-        toast.success('¡Plan de integración actualizado exitosamente!');
+        toast.success(t("Plan de integración actualizado correctamente."));
       } else if (toastCode.startsWith('addon-activated:')) {
-        toast.success('¡Add-on activado exitosamente! El módulo ya está disponible en tu cuenta.');
+        toast.success(t("Add-on activated successfully. The module is now available in your account."));
       } else {
-        toast.success('¡Suscripción activada exitosamente!');
+        toast.success(t("Subscription activated successfully."));
       }
       window.sessionStorage.removeItem('gb:billing-success-toast');
       billingToastHandledRef.current = false;
@@ -737,7 +737,7 @@ export function CompanyShell({
       clearTimeout(timer);
       billingToastHandledRef.current = false;
     };
-  }, [pathname]);
+  }, [pathname, t]);
 
   const currentLabel = useMemo(() => {
     for (const section of visibleSections) {
@@ -875,15 +875,15 @@ export function CompanyShell({
       }
       if (data.upgraded && data.url) {
         setIntegrationPlanOpen(null);
-        toast.success("¡Plan de integración actualizado exitosamente!");
+        toast.success(t("Plan de integración actualizado correctamente."));
         router.refresh();
       } else if (data.url) {
         window.location.href = data.url;
       } else {
-        toast.error(data.error ?? "Error al iniciar el checkout");
+        toast.error(data.error ?? t("Could not start checkout."));
       }
     } catch {
-      toast.error("Error de conexión. Intenta nuevamente.");
+      toast.error(t("Connection error. Please try again."));
     } finally {
       setIntegrationPlanBusy(null);
     }
@@ -1836,15 +1836,15 @@ export function CompanyShell({
             <div className="px-6 py-6 sm:px-8">
 
               {/* Header */}
-              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--gbp-accent)]">Activación requerida</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--gbp-accent)]">{t("Activación requerida")}</p>
               <h2 className="mt-1 text-xl font-bold">
                 {isIntegrationLandingCheckout
-                  ? "Elegí tu plan de integración QuickBooks"
+                  ? t("Elegí tu plan de integración QuickBooks")
                   : billingGate?.reason === "trial_expired" ? "Tu prueba venció — reactivá tu suscripción" : "Elegí tu plan para desbloquear el panel"}
               </h2>
               <p className={`mt-1.5 text-sm ${isDarkTheme ? "text-white/65" : "text-[var(--gbp-text2)]"}`}>
                 {isIntegrationLandingCheckout
-                  ? "Conectá QuickBooks Online con Restaurant365 y sincronizá facturas automáticamente."
+                  ? t("Conectá QuickBooks Online con Restaurant365 y sincronizá facturas automáticamente.")
                   : "Contratá un plan de plataforma para gestionar tu operación, o un plan de integración para conectar QuickBooks con R365."}
               </p>
 
@@ -1863,7 +1863,7 @@ export function CompanyShell({
                     onClick={() => setLockedViewTab("integration")}
                     className={`rounded-lg px-4 py-2 text-xs font-bold transition ${lockedViewTab === "integration" ? "bg-[var(--gbp-accent)] text-white shadow-sm" : (isDarkTheme ? "text-white/60 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
                   >
-                    Integración QuickBooks
+                    {t("Integración QuickBooks")}
                   </button>
                 )}
               </div>}
@@ -1943,19 +1943,19 @@ export function CompanyShell({
               {(isIntegrationLandingCheckout || lockedViewTab === "integration") && integrationPlans.length > 0 && (
                 <div className="mt-5">
                   <p className={`mb-4 text-xs ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>
-                    Conectá tu QuickBooks Online con Restaurant365 y sincronizá facturas automáticamente. No requiere un plan de plataforma.
+                    {t("Conectá tu QuickBooks Online con Restaurant365 y sincronizá facturas automáticamente. No requiere un plan de plataforma.")}
                   </p>
                   <div className={`mb-4 inline-flex rounded-lg border p-1 text-xs font-semibold ${isDarkTheme ? "border-white/15 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                     <button
                       type="button"
                       onClick={() => setIntegrationPlanBillingCycle("monthly")}
                       className={`rounded-md px-3 py-1.5 transition ${integrationPlanBillingCycle === "monthly" ? (isDarkTheme ? "bg-white text-[var(--gbp-text)]" : "bg-[var(--gbp-surface)] text-[var(--gbp-text)]") : (isDarkTheme ? "text-white/75 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
-                    >Mensual</button>
+                    >{t("Mensual")}</button>
                     <button
                       type="button"
                       onClick={() => setIntegrationPlanBillingCycle("annual")}
                       className={`rounded-md px-3 py-1.5 transition ${integrationPlanBillingCycle === "annual" ? "bg-[var(--gbp-success)] text-white" : (isDarkTheme ? "text-white/75 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
-                    >Anual <span className={`text-[9px] ${integrationPlanBillingCycle === "annual" ? "text-white/80" : "text-emerald-500"}`}>−17%</span></button>
+                    >{t("Anual")} <span className={`text-[9px] ${integrationPlanBillingCycle === "annual" ? "text-white/80" : "text-emerald-500"}`}>−17%</span></button>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     {integrationPlans.map((plan) => {
@@ -1988,7 +1988,7 @@ export function CompanyShell({
                               <>
                                 <span className="text-2xl font-bold">${displayPrice.toLocaleString("en-US")}</span>
                                 <span className={`ml-1 text-[11px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>/mes</span>
-                                {integrationPlanBillingCycle === "annual" && savings > 0 && <p className="mt-0.5 text-[10px] font-semibold text-emerald-500">Ahorrás ${savings.toLocaleString("en-US")}/año</p>}
+                                {integrationPlanBillingCycle === "annual" && savings > 0 && <p className="mt-0.5 text-[10px] font-semibold text-emerald-500">{t("Ahorrás")} ${savings.toLocaleString("en-US")}/{t("año")}</p>}
                               </>
                             )}
                           </div>
@@ -2006,7 +2006,7 @@ export function CompanyShell({
                                 onChange={(event) => setSetupFeeSelected((current) => ({ ...current, [plan.id]: event.target.checked }))}
                               />
                               <span className={isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}>
-                                Setup de configuración inicial
+                                {t("Setup de configuración inicial")}
                                 {integrationPlanBillingCycle === "annual" && plan.setupFeeDiscountPct > 0 ? (
                                   <> · <span className="line-through opacity-50">${plan.setupFeeAmount.toLocaleString("en-US")}</span> <span className="font-semibold text-emerald-500">${Math.round(plan.setupFeeAmount * (1 - plan.setupFeeDiscountPct / 100)).toLocaleString("en-US")}</span> <span className="text-emerald-500 text-[9px]">−{plan.setupFeeDiscountPct}%</span></>
                                 ) : (
@@ -2018,7 +2018,7 @@ export function CompanyShell({
                           )}
                           {plan.isEnterprise ? (
                             <a href={`mailto:${plan.ctaEmail ?? "angelo@mkthelp.com"}?subject=QuickBooks R365 - ${plan.name} Plan`} className={`mt-auto block w-full rounded-lg px-3 py-2 text-center text-[11px] font-bold transition ${isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]"}`}>
-                              Contactar ventas →
+                              {t("Contactar ventas →")}
                             </a>
                           ) : (
                             <button
@@ -2027,7 +2027,7 @@ export function CompanyShell({
                               onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle, includeSetupFee)}
                               className={`mt-auto w-full rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${isCurrent ? (isDarkTheme ? "bg-white/10 text-white/40" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]") : plan.isFeatured ? "bg-[var(--gbp-accent)] text-white hover:opacity-90" : (isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]")}`}
                             >
-                              {isLoading ? "Redirigiendo..." : isCurrent ? "Plan actual" : "Contratar →"}
+                              {isLoading ? t("Redirigiendo...") : isCurrent ? t("Plan actual") : t("Contratar →")}
                             </button>
                           )}
                         </div>
@@ -2694,7 +2694,7 @@ export function CompanyShell({
             <div className={`flex items-center justify-between border-b px-6 py-4 ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`}>
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">QuickBooks ↔ R365 Integration</p>
-                <p className="mt-0.5 text-base font-bold">Selecciona un plan</p>
+                <p className="mt-0.5 text-base font-bold">{t("Selecciona un plan")}</p>
               </div>
               <div className="flex items-center gap-3">
                 {/* Billing toggle */}
@@ -2704,14 +2704,14 @@ export function CompanyShell({
                     onClick={() => setIntegrationPlanBillingCycle("monthly")}
                     className={`rounded px-2.5 py-1 transition ${integrationPlanBillingCycle === "monthly" ? "bg-[var(--gbp-accent)] text-white" : isDarkTheme ? "text-white/60 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}
                   >
-                    Mensual
+                    {t("Mensual")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setIntegrationPlanBillingCycle("annual")}
                     className={`rounded px-2.5 py-1 transition ${integrationPlanBillingCycle === "annual" ? "bg-[var(--gbp-accent)] text-white" : isDarkTheme ? "text-white/60 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]"}`}
                   >
-                    Anual <span className={`ml-0.5 text-[9px] ${integrationPlanBillingCycle === "annual" ? "text-white/80" : "text-emerald-500"}`}>−17%</span>
+                    {t("Anual")} <span className={`ml-0.5 text-[9px] ${integrationPlanBillingCycle === "annual" ? "text-white/80" : "text-emerald-500"}`}>−17%</span>
                   </button>
                 </div>
                 <button
@@ -2772,7 +2772,7 @@ export function CompanyShell({
                         <>
                           <span className="text-2xl font-bold">Custom</span>
                           <p className={`mt-0.5 text-[10px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>
-                            a medida para tu operación
+                            {t("a medida para tu operación")}
                           </p>
                         </>
                       ) : (
@@ -2781,7 +2781,7 @@ export function CompanyShell({
                           <span className={`ml-1 text-[11px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>/mes</span>
                           {integrationPlanBillingCycle === "annual" && savings > 0 && (
                             <p className="mt-0.5 text-[10px] font-semibold text-emerald-500">
-                              Ahorrás ${savings.toLocaleString("en-US")}/año
+                              {t("Ahorrás")} ${savings.toLocaleString("en-US")}/{t("año")}
                             </p>
                           )}
                         </>
@@ -2797,7 +2797,7 @@ export function CompanyShell({
                           readOnly
                         />
                         <span className={isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}>
-                          Setup de configuración inicial
+                          {t("Setup de configuración inicial")}
                           {integrationPlanBillingCycle === "annual" && plan.setupFeeDiscountPct > 0 ? (
                             <> · <span className="line-through opacity-50">${plan.setupFeeAmount.toLocaleString("en-US")}</span> <span className="font-semibold text-emerald-500">${Math.round(plan.setupFeeAmount * (1 - plan.setupFeeDiscountPct / 100)).toLocaleString("en-US")}</span> <span className="text-emerald-500 text-[9px]">−{plan.setupFeeDiscountPct}%</span></>
                           ) : (
@@ -2816,7 +2816,7 @@ export function CompanyShell({
                             : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]"
                         }`}
                       >
-                        Contactar ventas →
+                        {t("Contactar ventas →")}
                       </a>
                     ) : (
                       <button
@@ -2833,7 +2833,7 @@ export function CompanyShell({
                             : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]"
                         }`}
                       >
-                        {isLoading ? "Procesando…" : isCurrent ? "Plan actual" : "Seleccionar →"}
+                        {isLoading ? t("Procesando…") : isCurrent ? t("Plan actual") : t("Seleccionar →")}
                       </button>
                     )}
                   </div>
@@ -2842,7 +2842,7 @@ export function CompanyShell({
             </div>
 
             <p className={`px-5 pb-4 text-[10px] ${isDarkTheme ? "text-white/30" : "text-[var(--gbp-muted)]"}`}>
-              Al seleccionar un plan serás redirigido a Stripe para completar el pago. Los upgrades aplican prorrateo inmediato.
+              {t("Al seleccionar un plan serás redirigido a Stripe para completar el pago. Los upgrades aplican prorrateo inmediato.")}
             </p>
           </div>
         </div>

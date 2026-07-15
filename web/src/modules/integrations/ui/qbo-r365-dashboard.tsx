@@ -1413,10 +1413,10 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
     if (unifiedContext && typeSlug && docSlug) {
       if (format === "csv") link.download = `r365_${typeSlug}_${docSlug}.csv`;
       else if (format === "json") link.download = `qbo_raw_${typeSlug}_${docSlug}.json`;
-      else if (format === "txt") link.download = `factura_${typeSlug}_${docSlug}.txt`;
-      else link.download = `factura_${typeSlug}_${docSlug}.pdf`;
+      else if (format === "txt") link.download = `invoice_${typeSlug}_${docSlug}.txt`;
+      else link.download = `invoice_${typeSlug}_${docSlug}.pdf`;
     } else {
-      link.download = `factura-${safeName}.${format === "json" ? "json" : format === "txt" ? "txt" : "csv"}`;
+      link.download = `invoice-${safeName}.${format === "json" ? "json" : format === "txt" ? "txt" : "csv"}`;
     }
     link.click();
     URL.revokeObjectURL(url);

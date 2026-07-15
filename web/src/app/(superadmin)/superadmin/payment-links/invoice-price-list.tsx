@@ -28,14 +28,14 @@ function PriceField({ org }: { org: Org }) {
     const trimmed = value.trim();
     const newCents = trimmed === "" ? null : Math.round(parseFloat(trimmed) * 100);
     if (trimmed !== "" && (!Number.isFinite(newCents) || newCents! < 0)) {
-      toast.error("Precio inválido");
+      toast.error("Invalid price");
       setValue(savedValue);
       return;
     }
 
     const confirmMsg = newCents == null
-      ? `¿Confirmás desactivar el cobro por factura para ${org.organizationName}?`
-      : `¿Confirmás cobrar $${(newCents / 100).toFixed(2)} por factura enviada a ${org.organizationName} a partir de la próxima renovación?`;
+      ? `Disable per-invoice billing for ${org.organizationName}?`
+      : `Charge $${(newCents / 100).toFixed(2)} per invoice sent for ${org.organizationName} beginning with the next renewal?`;
     if (!confirm(confirmMsg)) {
       setValue(savedValue);
       return;
@@ -47,9 +47,9 @@ function PriceField({ org }: { org: Org }) {
       formData.set("price_cents", newCents == null ? "" : String(newCents));
       const result = await updateInvoicePriceAction(formData);
       if (result.ok) {
-        toast.success("Precio actualizado");
+        toast.success("Price updated");
       } else {
-        toast.error(result.error ?? "No se pudo actualizar el precio");
+        toast.error(result.error ?? "Could not update the price");
         setValue(savedValue);
       }
     });
@@ -66,10 +66,10 @@ function PriceField({ org }: { org: Org }) {
         disabled={pending}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); save(); } }}
-        placeholder="Sin cobro"
+        placeholder="No charge"
         className="w-28 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-1.5 text-right text-sm font-semibold text-foreground outline-none focus:border-[var(--gbp-accent)]"
       />
-      <span className="text-[11px] text-muted-foreground">/ factura</span>
+      <span className="text-[11px] text-muted-foreground">/ invoice</span>
       {dirty && (
         <button
           type="button"
@@ -78,7 +78,7 @@ function PriceField({ org }: { org: Org }) {
           className="inline-flex items-center gap-1 rounded-lg bg-[var(--gbp-accent)] px-2.5 py-1.5 text-[10px] font-bold text-white transition hover:opacity-90 disabled:opacity-50"
         >
           {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-          Guardar
+          Save
         </button>
       )}
     </div>
@@ -97,14 +97,14 @@ function AllowanceOverrideField({ org }: { org: Org }) {
     const trimmed = value.trim();
     const newValue = trimmed === "" ? null : Number(trimmed);
     if (trimmed !== "" && (!Number.isInteger(newValue) || newValue! < 0)) {
-      toast.error("Valor inválido");
+      toast.error("Invalid value");
       setValue(savedValue);
       return;
     }
 
     const confirmMsg = newValue == null
-      ? `¿Confirmás volver al cálculo normal (plan + créditos = ${defaultAllowance}) para ${org.organizationName}?`
-      : `¿Confirmás forzar "${newValue} facturas incluidas" para ${org.organizationName}, ignorando su plan y créditos comprados?`;
+      ? `Return to the standard calculation (plan + credits = ${defaultAllowance}) for ${org.organizationName}?`
+      : `Set "${newValue} included invoices" for ${org.organizationName}, ignoring its plan and purchased credits?`;
     if (!confirm(confirmMsg)) {
       setValue(savedValue);
       return;
@@ -116,9 +116,9 @@ function AllowanceOverrideField({ org }: { org: Org }) {
       formData.set("allowance_override", newValue == null ? "" : String(newValue));
       const result = await updateInvoiceAllowanceOverrideAction(formData);
       if (result.ok) {
-        toast.success("Facturas incluidas actualizadas");
+        toast.success("Included invoices updated");
       } else {
-        toast.error(result.error ?? "No se pudo actualizar");
+        toast.error(result.error ?? "Could not update");
         setValue(savedValue);
       }
     });
@@ -145,7 +145,7 @@ function AllowanceOverrideField({ org }: { org: Org }) {
           className="inline-flex items-center gap-1 rounded-lg bg-[var(--gbp-accent)] px-2.5 py-1.5 text-[10px] font-bold text-white transition hover:opacity-90 disabled:opacity-50"
         >
           {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-          Guardar
+          Save
         </button>
       )}
     </div>
@@ -162,13 +162,13 @@ function Row({ org }: { org: Org }) {
       </div>
       <div className="mt-2 flex items-center justify-between gap-4">
         <p className="text-[11px] text-muted-foreground">
-          Incluidas por defecto: {org.planIncluded} (plan) + {org.invoiceBalance} (créditos) = {defaultAllowance}
+          Included by default: {org.planIncluded} (plan) + {org.invoiceBalance} (credits) = {defaultAllowance}
           {org.allowanceOverride != null && (
-            <span className="ml-1.5 font-semibold text-amber-600">— forzado a {org.allowanceOverride}</span>
+            <span className="ml-1.5 font-semibold text-amber-600">— overridden to {org.allowanceOverride}</span>
           )}
         </p>
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-muted-foreground">Forzar incluidas:</span>
+          <span className="text-[11px] text-muted-foreground">Override included:</span>
           <AllowanceOverrideField org={org} />
         </div>
       </div>
@@ -180,7 +180,7 @@ export function InvoicePriceList({ organizations }: { organizations: Org[] }) {
   if (organizations.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-[var(--gbp-border)] px-8 py-10 text-center">
-        <p className="text-sm font-semibold text-muted-foreground">No hay organizaciones con integración QuickBooks-R365 activa.</p>
+        <p className="text-sm font-semibold text-muted-foreground">No organizations have an active QuickBooks-R365 integration.</p>
       </div>
     );
   }
@@ -190,7 +190,7 @@ export function InvoicePriceList({ organizations }: { organizations: Org[] }) {
       <div className="flex items-center gap-2 border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-5 py-3">
         <Receipt className="h-3.5 w-3.5 text-muted-foreground" />
         <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-          Se cobra solo el excedente sobre lo incluido en el plan + créditos comprados — nunca lo que ya está incluido
+          Only usage above the plan allowance and purchased credits is billed, never what is already included.
         </p>
       </div>
       {organizations.map((org) => (

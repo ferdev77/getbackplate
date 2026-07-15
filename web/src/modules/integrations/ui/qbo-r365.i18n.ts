@@ -23,6 +23,7 @@ export const QUICKBOOKS_R365_EN: Record<string, string> = {
   "Conectando...": "Connecting...",
   "Conectar QuickBooks": "Connect QuickBooks",
   Renueva: "Renews",
+  Reintento: "Retry",
 
   // ── Sync slots section ─────────────────────────────────────────
   "Conexiones R365": "R365 Connections",

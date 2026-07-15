@@ -82,10 +82,10 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
       <section className="relative overflow-hidden rounded-[2.5rem] border border-[var(--gbp-border)] bg-[linear-gradient(145deg,var(--gbp-text)_0%,color-mix(in_oklab,var(--gbp-text)_88%,black)_100%)] p-8 text-white shadow-xl">
         <div className="pointer-events-none absolute -right-20 -bottom-20 h-64 w-64 rounded-full bg-brand/20 blur-3xl" />
         <div className="relative z-10">
-          <p className="gbp-page-eyebrow mb-2 text-brand-light/60">Monetización & Escala</p>
+          <p className="gbp-page-eyebrow mb-2 text-brand-light/60">Monetization & Scale</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">Planes Maestros</h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/70">
-            Estructura tu propuesta comercial. Define límites técnicos, precios y capacidades modulares para cada segmento de clientes.
+            Structure your commercial offering. Define technical limits, pricing, and modular capabilities for each customer segment.
           </p>
         </div>
       </section>
@@ -107,7 +107,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
       <section className="grid gap-4 sm:grid-cols-3">
         {[
           { label: "Planes Definidos", val: plans?.length ?? 0, icon: BadgeDollarSign, color: "text-[var(--gbp-text)]", bg: "bg-[var(--gbp-surface)]" },
-          { label: "Empresas en Producción", val: totalOrgsInAnyPlan, icon: Building2, color: "text-emerald-700", bg: "bg-emerald-50/50" },
+          { label: "Organizations in Production", val: totalOrgsInAnyPlan, icon: Building2, color: "text-emerald-700", bg: "bg-emerald-50/50" },
           { label: "Planes Publicados", val: (plans ?? []).filter(p => p.is_active).length, icon: ShieldCheck, color: "text-blue-700", bg: "bg-blue-50/50" },
         ].map((stat, idx) => (
           <motion.article
@@ -128,8 +128,8 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
       <section className="rounded-[2.5rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-sm overflow-hidden">
         <div className="mb-8 flex items-center justify-between px-2">
           <div>
-            <h2 className="text-lg font-bold tracking-tight text-foreground">Gestión de Oferta Comercial</h2>
-            <p className="text-xs text-muted-foreground mt-1">Configure los parámetros de crecimiento y costos operativos.</p>
+            <h2 className="text-lg font-bold tracking-tight text-foreground">Commercial Offering Management</h2>
+            <p className="text-xs text-muted-foreground mt-1">Configure growth parameters and operating costs.</p>
           </div>
           <PlanFormModal
             mode="create"
@@ -154,7 +154,7 @@ export default async function SuperadminPlansPage({ searchParams }: SuperadminPl
         <div>
           <p className="text-sm font-bold">Integridad de Relaciones comerciales</p>
           <p className="text-xs opacity-80 mt-1">
-            Los planes con empresas activas no pueden eliminarse. Para dar de baja un plan, primero migre a sus suscriptores a una propuesta de servicio alternativa.
+            Plans with active organizations cannot be deleted. To retire a plan, first migrate its subscribers to an alternative service offering.
           </p>
         </div>
       </section>

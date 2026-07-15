@@ -66,13 +66,13 @@ export async function POST(req: NextRequest) {
   const body = (await req.json()) as CreateManualSubscriptionBody;
   const { organizationId, planKind, planId, billingPeriod, includeSetupFee, extraChargeDescription } = body;
 
-  if (!organizationId) return NextResponse.json({ error: "organizationId requerido." }, { status: 400 });
+  if (!organizationId) return NextResponse.json({ error: "organizationId is required." }, { status: 400 });
   if (planKind !== "platform" && planKind !== "integration") {
-    return NextResponse.json({ error: "planKind inválido." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid planKind." }, { status: 400 });
   }
-  if (!planId) return NextResponse.json({ error: "planId requerido." }, { status: 400 });
+  if (!planId) return NextResponse.json({ error: "planId is required." }, { status: 400 });
   if (billingPeriod !== "monthly" && billingPeriod !== "yearly") {
-    return NextResponse.json({ error: "billingPeriod inválido." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid billingPeriod." }, { status: 400 });
   }
 
   const extraChargeCents = typeof body.extraChargeCents === "number" && body.extraChargeCents > 0
@@ -84,11 +84,11 @@ export async function POST(req: NextRequest) {
     : 0;
 
   if (extraConnectionCount > 0 && planKind !== "integration") {
-    return NextResponse.json({ error: "Las conexiones extra solo aplican a planes de integración." }, { status: 400 });
+    return NextResponse.json({ error: "Extra connections apply only to integration plans." }, { status: 400 });
   }
   if (extraConnectionCount > 0 && billingPeriod !== "monthly") {
     return NextResponse.json(
-      { error: "Las conexiones extra recurrentes solo están disponibles con facturación mensual." },
+      { error: "Extra recurring connections are available only with monthly billing." },
       { status: 400 },
     );
   }
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
     .select("id, plan_id, integration_plan_id")
     .eq("id", organizationId)
     .maybeSingle();
-  if (!org) return NextResponse.json({ error: "Organización no encontrada." }, { status: 404 });
+  if (!org) return NextResponse.json({ error: "Organization not found." }, { status: 404 });
 
   const planTypeFilter = planKind === "integration" ? "qbo_r365" : "platform";
   const { data: plan } = await supabase
@@ -111,19 +111,19 @@ export async function POST(req: NextRequest) {
     .eq("is_active", true)
     .maybeSingle();
 
-  if (!plan) return NextResponse.json({ error: "Plan no encontrado." }, { status: 404 });
+  if (!plan) return NextResponse.json({ error: "Plan not found." }, { status: 404 });
   if ((plan as { is_enterprise?: boolean }).is_enterprise) {
-    return NextResponse.json({ error: "Los planes Enterprise requieren contacto directo con ventas." }, { status: 400 });
+    return NextResponse.json({ error: "Enterprise plans require contacting sales directly." }, { status: 400 });
   }
   const basePriceId = (plan as { stripe_price_id?: string | null }).stripe_price_id ?? null;
   if (!basePriceId) {
-    return NextResponse.json({ error: "Este plan no tiene un precio de Stripe configurado." }, { status: 400 });
+    return NextResponse.json({ error: "This plan does not have a Stripe price configured." }, { status: 400 });
   }
 
   const targetPriceId = await resolveTargetPriceForPeriod({ basePriceId, period: billingPeriod });
   if (!targetPriceId) {
     return NextResponse.json(
-      { error: `No existe precio ${billingPeriod === "yearly" ? "anual" : "mensual"} para este plan en Stripe.` },
+      { error: `No ${billingPeriod === "yearly" ? "annual" : "monthly"} price found for this plan in Stripe.` },
       { status: 400 },
     );
   }
@@ -138,11 +138,11 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
     moduleId = moduleRow?.id ?? null;
     extraConnectionPriceId = moduleRow?.extra_connection_stripe_price_id ?? null;
-    if (!moduleId) return NextResponse.json({ error: "Módulo qbo_r365 no encontrado en el catálogo." }, { status: 500 });
+    if (!moduleId) return NextResponse.json({ error: "qbo_r365 module not found in the catalog." }, { status: 500 });
   }
 
   if (extraConnectionCount > 0 && !extraConnectionPriceId) {
-    return NextResponse.json({ error: "No hay un precio de conexión extra configurado en Stripe." }, { status: 400 });
+    return NextResponse.json({ error: "No extra connection price is configured in Stripe." }, { status: 400 });
   }
 
   const { data: stripeMapping } = await supabase
@@ -177,14 +177,14 @@ export async function POST(req: NextRequest) {
 
   if (existingSubscriptionId && extraChargeCents) {
     return NextResponse.json(
-      { error: "Esta organización ya tiene una suscripción activa; el cargo único no se puede agregar a un upgrade. Usá un Link de Pago normal para ese cobro." },
+      { error: "This organization already has an active subscription; a one-time charge cannot be added to an upgrade. Use a regular Payment Link for this charge." },
       { status: 400 },
     );
   }
 
   if (existingSubscriptionId && extraConnectionCount > 0) {
     return NextResponse.json(
-      { error: "Esta organización ya tiene una suscripción activa; las conexiones extra no se pueden agregar a un upgrade todavía." },
+      { error: "This organization already has an active subscription; extra connections cannot yet be added to an upgrade." },
       { status: 400 },
     );
   }
@@ -195,12 +195,12 @@ export async function POST(req: NextRequest) {
     const currentPriceId = subscription.items.data[0]?.price.id;
 
     if (!currentItemId) {
-      return NextResponse.json({ error: "No se pudo leer la suscripción actual en Stripe." }, { status: 502 });
+      return NextResponse.json({ error: "Could not read the current Stripe subscription." }, { status: 502 });
     }
 
     if (currentPriceId === targetPriceId) {
       if (!existingCustomerId) {
-        return NextResponse.json({ error: "No se encontró el customer de Stripe para abrir el portal." }, { status: 400 });
+        return NextResponse.json({ error: "No Stripe customer was found to open the portal." }, { status: 400 });
       }
       const portalSession = await stripe.billingPortal.sessions.create({
         customer: existingCustomerId,
@@ -289,7 +289,7 @@ export async function POST(req: NextRequest) {
 
   if (insertErr || !order) {
     console.error("[checkout-manual-subscription] Error inserting order:", insertErr);
-    return NextResponse.json({ error: "Error al crear la orden." }, { status: 500 });
+    return NextResponse.json({ error: "Could not create the order." }, { status: 500 });
   }
 
   const rawSetupFee = (plan as { setup_fee_amount?: number | null }).setup_fee_amount ?? null;
@@ -299,7 +299,7 @@ export async function POST(req: NextRequest) {
       ? Math.round((billingPeriod === "yearly" && discountPct > 0 ? rawSetupFee * (1 - discountPct / 100) : rawSetupFee) * 100)
       : 0;
 
-  const planName = typeof plan.name === "string" && plan.name.trim() ? plan.name.trim() : planKind === "integration" ? "Integración" : "Plan";
+  const planName = typeof plan.name === "string" && plan.name.trim() ? plan.name.trim() : planKind === "integration" ? "Integration" : "Plan";
 
   // ── Aviso de cargo por uso en el propio Checkout de Stripe ──────────────
   // Stripe solo conoce el precio fijo de la suscripcion; el cargo por factura
@@ -333,7 +333,7 @@ export async function POST(req: NextRequest) {
           {
             price_data: {
               currency: "usd" as const,
-              product_data: { name: `Setup · ${planName}${billingPeriod === "yearly" ? ` (${discountPct}% off anual)` : ""}` },
+              product_data: { name: `Setup · ${planName}${billingPeriod === "yearly" ? ` (${discountPct}% annual discount)` : ""}` },
               unit_amount: setupFeeAmountCents,
             },
             quantity: 1,
@@ -418,7 +418,7 @@ export async function POST(req: NextRequest) {
       try {
         session = await stripe.checkout.sessions.create(sessionParams(null));
       } catch (retryErr) {
-        const retryMsg = retryErr instanceof Error ? retryErr.message : "Error al crear la sesión en Stripe";
+        const retryMsg = retryErr instanceof Error ? retryErr.message : "Could not create the Stripe session";
         console.error("[checkout-manual-subscription] Stripe error on retry:", retryMsg);
         await supabase.from("manual_subscription_orders").delete().eq("id", order.id);
         return NextResponse.json({ error: retryMsg }, { status: 502 });
@@ -426,7 +426,7 @@ export async function POST(req: NextRequest) {
     } else {
       console.error("[checkout-manual-subscription] Stripe error:", msg);
       await supabase.from("manual_subscription_orders").delete().eq("id", order.id);
-      return NextResponse.json({ error: msg || "Error al crear la sesión en Stripe" }, { status: 502 });
+      return NextResponse.json({ error: msg || "Could not create the Stripe session" }, { status: 502 });
     }
   }
 

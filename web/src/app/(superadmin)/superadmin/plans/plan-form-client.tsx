@@ -123,10 +123,10 @@ async function resolvePrice(
       `/api/stripe/resolve-price?priceId=${encodeURIComponent(priceId)}`,
     );
     const json = await res.json();
-    if (!res.ok) return { data: null, error: json.error ?? "Price ID inválido" };
+    if (!res.ok) return { data: null, error: json.error ?? "Invalid Price ID" };
     return { data: json, error: null };
   } catch {
-    return { data: null, error: "No se pudo conectar con Stripe" };
+    return { data: null, error: "Could not connect to Stripe" };
   }
 }
 
@@ -137,14 +137,14 @@ function fmtPrice(p: NonNullable<PriceState["preview"]>) {
     minimumFractionDigits: 0,
   }).format(p.amount);
   if (p.type === "recurring" && p.interval) return `${n} / ${p.interval}`;
-  return `${n} (pago único)`;
+  return `${n} (one-time payment)`;
 }
 
 function PriceHint({ state }: { state: PriceState }) {
   if (state.loading)
     return (
       <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-        <Loader2 className="h-3 w-3 animate-spin" /> Consultando Stripe…
+        <Loader2 className="h-3 w-3 animate-spin" /> Checking Stripe…
       </p>
     );
   if (state.error)
@@ -255,7 +255,7 @@ export function PlanFormModal({
           onClick={() => setOpen(true)}
           className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[var(--gbp-accent)] px-6 py-3 text-xs font-bold text-white shadow-[var(--gbp-shadow-accent)] transition-all hover:bg-[var(--gbp-accent-hover)] hover:scale-[1.02]"
         >
-          <Plus className="h-4 w-4" /> Nuevo Plan
+          <Plus className="h-4 w-4" /> New Plan
         </button>
       ) : (
         <button
@@ -263,7 +263,7 @@ export function PlanFormModal({
           onClick={() => setOpen(true)}
           className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-700 transition-colors hover:bg-amber-100"
         >
-          <PencilLine className="h-4 w-4" /> Editar Plan
+          <PencilLine className="h-4 w-4" /> Edit Plan
         </button>
       )}
 
@@ -275,8 +275,8 @@ export function PlanFormModal({
             <div className="mb-6 flex items-center justify-between border-b border-[var(--gbp-border)] pb-6">
               <h3 className="text-2xl font-bold text-foreground">
                 {mode === "create"
-                  ? "Configurar Nueva Propuesta"
-                  : "Ajustar Propuesta Comercial"}
+                  ? "Configure New Plan"
+                  : "Edit Commercial Plan"}
               </h3>
               <button
                 type="button"
@@ -303,13 +303,13 @@ export function PlanFormModal({
               {/* ── Plan type toggle ─────────────────────────── */}
               <div>
                 <p className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-                  Tipo de Plan
+                  Plan Type
                 </p>
                 <div className="inline-flex gap-1 rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-1">
                   {(
                     [
-                      { value: "platform" as const, label: "Plataforma SaaS", Icon: Zap },
-                      { value: "integration" as const, label: "Integración", Icon: Cpu },
+                      { value: "platform" as const, label: "SaaS Platform", Icon: Zap },
+                      { value: "integration" as const, label: "Integration", Icon: Cpu },
                     ] as const
                   ).map(({ value, label, Icon }) => (
                     <button
@@ -335,15 +335,15 @@ export function PlanFormModal({
                   <div className="grid gap-5 md:grid-cols-6">
                     {mode === "create" && (
                       <SuperadminInputField
-                        label="Identificador (Slug)"
+                        label="Identifier (Slug)"
                         name="code"
                         required
-                        placeholder="p.ej: premium-anual"
+                        placeholder="e.g.: premium-annual"
                         className="md:col-span-2"
                       />
                     )}
                     <SuperadminInputField
-                      label="Nombre Público"
+                      label="Public Name"
                       name="name"
                       required
                       defaultValue={plan?.name ?? ""}
@@ -354,7 +354,7 @@ export function PlanFormModal({
                       className={`grid grid-cols-2 gap-4 ${mode === "create" ? "md:col-span-2" : "md:col-span-3"}`}
                     >
                       <SuperadminInputField
-                        label="Precio"
+                        label="Price"
                         name="price_amount"
                         type="number"
                         min="0"
@@ -363,34 +363,34 @@ export function PlanFormModal({
                         placeholder="0"
                       />
                       <SuperadminInputField
-                        label="Moneda"
+                        label="Currency"
                         name="currency_code"
                         defaultValue={plan?.currency_code ?? "USD"}
                       />
                     </div>
                     <SuperadminInputField
-                      label="Descripción Breve"
+                      label="Short Description"
                       name="description"
                       defaultValue={plan?.description ?? ""}
-                      placeholder="Resumen de beneficios"
+                      placeholder="Benefits summary"
                       className="md:col-span-4"
                     />
                     <SuperadminSelectField
-                      label="Ciclo de Cobro"
+                      label="Billing Cycle"
                       name="billing_period"
                       defaultValue={plan?.billing_period ?? "monthly"}
                       className="md:col-span-2"
                     >
-                      <option value="monthly">Mensual</option>
-                      <option value="yearly">Anual</option>
-                      <option value="one_time">Pago Único</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="yearly">Annual</option>
+                      <option value="one_time">One-time payment</option>
                     </SuperadminSelectField>
                     <div className="md:col-span-full">
                       <SuperadminInputField
                         label="Stripe Price ID"
                         name="stripe_price_id"
                         defaultValue={plan?.stripe_price_id ?? ""}
-                        placeholder="Opcional. ej: price_1Pxxxxxxxx"
+                        placeholder="Optional. e.g.: price_1Pxxxxxxxx"
                         onBlur={handleMainPriceBlur}
                         onChange={(e) => setStripePriceId(e.target.value.trim())}
                       />
@@ -400,25 +400,25 @@ export function PlanFormModal({
 
                   <div className="rounded-2xl border border-[var(--gbp-border)] bg-muted/20 p-6">
                     <p className="mb-5 text-[11px] font-bold uppercase tracking-[0.14em] text-brand">
-                      Restricciones Técnicas <span className="font-normal normal-case text-muted-foreground">(0 = Ilimitado)</span>
+                      Technical Limits <span className="font-normal normal-case text-muted-foreground">(0 = Unlimited)</span>
                     </p>
                     <div className="grid gap-5 sm:grid-cols-4">
                       <SuperadminInputField
-                        label="Locaciones"
+                        label="Locations"
                         name="max_branches"
                         type="number"
                         min="0"
                         defaultValue={plan?.max_branches ?? "0"}
                       />
                       <SuperadminInputField
-                        label="Cant. Usuarios"
+                        label="User Count"
                         name="max_users"
                         type="number"
                         min="0"
                         defaultValue={plan?.max_users ?? "0"}
                       />
                       <SuperadminInputField
-                        label="Cant. Empleados"
+                        label="Employee Count"
                         name="max_employees"
                         type="number"
                         min="0"
@@ -436,7 +436,7 @@ export function PlanFormModal({
 
                   <div className="rounded-2xl border border-[var(--gbp-border)] p-6">
                     <p className="mb-5 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--gbp-text2)]">
-                      Módulos incluidos
+                      Included Modules
                     </p>
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {modulesCatalog.map((module) => (
@@ -474,15 +474,15 @@ export function PlanFormModal({
                   <div className="grid gap-5 md:grid-cols-8">
                     {mode === "create" && (
                       <SuperadminInputField
-                        label="Identificador (Slug)"
+                        label="Identifier (Slug)"
                         name="code"
                         required
-                        placeholder="p.ej: qbo-r365-connect"
+                        placeholder="e.g.: qbo-r365-connect"
                         className="md:col-span-2"
                       />
                     )}
                     <SuperadminInputField
-                      label="Nombre del Plan"
+                      label="Plan Name"
                       name="name"
                       required
                       defaultValue={plan?.name ?? ""}
@@ -490,19 +490,19 @@ export function PlanFormModal({
                       className={mode === "create" ? "md:col-span-2" : "md:col-span-4"}
                     />
                     <SuperadminSelectField
-                      label="Ciclo de Cobro"
+                      label="Billing Cycle"
                       name="billing_period"
                       defaultValue={plan?.billing_period ?? "monthly"}
                       className={mode === "create" ? "md:col-span-2" : "md:col-span-2"}
                     >
-                      <option value="monthly">Mensual</option>
-                      <option value="yearly">Anual</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="yearly">Annual</option>
                     </SuperadminSelectField>
                     <SuperadminInputField
-                      label="Descripción breve"
+                      label="Short Description"
                       name="description"
                       defaultValue={plan?.description ?? ""}
-                      placeholder="Resumen del plan para la landing"
+                      placeholder="Plan summary for the landing page"
                       className="md:col-span-8"
                     />
                   </div>
@@ -510,7 +510,7 @@ export function PlanFormModal({
                   {/* Main Stripe Price ID */}
                   <div>
                     <SuperadminInputField
-                      label="Stripe Price ID (precio recurrente)"
+                      label="Stripe Price ID (recurring price)"
                       name="stripe_price_id"
                       defaultValue={plan?.stripe_price_id ?? ""}
                       placeholder="price_1Pxxxxxxxx"
@@ -519,29 +519,29 @@ export function PlanFormModal({
                     />
                     <PriceHint state={mainPrice} />
                     <p className="mt-1 text-[11px] text-muted-foreground/60">
-                      El monto se resolverá automáticamente desde Stripe al guardar.
+                      The amount will be resolved automatically from Stripe when saved.
                     </p>
                   </div>
 
                   {/* Setup Fee */}
                   <div className="rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-6">
                     <p className="mb-5 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                      Setup Fee <span className="normal-case font-normal">(opcional)</span>
+                      Setup Fee <span className="normal-case font-normal">(optional)</span>
                     </p>
                     <div className="grid gap-5 sm:grid-cols-3">
                       <div>
                         <SuperadminInputField
-                          label="Stripe Price ID del Setup Fee"
+                          label="Setup Fee Stripe Price ID"
                           name="setup_fee_stripe_price_id"
                           defaultValue=""
-                          placeholder="price_setup_xxx — vacío si no aplica"
+                          placeholder="price_setup_xxx — leave empty if not applicable"
                           onBlur={handleSetupFeePriceBlur}
                         />
                         <PriceHint state={setupFeePrice} />
                       </div>
                       <div>
                         <SuperadminInputField
-                          label="Monto del Setup Fee ($)"
+                          label="Setup Fee Amount ($)"
                           name="setup_fee_amount"
                           type="number"
                           min="0"
@@ -552,13 +552,13 @@ export function PlanFormModal({
                         />
                         <p className="mt-1 text-[11px] text-muted-foreground/60">
                           {setupFeePrice.preview
-                            ? "Auto-completado desde Stripe. Ajustable manualmente."
-                            : "Ingresa el Price ID arriba para auto-completar, o escribe el monto."}
+                              ? "Auto-filled from Stripe. You can adjust it manually."
+                              : "Enter the Price ID above to auto-fill, or enter the amount."}
                         </p>
                       </div>
                       <div>
                         <SuperadminInputField
-                          label="Descuento anual (%)"
+                          label="Annual Discount (%)"
                           name="setup_fee_annual_discount_pct"
                           type="number"
                           min="0"
@@ -568,7 +568,7 @@ export function PlanFormModal({
                           placeholder="25"
                         />
                         <p className="mt-1 text-[11px] text-muted-foreground/60">
-                          0 = sin descuento · 100 = setup fee gratis en plan anual
+                          0 = no discount · 100 = free setup fee on the annual plan
                         </p>
                       </div>
                     </div>
@@ -577,20 +577,20 @@ export function PlanFormModal({
                   {/* Invoices + connections */}
                   <div className="grid gap-5 sm:grid-cols-2">
                     <SuperadminInputField
-                      label="Facturas incluidas"
+                      label="Included Invoices"
                       name="invoices_included"
                       type="number"
                       min="0"
                       defaultValue={plan?.invoices_included ?? ""}
-                      placeholder="p.ej: 500"
+                      placeholder="e.g.: 500"
                     />
                     <SuperadminInputField
-                      label="Conexiones R365 (slots)"
+                      label="R365 Connections (slots)"
                       name="max_r365_connections"
                       type="number"
                       min="1"
                       defaultValue={plan?.max_r365_connections ?? ""}
-                      placeholder="vacío = ilimitado"
+                      placeholder="empty = unlimited"
                     />
                   </div>
 
@@ -605,7 +605,7 @@ export function PlanFormModal({
               {/* ── Campos compartidos (ambos tipos de plan) ─── */}
               <div className="grid gap-5 sm:grid-cols-4">
                 <SuperadminInputField
-                  label="Orden en landing"
+                  label="Landing Page Order"
                   name="sort_order"
                   type="number"
                   min="0"
@@ -614,13 +614,13 @@ export function PlanFormModal({
                 {!stripePriceId && (
                   <>
                     <SuperadminInputField
-                      label="Texto del botón CTA"
+                  label="CTA Button Text"
                       name="cta_text"
                       defaultValue={plan?.cta_text ?? ""}
                       placeholder="p.ej: Get Started"
                     />
                     <SuperadminInputField
-                      label="Email CTA (Enterprise)"
+                  label="CTA Email (Enterprise)"
                       name="cta_email"
                       type="email"
                       defaultValue={plan?.cta_email ?? ""}
@@ -639,7 +639,7 @@ export function PlanFormModal({
                     className="h-4 w-4 rounded accent-violet-600"
                   />
                   <span className="text-xs font-semibold text-foreground">
-                    Tarjeta destacada (fondo oscuro)
+                    Featured card (dark background)
                   </span>
                 </label>
                 <label className="flex cursor-pointer items-center gap-2">
@@ -650,7 +650,7 @@ export function PlanFormModal({
                     className="h-4 w-4 rounded accent-violet-600"
                   />
                   <span className="text-xs font-semibold text-foreground">
-                    Enterprise (sin precio, borde punteado)
+                    Enterprise (no price, dashed border)
                   </span>
                 </label>
               </div>
@@ -664,21 +664,21 @@ export function PlanFormModal({
                 />
                 <div className="mb-3 flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-bold text-foreground">Features del plan</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Aparecen en la tarjeta de la pantalla de contratación.</p>
+                    <p className="text-xs font-bold text-foreground">Plan features</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">They appear on the subscription screen card.</p>
                   </div>
                   <button
                     type="button"
                     onClick={addFeature}
                     className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-3 py-2 text-[11px] font-bold text-white transition hover:bg-violet-700"
                   >
-                    <Plus className="h-3.5 w-3.5" /> Agregar feature
+                    <Plus className="h-3.5 w-3.5" /> Add feature
                   </button>
                 </div>
 
                 {features.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-[var(--gbp-border)] px-4 py-6 text-center text-xs text-muted-foreground">
-                    Sin features aún. Hacé clic en &quot;Agregar feature&quot; para comenzar.
+                    No features yet. Click &quot;Add feature&quot; to get started.
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">
@@ -718,19 +718,19 @@ export function PlanFormModal({
                             />
                             <div className="mt-2 flex flex-wrap gap-3">
                               <FeatureFlagToggle
-                                label="Resaltado"
+                                label="Highlighted"
                                 checked={f.highlight}
                                 onChange={(v) => updateFeature(i, { highlight: v })}
                                 color="violet"
                               />
                               <FeatureFlagToggle
-                                label='Prefijo "✦ Todo lo anterior +"'
+                                label='Prefix "✦ Everything above +"'
                                 checked={f.everything}
                                 onChange={(v) => updateFeature(i, { everything: v })}
                                 color="amber"
                               />
                               <FeatureFlagToggle
-                                label="Solo en plan Anual"
+                                label="Annual plan only"
                                 checked={f.annual_only}
                                 onChange={(v) => updateFeature(i, { annual_only: v })}
                                 color="sky"
@@ -769,7 +769,7 @@ export function PlanFormModal({
                     className="h-6 w-11 rounded-full accent-brand"
                   />
                   <span className="text-sm font-bold text-foreground">
-                    {mode === "create" ? "Publicar Inmediatamente" : "Estado del Plan (Habilitado)"}
+                    {mode === "create" ? "Publish Immediately" : "Plan Status (Enabled)"}
                   </span>
                 </label>
                 <div className="flex gap-3">
@@ -778,13 +778,13 @@ export function PlanFormModal({
                     onClick={() => setOpen(false)}
                     className="rounded-xl border border-[var(--gbp-border)] px-6 py-2.5 text-sm font-bold text-[var(--gbp-text2)]"
                   >
-                    Cancelar
+                    Cancel
                   </button>
                   <button
                     type="submit"
                     className="rounded-xl bg-[var(--gbp-accent)] px-10 py-2.5 text-sm font-bold text-white shadow-[var(--gbp-shadow-accent)]"
                   >
-                    {mode === "create" ? "Registrar Plan" : "Sincronizar Cambios"}
+                    {mode === "create" ? "Create Plan" : "Save Changes"}
                   </button>
                 </div>
               </div>

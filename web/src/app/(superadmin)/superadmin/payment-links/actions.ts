@@ -139,12 +139,12 @@ export async function updateInvoicePriceAction(formData: FormData) {
   await requireSuperadmin();
 
   const organizationId = String(formData.get("organization_id") ?? "").trim();
-  if (!organizationId) return { ok: false, error: "Organización inválida" };
+  if (!organizationId) return { ok: false, error: "Invalid organization" };
 
   const rawPrice = String(formData.get("price_cents") ?? "").trim();
   const priceCents = rawPrice === "" ? null : Number(rawPrice);
   if (priceCents !== null && (!Number.isInteger(priceCents) || priceCents < 0)) {
-    return { ok: false, error: "Precio inválido" };
+    return { ok: false, error: "Invalid price" };
   }
 
   const supabase = createSupabaseAdminClient();
@@ -154,7 +154,7 @@ export async function updateInvoicePriceAction(formData: FormData) {
     .select("id")
     .eq("code", "qbo_r365")
     .maybeSingle();
-  if (!moduleRow) return { ok: false, error: "Módulo qbo_r365 no encontrado" };
+  if (!moduleRow) return { ok: false, error: "qbo_r365 module not found" };
 
   const { error } = await supabase
     .from("organization_addons")
@@ -172,12 +172,12 @@ export async function updateInvoiceAllowanceOverrideAction(formData: FormData) {
   await requireSuperadmin();
 
   const organizationId = String(formData.get("organization_id") ?? "").trim();
-  if (!organizationId) return { ok: false, error: "Organización inválida" };
+  if (!organizationId) return { ok: false, error: "Invalid organization" };
 
   const raw = String(formData.get("allowance_override") ?? "").trim();
   const allowanceOverride = raw === "" ? null : Number(raw);
   if (allowanceOverride !== null && (!Number.isInteger(allowanceOverride) || allowanceOverride < 0)) {
-    return { ok: false, error: "Valor inválido" };
+    return { ok: false, error: "Invalid value" };
   }
 
   const supabase = createSupabaseAdminClient();
@@ -187,7 +187,7 @@ export async function updateInvoiceAllowanceOverrideAction(formData: FormData) {
     .select("id")
     .eq("code", "qbo_r365")
     .maybeSingle();
-  if (!moduleRow) return { ok: false, error: "Módulo qbo_r365 no encontrado" };
+  if (!moduleRow) return { ok: false, error: "qbo_r365 module not found" };
 
   const { error } = await supabase
     .from("organization_addons")
@@ -226,7 +226,7 @@ export async function sendPaymentLinkEmailAction(formData: FormData) {
   const orderId = String(formData.get("order_id") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   if (!orderId) return { ok: false, error: "ID de orden inválido" };
-  if (!EMAIL_RE.test(email)) return { ok: false, error: "Email inválido" };
+  if (!EMAIL_RE.test(email)) return { ok: false, error: "Invalid email" };
 
   const supabase = createSupabaseAdminClient();
 
@@ -237,7 +237,7 @@ export async function sendPaymentLinkEmailAction(formData: FormData) {
     .maybeSingle();
 
   if (!order || !order.checkout_url || order.status !== "pending") {
-    return { ok: false, error: "Este link ya no está disponible para enviar" };
+    return { ok: false, error: "This link is no longer available to send" };
   }
 
   const html = paymentLinkEmailTemplate({
@@ -275,7 +275,7 @@ export async function sendSubscriptionLinkEmailAction(formData: FormData) {
   const orderId = String(formData.get("order_id") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   if (!orderId) return { ok: false, error: "ID de orden inválido" };
-  if (!EMAIL_RE.test(email)) return { ok: false, error: "Email inválido" };
+  if (!EMAIL_RE.test(email)) return { ok: false, error: "Invalid email" };
 
   const supabase = createSupabaseAdminClient();
 
@@ -286,7 +286,7 @@ export async function sendSubscriptionLinkEmailAction(formData: FormData) {
     .maybeSingle();
 
   if (!order || !order.checkout_url || order.status !== "pending") {
-    return { ok: false, error: "Este link ya no está disponible para enviar" };
+    return { ok: false, error: "This link is no longer available to send" };
   }
 
   const { data: plan } = await supabase
@@ -375,7 +375,7 @@ export async function sendSubscriptionLinkEmailAction(formData: FormData) {
       sourceId: orderId,
       organizationId: order.organization_id,
       actionUrl: order.checkout_url,
-      title: "Activación de suscripción enviada",
+      title: "Subscription activation sent",
     },
   });
 

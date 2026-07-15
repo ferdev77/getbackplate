@@ -84,21 +84,21 @@ export async function GET() {
 
     const statCards: StatCard[] = [
       {
-        label: "Facturas Importadas",
+        label: "Imported Invoices",
         value: String(unifiedStats.total),
         subLabel: "Sync · webhook · manual",
         tone: unifiedStats.total > 0 ? "success" : "muted",
       },
       {
-        label: invoicesIncluded ? "Facturas este mes" : "Facturas Enviadas",
+        label: invoicesIncluded ? "Invoices This Month" : "Invoices Sent",
         value: invoicesIncluded
           ? `${unifiedStats.enviadasThisPeriod} / ${invoicesIncluded}`
           : String(unifiedStats.enviadas),
         subLabel: invoicesIncluded
           ? (unifiedStats.enviadasThisPeriod > invoicesIncluded
-              ? `${unifiedStats.enviadasThisPeriod - invoicesIncluded} en excedente · $0.99 c/u`
-              : `${invoicesIncluded - unifiedStats.enviadasThisPeriod} disponibles este mes`)
-          : "Entregadas a R365 vía FTP",
+              ? `${unifiedStats.enviadasThisPeriod - invoicesIncluded} overage · $0.99 each`
+              : `${invoicesIncluded - unifiedStats.enviadasThisPeriod} available this month`)
+          : "Delivered to R365 via FTP",
         tone: invoicesIncluded && unifiedStats.enviadasThisPeriod > invoicesIncluded
           ? "warning"
           : unifiedStats.enviadas > 0 ? "success" : "muted",
@@ -112,9 +112,9 @@ export async function GET() {
         } : {}),
       },
       {
-        label: "Errores",
+        label: "Errors",
         value: String(unifiedStats.atascadas),
-        subLabel: unifiedStats.atascadas > 0 ? "En cola más de 24h sin procesar" : "Sin errores",
+        subLabel: unifiedStats.atascadas > 0 ? "Queued for more than 24 hours without processing" : "No errors",
         tone: unifiedStats.atascadas > 0 ? "warning" : "muted",
       },
     ];
@@ -142,7 +142,7 @@ export async function GET() {
     }));
 
     const now = new Date();
-    const generatedAt = `Actualizado ${now.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}`;
+    const generatedAt = `Updated ${now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
 
     return NextResponse.json({
       generatedAt,

@@ -56,17 +56,17 @@ type Props = {
   deletePlanAction: (formData: FormData) => Promise<void>;
 };
 
-type Tab = "todos" | "plataforma" | "integracion";
-const TABS: Tab[] = ["todos", "plataforma", "integracion"];
+type Tab = "all" | "platform" | "integration";
+const TABS: Tab[] = ["all", "platform", "integration"];
 const TAB_LABELS: Record<Tab, string> = {
-  todos: "Todos",
-  plataforma: "Plataforma",
-  integracion: "Integración",
+  all: "All",
+  platform: "Platform",
+  integration: "Integration",
 };
 
 function money(amount: number | null, currency = "USD") {
-  if (amount === null || amount === undefined) return "Sin precio";
-  return new Intl.NumberFormat("es-US", {
+  if (amount === null || amount === undefined) return "No price";
+  return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
     minimumFractionDigits: 0,
@@ -81,12 +81,12 @@ export function PlansFilteredList({
   updatePlanAction,
   deletePlanAction,
 }: Props) {
-  const [filter, setFilter] = useState<Tab>("todos");
+  const [filter, setFilter] = useState<Tab>("all");
 
   const filtered = plans.filter((plan) => {
     const isIntegration = plan.plan_type === "qbo_r365";
-    if (filter === "plataforma") return !isIntegration;
-    if (filter === "integracion") return isIntegration;
+    if (filter === "platform") return !isIntegration;
+    if (filter === "integration") return isIntegration;
     return true;
   });
 
@@ -143,12 +143,12 @@ export function PlansFilteredList({
                         {isIntegration ? "QuickBooks ↔ R365" : "Platform"}
                       </span>
                       <span className={`rounded-xl border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.11em] ${plan.is_active ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-line bg-muted/20 text-muted-foreground"}`}>
-                        {plan.is_active ? "Publicado" : "Borrador"}
+                        {plan.is_active ? "Published" : "Draft"}
                       </span>
                     </div>
                   </div>
                   <p className="text-sm text-foreground/60 line-clamp-2 italic">
-                    {plan.description || "Sin descripción comercial definida."}
+                    {plan.description || "No commercial description defined."}
                   </p>
 
                   <div className="flex flex-wrap gap-6 pt-2">
@@ -165,7 +165,7 @@ export function PlansFilteredList({
                       <Building2 className="h-5 w-5 text-muted-foreground" />
                       <span>
                         {usedCount}{" "}
-                        <span className="text-[11px] uppercase tracking-[0.08em] opacity-60">Clientes</span>
+                          <span className="text-[11px] uppercase tracking-[0.08em] opacity-60">Customers</span>
                       </span>
                     </div>
                     {plan.stripe_price_id ? (
@@ -174,12 +174,12 @@ export function PlansFilteredList({
                         title={`ID: ${plan.stripe_price_id}`}
                       >
                         <BadgeDollarSign className="h-4 w-4" />
-                        <span className="font-bold">Enlazado a Stripe</span>
+                        <span className="font-bold">Linked to Stripe</span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-500">
                         <AlertCircle className="h-4 w-4" />
-                        <span>Sin vincular a Stripe</span>
+                        <span>Not linked to Stripe</span>
                       </div>
                     )}
                   </div>
@@ -190,7 +190,7 @@ export function PlansFilteredList({
                     <div className="rounded-2xl border border-line/20 bg-muted/10 p-4 text-center">
                       <FileText className="mx-auto mb-2 h-4 w-4 text-muted-foreground opacity-40" />
                       <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/60">
-                        Facturas incluidas
+                        Included invoices
                       </p>
                       <p className="mt-1 text-lg font-black text-foreground">
                         {plan.invoices_included != null ? String(plan.invoices_included) : "∞"}
@@ -202,16 +202,16 @@ export function PlansFilteredList({
                         Setup Fee
                       </p>
                       <p className="mt-1 text-lg font-black text-foreground">
-                        {plan.setup_fee_amount ? money(plan.setup_fee_amount) : "Sin fee"}
+                        {plan.setup_fee_amount ? money(plan.setup_fee_amount) : "No fee"}
                       </p>
                     </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
                     {[
-                      { label: "Locaciones", val: plan.max_branches, icon: Building2 },
-                      { label: "Usuarios", val: plan.max_users, icon: Users2 },
-                      { label: "Empleados", val: plan.max_employees, icon: Layers },
+                        { label: "Locations", val: plan.max_branches, icon: Building2 },
+                        { label: "Users", val: plan.max_users, icon: Users2 },
+                        { label: "Employees", val: plan.max_employees, icon: Layers },
                       { label: "Storage (MB)", val: plan.max_storage_mb, icon: HardDrive },
                     ].map((limit) => (
                       <div key={limit.label} className="rounded-2xl border border-line/20 bg-muted/10 p-4 text-center">
@@ -229,12 +229,12 @@ export function PlansFilteredList({
                   {!isIntegration && (
                     <details className="group/details">
                       <summary className="flex items-center justify-between rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-4 py-3 text-xs font-bold text-foreground cursor-pointer transition-colors hover:border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)]">
-                        <span>{activeModules.length} Módulos</span>
+                        <span>{activeModules.length} Modules</span>
                         <ChevronDown className="h-4 w-4 transition-transform group-open/details:rotate-180" />
                       </summary>
                       <div className="absolute right-6 top-full mt-2 z-50 w-64 rounded-[1.5rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4 shadow-2xl backdrop-blur-xl">
                         <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.11em] text-brand">
-                          Capacidades del Plan
+                          Plan capabilities
                         </p>
                         <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-hide">
                           {activeModules.map((m) => (
@@ -289,9 +289,9 @@ export function PlansFilteredList({
                     <ConfirmSubmitButton
                       label=""
                       disabled={usedCount > 0}
-                      confirmTitle="Protocolo de Destrucción de Plan"
-                      confirmDescription={`Está a punto de eliminar el plan "${plan.name}". Esta acción es irreversible y solo permitida si no hay clientes asociados.`}
-                      confirmLabel="Confirmar Eliminación"
+                      confirmTitle="Plan deletion"
+                      confirmDescription={`You are about to delete the "${plan.name}" plan. This action cannot be undone and is only allowed when no customers are assigned to it.`}
+                      confirmLabel="Confirm deletion"
                       className={`w-full h-11 rounded-xl flex items-center justify-center transition-all ${
                         usedCount > 0
                           ? "bg-muted/50 text-muted-foreground cursor-not-allowed border border-line/20"

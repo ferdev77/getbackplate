@@ -77,7 +77,7 @@ export default async function PaymentLinksPage() {
   const invoicePriceOrgs = (integrationAddons ?? [])
     .map(a => ({
       organizationId: a.organization_id,
-      organizationName: orgMap[a.organization_id] ?? "(organización eliminada)",
+      organizationName: orgMap[a.organization_id] ?? "(deleted organization)",
       priceCents: a.price_per_invoice_cents,
       unbilledInvoiceCount: unbilledCountMap[a.organization_id] ?? 0,
       planIncluded: a.integration_plan_id ? (planInvoicesIncludedMap[a.integration_plan_id] ?? 0) : 0,
@@ -96,9 +96,9 @@ export default async function PaymentLinksPage() {
       {/* Header */}
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Links de Pago</h1>
+          <h1 className="text-2xl font-bold text-foreground">Payment Links</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Checkouts Stripe ad-hoc para cobrar módulos, facturas o servicios a organizaciones específicas.
+            Ad hoc Stripe Checkout links to charge specific organizations for modules, invoices, or services.
           </p>
         </div>
         <PaymentLinkModal
@@ -110,9 +110,9 @@ export default async function PaymentLinksPage() {
       {/* Stats */}
       <div className="mb-8 grid gap-4 sm:grid-cols-3">
         {[
-          { label: "Total generados", value: (orders ?? []).length, cls: "text-foreground" },
-          { label: "Pagados",         value: totalPaid,             cls: "text-emerald-600" },
-          { label: "Pendientes",      value: totalPending,          cls: "text-amber-600" },
+          { label: "Total generated", value: (orders ?? []).length, cls: "text-foreground" },
+          { label: "Paid",            value: totalPaid,             cls: "text-emerald-600" },
+          { label: "Pending",         value: totalPending,          cls: "text-amber-600" },
         ].map(s => (
           <div key={s.label} className="rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-5">
             <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{s.label}</p>
@@ -124,19 +124,19 @@ export default async function PaymentLinksPage() {
       {/* Table */}
       {!orders || orders.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[var(--gbp-border)] px-8 py-16 text-center">
-          <p className="text-sm font-semibold text-muted-foreground">Todavía no hay links generados.</p>
-          <p className="mt-1 text-xs text-muted-foreground">Creá el primero con el botón de arriba.</p>
+          <p className="text-sm font-semibold text-muted-foreground">No links have been generated yet.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Create the first one with the button above.</p>
         </div>
       ) : (
         <PaymentLinksTable orders={orders} orgMap={orgMap} />
       )}
 
-      {/* Links de Suscripción */}
+      {/* Subscription Links */}
       <div className="mb-8 mt-14 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--gbp-border)] pt-10">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Links de Suscripción</h2>
+          <h2 className="text-2xl font-bold text-foreground">Subscription Links</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Alta de plan recurrente (plataforma o integración QuickBooks-R365) sin que el cliente tenga que loguearse.
+            Start a recurring platform or QuickBooks-R365 integration plan without requiring the customer to log in.
           </p>
         </div>
         <SubscriptionLinkModal
@@ -148,18 +148,18 @@ export default async function PaymentLinksPage() {
 
       {!subscriptionOrders || subscriptionOrders.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[var(--gbp-border)] px-8 py-16 text-center">
-          <p className="text-sm font-semibold text-muted-foreground">Todavía no hay links de suscripción generados.</p>
-          <p className="mt-1 text-xs text-muted-foreground">Creá el primero con el botón de arriba.</p>
+          <p className="text-sm font-semibold text-muted-foreground">No subscription links have been generated yet.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Create the first one with the button above.</p>
         </div>
       ) : (
         <SubscriptionLinksTable orders={subscriptionOrders} orgMap={orgMap} planMap={planMap} />
       )}
 
-      {/* Precio por factura enviada */}
+      {/* Price per sent invoice */}
       <div className="mb-6 mt-14 border-t border-[var(--gbp-border)] pt-10">
-        <h2 className="text-2xl font-bold text-foreground">Precio por factura enviada</h2>
+        <h2 className="text-2xl font-bold text-foreground">Price per Sent Invoice</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Cobro de uso opcional por organización con integración QuickBooks-R365 activa. Dejalo vacío para no cobrar.
+          Optional usage charge for each organization with an active QuickBooks-R365 integration. Leave it empty to disable billing.
         </p>
       </div>
       <InvoicePriceList organizations={invoicePriceOrgs} />
