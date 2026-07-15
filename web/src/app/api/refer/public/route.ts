@@ -10,6 +10,9 @@ const VENDOR_EMAIL_MAX_REQUESTS = 1;
 
 type PublicReferralBody = {
   referrerName: string;
+  referrerEmail: string;
+  vendorCompany: string;
+  vendorContactName: string;
   vendorEmail: string;
 };
 
@@ -21,17 +24,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { referrerName, vendorEmail } = body;
+  const { referrerName, referrerEmail, vendorCompany, vendorContactName, vendorEmail } = body;
 
-  if (!referrerName?.trim() || !vendorEmail?.trim()) {
+  if (!referrerName?.trim() || !referrerEmail?.trim() || !vendorCompany?.trim() || !vendorContactName?.trim() || !vendorEmail?.trim()) {
     return NextResponse.json({ error: "All fields are required" }, { status: 400 });
   }
 
-  if (referrerName.trim().length > 200) {
+  if (referrerName.trim().length > 200 || vendorCompany.trim().length > 200 || vendorContactName.trim().length > 200) {
     return NextResponse.json({ error: "Input too long" }, { status: 400 });
   }
 
-  if (!isValidEmail(vendorEmail.trim())) {
+  if (!isValidEmail(referrerEmail.trim()) || !isValidEmail(vendorEmail.trim())) {
     return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
   }
 
@@ -66,6 +69,9 @@ export async function POST(request: Request) {
   try {
     await sendPublicVendorReferral({
       referrerName: referrerName.trim(),
+      referrerEmail: referrerEmail.trim().toLowerCase(),
+      vendorCompany: vendorCompany.trim(),
+      vendorContactName: vendorContactName.trim(),
       vendorEmail: vendorEmailNormalized,
       visitorIp: ip,
       userAgent: request.headers.get("user-agent"),

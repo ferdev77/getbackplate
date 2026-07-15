@@ -16,6 +16,9 @@ export function PublicReferralFormClient() {
     const fd = new FormData(e.currentTarget);
     const body = {
       referrerName: fd.get("referrer_name") as string,
+      referrerEmail: fd.get("referrer_email") as string,
+      vendorCompany: fd.get("vendor_company") as string,
+      vendorContactName: fd.get("vendor_contact_name") as string,
       vendorEmail: fd.get("vendor_email") as string,
     };
 
@@ -79,11 +82,9 @@ export function PublicReferralFormClient() {
         padding: 32,
       }}>
         <div style={{ marginBottom: 20 }}>
-          <label
-            htmlFor="referrer_name"
-            style={{ display: "block", fontSize: 14, fontWeight: 600, color: "#14151A", marginBottom: 6, letterSpacing: "-0.005em" }}
-          >
-            Your name or company<span style={{ color: "#D4531A", marginLeft: 2 }}>*</span>
+          <p style={{ margin: "0 0 14px", fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: "#8A8C95" }}>YOU</p>
+          <label htmlFor="referrer_name" style={{ display: "block", fontSize: 14, fontWeight: 600, color: "#14151A", marginBottom: 6, letterSpacing: "-0.005em" }}>
+            Your name<span style={{ color: "#D4531A", marginLeft: 2 }}>*</span>
           </label>
           <input
             type="text"
@@ -91,7 +92,7 @@ export function PublicReferralFormClient() {
             name="referrer_name"
             required
             maxLength={200}
-            placeholder="e.g. Taco Palenque"
+            placeholder="e.g. Maria Lopez"
             disabled={state === "submitting"}
             style={{
               width: "100%",
@@ -109,7 +110,31 @@ export function PublicReferralFormClient() {
           />
         </div>
 
-        <div>
+        <div style={{ marginTop: 16 }}>
+          <label htmlFor="referrer_email" style={{ display: "block", fontSize: 14, fontWeight: 600, color: "#14151A", marginBottom: 2, letterSpacing: "-0.005em" }}>
+            Your email<span style={{ color: "#D4531A", marginLeft: 2 }}>*</span>
+          </label>
+          <p style={{ margin: "0 0 6px", fontSize: 11, color: "#8A8C95" }}>Where we send updates on this referral.</p>
+          <input type="email" id="referrer_email" name="referrer_email" required autoComplete="email" placeholder="you@company.com" disabled={state === "submitting"} style={{ width: "100%", fontFamily: "inherit", fontSize: 15, color: "#14151A", background: "#F7F8FC", border: "1px solid #E6E8EE", borderRadius: 6, padding: "12px 14px", boxSizing: "border-box" as const, outline: "none", opacity: state === "submitting" ? 0.6 : 1 }} />
+        </div>
+
+        <div style={{ marginTop: 28 }}>
+          <p style={{ margin: "0 0 14px", fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: "#8A8C95" }}>THE VENDOR YOU&apos;RE REFERRING</p>
+          <label htmlFor="vendor_company" style={{ display: "block", fontSize: 14, fontWeight: 600, color: "#14151A", marginBottom: 6, letterSpacing: "-0.005em" }}>
+            Vendor name<span style={{ color: "#D4531A", marginLeft: 2 }}>*</span>
+          </label>
+          <input type="text" id="vendor_company" name="vendor_company" required maxLength={200} placeholder="e.g. Taco Palenque" disabled={state === "submitting"} style={{ width: "100%", fontFamily: "inherit", fontSize: 15, color: "#14151A", background: "#F7F8FC", border: "1px solid #E6E8EE", borderRadius: 6, padding: "12px 14px", boxSizing: "border-box" as const, outline: "none", opacity: state === "submitting" ? 0.6 : 1 }} />
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <label htmlFor="vendor_contact_name" style={{ display: "block", fontSize: 14, fontWeight: 600, color: "#14151A", marginBottom: 2, letterSpacing: "-0.005em" }}>
+            Contact name at the vendor<span style={{ color: "#D4531A", marginLeft: 2 }}>*</span>
+          </label>
+          <p style={{ margin: "0 0 6px", fontSize: 11, color: "#8A8C95" }}>The name we address the intro to. A person, not &quot;Hello there.&quot;</p>
+          <input type="text" id="vendor_contact_name" name="vendor_contact_name" required maxLength={200} placeholder="e.g. their AP manager" disabled={state === "submitting"} style={{ width: "100%", fontFamily: "inherit", fontSize: 15, color: "#14151A", background: "#F7F8FC", border: "1px solid #E6E8EE", borderRadius: 6, padding: "12px 14px", boxSizing: "border-box" as const, outline: "none", opacity: state === "submitting" ? 0.6 : 1 }} />
+        </div>
+
+        <div style={{ marginTop: 16 }}>
           <label
             htmlFor="vendor_email"
             style={{ display: "block", fontSize: 14, fontWeight: 600, color: "#14151A", marginBottom: 6, letterSpacing: "-0.005em" }}

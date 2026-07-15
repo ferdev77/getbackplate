@@ -15,13 +15,13 @@ function getAppBaseUrl(): string {
   return (process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://app.getbackplate.com").replace(/\/$/, "");
 }
 
-function buildOutreachEmailHtml(referrerName: string, vendorName: string): string {
+function buildOutreachEmailHtml(referrerName: string, recipientName = "there"): string {
   const appBase = getAppBaseUrl();
   const integrationUrl = `${appBase}/integrations/qbo-r365`;
 
   const LINK_PLACEHOLDER = "%%INTEGRATION_LINK%%";
 
-  const body = `Hi there,
+  const body = `Hi ${recipientName},
 
 I'm Angelo Ramos, founder of GetBackplate.
 
@@ -143,6 +143,9 @@ function buildOutreachSubject(referrerName: string): string {
 
 export type PublicVendorReferralInput = {
   referrerName: string;
+  referrerEmail: string;
+  vendorCompany: string;
+  vendorContactName: string;
   vendorEmail: string;
   visitorIp?: string | null;
   userAgent?: string | null;
@@ -152,9 +155,9 @@ export async function sendPublicVendorReferral(input: PublicVendorReferralInput)
   const admin = createSupabaseAdminClient();
 
   const subject = buildOutreachSubject(input.referrerName);
-  const html = buildOutreachEmailHtml(input.referrerName, "");
+  const html = buildOutreachEmailHtml(input.referrerName, input.vendorContactName);
   const appBase = (process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://app.getbackplate.com").replace(/\/$/, "");
-  const text = `Hi there,
+  const text = `Hi ${input.vendorContactName},
 
 I'm Angelo Ramos, founder of GetBackplate.
 
@@ -190,6 +193,9 @@ ${appBase}/integrations/qbo-r365`;
 
   await admin.from("qbo_public_vendor_referrals").insert({
     referrer_name: input.referrerName,
+    referrer_email: input.referrerEmail,
+    vendor_company: input.vendorCompany,
+    vendor_contact_name: input.vendorContactName,
     vendor_email: input.vendorEmail,
     visitor_ip: input.visitorIp ?? null,
     user_agent: input.userAgent ?? null,
@@ -201,7 +207,7 @@ export async function sendVendorReferral(input: VendorReferralInput): Promise<vo
   const admin = createSupabaseAdminClient();
 
   const subject = buildOutreachSubject(input.referrerBranchName);
-  const html = buildOutreachEmailHtml(input.referrerBranchName, input.vendorCompany);
+  const html = buildOutreachEmailHtml(input.referrerBranchName);
   const appBase = (process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://app.getbackplate.com").replace(/\/$/, "");
   const text = `Hi there,
 
