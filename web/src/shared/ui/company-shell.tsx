@@ -72,12 +72,10 @@ import {
   DOCUMENTS_CATALOG_TTL_MS,
   EMPLOYEES_CATALOG_TTL_MS,
   SECTIONS,
-  THEMES,
   THEME_DARK_PRO,
   THEME_DEFAULT,
   THEME_NAMES,
   THEME_PALETTES,
-  THEME_SWATCH_STYLE,
   USERS_CATALOG_TTL_MS,
   type AnnouncementModalCatalog,
   type ChecklistModalCatalog,
@@ -88,15 +86,12 @@ import {
 } from "@/shared/ui/company-shell.config";
 import {
   type BillingCycle,
-  type CatalogCacheName,
   COMPANY_SHELL_CATALOG_CACHE_VERSION,
   MODULE_LABELS,
-  THEME_PICKER_ORDER,
   getCatalogCacheKey,
   isActive,
   normalizeTheme,
   normalizePlanPeriod,
-  getPlanAmountByCycle,
   formatPlanPrice,
 } from "@/shared/ui/company-shell-utils";
 
@@ -2053,61 +2048,13 @@ export function CompanyShell({
 
       {settingsOpen ? (
         <div className="fixed inset-0 z-[1200]" onClick={() => setSettingsOpen(false)}>
-          <div className={`absolute bottom-[185px] left-4 w-[300px] overflow-hidden rounded-[14px] border bg-[var(--gbp-surface)] text-[var(--gbp-text)] shadow-[0_12px_40px_rgba(0,0,0,.45)] ${availableAddons.length > 0 ? "h-[490px]" : "h-[420px]"} ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`} onClick={(event) => event.stopPropagation()}>
+          <div className={`absolute bottom-[185px] left-4 w-[300px] overflow-hidden rounded-[14px] border bg-[var(--gbp-surface)] text-[var(--gbp-text)] shadow-[0_12px_40px_rgba(0,0,0,.45)] ${settingsView === "main" ? (availableAddons.length > 0 ? "h-[205px]" : "h-[92px]") : "h-[420px]"} ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`} onClick={(event) => event.stopPropagation()}>
             {settingsView === "main" ? (
               <>
                 <div className={`flex items-center justify-between border-b px-3.5 py-2.5 ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`}><span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--gbp-muted)]">Settings</span><button type="button" onClick={() => setSettingsOpen(false)} className={`grid h-5.5 w-5.5 place-items-center rounded-full text-sm ${isDarkTheme ? "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"}`}><X className="h-3.5 w-3.5" /></button></div>
-                <div className="overflow-y-auto" style={{ maxHeight: availableAddons.length > 0 ? "444px" : "374px" }}>
+                  <div className="overflow-y-auto">
                   <button type="button" onClick={() => setSettingsView("profile")} className={`flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm ${isDarkTheme ? "text-white/70 hover:bg-white/10 hover:text-white" : "text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"}`}><User className="h-4 w-4 opacity-70" /><span className="flex-1">Profile</span><span className="opacity-40">›</span></button>
-                  <div className={`my-1 h-px ${isDarkTheme ? "bg-white/10" : "bg-[var(--gbp-border)]"}`} />
-                  <p className="px-3.5 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.09em] text-[var(--gbp-text2)]">{t("Tema")}</p>
-                  <div className="grid grid-cols-4 gap-1.5 px-3.5">
-                    {THEME_PICKER_ORDER.map((item) => (
-                      <button
-                        key={item}
-                        type="button"
-                        onClick={async () => {
-                          const previousTheme = theme;
-                          setTheme(item);
-                          const ok = await saveSettings("theme", { theme: item });
-                          if (!ok) {
-                            setTheme(previousTheme);
-                          }
-                        }}
-                        className="group flex flex-col items-center gap-1"
-                      >
-                        <span className={`relative h-10 w-10 rounded-[10px] border transition group-hover:scale-105 ${theme === item ? "border-[var(--gbp-accent)]" : "border-[var(--gbp-border2)]"}`} style={{ background: THEME_SWATCH_STYLE[item] }}>
-                          <span className={`absolute inset-0 grid place-items-center rounded-[10px] ${theme === item ? "bg-black/20 opacity-100" : "opacity-0"}`}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          </span>
-                        </span>
-                        <span className={`text-[10px] ${theme === item ? "font-semibold text-[var(--gbp-text)]" : "text-[var(--gbp-text2)]"}`}>{THEME_NAMES[item]}</span>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="px-3.5 pb-2 pt-4 flex flex-col gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSettingsOpen(false);
-                        setPlanBillingCycle(normalizePlanPeriod(billingPeriod));
-                        setPlanOpen(true);
-                      }}
-                      disabled={false}
-                      className={`w-full rounded-lg border-[1.5px] px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-60 ${isDarkTheme ? "bg-white/5" : "bg-white/75"}`}
-                      style={{ borderColor: palette.accent }}
-                    >
-                      <div className="mb-1 flex items-center gap-2">
-                        <div className="h-1.5 w-1.5 rounded-full" style={{ background: palette.accent }} />
-                        <p className="text-[10px] font-semibold tracking-[0.04em] text-[var(--gbp-text)]">GetBackplate App</p>
-                      </div>
-                      <p className="text-xs font-semibold" style={{ color: palette.accent }}>
-                        {currentPlanName && currentPlanName !== "Sin plan" ? currentPlanName : "Get started"}
-                      </p>
-                    </button>
-
+                  <div className="px-3.5 pb-2 pt-1 flex flex-col gap-2">
                     {availableAddons.length > 0 && (() => {
                       const activeOrgAddons = organizationAddons.filter((a) => a.status === "active");
                       const hasActive = activeOrgAddons.length > 0;
