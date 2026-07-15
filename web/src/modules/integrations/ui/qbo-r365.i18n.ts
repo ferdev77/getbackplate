@@ -13,6 +13,8 @@ export const QUICKBOOKS_R365_EN: Record<string, string> = {
   Expirado: "Expired",
   "Desconectando...": "Disconnecting...",
   "Desconectar QuickBooks": "Disconnect QuickBooks",
+  "Omitir por ahora": "Skip for now",
+  "Guardar y continuar": "Save and continue",
   "¿Desconectar QuickBooks Online?": "Disconnect QuickBooks Online?",
   "La entrega de facturas a Restaurant365 para {companyName} se detendrá. Podés reconectar en cualquier momento, pero tendrás que autorizar nuevamente.":
     "Invoice delivery to Restaurant365 for {companyName} will stop. You can reconnect anytime, but you'll need to authorize again.",

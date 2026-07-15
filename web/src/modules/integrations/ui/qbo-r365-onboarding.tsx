@@ -71,7 +71,7 @@ export function QboR365Onboarding({ locale, qboConnected: initialQboConnected, v
   const t = useMemo(() => createTranslator(locale), [locale]);
   const STEPS = useSteps(t);
   const [step, setStep] = useState<Step>(initialQboConnected ? "vendor" : "auth");
-  const [qboConnected, setQboConnected] = useState(initialQboConnected);
+  const [qboConnected] = useState(initialQboConnected);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [skipping, setSkipping] = useState(false);
@@ -96,25 +96,37 @@ export function QboR365Onboarding({ locale, qboConnected: initialQboConnected, v
     }
   }
 
-  async function completeOnboarding(skipVendor = false) {
-    const fn = skipVendor ? setSkipping : setSaving;
-    fn(true);
+  async function updateOnboarding(input: { vendorProfile?: VendorProfile; complete?: boolean }, busySetter: (value: boolean) => void) {
+    busySetter(true);
     try {
       const res = await fetch("/api/company/integrations/qbo-r365/complete-onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          vendorProfile: skipVendor ? null : { company, contactName, email, phone, address, website },
-        }),
+        body: JSON.stringify(input),
       });
       if (!res.ok) throw new Error();
-      toast.success(t("¡Onboarding completado! Ya podés gestionar tus conexiones."));
-      onComplete();
+      return true;
     } catch {
       toast.error(t("No se pudo guardar la configuración"));
+      return false;
     } finally {
-      fn(false);
+      busySetter(false);
     }
+  }
+
+  async function saveVendorAndContinue() {
+    const saved = await updateOnboarding(
+      { vendorProfile: { company, contactName, email, phone, address, website } },
+      setSaving,
+    );
+    if (saved) setStep("slots");
+  }
+
+  async function finishOnboarding() {
+    const completed = await updateOnboarding({ complete: true }, setSkipping);
+    if (!completed) return;
+    toast.success(t("¡Onboarding completado! Ya podés gestionar tus conexiones."));
+    onComplete();
   }
 
   const inputCls = "w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-[var(--gbp-accent)] focus:outline-none focus:ring-2 focus:ring-[color:color-mix(in_oklab,var(--gbp-accent)_15%,transparent)] transition";
@@ -135,7 +147,7 @@ export function QboR365Onboarding({ locale, qboConnected: initialQboConnected, v
             </div>
             <button
               type="button"
-              onClick={() => void completeOnboarding(true)}
+              onClick={() => void finishOnboarding()}
               className="rounded-xl p-2 text-muted-foreground transition hover:bg-muted"
               title={t("Configurar más tarde")}
             >
@@ -267,7 +279,7 @@ export function QboR365Onboarding({ locale, qboConnected: initialQboConnected, v
         <div className="flex items-center justify-between border-t border-[var(--gbp-border)] px-8 py-5">
           <button
             type="button"
-            onClick={() => void completeOnboarding(true)}
+            onClick={() => void finishOnboarding()}
             disabled={saving || skipping}
             className="text-sm text-muted-foreground transition hover:text-foreground disabled:opacity-50"
           >
@@ -296,34 +308,57 @@ export function QboR365Onboarding({ locale, qboConnected: initialQboConnected, v
             )}
 
             {step === "auth" && (
-              <button
-                type="button"
-                onClick={() => setStep("vendor")}
-                disabled={!qboConnected}
-                className="inline-flex items-center gap-2 rounded-xl bg-[var(--gbp-accent)] px-6 py-2.5 text-sm font-bold text-white shadow-[var(--gbp-shadow-accent)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {t("Continuar")} <ChevronRight className="h-4 w-4" />
-              </button>
+              <>
+                {!qboConnected && (
+                  <button
+                    type="button"
+                    onClick={() => setStep("vendor")}
+                    className="rounded-xl border border-[var(--gbp-border)] px-5 py-2.5 text-sm font-bold text-muted-foreground transition hover:bg-muted"
+                  >
+                    {t("Omitir por ahora")}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setStep("vendor")}
+                  disabled={!qboConnected}
+                  className="inline-flex items-center gap-2 rounded-xl bg-[var(--gbp-accent)] px-6 py-2.5 text-sm font-bold text-white shadow-[var(--gbp-shadow-accent)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {t("Continuar")} <ChevronRight className="h-4 w-4" />
+                </button>
+              </>
             )}
 
             {step === "vendor" && (
-              <button
-                type="button"
-                onClick={() => setStep("slots")}
-                className="inline-flex items-center gap-2 rounded-xl bg-[var(--gbp-accent)] px-6 py-2.5 text-sm font-bold text-white shadow-[var(--gbp-shadow-accent)] transition hover:opacity-90"
-              >
-                {t("Continuar")} <ChevronRight className="h-4 w-4" />
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setStep("slots")}
+                  disabled={saving}
+                  className="rounded-xl border border-[var(--gbp-border)] px-5 py-2.5 text-sm font-bold text-muted-foreground transition hover:bg-muted disabled:opacity-50"
+                >
+                  {t("Omitir por ahora")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void saveVendorAndContinue()}
+                  disabled={saving}
+                  className="inline-flex items-center gap-2 rounded-xl bg-[var(--gbp-accent)] px-6 py-2.5 text-sm font-bold text-white shadow-[var(--gbp-shadow-accent)] transition hover:opacity-90 disabled:opacity-60"
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {t("Guardar y continuar")} <ChevronRight className="h-4 w-4" />
+                </button>
+              </>
             )}
 
             {step === "slots" && (
               <button
                 type="button"
-                onClick={() => void completeOnboarding(false)}
-                disabled={saving}
+                onClick={() => void finishOnboarding()}
+                disabled={skipping}
                 className="inline-flex items-center gap-2 rounded-xl bg-[var(--gbp-accent)] px-6 py-2.5 text-sm font-bold text-white shadow-[var(--gbp-shadow-accent)] transition hover:opacity-90 disabled:opacity-60"
               >
-                {saving ? <><Loader2 className="h-4 w-4 animate-spin" /> {t("Guardando...")}</> : <>{t("Finalizar")} <ArrowRight className="h-4 w-4" /></>}
+                {skipping ? <><Loader2 className="h-4 w-4 animate-spin" /> {t("Guardando...")}</> : <>{t("Finalizar")} <ArrowRight className="h-4 w-4" /></>}
               </button>
             )}
           </div>

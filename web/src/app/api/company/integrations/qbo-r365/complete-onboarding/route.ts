@@ -18,16 +18,17 @@ export async function POST(req: NextRequest) {
   }
 
   const { organizationId } = access.tenant;
-  const body = (await req.json()) as { vendorProfile?: VendorProfile };
+  const body = (await req.json()) as { vendorProfile?: VendorProfile; complete?: boolean };
 
   const supabase = createSupabaseAdminClient();
 
+  const updates: { integration_vendor_profile?: VendorProfile; integration_onboarding_completed_at?: string } = {};
+  if (body.vendorProfile !== undefined) updates.integration_vendor_profile = body.vendorProfile;
+  if (body.complete) updates.integration_onboarding_completed_at = new Date().toISOString();
+
   const { error } = await supabase
     .from("organizations")
-    .update({
-      integration_vendor_profile: body.vendorProfile ?? null,
-      integration_onboarding_completed_at: new Date().toISOString(),
-    })
+    .update(updates)
     .eq("id", organizationId);
 
   if (error) {
