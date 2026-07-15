@@ -19,13 +19,13 @@ const bodySchema = z.object({
 export async function POST(request: Request) {
   const access = await assertCompanyAdminModuleApi("settings");
   if (!access.ok) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+    return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }
 
   const body = await request.json().catch(() => ({}));
   const parsed = bodySchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Payload invalido", details: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: "The request is invalid." }, { status: 400 });
   }
 
   try {
@@ -34,9 +34,9 @@ export async function POST(request: Request) {
       unifiedInvoiceId: parsed.data.unifiedInvoiceId,
     });
     return NextResponse.json(result, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No se pudo mapear la factura" },
+      { error: "Unable to map the invoice. Please try again." },
       { status: 400 },
     );
   }

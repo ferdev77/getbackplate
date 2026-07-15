@@ -56,7 +56,7 @@ export function DocumentShareAccessModal({
         .then(async (response) => {
           const data = await response.json().catch(() => ({}));
           if (!response.ok) {
-            throw new Error(typeof data.error === "string" ? data.error : "No se pudieron cargar los permisos");
+            throw new Error(typeof data.error === "string" ? data.error : "Could not load permissions");
           }
 
           setDynamicUsers(Array.isArray(data.employees) ? data.employees : []);
@@ -87,13 +87,13 @@ export function DocumentShareAccessModal({
         >
           <div className="max-h-[68vh] overflow-y-auto px-6 py-4">
             <div className={MODAL_SOFT_BOX}>
-              <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[var(--gbp-text2)] uppercase">Elemento</p>
+              <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[var(--gbp-text2)] uppercase">Item</p>
               <p className="text-sm font-semibold text-[var(--gbp-text)]">{itemName}</p>
             </div>
 
             {loading ? (
               <div className="flex items-center justify-center p-12">
-                <span className="animate-pulse text-xs font-semibold text-[var(--gbp-text2)]">Cargando permisos...</span>
+                <span className="animate-pulse text-xs font-semibold text-[var(--gbp-text2)]">Loading permissions...</span>
               </div>
             ) : (
               <ScopeSelector
@@ -113,7 +113,7 @@ export function DocumentShareAccessModal({
               />
             )}
           </div>
-          <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button><button type="submit" disabled={busy} className={MODAL_PRIMARY}>{busy ? "Guardando..." : "Guardar permisos"}</button></div>
+          <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancel</button><button type="submit" disabled={busy} className={MODAL_PRIMARY}>{busy ? "Saving..." : "Save permissions"}</button></div>
         </form>
       </div>
     </div>

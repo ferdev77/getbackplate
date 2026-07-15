@@ -44,7 +44,7 @@ export default async function Home() {
 
     redirect(
       "/auth/login?error=" +
-        encodeURIComponent("Tu usuario no tiene acceso asignado. Contacta al administrador."),
+        encodeURIComponent("Your account does not have assigned access. Contact an administrator."),
     );
   }
 

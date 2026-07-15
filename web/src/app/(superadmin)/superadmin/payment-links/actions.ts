@@ -13,7 +13,7 @@ export async function cancelManualPaymentOrderAction(formData: FormData) {
   await requireSuperadmin();
 
   const orderId = String(formData.get("order_id") ?? "").trim();
-  if (!orderId) return { ok: false, error: "ID de orden inválido" };
+  if (!orderId) return { ok: false, error: "Invalid order ID" };
 
   const supabase = createSupabaseAdminClient();
 
@@ -35,7 +35,7 @@ export async function cancelManualPaymentOrderAction(formData: FormData) {
       const message = error instanceof Error ? error.message : String(error);
       const canIgnore = message.includes("already expired") || message.includes("already completed");
       if (!canIgnore) {
-        return { ok: false, error: "No se pudo expirar la sesión de Stripe" };
+        return { ok: false, error: "Could not expire the Stripe session" };
       }
     }
   }
@@ -46,7 +46,7 @@ export async function cancelManualPaymentOrderAction(formData: FormData) {
     .eq("id", orderId)
     .eq("status", "pending");
 
-  if (error) return { ok: false, error: "No se pudo cancelar la orden" };
+  if (error) return { ok: false, error: "Could not cancel the order" };
 
   revalidatePath("/superadmin/payment-links");
   return { ok: true };
@@ -56,7 +56,7 @@ export async function deleteManualPaymentOrderAction(formData: FormData) {
   await requireSuperadmin();
 
   const orderId = String(formData.get("order_id") ?? "").trim();
-  if (!orderId) return { ok: false, error: "ID de orden inválido" };
+  if (!orderId) return { ok: false, error: "Invalid order ID" };
 
   const supabase = createSupabaseAdminClient();
 
@@ -66,7 +66,7 @@ export async function deleteManualPaymentOrderAction(formData: FormData) {
     .eq("id", orderId)
     .neq("status", "paid"); // never delete paid orders
 
-  if (error) return { ok: false, error: "No se pudo eliminar la orden" };
+  if (error) return { ok: false, error: "Could not delete the order" };
 
   revalidatePath("/superadmin/payment-links");
   return { ok: true };
@@ -76,7 +76,7 @@ export async function cancelManualSubscriptionOrderAction(formData: FormData) {
   await requireSuperadmin();
 
   const orderId = String(formData.get("order_id") ?? "").trim();
-  if (!orderId) return { ok: false, error: "ID de orden inválido" };
+  if (!orderId) return { ok: false, error: "Invalid order ID" };
 
   const supabase = createSupabaseAdminClient();
 
@@ -98,7 +98,7 @@ export async function cancelManualSubscriptionOrderAction(formData: FormData) {
       const message = error instanceof Error ? error.message : String(error);
       const canIgnore = message.includes("already expired") || message.includes("already completed");
       if (!canIgnore) {
-        return { ok: false, error: "No se pudo expirar la sesión de Stripe" };
+        return { ok: false, error: "Could not expire the Stripe session" };
       }
     }
   }
@@ -109,7 +109,7 @@ export async function cancelManualSubscriptionOrderAction(formData: FormData) {
     .eq("id", orderId)
     .eq("status", "pending");
 
-  if (error) return { ok: false, error: "No se pudo cancelar la orden" };
+  if (error) return { ok: false, error: "Could not cancel the order" };
 
   revalidatePath("/superadmin/payment-links");
   return { ok: true };
@@ -119,7 +119,7 @@ export async function deleteManualSubscriptionOrderAction(formData: FormData) {
   await requireSuperadmin();
 
   const orderId = String(formData.get("order_id") ?? "").trim();
-  if (!orderId) return { ok: false, error: "ID de orden inválido" };
+  if (!orderId) return { ok: false, error: "Invalid order ID" };
 
   const supabase = createSupabaseAdminClient();
 
@@ -129,7 +129,7 @@ export async function deleteManualSubscriptionOrderAction(formData: FormData) {
     .eq("id", orderId)
     .not("status", "in", "(completed,upgraded)"); // never delete completed or upgraded orders
 
-  if (error) return { ok: false, error: "No se pudo eliminar la orden" };
+  if (error) return { ok: false, error: "Could not delete the order" };
 
   revalidatePath("/superadmin/payment-links");
   return { ok: true };
@@ -162,7 +162,7 @@ export async function updateInvoicePriceAction(formData: FormData) {
     .eq("organization_id", organizationId)
     .eq("module_id", moduleRow.id);
 
-  if (error) return { ok: false, error: "No se pudo actualizar el precio" };
+  if (error) return { ok: false, error: "Could not update the price" };
 
   revalidatePath("/superadmin/payment-links");
   return { ok: true };
@@ -195,7 +195,7 @@ export async function updateInvoiceAllowanceOverrideAction(formData: FormData) {
     .eq("organization_id", organizationId)
     .eq("module_id", moduleRow.id);
 
-  if (error) return { ok: false, error: "No se pudo actualizar las facturas incluidas" };
+  if (error) return { ok: false, error: "Could not update the included invoices" };
 
   revalidatePath("/superadmin/payment-links");
   return { ok: true };
@@ -225,7 +225,7 @@ export async function sendPaymentLinkEmailAction(formData: FormData) {
 
   const orderId = String(formData.get("order_id") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
-  if (!orderId) return { ok: false, error: "ID de orden inválido" };
+  if (!orderId) return { ok: false, error: "Invalid order ID" };
   if (!EMAIL_RE.test(email)) return { ok: false, error: "Invalid email" };
 
   const supabase = createSupabaseAdminClient();
@@ -254,7 +254,7 @@ export async function sendPaymentLinkEmailAction(formData: FormData) {
       source: "payment_link",
       sourceId: orderId,
       actionUrl: order.checkout_url,
-      title: "Solicitud de pago enviada",
+      title: "Payment request sent",
     },
   });
 
@@ -274,7 +274,7 @@ export async function sendSubscriptionLinkEmailAction(formData: FormData) {
 
   const orderId = String(formData.get("order_id") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
-  if (!orderId) return { ok: false, error: "ID de orden inválido" };
+  if (!orderId) return { ok: false, error: "Invalid order ID" };
   if (!EMAIL_RE.test(email)) return { ok: false, error: "Invalid email" };
 
   const supabase = createSupabaseAdminClient();

@@ -41,7 +41,7 @@ export async function createBranch(params: {
   const { supabase, organizationId, name, city, state, country, address, phone } = params;
 
   if (!name) {
-    return { ok: false, message: "Nombre de locación obligatorio" };
+    return { ok: false, message: "Location name is required" };
   }
 
   const code = toCode(name);
@@ -51,7 +51,7 @@ export async function createBranch(params: {
   } catch (error) {
     return {
       ok: false,
-      message: getPlanLimitErrorMessage(error, "Límite de locaciones alcanzado. Actualiza tu plan para continuar."),
+      message: getPlanLimitErrorMessage(error, "Location limit reached. Upgrade your plan to continue."),
     };
   }
 
@@ -63,7 +63,7 @@ export async function createBranch(params: {
     .maybeSingle();
 
   if (existing) {
-    return { ok: false, message: "Ya existe una locación con ese nombre" };
+    return { ok: false, message: "A location with that name already exists" };
   }
 
   const { data: maxOrderData } = await supabase
@@ -93,7 +93,7 @@ export async function createBranch(params: {
     .single();
 
   if (error) {
-    return { ok: false, message: `No se pudo crear la locación: ${error.message}` };
+    return { ok: false, message: `Could not create location: ${error.message}` };
   }
 
   return { ok: true, id: created?.id };
@@ -113,7 +113,7 @@ export async function updateBranch(params: {
   const { supabase, organizationId, branchId, name, city, state, country, address, phone } = params;
 
   if (!branchId || !name) {
-    return { ok: false, message: "Locación inválida" };
+    return { ok: false, message: "Invalid location" };
   }
 
   const code = toCode(name);
@@ -127,7 +127,7 @@ export async function updateBranch(params: {
     .maybeSingle();
 
   if (duplicate) {
-    return { ok: false, message: "Ya existe otra locación con ese nombre" };
+    return { ok: false, message: "Another location with that name already exists" };
   }
 
   const { error } = await supabase
@@ -137,7 +137,7 @@ export async function updateBranch(params: {
     .eq("id", branchId);
 
   if (error) {
-    return { ok: false, message: `No se pudo actualizar la locación: ${error.message}` };
+    return { ok: false, message: `Could not update location: ${error.message}` };
   }
 
   return { ok: true, id: branchId };
@@ -152,7 +152,7 @@ export async function toggleBranchStatus(params: {
   const { supabase, organizationId, branchId, nextStatus } = params;
 
   if (!branchId) {
-    return { ok: false, message: "Locación inválida" };
+    return { ok: false, message: "Invalid location" };
   }
 
   const { error } = await supabase
@@ -162,7 +162,7 @@ export async function toggleBranchStatus(params: {
     .eq("id", branchId);
 
   if (error) {
-    return { ok: false, message: `No se pudo actualizar la locación: ${error.message}` };
+    return { ok: false, message: `Could not update location: ${error.message}` };
   }
 
   return { ok: true, id: branchId };
@@ -176,7 +176,7 @@ export async function deleteBranch(params: {
   const { supabase, organizationId, branchId } = params;
 
   if (!branchId) {
-    return { ok: false, message: "Locación inválida" };
+    return { ok: false, message: "Invalid location" };
   }
 
   // Check if in use by memberships
@@ -187,11 +187,11 @@ export async function deleteBranch(params: {
     .eq("branch_id", branchId);
 
   if (countError) {
-    return { ok: false, message: `No se pudo verificar el uso de la locación: ${countError.message}` };
+    return { ok: false, message: `Could not verify location usage: ${countError.message}` };
   }
 
   if (count && count > 0) {
-    return { ok: false, message: "No se puede eliminar la locación porque tiene personal asignado. Desactívala en su lugar." };
+    return { ok: false, message: "This location cannot be deleted because employees are assigned to it. Deactivate it instead." };
   }
 
   const { error } = await supabase
@@ -201,7 +201,7 @@ export async function deleteBranch(params: {
     .eq("id", branchId);
 
   if (error) {
-    return { ok: false, message: `No se pudo eliminar la locación: ${error.message}` };
+    return { ok: false, message: `Could not delete location: ${error.message}` };
   }
 
   return { ok: true };
@@ -221,7 +221,7 @@ export async function createDepartment(params: {
   const { supabase, organizationId, createdBy, name, description } = params;
 
   if (!name) {
-    return { ok: false, message: "Nombre de departamento obligatorio" };
+    return { ok: false, message: "Department name is required" };
   }
 
   const code = toCode(name);
@@ -250,7 +250,7 @@ export async function createDepartment(params: {
     .single();
 
   if (error) {
-    return { ok: false, message: `No se pudo crear departamento: ${error.message}` };
+    return { ok: false, message: `Could not create department: ${error.message}` };
   }
 
   return { ok: true, id: created?.id };
@@ -266,7 +266,7 @@ export async function updateDepartment(params: {
   const { supabase, organizationId, departmentId, name, description } = params;
 
   if (!departmentId || !name) {
-    return { ok: false, message: "Departamento inválido" };
+    return { ok: false, message: "Invalid department" };
   }
 
   const code = toCode(name);
@@ -280,7 +280,7 @@ export async function updateDepartment(params: {
     .maybeSingle();
 
   if (duplicate) {
-    return { ok: false, message: "Ya existe otro departamento con ese nombre" };
+    return { ok: false, message: "Another department with that name already exists" };
   }
 
   const { error } = await supabase
@@ -290,7 +290,7 @@ export async function updateDepartment(params: {
     .eq("id", departmentId);
 
   if (error) {
-    return { ok: false, message: `No se pudo actualizar departamento: ${error.message}` };
+    return { ok: false, message: `Could not update department: ${error.message}` };
   }
 
   return { ok: true, id: departmentId };
@@ -305,7 +305,7 @@ export async function toggleDepartmentStatus(params: {
   const { supabase, organizationId, departmentId, nextStatus } = params;
 
   if (!departmentId) {
-    return { ok: false, message: "Departamento inválido" };
+    return { ok: false, message: "Invalid department" };
   }
 
   const { error } = await supabase
@@ -315,7 +315,7 @@ export async function toggleDepartmentStatus(params: {
     .eq("id", departmentId);
 
   if (error) {
-    return { ok: false, message: `No se pudo actualizar departamento: ${error.message}` };
+    return { ok: false, message: `Could not update department: ${error.message}` };
   }
 
   return { ok: true, id: departmentId };
@@ -329,7 +329,7 @@ export async function deleteDepartment(params: {
   const { supabase, organizationId, departmentId } = params;
 
   if (!departmentId) {
-    return { ok: false, message: "Departamento inválido" };
+    return { ok: false, message: "Invalid department" };
   }
 
   // Check if it has positions
@@ -340,11 +340,11 @@ export async function deleteDepartment(params: {
     .eq("department_id", departmentId);
 
   if (posError) {
-    return { ok: false, message: `No se pudo verificar puestos del departamento: ${posError.message}` };
+    return { ok: false, message: `Could not verify department positions: ${posError.message}` };
   }
 
   if (posCount && posCount > 0) {
-    return { ok: false, message: "No se puede eliminar el departamento porque tiene puestos asociados. Elimina los puestos primero." };
+    return { ok: false, message: "This department cannot be deleted because it has associated positions. Delete the positions first." };
   }
 
   // Check if in use by memberships (just in case some memberships are linked to department but no position)
@@ -355,11 +355,11 @@ export async function deleteDepartment(params: {
     .eq("department_id", departmentId);
 
   if (memError) {
-    return { ok: false, message: `No se pudo verificar uso del departamento: ${memError.message}` };
+    return { ok: false, message: `Could not verify department usage: ${memError.message}` };
   }
 
   if (memCount && memCount > 0) {
-    return { ok: false, message: "No se puede eliminar el departamento porque tiene personal asignado. Desactívalo en su lugar." };
+    return { ok: false, message: "This department cannot be deleted because employees are assigned to it. Deactivate it instead." };
   }
 
   const { error } = await supabase
@@ -369,7 +369,7 @@ export async function deleteDepartment(params: {
     .eq("id", departmentId);
 
   if (error) {
-    return { ok: false, message: `No se pudo eliminar departamento: ${error.message}` };
+    return { ok: false, message: `Could not delete department: ${error.message}` };
   }
 
   return { ok: true };
@@ -390,7 +390,7 @@ export async function createDepartmentPosition(params: {
   const { supabase, organizationId, createdBy, departmentId, name, description } = params;
 
   if (!departmentId || !name) {
-    return { ok: false, message: "Departamento y puesto son obligatorios" };
+    return { ok: false, message: "Department and position are required" };
   }
 
   const { data: department } = await supabase
@@ -401,7 +401,7 @@ export async function createDepartmentPosition(params: {
     .maybeSingle();
 
   if (!department) {
-    return { ok: false, message: "Departamento inválido" };
+    return { ok: false, message: "Invalid department" };
   }
 
   const code = toCode(name);
@@ -415,7 +415,7 @@ export async function createDepartmentPosition(params: {
     .maybeSingle();
 
   if (duplicate) {
-    return { ok: false, message: "Ya existe ese puesto en el departamento" };
+    return { ok: false, message: "That position already exists in this department" };
   }
 
   const { data: maxOrderData } = await supabase
@@ -444,7 +444,7 @@ export async function createDepartmentPosition(params: {
     .single();
 
   if (error) {
-    return { ok: false, message: `No se pudo crear puesto: ${error.message}` };
+    return { ok: false, message: `Could not create position: ${error.message}` };
   }
 
   return { ok: true, id: created?.id };
@@ -459,7 +459,7 @@ export async function toggleDepartmentPositionStatus(params: {
   const { supabase, organizationId, positionId, nextStatus } = params;
 
   if (!positionId) {
-    return { ok: false, message: "Puesto inválido" };
+    return { ok: false, message: "Invalid position" };
   }
 
   const { error } = await supabase
@@ -469,7 +469,7 @@ export async function toggleDepartmentPositionStatus(params: {
     .eq("id", positionId);
 
   if (error) {
-    return { ok: false, message: `No se pudo actualizar puesto: ${error.message}` };
+    return { ok: false, message: `Could not update position: ${error.message}` };
   }
 
   return { ok: true, id: positionId };
@@ -485,7 +485,7 @@ export async function updateDepartmentPosition(params: {
   const { supabase, organizationId, positionId, name, description } = params;
 
   if (!positionId || !name) {
-    return { ok: false, message: "Puesto inválido" };
+    return { ok: false, message: "Invalid position" };
   }
 
   const code = toCode(name);
@@ -497,7 +497,7 @@ export async function updateDepartmentPosition(params: {
     .eq("id", positionId);
 
   if (error) {
-    return { ok: false, message: `No se pudo actualizar puesto: ${error.message}` };
+    return { ok: false, message: `Could not update position: ${error.message}` };
   }
 
   return { ok: true, id: positionId };
@@ -511,7 +511,7 @@ export async function deleteDepartmentPosition(params: {
   const { supabase, organizationId, positionId } = params;
 
   if (!positionId) {
-    return { ok: false, message: "Puesto inválido" };
+    return { ok: false, message: "Invalid position" };
   }
 
   // Check if in use
@@ -522,11 +522,11 @@ export async function deleteDepartmentPosition(params: {
     .eq("position_id", positionId);
 
   if (countError) {
-    return { ok: false, message: `No se pudo verificar uso del puesto: ${countError.message}` };
+    return { ok: false, message: `Could not verify position usage: ${countError.message}` };
   }
 
   if (count && count > 0) {
-    return { ok: false, message: "No se puede eliminar el puesto porque tiene personal asignado. Desactívalo en su lugar." };
+    return { ok: false, message: "This position cannot be deleted because employees are assigned to it. Deactivate it instead." };
   }
 
   const { error } = await supabase
@@ -536,7 +536,7 @@ export async function deleteDepartmentPosition(params: {
     .eq("id", positionId);
 
   if (error) {
-    return { ok: false, message: `No se pudo eliminar puesto: ${error.message}` };
+    return { ok: false, message: `Could not delete position: ${error.message}` };
   }
 
   return { ok: true };

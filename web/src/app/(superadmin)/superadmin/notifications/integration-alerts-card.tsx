@@ -22,13 +22,13 @@ export function IntegrationAlertsCard({ initialEnabled }: { initialEnabled: bool
       const ok = await subscribeToPush();
       setBrowserPermission(typeof window !== "undefined" && "Notification" in window ? Notification.permission : null);
       if (!ok) {
-        toast.error("No se pudo activar — revisá el permiso de notificaciones del navegador");
+        toast.error("Unable to enable notifications. Check your browser notification permission.");
         return;
       }
       setEnabled(true);
-      toast.success("Notificaciones push activadas en este dispositivo");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al activar");
+      toast.success("Push notifications enabled on this device");
+    } catch {
+      toast.error("Unable to enable notifications");
     } finally {
       setIsPending(false);
     }
@@ -38,11 +38,11 @@ export function IntegrationAlertsCard({ initialEnabled }: { initialEnabled: bool
     setIsPending(true);
     try {
       const res = await fetch("/api/superadmin/push/integration-alerts", { method: "DELETE" });
-      if (!res.ok) throw new Error("Error al desactivar");
+      if (!res.ok) throw new Error("Unable to disable notifications");
       setEnabled(false);
-      toast.success("Notificaciones push desactivadas");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al desactivar");
+      toast.success("Push notifications disabled");
+    } catch {
+      toast.error("Unable to disable notifications");
     } finally {
       setIsPending(false);
     }

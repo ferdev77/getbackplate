@@ -293,13 +293,13 @@ export function CompanyShell({
     const ids = newOrder.map(b => b.id);
     const result = await reorderBranchesAction(ids);
     if (result.ok) {
-      toast.success("Orden de locaciones actualizado", {
-        description: "Los cambios se han guardado profesionalmente.",
+        toast.success("Location order updated", {
+          description: "Your changes have been saved.",
         duration: 2000,
       });
       router.refresh();
     } else {
-      toast.error("Error al sincronizar el orden");
+        toast.error("Could not sync the order.");
       setLocalBranches(branchOptions);
       localBranchesRef.current = branchOptions;
     }
@@ -719,11 +719,11 @@ export function CompanyShell({
 
     const timer = setTimeout(() => {
       if (toastCode === 'plan-updated') {
-        toast.success('¡Plan actualizado exitosamente!');
+        toast.success("Plan updated successfully.");
       } else if (toastCode === 'subscription-canceled') {
-        toast.error('No se completó la activación de la suscripción.');
+        toast.error("Subscription activation was not completed.");
       } else if (toastCode === 'integration-plan-upgraded') {
-        toast.success(t("Plan de integración actualizado correctamente."));
+        toast.success("Integration plan updated successfully.");
       } else if (toastCode.startsWith('addon-activated:')) {
         toast.success(t("Add-on activated successfully. The module is now available in your account."));
       } else {
@@ -814,13 +814,12 @@ export function CompanyShell({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ kind, tenantId, ...payload }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "No se pudo guardar");
-      toast.success("Configuración guardada");
+      if (!response.ok) throw new Error("Could not save settings.");
+      toast.success("Settings saved.");
       if (kind === "preferences") router.refresh();
       return true;
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Error al guardar");
+    } catch {
+      toast.error("Could not save settings.");
       return false;
     } finally {
       setBusy(false);
@@ -847,14 +846,14 @@ export function CompanyShell({
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.message ?? data.error ?? "Error al iniciar el checkout");
+        toast.error("Could not start checkout.");
         return;
       }
       if (data.url) {
         window.location.href = data.url;
       }
     } catch {
-      toast.error("Error de conexión. Intenta nuevamente.");
+      toast.error("Connection error. Please try again.");
     } finally {
       setAddonBusy(null);
     }
@@ -875,12 +874,12 @@ export function CompanyShell({
       }
       if (data.upgraded && data.url) {
         setIntegrationPlanOpen(null);
-        toast.success(t("Plan de integración actualizado correctamente."));
+        toast.success("Integration plan updated successfully.");
         router.refresh();
       } else if (data.url) {
         window.location.href = data.url;
       } else {
-        toast.error(data.error ?? t("Could not start checkout."));
+        toast.error("Could not start checkout.");
       }
     } catch {
       toast.error(t("Connection error. Please try again."));
@@ -913,14 +912,13 @@ export function CompanyShell({
           pagePath: pathname,
         }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "No se pudo enviar");
+      if (!response.ok) throw new Error("Could not send feedback.");
       setFbTitle("");
       setFbMessage("");
       setFeedbackOpen(false);
-      toast.success("Feedback enviado correctamente");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Error al enviar feedback");
+      toast.success("Feedback sent successfully.");
+    } catch {
+      toast.error("Could not send feedback.");
     } finally {
       setBusy(false);
     }
@@ -939,7 +937,7 @@ export function CompanyShell({
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data?.error || "No se pudo cargar el formulario de aviso");
+        throw new Error("Could not load the announcement form.");
       }
       const nextCatalog = data as AnnouncementModalCatalog;
       const fetchedAt = Date.now();
@@ -967,8 +965,8 @@ export function CompanyShell({
     if (!announcementModalCatalog) {
       try {
         await ensureAnnouncementModalCatalog();
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "No se pudo cargar el formulario de aviso");
+      } catch {
+        toast.error("Could not load the announcement form.");
         setAnnouncementModalOpen(false);
       }
       return;
@@ -1000,7 +998,7 @@ export function CompanyShell({
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data?.error || "No se pudo cargar el formulario de checklist");
+        throw new Error("Could not load the checklist form.");
       }
       const nextCatalog = data as ChecklistModalCatalog;
       const fetchedAt = Date.now();
@@ -1026,8 +1024,8 @@ export function CompanyShell({
     if (!checklistModalCatalog) {
       try {
         await ensureChecklistModalCatalog();
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "No se pudo cargar el formulario de checklist");
+      } catch {
+        toast.error("Could not load the checklist form.");
         setChecklistModalOpen(false);
       }
       return;
@@ -1055,7 +1053,7 @@ export function CompanyShell({
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data?.error || "No se pudo cargar el formulario de documentos");
+        throw new Error("Could not load the document form.");
       }
       const nextCatalog = data as DocumentsModalCatalog;
       const fetchedAt = Date.now();
@@ -1080,8 +1078,8 @@ export function CompanyShell({
     if (!documentsModalCatalog) {
       try {
         await ensureDocumentsModalCatalog();
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "No se pudo cargar el formulario de carpeta");
+      } catch {
+        toast.error("Could not load the folder form.");
         setDocumentFolderModalOpen(false);
       }
       return;
@@ -1101,8 +1099,8 @@ export function CompanyShell({
     if (!documentsModalCatalog) {
       try {
         await ensureDocumentsModalCatalog();
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "No se pudo cargar el formulario de carga");
+      } catch {
+        toast.error("Could not load the upload form.");
         setDocumentUploadModalOpen(false);
       }
       return;
@@ -1130,7 +1128,7 @@ export function CompanyShell({
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data?.error || "No se pudo cargar el formulario de empleados");
+        throw new Error("Could not load the employee form.");
       }
       const nextCatalog = data as EmployeesModalCatalog;
       const fetchedAt = Date.now();
@@ -1155,8 +1153,8 @@ export function CompanyShell({
     if (!employeesModalCatalog) {
       try {
         await ensureEmployeesModalCatalog();
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "No se pudo cargar el formulario de empleados");
+      } catch {
+        toast.error("Could not load the employee form.");
         setEmployeeModalOpen(false);
       }
       return;
@@ -1184,7 +1182,7 @@ export function CompanyShell({
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data?.error || "No se pudo cargar el formulario de administradores");
+        throw new Error("Could not load the administrator form.");
       }
       const nextCatalog = data as UsersModalCatalog;
       const fetchedAt = Date.now();
@@ -1209,8 +1207,8 @@ export function CompanyShell({
     if (!usersModalCatalog) {
       try {
         await ensureUsersModalCatalog();
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "No se pudo cargar el formulario de administradores");
+      } catch {
+        toast.error("Could not load the administrator form.");
         setUserModalOpen(false);
       }
       return;
@@ -2181,16 +2179,16 @@ export function CompanyShell({
                             const data = await response.json();
 
                             if (!response.ok) {
-                              throw new Error(data.error || "No se pudo subir avatar");
+                              throw new Error("Could not upload avatar.");
                             }
 
                             if (typeof data.avatarUrl === "string" && data.avatarUrl) {
                               setProfileAvatarPreview(data.avatarUrl);
                               setCurrentAvatarUrl(data.avatarUrl);
                             }
-                            toast.success("Avatar actualizado");
-                          } catch (error) {
-                            toast.error(error instanceof Error ? error.message : "Error subiendo avatar");
+                            toast.success("Avatar updated.");
+                          } catch {
+                            toast.error("Could not upload avatar.");
                           }
                         }}
                       />
@@ -2240,8 +2238,8 @@ export function CompanyShell({
                   </div>
                   <div className={`rounded-lg border p-3 ${isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                     <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.08em] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>Add-ons</p>
-                    <div className={`flex items-center justify-between border-b py-1.5 ${isDarkTheme ? "border-white/5" : "border-[var(--gbp-border)]"}`}><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Extra Storage</span><button type="button" onClick={() => toast.info(t("Próximamente"))} className="rounded-md border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-accent)]">Add Storage</button></div>
-                    <div className="flex items-center justify-between py-1.5"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Extra Users</span><button type="button" onClick={() => toast.info(t("Próximamente"))} className="rounded-md border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-accent)]">Add Users</button></div>
+                    <div className={`flex items-center justify-between border-b py-1.5 ${isDarkTheme ? "border-white/5" : "border-[var(--gbp-border)]"}`}><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Extra Storage</span><button type="button" onClick={() => toast.info("Coming soon.")} className="rounded-md border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-accent)]">Add Storage</button></div>
+                    <div className="flex items-center justify-between py-1.5"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Extra Users</span><button type="button" onClick={() => toast.info("Coming soon.")} className="rounded-md border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-accent)]">Add Users</button></div>
                   </div>
                   <div className={`rounded-lg border p-3 ${isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                     <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.08em] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>{t("Pago y Facturación")}</p>
@@ -2278,7 +2276,7 @@ export function CompanyShell({
                   </div>
                   <div className={`rounded-lg border p-3 ${isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                     <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.08em] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>Privacy</p>
-                    <div className="flex items-center justify-between"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Cookie Settings</span><button type="button" onClick={() => toast.info(t("Administrar cookies")) } className="rounded-md border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-accent)]">Manage</button></div>
+                    <div className="flex items-center justify-between"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Cookie Settings</span><button type="button" onClick={() => toast.info("Cookie settings are coming soon.") } className="rounded-md border border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] px-2 py-1 text-[10px] font-semibold text-[var(--gbp-accent)]">Manage</button></div>
                     <label className={`mt-2 inline-flex items-center gap-2 ${isDarkTheme ? "text-white/80" : "text-[var(--gbp-text)]"}`}><input type="checkbox" checked={analyticsEnabled} onChange={(event) => setAnalyticsEnabled(event.target.checked)} /><span>Analytics</span></label>
                   </div>
                   <div className={`rounded-lg border p-3 ${isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>

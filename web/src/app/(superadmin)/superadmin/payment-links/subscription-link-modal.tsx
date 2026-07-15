@@ -88,7 +88,7 @@ export function SubscriptionLinkModal({ organizations, platformPlans, integratio
       });
       const data = (await res.json()) as { url?: string; upgraded?: boolean; error?: string };
       if (!res.ok) {
-        toast.error(data.error ?? "Could not generate subscription link");
+        toast.error("Could not generate subscription link");
         return;
       }
       if (data.upgraded) {

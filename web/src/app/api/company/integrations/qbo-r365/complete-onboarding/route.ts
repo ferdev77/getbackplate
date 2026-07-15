@@ -14,7 +14,7 @@ type VendorProfile = {
 export async function POST(req: NextRequest) {
   const access = await assertCompanyAdminModuleApi("settings", { allowBillingBypass: true });
   if (!access.ok) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+    return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }
 
   const { organizationId } = access.tenant;
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     .eq("id", organizationId);
 
   if (error) {
-    return NextResponse.json({ error: "No se pudo completar el onboarding" }, { status: 500 });
+    return NextResponse.json({ error: "Unable to complete setup. Please try again." }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

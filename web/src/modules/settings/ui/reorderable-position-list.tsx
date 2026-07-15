@@ -46,12 +46,12 @@ export function ReorderablePositionList({
       positionIds: ids,
     });
     if (result.ok) {
-      toast.success(t("Orden de puestos actualizado"));
+      toast.success("Position order updated.");
     } else {
-      toast.error(t("Error al sincronizar el orden"));
+      toast.error("Could not sync the order.");
       setItems(initialPositions);
     }
-  }, [departmentId, initialPositions, t]);
+  }, [departmentId, initialPositions]);
 
   if (!items?.length) {
     return (

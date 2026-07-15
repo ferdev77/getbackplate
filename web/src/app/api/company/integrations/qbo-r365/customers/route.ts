@@ -5,15 +5,15 @@ import { listQboCustomers } from "@/modules/integrations/qbo-r365/service";
 export async function GET() {
   const access = await assertCompanyAdminModuleApi("settings");
   if (!access.ok) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+    return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }
 
   try {
     const customers = await listQboCustomers(access.tenant.organizationId);
     return NextResponse.json({ customers }, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No se pudieron cargar los clientes de QBO" },
+      { error: "Unable to load QuickBooks customers. Please try again." },
       { status: 400 },
     );
   }

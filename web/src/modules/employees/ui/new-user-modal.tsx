@@ -36,12 +36,11 @@ export function NewUserModal({ open, onClose, branches, roleOptions }: NewUserMo
         body: formData,
       });
 
-      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.error || "No se pudo crear usuario");
+        throw new Error("Unable to create the user.");
       }
 
-      toast.success("Usuario creado correctamente");
+      toast.success("User created successfully.");
       startTransition(() => {
         if (onClose) {
           onClose();
@@ -51,8 +50,8 @@ export function NewUserModal({ open, onClose, branches, roleOptions }: NewUserMo
           router.push("/app/users");
         }
       });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo crear usuario");
+    } catch {
+      toast.error("Unable to create the user.");
     } finally {
       setIsPending(false);
     }

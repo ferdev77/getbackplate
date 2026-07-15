@@ -33,11 +33,11 @@ export async function registerPublicAction(formData: FormData) {
     
     // Validations
     if (!companyName || !fullName || !email || !password) {
-      redirect("/auth/register?error=" + qs("Completa todos los campos obligatorios"));
+      redirect("/auth/register?error=" + qs("Complete all required fields."));
     }
 
     if (password.length < 8) {
-      redirect("/auth/register?error=" + qs("La contraseña debe tener al menos 8 caracteres"));
+      redirect("/auth/register?error=" + qs("Your password must contain at least 8 characters."));
     }
 
     const supabaseAdmin = createSupabaseAdminClient();
@@ -51,7 +51,7 @@ export async function registerPublicAction(formData: FormData) {
         .eq("is_active", true)
         .maybeSingle();
       if (!integrationPlan) {
-        redirect("/auth/register?error=" + qs("El plan de integración seleccionado no está disponible"));
+        redirect("/auth/register?error=" + qs("The selected integration plan is unavailable."));
       }
     }
 
@@ -68,8 +68,8 @@ export async function registerPublicAction(formData: FormData) {
     if (createUserError) {
        console.error("Public Registration - Auth Error:", createUserError);
        const errorMsg = createUserError.message.toLowerCase().includes("already") 
-        ? "El email ya está registrado. Por favor, inicia sesión." 
-        : `Error al crear usuario: ${createUserError.message}`;
+        ? "This email address is already registered. Please sign in."
+        : "Your account could not be created. Please try again.";
        redirect("/auth/register?error=" + qs(errorMsg));
     }
 
@@ -117,7 +117,7 @@ export async function registerPublicAction(formData: FormData) {
 
     if (orgError || !org) {
       console.error("Public Registration - Org Error:", orgError);
-      redirect("/auth/register?error=" + qs("No se pudo crear la empresa. Contacta a soporte."));
+      redirect("/auth/register?error=" + qs("Your organization could not be created. Contact support."));
     }
 
     // 3. Assign Core Modules
@@ -196,6 +196,6 @@ export async function registerPublicAction(formData: FormData) {
         throw error;
     }
     console.error("Registration Action Failed", error);
-    redirect("/auth/register?error=" + qs("Ocurrió un error inesperado al registrarte."));
+    redirect("/auth/register?error=" + qs("An unexpected error occurred while creating your account."));
   }
 }

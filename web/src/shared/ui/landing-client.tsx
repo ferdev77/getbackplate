@@ -99,19 +99,18 @@ export function LandingPricing({ plans, highlightPlanId, compact }: { plans: Lan
            router.push(`/auth/register?priceId=${priceId}&planId=${planId}`);
            return;
         }
-        throw new Error(data.message || data.error || "Error initiating checkout");
+        throw new Error("Unable to start checkout");
       }
 
       if (data.url) {
         window.location.href = data.url;
       } else {
         console.error("No checkout URL returned", data);
-        alert(data.error || "Error initiating checkout");
+        alert("Unable to start checkout");
       }
     } catch (error: unknown) {
       console.error("Checkout Request Failed", error);
-      const message = error instanceof Error ? error.message : "Something went wrong";
-      alert(message);
+      alert("Unable to start checkout");
     } finally {
         setLoadingPriceId(null);
     }

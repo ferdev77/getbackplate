@@ -23,7 +23,7 @@ export default async function CheckoutLaunchPage({ searchParams }: CheckoutLaunc
   const billingPeriod = String(params.billingPeriod ?? "").trim().toLowerCase() === "yearly" ? "yearly" : "monthly";
 
   if (!planId) {
-    redirect("/app/dashboard?status=error&message=Selecciona%20un%20plan%20antes%20de%20continuar");
+    redirect("/app/dashboard?status=error&message=Select%20a%20plan%20before%20continuing");
   }
 
   const [organization, organizationSettings, enabledModules] = await Promise.all([

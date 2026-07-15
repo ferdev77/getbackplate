@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   const rawBody = await request.json().catch(() => null);
   const parsed = requestSchema.safeParse(rawBody);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Payload inválido" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request payload" }, { status: 400 });
   }
 
   const payload = parsed.data;
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   const websiteUrl = normalizeWebsiteUrl((payload.websiteUrl ?? "").trim() || null);
 
   if (supportEmail && !/^\S+@\S+\.\S+$/.test(supportEmail)) {
-    return NextResponse.json({ error: "Email inválido" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
   }
 
   const supabase = await createSupabaseServerClient();
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
       if (fallbackError) {
         return NextResponse.json(
           {
-            error: `No se pudo guardar: ${fallbackError.message}`,
+            error: `Unable to save: ${fallbackError.message}`,
           },
           { status: 400 },
         );
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, websiteStorageFallback: "dashboard_note" });
     }
 
-    return NextResponse.json({ error: `No se pudo guardar: ${error.message}` }, { status: 400 });
+    return NextResponse.json({ error: `Unable to save: ${error.message}` }, { status: 400 });
   }
 
   await logAuditEvent({

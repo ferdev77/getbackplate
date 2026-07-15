@@ -133,11 +133,11 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
       });
       const data = await res.json() as { url?: string; error?: string };
       if (!res.ok || !data.url) {
-        toast.error(data.error ?? "Error al generar el link de pago");
+        toast.error("Unable to generate the payment link");
         return;
       }
       setGeneratedUrl(data.url);
-      toast.success("Link de pago generado correctamente");
+      toast.success("Payment link generated successfully");
       router.refresh();
     } finally {
       setLoading(false);

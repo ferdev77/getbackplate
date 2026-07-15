@@ -76,7 +76,7 @@ export async function createEmailMfaChallenge(input: {
     if (secondsSinceLast < RESEND_COOLDOWN_SECONDS) {
       return {
         ok: false,
-        error: "Esperá unos segundos antes de pedir otro código.",
+        error: "Wait a few seconds before requesting another code.",
         retryAfterSeconds: Math.ceil(RESEND_COOLDOWN_SECONDS - secondsSinceLast),
       };
     }
@@ -105,7 +105,7 @@ export async function createEmailMfaChallenge(input: {
     .single();
 
   if (insertError) {
-    return { ok: false, error: "No se pudo generar el código de verificación." };
+    return { ok: false, error: "Your verification code could not be generated." };
   }
 
   const branding = input.organizationId
@@ -125,7 +125,7 @@ export async function createEmailMfaChallenge(input: {
   if (!emailResult.ok) {
     // An unsent code must not force the user to wait through the resend cooldown.
     await admin.from("company_mfa_challenges").update({ consumed_at: new Date().toISOString() }).eq("id", challenge.id);
-    return { ok: false, error: "No se pudo enviar el código por email." };
+    return { ok: false, error: "Your verification code could not be sent by email." };
   }
 
   return { ok: true };
@@ -149,15 +149,15 @@ export async function verifyEmailMfaChallenge(input: {
     .maybeSingle();
 
   if (!challenge) {
-    return { ok: false, error: "No hay un código pendiente. Pedí uno nuevo." };
+    return { ok: false, error: "There is no pending code. Request a new one." };
   }
 
   if (new Date(challenge.expires_at).getTime() < Date.now()) {
-    return { ok: false, error: "El código venció. Pedí uno nuevo." };
+    return { ok: false, error: "The code has expired. Request a new one." };
   }
 
   if (challenge.attempts >= MAX_ATTEMPTS) {
-    return { ok: false, error: "Superaste el máximo de intentos. Pedí un código nuevo." };
+    return { ok: false, error: "You have exceeded the maximum number of attempts. Request a new code." };
   }
 
   const providedHash = hashCode(input.code.trim());
@@ -180,8 +180,8 @@ export async function verifyEmailMfaChallenge(input: {
     return {
       ok: false,
       error: remaining > 0
-        ? `Código incorrecto. Te quedan ${remaining} intentos.`
-        : "Código incorrecto. Superaste el máximo de intentos, pedí uno nuevo.",
+        ? `Incorrect code. You have ${remaining} attempts remaining.`
+        : "Incorrect code. You have exceeded the maximum number of attempts. Request a new code.",
     };
   }
 

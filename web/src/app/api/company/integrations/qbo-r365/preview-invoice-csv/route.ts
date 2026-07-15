@@ -5,7 +5,7 @@ import { previewSingleInvoiceCsv } from "@/modules/integrations/qbo-r365/service
 export async function POST(request: Request) {
   const access = await assertCompanyAdminModuleApi("settings");
   if (!access.ok) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+    return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }
 
   const body = await request.json().catch(() => ({}));
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   const templateOverride: "by_item" | null = body?.template === "by_item" ? "by_item" : null;
 
   if (!sourceInvoiceId) {
-    return NextResponse.json({ error: "sourceInvoiceId requerido" }, { status: 400 });
+    return NextResponse.json({ error: "A source invoice ID is required." }, { status: 400 });
   }
 
   try {
@@ -28,9 +28,9 @@ export async function POST(request: Request) {
       templateOverride,
     });
     return NextResponse.json(result, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No se pudo generar la previsualización" },
+      { error: "Unable to generate the preview. Please try again." },
       { status: 400 },
     );
   }

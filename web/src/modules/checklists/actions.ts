@@ -18,7 +18,7 @@ import { z } from "zod";
 
 const createChecklistSchema = z.object({
   template_id: z.string().trim().optional().transform(v => v || null),
-  name: z.string().trim().min(1, "Nombre de plantilla obligatorio"),
+  name: z.string().trim().min(1, "Template name is required"),
   checklist_type: z.enum(["opening", "closing", "prep", "custom"]).catch("custom"),
   checklist_type_other: z.string().trim().optional(),
   branch_id: z.string().trim().optional().transform(v => v || null),
@@ -77,7 +77,7 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   });
 
   if (!parsed.success) {
-    return { success: false, message: parsed.error.issues[0]?.message || "Datos inválidos" };
+    return { success: false, message: parsed.error.issues[0]?.message || "Invalid data" };
   }
 
   // --- Normalize sections ---
@@ -99,7 +99,7 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
           .slice(0, 20);
       }
     } catch {
-      return { success: false, message: "Formato de secciones (JSON) inválido" };
+      return { success: false, message: "Invalid sections (JSON) format" };
     }
   } else if (itemsInput) {
     const fallbackItems = itemsInput
@@ -234,24 +234,24 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   // --- Build response ---
   const notificationsSummary: string[] = [];
   if (notifyByEmail) {
-    notificationsSummary.push(`Emails enviados: ${checklistAudienceEmailCount}`);
+    notificationsSummary.push(`Emails sent: ${checklistAudienceEmailCount}`);
   }
   if (!parsed.data.template_id) {
-    notificationsSummary.push(`Push enviados: ${checklistAudiencePushCount}`);
+    notificationsSummary.push(`Push notifications sent: ${checklistAudiencePushCount}`);
   }
   if (notifyVia.includes("sms")) {
-    notificationsSummary.push(`SMS enviados: ${checklistAudienceSmsCount}`);
+    notificationsSummary.push(`SMS messages sent: ${checklistAudienceSmsCount}`);
   }
 
   return {
     success: true,
     message: parsed.data.template_id
       ? result.preservedHistory
-        ? "Checklist actualizado creando nueva version (se preservo historial)"
-        : "Checklist actualizado correctamente"
+        ? "Checklist updated by creating a new version (history preserved)"
+        : "Checklist updated successfully"
       : notificationsSummary.length
-        ? `Plantilla creada correctamente. ${notificationsSummary.join(" · ")}`
-        : "Plantilla creada correctamente"
+        ? `Template created successfully. ${notificationsSummary.join(" · ")}`
+        : "Template created successfully"
   };
 }
 
@@ -261,12 +261,12 @@ export async function reviewChecklistSubmissionAction(_prevState: unknown, formD
   const { data: authData } = await supabase.auth.getUser();
 
   if (tenant.roleCode !== "company_admin") {
-    return { success: false, message: "No tienes permisos para revisar ejecuciones" };
+    return { success: false, message: "You do not have permission to review submissions" };
   }
 
   const submissionId = String(formData.get("submission_id") ?? "").trim();
   if (!submissionId) {
-    return { success: false, message: "Ejecución inválida" };
+    return { success: false, message: "Invalid submission" };
   }
 
   const { error } = await supabase
@@ -280,7 +280,7 @@ export async function reviewChecklistSubmissionAction(_prevState: unknown, formD
     .eq("organization_id", tenant.organizationId);
 
   if (error) {
-    return { success: false, message: `No se pudo revisar la ejecución: ${error.message}` };
+    return { success: false, message: `Unable to review the submission: ${error.message}` };
   }
 
   await logAuditEvent({
@@ -295,7 +295,7 @@ export async function reviewChecklistSubmissionAction(_prevState: unknown, formD
 
   revalidatePath("/app/checklists");
   revalidatePath("/app/reports");
-  return { success: true, message: "Checklist marcado como revisado" };
+  return { success: true, message: "Checklist marked as reviewed" };
 }
 
 export async function deleteChecklistTemplateAction(_prevState: unknown, formData: FormData) {
@@ -303,12 +303,12 @@ export async function deleteChecklistTemplateAction(_prevState: unknown, formDat
   const supabase = await createSupabaseServerClient();
 
   if (tenant.roleCode !== "company_admin") {
-    return { success: false, message: "No tienes permisos para eliminar checklists" };
+    return { success: false, message: "You do not have permission to delete checklists" };
   }
 
   const templateId = String(formData.get("template_id") ?? "").trim();
   if (!templateId) {
-    return { success: false, message: "Checklist inválido" };
+    return { success: false, message: "Invalid checklist" };
   }
 
   // --- Delegate to service ---

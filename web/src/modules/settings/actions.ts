@@ -65,7 +65,7 @@ export async function upsertOrganizationSettingsAction(formData: FormData) {
   );
 
   if (error) {
-    redirect("/app/settings?status=error&message=" + qs(`No se pudo guardar configuración: ${error.message}`));
+    redirect("/app/settings?status=error&message=" + qs(`Could not save settings: ${error.message}`));
   }
 
   await logAuditEvent({
@@ -81,7 +81,7 @@ export async function upsertOrganizationSettingsAction(formData: FormData) {
 
   revalidatePath("/app/settings");
   revalidatePath("/app/dashboard");
-  redirect("/app/settings?status=success&message=" + qs("Configuración guardada"));
+  redirect("/app/settings?status=success&message=" + qs("Settings saved"));
 }
 
 // ---------------------------------------------------------------------------
@@ -104,7 +104,7 @@ export async function createFeedbackAction(formData: FormData) {
   const pagePath = String(formData.get("page_path") ?? "").trim() || null;
 
   if (!title || !message) {
-    redirect("/app/settings?status=error&message=" + qs("Completa título y detalle del feedback") + "#feedback");
+    redirect("/app/settings?status=error&message=" + qs("Complete the feedback title and details") + "#feedback");
   }
 
   const normalizedType = ["bug", "idea", "other"].includes(feedbackType)
@@ -125,7 +125,7 @@ export async function createFeedbackAction(formData: FormData) {
     .single();
 
   if (error) {
-    redirect("/app/settings?status=error&message=" + qs(`No se pudo enviar feedback: ${error.message}`) + "#feedback");
+    redirect("/app/settings?status=error&message=" + qs(`Could not send feedback: ${error.message}`) + "#feedback");
   }
 
   await logAuditEvent({
@@ -140,7 +140,7 @@ export async function createFeedbackAction(formData: FormData) {
   });
 
   revalidatePath("/app/settings");
-  redirect("/app/settings?status=success&message=" + qs("Feedback enviado correctamente") + "#feedback");
+  redirect("/app/settings?status=success&message=" + qs("Feedback sent successfully") + "#feedback");
 }
 
 // ---------------------------------------------------------------------------
@@ -178,7 +178,7 @@ export async function createBranchAction(formData: FormData) {
   });
 
   revalidateStructurePaths();
-  redirect("/app/settings?status=success&message=" + qs("Locación creada") + "#org-structure");
+  redirect("/app/settings?status=success&message=" + qs("Location created") + "#org-structure");
 }
 
 export async function toggleBranchStatusAction(formData: FormData) {
@@ -206,7 +206,7 @@ export async function toggleBranchStatusAction(formData: FormData) {
   });
 
   revalidateStructurePaths();
-  redirect("/app/settings?status=success&message=" + qs("Locación actualizada") + "#org-structure");
+  redirect("/app/settings?status=success&message=" + qs("Location updated") + "#org-structure");
 }
 
 export async function updateBranchAction(formData: FormData) {
@@ -241,7 +241,7 @@ export async function updateBranchAction(formData: FormData) {
   });
 
   revalidateStructurePaths();
-  redirect("/app/settings?status=success&message=" + qs("Locación editada") + "#org-structure");
+  redirect("/app/settings?status=success&message=" + qs("Location updated") + "#org-structure");
 }
 
 export async function deleteBranchAction(formData: FormData) {
@@ -271,7 +271,7 @@ export async function deleteBranchAction(formData: FormData) {
   });
 
   revalidateStructurePaths();
-  redirect("/app/settings?status=success&message=" + qs("Locación eliminada") + "#org-structure");
+  redirect("/app/settings?status=success&message=" + qs("Location deleted") + "#org-structure");
 }
 
 // ---------------------------------------------------------------------------
@@ -307,7 +307,7 @@ export async function createDepartmentAction(formData: FormData) {
   });
 
   revalidateStructurePaths();
-  redirect("/app/settings?status=success&message=" + qs("Departamento creado") + "#org-structure");
+  redirect("/app/settings?status=success&message=" + qs("Department created") + "#org-structure");
 }
 
 export async function toggleDepartmentStatusAction(formData: FormData) {
@@ -335,7 +335,7 @@ export async function toggleDepartmentStatusAction(formData: FormData) {
   });
 
   revalidateStructurePaths();
-  redirect("/app/settings?status=success&message=" + qs("Departamento actualizado") + "#org-structure");
+  redirect("/app/settings?status=success&message=" + qs("Department updated") + "#org-structure");
 }
 
 export async function updateDepartmentAction(formData: FormData) {
@@ -366,7 +366,7 @@ export async function updateDepartmentAction(formData: FormData) {
   });
 
   revalidateStructurePaths();
-  redirect("/app/settings?status=success&message=" + qs("Departamento editado") + "#org-structure");
+  redirect("/app/settings?status=success&message=" + qs("Department updated") + "#org-structure");
 }
 
 export async function deleteDepartmentAction(formData: FormData) {
@@ -396,7 +396,7 @@ export async function deleteDepartmentAction(formData: FormData) {
   });
 
   revalidateStructurePaths();
-  redirect("/app/settings?status=success&message=" + qs("Departamento eliminado") + "#org-structure");
+  redirect("/app/settings?status=success&message=" + qs("Department deleted") + "#org-structure");
 }
 
 // ---------------------------------------------------------------------------
@@ -435,7 +435,7 @@ export async function createDepartmentPositionAction(formData: FormData) {
   revalidatePath("/app/settings");
   revalidatePath("/app/employees");
   revalidatePath("/app/checklists");
-  redirect("/app/settings?status=success&message=" + qs("Puesto creado") + "#org-structure");
+  redirect("/app/settings?status=success&message=" + qs("Position created") + "#org-structure");
 }
 
 export async function toggleDepartmentPositionStatusAction(formData: FormData) {
@@ -464,7 +464,7 @@ export async function toggleDepartmentPositionStatusAction(formData: FormData) {
 
   revalidatePath("/app/settings");
   revalidatePath("/app/employees");
-  redirect("/app/settings?status=success&message=" + qs("Puesto actualizado") + "#org-structure");
+  redirect("/app/settings?status=success&message=" + qs("Position updated") + "#org-structure");
 }
 
 export async function updateDepartmentPositionAction(formData: FormData) {
@@ -499,7 +499,7 @@ export async function updateDepartmentPositionAction(formData: FormData) {
   });
 
   revalidateStructurePaths();
-  redirect("/app/settings?status=success&message=" + qs("Puesto editado") + "#org-structure");
+  redirect("/app/settings?status=success&message=" + qs("Position updated") + "#org-structure");
 }
 
 export async function deleteDepartmentPositionAction(formData: FormData) {
@@ -529,5 +529,5 @@ export async function deleteDepartmentPositionAction(formData: FormData) {
   });
 
   revalidateStructurePaths();
-  redirect("/app/settings?status=success&message=" + qs("Puesto eliminado") + "#org-structure");
+  redirect("/app/settings?status=success&message=" + qs("Position deleted") + "#org-structure");
 }

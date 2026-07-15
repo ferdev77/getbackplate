@@ -21,7 +21,7 @@ export default async function EmployeeTrashPage() {
   );
 
   if (!delegatedPermissions.documents.delete) {
-    redirect("/portal/documents?status=error&message=No%20tienes%20permiso%20para%20acceder%20a%20la%20papelera");
+    redirect("/portal/documents?status=error&message=You%20do%20not%20have%20permission%20to%20access%20the%20trash");
   }
 
   const supabase = await createSupabaseServerClient();

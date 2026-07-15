@@ -21,13 +21,13 @@ export async function GET(request: Request) {
 
   if (oauthError === "access_denied") {
     return NextResponse.redirect(
-      buildRedirectUrl(request.url, "error", "qbo_cancelado"),
+        buildRedirectUrl(request.url, "error", "QuickBooks authorization was canceled."),
     );
   }
 
   if (!code || !realmId || !state) {
     return NextResponse.redirect(
-      buildRedirectUrl(request.url, "error", "callback_incompleto"),
+        buildRedirectUrl(request.url, "error", "The QuickBooks callback is incomplete."),
     );
   }
 
@@ -40,13 +40,13 @@ export async function GET(request: Request) {
       realmId,
     });
 
-    return NextResponse.redirect(buildRedirectUrl(request.url, "ok", "qbo_conectado"));
-  } catch (error) {
+    return NextResponse.redirect(buildRedirectUrl(request.url, "ok", "QuickBooks connected successfully."));
+  } catch {
     return NextResponse.redirect(
       buildRedirectUrl(
         request.url,
         "error",
-        error instanceof Error ? error.message : "error_qbo_callback",
+        "Unable to complete QuickBooks authorization. Please try again.",
       ),
     );
   }

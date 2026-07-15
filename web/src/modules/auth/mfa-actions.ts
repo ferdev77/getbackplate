@@ -35,7 +35,7 @@ export async function verifyMfaCodeAction(formData: FormData) {
     }
 
     if (!/^\d{6}$/.test(code)) {
-      redirect(buildVerifyMfaPath({ error: "Ingresá el código de 6 dígitos.", next }));
+      redirect(buildVerifyMfaPath({ error: "Enter the 6-digit code.", next }));
     }
 
     const result = await verifyEmailMfaChallenge({
@@ -54,7 +54,7 @@ export async function verifyMfaCodeAction(formData: FormData) {
     if (isRedirectError(error)) {
       throw error;
     }
-    redirect(buildVerifyMfaPath({ error: "Ocurrió un error inesperado. Intentá de nuevo." }));
+    redirect(buildVerifyMfaPath({ error: "An unexpected error occurred. Please try again." }));
   }
 }
 
@@ -64,7 +64,7 @@ export async function resendMfaCodeAction(): Promise<{ ok: boolean; error?: stri
     const organizationId = await getActiveOrganizationIdFromCookie();
 
     if (!user || !organizationId) {
-      return { ok: false, error: "Tu sesión expiró. Iniciá sesión nuevamente." };
+      return { ok: false, error: "Your session has expired. Please sign in again." };
     }
 
     const result = await createEmailMfaChallenge({
@@ -79,6 +79,6 @@ export async function resendMfaCodeAction(): Promise<{ ok: boolean; error?: stri
 
     return { ok: true, retryAfterSeconds: 45 };
   } catch {
-    return { ok: false, error: "Ocurrió un error inesperado. Intentá de nuevo." };
+    return { ok: false, error: "An unexpected error occurred. Please try again." };
   }
 }

@@ -389,14 +389,13 @@ export function EmployeeShell({
           pagePath: pathname,
         }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "No se pudo enviar");
+      if (!response.ok) throw new Error("Feedback could not be sent.");
       setFbTitle("");
       setFbMessage("");
       setFeedbackOpen(false);
-      toast.success("Feedback enviado correctamente");
+      toast.success("Feedback sent successfully.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Error al enviar feedback");
+      toast.error(error instanceof Error ? error.message : "Feedback could not be sent.");
     } finally {
       setFeedbackBusy(false);
     }

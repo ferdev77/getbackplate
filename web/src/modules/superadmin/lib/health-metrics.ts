@@ -139,19 +139,19 @@ function computeScore(
     score -= SCORE_PENALTIES.inactiveTenant;
   }
   if (activeAdmins === 0) {
-    issues.push("sin admin");
+    issues.push("no admin");
     score -= SCORE_PENALTIES.noAdmin;
   }
   if (enabledModules === 0) {
-    issues.push("sin módulos");
+    issues.push("no modules");
     score -= SCORE_PENALTIES.noModules;
   }
   if (activeEmployees === 0) {
-    issues.push("sin empleados");
+    issues.push("no employees");
     score -= SCORE_PENALTIES.noEmployees;
   }
   if (docs30d === 0 && checklist7d === 0 && activeAnnouncements === 0) {
-    issues.push("sin actividad");
+    issues.push("no activity");
     score -= SCORE_PENALTIES.noActivity;
   }
 
@@ -243,7 +243,7 @@ export function buildTenantOperationalAlerts(tenantRows: TenantHealthRow[]) {
         organizationName: row.name,
         severity: "critical",
         code: "tenant_not_active",
-        message: `Tenant en estado ${row.status}`,
+        message: `Tenant status: ${row.status}`,
       });
     }
 
@@ -253,7 +253,7 @@ export function buildTenantOperationalAlerts(tenantRows: TenantHealthRow[]) {
         organizationName: row.name,
         severity: "critical",
         code: "missing_active_admin",
-        message: "Sin admins activos",
+        message: "No active admins",
       });
     }
 
@@ -263,7 +263,7 @@ export function buildTenantOperationalAlerts(tenantRows: TenantHealthRow[]) {
         organizationName: row.name,
         severity: "high",
         code: "no_enabled_modules",
-        message: "Sin módulos habilitados",
+        message: "No enabled modules",
       });
     }
 
@@ -273,7 +273,7 @@ export function buildTenantOperationalAlerts(tenantRows: TenantHealthRow[]) {
         organizationName: row.name,
         severity: "medium",
         code: "no_active_employees",
-        message: "Sin empleados activos",
+        message: "No active employees",
       });
     }
 
@@ -283,7 +283,7 @@ export function buildTenantOperationalAlerts(tenantRows: TenantHealthRow[]) {
         organizationName: row.name,
         severity: "medium",
         code: "no_recent_activity",
-        message: "Sin actividad reciente",
+        message: "No recent activity",
       });
     }
   }
@@ -337,14 +337,14 @@ function percentile(values: number[], percentileValue: number) {
 }
 
 const DOMAIN_LABELS: Record<string, string> = {
-  auth: "Acceso",
-  security: "Seguridad",
+  auth: "Access",
+  security: "Security",
   superadmin: "Superadmin",
-  employees: "Empleados",
-  documents: "Documentos",
-  announcements: "Avisos",
+  employees: "Employees",
+  documents: "Documents",
+  announcements: "Announcements",
   checklists: "Checklists",
-  settings: "Configuracion",
+  settings: "Settings",
   onboarding: "Onboarding",
 };
 

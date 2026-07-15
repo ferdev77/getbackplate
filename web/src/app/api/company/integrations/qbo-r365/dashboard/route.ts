@@ -22,7 +22,7 @@ export async function GET() {
   try {
     const access = await assertCompanyAdminModuleApi("settings");
     if (!access.ok) {
-      return NextResponse.json({ error: access.error }, { status: access.status });
+      return NextResponse.json({ error: "Access denied." }, { status: access.status });
     }
     const organizationId = access.tenant.organizationId;
     const supabase = createSupabaseAdminClient();
@@ -171,9 +171,9 @@ export async function GET() {
       runs: formattedRuns,
       invoiceHistory,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal Server Error" },
+      { error: "Unable to load the integration dashboard. Please try again." },
       { status: 500 },
     );
   }

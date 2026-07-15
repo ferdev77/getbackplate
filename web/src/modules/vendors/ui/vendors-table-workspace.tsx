@@ -176,8 +176,7 @@ function VendorHistoryTab({ vendorId, historyEndpointBase }: { vendorId: string;
       .then(async (r) => {
         const data = await r.json().catch(() => ({}));
         if (!r.ok) {
-          const message = typeof data?.error === "string" ? data.error : "No se pudo cargar el historial";
-          throw new Error(message);
+          throw new Error("Could not load history.");
         }
         return data;
       })
@@ -187,7 +186,7 @@ function VendorHistoryTab({ vendorId, historyEndpointBase }: { vendorId: string;
       })
       .catch(() => {
         if (cancelled) return;
-        setError("No se pudo cargar el historial");
+        setError("Could not load history.");
         setHistory([]);
       });
 
@@ -402,8 +401,8 @@ function DeleteConfirmDialog({ vendor, onCancel, onConfirm, isPending }: {
         <div className="text-3xl mb-3">⚠️</div>
         <h3 className={`text-base font-bold mb-2 ${TEXT_STRONG}`}>Eliminar proveedor</h3>
         <p className={`text-sm mb-5 leading-relaxed ${TEXT_MUTED}`}>
-          ¿Estás seguro de que querés eliminar <strong className={TEXT_STRONG}>{vendor.name}</strong>?
-          Esta acción no se puede deshacer.
+          Are you sure you want to delete <strong className={TEXT_STRONG}>{vendor.name}</strong>?
+          This action cannot be undone.
         </p>
         <div className="flex gap-2 justify-end">
           <button onClick={onCancel}
@@ -517,14 +516,14 @@ function VendorFormModal({ vendor, branches, categories, onCategoriesChange, cat
         body: JSON.stringify({ name: newCategoryName.trim() }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "No se pudo crear categoría");
+      if (!res.ok) throw new Error("Could not create the category.");
       const created = data.category as VendorCategoryOption;
       onCategoriesChange([...categories, created]);
       setForm((prev) => ({ ...prev, category: created.code }));
       setNewCategoryName("");
-      toast.success("Categoría creada");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al crear categoría");
+      toast.success("Category created.");
+    } catch {
+      toast.error("Could not create the category.");
     } finally {
       setIsCategoryPending(false);
     }
@@ -540,16 +539,16 @@ function VendorFormModal({ vendor, branches, categories, onCategoriesChange, cat
         body: JSON.stringify({ name: name.trim() }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "No se pudo editar categoría");
+      if (!res.ok) throw new Error("Could not update the category.");
       const updated = data.category as VendorCategoryOption;
       const prev = categories.find((category) => category.id === categoryId);
       onCategoriesChange(categories.map((category) => (category.id === categoryId ? updated : category)));
       if (prev?.code && form.category === prev.code) {
         setForm((current) => ({ ...current, category: updated.code }));
       }
-      toast.success("Categoría actualizada");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al editar categoría");
+      toast.success("Category updated.");
+    } catch {
+      toast.error("Could not update the category.");
     } finally {
       setIsCategoryPending(false);
     }
@@ -560,17 +559,16 @@ function VendorFormModal({ vendor, branches, categories, onCategoriesChange, cat
     setIsCategoryPending(true);
     try {
       const res = await fetch(`${categoryApiBasePath}/${categoryId}`, { method: "DELETE" });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "No se pudo eliminar categoría");
+      if (!res.ok) throw new Error("Could not delete the category.");
       const next = categories.filter((category) => category.id !== categoryId);
       onCategoriesChange(next);
       if (form.category === categoryCode) {
         const fallback = next.find((category) => category.code === "otro") ?? next[0];
         setForm((prev) => ({ ...prev, category: fallback?.code ?? "otro" }));
       }
-      toast.success("Categoría eliminada");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al eliminar categoría");
+      toast.success("Category deleted.");
+    } catch {
+      toast.error("Could not delete the category.");
     } finally {
       setIsCategoryPending(false);
     }
@@ -588,14 +586,13 @@ function VendorFormModal({ vendor, branches, categories, onCategoriesChange, cat
           body: JSON.stringify(form),
         });
         if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          setError(data.error ?? "Error al guardar el proveedor");
+          setError("Could not save the vendor.");
           return;
         }
-        toast.success(isEdit ? "Proveedor actualizado correctamente" : "Proveedor creado correctamente");
+        toast.success(isEdit ? "Vendor updated successfully." : "Vendor created successfully.");
         onSaved();
       } catch {
-        setError("No se pudo conectar con el servidor");
+        setError("Could not connect to the server.");
       }
     });
   };
@@ -1006,8 +1003,8 @@ export default function VendorsTableWorkspace({
     startDelete(async () => {
       try {
         const res = await fetch(`${apiBasePath}/${deleteTarget.id}`, { method: "DELETE" });
-        if (!res.ok) throw new Error("No se pudo eliminar el proveedor");
-        toast.success("Proveedor eliminado correctamente");
+        if (!res.ok) throw new Error("Could not delete the vendor.");
+        toast.success("Vendor deleted successfully.");
         setDeleteTarget(null);
         setDetailVendor(null);
         if (deferredDataUrl) {
@@ -1015,9 +1012,8 @@ export default function VendorsTableWorkspace({
         } else {
           router.refresh();
         }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Error al eliminar";
-        toast.error(message);
+      } catch {
+        toast.error("Could not delete the vendor.");
       }
     });
   }, [apiBasePath, deferredDataUrl, deleteTarget, router]);

@@ -132,14 +132,13 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreat
           branchId: editBranchId || null,
         }),
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "No se pudo actualizar administrador");
+      if (!response.ok) throw new Error("Unable to update the administrator.");
 
-      toast.success("Administrador actualizado correctamente");
-    } catch (error) {
+      toast.success("Administrator updated successfully.");
+    } catch {
       // Rollback
       setRows(previousRows);
-      toast.error(error instanceof Error ? error.message : "No se pudo actualizar administrador");
+      toast.error("Unable to update the administrator.");
     } finally {
       setBusySave(false);
     }
@@ -163,14 +162,13 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreat
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ membershipId: targetId }),
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "No se pudo eliminar administrador");
+      if (!response.ok) throw new Error("Unable to delete the administrator.");
 
-      toast.success("Administrador eliminado correctamente");
-    } catch (error) {
+      toast.success("Administrator deleted successfully.");
+    } catch {
       // Rollback
       setRows(previousRows);
-      toast.error(error instanceof Error ? error.message : "No se pudo eliminar administrador");
+      toast.error("Unable to delete the administrator.");
     } finally {
       setBusyDelete(false);
     }
@@ -184,19 +182,14 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreat
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: user.email, fullName: user.fullName, roleCode: user.roleCode || "company_admin" }),
       });
-      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const fallback = "No se pudo reenviar invitación";
-        const baseMessage = typeof data.error === "string" ? data.error : fallback;
-        const message =
-          response.status === 404
-            ? `${baseMessage} Si no tiene cuenta, crea primero el usuario y luego reenvía.`
-            : baseMessage;
-        throw new Error(message);
+        throw new Error(response.status === 404
+          ? "This user does not have an account. Create the user before resending the invitation."
+          : "Unable to resend the invitation.");
       }
-      toast.success(data.message || `Invitación reenviada a ${user.email}`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Error al reenviar invitación");
+      toast.success(`Invitation resent to ${user.email}.`);
+    } catch {
+      toast.error("Unable to resend the invitation.");
     } finally {
       setBusyResend(false);
     }
@@ -370,12 +363,12 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreat
 
       {deleteTarget ? (
         <ConfirmDeleteDialog
-          title="Eliminar administrador"
-          description="Se removerá el acceso administrativo de esta persona en tu empresa."
+          title="Delete administrator"
+          description="This person's administrative access will be removed from your organization."
           busy={busyDelete}
           onCancel={() => setDeleteTargetId(null)}
           onConfirm={deleteUser}
-          confirmLabel="Eliminar"
+          confirmLabel="Delete"
         />
       ) : null}
 

@@ -77,7 +77,7 @@ export function useEmployeeChecklistPreview({
       });
       const data = (await response.json().catch(() => null)) as ChecklistPreviewPayload | { error?: string } | null;
       if (!response.ok || !data || !("template" in data)) {
-        throw new Error((data && "error" in data ? data.error : null) ?? "No se pudo cargar el checklist");
+        throw new Error("Unable to load the checklist.");
       }
       cacheRef.current.set(templateId, { fetchedAt: Date.now(), payload: data });
       if (updateActivePayload) {
@@ -104,8 +104,8 @@ export function useEmployeeChecklistPreview({
 
     try {
       await fetchPreview(templateId);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo cargar el checklist");
+    } catch {
+      toast.error("Unable to load the checklist.");
       setOpenTemplateId("");
     }
   }, [fetchPreview]);

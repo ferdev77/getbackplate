@@ -27,18 +27,18 @@ function buildPayload(orgName: string, input: IntegrationAlertInput) {
   switch (input.kind) {
     case "identification_failed":
       return {
-        title: "⚠️ No se pudo identificar un webhook",
-        body: `${orgName} — ${input.entityType} #${input.entityId}: ${input.errorMessage}`,
+        title: "Webhook could not be identified",
+        body: `${orgName}: ${input.entityType} #${input.entityId} could not be identified.`,
       };
     case "send_success":
       return {
-        title: "✅ Factura enviada a R365",
-        body: `${input.docNumber ? `Factura ${input.docNumber}` : "Factura"} de ${input.customerName ?? "cliente"} (${orgName})`,
+        title: "Invoice sent to R365",
+        body: `${input.docNumber ? `Invoice ${input.docNumber}` : "Invoice"} for ${input.customerName ?? "customer"} (${orgName})`,
       };
     case "send_failed":
       return {
-        title: "❌ Error enviando factura a R365",
-        body: `${input.customerName ?? `Entidad ${input.entityId}`} (${orgName}): ${input.errorMessage}`,
+        title: "Failed to send invoice to R365",
+        body: `${input.customerName ?? `Entity ${input.entityId}`} (${orgName}): An error occurred while sending the invoice.`,
       };
   }
 }
@@ -70,7 +70,7 @@ export async function notifyIntegrationEvent(input: IntegrationAlertInput): Prom
       .select("name")
       .eq("id", input.organizationId)
       .maybeSingle();
-    const orgName = org?.name ?? "organización desconocida";
+    const orgName = org?.name ?? "unknown organization";
 
     const payload = buildPayload(orgName, input);
     await sendPushToUsers(userIds, { ...payload, url: "/superadmin/notifications" }, {
@@ -78,6 +78,6 @@ export async function notifyIntegrationEvent(input: IntegrationAlertInput): Prom
       organizationId: input.organizationId,
     });
   } catch (err) {
-    console.error("[integration-alerts] Error notificando:", err instanceof Error ? err.message : err);
+    console.error("[integration-alerts] Notification error:", err instanceof Error ? err.message : err);
   }
 }

@@ -704,7 +704,7 @@ export function EmployeeDocumentsTree({
         body: JSON.stringify({ documentId, folderId: targetFolderId }),
       });
       const data = (await response.json().catch(() => ({}))) as { error?: string; folderId?: string | null };
-      if (!response.ok) throw new Error(data.error || "No se pudo mover el documento");
+      if (!response.ok) throw new Error("Unable to move the document.");
       const resolvedFolderId = data.folderId === undefined ? targetFolderId : data.folderId;
       logDnd("move-document:ok", { documentId, targetFolderId });
       setDocumentsState((prev) => prev.map((row) => (row.id === documentId ? { ...row, folder_id: resolvedFolderId } : row)));
@@ -713,9 +713,9 @@ export function EmployeeDocumentsTree({
     })();
 
     toast.promise(movePromise, {
-      loading: `Moviendo documento a "${targetFolderName}"…`,
-      success: () => `Documento movido a "${targetFolderName}"`,
-      error: (err) => (err instanceof Error ? err.message : "Error moviendo documento"),
+      loading: `Moving document to "${targetFolderName}"...`,
+      success: () => `Document moved to "${targetFolderName}".`,
+      error: "Unable to move the document.",
     });
 
     movePromise.catch(() => {}).finally(() => {
@@ -743,7 +743,7 @@ export function EmployeeDocumentsTree({
       let currentParentId = parentById.get(targetFolderId) ?? null;
       while (currentParentId) {
         if (currentParentId === folderId) {
-          toast.error("No puedes mover una carpeta dentro de una subcarpeta suya");
+          toast.error("A folder cannot be moved into one of its subfolders.");
           resetDndState();
           return;
         }
@@ -768,7 +768,7 @@ export function EmployeeDocumentsTree({
       if (!response.ok) {
         // Revert on error
         setFolderRows((prev) => prev.map((row) => (row.id === folderId ? { ...row, parent_id: folder.parent_id } : row)));
-        throw new Error(data.error || "No se pudo mover la carpeta");
+        throw new Error("Unable to move the folder.");
       }
       if (data.parentId !== undefined) {
         const resolvedParentId = data.parentId ?? null;
@@ -780,9 +780,9 @@ export function EmployeeDocumentsTree({
     })();
 
     toast.promise(movePromise, {
-      loading: `Moviendo carpeta a "${targetFolderName}"…`,
-      success: () => `Carpeta movida a "${targetFolderName}"`,
-      error: (err) => (err instanceof Error ? err.message : "Error moviendo carpeta"),
+      loading: `Moving folder to "${targetFolderName}"...`,
+      success: () => `Folder moved to "${targetFolderName}".`,
+      error: "Unable to move the folder.",
     });
 
     movePromise.catch(() => {}).finally(() => {
@@ -1274,12 +1274,12 @@ export function EmployeeDocumentsTree({
 
       {deleteDocument ? (
         <ConfirmDeleteDialog
-          title="Eliminar documento"
-          description={`Se eliminará \"${deleteDocument.title}\". Esta acción no se puede deshacer.`}
+          title="Delete document"
+          description={`\"${deleteDocument.title}\" will be deleted. This action cannot be undone.`}
           busy={busy}
           onCancel={() => setDeleteDocument(null)}
           onConfirm={() => void deleteDocumentById(deleteDocument)}
-          confirmLabel="Eliminar"
+          confirmLabel="Delete"
         />
       ) : null}
 

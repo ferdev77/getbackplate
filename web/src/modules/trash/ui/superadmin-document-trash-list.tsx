@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
-import { es } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 import { Building2, Clock, FileText, RefreshCw, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { TooltipLabel } from "@/shared/ui/tooltip";
@@ -37,13 +37,13 @@ export function SuperadminDocumentTrashList({ documents }: SuperadminDocumentTra
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ documentId: id }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Error al restaurar");
+      await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error("Unable to restore the document.");
       
-      toast.success("Documento restaurado exitosamente");
+      toast.success("Document restored successfully.");
       router.refresh();
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Error al restaurar");
+    } catch {
+      toast.error("Unable to restore the document.");
     } finally {
       setIsRestoring(null);
     }
@@ -57,13 +57,13 @@ export function SuperadminDocumentTrashList({ documents }: SuperadminDocumentTra
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ documentId: id }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Error al eliminar");
+      await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error("Unable to permanently delete the document.");
       
-      toast.success("Documento eliminado definitivamente");
+      toast.success("Document permanently deleted.");
       router.refresh();
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Error al eliminar");
+    } catch {
+      toast.error("Unable to permanently delete the document.");
     } finally {
       setIsDeleting(null);
       setShowConfirmDelete(null);
@@ -135,7 +135,7 @@ export function SuperadminDocumentTrashList({ documents }: SuperadminDocumentTra
               <div className="flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-xs text-[var(--gbp-text2)]">
-                  {formatDistanceToNow(deletedDate, { locale: es })}
+                  {formatDistanceToNow(deletedDate, { locale: enUS, addSuffix: true })}
                 </span>
               </div>
               

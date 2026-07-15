@@ -30,10 +30,10 @@ export function PaymentSuccessBanner({ showOnLoad }: PaymentSuccessBannerProps) 
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 px-5 py-4 shadow-[0_12px_32px_rgba(16,185,129,0.14)] backdrop-blur-sm">
             <p className="flex items-center gap-2 text-sm font-extrabold uppercase tracking-[0.08em] text-emerald-700">
               <CheckCircle2 className="h-4 w-4" />
-              Suscripcion activada
+              Subscription activated
             </p>
             <p className="mt-1 text-sm font-medium text-emerald-900">
-              Tu pago se confirmo correctamente. Ya tienes acceso completo al panel de empresa.
+              Your payment was confirmed. You now have full access to the company dashboard.
             </p>
           </div>
         </motion.div>

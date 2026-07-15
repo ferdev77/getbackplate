@@ -42,7 +42,7 @@ export function UploadDocumentModal({
   submitEndpoint = "/api/company/documents",
   redirectPath = "/app/documents",
   hideScopeSelector = false,
-  scopeLockedMessage = "Este archivo heredará automáticamente el alcance permitido para tu perfil.",
+  scopeLockedMessage = "This file will automatically inherit the access scope allowed for your profile.",
   allowedLocationIds,
   lockLocationSelection = false,
 }: Props) {
@@ -96,7 +96,7 @@ export function UploadDocumentModal({
       };
 
       xhr.onerror = () => {
-        resolve({ ok: false, message: "No se pudo subir el archivo" });
+        resolve({ ok: false, message: "Unable to upload the file." });
       };
 
       xhr.onreadystatechange = () => {
@@ -104,12 +104,12 @@ export function UploadDocumentModal({
         try {
           const data = JSON.parse(xhr.responseText) as { ok?: boolean; error?: string; message?: string };
           if (xhr.status >= 200 && xhr.status < 300 && data.ok) {
-            resolve({ ok: true, message: data.message ?? "Documento subido" });
+          resolve({ ok: true, message: "Document uploaded successfully." });
             return;
           }
-          resolve({ ok: false, message: data.error ?? "No se pudo subir el archivo" });
+          resolve({ ok: false, message: "Unable to upload the file." });
         } catch {
-          resolve({ ok: false, message: "Respuesta inválida del servidor" });
+          resolve({ ok: false, message: "The server returned an invalid response." });
         }
       };
 
@@ -124,7 +124,7 @@ export function UploadDocumentModal({
     }
 
     setProgress(100);
-    toast.success("Documento subido con éxito");
+    toast.success("Document uploaded successfully.");
     setShowSuccessOverlay(true);
     setIsUploading(false);
 

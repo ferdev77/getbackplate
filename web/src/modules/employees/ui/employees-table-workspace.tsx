@@ -188,16 +188,15 @@ export function EmployeesTableWorkspace({
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.error || "No se pudo eliminar registro");
+        throw new Error("Unable to delete the record.");
       }
 
-      toast.success(isEmployee ? "Empleado eliminado correctamente" : "Usuario eliminado correctamente");
-    } catch (error) {
+      toast.success(isEmployee ? "Employee deleted successfully." : "User deleted successfully.");
+    } catch {
       // Rollback
       setRows(previousRows);
-      toast.error(error instanceof Error ? error.message : "No se pudo eliminar registro");
+      toast.error("Unable to delete the record.");
     } finally {
       setBusyDelete(false);
     }
@@ -234,16 +233,15 @@ export function EmployeesTableWorkspace({
             }),
           });
 
-      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.error || "No se pudo actualizar estado");
+        throw new Error("Unable to update the status.");
       }
 
-      toast.success("Estado laboral actualizado correctamente");
-    } catch (error) {
+      toast.success("Employment status updated successfully.");
+    } catch {
       // Rollback
       setRows(previousRows);
-      toast.error(error instanceof Error ? error.message : "No se pudo actualizar estado laboral");
+      toast.error("Unable to update the employment status.");
     } finally {
       setBusyStatus(false);
     }
@@ -583,11 +581,11 @@ export function EmployeesTableWorkspace({
       {deleteTarget ? (
         <ConfirmDeleteDialog
           title={`Eliminar ${deleteTarget.recordType === "employee" ? "empleado" : "usuario"}`}
-          description={`Vas a eliminar a ${deleteTarget.firstName} ${deleteTarget.lastName}. Esta acción no se puede deshacer.`}
+          description={`You are about to delete ${deleteTarget.firstName} ${deleteTarget.lastName}. This action cannot be undone.`}
           busy={busyDelete}
           onCancel={() => setDeleteTargetId(null)}
           onConfirm={deleteEmployee}
-          confirmLabel="Eliminar"
+          confirmLabel="Delete"
         />
       ) : null}
     </>

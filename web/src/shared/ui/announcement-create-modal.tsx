@@ -78,7 +78,7 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
     if (submitEndpoint) return;
     if (state.message) {
       if (state.success) {
-        toast.success(state.message);
+        toast.success(mode === "edit" ? "Announcement updated successfully." : "Announcement created successfully.");
         startTransition(() => {
           router.refresh();
           onSubmitted?.();
@@ -86,10 +86,10 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
           router.push(redirectPath);
         });
       } else {
-        toast.error(state.message);
+        toast.error("Unable to save the announcement.");
       }
     }
-  }, [onClose, onSubmitted, redirectPath, router, state, submitEndpoint]);
+  }, [mode, onClose, onSubmitted, redirectPath, router, state, submitEndpoint]);
 
   const handleClose = () => {
     if (onClose) {
@@ -110,7 +110,7 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
     const formAnnouncementId = String(formData.get("announcement_id") ?? "").trim();
 
     if (!title || !body) {
-      toast.error("Titulo y contenido son obligatorios");
+      toast.error("A title and message are required.");
       return;
     }
 
@@ -140,10 +140,10 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(typeof data.error === "string" ? data.error : "No se pudo guardar el aviso");
+        throw new Error("Unable to save the announcement.");
       }
 
-      toast.success(mode === "edit" ? "Aviso actualizado correctamente" : "Aviso creado correctamente");
+      toast.success(mode === "edit" ? "Announcement updated successfully." : "Announcement created successfully.");
       startTransition(() => {
         const announcementId = String(data.announcementId ?? formAnnouncementId).trim();
         onSubmitted?.({
@@ -169,8 +169,8 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
         });
         if (onClose) onClose();
       });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo guardar el aviso");
+    } catch {
+      toast.error("Unable to save the announcement.");
     } finally {
       setIsApiPending(false);
     }

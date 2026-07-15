@@ -24,7 +24,7 @@ export function SendLinkEmailButton({ orderId, sentTo, action }: Props) {
   function send() {
     const trimmed = email.trim();
     if (!EMAIL_RE.test(trimmed)) {
-      toast.error("Email inválido");
+      toast.error("Enter a valid email address");
       return;
     }
     startTransition(async () => {
@@ -33,11 +33,11 @@ export function SendLinkEmailButton({ orderId, sentTo, action }: Props) {
       formData.set("email", trimmed);
       const result = await action(formData);
       if (result.ok) {
-        toast.success(`Link enviado a ${trimmed}`);
+        toast.success(`Link sent to ${trimmed}`);
         setLastSentTo(trimmed);
         setOpen(false);
       } else {
-        toast.error(result.error ?? "No se pudo enviar el email");
+        toast.error("Unable to send the email");
       }
     });
   }

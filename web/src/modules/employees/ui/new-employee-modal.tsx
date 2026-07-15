@@ -180,7 +180,7 @@ export function NewEmployeeModal({
     setDocusealLoadFailed,
     openSignatureInNewTab,
   } = useEmployeeSignatureModal((slotToRefresh) => {
-    toast.success("¡Documento firmado exitosamente!");
+    toast.success("Document signed successfully.");
     void handleRefreshSignatureStatus(slotToRefresh);
   });
 
@@ -327,7 +327,7 @@ export function NewEmployeeModal({
       });
 
       if (status < 200 || status >= 300 || !data.ok || typeof data.slot !== "string" || typeof data.documentId !== "string") {
-        throw new Error(typeof data.error === "string" ? data.error : "No se pudo cargar documento");
+        throw new Error("Unable to upload the document.");
       }
 
       const uploadedSlot = data.slot;
@@ -366,7 +366,7 @@ export function NewEmployeeModal({
         },
       }));
 
-      toast.success(isEmployeeSelfMode ? "Documento enviado para revision" : "Documento cargado y guardado");
+      toast.success(isEmployeeSelfMode ? "Document submitted for review." : "Document uploaded and saved.");
       if (isEmployeeSelfMode && typeof window !== "undefined") {
         window.sessionStorage.setItem("gbp.employee.docs.upload.cooldown", String(Date.now()));
       }
@@ -375,8 +375,8 @@ export function NewEmployeeModal({
           router.refresh();
         });
       }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "No se pudo cargar documento";
+    } catch {
+      const message = "Unable to upload the document.";
       setUploadUiBySlot((prev) => ({
         ...prev,
         [slot]: {
@@ -408,7 +408,7 @@ export function NewEmployeeModal({
 
     const data = await response.json().catch(() => ({}));
     if (!response.ok || !data?.ok || typeof data?.slot !== "string" || typeof data?.documentId !== "string") {
-      throw new Error(typeof data?.error === "string" ? data.error : "No se pudo crear el documento solicitado");
+      throw new Error("Unable to create the requested document.");
     }
 
     const uploadedTitle = typeof data.documentTitle === "string" && data.documentTitle.trim().length > 0
@@ -455,19 +455,14 @@ export function NewEmployeeModal({
           roleCode: "employee",
         }),
       });
-      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const fallback = "No se pudo reenviar la invitación";
-        const baseMessage = typeof data.error === "string" ? data.error : fallback;
-        const message =
-          res.status === 404
-            ? `${baseMessage} Si no tiene cuenta creada, primero crea el acceso desde la pestaña Cuenta (App).`
-            : baseMessage;
-        throw new Error(message);
+        throw new Error(res.status === 404
+          ? "This employee does not have an account. Create access from the Account tab before resending the invitation."
+          : "Unable to resend the invitation.");
       }
-      toast.success(data.message || `Invitación reenviada a ${targetEmail}`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Error al reenviar invitación");
+      toast.success(`Invitation resent to ${targetEmail}.`);
+    } catch {
+      toast.error("Unable to resend the invitation.");
     } finally {
       setIsResending(false);
     }
@@ -480,7 +475,7 @@ export function NewEmployeeModal({
     }
     const hasUploading = Object.values(uploadUiBySlot).some((row) => row.phase === "uploading");
     if (hasUploading) {
-      toast.error("Espera a que termine la carga de documentos");
+      toast.error("Wait for document uploads to finish.");
       return;
     }
     setIsActionPending(true);
@@ -491,19 +486,17 @@ export function NewEmployeeModal({
         method: "POST",
         body: formData,
       });
-      const data = await response.json().catch(() => ({}));
-
       if (!response.ok) {
-        throw new Error(data.error || "No se pudo guardar el registro");
+        throw new Error("Unable to save the record.");
       }
 
-      toast.success(data.message || (mode === "edit" ? "Registro actualizado correctamente" : "Registro creado correctamente"));
+      toast.success(mode === "edit" ? "Record updated successfully." : "Record created successfully.");
       startTransition(() => {
         router.refresh();
         handleClose();
       });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo guardar el registro");
+    } catch {
+      toast.error("Unable to save the record.");
     } finally {
       setIsActionPending(false);
     }
@@ -538,7 +531,7 @@ export function NewEmployeeModal({
 
     const comment = reviewDialog.comment.trim();
     if (decision === "rejected" && comment.length === 0) {
-      toast.error("Agrega un motivo para el rechazo");
+      toast.error("Add a reason for rejection.");
       return;
     }
 
@@ -557,7 +550,7 @@ export function NewEmployeeModal({
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.error || "No se pudo actualizar la revisión");
+        throw new Error("Unable to update the review.");
       }
 
       setDocumentsBySlotState((prev) => ({
@@ -573,12 +566,12 @@ export function NewEmployeeModal({
 
       setReviewDialog({ open: false, slot: null, decision: "approved", comment: "" });
 
-      toast.success(decision === "approved" ? "Documento aprobado" : "Documento rechazado");
+      toast.success(decision === "approved" ? "Document approved." : "Document rejected.");
       startTransition(() => {
         router.refresh();
       });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo actualizar la revisión");
+    } catch {
+      toast.error("Unable to update the review.");
     } finally {
       setIsReviewDialogSubmitting(false);
       setReviewingBySlot((prev) => ({ ...prev, [slot]: false }));
@@ -593,7 +586,7 @@ export function NewEmployeeModal({
     const row = documentsBySlotState?.[slot];
     if (!row?.documentId || !initialEmployee?.id) return;
     if (row.status !== "approved") {
-      toast.error("Solo puedes configurar vencimiento en documentos aprobados");
+      toast.error("Expiration can only be configured for approved documents.");
       return;
     }
 
@@ -612,7 +605,7 @@ export function NewEmployeeModal({
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.error || "No se pudo guardar el vencimiento");
+        throw new Error("Unable to save the expiration settings.");
       }
 
       setDocumentsBySlotState((prev) => ({
@@ -628,12 +621,12 @@ export function NewEmployeeModal({
         },
       }));
 
-      toast.success("Vencimiento y recordatorio guardados");
+      toast.success("Expiration and reminder saved successfully.");
       startTransition(() => {
         router.refresh();
       });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo guardar el vencimiento");
+    } catch {
+      toast.error("Unable to save the expiration settings.");
     } finally {
       setSavingExpirationBySlot((prev) => ({ ...prev, [slot]: false }));
     }
@@ -657,7 +650,7 @@ export function NewEmployeeModal({
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.error || "No se pudo solicitar firma");
+        throw new Error("Unable to request the signature.");
       }
 
       setDocumentsBySlotState((prev) => ({
@@ -670,10 +663,10 @@ export function NewEmployeeModal({
           signature_completed_at: null,
         },
       }));
-      toast.success("Firma solicitada al empleado");
+      toast.success("Signature requested from the employee.");
       startTransition(() => router.refresh());
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo solicitar firma");
+    } catch {
+      toast.error("Unable to request the signature.");
     } finally {
       setSignatureActionBySlot((prev) => ({ ...prev, [slot]: false }));
     }
@@ -693,7 +686,7 @@ export function NewEmployeeModal({
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.error || "No se pudo recrear la firma");
+        throw new Error("Unable to recreate the signature request.");
       }
 
       const newEmbedSrc = typeof data.signatureEmbedSrc === "string" ? data.signatureEmbedSrc : null;
@@ -707,10 +700,10 @@ export function NewEmployeeModal({
           signature_completed_at: null,
         },
       }));
-      toast.success("Solicitud de firma recreada correctamente");
+      toast.success("Signature request recreated successfully.");
       startTransition(() => router.refresh());
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo recrear la firma");
+    } catch {
+      toast.error("Unable to recreate the signature request.");
     } finally {
       setSignatureActionBySlot((prev) => ({ ...prev, [slot]: false }));
     }
@@ -737,7 +730,7 @@ export function NewEmployeeModal({
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.error || "No se pudo actualizar estado de firma");
+        throw new Error("Unable to update the signature status.");
       }
 
       setDocumentsBySlotState((prev) => ({
@@ -749,10 +742,10 @@ export function NewEmployeeModal({
         },
       }));
 
-      toast.success("Estado de firma actualizado");
+      toast.success("Signature status updated successfully.");
       startTransition(() => router.refresh());
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo actualizar estado de firma");
+    } catch {
+      toast.error("Unable to update the signature status.");
     } finally {
       setSignatureActionBySlot((prev) => ({ ...prev, [slot]: false }));
     }
@@ -896,7 +889,7 @@ export function NewEmployeeModal({
       window.open(url, "_blank", "noopener,noreferrer");
       setTimeout(() => URL.revokeObjectURL(url), 30_000);
     } catch {
-      toast.error("No se pudo generar la vista previa del contrato");
+      toast.error("Unable to generate the contract preview.");
     }
   }
 
@@ -907,7 +900,7 @@ export function NewEmployeeModal({
       const fileBase = employeeFullName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-") || "empleado";
       pdf.save(`contrato-${fileBase}.pdf`);
     } catch {
-      toast.error("No se pudo descargar el contrato en PDF");
+      toast.error("Unable to download the contract PDF.");
     }
   }
 
@@ -936,14 +929,14 @@ export function NewEmployeeModal({
 
     if (!isEmployeeSelfMode && initialEmployee?.id) {
       setIsCreatingCustomDocument(true);
-      const loadingToastId = toast.loading("Creando documento solicitado...");
+      const loadingToastId = toast.loading("Creating requested document...");
       try {
         await handleCreateCustomDocumentRequest(safeTitle);
-        toast.success("Documento solicitado creado. El empleado ya puede subirlo.", { id: loadingToastId });
+        toast.success("Requested document created. The employee can now upload it.", { id: loadingToastId });
         setNewDocumentTitle("");
         setShowAddDocumentTitleBox(false);
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "No se pudo crear el documento solicitado", { id: loadingToastId });
+    } catch {
+        toast.error("Unable to create the requested document.", { id: loadingToastId });
       } finally {
         setIsCreatingCustomDocument(false);
       }

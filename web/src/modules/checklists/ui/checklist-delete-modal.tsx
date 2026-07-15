@@ -24,12 +24,12 @@ export function ChecklistDeleteModal({ template, submitEndpoint, redirectPath = 
     if (submitEndpoint) return;
     if (state.message) {
       if (state.success) {
-        toast.success(state.message);
+        toast.success("Checklist deleted successfully.");
         onSubmitted?.();
         router.push(redirectPath);
         router.refresh();
       } else {
-        toast.error(state.message);
+        toast.error("Unable to delete the checklist.");
       }
     }
   }, [onSubmitted, redirectPath, router, state, submitEndpoint]);
@@ -43,18 +43,17 @@ export function ChecklistDeleteModal({ template, submitEndpoint, redirectPath = 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ templateId: template.id }),
       });
-      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(typeof data.error === "string" ? data.error : "No se pudo eliminar checklist");
+        throw new Error("Unable to delete the checklist.");
       }
-      toast.success("Checklist eliminado");
+      toast.success("Checklist deleted successfully.");
       startTransition(() => {
         onSubmitted?.();
         router.push(redirectPath);
         router.refresh();
       });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo eliminar checklist");
+    } catch {
+      toast.error("Unable to delete the checklist.");
     } finally {
       setIsApiPending(false);
     }

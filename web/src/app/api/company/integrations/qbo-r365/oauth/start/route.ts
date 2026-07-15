@@ -5,7 +5,7 @@ import { buildQboOAuthStartUrl } from "@/modules/integrations/qbo-r365/service";
 export async function GET() {
   const access = await assertCompanyAdminModuleApi("settings");
   if (!access.ok) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+    return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }
 
   try {
@@ -15,9 +15,9 @@ export async function GET() {
     });
 
     return NextResponse.json({ authorizeUrl });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No se pudo construir URL OAuth" },
+      { error: "Unable to start QuickBooks authorization. Please try again." },
       { status: 400 },
     );
   }

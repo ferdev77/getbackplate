@@ -39,10 +39,10 @@ export function ResendInvitationButton({ organizationId, email, fullName }: Rese
       });
 
       const payload = (await response.json().catch(() => null)) as RequestResult | null;
-      const baseMessage = payload?.message ?? payload?.error ?? "No se pudo reenviar la invitacion";
+      const baseMessage = payload?.message ?? payload?.error ?? "Unable to resend the invitation";
       const message =
         response.status === 404
-          ? `${baseMessage} Debes crear/asignar el admin primero para enviar recordatorio.`
+          ? `${baseMessage} You must create or assign the administrator before sending a reminder.`
           : baseMessage;
 
       if (!response.ok || payload?.ok === false) {
@@ -52,7 +52,7 @@ export function ResendInvitationButton({ organizationId, email, fullName }: Rese
 
       setResult({ type: "success", message });
     } catch {
-      setResult({ type: "error", message: "No se pudo reenviar la invitacion. Intenta nuevamente." });
+      setResult({ type: "error", message: "Unable to resend the invitation. Please try again." });
     } finally {
       setPending(false);
     }
@@ -69,10 +69,10 @@ export function ResendInvitationButton({ organizationId, email, fullName }: Rese
         {pending ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            Reenviando...
+            Resending...
           </>
         ) : (
-          "Reenviar invitacion"
+          "Resend invitation"
         )}
       </button>
       {result ? (

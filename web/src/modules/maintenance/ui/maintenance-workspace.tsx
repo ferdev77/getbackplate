@@ -230,11 +230,11 @@ function MaintenanceCatalogManager({
         body: input.body ? JSON.stringify(input.body) : undefined,
       });
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(typeof payload.error === "string" ? payload.error : "No se pudo guardar");
+      if (!response.ok) throw new Error("Could not save the catalog.");
       onCatalogChange(input.apply(catalog, payload as Record<string, unknown>));
       toast.success(input.successMessage);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo guardar");
+    } catch {
+      toast.error("Could not save the catalog.");
     } finally {
       setIsPending(false);
     }
@@ -261,7 +261,7 @@ function MaintenanceCatalogManager({
               url: "/api/company/maintenance/categories",
               method: "POST",
               body: { name: newCategoryName.trim() },
-              successMessage: "Categoria creada",
+              successMessage: "Category created.",
               apply: (current, payload) => ({
                 ...current,
                 categories: [...current.categories, payload.category as MaintenanceCategoryOption].sort((a, b) => a.name.localeCompare(b.name)),
@@ -284,7 +284,7 @@ function MaintenanceCatalogManager({
                 url: `/api/company/maintenance/categories/${category.id}`,
                 method: "PATCH",
                 body: { name: name.trim() },
-                successMessage: "Categoria actualizada",
+                successMessage: "Category updated.",
                 apply: (current, payload) => ({
                   ...current,
                   categories: current.categories.map((item) => item.id === category.id ? payload.category as MaintenanceCategoryOption : item),
@@ -293,7 +293,7 @@ function MaintenanceCatalogManager({
               onDelete={() => void runRequest({
                 url: `/api/company/maintenance/categories/${category.id}`,
                 method: "DELETE",
-                successMessage: "Categoria eliminada",
+                successMessage: "Category deleted.",
                 apply: (current) => {
                   const remainingServiceItems = current.serviceItems.filter((item) => item.categoryId !== category.id);
                   const remainingServiceItemIds = new Set(remainingServiceItems.map((item) => item.id));
@@ -333,7 +333,7 @@ function MaintenanceCatalogManager({
               url: "/api/company/maintenance/service-items",
               method: "POST",
               body: { categoryId: managerCategoryId, name: newServiceItemName.trim() },
-              successMessage: "Item creado",
+              successMessage: "Service item created.",
               apply: (current, payload) => ({
                 ...current,
                 serviceItems: [...current.serviceItems, payload.serviceItem as MaintenanceServiceItemOption].sort((a, b) => a.name.localeCompare(b.name)),
@@ -356,7 +356,7 @@ function MaintenanceCatalogManager({
                 url: `/api/company/maintenance/service-items/${item.id}`,
                 method: "PATCH",
                 body: { name: name.trim() },
-                successMessage: "Item actualizado",
+                successMessage: "Service item updated.",
                 apply: (current, payload) => ({
                   ...current,
                   serviceItems: current.serviceItems.map((entry) => entry.id === item.id ? payload.serviceItem as MaintenanceServiceItemOption : entry),
@@ -365,7 +365,7 @@ function MaintenanceCatalogManager({
               onDelete={() => void runRequest({
                 url: `/api/company/maintenance/service-items/${item.id}`,
                 method: "DELETE",
-                successMessage: "Item eliminado",
+                successMessage: "Service item deleted.",
                 apply: (current) => ({
                   ...current,
                   serviceItems: current.serviceItems.filter((entry) => entry.id !== item.id),
@@ -400,7 +400,7 @@ function MaintenanceCatalogManager({
               url: "/api/company/maintenance/issues",
               method: "POST",
               body: { serviceItemId: managerServiceItemId, name: newIssueName.trim() },
-              successMessage: "Issue creado",
+              successMessage: "Issue created.",
               apply: (current, payload) => ({
                 ...current,
                 issues: [...current.issues, payload.issue as MaintenanceIssueOption].sort((a, b) => a.name.localeCompare(b.name)),
@@ -423,7 +423,7 @@ function MaintenanceCatalogManager({
                 url: `/api/company/maintenance/issues/${issue.id}`,
                 method: "PATCH",
                 body: { name: name.trim() },
-                successMessage: "Issue actualizado",
+                successMessage: "Issue updated.",
                 apply: (current, payload) => ({
                   ...current,
                   issues: current.issues.map((entry) => entry.id === issue.id ? payload.issue as MaintenanceIssueOption : entry),
@@ -432,7 +432,7 @@ function MaintenanceCatalogManager({
               onDelete={() => void runRequest({
                 url: `/api/company/maintenance/issues/${issue.id}`,
                 method: "DELETE",
-                successMessage: "Issue eliminado",
+                successMessage: "Issue deleted.",
                 apply: (current) => ({
                   ...current,
                   issues: current.issues.filter((entry) => entry.id !== issue.id),
@@ -633,7 +633,7 @@ export function MaintenanceWorkspace({
       });
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? "No se pudo cargar mantenimiento");
+        throw new Error("Could not load maintenance requests.");
       }
       setRequests(payload.requests ?? []);
       if (payload.catalog) setCatalog(payload.catalog as MaintenanceCatalog);
@@ -652,7 +652,7 @@ export function MaintenanceWorkspace({
   function changeStatus(status: string) {
     setActiveStatus(status);
     startTransition(() => {
-      refresh(status, { showSkeleton: true }).catch((error) => toast.error(error.message));
+      refresh(status, { showSkeleton: true }).catch(() => toast.error("Could not load maintenance requests."));
     });
   }
 
@@ -699,12 +699,11 @@ export function MaintenanceWorkspace({
       method: "POST",
       body: formData,
     });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error ?? "No se pudo crear la request");
+    if (!response.ok) throw new Error("Could not create the request.");
     setCreateOpen(false);
     setCatalogManagerOpen(false);
     setCreateForm(deriveFormState(catalog.branches));
-    toast.success("Request guardada");
+    toast.success("Request saved.");
     await refresh(activeStatus);
   }
 
@@ -724,8 +723,7 @@ export function MaintenanceWorkspace({
           message: formData.get("message"),
         }),
       });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? "No se pudo responder la request");
+      if (!response.ok) throw new Error("Could not save the response.");
 
       const files = formData.getAll("files").filter((value): value is File => value instanceof File && value.size > 0);
       if (files.length) {
@@ -735,14 +733,13 @@ export function MaintenanceWorkspace({
           method: "POST",
           body: attachmentData,
         });
-        const attachmentsPayload = await attachmentsResponse.json();
-        if (!attachmentsResponse.ok) throw new Error(attachmentsPayload.error ?? "No se pudieron adjuntar archivos");
+        if (!attachmentsResponse.ok) throw new Error("Could not upload attachments.");
       }
 
-      toast.success("Respuesta guardada");
+      toast.success("Response saved.");
       await refresh(activeStatus);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Error al responder");
+    } catch {
+      toast.error("Could not save the response.");
     } finally {
       setResponding(false);
     }
@@ -754,9 +751,8 @@ export function MaintenanceWorkspace({
       method: "PUT",
       body: formData,
     });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error ?? "No se pudo actualizar el borrador");
-    toast.success(formData.get("action") === "submit" ? "Borrador enviado" : "Borrador actualizado");
+    if (!response.ok) throw new Error("Could not update the draft.");
+    toast.success(formData.get("action") === "submit" ? "Draft submitted." : "Draft updated.");
     await refresh(activeStatus);
   }
 
@@ -975,7 +971,7 @@ export function MaintenanceWorkspace({
                       formData.set("title", draftForm.title);
                       formData.set("description", draftForm.description);
                       startTransition(() => {
-                        submitDraftUpdate(formData).catch((error) => toast.error(error.message));
+                        submitDraftUpdate(formData).catch(() => toast.error("Could not update the draft."));
                       });
                     }}
                     className="space-y-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4"
@@ -1183,7 +1179,7 @@ export function MaintenanceWorkspace({
               formData.set("title", createForm.title);
               formData.set("description", createForm.description);
               startTransition(() => {
-                submitCreate(formData).catch((error) => toast.error(error.message));
+                submitCreate(formData).catch(() => toast.error("Could not create the request."));
               });
             }}
             className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-5 shadow-2xl"

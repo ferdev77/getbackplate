@@ -5,7 +5,7 @@ import { listQboR365Runs } from "@/modules/integrations/qbo-r365/service";
 export async function GET(request: Request) {
   const access = await assertCompanyAdminModuleApi("settings");
   if (!access.ok) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+    return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }
 
   const url = new URL(request.url);
@@ -15,9 +15,9 @@ export async function GET(request: Request) {
   try {
     const runs = await listQboR365Runs(access.tenant.organizationId, limit);
     return NextResponse.json({ runs });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No se pudo obtener historial" },
+      { error: "Unable to load the run history. Please try again." },
       { status: 500 },
     );
   }

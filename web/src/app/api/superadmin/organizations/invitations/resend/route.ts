@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   const fullName = String(body?.fullName ?? "").trim() || "Administrator";
 
   if (!organizationId || !email) {
-    return NextResponse.json({ ok: false, error: "Faltan datos para reenviar invitación" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Invitation resend details are missing" }, { status: 400 });
   }
 
   const admin = createSupabaseAdminClient();
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         ok: false,
-        error: "No existe una cuenta para este correo. Crea el admin desde alta y luego reintenta.",
+        error: "No account exists for this email. Create the administrator first, then try again.",
       },
       { status: 404 },
     );
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
 
   if (updateError) {
     return NextResponse.json(
-      { ok: false, error: `No se pudo actualizar la cuenta para reenvio: ${updateError.message}` },
+      { ok: false, error: `Unable to update the account for resend: ${updateError.message}` },
       { status: 400 },
     );
   }
@@ -145,6 +145,6 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     mode,
-    message: `Recordatorio de acceso reenviado a ${email}`,
+    message: `Access reminder resent to ${email}`,
   });
 }

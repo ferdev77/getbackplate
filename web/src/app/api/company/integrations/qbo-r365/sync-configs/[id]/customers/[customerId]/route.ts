@@ -12,7 +12,7 @@ type Params = { params: Promise<{ id: string; customerId: string }> };
 export async function DELETE(_req: Request, { params }: Params) {
   const access = await assertCompanyAdminModuleApi("settings");
   if (!access.ok) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+    return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }
 
   const { id, customerId } = await params;
@@ -20,9 +20,9 @@ export async function DELETE(_req: Request, { params }: Params) {
   try {
     await removeCustomerFromSyncConfig(access.tenant.organizationId, id, customerId);
     return NextResponse.json({ ok: true }, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No se pudo quitar el cliente" },
+      { error: "Unable to remove the customer. Please try again." },
       { status: 400 },
     );
   }

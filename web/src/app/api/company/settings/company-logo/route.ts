@@ -110,7 +110,7 @@ export async function POST(request: Request) {
         error: updateError.message,
       },
     });
-    return NextResponse.json({ error: `No se pudo guardar logo: ${updateError.message}` }, { status: 400 });
+    return NextResponse.json({ error: `Unable to save logo: ${updateError.message}` }, { status: 400 });
   }
 
   await logAuditEvent({

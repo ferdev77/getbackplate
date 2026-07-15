@@ -30,7 +30,7 @@ export default async function SelectOrganizationPage({ searchParams }: SelectOrg
   if (!memberships.length) {
     redirect(
       "/auth/login?error=" +
-        encodeURIComponent("Tu usuario no tiene acceso asignado. Contacta al administrador."),
+        encodeURIComponent("Your account does not have assigned access. Contact an administrator."),
     );
   }
 

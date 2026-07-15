@@ -236,7 +236,7 @@ export function EmployeeChecklistPreviewModal({
     setIsSubmitting(false);
 
     if (!response.ok || !data?.ok) {
-      setSubmitError(data?.error ?? "No se pudo enviar el reporte");
+      setSubmitError("Unable to submit the report.");
       return;
     }
 

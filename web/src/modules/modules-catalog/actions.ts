@@ -99,7 +99,7 @@ export async function updateModuleAction(formData: FormData) {
   if (!currentModule) {
     redirect(
       "/superadmin/modules?status=error&message=" +
-        qs("No se encontró el módulo seleccionado"),
+        qs("The selected module was not found"),
     );
   }
 
@@ -124,7 +124,7 @@ export async function updateModuleAction(formData: FormData) {
 
     redirect(
       "/superadmin/modules?status=error&message=" +
-        qs(`El módulo core '${currentModule.name}' no puede pasar a opcional`),
+        qs(`The core module '${currentModule.name}' cannot be made optional`),
     );
   }
 
@@ -164,7 +164,7 @@ export async function updateModuleAction(formData: FormData) {
 
   redirect(
     "/superadmin/modules?status=success&message=" +
-      qs(`Módulo '${name}' actualizado correctamente`),
+      qs(`Module '${name}' updated successfully`),
   );
 }
 
@@ -179,7 +179,7 @@ export async function updateModuleAddonAction(formData: FormData) {
   const integrationPlanType = String(formData.get("integration_plan_type") ?? "").trim() || null;
 
   if (!moduleId) {
-    redirect("/superadmin/modules?status=error&message=" + qs("Módulo no especificado"));
+    redirect("/superadmin/modules?status=error&message=" + qs("Module not specified"));
   }
 
   let addonPriceAmount: number | null = null;
@@ -192,8 +192,8 @@ export async function updateModuleAddonAction(formData: FormData) {
       addonPriceAmount = price.unit_amount ? price.unit_amount / 100 : 0;
       addonCurrencyCode = price.currency.toUpperCase();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Error desconocido";
-      redirect("/superadmin/modules?status=error&message=" + qs(`Stripe Price ID inválido: ${message}`));
+      const message = err instanceof Error ? err.message : "Unknown error";
+      redirect("/superadmin/modules?status=error&message=" + qs(`Invalid Stripe Price ID: ${message}`));
     }
   }
 
@@ -213,7 +213,7 @@ export async function updateModuleAddonAction(formData: FormData) {
     .eq("id", moduleId);
 
   if (error) {
-    redirect("/superadmin/modules?status=error&message=" + qs(`Error al actualizar: ${error.message}`));
+    redirect("/superadmin/modules?status=error&message=" + qs(`Update failed: ${error.message}`));
   }
 
   await logAuditEvent({
@@ -230,6 +230,6 @@ export async function updateModuleAddonAction(formData: FormData) {
 
   redirect(
     "/superadmin/modules?status=success&message=" +
-      qs("Configuración de add-on actualizada correctamente"),
+      qs("Add-on configuration updated successfully"),
   );
 }

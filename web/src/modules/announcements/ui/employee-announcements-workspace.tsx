@@ -131,15 +131,14 @@ export function EmployeeAnnouncementsWorkspace({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ announcementId }),
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "No se pudo eliminar aviso");
+      if (!response.ok) throw new Error("Unable to delete the announcement.");
 
       setMine((prev) => prev.filter((row) => row.id !== announcementId));
       setFeed((prev) => prev.filter((row) => row.id !== announcementId));
       setDeleteTarget(null);
-      toast.success("Aviso eliminado");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo eliminar aviso");
+      toast.success("Announcement deleted successfully.");
+    } catch {
+      toast.error("Unable to delete the announcement.");
     } finally {
       setBusyDelete(false);
     }
@@ -310,12 +309,12 @@ export function EmployeeAnnouncementsWorkspace({
 
       {deleteTarget ? (
         <ConfirmDeleteDialog
-          title="Eliminar aviso"
-          description={`Se eliminará \"${deleteTarget.title}\". Esta acción no se puede deshacer.`}
+          title="Delete announcement"
+          description={`\"${deleteTarget.title}\" will be deleted. This action cannot be undone.`}
           busy={busyDelete}
           onCancel={() => setDeleteTarget(null)}
           onConfirm={() => void removeAnnouncement(deleteTarget.id)}
-          confirmLabel="Eliminar"
+          confirmLabel="Delete"
         />
       ) : null}
     </div>

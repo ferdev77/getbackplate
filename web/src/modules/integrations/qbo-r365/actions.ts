@@ -8,7 +8,7 @@ import { qboR365ConfigUpsertSchema } from "@/modules/integrations/qbo-r365/types
 export async function saveIntegrationConfigAction(formData: FormData) {
   const access = await assertCompanyAdminModuleApi("settings");
   if (!access.ok) {
-    return { status: "error", message: access.error };
+    return { status: "error", message: "Access denied." };
   }
 
   try {
@@ -28,7 +28,7 @@ export async function saveIntegrationConfigAction(formData: FormData) {
     const hasAnyFtpField = hasFtpCredentialsInput;
     if (hasAnyFtpField) {
       if (!ftpHost || !ftpUsername || !ftpPassword) {
-        return { status: "error", message: "Para actualizar FTP, completa Host, Usuario y Contraseña." };
+        return { status: "error", message: "To update FTP, enter the host, username, and password." };
       }
 
       rawData.r365Ftp = {
@@ -56,12 +56,12 @@ export async function saveIntegrationConfigAction(formData: FormData) {
     }
 
     if (!hasAnyFtpField && !hasAnySettingsField) {
-      return { status: "error", message: "No hay cambios para guardar." };
+      return { status: "error", message: "There are no changes to save." };
     }
 
     const parsed = qboR365ConfigUpsertSchema.safeParse(rawData);
     if (!parsed.success) {
-      return { status: "error", message: "Los datos de configuración no son válidos." };
+      return { status: "error", message: "The configuration data is invalid." };
     }
 
     await upsertQboR365Config({
@@ -71,12 +71,12 @@ export async function saveIntegrationConfigAction(formData: FormData) {
     });
 
     revalidatePath("/app/integrations/quickbooks");
-    return { status: "success", message: "Configuración guardada exitosamente." };
+    return { status: "success", message: "Configuration saved successfully." };
   } catch (error) {
     console.error("[saveIntegrationConfigAction]", error);
     return {
       status: "error",
-      message: error instanceof Error ? error.message : "Error al guardar configuración.",
+      message: "Unable to save the configuration. Please try again.",
     };
   }
 }

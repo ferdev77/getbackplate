@@ -83,11 +83,11 @@ function toFriendlyPlanErrorMessage(raw: string) {
   const text = raw.toLowerCase();
 
   if (text.includes("could not find the table 'public.plans'")) {
-    return "Tu base de datos aun no tiene la tabla plans. Debes ejecutar primero las migraciones 20260311_0001_base_saas.sql y 202603110002_plan_pricing.sql en Supabase SQL Editor.";
+    return "Your database does not have the plans table yet. Run the 20260311_0001_base_saas.sql and 202603110002_plan_pricing.sql migrations first in the Supabase SQL Editor.";
   }
 
   if (text.includes("price_amount") || text.includes("currency_code") || text.includes("billing_period")) {
-    return "Falta aplicar la migracion de precios de planes (202603110002_plan_pricing.sql).";
+    return "The plan pricing migration (202603110002_plan_pricing.sql) has not been applied.";
   }
 
   return raw;
@@ -162,8 +162,8 @@ export async function createPlanAction(formData: FormData) {
       priceAmount = price.unit_amount ? price.unit_amount / 100 : 0;
       currencyCode = price.currency.toUpperCase();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Error desconocido";
-      redirect("/superadmin/plans?status=error&message=" + qs(`Stripe Price ID inválido: ${message}`));
+      const message = err instanceof Error ? err.message : "Unknown error";
+      redirect("/superadmin/plans?status=error&message=" + qs(`Invalid Stripe Price ID: ${message}`));
     }
   }
 
@@ -172,13 +172,13 @@ export async function createPlanAction(formData: FormData) {
       const price = await stripe.prices.retrieve(setupFeeStripePriceId);
       setupFeeAmount = price.unit_amount ? price.unit_amount / 100 : 0;
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Error desconocido";
-      redirect("/superadmin/plans?status=error&message=" + qs(`Stripe Price ID del setup fee inválido: ${message}`));
+      const message = err instanceof Error ? err.message : "Unknown error";
+      redirect("/superadmin/plans?status=error&message=" + qs(`Invalid setup fee Stripe Price ID: ${message}`));
     }
   }
 
   if (!code || !name) {
-    redirect("/superadmin/plans?status=error&message=" + qs("Completa codigo y nombre del plan"));
+    redirect("/superadmin/plans?status=error&message=" + qs("Enter a plan code and name"));
   }
 
   const supabase = createSupabaseAdminClient();
@@ -228,7 +228,7 @@ export async function createPlanAction(formData: FormData) {
     .single();
 
   if (error) {
-    const message = `No se pudo crear el plan: ${toFriendlyPlanErrorMessage(error.message)}`;
+    const message = `Could not create the plan: ${toFriendlyPlanErrorMessage(error.message)}`;
     redirect("/superadmin/plans?status=error&message=" + qs(message));
   }
 
@@ -269,7 +269,7 @@ export async function createPlanAction(formData: FormData) {
   });
 
   revalidatePlanSurfaces(planType);
-  redirect("/superadmin/plans?status=success&message=" + qs("Plan creado correctamente"));
+  redirect("/superadmin/plans?status=success&message=" + qs("Plan created successfully"));
 }
 
 export async function updatePlanAction(formData: FormData) {
@@ -308,8 +308,8 @@ export async function updatePlanAction(formData: FormData) {
       priceAmount = price.unit_amount ? price.unit_amount / 100 : 0;
       currencyCode = price.currency.toUpperCase();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Error desconocido";
-      redirect("/superadmin/plans?status=error&message=" + qs(`Stripe Price ID inválido: ${message}`));
+      const message = err instanceof Error ? err.message : "Unknown error";
+      redirect("/superadmin/plans?status=error&message=" + qs(`Invalid Stripe Price ID: ${message}`));
     }
   }
 
@@ -318,8 +318,8 @@ export async function updatePlanAction(formData: FormData) {
       const price = await stripe.prices.retrieve(setupFeeStripePriceId);
       setupFeeAmount = price.unit_amount ? price.unit_amount / 100 : 0;
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Error desconocido";
-      redirect("/superadmin/plans?status=error&message=" + qs(`Stripe Price ID del setup fee inválido: ${message}`));
+      const message = err instanceof Error ? err.message : "Unknown error";
+      redirect("/superadmin/plans?status=error&message=" + qs(`Invalid setup fee Stripe Price ID: ${message}`));
     }
   }
 
@@ -331,7 +331,7 @@ export async function updatePlanAction(formData: FormData) {
   );
 
   if (!planId || !name) {
-    redirect("/superadmin/plans?status=error&message=" + qs("Faltan datos para actualizar el plan"));
+    redirect("/superadmin/plans?status=error&message=" + qs("Missing plan update data"));
   }
 
   const supabase = createSupabaseAdminClient();
@@ -372,7 +372,7 @@ export async function updatePlanAction(formData: FormData) {
     .eq("id", planId);
 
   if (error) {
-    const message = `No se pudo actualizar el plan: ${toFriendlyPlanErrorMessage(error.message)}`;
+    const message = `Could not update the plan: ${toFriendlyPlanErrorMessage(error.message)}`;
     redirect("/superadmin/plans?status=error&message=" + qs(message));
   }
 
@@ -411,7 +411,7 @@ export async function updatePlanAction(formData: FormData) {
   });
 
   revalidatePlanSurfaces(planType);
-  redirect("/superadmin/plans?status=success&message=" + qs("Plan actualizado correctamente"));
+  redirect("/superadmin/plans?status=success&message=" + qs("Plan updated successfully"));
 }
 
 export async function deletePlanAction(formData: FormData) {
@@ -420,7 +420,7 @@ export async function deletePlanAction(formData: FormData) {
   const planId = String(formData.get("plan_id") ?? "");
 
   if (!planId) {
-    redirect("/superadmin/plans?status=error&message=" + qs("No se recibio el plan a eliminar"));
+    redirect("/superadmin/plans?status=error&message=" + qs("No plan was provided for deletion"));
   }
 
   const supabase = createSupabaseAdminClient();
@@ -433,14 +433,14 @@ export async function deletePlanAction(formData: FormData) {
   if (usageError) {
     redirect(
       "/superadmin/plans?status=error&message=" +
-        qs(`No se pudo validar uso del plan: ${usageError.message}`),
+        qs(`Could not validate plan usage: ${usageError.message}`),
     );
   }
 
   if ((organizationsUsingPlan ?? 0) > 0) {
     redirect(
       "/superadmin/plans?status=error&message=" +
-        qs("No se puede borrar el plan porque hay empresas asignadas"),
+        qs("The plan cannot be deleted because organizations are assigned to it"),
     );
   }
 
@@ -453,7 +453,7 @@ export async function deletePlanAction(formData: FormData) {
   if (planLookupError) {
     redirect(
       "/superadmin/plans?status=error&message=" +
-        qs(`No se pudo obtener el tipo del plan: ${toFriendlyPlanErrorMessage(planLookupError.message)}`),
+        qs(`Could not retrieve the plan type: ${toFriendlyPlanErrorMessage(planLookupError.message)}`),
     );
   }
 
@@ -464,7 +464,7 @@ export async function deletePlanAction(formData: FormData) {
   if (error) {
     redirect(
       "/superadmin/plans?status=error&message=" +
-        qs(`No se pudo eliminar el plan: ${toFriendlyPlanErrorMessage(error.message)}`),
+        qs(`Could not delete the plan: ${toFriendlyPlanErrorMessage(error.message)}`),
     );
   }
 
@@ -478,5 +478,5 @@ export async function deletePlanAction(formData: FormData) {
   });
 
   revalidatePlanSurfaces(deletedPlanType);
-  redirect("/superadmin/plans?status=success&message=" + qs("Plan eliminado correctamente"));
+  redirect("/superadmin/plans?status=success&message=" + qs("Plan deleted successfully"));
 }

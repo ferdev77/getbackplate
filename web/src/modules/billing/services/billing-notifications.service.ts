@@ -121,8 +121,8 @@ export async function sendRenewalReminderEmail(organizationId: string, renewalDa
   void sendPushToOrg(
     organizationId,
     {
-      title: "Tu plan se renueva pronto",
-      body: `El plan de ${orgName} se renueva el ${renewalDate} por ${amount}.`,
+      title: "Your plan renews soon",
+      body: `${orgName}'s plan renews on ${renewalDate} for ${amount}.`,
       url: "/app/billing",
     },
     { source: "billing", sourceId: "renewal_reminder", organizationId },
@@ -146,8 +146,8 @@ export async function sendPlanChangedEmail(organizationId: string, planName: str
   void sendPushToOrg(
     organizationId,
     {
-      title: "Tu plan ha sido actualizado",
-      body: `Tu nuevo plan activo es: ${planName}.`,
+      title: "Your plan has been updated",
+      body: `Your new active plan is ${planName}.`,
       url: "/app/billing",
     },
     { source: "billing", sourceId: "plan_changed", organizationId },
@@ -172,8 +172,8 @@ export async function sendPaymentFailedEmail(organizationId: string, retryLink: 
   void sendPushToOrg(
     organizationId,
     {
-      title: "Problema con tu pago",
-      body: "Hay un problema con el pago de tu suscripción. Revisá los detalles de facturación.",
+      title: "Issue with your payment",
+      body: "There is an issue with your subscription payment. Review your billing details.",
       url: "/app/billing",
     },
     { source: "billing", sourceId: "payment_failed", organizationId },
@@ -212,8 +212,8 @@ export async function sendSubscriptionActivatedEmail(params: {
   void sendPushToOrg(
     params.organizationId,
     {
-      title: "¡Tu suscripción ya está activa!",
-      body: `Plan ${params.planName} activado. ¡Bienvenido a bordo!`,
+      title: "Your subscription is now active!",
+      body: `${params.planName} plan activated. Welcome aboard!`,
       url: "/app/dashboard",
     },
     { source: "billing", sourceId: "subscription_activated", organizationId: params.organizationId },

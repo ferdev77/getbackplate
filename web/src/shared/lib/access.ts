@@ -28,25 +28,25 @@ import {
   type EmployeePermissionModuleCode,
 } from "@/shared/lib/employee-module-permissions";
 
-export const MODULE_DISABLED_COPY = "Este módulo no está incluido en tu plan actual.";
+export const MODULE_DISABLED_COPY = "This module is not included in your current plan.";
 
 const MODULE_DISPLAY_NAMES: Record<string, string> = {
   dashboard: "Dashboard",
-  settings: "Ajustes de Empresa",
-  employees: "Empleados",
-  documents: "Documentos",
+  settings: "Company Settings",
+  employees: "Employees",
+  documents: "Documents",
   checklists: "Checklists",
-  reports: "Reportes",
-  announcements: "Comunicados",
-  vendors: "Proveedores",
-  maintenance: "Mantenimiento",
+  reports: "Reports",
+  announcements: "Announcements",
+  vendors: "Vendors",
+  maintenance: "Maintenance",
   qbo_r365: "QuickBooks / R365",
-  custom_branding: "Branding Personalizado",
+  custom_branding: "Custom Branding",
 };
 
 function moduleDisabledMessage(moduleCode: string): string {
   const name = MODULE_DISPLAY_NAMES[moduleCode] ?? moduleCode;
-  return `El módulo "${name}" no está habilitado en esta empresa.`;
+  return `The "${name}" module is not enabled for this organization.`;
 }
 
 export function userMustChangePassword(user: { user_metadata?: unknown } | null | undefined) {
@@ -159,7 +159,7 @@ export async function requireSuperadmin() {
     });
     redirect(
       "/auth/login?error=" +
-        encodeURIComponent("Tu usuario no tiene permisos de superadmin"),
+        encodeURIComponent("Your account does not have superadmin permission."),
     );
   }
 }
@@ -167,11 +167,11 @@ export async function requireSuperadmin() {
 export async function assertSuperadminApi() {
   const user = await getCurrentUser();
   if (!user) {
-    return { ok: false, status: 401 as const, error: "No autenticado" };
+    return { ok: false, status: 401 as const, error: "Unauthenticated" };
   }
   const isSuperadmin = await isCurrentUserSuperadmin();
   if (!isSuperadmin) {
-    return { ok: false, status: 403 as const, error: "No autorizado" };
+    return { ok: false, status: 403 as const, error: "Unauthorized" };
   }
   return { ok: true, userId: user.id };
 }
@@ -210,7 +210,7 @@ export async function requireTenantContext() {
 
     redirect(
       "/auth/login?error=" +
-        encodeURIComponent("Tu usuario no tiene acceso asignado a una empresa"),
+        encodeURIComponent("Your account does not have assigned access to an organization."),
     );
   }
 
@@ -284,7 +284,7 @@ export async function requireTenantModule(moduleCode: string) {
       requiredRole: "company_admin|employee",
       pathHint: "/app/*",
     });
-    redirect("/auth/login?error=" + encodeURIComponent("Tu usuario no tiene acceso asignado a una empresa"));
+    redirect("/auth/login?error=" + encodeURIComponent("Your account does not have assigned access to an organization."));
   }
 
   if (!ctx.module_enabled) {
@@ -331,7 +331,7 @@ async function requireTenantModuleFallback(
       requiredRole: "company_admin|employee",
       pathHint: "/app/*",
     });
-    redirect("/auth/login?error=" + encodeURIComponent("Tu usuario no tiene acceso asignado a una empresa"));
+    redirect("/auth/login?error=" + encodeURIComponent("Your account does not have assigned access to an organization."));
   }
 
   const moduleAccess = await isTenantModuleEnabled(tenant.organizationId, moduleCode);
@@ -386,7 +386,7 @@ export async function assertTenantModuleApi(
     return {
       ok: false,
       status: 401,
-      error: "No autenticado",
+      error: "Unauthenticated",
       reasonCode: AUDIT_REASON_CODES.MISSING_AUTH_SESSION,
     };
   }
@@ -428,7 +428,7 @@ export async function assertTenantModuleApi(
     return {
       ok: false,
       status: 403,
-      error: "Sin tenant activo",
+      error: "No active organization",
       reasonCode: AUDIT_REASON_CODES.MISSING_ACTIVE_MEMBERSHIP,
     };
   }
@@ -510,7 +510,7 @@ export async function assertCompanyAdminModuleApi(
     return {
       ok: false as const,
       status: 403 as const,
-      error: "Sin permisos de gestion",
+      error: "Management permission required",
       reasonCode: AUDIT_REASON_CODES.MISSING_COMPANY_ROLE,
     };
   }
@@ -539,7 +539,7 @@ export async function assertEmployeeCapabilityApi(
     return {
       ok: false as const,
       status: 403 as const,
-      error: "Sin permisos",
+      error: "Permission denied",
       reasonCode: AUDIT_REASON_CODES.MISSING_EMPLOYEE_ROLE,
     };
   }
@@ -562,7 +562,7 @@ export async function assertEmployeeCapabilityApi(
     return {
       ok: false as const,
       status: 403 as const,
-      error: "Sin permisos delegados",
+      error: "Delegated permission required",
       reasonCode: AUDIT_REASON_CODES.MISSING_COMPANY_ROLE,
     };
   }
@@ -602,7 +602,7 @@ export async function requireCompanyAccess() {
     });
     redirect(
       "/portal/home?status=error&message=" +
-        encodeURIComponent("Tu usuario no tiene acceso al panel de empresa"),
+        encodeURIComponent("Your account does not have access to the company dashboard."),
     );
   }
 
@@ -682,7 +682,7 @@ export async function requireEmployeeAccess() {
       });
       redirect(
         "/app/dashboard?status=error&message=" +
-          encodeURIComponent("Tu usuario no tiene acceso al portal de empleado"),
+          encodeURIComponent("Your account does not have access to the employee portal."),
       );
     }
   }
@@ -716,7 +716,7 @@ async function requireEmployeeAccessFallback(userId: string) {
     });
     redirect(
       "/app/dashboard?status=error&message=" +
-        encodeURIComponent("Tu usuario no tiene acceso al portal de empleado"),
+        encodeURIComponent("Your account does not have access to the employee portal."),
     );
   }
 

@@ -32,12 +32,12 @@ export function StripeLaunchBridge({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [targetUrl, setTargetUrl] = useState<string | null>(null);
 
-  const title = mode === "checkout" ? "Conectando con Stripe Checkout" : "Abriendo portal de pagos";
+  const title = mode === "checkout" ? "Connecting to Stripe Checkout" : "Opening payment portal";
   const description = mode === "checkout"
-    ? "Estamos preparando una sesión de pago segura para continuar con tu suscripción."
-    : "Estamos conectando tu cuenta con el portal de facturación seguro de Stripe.";
+    ? "We are preparing a secure payment session to continue your subscription."
+    : "We are connecting your account to Stripe's secure billing portal.";
 
-  const billingLabel = billingPeriod === "yearly" ? "Anual" : "Mensual";
+  const billingLabel = billingPeriod === "yearly" ? "Annual" : "Monthly";
 
   const endpoint = mode === "checkout" ? "/api/stripe/checkout" : "/api/stripe/billing-portal";
   const payload = useMemo(() => {
@@ -61,11 +61,11 @@ export function StripeLaunchBridge({
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(typeof data?.message === "string" ? data.message : typeof data?.error === "string" ? data.error : "No se pudo abrir Stripe");
+        throw new Error("Stripe could not be opened.");
       }
 
       if (typeof data?.url !== "string" || !data.url) {
-        throw new Error("Stripe no devolvió una URL de redirección válida.");
+        throw new Error("Stripe did not return a valid redirect URL.");
       }
 
       setTargetUrl(data.url);
@@ -73,7 +73,7 @@ export function StripeLaunchBridge({
       window.location.assign(data.url);
     } catch (error) {
       setState("error");
-      setErrorMessage(error instanceof Error ? error.message : "Error de conexión con Stripe");
+      setErrorMessage(error instanceof Error ? error.message : "Could not connect to Stripe.");
     }
   }, [endpoint, payload]);
 
@@ -92,7 +92,7 @@ export function StripeLaunchBridge({
           className="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(9,33,19,0.08)] bg-white/80 px-3 py-1.5 text-xs font-semibold text-[#274335] backdrop-blur hover:bg-white"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Volver al panel
+          Back to dashboard
         </button>
 
         <section className="mt-4 overflow-hidden rounded-2xl border border-[rgba(9,33,19,0.1)] bg-white shadow-[0_24px_80px_rgba(9,33,19,0.14)]">
@@ -104,7 +104,7 @@ export function StripeLaunchBridge({
                   <ShieldCheck className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4b7b64]">Pago seguro</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4b7b64]">Secure payment</p>
                   <h1 className="text-2xl font-bold text-[#143126]">{title}</h1>
                 </div>
               </div>
@@ -130,7 +130,7 @@ export function StripeLaunchBridge({
                   <p className="mt-1 text-sm font-semibold text-[#19382c]">{planId ? `ID ${planId.slice(0, 8)}...` : "Plan seleccionado"}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#5e7a6d]">Facturación</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#5e7a6d]">Billing</p>
                   <p className="mt-1 text-sm font-semibold text-[#19382c]">{billingLabel}</p>
                 </div>
               </div>
@@ -140,26 +140,26 @@ export function StripeLaunchBridge({
               {state === "loading" ? (
                 <div className="flex items-center gap-2.5 text-sm font-semibold text-[#1d4b38]">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Preparando redirección segura a Stripe...
+                  Preparing secure redirect to Stripe...
                 </div>
               ) : null}
 
               {state === "ready" ? (
-                <p className="text-sm font-semibold text-[#1d4b38]">Sesión lista. Si no redirige automáticamente, continúa manualmente.</p>
+                <p className="text-sm font-semibold text-[#1d4b38]">Session ready. If you are not redirected automatically, continue manually.</p>
               ) : null}
 
               {state === "error" ? (
                 <div className="space-y-3">
                   <div className="flex items-start gap-2.5 text-sm text-[#7c2d2d]">
                     <AlertTriangle className="mt-0.5 h-4 w-4" />
-                    <p>{errorMessage ?? "No se pudo conectar con Stripe en este momento."}</p>
+                    <p>{errorMessage ?? "Could not connect to Stripe right now."}</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => void resolveStripeUrl()}
                     className="rounded-lg bg-[#1d9d62] px-3 py-2 text-xs font-bold text-white hover:bg-[#168653]"
                   >
-                    Reintentar conexión
+                    Retry connection
                   </button>
                 </div>
               ) : null}
@@ -170,7 +170,7 @@ export function StripeLaunchBridge({
                   onClick={() => window.location.assign(targetUrl)}
                   className="mt-3 rounded-lg bg-[#1d9d62] px-3 py-2 text-xs font-bold text-white hover:bg-[#168653]"
                 >
-                  Continuar a Stripe
+                  Continue to Stripe
                 </button>
               ) : null}
             </div>

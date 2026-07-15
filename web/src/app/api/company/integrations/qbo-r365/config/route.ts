@@ -5,7 +5,7 @@ import { getQboR365Snapshot, upsertQboR365Config } from "@/modules/integrations/
 export async function GET(request: Request) {
   const access = await assertCompanyAdminModuleApi("settings");
   if (!access.ok) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+    return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }
 
   try {
@@ -15,9 +15,9 @@ export async function GET(request: Request) {
 
     const snapshot = await getQboR365Snapshot(access.tenant.organizationId, { includeSensitive });
     return NextResponse.json(snapshot);
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No se pudo obtener configuracion" },
+      { error: "Unable to load the configuration. Please try again." },
       { status: 500 },
     );
   }
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
 export async function PUT(request: Request) {
   const access = await assertCompanyAdminModuleApi("settings");
   if (!access.ok) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+    return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }
 
   const rawBody = await request.json().catch(() => null);
@@ -37,9 +37,9 @@ export async function PUT(request: Request) {
       payload: rawBody,
     });
     return NextResponse.json(snapshot);
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No se pudo guardar configuracion" },
+      { error: "Unable to save the configuration. Please try again." },
       { status: 400 },
     );
   }

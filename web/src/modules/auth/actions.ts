@@ -71,23 +71,22 @@ function getFriendlyAuthErrorMessage(error: { message?: string } | null | undefi
   const message = (error?.message || "").toLowerCase();
 
   if (message.includes("invalid login credentials")) {
-    return "Email o contraseña incorrectos. Por favor, revisa tus datos e intenta nuevamente.";
+    return "Incorrect email or password. Please check your details and try again.";
   }
 
   if (message.includes("email not confirmed")) {
-    return "Tu cuenta de correo aún no ha sido confirmada. Por favor, revisa tu bandeja de entrada.";
+    return "Your email address has not been confirmed. Please check your inbox.";
   }
 
   if (message.includes("too many requests")) {
-    return "Demasiados intentos fallidos. Por favor, intenta de nuevo en unos minutos.";
+    return "Too many failed attempts. Please try again in a few minutes.";
   }
 
   if (message.includes("user already registered")) {
-    return "Ya existe una cuenta con este correo electrónico.";
+    return "An account with this email address already exists.";
   }
 
-  // Fallback for unexpected errors but kept in Spanish
-  return error?.message || "Ocurrió un error inesperado al iniciar sesión.";
+  return "An unexpected error occurred while signing in.";
 }
 
 export async function loginWithPasswordAction(formData: FormData) {
@@ -110,7 +109,7 @@ export async function loginWithPasswordAction(formData: FormData) {
           email_domain: emailDomain,
         },
       });
-      redirect(buildLoginPath({ error: "Completa email y contraseña", organizationIdHint: organizationHint }));
+      redirect(buildLoginPath({ error: "Enter your email and password.", organizationIdHint: organizationHint }));
     }
 
     const supabase = await createSupabaseServerClient();
@@ -146,7 +145,7 @@ export async function loginWithPasswordAction(formData: FormData) {
           email_domain: emailDomain,
         },
       });
-      redirect(buildLoginPath({ error: "No se pudo validar la sesión", organizationIdHint: organizationHint }));
+      redirect(buildLoginPath({ error: "Your session could not be validated.", organizationIdHint: organizationHint }));
     }
 
     const admin = createSupabaseAdminClient();
@@ -195,7 +194,7 @@ export async function loginWithPasswordAction(formData: FormData) {
       });
       redirect(
         "/auth/login?error=" +
-          encodeURIComponent(`No se pudo cargar membresías: ${membershipsError.message}`),
+          encodeURIComponent("Your account access could not be loaded. Please try again."),
       );
     }
 
@@ -213,7 +212,7 @@ export async function loginWithPasswordAction(formData: FormData) {
       });
       redirect(
         "/auth/login?error=" +
-          encodeURIComponent("Tu usuario no tiene acceso asignado. Contacta al administrador."),
+          encodeURIComponent("Your account does not have assigned access. Contact an administrator."),
       );
     }
 
@@ -234,7 +233,7 @@ export async function loginWithPasswordAction(formData: FormData) {
       });
       redirect(
         "/auth/login?error=" +
-          encodeURIComponent(`No se pudieron cargar roles: ${rolesError.message}`),
+          encodeURIComponent("Your account role could not be loaded. Please try again."),
       );
     }
 
@@ -377,7 +376,7 @@ export async function loginWithPasswordAction(formData: FormData) {
 
     redirect(
       buildLoginPath({
-        error: `Error en inicio de sesión: ${error instanceof Error ? error.message : "desconocido"}`,
+        error: "An unexpected error occurred while signing in. Please try again.",
         organizationIdHint: normalizeOrganizationId(
           String(formData.get("organization_id_hint") ?? ""),
         ),
@@ -394,7 +393,7 @@ export async function requestPasswordRecoveryAction(formData: FormData) {
   const resolvedOrganizationId = await resolveOrganizationIdFromAuthHint(organizationIdHint);
 
   if (!email) {
-    redirect(buildForgotPasswordPath({ error: "Ingresa un email válido", organizationIdHint }));
+    redirect(buildForgotPasswordPath({ error: "Enter a valid email address.", organizationIdHint }));
   }
 
   const admin = createSupabaseAdminClient();
@@ -422,13 +421,13 @@ export async function requestPasswordRecoveryAction(formData: FormData) {
     if (message.includes("user") && (message.includes("not found") || message.includes("no user"))) {
       redirect(buildForgotPasswordPath({
         status: "success",
-        message: "Te enviamos un enlace para restablecer tu contraseña",
+        message: "We sent you a link to reset your password.",
         organizationIdHint,
       }));
     }
 
     redirect(buildForgotPasswordPath({
-      error: `No se pudo preparar el enlace de recuperación: ${linkError?.message || "intenta nuevamente"}`,
+      error: "Your password reset link could not be prepared. Please try again.",
       organizationIdHint,
     }));
   }
@@ -459,14 +458,14 @@ export async function requestPasswordRecoveryAction(formData: FormData) {
 
   if (!mailResult.ok) {
     redirect(buildForgotPasswordPath({
-      error: `No se pudo enviar el correo de recuperación: ${mailResult.error}`,
+      error: "Your password reset email could not be sent. Please try again.",
       organizationIdHint,
     }));
   }
 
   redirect(buildForgotPasswordPath({
     status: "success",
-    message: "Te enviamos un enlace para restablecer tu contraseña",
+    message: "We sent you a link to reset your password.",
     organizationIdHint,
   }));
 }
@@ -490,7 +489,7 @@ export async function updatePasswordAction(formData: FormData) {
     });
     redirect(
       "/auth/change-password?error=" +
-        encodeURIComponent("La contraseña debe tener al menos 8 caracteres"),
+        encodeURIComponent("Your password must contain at least 8 characters."),
     );
   }
 
@@ -507,7 +506,7 @@ export async function updatePasswordAction(formData: FormData) {
     });
     redirect(
       "/auth/change-password?error=" +
-        encodeURIComponent("La confirmación de contraseña no coincide"),
+        encodeURIComponent("Password confirmation does not match."),
     );
   }
 
@@ -527,7 +526,7 @@ export async function updatePasswordAction(formData: FormData) {
         reason: "missing_authenticated_user",
       },
     });
-    redirect("/auth/login?error=" + encodeURIComponent("Tu sesión expiró. Inicia sesión nuevamente"));
+    redirect("/auth/login?error=" + encodeURIComponent("Your session has expired. Please sign in again."));
   }
 
   const currentMetadata =
@@ -558,7 +557,7 @@ export async function updatePasswordAction(formData: FormData) {
     });
     redirect(
       "/auth/change-password?error=" +
-        encodeURIComponent(`No se pudo actualizar la contraseña: ${error.message}`),
+        encodeURIComponent("Your password could not be updated. Please try again."),
     );
   }
 
@@ -597,7 +596,7 @@ export async function updatePasswordAction(formData: FormData) {
   if (membershipsError) {
     redirect(
       "/auth/login?error=" +
-        encodeURIComponent(`No se pudo resolver tu acceso después del cambio: ${membershipsError.message}`),
+        encodeURIComponent("Your account access could not be resolved. Please sign in again."),
     );
   }
 
@@ -605,7 +604,7 @@ export async function updatePasswordAction(formData: FormData) {
   if (!roleIds.length) {
     redirect(
       "/auth/login?error=" +
-        encodeURIComponent("Tu usuario no tiene acceso asignado. Contacta al administrador."),
+        encodeURIComponent("Your account does not have assigned access. Contact an administrator."),
     );
   }
 
@@ -617,7 +616,7 @@ export async function updatePasswordAction(formData: FormData) {
   if (rolesError) {
     redirect(
       "/auth/login?error=" +
-        encodeURIComponent(`No se pudo resolver tu rol después del cambio: ${rolesError.message}`),
+        encodeURIComponent("Your account role could not be resolved. Please sign in again."),
     );
   }
 
@@ -679,14 +678,14 @@ export async function selectOrganizationAction(formData: FormData) {
   const nextPath = String(formData.get("next_path") ?? "").trim();
 
   if (!organizationId) {
-    redirect("/auth/select-organization?error=" + encodeURIComponent("Selecciona una empresa"));
+    redirect("/auth/select-organization?error=" + encodeURIComponent("Select an organization."));
   }
 
   const memberships = await getCurrentUserMemberships();
   if (!memberships.length) {
     redirect(
       "/auth/login?error=" +
-        encodeURIComponent("Tu usuario no tiene acceso asignado. Contacta al administrador."),
+        encodeURIComponent("Your account does not have assigned access. Contact an administrator."),
     );
   }
 
@@ -697,7 +696,7 @@ export async function selectOrganizationAction(formData: FormData) {
   if (!organizationMemberships.length) {
     redirect(
       "/auth/select-organization?error=" +
-        encodeURIComponent("No tienes acceso a la empresa seleccionada"),
+        encodeURIComponent("You do not have access to the selected organization."),
     );
   }
 
@@ -716,7 +715,7 @@ export async function selectOrganizationAction(formData: FormData) {
 
     redirect(
       "/app/dashboard?status=error&message=" +
-        encodeURIComponent("No tienes rol de empleado en esta empresa"),
+        encodeURIComponent("You do not have an employee role in this organization."),
     );
   }
 
@@ -731,7 +730,7 @@ export async function selectOrganizationAction(formData: FormData) {
 
     redirect(
       "/auth/select-organization?error=" +
-        encodeURIComponent("No tienes permisos para ingresar a esta empresa"),
+        encodeURIComponent("You do not have permission to access this organization."),
     );
   }
 
@@ -745,6 +744,6 @@ export async function selectOrganizationAction(formData: FormData) {
 
   redirect(
     "/auth/select-organization?error=" +
-      encodeURIComponent("No tienes permisos para ingresar a esta empresa"),
+      encodeURIComponent("You do not have permission to access this organization."),
   );
 }

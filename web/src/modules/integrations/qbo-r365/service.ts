@@ -26,8 +26,6 @@ import { buildR365Csv, parseCsvRows, type NormalizedInvoiceLine } from "@/module
 import {
   qboR365ConfigUpsertSchema,
   qboR365SettingsSchema,
-  syncConfigCreateSchema,
-  syncConfigUpdateSchema,
   type FtpStoredSecrets,
   type IntegrationProvider,
   type SyncConfigCreatePayload,
@@ -208,7 +206,7 @@ async function getSyncConfigRow(organizationId: string, id: string): Promise<Syn
   ]);
 
   if (error || !data) {
-    throw new Error(error?.message || "Sync config no encontrada");
+    throw new Error(error?.message || "Sync configuration not found.");
   }
 
   return { ...(data as SyncConfigRow), customers };
@@ -280,7 +278,7 @@ export async function createSyncConfig(
   const hasAllFtpFields = Boolean(ftpHost && ftpUsername && ftpPassword);
 
   if (hasAnyFtpField && !hasAllFtpFields) {
-    throw new Error("Para configurar FTP, completa host, usuario y contrasena.");
+    throw new Error("To configure FTP, enter the host, username, and password.");
   }
 
   const encrypted = hasAllFtpFields
@@ -316,7 +314,7 @@ export async function createSyncConfig(
     .select("id")
     .single();
 
-  if (error || !data) throw new Error(error?.message || "No se pudo crear la sync config");
+  if (error || !data) throw new Error(error?.message || "Unable to create the sync configuration.");
 
   const syncConfigId = data.id as string;
 
@@ -339,7 +337,7 @@ export async function createSyncConfig(
   if (customersError) {
     await admin.from("qbo_r365_sync_configs").delete().eq("id", syncConfigId);
     if (customersError.code === "23505") {
-      throw new Error("Uno de los clientes de QuickBooks elegidos ya está asignado a otra sincronización.");
+      throw new Error("One of the selected QuickBooks customers is already assigned to another synchronization.");
     }
     throw new Error(customersError.message);
   }
@@ -422,7 +420,7 @@ export async function addCustomerToSyncConfig(
 
   if (error) {
     if (error.code === "23505") {
-      throw new Error("Este cliente de QuickBooks ya está asignado a otra sincronización.");
+      throw new Error("This QuickBooks customer is already assigned to another synchronization.");
     }
     throw new Error(error.message);
   }
@@ -445,7 +443,7 @@ export async function removeCustomerFromSyncConfig(
 
   const current = await getSyncConfigCustomers(syncConfigId);
   if (current.length <= 1) {
-    throw new Error("No se puede quitar el único cliente de la sincronización. Eliminá la sincronización completa si ya no la necesitás.");
+    throw new Error("The only customer cannot be removed from this synchronization. Delete the synchronization if you no longer need it.");
   }
 
   const { error } = await admin
@@ -461,7 +459,7 @@ export async function removeCustomerFromSyncConfig(
 export async function listQboCustomers(organizationId: string): Promise<QboCustomer[]> {
   const qboConnection = await getConnection(organizationId, "quickbooks_online");
   if (!qboConnection || qboConnection.status !== "connected") {
-    throw new Error("QuickBooks Online no esta conectado");
+    throw new Error("QuickBooks Online is not connected.");
   }
 
   const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
@@ -475,7 +473,7 @@ export async function listQboCustomers(organizationId: string): Promise<QboCusto
 export async function getQboCustomerById(organizationId: string, customerId: string): Promise<QboCustomer | null> {
   const qboConnection = await getConnection(organizationId, "quickbooks_online");
   if (!qboConnection || qboConnection.status !== "connected") {
-    throw new Error("QuickBooks Online no esta conectado");
+    throw new Error("QuickBooks Online is not connected.");
   }
   const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
   return fetchQboCustomerById({
@@ -488,7 +486,7 @@ export async function getQboCustomerById(organizationId: string, customerId: str
 export async function fetchRawQboInvoice(organizationId: string, invoiceId: string) {
   const qboConnection = await getConnection(organizationId, "quickbooks_online");
   if (!qboConnection || qboConnection.status !== "connected") {
-    throw new Error("QuickBooks Online no esta conectado");
+    throw new Error("QuickBooks Online is not connected.");
   }
   const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
   return fetchQboRawTransaction({
@@ -501,7 +499,7 @@ export async function fetchRawQboInvoice(organizationId: string, invoiceId: stri
 export async function fetchCrudoQboInvoice(organizationId: string, invoiceId: string, syncConfigId?: string | null) {
   const qboConnection = await getConnection(organizationId, "quickbooks_online");
   if (!qboConnection || qboConnection.status !== "connected") {
-    throw new Error("QuickBooks Online no esta conectado");
+    throw new Error("QuickBooks Online is not connected.");
   }
   const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
   const transactionCrudo = await fetchQboCrudoTransaction({
@@ -879,7 +877,7 @@ function validateCsvVsInvoiceTotal(lines: NormalizedInvoiceLine[], invoiceTotals
     const diff = Math.abs(Math.round((csvTotal - qboTotal) * 100) / 100);
     if (diff > 0.01) {
       throw new Error(
-        `Factura ${invoiceId}: total CSV ${csvTotal.toFixed(2)} no coincide con QBO TotalAmt ${qboTotal.toFixed(2)} (diferencia: ${diff.toFixed(2)})`
+        `Invoice ${invoiceId}: CSV total ${csvTotal.toFixed(2)} does not match the QuickBooks total ${qboTotal.toFixed(2)} (difference: ${diff.toFixed(2)}).`
       );
     }
   }
@@ -933,7 +931,7 @@ async function createRun(
     .single();
 
   if (error || !data) {
-    throw new Error(error?.message || "No se pudo iniciar corrida de integracion");
+    throw new Error(error?.message || "Unable to start the integration run.");
   }
 
   return data.id as string;
@@ -1016,14 +1014,14 @@ export async function upsertQboR365Config(input: {
 }) {
   const parsed = qboR365ConfigUpsertSchema.safeParse(input.payload);
   if (!parsed.success) {
-    throw new Error("Payload de configuracion invalido");
+    throw new Error("The configuration payload is invalid.");
   }
 
   const payload = parsed.data;
   const admin = createSupabaseAdminClient();
 
   if (payload.qbo) {
-    throw new Error("Las credenciales developer de QuickBooks se administran globalmente por Super Admin");
+    throw new Error("QuickBooks developer credentials are managed globally by a super administrator.");
   }
 
   if (payload.settings) {
@@ -1089,7 +1087,7 @@ export async function buildQboOAuthStartUrl(input: {
 }) {
   const globalQbo = getGlobalQboOAuthConfig();
   if (!globalQbo.ready) {
-    throw new Error("QuickBooks no esta configurado globalmente. Contacta al super admin.");
+    throw new Error("QuickBooks is not configured globally. Contact a super administrator.");
   }
 
   const state = createOAuthStateToken(input.organizationId, input.actorId);
@@ -1108,7 +1106,7 @@ export async function completeQboOAuthCallback(input: {
 }) {
   const globalQbo = getGlobalQboOAuthConfig();
   if (!globalQbo.ready) {
-    throw new Error("QuickBooks no esta configurado globalmente. Contacta al super admin.");
+    throw new Error("QuickBooks is not configured globally. Contact a super administrator.");
   }
 
   const connection = await getConnection(input.organizationId, "quickbooks_online");
@@ -1168,7 +1166,7 @@ export async function disconnectQboConnection(input: {
 }) {
   const connection = await getConnection(input.organizationId, "quickbooks_online");
   if (!connection || connection.status !== "connected") {
-    throw new Error("QuickBooks no esta conectado");
+    throw new Error("QuickBooks is not connected.");
   }
 
   const secrets = parseConnectionSecrets<QboStoredSecrets>(connection);
@@ -1228,7 +1226,7 @@ async function ensureFreshQboToken(input: {
   const realmId = secrets?.realmId ?? (typeof config.realmId === "string" ? config.realmId : "");
 
   if (!globalQbo.ready || !realmId || !secrets?.refreshToken) {
-    throw new Error("QuickBooks no esta configurado completamente");
+    throw new Error("QuickBooks is not fully configured.");
   }
 
   const now = Math.floor(Date.now() / 1000);
@@ -1441,10 +1439,10 @@ export async function runQboR365Sync(input: {
   }
 
   if (!qboConnection || qboConnection.status !== "connected") {
-    throw new Error("QuickBooks Online no esta conectado");
+    throw new Error("QuickBooks Online is not connected.");
   }
   if (!dryRun && !ftpForUpload) {
-    throw new Error("Restaurant365 FTP no esta conectado");
+    throw new Error("Restaurant365 FTP is not connected.");
   }
 
   // Template y taxMode: sync config sobrescribe el global
@@ -1587,7 +1585,7 @@ export async function runQboR365Sync(input: {
     const effectiveRemotePath = ftpForUpload?.remotePath ?? settings.ftp_remote_path;
 
     if (!dryRun && uniqueLines.length > 0 && !ftpForUpload) {
-      throw new Error("Falta configuracion FTP de Restaurant365");
+      throw new Error("Restaurant365 FTP is not configured.");
     }
 
     // Group unique lines by invoice — one CSV per invoice
@@ -1768,14 +1766,15 @@ export async function runQboR365Sync(input: {
       dryRun,
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Error de sincronizacion";
+    const message = error instanceof Error ? error.message : "Synchronization failed.";
+    const publicMessage = "Synchronization failed. Please try again.";
     await admin
       .from("integration_runs")
       .update({
         status: "failed",
         finished_at: new Date().toISOString(),
         total_failed: 1,
-        error_summary: { message },
+        error_summary: { message: publicMessage },
       })
       .eq("id", runId)
       .eq("organization_id", input.organizationId);
@@ -2384,7 +2383,7 @@ export async function sendPreparedQboR365Run(input: {
     throw new Error(runError.message);
   }
   if (!run) {
-    throw new Error("No se encontro corrida preparada");
+    throw new Error("The prepared run was not found.");
   }
   let syncConfig: SyncConfigRow | null = null;
   if (run.sync_config_id) {
@@ -2409,7 +2408,7 @@ export async function sendPreparedQboR365Run(input: {
     .map((payload) => payloadToLine(payload));
 
   if (lines.length === 0) {
-    throw new Error("La corrida preparada no tiene lineas para enviar");
+    throw new Error("The prepared run has no lines to send.");
   }
 
   const template = (run.template_used as "by_item" | null) ?? "by_item";
@@ -2457,7 +2456,7 @@ export async function sendPreparedQboR365Run(input: {
   }
 
   if (!ftpForUpload) {
-    throw new Error("Restaurant365 FTP no esta conectado");
+    throw new Error("Restaurant365 FTP is not connected.");
   }
 
   await uploadCsvToFtp({
@@ -2641,7 +2640,7 @@ export async function getQboR365RunExport(input: {
     throw new Error(runError.message);
   }
   if (!run) {
-    throw new Error("No se encontro la corrida solicitada");
+    throw new Error("The requested run was not found.");
   }
   if (error) {
     throw new Error(error.message);
@@ -2707,11 +2706,11 @@ export async function previewUnifiedInvoiceCsv(input: {
     .maybeSingle();
 
   if (error) throw new Error(error.message);
-  if (!row) throw new Error("Factura no encontrada en el historial");
-  if (!row.raw_entity) throw new Error("La factura no tiene datos QuickBooks almacenados — no se puede previsualizar");
+  if (!row) throw new Error("Invoice not found in the history.");
+  if (!row.raw_entity) throw new Error("This invoice does not have stored QuickBooks data and cannot be previewed.");
 
   const syncConfigId = row.sync_config_id ? String(row.sync_config_id) : null;
-  if (!syncConfigId) throw new Error("Esta factura no tiene sincronización asociada");
+  if (!syncConfigId) throw new Error("This invoice does not have an associated synchronization.");
 
   const syncConfig = await getSyncConfigRow(input.organizationId, syncConfigId);
   const mappings = await getActiveMappings(input.organizationId);
@@ -2740,7 +2739,7 @@ export async function previewUnifiedInvoiceCsv(input: {
     syncConfigCustomerId: groupCustomerIds[0],
   });
 
-  if (lines.length === 0) throw new Error("La factura no tiene líneas válidas para previsualizar — revisá los mappings del sync config");
+  if (lines.length === 0) throw new Error("This invoice has no valid lines to preview. Review the synchronization mappings.");
 
   const { csv, rowCount } = buildR365Csv({ template: syncConfig.template, lines });
 
@@ -2783,7 +2782,7 @@ export async function previewSingleInvoiceCsv(input: {
     }
   }
 
-  if (lineMap.size === 0) throw new Error("No se encontraron líneas para esta factura en el historial");
+  if (lineMap.size === 0) throw new Error("No lines were found for this invoice in the history.");
 
   const [firstEntry] = lineMap.values();
   const { data: runMeta } = await admin
@@ -2804,7 +2803,7 @@ export async function previewSingleInvoiceCsv(input: {
       return na - nb;
     });
 
-  if (lines.length === 0) throw new Error("Las líneas de la factura no tienen datos suficientes para previsualizar");
+  if (lines.length === 0) throw new Error("The invoice lines do not have enough data to preview.");
 
   const { csv, rowCount } = buildR365Csv({ template, lines });
 
@@ -2864,7 +2863,7 @@ export async function sendSingleInvoiceFromHistory(input: {
     }
   }
 
-  if (lineMap.size === 0) throw new Error("No se encontraron líneas para esta factura en el historial");
+  if (lineMap.size === 0) throw new Error("No lines were found for this invoice in the history.");
 
   // Resolve template and sync config from the originating run
   const [firstEntry] = lineMap.values();
@@ -2931,14 +2930,14 @@ export async function sendSingleInvoiceFromHistory(input: {
     }
   }
 
-  if (!ftpForUpload) throw new Error("Restaurant365 FTP no está conectado");
+  if (!ftpForUpload) throw new Error("Restaurant365 FTP is not connected.");
 
   // Build NormalizedInvoiceLine[] from stored payloads
   const lines = [...lineMap.values()]
     .map(({ payload }) => payloadToLine(payload))
     .filter((line) => Boolean(line.vendor && line.invoiceNumber));
 
-  if (lines.length === 0) throw new Error("Las líneas de la factura no tienen datos suficientes para enviar");
+  if (lines.length === 0) throw new Error("The invoice lines do not have enough data to send.");
 
   const csvBuild = buildR365Csv({ template, lines });
   const runId = await createRun(input.organizationId, input.actorId, "manual", effectiveSyncConfigId);
@@ -3209,15 +3208,15 @@ export async function importQboWebhookEventManually(input: { organizationId: str
     .eq("organization_id", input.organizationId)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!data) throw new Error("Evento no encontrado");
+  if (!data) throw new Error("Event not found.");
 
   if (!["Invoice", "CreditMemo"].includes(String(data.entity ?? ""))) {
-    throw new Error("Solo se soporta importacion manual de Invoice/CreditMemo");
+    throw new Error("Only manual Invoice and Credit Memo imports are supported.");
   }
 
   const qboConnection = await getConnection(input.organizationId, "quickbooks_online");
   if (!qboConnection || qboConnection.status !== "connected") {
-    throw new Error("QuickBooks Online no esta conectado");
+    throw new Error("QuickBooks Online is not connected.");
   }
 
   const qboAuth = await ensureFreshQboToken({ organizationId: input.organizationId, actorId: input.actorId, qboConnection, forceRefresh: true });
@@ -3227,7 +3226,7 @@ export async function importQboWebhookEventManually(input: { organizationId: str
     invoiceId: String(data.entity_id ?? ""),
   });
   if (!raw || raw.type !== data.entity) {
-    throw new Error("No se pudo obtener la entidad desde QuickBooks para este webhook");
+    throw new Error("Unable to retrieve the entity from QuickBooks for this webhook.");
   }
 
   await admin
@@ -3382,7 +3381,7 @@ async function mapAndSendUnifiedRowInner(input: {
     syncConfigCustomerId: groupCustomerIds[0],
   });
 
-  if (lines.length === 0) throw new Error("La factura no tiene líneas válidas para enviar a R365");
+  if (lines.length === 0) throw new Error("This invoice has no valid lines to send to Restaurant365.");
 
   const nowMapped = new Date().toISOString();
   await admin
@@ -3391,13 +3390,13 @@ async function mapAndSendUnifiedRowInner(input: {
     .eq("id", input.unifiedInvoiceId)
     .eq("organization_id", input.organizationId);
 
-  if (!input.syncConfig.r365_ftp_host) throw new Error("FTP no configurado en la sync config");
+  if (!input.syncConfig.r365_ftp_host) throw new Error("FTP is not configured for this synchronization.");
   const ftpSecrets = decryptJsonPayload<FtpStoredSecrets>({
     ciphertext: input.syncConfig.r365_ftp_secrets_ciphertext,
     iv: input.syncConfig.r365_ftp_secrets_iv,
     tag: input.syncConfig.r365_ftp_secrets_tag,
   });
-  if (!ftpSecrets?.password) throw new Error("Credenciales FTP no disponibles");
+  if (!ftpSecrets?.password) throw new Error("FTP credentials are unavailable.");
 
   const ftp = {
     host: input.syncConfig.r365_ftp_host,
@@ -3710,7 +3709,7 @@ export async function fetchInvoiceByDocNumber(
 
   const qboConnection = await getConnection(organizationId, "quickbooks_online");
   if (!qboConnection || qboConnection.status !== "connected") {
-    throw new Error("QuickBooks no está conectado");
+    throw new Error("QuickBooks is not connected.");
   }
 
   const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
@@ -3722,12 +3721,12 @@ export async function fetchInvoiceByDocNumber(
   });
 
   if (!result) {
-    throw new Error(`No se encontró ninguna factura o nota de crédito con DocNumber "${docNumber}" en QuickBooks`);
+    throw new Error(`No invoice or credit memo with document number "${docNumber}" was found in QuickBooks.`);
   }
 
   const { type: entityType, data: entity } = result;
   const entityId = typeof entity.Id === "string" ? entity.Id : null;
-  if (!entityId) throw new Error("La factura encontrada no tiene Id válido");
+  if (!entityId) throw new Error("The matching invoice does not have a valid ID.");
 
   const customerRef = (entity as Record<string, unknown>).CustomerRef as Record<string, unknown> | undefined;
   const customerId = typeof customerRef?.value === "string" ? customerRef.value : null;
@@ -3746,7 +3745,7 @@ export async function fetchInvoiceByDocNumber(
   }
 
   if (!syncConfigId) {
-    throw new Error("El cliente de esta factura no tiene una sincronización configurada en esta empresa");
+    throw new Error("This invoice's customer does not have a synchronization configured for this organization.");
   }
 
   const rawEntity = entity as Record<string, unknown>;
@@ -3923,7 +3922,7 @@ export async function backfillFromQboSinceDate(
   try {
     const qboConnection = await getConnection(organizationId, "quickbooks_online");
     if (!qboConnection || qboConnection.status !== "connected") {
-      throw new Error("QuickBooks no está conectado");
+      throw new Error("QuickBooks is not connected.");
     }
 
     const syncConfigRow = await getSyncConfigRow(organizationId, syncConfigId);
@@ -4079,12 +4078,12 @@ export async function mapOnlyUnifiedInvoice(input: {
     .maybeSingle();
 
   if (rowError) throw new Error(rowError.message);
-  if (!row) throw new Error("Factura no encontrada en el historial");
-  if (!row.raw_entity) throw new Error("La factura no tiene datos QuickBooks almacenados — no se puede mapear");
-  if (row.pipeline_status === "enviada") throw new Error("La factura ya fue enviada a R365 y no se puede remapear");
+  if (!row) throw new Error("Invoice not found in the history.");
+  if (!row.raw_entity) throw new Error("This invoice does not have stored QuickBooks data and cannot be mapped.");
+  if (row.pipeline_status === "enviada") throw new Error("This invoice was already sent to Restaurant365 and cannot be remapped.");
 
   const syncConfigId = row.sync_config_id ? String(row.sync_config_id) : null;
-  if (!syncConfigId) throw new Error("Esta factura no tiene sincronización asociada");
+  if (!syncConfigId) throw new Error("This invoice does not have an associated synchronization.");
 
   const syncConfig = await getSyncConfigRow(input.organizationId, syncConfigId);
   const mappings = await getActiveMappings(input.organizationId);
@@ -4113,7 +4112,7 @@ export async function mapOnlyUnifiedInvoice(input: {
     syncConfigCustomerId: groupCustomerIds[0],
   });
 
-  if (lines.length === 0) throw new Error("La factura no tiene líneas válidas para mapear — revisá los mappings del sync config");
+  if (lines.length === 0) throw new Error("This invoice has no valid lines to map. Review the synchronization mappings.");
 
   const { error: updateError } = await admin
     .from("qbo_unified_invoices")
@@ -4161,11 +4160,11 @@ export async function sendSingleUnifiedInvoice(input: {
     .maybeSingle();
 
   if (rowError) throw new Error(rowError.message);
-  if (!row) throw new Error("Factura no encontrada en el historial");
-  if (!row.raw_entity) throw new Error("La factura no tiene datos QuickBooks almacenados — no se puede enviar");
+  if (!row) throw new Error("Invoice not found in the history.");
+  if (!row.raw_entity) throw new Error("This invoice does not have stored QuickBooks data and cannot be sent.");
 
   const syncConfigId = row.sync_config_id ? String(row.sync_config_id) : null;
-  if (!syncConfigId) throw new Error("Esta factura no tiene sincronización asociada");
+  if (!syncConfigId) throw new Error("This invoice does not have an associated synchronization.");
 
   const syncConfig = await getSyncConfigRow(input.organizationId, syncConfigId);
 

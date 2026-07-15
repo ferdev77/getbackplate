@@ -9,15 +9,15 @@ export function DeleteOrderButton({ orderId }: { orderId: string }) {
   const [pending, startTransition] = useTransition();
 
   function handleClick() {
-    if (!confirm("¿Eliminar esta orden? Esta acción no se puede deshacer.")) return;
+    if (!confirm("Delete this order? This action cannot be undone.")) return;
     startTransition(async () => {
       const formData = new FormData();
       formData.set("order_id", orderId);
       const result = await deleteManualPaymentOrderAction(formData);
       if (result.ok) {
-        toast.success("Orden eliminada");
+        toast.success("Order deleted");
       } else {
-        toast.error(result.error ?? "No se pudo eliminar la orden");
+        toast.error("Unable to delete the order");
       }
     });
   }

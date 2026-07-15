@@ -68,7 +68,7 @@ export function ChecklistUpsertModal({
     if (submitEndpoint) return;
     if (state.message) {
       if (state.success) {
-        toast.success(state.message);
+        toast.success(editingTemplate ? "Checklist updated successfully." : "Checklist created successfully.");
         startTransition(() => {
           onSubmitted?.();
           if (onClose) {
@@ -79,10 +79,10 @@ export function ChecklistUpsertModal({
           router.refresh();
         });
       } else {
-        toast.error(state.message);
+        toast.error("Unable to save the checklist.");
       }
     }
-  }, [onClose, onSubmitted, redirectPath, router, state, submitEndpoint]);
+  }, [editingTemplate, onClose, onSubmitted, redirectPath, router, state, submitEndpoint]);
 
   const handleClose = () => {
     if (onClose) {
@@ -103,7 +103,7 @@ export function ChecklistUpsertModal({
     const legacyItems = String(formData.get("items") ?? "").trim();
 
     if (!name) {
-      toast.error("Nombre de plantilla obligatorio");
+      toast.error("A template name is required.");
       return;
     }
 
@@ -117,7 +117,7 @@ export function ChecklistUpsertModal({
           .filter(Boolean);
         items = flatItems.join("\n");
       } catch {
-        toast.error("Formato de secciones inválido");
+        toast.error("The section format is invalid.");
         return;
       }
     } else {
@@ -125,7 +125,7 @@ export function ChecklistUpsertModal({
     }
 
     if (!items.trim()) {
-      toast.error("Agrega al menos un item");
+      toast.error("Add at least one item.");
       return;
     }
 
@@ -150,11 +150,10 @@ export function ChecklistUpsertModal({
           sections_payload: sectionsPayload || undefined,
         }),
       });
-      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(typeof data.error === "string" ? data.error : "No se pudo guardar checklist");
+        throw new Error("Unable to save the checklist.");
       }
-      toast.success(templateId ? "Checklist actualizado correctamente" : "Checklist creado correctamente");
+      toast.success(templateId ? "Checklist updated successfully." : "Checklist created successfully.");
       startTransition(() => {
         onSubmitted?.();
         if (onClose) {
@@ -164,8 +163,8 @@ export function ChecklistUpsertModal({
         }
         router.refresh();
       });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo guardar checklist");
+    } catch {
+      toast.error("Unable to save the checklist.");
     } finally {
       setIsApiPending(false);
     }

@@ -21,7 +21,7 @@ export default async function EmployeeMaintenancePage() {
   const canRespond = permissions.maintenance.edit;
 
   if (!canView && !canCreate && !canRespond) {
-    redirect("/portal/home?status=error&message=" + encodeURIComponent("No tenes permisos de mantenimiento"));
+    redirect("/portal/home?status=error&message=" + encodeURIComponent("You do not have maintenance permission."));
   }
 
   const { requests, catalog } = await listMaintenanceRequests(

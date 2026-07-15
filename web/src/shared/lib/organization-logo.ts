@@ -5,15 +5,15 @@ export const MAX_ORGANIZATION_LOGO_SIZE_BYTES = 5 * 1024 * 1024;
 
 export function validateOrganizationLogoFile(file: File | null) {
   if (!(file instanceof File) || file.size === 0) {
-    return { ok: false as const, error: "Selecciona una imagen para el logo" };
+    return { ok: false as const, error: "Select an image for the logo" };
   }
 
   if (!file.type.startsWith("image/")) {
-    return { ok: false as const, error: "El logo debe ser una imagen" };
+    return { ok: false as const, error: "The logo must be an image" };
   }
 
   if (file.size > MAX_ORGANIZATION_LOGO_SIZE_BYTES) {
-    return { ok: false as const, error: "El logo supera el limite de 5MB" };
+    return { ok: false as const, error: "The logo exceeds the 5 MB limit" };
   }
 
   return { ok: true as const };

@@ -5,7 +5,7 @@ import { getQboR365RunPreview } from "@/modules/integrations/qbo-r365/service";
 export async function GET(request: Request) {
   const access = await assertCompanyAdminModuleApi("settings");
   if (!access.ok) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+    return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }
 
   const url = new URL(request.url);
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(200, Math.trunc(limitRaw))) : 50;
 
   if (!runId) {
-    return NextResponse.json({ error: "runId es requerido" }, { status: 400 });
+    return NextResponse.json({ error: "A run ID is required." }, { status: 400 });
   }
 
   try {
@@ -24,9 +24,9 @@ export async function GET(request: Request) {
       limit,
     });
     return NextResponse.json(preview, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No se pudo obtener preview" },
+      { error: "Unable to load the preview. Please try again." },
       { status: 400 },
     );
   }

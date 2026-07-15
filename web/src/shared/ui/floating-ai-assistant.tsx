@@ -28,12 +28,12 @@ export function FloatingAiAssistant({ currentPlanCode, userName, tenantId, userK
   const storageKey = useMemo(() => `gb.ai.conversation.${tenantId}.${userKey || "anon"}`, [tenantId, userKey]);
   const displayName = userName.trim().split(/\s+/)[0] || "";
   const planIntro = currentPlanCode === "pro"
-    ? "Puedo ayudarte con análisis y consultas avanzadas de tu operación."
-    : "Puedo ayudarte con consultas operativas de tu cuenta.";
+    ? "I can help you with advanced analysis and operational questions."
+    : "I can help you with operational questions about your account.";
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: `Hola${displayName ? ` ${displayName}` : ""}, soy tu asistente IA. ${planIntro} ¿En qué puedo ayudarte hoy?`,
+       content: `Hello${displayName ? ` ${displayName}` : ""}, I am your AI assistant. ${planIntro} How can I help you today?`,
     },
   ]);
 
@@ -88,25 +88,25 @@ export function FloatingAiAssistant({ currentPlanCode, userName, tenantId, userK
 
       if (!response.ok) {
         const statusHint = response.status === 429
-          ? "Limite de consultas por minuto alcanzado."
+          ? "The per-minute question limit has been reached."
           : response.status === 403
-            ? "No tienes permisos para usar el asistente IA en este modulo."
+            ? "You do not have permission to use the AI assistant in this module."
             : response.status === 402
-              ? "El modulo de IA no esta habilitado en tu plan actual."
+              ? "The AI module is not enabled for your current plan."
               : null;
-        throw new Error(data.error || statusHint || "No pude procesar tu consulta");
+        throw new Error(statusHint || "Your question could not be processed.");
       }
 
       const suffix =
         data.mode === "pro_ai"
-          ? "\n\n(Modo IA Pro)"
+          ? "\n\n(Pro AI mode)"
           : data.mode === "basic_ai"
             ? "\n\n(Modo OpenRouter)"
-            : "\n\n(Modo estructurado)";
-      const confidence = data.confidence ? `\nConfianza: ${data.confidence}` : "";
-      setMessages((prev) => [...prev, { role: "assistant", content: `${data.answer ?? "Sin respuesta"}${suffix}${confidence}` }]);
+            : "\n\n(Structured mode)";
+      const confidence = data.confidence ? `\nConfidence: ${data.confidence}` : "";
+      setMessages((prev) => [...prev, { role: "assistant", content: `${data.answer ?? "No response"}${suffix}${confidence}` }]);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "No pude procesar tu consulta";
+      const message = error instanceof Error ? error.message : "Your question could not be processed.";
       setMessages((prev) => [...prev, { role: "assistant", content: `Error: ${message}` }]);
     } finally {
       setLoading(false);
@@ -121,7 +121,7 @@ export function FloatingAiAssistant({ currentPlanCode, userName, tenantId, userK
         className={`fixed right-5 z-50 inline-flex items-center gap-2 rounded-full bg-[var(--gbp-violet)] px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-[var(--gbp-violet-hover)] ${launcherBottomClass}`}
       >
         <Bot className="h-4 w-4" />
-        Asistente IA
+        AI Assistant
       </button>
 
       {open ? (
@@ -129,7 +129,7 @@ export function FloatingAiAssistant({ currentPlanCode, userName, tenantId, userK
           <header className="flex items-center justify-between border-b border-[var(--gbp-border)] px-4 py-3">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-[var(--gbp-violet)]" />
-              <p className="text-sm font-semibold text-[var(--gbp-text)]">Asistente IA</p>
+              <p className="text-sm font-semibold text-[var(--gbp-text)]">AI Assistant</p>
             </div>
             <button type="button" onClick={() => setOpen(false)} className="rounded p-1 text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]">
               <X className="h-4 w-4" />
@@ -149,7 +149,7 @@ export function FloatingAiAssistant({ currentPlanCode, userName, tenantId, userK
                 {message.content}
               </article>
             ))}
-            {loading ? <p className="text-xs text-[var(--gbp-text2)]">Consultando...</p> : null}
+            {loading ? <p className="text-xs text-[var(--gbp-text2)]">Thinking...</p> : null}
           </div>
 
           <footer className="border-t border-[var(--gbp-border)] p-3">
@@ -163,7 +163,7 @@ export function FloatingAiAssistant({ currentPlanCode, userName, tenantId, userK
                     void sendQuestion();
                   }
                 }}
-                placeholder="Pregúntame algo sobre tu operación"
+                placeholder="Ask me something about your operations"
                 className="h-10 flex-1 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-sm text-[var(--gbp-text)] outline-none focus:border-[var(--gbp-violet)]"
               />
               <button

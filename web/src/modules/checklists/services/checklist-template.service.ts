@@ -86,11 +86,11 @@ export async function upsertChecklistTemplate(
   const totalItems = normalizedSections.reduce((acc, section) => acc + section.items.length, 0);
 
   if (!name) {
-    return { ok: false, message: "Nombre de plantilla obligatorio" };
+    return { ok: false, message: "Template name is required" };
   }
 
   if (!totalItems) {
-    return { ok: false, message: "Agrega al menos un item de checklist" };
+    return { ok: false, message: "Add at least one checklist item" };
   }
 
   // Validate branch
@@ -103,7 +103,7 @@ export async function upsertChecklistTemplate(
       .maybeSingle();
 
     if (branchError || !branch) {
-      return { ok: false, message: "Locación base inválida para esta empresa" };
+      return { ok: false, message: "Invalid base location for this organization" };
     }
   }
 
@@ -118,7 +118,7 @@ export async function upsertChecklistTemplate(
       .maybeSingle();
 
     if (departmentError || !departmentRow) {
-      return { ok: false, message: "Departamento base inválido para esta empresa" };
+      return { ok: false, message: "Invalid base department for this organization" };
     }
 
     department = departmentRow.name;
@@ -137,10 +137,10 @@ export async function upsertChecklistTemplate(
 
   if (!scopeValidation.ok) {
     const messageByField = {
-      locations: "Algunas locaciones de alcance no son válidas",
-      departments: "Algunos departamentos de alcance no son validos",
-      positions: "Algunos puestos de alcance no son validos",
-      users: "Algunos usuarios seleccionados no son validos",
+      locations: "Some selected scope locations are invalid",
+      departments: "Some selected scope departments are invalid",
+      positions: "Some selected scope positions are invalid",
+      users: "Some selected users are invalid",
     } as const;
     return {
       ok: false,
@@ -184,7 +184,7 @@ export async function upsertChecklistTemplate(
       .maybeSingle();
 
     if (!existingTemplate) {
-      return { ok: false, message: "No se encontro la plantilla a editar" };
+      return { ok: false, message: "The template to edit was not found" };
     }
 
     const { data: hasSubmissions } = await supabase
@@ -243,7 +243,7 @@ export async function upsertChecklistTemplate(
   }
 
   if (templateError || !template) {
-    return { ok: false, message: `No se pudo crear plantilla: ${templateError?.message ?? "error"}` };
+    return { ok: false, message: `Unable to create template: ${templateError?.message ?? "error"}` };
   }
 
   // Clean old sections & items
@@ -284,7 +284,7 @@ export async function upsertChecklistTemplate(
     if (sectionError || !sectionRow) {
       return {
         ok: false,
-        message: `Plantilla ${templateId ? "actualizada" : "creada"}, pero falló la sección: ${sectionError?.message ?? "error"}`
+        message: `Template ${templateId ? "updated" : "created"}, but the section failed: ${sectionError?.message ?? "error"}`
       };
     }
 
@@ -303,7 +303,7 @@ export async function upsertChecklistTemplate(
     if (itemsError) {
       return {
         ok: false,
-        message: `Plantilla ${templateId ? "actualizada" : "creada"} pero items fallaron: ${itemsError.message}`
+        message: `Template ${templateId ? "updated" : "created"}, but the items failed: ${itemsError.message}`
       };
     }
   }
@@ -371,7 +371,7 @@ export async function deleteChecklistTemplate(params: {
     .maybeSingle();
 
   if (!template) {
-    return { ok: false, message: "Checklist no encontrado" };
+    return { ok: false, message: "Checklist not found" };
   }
 
   const { count: submissionsCount } = await supabase
@@ -389,12 +389,12 @@ export async function deleteChecklistTemplate(params: {
       .eq("id", templateId);
 
     if (archiveError) {
-      return { ok: false, message: `No se pudo archivar checklist: ${archiveError.message}` };
+      return { ok: false, message: `Unable to archive checklist: ${archiveError.message}` };
     }
 
     return {
       ok: true,
-      message: "Checklist archivado (tiene historial de ejecuciones)",
+      message: "Checklist archived (it has submission history)",
       archived: true,
     };
   }
@@ -415,7 +415,7 @@ export async function deleteChecklistTemplate(params: {
       .in("section_id", sectionIds);
 
     if (itemsDeleteError) {
-      return { ok: false, message: `No se pudieron eliminar items: ${itemsDeleteError.message}` };
+      return { ok: false, message: `Unable to delete items: ${itemsDeleteError.message}` };
     }
 
     const { error: sectionsDeleteError } = await supabase
@@ -425,7 +425,7 @@ export async function deleteChecklistTemplate(params: {
       .eq("template_id", templateId);
 
     if (sectionsDeleteError) {
-      return { ok: false, message: `No se pudieron eliminar secciones: ${sectionsDeleteError.message}` };
+      return { ok: false, message: `Unable to delete sections: ${sectionsDeleteError.message}` };
     }
   }
 
@@ -436,12 +436,12 @@ export async function deleteChecklistTemplate(params: {
     .eq("id", templateId);
 
   if (templateDeleteError) {
-    return { ok: false, message: `No se pudo eliminar checklist: ${templateDeleteError.message}` };
+    return { ok: false, message: `Unable to delete checklist: ${templateDeleteError.message}` };
   }
 
   return {
     ok: true,
-    message: "Checklist eliminado",
+    message: "Checklist deleted",
     archived: false,
   };
 }

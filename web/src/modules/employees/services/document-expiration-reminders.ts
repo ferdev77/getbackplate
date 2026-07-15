@@ -115,7 +115,7 @@ export async function processEmployeeDocumentExpirationReminders() {
     if (employeeEmail && employee.user_id) userIdByEmail.set(employeeEmail, employee.user_id);
     if (reviewerEmail && link.reviewed_by) userIdByEmail.set(reviewerEmail, link.reviewed_by);
 
-    const dueDateLabel = new Date(`${link.expires_at}T00:00:00.000Z`).toLocaleDateString("es-US", {
+    const dueDateLabel = new Date(`${link.expires_at}T00:00:00.000Z`).toLocaleDateString("en-US", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -168,8 +168,8 @@ export async function processEmployeeDocumentExpirationReminders() {
       void sendPushToUsers(
         pushUserIds,
         {
-          title: "Documento por vencer",
-          body: `"${doc.title}" vence en ${link.reminder_days} días (${dueDateLabel}).`,
+          title: "Document expiring soon",
+          body: `"${doc.title}" expires in ${link.reminder_days} days (${dueDateLabel}).`,
           url: "/portal/documents",
         },
         { source: "document_expiration", sourceId: `${link.employee_id}:${link.document_id}`, organizationId: link.organization_id },
@@ -387,8 +387,8 @@ export async function processEmployeeDocumentPendingReminders() {
       void sendPushToUsers(
         pushUserIds,
         {
-          title: link.requested_without_file ? "Documento pendiente de carga" : "Documento pendiente de revisión",
-          body: `"${doc.title}" requiere tu atención.`,
+          title: link.requested_without_file ? "Document upload pending" : "Document review pending",
+          body: `"${doc.title}" requires your attention.`,
           url: link.requested_without_file ? "/portal/documents" : "/app/employees",
         },
         { source: "document_pending", sourceId: `${link.employee_id}:${link.document_id}`, organizationId: link.organization_id },

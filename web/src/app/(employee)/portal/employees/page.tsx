@@ -22,7 +22,7 @@ export default async function PortalEmployeesPage({
   );
 
   if (!permissions.employees.view) {
-    redirect("/portal/home?status=error&message=" + encodeURIComponent("No tenés permisos de Recursos Humanos"));
+    redirect("/portal/home?status=error&message=" + encodeURIComponent("You do not have Human Resources permission."));
   }
 
   const params = await searchParams;

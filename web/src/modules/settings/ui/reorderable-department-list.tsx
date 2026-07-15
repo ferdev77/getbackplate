@@ -59,12 +59,12 @@ export function ReorderableDepartmentList({
     const ids = newOrder.map((item) => item.id);
     const result = await reorderDepartmentsAction(ids);
     if (result.ok) {
-      toast.success(t("Orden de departamentos actualizado"));
+      toast.success("Department order updated.");
     } else {
-      toast.error(t("Error al sincronizar el orden"));
+      toast.error("Could not sync the order.");
       setItems(initialDepartments);
     }
-  }, [initialDepartments, t]);
+  }, [initialDepartments]);
 
   if (!items?.length) {
     return <p className="text-center py-8 rounded-xl border border-dashed border-[var(--gbp-border2)] text-sm text-[var(--gbp-text2)]">{t("Aún no hay departamentos.")}</p>;

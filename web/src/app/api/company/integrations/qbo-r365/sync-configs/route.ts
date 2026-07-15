@@ -31,15 +31,15 @@ const syncConfigCreateDeveloperSchema = syncConfigCreateSchema.extend({
 export async function GET() {
   const access = await assertCompanyAdminModuleApi("settings");
   if (!access.ok) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+    return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }
 
   try {
     const configs = await listSyncConfigs(access.tenant.organizationId);
     return NextResponse.json({ configs }, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No se pudieron cargar las sincronizaciones" },
+      { error: "Unable to load synchronizations. Please try again." },
       { status: 400 },
     );
   }
@@ -48,14 +48,14 @@ export async function GET() {
 export async function POST(request: Request) {
   const access = await assertCompanyAdminModuleApi("settings");
   if (!access.ok) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+    return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }
 
   const body = await request.json().catch(() => ({}));
   const developerMode = body?.developerMode === true;
   const parsed = (developerMode ? syncConfigCreateDeveloperSchema : syncConfigCreateSchema).safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Payload invalido", details: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: "The request is invalid." }, { status: 400 });
   }
 
   const backfillFromDate: string | null =
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
       : null;
 
   if (backfillFromDate && !Number.isFinite(Date.parse(backfillFromDate))) {
-    return NextResponse.json({ error: "Fecha de importación inválida" }, { status: 400 });
+    return NextResponse.json({ error: "The import date is invalid." }, { status: 400 });
   }
 
   try {
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
     }
     if (effectiveLimit !== null && existing.length >= effectiveLimit) {
       return NextResponse.json(
-        { error: `Límite de ${effectiveLimit} slot${effectiveLimit === 1 ? "" : "s"} alcanzado para tu plan.` },
+        { error: `Your plan allows up to ${effectiveLimit} synchronization slot${effectiveLimit === 1 ? "" : "s"}.` },
         { status: 409 },
       );
     }
@@ -113,9 +113,9 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ id, backfilling: Boolean(backfillFromDate) }, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No se pudo crear la sincronizacion" },
+      { error: "Unable to create the synchronization. Please try again." },
       { status: 400 },
     );
   }

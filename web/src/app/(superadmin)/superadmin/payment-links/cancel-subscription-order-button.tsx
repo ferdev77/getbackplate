@@ -14,9 +14,9 @@ export function CancelSubscriptionOrderButton({ orderId }: { orderId: string }) 
       formData.set("order_id", orderId);
       const result = await cancelManualSubscriptionOrderAction(formData);
       if (result.ok) {
-        toast.success("Orden cancelada");
+        toast.success("Order canceled");
       } else {
-        toast.error(result.error ?? "No se pudo cancelar la orden");
+        toast.error("Unable to cancel the order");
       }
     });
   }

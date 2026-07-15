@@ -4,7 +4,7 @@ import { listQboWebhookEvents, processPendingQboWebhookEvents } from "@/modules/
 
 export async function GET(request: Request) {
   const access = await assertCompanyAdminModuleApi("settings");
-  if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
+  if (!access.ok) return NextResponse.json({ error: "Access denied." }, { status: access.status });
 
   const url = new URL(request.url);
   const limit = Number(url.searchParams.get("limit") ?? 100);
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const access = await assertCompanyAdminModuleApi("settings");
-  if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
+  if (!access.ok) return NextResponse.json({ error: "Access denied." }, { status: access.status });
 
   await request.json().catch(() => ({}));
   const result = await processPendingQboWebhookEvents();

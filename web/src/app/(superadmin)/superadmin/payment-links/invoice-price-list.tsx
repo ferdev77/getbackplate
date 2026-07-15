@@ -49,7 +49,7 @@ function PriceField({ org }: { org: Org }) {
       if (result.ok) {
         toast.success("Price updated");
       } else {
-        toast.error(result.error ?? "Could not update the price");
+        toast.error("Could not update the price");
         setValue(savedValue);
       }
     });
@@ -118,7 +118,7 @@ function AllowanceOverrideField({ org }: { org: Org }) {
       if (result.ok) {
         toast.success("Included invoices updated");
       } else {
-        toast.error(result.error ?? "Could not update");
+        toast.error("Could not update included invoices");
         setValue(savedValue);
       }
     });

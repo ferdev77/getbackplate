@@ -33,8 +33,8 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
   const formDataObj = Object.fromEntries(formData.entries());
   
   const createAnnouncementSchema = z.object({
-    title: z.string().min(1, "Titulo es obligatorio").max(100, "El título es muy largo"),
-    body: z.string().min(1, "Contenido es obligatorio").max(3000, "El contenido es muy largo"),
+    title: z.string().min(1, "Title is required").max(100, "The title is too long"),
+    body: z.string().min(1, "Content is required").max(3000, "The content is too long"),
   });
 
   const parsed = createAnnouncementSchema.safeParse({
@@ -89,10 +89,10 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
 
   if (!scopeValidation.ok) {
     const messageByField = {
-      locations: "Hay locaciones inválidas en la audiencia",
-      departments: "Hay departamentos inválidos en la audiencia",
-      positions: "Hay puestos inválidos en la audiencia",
-      users: "Hay usuarios inválidos en la audiencia",
+      locations: "The audience includes invalid locations",
+      departments: "The audience includes invalid departments",
+      positions: "The audience includes invalid positions",
+      users: "The audience includes invalid users",
     } as const;
     return { success: false, message: messageByField[scopeValidation.field] };
   }
@@ -106,7 +106,7 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
       .maybeSingle();
 
     if (!existing) {
-      return { success: false, message: "No se encontro el aviso a editar" };
+      return { success: false, message: "The announcement to edit was not found" };
     }
   }
 
@@ -147,7 +147,7 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
   const { data: announcement, error } = announcementMutation;
 
   if (error || !announcement) {
-    return { success: false, message: `No se pudo crear aviso: ${error?.message ?? "error"}` };
+    return { success: false, message: `Could not create announcement: ${error?.message ?? "error"}` };
   }
 
   if (announcementId) {
@@ -163,7 +163,7 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
   const { error: audienceError } = await supabase.from("announcement_audiences").insert(audiencePayload);
 
   if (audienceError) {
-    return { success: false, message: `Aviso creado pero audiencia fallo: ${audienceError.message}` };
+    return { success: false, message: `Announcement created, but the audience could not be saved: ${audienceError.message}` };
   }
 
   let sentContactsCount = 0;
@@ -179,7 +179,7 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
     );
 
     if (deliveriesError) {
-      return { success: false, message: `Aviso guardado pero no se pudo encolar notificacion: ${deliveriesError.message}` };
+      return { success: false, message: `Announcement saved, but the notification could not be queued: ${deliveriesError.message}` };
     }
 
     if (!announcementId) {
@@ -256,11 +256,11 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
   revalidatePath("/app/announcements");
   revalidatePath("/portal/home");
   const creationMessage = channelsForDelivery.length
-    ? `Aviso creado correctamente. Notificaciones enviadas: ${sentContactsCount}`
-    : "Aviso creado correctamente";
+    ? `Announcement created successfully. Notifications sent: ${sentContactsCount}`
+    : "Announcement created successfully";
   return { 
     success: true, 
-    message: announcementId ? "Aviso actualizado correctamente" : creationMessage
+    message: announcementId ? "Announcement updated successfully" : creationMessage
   };
 }
 
@@ -272,7 +272,7 @@ export async function toggleAnnouncementFeaturedAction(arg1: FormData | unknown,
   const nextFeatured = String(formData.get("next_featured") ?? "") === "true";
 
   if (!announcementId) {
-    redirect("/app/announcements?status=error&message=" + qs("Aviso inválido"));
+    redirect("/app/announcements?status=error&message=" + qs("Invalid announcement"));
   }
 
   const supabase = await createSupabaseServerClient();
@@ -285,7 +285,7 @@ export async function toggleAnnouncementFeaturedAction(arg1: FormData | unknown,
   if (error) {
     redirect(
       "/app/announcements?status=error&message=" +
-        qs(`No se pudo actualizar aviso: ${error.message}`),
+        qs(`Could not update announcement: ${error.message}`),
     );
   }
 
@@ -304,7 +304,7 @@ export async function toggleAnnouncementFeaturedAction(arg1: FormData | unknown,
   revalidatePath("/portal/home");
   redirect(
     "/app/announcements?status=success&message=" +
-      qs("Estado de destacado actualizado"),
+      qs("Featured status updated"),
   );
 }
 
@@ -315,7 +315,7 @@ export async function deleteAnnouncementAction(arg1: FormData | unknown, arg2?: 
   const announcementId = String(formData.get("announcement_id") ?? "").trim();
 
   if (!announcementId) {
-    redirect("/app/announcements?status=error&message=" + qs("Aviso inválido"));
+    redirect("/app/announcements?status=error&message=" + qs("Invalid announcement"));
   }
 
   const supabase = await createSupabaseServerClient();
@@ -335,7 +335,7 @@ export async function deleteAnnouncementAction(arg1: FormData | unknown, arg2?: 
   if (error) {
     redirect(
       "/app/announcements?status=error&message=" +
-        qs(`No se pudo eliminar aviso: ${error.message}`),
+        qs(`Could not delete announcement: ${error.message}`),
     );
   }
 
@@ -353,6 +353,6 @@ export async function deleteAnnouncementAction(arg1: FormData | unknown, arg2?: 
   revalidatePath("/portal/home");
   redirect(
     "/app/announcements?status=success&message=" +
-      qs("Aviso eliminado correctamente"),
+      qs("Announcement deleted successfully"),
   );
 }

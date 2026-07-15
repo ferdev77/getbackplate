@@ -34,7 +34,7 @@ function toTxt(rows: Array<Record<string, unknown>>) {
 export async function GET(request: Request) {
   const access = await assertCompanyAdminModuleApi("settings");
   if (!access.ok) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+    return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }
 
   const url = new URL(request.url);
@@ -42,11 +42,11 @@ export async function GET(request: Request) {
   const format = (url.searchParams.get("format") ?? "json") as ExportFormat;
 
   if (!runId) {
-    return NextResponse.json({ error: "runId es requerido" }, { status: 400 });
+    return NextResponse.json({ error: "A run ID is required." }, { status: 400 });
   }
 
   if (!["raw", "json", "csv", "txt"].includes(format)) {
-    return NextResponse.json({ error: "Formato no soportado" }, { status: 400 });
+    return NextResponse.json({ error: "The requested format is not supported." }, { status: 400 });
   }
 
   try {
@@ -123,9 +123,9 @@ export async function GET(request: Request) {
         "x-qbo-lines-count": String(linesCount),
       },
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No se pudo exportar" },
+      { error: "Unable to export this run. Please try again." },
       { status: 400 },
     );
   }

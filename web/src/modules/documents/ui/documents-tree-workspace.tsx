@@ -624,8 +624,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
           userScope: payload.scope?.users,
         }),
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "No se pudo actualizar documento");
+      if (!response.ok) throw new Error("Unable to update the document.");
 
       setDocumentRows((prev) =>
         prev.map((row) => {
@@ -640,9 +639,9 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
         })
       );
       setEditDocId(null);
-      toast.success("Documento actualizado");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Error actualizando documento");
+      toast.success("Document updated successfully.");
+    } catch {
+      toast.error("Unable to update the document.");
     } finally {
       setBusy(false);
     }
@@ -669,8 +668,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
           userScope: payload.scope?.users,
         }),
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "No se pudo actualizar carpeta");
+      if (!response.ok) throw new Error("Unable to update the folder.");
 
       setFolderRows((prev) =>
         prev.map((row) => {
@@ -685,9 +683,9 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
         })
       );
       setEditFolderId(null);
-      toast.success("Carpeta actualizada");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Error actualizando carpeta");
+      toast.success("Folder updated successfully.");
+    } catch {
+      toast.error("Unable to update the folder.");
     } finally {
       setBusy(false);
     }
@@ -701,14 +699,13 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ documentId }),
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "No se pudo eliminar documento");
+      if (!response.ok) throw new Error("Unable to delete the document.");
 
       setDocumentRows((prev) => prev.filter((row) => row.id !== documentId));
       setDeleteDocId(null);
-      toast.success("Documento eliminado");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Error eliminando documento");
+      toast.success("Document deleted successfully.");
+    } catch {
+      toast.error("Unable to delete the document.");
     } finally {
       setBusy(false);
     }
@@ -722,14 +719,13 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ folderId }),
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "No se pudo eliminar carpeta");
+      if (!response.ok) throw new Error("Unable to delete the folder.");
 
       setFolderRows((prev) => prev.filter((row) => row.id !== folderId));
       setDeleteFolderId(null);
-      toast.success("Carpeta eliminada");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Error eliminando carpeta");
+      toast.success("Folder deleted successfully.");
+    } catch {
+      toast.error("Unable to delete the folder.");
     } finally {
       setBusy(false);
     }
@@ -754,8 +750,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ documentId, folderId }),
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "No se pudo mover documento");
+      if (!response.ok) throw new Error("Unable to move the document.");
       logDnd("move-document:ok", { documentId, folderId });
 
       setDocumentRows((prev) =>
@@ -765,9 +760,9 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
     })();
 
     toast.promise(movePromise, {
-      loading: `Moviendo documento a "${targetFolderName}"…`,
-      success: () => `Documento movido a "${targetFolderName}"`,
-      error: (err) => (err instanceof Error ? err.message : "Error moviendo documento"),
+      loading: `Moving document to "${targetFolderName}"...`,
+      success: () => `Document moved to "${targetFolderName}".`,
+      error: "Unable to move the document.",
     });
 
     movePromise.catch(() => {}).finally(() => {
@@ -788,17 +783,17 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
 
     logDnd("move-folder:start", { folderId, parentId });
     if (movingFolder && isProtectedFolder(movingFolder)) {
-      toast.error("No se pueden mover carpetas protegidas de empleados");
+      toast.error("Protected employee folders cannot be moved.");
       resetDndState();
       return;
     }
     if (parentId && employeesRootFolderId && parentId === employeesRootFolderId) {
-      toast.error("No puedes mover carpetas manuales dentro de Carpetas de empleados");
+      toast.error("Manual folders cannot be moved into Employee folders.");
       resetDndState();
       return;
     }
     if (folderId === parentId) {
-      toast.error("No puedes mover una carpeta dentro de si misma");
+      toast.error("A folder cannot be moved into itself.");
       resetDndState();
       return;
     }
@@ -807,7 +802,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
       let currentParentId = parentById.get(parentId) ?? null;
       while (currentParentId) {
         if (currentParentId === folderId) {
-          toast.error("No puedes mover una carpeta dentro de una subcarpeta suya");
+          toast.error("A folder cannot be moved into one of its subfolders.");
           resetDndState();
           return;
         }
@@ -826,8 +821,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ folderId, parentId }),
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "No se pudo mover carpeta");
+      if (!response.ok) throw new Error("Unable to move the folder.");
       logDnd("move-folder:ok", { folderId, parentId });
 
       setFolderRows((prev) =>
@@ -837,9 +831,9 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
     })();
 
     toast.promise(movePromise, {
-      loading: `Moviendo carpeta a "${targetFolderName}"…`,
-      success: () => `Carpeta movida a "${targetFolderName}"`,
-      error: (err) => (err instanceof Error ? err.message : "Error moviendo carpeta"),
+      loading: `Moving folder to "${targetFolderName}"...`,
+      success: () => `Folder moved to "${targetFolderName}".`,
+      error: "Unable to move the folder.",
     });
 
     movePromise.catch(() => {}).finally(() => {
@@ -876,8 +870,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
           userScope: target.users,
         }),
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "No se pudo compartir");
+      if (!response.ok) throw new Error("Unable to update access permissions.");
 
       if (target.kind === "document") {
         setDocumentRows((prev) =>
@@ -915,9 +908,9 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
         setShareFolderId(null);
       }
 
-      toast.success("Permisos actualizados");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Error actualizando permisos");
+      toast.success("Permissions updated successfully.");
+    } catch {
+      toast.error("Unable to update access permissions.");
     } finally {
       setBusy(false);
     }
@@ -931,12 +924,11 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "No se pudo compartir por email");
-      toast.success(typeof data.message === "string" ? data.message : "Documento compartido por email");
+      if (!response.ok) throw new Error("Unable to share the document by email.");
+      toast.success("Document shared by email.");
       setEmailShareDocId(null);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Error compartiendo por email");
+    } catch {
+      toast.error("Unable to share the document by email.");
     } finally {
       setBusy(false);
     }
@@ -1770,7 +1762,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
       {deleteDocument ? (
         <ConfirmDeleteDialog
           title="Eliminar documento"
-          description={`Se eliminará \"${deleteDocument.title}\". Esta acción no se puede deshacer.`}
+          description={`\"${deleteDocument.title}\" will be deleted. This action cannot be undone.`}
           busy={busy}
           onCancel={() => setDeleteDocId(null)}
           onConfirm={() => void removeDocument(deleteDocument.id)}
@@ -1780,7 +1772,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
       {deleteFolder ? (
         <ConfirmDeleteDialog
           title="Eliminar carpeta"
-          description={`Se eliminará la carpeta \"${deleteFolder.name}\" si está vacía.`}
+          description={`Folder \"${deleteFolder.name}\" will be deleted if it is empty.`}
           busy={busy}
           onCancel={() => setDeleteFolderId(null)}
           onConfirm={() => void removeFolder(deleteFolder.id)}

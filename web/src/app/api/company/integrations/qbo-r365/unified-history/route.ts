@@ -5,7 +5,7 @@ import { listUnifiedHistory } from "@/modules/integrations/qbo-r365/service";
 export async function GET(request: NextRequest) {
   const access = await assertCompanyAdminModuleApi("settings");
   if (!access.ok) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+    return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }
 
   const { searchParams } = new URL(request.url);
@@ -15,9 +15,9 @@ export async function GET(request: NextRequest) {
   try {
     const rows = await listUnifiedHistory(access.tenant.organizationId, limit, syncConfigId);
     return NextResponse.json({ rows }, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No se pudo cargar el historial unificado" },
+      { error: "Unable to load the invoice history. Please try again." },
       { status: 400 },
     );
   }

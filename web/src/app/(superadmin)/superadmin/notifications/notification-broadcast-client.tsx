@@ -194,11 +194,11 @@ export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribe
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      toast.error("El archivo debe ser una imagen (JPEG, PNG o WebP)");
+      toast.error("The file must be a JPEG, PNG, or WebP image");
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("La imagen no puede superar 2MB");
+      toast.error("The image must not exceed 2 MB");
       return;
     }
 
@@ -208,10 +208,10 @@ export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribe
       fd.append("file", file);
       const res = await fetch("/api/superadmin/push/upload-image", { method: "POST", body: fd });
       const data = await res.json();
-      if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Error al subir imagen");
+      if (!res.ok) throw new Error("Unable to upload image");
       setImageUrl(data.url);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al subir imagen");
+    } catch {
+      toast.error("Unable to upload image");
     } finally {
       setImageUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -245,7 +245,7 @@ export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribe
     if (!canSend) return;
     const scheduledAtIso = sendMode === "schedule" ? scheduleDateToIso() : null;
     if (sendMode === "schedule" && !scheduledAtIso) {
-      toast.error("Elegí una fecha y hora futura");
+      toast.error("Choose a future date and time");
       return;
     }
 
@@ -267,10 +267,10 @@ export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribe
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Error al enviar");
+      if (!res.ok) throw new Error("Unable to send notification");
 
       if (data.scheduled) {
-        toast.success(`Envío programado para ${new Date(data.scheduledAt).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`);
+        toast.success(`Notification scheduled for ${new Date(data.scheduledAt).toLocaleString("en-US", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`);
         setScheduled((prev) => [
           ...prev,
           {
@@ -297,7 +297,7 @@ export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribe
       }
 
       setResult(data);
-      toast.success(`Notificación enviada a ${data.targetCount} ${data.targetType === "users" ? "usuario" : "org"}${data.targetCount !== 1 ? "s" : ""}`);
+      toast.success(`Notification sent to ${data.targetCount} ${data.targetType === "users" ? "user" : "organization"}${data.targetCount !== 1 ? "s" : ""}`);
       setLogs((prev) => [
         {
           id: `optimistic-${Date.now()}`,
@@ -318,8 +318,8 @@ export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribe
         },
         ...prev,
       ]);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al enviar");
+    } catch {
+      toast.error("Unable to send notification");
     } finally {
       setIsPending(false);
     }
@@ -329,12 +329,11 @@ export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribe
     setDeletingSubId(id);
     try {
       const res = await fetch(`/api/superadmin/push/subscriptions/${id}`, { method: "DELETE" });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(typeof data?.error === "string" ? data.error : "Error al eliminar");
+      if (!res.ok) throw new Error("Unable to delete subscription");
       setSubs((prev) => prev.filter((s) => s.id !== id));
-      toast.success("Suscripción eliminada");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al eliminar");
+      toast.success("Subscription deleted");
+    } catch {
+      toast.error("Unable to delete subscription");
     } finally {
       setDeletingSubId(null);
     }
@@ -344,12 +343,11 @@ export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribe
     setDeletingLogId(id);
     try {
       const res = await fetch(`/api/superadmin/notifications/logs/${id}`, { method: "DELETE" });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(typeof data?.error === "string" ? data.error : "Error al eliminar");
+      if (!res.ok) throw new Error("Unable to delete notification log");
       setLogs((prev) => prev.filter((l) => l.id !== id));
-      toast.success("Registro eliminado");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al eliminar");
+      toast.success("Notification log deleted");
+    } catch {
+      toast.error("Unable to delete notification log");
     } finally {
       setDeletingLogId(null);
     }
@@ -359,12 +357,11 @@ export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribe
     setCancellingId(id);
     try {
       const res = await fetch(`/api/superadmin/notifications/scheduled/${id}`, { method: "DELETE" });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(typeof data?.error === "string" ? data.error : "Error al cancelar");
+      if (!res.ok) throw new Error("Unable to cancel scheduled notification");
       setScheduled((prev) => prev.filter((s) => s.id !== id));
-      toast.success("Envío programado cancelado");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al cancelar");
+      toast.success("Scheduled notification canceled");
+    } catch {
+      toast.error("Unable to cancel scheduled notification");
     } finally {
       setCancellingId(null);
     }
@@ -744,7 +741,7 @@ export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribe
               {result.pushSent === 0 && result.emailSent === 0 && (
                 <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                  No se enviaron notificaciones. Los destinatarios elegidos pueden no tener push activo ni email conocido.
+                  No notifications were sent. The selected recipients may not have active push subscriptions or known email addresses.
                 </div>
               )}
             </article>

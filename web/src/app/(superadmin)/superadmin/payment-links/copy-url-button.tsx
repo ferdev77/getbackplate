@@ -23,7 +23,7 @@ export function CopyUrlButton({ url }: { url: string }) {
           : "border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
       }`}
     >
-      {copied ? <><CheckCheck className="h-3 w-3" /> Copiado</> : <><Copy className="h-3 w-3" /> Copiar</>}
+      {copied ? <><CheckCheck className="h-3 w-3" /> Copied</> : <><Copy className="h-3 w-3" /> Copiar</>}
     </button>
   );
 }

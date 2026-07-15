@@ -28,13 +28,12 @@ export function useEmployeeDocumentMutations<TDocument extends BaseDocument>(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ documentId: doc.id, title: nextTitle }),
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "No se pudo editar documento");
+      if (!response.ok) throw new Error("Unable to update the document.");
       setDocumentsState((prev) => prev.map((item) => (item.id === doc.id ? { ...item, title: nextTitle } : item)));
       setEditingDocument(null);
-      toast.success("Documento actualizado");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo editar documento");
+      toast.success("Document updated successfully.");
+    } catch {
+      toast.error("Unable to update the document.");
     } finally {
       setBusy(false);
     }
@@ -48,13 +47,12 @@ export function useEmployeeDocumentMutations<TDocument extends BaseDocument>(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ documentId: doc.id }),
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "No se pudo eliminar documento");
+      if (!response.ok) throw new Error("Unable to delete the document.");
       setDocumentsState((prev) => prev.filter((item) => item.id !== doc.id));
       setDeleteDocument(null);
-      toast.success("Documento eliminado");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo eliminar documento");
+      toast.success("Document deleted successfully.");
+    } catch {
+      toast.error("Unable to delete the document.");
     } finally {
       setBusy(false);
     }
