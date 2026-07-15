@@ -18,6 +18,7 @@ import {
   syncEmployeeProfileProjection,
   upsertEmployeeContractDocument,
 } from "@/modules/employees/services/company-employees-route-support";
+import { resolveHrScope, isEmployeeInScope } from "@/modules/employees/lib/api-scope";
 import { EMPLOYEES_MESSAGES } from "@/shared/lib/employees-messages";
 
 const emailSchema = z.string().email();
@@ -26,46 +27,6 @@ const ALLOWED_CREATE_MODES = new Set(["without_account", "with_account"]);
 const ALLOWED_CONTRACT_STATUSES = new Set(["draft", "active", "ended", "cancelled"]);
 const ALLOWED_EMPLOYMENT_STATUSES = new Set(["active", "inactive", "vacation", "leave"]);
 const ALLOWED_DOCUMENT_TYPES = new Set(["dni", "cuil", "ssn", "passport"]);
-
-// Returns the set of branch IDs this HR employee can manage.
-// null means "all locations" (no filter needed).
-async function resolveHrScope(
-  organizationId: string,
-  userId: string,
-): Promise<string[] | null> {
-  const admin = createSupabaseAdminClient();
-  const { data: actor } = await admin
-    .from("employees")
-    .select("all_locations, location_scope_ids, branch_id")
-    .eq("organization_id", organizationId)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (!actor || actor.all_locations) return null;
-
-  const ids = Array.from(
-    new Set([
-      ...(Array.isArray(actor.location_scope_ids) ? actor.location_scope_ids : []),
-      ...(actor.branch_id ? [actor.branch_id] : []),
-    ]),
-  );
-  return ids.length ? ids : null;
-}
-
-function isEmployeeInScope(
-  emp: { branch_id?: string | null; location_scope_ids?: string[] | null; all_locations?: boolean | null },
-  scopeIds: string[] | null,
-): boolean {
-  if (!scopeIds) return true;
-  if (emp.all_locations) return true;
-  const empBranches = Array.from(
-    new Set([
-      ...(emp.branch_id ? [emp.branch_id] : []),
-      ...(Array.isArray(emp.location_scope_ids) ? emp.location_scope_ids : []),
-    ]),
-  );
-  return empBranches.some((id) => scopeIds.includes(id));
-}
 
 // ─── GET ─────────────────────────────────────────────────────────────────────
 
@@ -187,8 +148,67 @@ export async function GET(request: Request) {
       };
     });
 
+  // Usuarios sin perfil de empleado, visibles para que RRHH delegado pueda
+  // convertirlos a empleado (una vez empleado, no se puede volver a usuario).
+  const departmentNameById = new Map((departments ?? []).map((d) => [d.id, d.name]));
+
+  const { data: organizationUserProfiles } = await supabase
+    .from("organization_user_profiles")
+    .select("id, user_id, first_name, last_name, email, phone, branch_id, all_locations, location_scope_ids, department_id, status")
+    .eq("organization_id", organizationId)
+    .eq("is_employee", false)
+    .order("created_at", { ascending: false })
+    .limit(pageLimit * 2);
+
+  const userRows = (organizationUserProfiles ?? [])
+    .filter((profile) => isEmployeeInScope({ branch_id: profile.branch_id, location_scope_ids: profile.location_scope_ids, all_locations: profile.all_locations }, scopeIds))
+    .map((profile) => {
+      const fullName = `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim();
+      const isAllLocations = profile.all_locations || hasFullBranchCoverage(profile.location_scope_ids);
+      const resolvedLocationNames = isAllLocations
+        ? ["Todas las locaciones"]
+        : (Array.isArray(profile.location_scope_ids) && profile.location_scope_ids.length
+          ? profile.location_scope_ids.map((id) => branchNameById.get(id) ?? "Locación")
+          : (profile.branch_id ? [branchNameById.get(profile.branch_id) ?? "Sin locación"] : []));
+
+      return {
+        recordType: "user" as const,
+        id: `user-profile-${profile.id}`,
+        branchId: profile.branch_id ?? null,
+        firstName: profile.first_name ?? (fullName || "Usuario"),
+        lastName: profile.last_name ?? "",
+        email: profile.email,
+        phone: profile.phone,
+        position: null,
+        status: profile.status ?? "inactive",
+        dashboardAccess: Boolean(profile.user_id && activeMembershipUserIds.has(profile.user_id)),
+        hiredAt: null,
+        branchName: resolvedLocationNames[0] ?? "Sin locación",
+        locationNames: resolvedLocationNames,
+        departmentName: profile.department_id ? (departmentNameById.get(profile.department_id) ?? "Sin departamento") : "Sin departamento",
+        salaryAmount: null,
+        salaryCurrency: null,
+        paymentFrequency: null,
+        contractStatus: null,
+        contractSignedAt: null,
+        birthDate: null,
+        sex: null,
+        nationality: null,
+        addressLine1: null,
+        addressCity: null,
+        addressState: null,
+        addressCountry: null,
+        emergencyName: null,
+        emergencyPhone: null,
+        emergencyEmail: null,
+        pendingDocuments: 0,
+        docsCompletionStatus: "incomplete" as const,
+        organizationUserProfileId: profile.id,
+      };
+    });
+
   return NextResponse.json({
-    employees: employeeRows,
+    employees: [...employeeRows, ...userRows],
     branches: mappedBranches,
     departments: departments ?? [],
     positions: positions ?? [],
@@ -236,6 +256,7 @@ export async function POST(request: Request) {
   const hiredAt = String(formData.get("hired_at") ?? formData.get("hire_date") ?? "").trim() || null;
   const createMode = String(formData.get("create_mode") ?? "without_account").trim();
   const isEmployeeProfile = String(formData.get("is_employee") ?? "yes").trim().toLowerCase() !== "no";
+  const organizationUserProfileId = String(formData.get("organization_user_profile_id") ?? "").trim() || null;
   const existingDashboardAccess = String(formData.get("existing_dashboard_access") ?? "no").trim().toLowerCase() === "yes";
   const accountEmailInput = String(formData.get("account_email") ?? "").trim().toLowerCase();
   const accountPassword = String(formData.get("account_password") ?? "");
@@ -280,6 +301,25 @@ export async function POST(request: Request) {
     }
     if (!isEmployeeInScope(targetEmp, scopeIds)) {
       return NextResponse.json({ error: "No tenés permisos para editar este empleado" }, { status: 403 });
+    }
+  }
+
+  // Conversión de usuario existente a empleado: solo permitida si el usuario
+  // origen está dentro del alcance de locaciones de este RRHH delegado.
+  if (!isEditMode && isEmployeeProfile && organizationUserProfileId) {
+    const { data: targetProfile } = await supabase
+      .from("organization_user_profiles")
+      .select("id, branch_id, location_scope_ids, all_locations")
+      .eq("organization_id", organizationId)
+      .eq("id", organizationUserProfileId)
+      .eq("is_employee", false)
+      .maybeSingle();
+
+    if (!targetProfile) {
+      return NextResponse.json({ error: "Usuario no encontrado para convertir" }, { status: 404 });
+    }
+    if (!isEmployeeInScope(targetProfile, scopeIds)) {
+      return NextResponse.json({ error: "No tenés permisos para convertir este usuario" }, { status: 403 });
     }
   }
 
@@ -597,6 +637,7 @@ export async function POST(request: Request) {
       email: email ?? "",
       phone,
       employeeStatus: normalizedEmploymentStatus,
+      organizationUserProfileId,
     });
 
     // ── Contract ──
@@ -695,15 +736,76 @@ export async function PATCH(request: Request) {
 
   const body = await request.json().catch(() => null) as {
     employeeId?: string;
+    organizationUserProfileId?: string;
     status?: string;
   } | null;
 
   const employeeId = String(body?.employeeId ?? "").trim();
+  const organizationUserProfileId = String(body?.organizationUserProfileId ?? "").trim();
   const status = String(body?.status ?? "").trim();
 
-  if (!employeeId) {
+  if (!employeeId && !organizationUserProfileId) {
     return NextResponse.json({ error: "Registro inválido" }, { status: 400 });
   }
+
+  if (organizationUserProfileId) {
+    const isUserStatus = status === "active" || status === "inactive";
+    if (!isUserStatus) {
+      return NextResponse.json({ error: "Estado inválido para usuario" }, { status: 400 });
+    }
+
+    const { data: previousProfile } = await supabase
+      .from("organization_user_profiles")
+      .select("status, user_id, branch_id, location_scope_ids, all_locations")
+      .eq("organization_id", organizationId)
+      .eq("id", organizationUserProfileId)
+      .maybeSingle();
+
+    if (!previousProfile) {
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
+    if (!isEmployeeInScope(previousProfile, scopeIds)) {
+      return NextResponse.json({ error: "No tenés permisos para editar este usuario" }, { status: 403 });
+    }
+
+    const { error: profileError } = await supabase
+      .from("organization_user_profiles")
+      .update({ status })
+      .eq("organization_id", organizationId)
+      .eq("id", organizationUserProfileId);
+
+    if (profileError) {
+      return NextResponse.json({ error: `No se pudo actualizar estado del usuario: ${profileError.message}` }, { status: 400 });
+    }
+
+    if (previousProfile.user_id) {
+      const admin = createSupabaseAdminClient();
+      const { error: membershipError } = await admin
+        .from("memberships")
+        .update({ status })
+        .eq("organization_id", organizationId)
+        .eq("user_id", previousProfile.user_id);
+
+      if (membershipError) {
+        return NextResponse.json({ error: `No se pudo sincronizar estado de acceso: ${membershipError.message}` }, { status: 400 });
+      }
+    }
+
+    await logAuditEvent({
+      action: "employee.status.update",
+      entityType: "organization_user_profile",
+      entityId: organizationUserProfileId,
+      organizationId,
+      eventDomain: "employees",
+      outcome: "success",
+      severity: "low",
+      actorId,
+      metadata: { status_scope: "laboral", previous_status: previousProfile.status, next_status: status, via: "hr_delegation" },
+    });
+
+    return NextResponse.json({ ok: true });
+  }
+
   if (!ALLOWED_EMPLOYMENT_STATUSES.has(status)) {
     return NextResponse.json({ error: "Estado inválido" }, { status: 400 });
   }
@@ -762,11 +864,58 @@ export async function DELETE(request: Request) {
 
   const body = await request.json().catch(() => null) as {
     employeeId?: string;
+    organizationUserProfileId?: string;
   } | null;
 
   const employeeId = String(body?.employeeId ?? "").trim();
-  if (!employeeId) {
+  const organizationUserProfileId = String(body?.organizationUserProfileId ?? "").trim();
+
+  if (!employeeId && !organizationUserProfileId) {
     return NextResponse.json({ error: "Registro inválido" }, { status: 400 });
+  }
+
+  if (organizationUserProfileId) {
+    const { data: existingProfile } = await supabase
+      .from("organization_user_profiles")
+      .select("id, user_id, branch_id, location_scope_ids, all_locations")
+      .eq("organization_id", organizationId)
+      .eq("id", organizationUserProfileId)
+      .maybeSingle();
+
+    if (!existingProfile) {
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
+    if (!isEmployeeInScope(existingProfile, scopeIds)) {
+      return NextResponse.json({ error: "No tenés permisos para eliminar este usuario" }, { status: 403 });
+    }
+
+    const { data: deletedProfiles, error: deleteProfileError } = await supabase
+      .from("organization_user_profiles")
+      .delete()
+      .eq("organization_id", organizationId)
+      .eq("id", organizationUserProfileId)
+      .select("id");
+
+    if (deleteProfileError) {
+      return NextResponse.json({ error: `No se pudo eliminar usuario: ${deleteProfileError.message}` }, { status: 400 });
+    }
+    if (!deletedProfiles || deletedProfiles.length === 0) {
+      return NextResponse.json({ error: "No se encontró el registro o faltan permisos para eliminarlo." }, { status: 400 });
+    }
+
+    await logAuditEvent({
+      action: "users.profile.delete",
+      entityType: "organization_user_profile",
+      entityId: organizationUserProfileId,
+      organizationId,
+      eventDomain: "employees",
+      outcome: "success",
+      severity: "medium",
+      actorId,
+      metadata: { via: "hr_delegation" },
+    });
+
+    return NextResponse.json({ ok: true });
   }
 
   const { data: employee } = await supabase

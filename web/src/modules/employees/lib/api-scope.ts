@@ -1,5 +1,45 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 
+// Returns the set of branch IDs an HR-delegated employee can manage.
+// null means "all locations" (no filter needed).
+export async function resolveHrScope(
+  organizationId: string,
+  userId: string,
+): Promise<string[] | null> {
+  const admin = createSupabaseAdminClient();
+  const { data: actor } = await admin
+    .from("employees")
+    .select("all_locations, location_scope_ids, branch_id")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!actor || actor.all_locations) return null;
+
+  const ids = Array.from(
+    new Set([
+      ...(Array.isArray(actor.location_scope_ids) ? actor.location_scope_ids : []),
+      ...(actor.branch_id ? [actor.branch_id] : []),
+    ]),
+  );
+  return ids.length ? ids : null;
+}
+
+export function isEmployeeInScope(
+  record: { branch_id?: string | null; location_scope_ids?: string[] | null; all_locations?: boolean | null },
+  scopeIds: string[] | null,
+): boolean {
+  if (!scopeIds) return true;
+  if (record.all_locations) return true;
+  const recordBranches = Array.from(
+    new Set([
+      ...(record.branch_id ? [record.branch_id] : []),
+      ...(Array.isArray(record.location_scope_ids) ? record.location_scope_ids : []),
+    ]),
+  );
+  return recordBranches.some((id) => scopeIds.includes(id));
+}
+
 export async function resolveEmployeeAllowedLocationIds(
   organizationId: string,
   userId: string,

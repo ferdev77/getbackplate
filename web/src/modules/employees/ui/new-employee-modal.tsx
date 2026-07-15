@@ -133,6 +133,10 @@ export function NewEmployeeModal({
   apiEndpoint = "/api/company/employees",
 }: NewEmployeeModalProps) {
   const isEmployeeSelfMode = mode === "employee_self";
+  // Un usuario (organization_user_profile) sin registro de empleado aun puede convertirse
+  // en empleado, pero un empleado ya existente nunca puede "desmarcarse" de vuelta a usuario.
+  const isConvertingUserToEmployee = mode === "edit" && Boolean(initialEmployee?.organization_user_profile_id) && !initialEmployee?.id;
+  const isEmployeeProfileToggleLocked = isEmployeeSelfMode || (mode === "edit" && !isConvertingUserToEmployee);
   const [isActionPending, setIsActionPending] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [selectedDept, setSelectedDept] = useState(initialEmployee?.department_id ?? "");
@@ -496,7 +500,7 @@ export function NewEmployeeModal({
       toast.success(data.message || (mode === "edit" ? "Registro actualizado correctamente" : "Registro creado correctamente"));
       startTransition(() => {
         router.refresh();
-        router.push("/app/employees");
+        handleClose();
       });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo guardar el registro");
@@ -1115,15 +1119,15 @@ export function NewEmployeeModal({
                 <button
                   type="button"
                   onClick={() => {
-                    if (mode === "edit" || isEmployeeSelfMode) return;
+                    if (isEmployeeProfileToggleLocked) return;
                     setIsEmployeeProfile((prev) => !prev);
                   }}
-                  disabled={mode === "edit" || isEmployeeSelfMode}
+                  disabled={isEmployeeProfileToggleLocked}
                   className={`flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-left transition-colors ${
                     isEmployeeProfile
                       ? "border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,var(--gbp-border))] bg-[var(--gbp-accent-glow)]"
                       : "border-[var(--gbp-border)] bg-[var(--gbp-surface)]"
-                  } ${mode === "edit" || isEmployeeSelfMode ? "cursor-not-allowed opacity-70" : "cursor-pointer hover:border-[var(--gbp-accent)]"}`}
+                  } ${isEmployeeProfileToggleLocked ? "cursor-not-allowed opacity-70" : "cursor-pointer hover:border-[var(--gbp-accent)]"}`}
                   role="switch"
                   aria-checked={isEmployeeProfile}
                   aria-label="Perfil de empleado"

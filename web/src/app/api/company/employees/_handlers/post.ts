@@ -1408,6 +1408,7 @@ export async function POST(request: Request) {
       email,
       phone,
       employeeStatus: normalizedEmploymentStatus,
+      organizationUserProfileId,
     });
 
     if (profileSyncError) {

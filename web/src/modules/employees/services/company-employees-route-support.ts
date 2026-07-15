@@ -103,6 +103,7 @@ export async function syncEmployeeProfileProjection(input: {
   email: string;
   phone: string | null;
   employeeStatus: string;
+  organizationUserProfileId?: string | null;
 }) {
   const admin = createSupabaseAdminClient();
   const normalizedProfileStatus = input.employeeStatus === "inactive" ? "inactive" : "active";
@@ -124,6 +125,18 @@ export async function syncEmployeeProfileProjection(input: {
     status: normalizedProfileStatus,
     source: "users_employees_modal",
   };
+
+  // Conversión explícita de un usuario existente a empleado: el modal ya nos
+  // dice de qué organization_user_profile viene, así que lo actualizamos
+  // directamente en vez de depender de heurísticas por email (que fallan si
+  // el email cambia durante la conversión).
+  if (input.organizationUserProfileId) {
+    return admin
+      .from("organization_user_profiles")
+      .update(payload)
+      .eq("organization_id", input.organizationId)
+      .eq("id", input.organizationUserProfileId);
+  }
 
   const existingByEmployee = await admin
     .from("organization_user_profiles")
