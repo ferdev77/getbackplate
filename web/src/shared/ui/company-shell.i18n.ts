@@ -137,7 +137,6 @@ export const COMPANY_SHELL_EN: Record<string, string> = {
   "Pago y Facturación": "Payment & Billing",
 
   // ── Billing panel ──────────────────────────────────────────────
-  "Plan actual": "Current plan",
   "Cambiar plan": "Change plan",
   "Método de pago": "Payment method",
   "Gestiona tus métodos de pago, datos de facturación y descarga tus facturas de forma segura a través del portal de Stripe.":
