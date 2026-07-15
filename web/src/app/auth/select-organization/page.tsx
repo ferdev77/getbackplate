@@ -10,7 +10,7 @@ import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 
 
 export const metadata: Metadata = {
-  title: "Seleccionar empresa | GetBackplate",
+  title: "Select organization | GetBackplate",
 };
 
 type SelectOrganizationPageProps = {
@@ -18,9 +18,9 @@ type SelectOrganizationPageProps = {
 };
 
 const ROLE_LABELS: Record<string, string> = {
-  company_admin: "Admin de empresa",
+  company_admin: "Company administrator",
   
-  employee: "Empleado",
+  employee: "Employee",
 };
 
 export default async function SelectOrganizationPage({ searchParams }: SelectOrganizationPageProps) {
@@ -45,7 +45,7 @@ export default async function SelectOrganizationPage({ searchParams }: SelectOrg
 
   const membershipByOrganization = organizationsIds.map((organizationId) => ({
     organizationId,
-    organizationName: organizationNameById.get(organizationId) ?? "Empresa",
+    organizationName: organizationNameById.get(organizationId) ?? "Organization",
     memberships: memberships.filter((membership) => membership.organizationId === organizationId),
   }));
 
@@ -58,9 +58,9 @@ export default async function SelectOrganizationPage({ searchParams }: SelectOrg
         <div className="mb-4 flex justify-center">
           <ThemeAwareGetBackplateLogo width={230} height={42} className={`${BRAND_SCALE.authHeight} w-auto`} priority />
         </div>
-        <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-brand uppercase">Acceso multiempresa</p>
-        <h1 className="mb-1 text-2xl font-bold tracking-tight">Selecciona una empresa</h1>
-        <p className="mb-6 text-sm text-neutral-600">Tu usuario tiene acceso a varias empresas. Elige donde quieres trabajar ahora.</p>
+        <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-brand uppercase">Multi-organization access</p>
+        <h1 className="mb-1 text-2xl font-bold tracking-tight">Select an organization</h1>
+        <p className="mb-6 text-sm text-neutral-600">Your account has access to multiple organizations. Choose where you want to work now.</p>
 
         {params.error ? (
           <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -87,7 +87,7 @@ export default async function SelectOrganizationPage({ searchParams }: SelectOrg
                   </div>
                 </div>
 
-                <SubmitButton label="Entrar" pendingLabel="Entrando..." />
+                <SubmitButton label="Enter" pendingLabel="Entering..." />
               </div>
             </form>
           ))}

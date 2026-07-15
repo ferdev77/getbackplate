@@ -25,12 +25,12 @@ export async function generateMetadata({ searchParams }: ChangePasswordPageProps
 
   if (!tenantBranding) {
     return {
-      title: "Cambiar contraseña | GetBackplate",
+      title: "Change password | GetBackplate",
     };
   }
 
   return {
-    title: `Cambiar contraseña | ${tenantBranding.companyName}`,
+    title: `Change password | ${tenantBranding.companyName}`,
     icons: tenantBranding.faviconUrl
       ? {
           icon: [{ url: tenantBranding.faviconUrl }],
@@ -75,7 +75,7 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
       <SlideUp className="w-full max-w-md">
         <section className="rounded-[var(--gbp-radius-3xl)] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-8 text-[var(--gbp-text)] shadow-[var(--gbp-shadow-lg)]">
           <div className="mb-4 flex items-center">
-            <TagPill variant="violet">Seguridad</TagPill>
+            <TagPill variant="violet">Security</TagPill>
           </div>
           {tenantBranding ? (
             <div className="mb-6 flex flex-col items-center justify-center text-center">
@@ -85,24 +85,24 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
                     {tenantBranding.logoDarkUrl ? (
                       <source media="(prefers-color-scheme: dark)" srcSet={tenantBranding.logoDarkUrl} />
                     ) : null}
-                    <img src={tenantBranding.logoUrl} alt={`Logo ${tenantBranding.companyName}`} className="block h-auto max-h-14 w-auto max-w-[190px] object-contain" />
+                    <img src={tenantBranding.logoUrl} alt={`${tenantBranding.companyName} logo`} className="block h-auto max-h-14 w-auto max-w-[190px] object-contain" />
                   </picture>
                 ) : (
                   <span className="text-sm font-bold tracking-[0.08em] text-[var(--gbp-text)] uppercase">{tenantBranding.companyName}</span>
                 )}
               </div>
-              <p className="mt-2 text-xs text-[var(--gbp-text2)]">Seguridad de empresa</p>
+              <p className="mt-2 text-xs text-[var(--gbp-text2)]">Company account security</p>
             </div>
           ) : (
             <div className="mb-5 flex justify-center">
               <ThemeAwareGetBackplateLogo width={230} height={42} className={`${BRAND_SCALE.authHeight} w-auto`} priority />
             </div>
           )}
-          <h1 className="mb-1 text-2xl font-bold tracking-tight">Cambiar contraseña</h1>
+          <h1 className="mb-1 text-2xl font-bold tracking-tight">Change your password</h1>
           <p className="mb-6 text-sm text-[var(--gbp-text2)]">
             {reason === "first_login"
-              ? "Por seguridad, debes cambiar la contraseña temporal antes de continuar."
-              : "Define tu nueva contraseña para recuperar acceso a la plataforma."}
+              ? "For security, you must change your temporary password before continuing."
+              : "Set a new password to restore access to the platform."}
           </p>
 
           {params.error ? (
@@ -115,7 +115,7 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
             <input type="hidden" name="next" value={nextPath} />
             <div>
               <label htmlFor="password" className="mb-1 block text-sm font-medium text-[var(--gbp-text)]">
-                Nueva contraseña
+                New password
               </label>
               <PasswordInput
                 id="password"
@@ -123,13 +123,13 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
                 minLength={8}
                 required
                 className="auth-input w-full rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none ring-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] placeholder:text-[var(--gbp-muted)] transition focus:ring-2"
-                placeholder="Mínimo 8 caracteres"
+                placeholder="At least 8 characters"
               />
             </div>
 
             <div>
               <label htmlFor="confirm_password" className="mb-1 block text-sm font-medium text-[var(--gbp-text)]">
-                Confirmar contraseña
+                Confirm password
               </label>
               <PasswordInput
                 id="confirm_password"
@@ -137,13 +137,13 @@ export default async function ChangePasswordPage({ searchParams }: ChangePasswor
                 minLength={8}
                 required
                 className="auth-input w-full rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none ring-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] placeholder:text-[var(--gbp-muted)] transition focus:ring-2"
-                placeholder="Repite la contraseña"
+                placeholder="Re-enter your password"
               />
             </div>
 
             <SubmitButton
-              label="Actualizar contraseña"
-              pendingLabel="Actualizando..."
+              label="Update password"
+              pendingLabel="Updating..."
               className="w-full"
             />
           </form>

@@ -6,7 +6,7 @@ function buildInvalidRedirect(request: Request, organizationHint: string) {
   const fallback = new URL("/auth/recovery-link", request.url);
   fallback.searchParams.set(
     "error",
-    "El enlace de recuperacion expiro o no es valido. Solicita uno nuevo.",
+    "The password recovery link has expired or is invalid. Request a new one.",
   );
   if (organizationHint) {
     fallback.searchParams.set("org", organizationHint);

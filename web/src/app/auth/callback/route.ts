@@ -45,7 +45,7 @@ export async function GET(request: Request) {
     const redirectOnError = new URL("/auth/forgot-password", requestUrl.origin);
     redirectOnError.searchParams.set(
       "error",
-      "El enlace de recuperacion expiro o no es valido. Solicita uno nuevo.",
+      "The password recovery link has expired or is invalid. Request a new one.",
     );
     if (org) {
       redirectOnError.searchParams.set("org", org);

@@ -11,7 +11,7 @@ import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 import { MfaResendButton } from "./mfa-resend-button";
 
 export const metadata: Metadata = {
-  title: "Verificación en dos pasos | GetBackplate",
+  title: "Two-step verification | GetBackplate",
 };
 
 type VerifyMfaPageProps = {
@@ -43,10 +43,10 @@ export default async function VerifyMfaPage({ searchParams }: VerifyMfaPageProps
         <div className="mb-4 flex justify-center">
           <ThemeAwareGetBackplateLogo width={230} height={42} className={`${BRAND_SCALE.authHeight} w-auto`} priority />
         </div>
-        <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-brand uppercase">Verificación en dos pasos</p>
-        <h1 className="mb-1 text-2xl font-bold tracking-tight">Revisá tu email</h1>
+        <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-brand uppercase">Two-step verification</p>
+        <h1 className="mb-1 text-2xl font-bold tracking-tight">Check your email</h1>
         <p className="mb-6 text-sm text-neutral-600">
-          Te mandamos un código de 6 dígitos a <strong>{user.email}</strong>. Ingresalo para continuar.
+          We sent a 6-digit code to <strong>{user.email}</strong>. Enter it to continue.
         </p>
 
         {params.error || initialError ? (
@@ -64,7 +64,7 @@ export default async function VerifyMfaPage({ searchParams }: VerifyMfaPageProps
           <input type="hidden" name="next" value={nextPath} />
           <div>
             <label htmlFor="code" className="mb-1 block text-sm font-medium text-neutral-700">
-              Código de verificación
+              Verification code
             </label>
             <input
               id="code"
@@ -81,7 +81,7 @@ export default async function VerifyMfaPage({ searchParams }: VerifyMfaPageProps
             />
           </div>
 
-          <SubmitButton label="Verificar" pendingLabel="Verificando..." className="w-full" />
+          <SubmitButton label="Verify" pendingLabel="Verifying..." className="w-full" />
         </form>
 
         <MfaResendButton initialCooldownSeconds={initialCooldownSeconds} />

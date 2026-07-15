@@ -8,7 +8,7 @@ import { PasswordInput } from "@/shared/ui/password-input";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 
 export const metadata: Metadata = {
-  title: "Crear Cuenta | GetBackplate",
+  title: "Create account | GetBackplate",
 };
 
 type RegisterPageProps = {
@@ -36,11 +36,11 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
             <ThemeAwareGetBackplateLogo width={230} height={42} className={`${BRAND_SCALE.authHeight} w-auto`} priority />
           </div>
           <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-brand uppercase">
-            Únete a GetBackplate
+            Join GetBackplate
           </p>
-          <h1 className="mb-1 text-2xl font-bold tracking-tight">Crea tu cuenta</h1>
+          <h1 className="mb-1 text-2xl font-bold tracking-tight">Create your account</h1>
           <p className="mb-6 text-sm text-neutral-600">
-            Registra tu restaurante y comienza a operar como los grandes.
+            Register your restaurant and start operating like the best.
           </p>
 
           {error ? (
@@ -58,7 +58,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
 
             <div>
               <label htmlFor="companyName" className="mb-1 block text-sm font-medium">
-                Nombre de tu Empresa / Restaurante
+                Company / restaurant name
               </label>
               <input
                 id="companyName"
@@ -66,13 +66,13 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
                 type="text"
                 required
                 className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none ring-brand/20 transition focus:ring-2"
-                placeholder="Ej. Pizzería Los Hermanos"
+                placeholder="e.g. The Brothers Pizzeria"
               />
             </div>
             
             <div>
               <label htmlFor="fullName" className="mb-1 block text-sm font-medium">
-                Tu Nombre Completo
+                Your full name
               </label>
               <input
                 id="fullName"
@@ -80,13 +80,13 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
                 type="text"
                 required
                 className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none ring-brand/20 transition focus:ring-2"
-                placeholder="Juan Pérez"
+                placeholder="John Smith"
               />
             </div>
 
             <div>
               <label htmlFor="email" className="mb-1 block text-sm font-medium">
-                Correo Electrónico (Admin)
+                Admin email address
               </label>
               <input
                 id="email"
@@ -94,7 +94,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
                 type="email"
                 required
                 className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none ring-brand/20 transition focus:ring-2"
-                placeholder="juan@empresa.com"
+                placeholder="john@company.com"
               />
             </div>
             
@@ -103,7 +103,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
                 htmlFor="password"
                 className="mb-1 block text-sm font-medium"
               >
-                Contraseña
+                Password
               </label>
               <PasswordInput
                 id="password"
@@ -111,21 +111,21 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
                 required
                 minLength={8}
                 className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none ring-brand/20 transition focus:ring-2"
-                placeholder="Mínimo 8 caracteres"
+                placeholder="At least 8 characters"
               />
             </div>
 
             <SubmitButton
-              label={planId || integrationPlanId ? "Crear cuenta y continuar" : "Crear cuenta"}
-              pendingLabel="Registrando..."
+              label={planId || integrationPlanId ? "Create account and continue" : "Create account"}
+              pendingLabel="Creating account..."
               className="w-full mt-2"
             />
           </form>
 
           <div className="mt-6 text-center text-sm text-neutral-600">
-            ¿Ya tienes una cuenta?{" "}
+            Already have an account?{" "}
             <Link href="/auth/login" className="font-semibold text-brand hover:underline">
-              Inicia sesión aquí
+              Sign in here
             </Link>
           </div>
         </section>

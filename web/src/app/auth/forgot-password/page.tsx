@@ -22,12 +22,12 @@ export async function generateMetadata({ searchParams }: ForgotPasswordPageProps
 
   if (!tenantBranding) {
     return {
-      title: "Recuperar contraseña | GetBackplate",
+      title: "Reset password | GetBackplate",
     };
   }
 
   return {
-    title: `Recuperar contraseña | ${tenantBranding.companyName}`,
+    title: `Reset password | ${tenantBranding.companyName}`,
     icons: tenantBranding.faviconUrl
       ? {
           icon: [{ url: tenantBranding.faviconUrl }],
@@ -49,7 +49,7 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
       <SlideUp className="w-full max-w-md">
         <section className="rounded-[var(--gbp-radius-3xl)] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-8 text-[var(--gbp-text)] shadow-[var(--gbp-shadow-lg)]">
           <div className="mb-4 flex items-center">
-            <TagPill>Recuperación</TagPill>
+            <TagPill>Recovery</TagPill>
           </div>
 
           {tenantBranding ? (
@@ -60,13 +60,13 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
                     {tenantBranding.logoDarkUrl ? (
                       <source media="(prefers-color-scheme: dark)" srcSet={tenantBranding.logoDarkUrl} />
                     ) : null}
-                    <img src={tenantBranding.logoUrl} alt={`Logo ${tenantBranding.companyName}`} className="block h-auto max-h-14 w-auto max-w-[190px] object-contain" />
+                    <img src={tenantBranding.logoUrl} alt={`${tenantBranding.companyName} logo`} className="block h-auto max-h-14 w-auto max-w-[190px] object-contain" />
                   </picture>
                 ) : (
                   <span className="text-sm font-bold tracking-[0.08em] text-[var(--gbp-text)] uppercase">{tenantBranding.companyName}</span>
                 )}
               </div>
-              <p className="mt-2 text-xs text-[var(--gbp-text2)]">Recuperación de empresa</p>
+              <p className="mt-2 text-xs text-[var(--gbp-text2)]">Company account recovery</p>
             </div>
           ) : (
             <div className="mb-5 flex justify-center">
@@ -74,9 +74,9 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
             </div>
           )}
 
-          <h1 className="mb-1 text-2xl font-bold tracking-tight">Recuperar contraseña</h1>
+          <h1 className="mb-1 text-2xl font-bold tracking-tight">Reset your password</h1>
           <p className="mb-6 text-sm text-[var(--gbp-text2)]">
-            Te enviaremos un enlace para definir una nueva contraseña.
+            We will email you a link to set a new password.
           </p>
 
           {params.message ? (
@@ -109,13 +109,13 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
                 type="email"
                 required
                 className="auth-input w-full rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none ring-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] placeholder:text-[var(--gbp-muted)] transition focus:ring-2"
-                placeholder="admin@empresa.com"
+                placeholder="admin@company.com"
               />
             </div>
 
             <SubmitButton
-              label="Enviar enlace"
-              pendingLabel="Enviando..."
+              label="Send link"
+              pendingLabel="Sending..."
               className="w-full"
             />
           </form>

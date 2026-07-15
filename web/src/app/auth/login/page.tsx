@@ -53,7 +53,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <SlideUp className="w-full max-w-md">
         <section className="rounded-[var(--gbp-radius-3xl)] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-8 text-[var(--gbp-text)] shadow-[var(--gbp-shadow-lg)]">
           <div className="mb-4 flex items-center justify-center">
-            <TagPill variant="accent">Acceso seguro</TagPill>
+            <TagPill variant="accent">Secure access</TagPill>
           </div>
 
           {tenantBranding ? (
@@ -64,13 +64,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                     {tenantBranding.logoDarkUrl ? (
                       <source media="(prefers-color-scheme: dark)" srcSet={tenantBranding.logoDarkUrl} />
                     ) : null}
-                    <img src={tenantBranding.logoUrl} alt={`Logo ${tenantBranding.companyName}`} className="block h-auto max-h-14 w-auto max-w-[190px] object-contain" />
+                    <img src={tenantBranding.logoUrl} alt={`${tenantBranding.companyName} logo`} className="block h-auto max-h-14 w-auto max-w-[190px] object-contain" />
                   </picture>
                 ) : (
                   <span className="text-sm font-bold tracking-[0.08em] text-[var(--gbp-text)] uppercase">{tenantBranding.companyName}</span>
                 )}
               </div>
-              <p className="mt-2 text-xs text-[var(--gbp-text2)]">Acceso de empresa</p>
+              <p className="mt-2 text-xs text-[var(--gbp-text2)]">Company access</p>
             </div>
           ) : (
             <div className="mb-5 flex justify-center">
@@ -78,9 +78,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </div>
           )}
 
-          <h1 className="mb-1 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Iniciar sesión</h1>
+          <h1 className="mb-1 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Sign in</h1>
           <p className="mb-6 text-sm text-[var(--gbp-text2)]">
-            Ingresa con tus credenciales para acceder al panel.
+            Enter your credentials to access the dashboard.
           </p>
 
           {error ? (
@@ -101,7 +101,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 type="email"
                 required
                 className="auth-input w-full rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] outline-none ring-[color:color-mix(in_oklab,var(--gbp-accent)_20%,transparent)] placeholder:text-[var(--gbp-muted)] transition focus:ring-2"
-                placeholder="admin@empresa.com"
+                placeholder="admin@company.com"
               />
             </div>
             <div>
@@ -109,7 +109,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 htmlFor="password"
                 className="mb-1 block text-sm font-medium text-[var(--gbp-text)]"
               >
-                Contraseña
+                Password
               </label>
               <PasswordInput
                 id="password"
@@ -123,14 +123,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                   href={`/auth/forgot-password${orgQuery}`}
                   className="text-xs font-medium text-[var(--gbp-accent)] hover:text-[var(--gbp-accent-hover)]"
                 >
-                  Olvidé mi contraseña
+                  Forgot your password?
                 </Link>
               </div>
             </div>
 
             <SubmitButton
-              label="Entrar"
-              pendingLabel="Iniciando sesión..."
+              label="Sign in"
+              pendingLabel="Signing in..."
               className="w-full"
             />
           </form>

@@ -20,12 +20,12 @@ export async function generateMetadata({ searchParams }: RecoveryLinkPageProps):
 
   if (!tenantBranding) {
     return {
-      title: "Confirmar recuperacion | GetBackplate",
+      title: "Confirm password recovery | GetBackplate",
     };
   }
 
   return {
-    title: `Confirmar recuperacion | ${tenantBranding.companyName}`,
+    title: `Confirm password recovery | ${tenantBranding.companyName}`,
     icons: tenantBranding.faviconUrl
       ? {
           icon: [{ url: tenantBranding.faviconUrl }],
@@ -59,28 +59,28 @@ export default async function RecoveryLinkPage({ searchParams }: RecoveryLinkPag
                     {tenantBranding.logoDarkUrl ? (
                       <source media="(prefers-color-scheme: dark)" srcSet={tenantBranding.logoDarkUrl} />
                     ) : null}
-                    <img src={tenantBranding.logoUrl} alt={`Logo ${tenantBranding.companyName}`} className="block h-auto max-h-14 w-auto max-w-[190px] object-contain" />
+                    <img src={tenantBranding.logoUrl} alt={`${tenantBranding.companyName} logo`} className="block h-auto max-h-14 w-auto max-w-[190px] object-contain" />
                   </picture>
                 ) : (
                   <span className="text-sm font-bold tracking-[0.08em] text-[var(--gbp-text)] uppercase">{tenantBranding.companyName}</span>
                 )}
               </div>
-              <p className="mt-2 text-xs text-[var(--gbp-text2)]">Recuperación de empresa</p>
+              <p className="mt-2 text-xs text-[var(--gbp-text2)]">Company account recovery</p>
             </div>
           ) : (
             <div className="mb-5 flex justify-center">
               <ThemeAwareGetBackplateLogo width={230} height={42} className={`${BRAND_SCALE.authHeight} w-auto`} priority />
             </div>
           )}
-          <h1 className="mb-2 text-2xl font-bold tracking-tight">Enlace inválido</h1>
+          <h1 className="mb-2 text-2xl font-bold tracking-tight">Invalid link</h1>
           <p className="mb-6 text-sm text-[var(--gbp-text2)]">
-            Este enlace de recuperación no es válido. Solicita uno nuevo para continuar.
+            This password recovery link is invalid. Request a new one to continue.
           </p>
           <Link
             href={forgotPasswordHref}
             className="inline-flex rounded-[var(--gbp-radius-lg)] bg-[var(--gbp-accent)] px-4 py-2 text-sm font-semibold text-[var(--gbp-on-accent)] hover:bg-[var(--gbp-accent-hover)]"
           >
-            Solicitar nuevo enlace
+            Request a new link
           </Link>
         </section>
       </main>
@@ -98,13 +98,13 @@ export default async function RecoveryLinkPage({ searchParams }: RecoveryLinkPag
                   {tenantBranding.logoDarkUrl ? (
                     <source media="(prefers-color-scheme: dark)" srcSet={tenantBranding.logoDarkUrl} />
                   ) : null}
-                  <img src={tenantBranding.logoUrl} alt={`Logo ${tenantBranding.companyName}`} className="block h-auto max-h-14 w-auto max-w-[190px] object-contain" />
+                  <img src={tenantBranding.logoUrl} alt={`${tenantBranding.companyName} logo`} className="block h-auto max-h-14 w-auto max-w-[190px] object-contain" />
                 </picture>
               ) : (
                 <span className="text-sm font-bold tracking-[0.08em] text-[var(--gbp-text)] uppercase">{tenantBranding.companyName}</span>
               )}
             </div>
-            <p className="mt-2 text-xs text-[var(--gbp-text2)]">Recuperación de empresa</p>
+            <p className="mt-2 text-xs text-[var(--gbp-text2)]">Company account recovery</p>
           </div>
         ) : (
           <div className="mb-5 flex justify-center">
@@ -112,9 +112,9 @@ export default async function RecoveryLinkPage({ searchParams }: RecoveryLinkPag
           </div>
         )}
 
-        <h1 className="mb-2 text-2xl font-bold tracking-tight">Restablecer contraseña</h1>
+        <h1 className="mb-2 text-2xl font-bold tracking-tight">Reset your password</h1>
         <p className="mb-6 text-sm text-[var(--gbp-text2)]">
-          Para proteger tu acceso, confirma manualmente y te llevamos al cambio de contraseña.
+          To protect your account, confirm manually and we will take you to change your password.
         </p>
 
         {error ? (
@@ -130,12 +130,12 @@ export default async function RecoveryLinkPage({ searchParams }: RecoveryLinkPag
             type="submit"
             className="inline-flex w-full items-center justify-center rounded-lg bg-[var(--gbp-accent)] px-4 py-2 text-sm font-semibold text-white shadow-[var(--gbp-shadow-accent)] transition hover:bg-[var(--gbp-accent-hover)]"
           >
-            Continuar de forma segura
+            Continue securely
           </button>
         </form>
 
         <p className="mt-4 text-xs text-[var(--gbp-text2)]">
-          Si este enlace no funciona, solicita uno nuevo desde la pantalla de recuperación.
+          If this link does not work, request a new one from the password recovery page.
         </p>
       </section>
     </main>
