@@ -82,6 +82,7 @@ export default async function SuperadminOrganizationsPage({ searchParams }: Supe
 
   return (
     <SuperadminOrganizationsWorkspace
+      key={`${action}:${orgId}:${params.status ?? ""}:${params.message ?? ""}`}
       organizations={organizations ?? []}
       plans={plans ?? []}
       modules={modules ?? []}

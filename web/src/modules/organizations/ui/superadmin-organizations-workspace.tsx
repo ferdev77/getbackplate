@@ -370,7 +370,12 @@ export function SuperadminOrganizationsWorkspace({
                   <form action={deleteOrganizationAction} className="space-y-4">
                     <input type="hidden" name="organization_id" value={selectedOrg.id} />
                     <SuperadminInputField label="Confirmar slug" name="confirm_slug" required placeholder={selectedOrg.slug} className="text-center" />
-                    <button type="submit" className="w-full rounded-2xl bg-red-600 py-3.5 text-sm font-black uppercase tracking-widest text-white">Confirmar Destrucción de Datos</button>
+                    <SubmitButton
+                      label="Confirmar Destrucción de Datos"
+                      pendingLabel="Eliminando organización..."
+                      variant="danger"
+                      className="w-full rounded-2xl py-3.5 text-sm font-black uppercase tracking-widest"
+                    />
                   </form>
                 </div>
               ) : null}
