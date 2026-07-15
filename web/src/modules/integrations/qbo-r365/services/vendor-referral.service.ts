@@ -155,7 +155,13 @@ function escapeHtml(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
-export async function sendPublicReferralOwnerNotification(input: Pick<PublicVendorReferralInput, "referrerName" | "referrerEmail" | "vendorCompany" | "vendorContactName" | "vendorEmail">, overrideRecipientEmail?: string): Promise<void> {
+export async function sendPublicReferralOwnerNotification(input: {
+  referrerName: string;
+  referrerEmail?: string;
+  vendorCompany: string;
+  vendorContactName: string;
+  vendorEmail: string;
+}, overrideRecipientEmail?: string): Promise<void> {
   const recipients = (overrideRecipientEmail ?? process.env.OWNER_WEEKLY_REPORT_EMAIL ?? "")
     .split(",")
     .map((email) => email.trim())
@@ -163,8 +169,38 @@ export async function sendPublicReferralOwnerNotification(input: Pick<PublicVend
   if (!recipients.length) return;
 
   const subject = `Integration referred by ${input.referrerName}`;
-  const text = `A GetBackplate integration was referred by ${input.referrerName} (${input.referrerEmail}). Vendor: ${input.vendorCompany}. Contact: ${input.vendorContactName} (${input.vendorEmail}).`;
-  const html = `<p>A GetBackplate integration has been referred.</p><p><strong>Referred by:</strong> ${escapeHtml(input.referrerName)} (${escapeHtml(input.referrerEmail)})<br><strong>Vendor:</strong> ${escapeHtml(input.vendorCompany)}<br><strong>Contact:</strong> ${escapeHtml(input.vendorContactName)} (${escapeHtml(input.vendorEmail)})</p>`;
+  const referrerEmail = input.referrerEmail ? ` (${input.referrerEmail})` : "";
+  const referrerEmailHtml = input.referrerEmail ? `<br><a href="mailto:${escapeHtml(input.referrerEmail)}" style="font-size:13px;font-weight:400;color:#d4531a;text-decoration:none;">${escapeHtml(input.referrerEmail)}</a>` : "";
+  const text = `A GetBackplate integration was referred by ${input.referrerName}${referrerEmail}. Vendor: ${input.vendorCompany}. Contact: ${input.vendorContactName} (${input.vendorEmail}).`;
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<body style="margin:0;padding:0;background:#f5f6fa;font-family:Arial,sans-serif;color:#14151a;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f6fa;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden;">
+        <tr><td style="background:#14151a;padding:24px 32px;">
+          <span style="font-size:19px;font-weight:700;color:#ffffff;letter-spacing:-.3px;">GetBackplate</span>
+          <span style="float:right;color:#ff6b35;font-size:11px;font-weight:700;letter-spacing:1.4px;">NEW REFERRAL</span>
+        </td></tr>
+        <tr><td style="padding:32px 32px 12px;">
+          <div style="display:inline-block;background:#fff0e9;color:#c94b16;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:700;letter-spacing:.8px;">INTEGRATION REFERRAL</div>
+          <h1 style="margin:18px 0 10px;font-size:27px;line-height:1.18;letter-spacing:-.7px;">A new vendor was referred.</h1>
+          <p style="margin:0;font-size:15px;line-height:1.6;color:#595b66;">${escapeHtml(input.referrerName)} referred an integration opportunity. The vendor outreach email has been sent.</p>
+        </td></tr>
+        <tr><td style="padding:16px 32px 32px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #e6e8ee;border-radius:10px;overflow:hidden;">
+            <tr><td style="padding:14px 16px;background:#f8f9fc;border-bottom:1px solid #e6e8ee;font-size:11px;font-weight:700;letter-spacing:1px;color:#8a8c95;">REFERRER</td></tr>
+            <tr><td style="padding:15px 16px;font-size:15px;font-weight:700;">${escapeHtml(input.referrerName)}${referrerEmailHtml}</td></tr>
+            <tr><td style="padding:14px 16px;background:#f8f9fc;border-top:1px solid #e6e8ee;border-bottom:1px solid #e6e8ee;font-size:11px;font-weight:700;letter-spacing:1px;color:#8a8c95;">VENDOR</td></tr>
+            <tr><td style="padding:15px 16px;font-size:15px;font-weight:700;">${escapeHtml(input.vendorCompany)}<br><span style="font-size:13px;font-weight:400;color:#595b66;">${escapeHtml(input.vendorContactName)} · </span><a href="mailto:${escapeHtml(input.vendorEmail)}" style="font-size:13px;font-weight:400;color:#d4531a;text-decoration:none;">${escapeHtml(input.vendorEmail)}</a></td></tr>
+          </table>
+        </td></tr>
+        <tr><td style="padding:20px 32px;background:#f8f9fc;border-top:1px solid #e6e8ee;font-size:12px;line-height:1.5;color:#8a8c95;text-align:center;">GetBackplate · Restaurant365 invoice automation</td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 
   await Promise.all(recipients.map((to) => sendTransactionalEmail({
     to,
@@ -285,4 +321,15 @@ ${appBase}/integrations/qbo-r365`;
     vendor_phone: input.vendorPhone,
     outreach_sent_at: new Date().toISOString(),
   });
+
+  try {
+    await sendPublicReferralOwnerNotification({
+      referrerName: input.referrerBranchName,
+      vendorCompany: input.vendorCompany,
+      vendorContactName: input.vendorContactName,
+      vendorEmail: input.vendorEmail,
+    });
+  } catch (error) {
+    console.error("Failed to notify integration owners of token referral", error);
+  }
 }
