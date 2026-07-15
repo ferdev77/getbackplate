@@ -151,6 +151,31 @@ export type PublicVendorReferralInput = {
   userAgent?: string | null;
 };
 
+function escapeHtml(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+export async function sendPublicReferralOwnerNotification(input: Pick<PublicVendorReferralInput, "referrerName" | "referrerEmail" | "vendorCompany" | "vendorContactName" | "vendorEmail">, overrideRecipientEmail?: string): Promise<void> {
+  const recipients = (overrideRecipientEmail ?? process.env.OWNER_WEEKLY_REPORT_EMAIL ?? "")
+    .split(",")
+    .map((email) => email.trim())
+    .filter(Boolean);
+  if (!recipients.length) return;
+
+  const subject = `Integration referred by ${input.referrerName}`;
+  const text = `A GetBackplate integration was referred by ${input.referrerName} (${input.referrerEmail}). Vendor: ${input.vendorCompany}. Contact: ${input.vendorContactName} (${input.vendorEmail}).`;
+  const html = `<p>A GetBackplate integration has been referred.</p><p><strong>Referred by:</strong> ${escapeHtml(input.referrerName)} (${escapeHtml(input.referrerEmail)})<br><strong>Vendor:</strong> ${escapeHtml(input.vendorCompany)}<br><strong>Contact:</strong> ${escapeHtml(input.vendorContactName)} (${escapeHtml(input.vendorEmail)})</p>`;
+
+  await Promise.all(recipients.map((to) => sendTransactionalEmail({
+    to,
+    subject,
+    html,
+    text,
+    senderName: "GetBackplate",
+    notification: { source: "qbo_public_vendor_referral_owner", title: subject },
+  })));
+}
+
 export async function sendPublicVendorReferral(input: PublicVendorReferralInput): Promise<void> {
   const admin = createSupabaseAdminClient();
 
@@ -201,6 +226,13 @@ ${appBase}/integrations/qbo-r365`;
     user_agent: input.userAgent ?? null,
     outreach_sent_at: new Date().toISOString(),
   });
+
+  // Internal delivery failures must not affect the vendor outreach already sent.
+  try {
+    await sendPublicReferralOwnerNotification(input);
+  } catch (error) {
+    console.error("Failed to notify integration owners of public referral", error);
+  }
 }
 
 export async function sendVendorReferral(input: VendorReferralInput): Promise<void> {
