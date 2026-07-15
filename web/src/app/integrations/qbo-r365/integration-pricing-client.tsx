@@ -754,7 +754,7 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
                 </ul>
               </div>
               <div>
-                <h4>Legal</h4>
+                <h4><Link href="/legal">Legal</Link></h4>
                 <ul>
                   <li><a href="/legal/integration/privacy">Privacy</a></li>
                   <li><a href="/legal/integration/terms">Terms</a></li>
