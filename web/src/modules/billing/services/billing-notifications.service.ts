@@ -61,7 +61,7 @@ async function getOrganizationAdminEmail(organizationId: string): Promise<{ emai
 async function getOrganizationName(organizationId: string): Promise<string> {
   const supabase = createSupabaseAdminClient();
   const { data } = await supabase.from("organizations").select("name").eq("id", organizationId).single();
-  return data?.name || "Tu Empresa";
+  return data?.name || "Your Company";
 }
 
 async function sendBillingEmail(params: {
@@ -112,7 +112,7 @@ export async function sendRenewalReminderEmail(organizationId: string, renewalDa
   const html = planRenewalReminderTemplate({ orgName, renewalDate, amount, branding });
   await sendBillingEmail({
     organizationId,
-    subject: "Tu plan se renueva pronto",
+    subject: "Your plan renews soon",
     html,
     branding,
     type: "renewal_reminder",
@@ -137,7 +137,7 @@ export async function sendPlanChangedEmail(organizationId: string, planName: str
   const html = planChangedTemplate({ orgName, planName, branding });
   await sendBillingEmail({
     organizationId,
-    subject: "Tu plan ha sido actualizado",
+    subject: "Your plan has been updated",
     html,
     branding,
     type: "plan_changed",
@@ -163,7 +163,7 @@ export async function sendPaymentFailedEmail(organizationId: string, retryLink: 
 
   await sendBillingEmail({
     organizationId,
-    subject: "Acción requerida: Problema con tu pago",
+    subject: "Action required: Issue with your payment",
     html,
     branding,
     type: "payment_failed",
@@ -203,7 +203,7 @@ export async function sendSubscriptionActivatedEmail(params: {
 
   await sendBillingEmail({
     organizationId: params.organizationId,
-    subject: "¡Tu suscripción ya está activa!",
+    subject: "Your subscription is now active!",
     html,
     branding,
     type: "subscription_activated",

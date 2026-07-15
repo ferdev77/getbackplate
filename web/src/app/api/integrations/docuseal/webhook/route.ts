@@ -248,10 +248,10 @@ export async function POST(request: Request) {
 
     const linkedDocument = Array.isArray(row.linked_document) ? row.linked_document[0] : row.linked_document;
     const notificationSourceId = `${row.employee_id}:${row.document_id}`;
-    const notificationTitle = "Documento firmado";
+    const notificationTitle = "Document signed";
     const notificationBody = linkedDocument?.title
-      ? `El empleado firmo "${linkedDocument.title}".`
-      : "El empleado firmo el documento solicitado.";
+      ? `The employee signed "${linkedDocument.title}".`
+      : "The employee signed the requested document.";
 
     void sendPushToUsers(
       [row.signature_requested_by],
@@ -264,8 +264,8 @@ export async function POST(request: Request) {
       void sendTransactionalEmail({
         to: requesterEmail,
         subject: notificationTitle,
-        html: `<p>${notificationBody}</p><p><a href="/app/employees">Ir a Empleados</a></p>`,
-        text: `${notificationBody}\nIr a Empleados: /app/employees`,
+        html: `<p>${notificationBody}</p><p><a href="/app/employees">Go to Employees</a></p>`,
+        text: `${notificationBody}\nGo to Employees: /app/employees`,
         notification: {
           source: "document_signature_completed",
           sourceId: notificationSourceId,

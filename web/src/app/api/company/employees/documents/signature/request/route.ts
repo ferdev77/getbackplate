@@ -97,7 +97,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "El empleado no tiene email para firma" }, { status: 400 });
   }
 
-  const employeeName = `${employeeProfile?.first_name ?? employee.first_name ?? ""} ${employeeProfile?.last_name ?? employee.last_name ?? ""}`.trim() || "Empleado";
+  const employeeName = `${employeeProfile?.first_name ?? employee.first_name ?? ""} ${employeeProfile?.last_name ?? employee.last_name ?? ""}`.trim() || "Employee";
 
   const { data: signedBlob, error: storageError } = await admin.storage
     .from("tenant-documents")
@@ -234,14 +234,14 @@ export async function POST(request: Request) {
     });
 
     const notificationSourceId = `${employeeId}:${documentId}`;
-    const notificationTitle = "Tenés un documento para firmar";
-    const notificationBody = `"${linkedDocument.title}" necesita tu firma.`;
+    const notificationTitle = "You have a document to sign";
+    const notificationBody = `"${linkedDocument.title}" requires your signature.`;
 
     void sendTransactionalEmail({
       to: employeeEmail,
       subject: notificationTitle,
-      html: `<p>${notificationBody}</p><p><a href="/portal/documents">Ir a Documentos</a></p>`,
-      text: `${notificationBody}\nIr a Documentos: /portal/documents`,
+      html: `<p>${notificationBody}</p><p><a href="/portal/documents">Go to Documents</a></p>`,
+      text: `${notificationBody}\nGo to Documents: /portal/documents`,
       notification: {
         source: "document_signature_requested",
         sourceId: notificationSourceId,

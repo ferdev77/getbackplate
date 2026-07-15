@@ -100,8 +100,8 @@ export async function processEmployeeDocumentExpirationReminders() {
     const employeeProfile = employee.user_id ? profileByOrgAndUser.get(`${link.organization_id}:${employee.user_id}`) : null;
     const reviewerProfile = link.reviewed_by ? profileByOrgAndUser.get(`${link.organization_id}:${link.reviewed_by}`) : null;
 
-    const employeeName = `${employee.first_name ?? ""} ${employee.last_name ?? ""}`.trim() || "Empleado";
-    const reviewerName = `${reviewerProfile?.first_name ?? ""} ${reviewerProfile?.last_name ?? ""}`.trim() || "Administrador";
+    const employeeName = `${employee.first_name ?? ""} ${employee.last_name ?? ""}`.trim() || "Employee";
+    const reviewerName = `${reviewerProfile?.first_name ?? ""} ${reviewerProfile?.last_name ?? ""}`.trim() || "Administrator";
     const employeeEmail = employeeProfile?.email || employee.email || employee.personal_email || null;
     const reviewerEmail = reviewerProfile?.email || null;
 
@@ -122,20 +122,20 @@ export async function processEmployeeDocumentExpirationReminders() {
       timeZone: "UTC",
     });
 
-    const subject = `Recordatorio: documento por vencer (${link.reminder_days} días)`;
+    const subject = `Reminder: document expiring in ${link.reminder_days} days`;
     const branding = brandingByOrganizationId.get(link.organization_id);
     const brandedSubject = buildBrandedEmailSubject(subject, branding);
     const html = [
-      `<p>Hola,</p>`,
-      `<p>Este es un recordatorio automático para el documento <strong>${doc.title}</strong>.</p>`,
+      `<p>Hello,</p>`,
+      `<p>This is an automated reminder for the document <strong>${doc.title}</strong>.</p>`,
       `<p>`,
-      `Empleado: <strong>${employeeName}</strong><br/>`,
-      `Empresa: <strong>${org?.name ?? "Empresa"}</strong><br/>`,
-      `Fecha de vencimiento: <strong>${dueDateLabel}</strong><br/>`,
-      `Recordatorio configurado: <strong>${link.reminder_days} días antes</strong><br/>`,
-      `Aprobado por: <strong>${reviewerName}</strong>`,
+      `Employee: <strong>${employeeName}</strong><br/>`,
+      `Company: <strong>${org?.name ?? "Company"}</strong><br/>`,
+      `Expiration date: <strong>${dueDateLabel}</strong><br/>`,
+      `Configured reminder: <strong>${link.reminder_days} days before</strong><br/>`,
+      `Approved by: <strong>${reviewerName}</strong>`,
       `</p>`,
-      `<p>Por favor revisa y actualiza la documentación en el panel de empleados.</p>`,
+      `<p>Please review and update the documentation in the employee dashboard.</p>`,
     ].join("\n");
 
     let deliveryFailed = false;
@@ -322,7 +322,7 @@ export async function processEmployeeDocumentPendingReminders() {
     }
 
     const employeeProfile = employee.user_id ? profileByOrgAndUser.get(`${link.organization_id}:${employee.user_id}`) : null;
-    const employeeName = `${employee.first_name ?? ""} ${employee.last_name ?? ""}`.trim() || "Empleado";
+    const employeeName = `${employee.first_name ?? ""} ${employee.last_name ?? ""}`.trim() || "Employee";
     const employeeEmail = employeeProfile?.email || employee.email || employee.personal_email || null;
 
     const recipients = link.requested_without_file
@@ -335,21 +335,21 @@ export async function processEmployeeDocumentPendingReminders() {
     }
 
     const subject = link.requested_without_file
-      ? "Recordatorio: documento pendiente de carga"
-      : "Recordatorio: documento pendiente de revisión";
+      ? "Reminder: document upload pending"
+      : "Reminder: document review pending";
     const branding = brandingByOrganizationId.get(link.organization_id);
     const brandedSubject = buildBrandedEmailSubject(subject, branding);
 
     const html = [
-      `<p>Hola,</p>`,
-      `<p>Este es un recordatorio automático sobre el documento <strong>${doc.title}</strong>.</p>`,
+      `<p>Hello,</p>`,
+      `<p>This is an automated reminder about the document <strong>${doc.title}</strong>.</p>`,
       `<p>`,
-      `Empleado: <strong>${employeeName}</strong><br/>`,
-      `Empresa: <strong>${org?.name ?? "Empresa"}</strong><br/>`,
-      `Estado actual: <strong>${link.requested_without_file ? "Pendiente de carga" : "Pendiente de revisión"}</strong><br/>`,
-      `Tiempo en estado pendiente: <strong>${ageDays} días</strong>`,
+      `Employee: <strong>${employeeName}</strong><br/>`,
+      `Company: <strong>${org?.name ?? "Company"}</strong><br/>`,
+      `Current status: <strong>${link.requested_without_file ? "Upload pending" : "Review pending"}</strong><br/>`,
+      `Time pending: <strong>${ageDays} days</strong>`,
       `</p>`,
-      `<p>${link.requested_without_file ? "Ingresa al portal y sube el archivo solicitado." : "Revisa el documento desde el panel de empleados para aprobar o rechazar."}</p>`,
+      `<p>${link.requested_without_file ? "Go to the portal and upload the requested file." : "Review the document from the employee dashboard to approve or reject it."}</p>`,
     ].join("\n");
 
     let delivered = 0;

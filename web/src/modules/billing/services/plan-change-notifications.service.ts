@@ -42,8 +42,8 @@ type ModuleCatalogValue = {
 };
 
 function formatPlanPrice(plan: Pick<PlanRow, "price_amount" | "billing_period">) {
-  if (typeof plan.price_amount !== "number") return "Precio no definido";
-  const period = plan.billing_period === "yearly" || plan.billing_period === "annual" ? "anual" : "mensual";
+  if (typeof plan.price_amount !== "number") return "Price not defined";
+  const period = plan.billing_period === "yearly" || plan.billing_period === "annual" ? "yearly" : "monthly";
   return `$${plan.price_amount} / ${period}`;
 }
 
@@ -73,7 +73,7 @@ async function resolvePricePresentation(params: {
     }
 
     return {
-      label: `$${amount} / ${period === "yearly" ? "anual" : "mensual"}`,
+        label: `$${amount} / ${period}`,
       amount,
       period,
     } as const;
@@ -90,15 +90,15 @@ function normalizeModuleName(code: string, fallbackName?: string | null) {
   if (fallbackName && fallbackName.trim()) return fallbackName.trim();
 
   const labels: Record<string, string> = {
-    announcements: "Avisos",
+    announcements: "Announcements",
     checklists: "Checklists",
-    documents: "Documentos",
-    employees: "Usuarios y Empleados",
-    reports: "Reportes",
-    ai_assistant: "Asistente IA",
-    settings: "Ajustes",
+    documents: "Documents",
+    employees: "Users and Employees",
+    reports: "Reports",
+    ai_assistant: "AI Assistant",
+    settings: "Settings",
     dashboard: "Dashboard",
-    company_portal: "Portal Empresa",
+    company_portal: "Company Portal",
   };
 
   return labels[code] ?? code;
@@ -135,7 +135,7 @@ async function getOrganizationAndCurrentPlan(organizationId: string): Promise<{ 
     .maybeSingle();
 
   return {
-    orgName: data?.name ?? "Tu organizacion",
+    orgName: data?.name ?? "Your organization",
     currentPlanId: data?.plan_id ?? null,
   };
 }
@@ -170,14 +170,14 @@ async function getActorIdentity(params: { actorUserId?: string | null; actorEmai
   }
 
   if (!params.actorUserId) {
-    return { actorEmail: null, actorName: params.actorFullName?.trim() || "Administrador" };
+    return { actorEmail: null, actorName: params.actorFullName?.trim() || "Administrator" };
   }
 
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase.auth.admin.getUserById(params.actorUserId);
 
   if (error || !data.user?.email) {
-    return { actorEmail: null, actorName: params.actorFullName?.trim() || "Administrador" };
+    return { actorEmail: null, actorName: params.actorFullName?.trim() || "Administrator" };
   }
 
   const metadata = data.user.user_metadata as Record<string, unknown> | null;
@@ -240,10 +240,10 @@ export async function sendPlanChangeDecisionEmail(params: {
       : "upgrade";
 
   const limits = [
-    { label: "Locaciones", value: targetPlan.max_branches != null ? String(targetPlan.max_branches) : "Sin limite" },
-    { label: "Usuarios", value: targetPlan.max_users != null ? String(targetPlan.max_users) : "Sin limite" },
-    { label: "Empleados", value: targetPlan.max_employees != null ? String(targetPlan.max_employees) : "Sin limite" },
-    { label: "Storage", value: targetPlan.max_storage_mb != null ? `${targetPlan.max_storage_mb} MB` : "Sin limite" },
+    { label: "Locations", value: targetPlan.max_branches != null ? String(targetPlan.max_branches) : "Unlimited" },
+    { label: "Users", value: targetPlan.max_users != null ? String(targetPlan.max_users) : "Unlimited" },
+    { label: "Employees", value: targetPlan.max_employees != null ? String(targetPlan.max_employees) : "Unlimited" },
+    { label: "Storage", value: targetPlan.max_storage_mb != null ? `${targetPlan.max_storage_mb} MB` : "Unlimited" },
   ];
 
   const branding = await getTenantEmailBranding(params.organizationId);
@@ -252,20 +252,20 @@ export async function sendPlanChangeDecisionEmail(params: {
     orgName,
     actorName: params.actorFullName,
     actorEmail: params.actorEmail,
-    previousPlanName: currentPlan?.name ?? "Sin plan",
+    previousPlanName: currentPlan?.name ?? "No plan",
     targetPlanName: targetPlan.name,
     targetPlanPrice: pricePresentation.label,
     targetPlanLimits: limits,
     modulesToEnable,
     modulesToDisable,
     direction,
-    happenedAt: new Date().toLocaleString("es-US"),
+    happenedAt: new Date().toLocaleString("en-US"),
     branding,
   });
 
   const result = await sendTransactionalEmail({
     to: params.actorEmail,
-    subject: buildBrandedEmailSubject(`Cambio de plan solicitado: ${targetPlan.name}`, branding),
+    subject: buildBrandedEmailSubject(`Plan change requested: ${targetPlan.name}`, branding),
     html,
     senderName: resolveEmailSenderName(branding),
     notification: {
@@ -273,7 +273,7 @@ export async function sendPlanChangeDecisionEmail(params: {
       sourceId: "requested",
       organizationId: params.organizationId,
       actionUrl: "/app/billing",
-      title: `Cambio de plan solicitado: ${targetPlan.name}`,
+      title: `Plan change requested: ${targetPlan.name}`,
     },
   });
 
@@ -342,10 +342,10 @@ export async function sendPlanChangeAppliedEmail(params: {
       : "upgrade";
 
   const limits = [
-    { label: "Locaciones", value: targetPlan.max_branches != null ? String(targetPlan.max_branches) : "Sin limite" },
-    { label: "Usuarios", value: targetPlan.max_users != null ? String(targetPlan.max_users) : "Sin limite" },
-    { label: "Empleados", value: targetPlan.max_employees != null ? String(targetPlan.max_employees) : "Sin limite" },
-    { label: "Storage", value: targetPlan.max_storage_mb != null ? `${targetPlan.max_storage_mb} MB` : "Sin limite" },
+    { label: "Locations", value: targetPlan.max_branches != null ? String(targetPlan.max_branches) : "Unlimited" },
+    { label: "Users", value: targetPlan.max_users != null ? String(targetPlan.max_users) : "Unlimited" },
+    { label: "Employees", value: targetPlan.max_employees != null ? String(targetPlan.max_employees) : "Unlimited" },
+    { label: "Storage", value: targetPlan.max_storage_mb != null ? `${targetPlan.max_storage_mb} MB` : "Unlimited" },
   ];
 
   const branding = await getTenantEmailBranding(params.organizationId);
@@ -354,20 +354,20 @@ export async function sendPlanChangeAppliedEmail(params: {
     orgName,
     actorName: actor.actorName,
     actorEmail: actor.actorEmail,
-    previousPlanName: previousPlan?.name ?? "Sin plan",
+    previousPlanName: previousPlan?.name ?? "No plan",
     targetPlanName: targetPlan.name,
     targetPlanPrice: pricePresentation.label,
     targetPlanLimits: limits,
     modulesToEnable,
     modulesToDisable,
     direction,
-    appliedAt: new Date().toLocaleString("es-US"),
+    appliedAt: new Date().toLocaleString("en-US"),
     branding,
   });
 
   const result = await sendTransactionalEmail({
     to: actor.actorEmail,
-    subject: buildBrandedEmailSubject(`Cambio de plan aplicado: ${targetPlan.name}`, branding),
+    subject: buildBrandedEmailSubject(`Plan change applied: ${targetPlan.name}`, branding),
     html,
     senderName: resolveEmailSenderName(branding),
     notification: {
@@ -376,7 +376,7 @@ export async function sendPlanChangeAppliedEmail(params: {
       organizationId: params.organizationId,
       userId: params.actorUserId ?? undefined,
       actionUrl: "/app/billing",
-      title: `Cambio de plan aplicado: ${targetPlan.name}`,
+      title: `Plan change applied: ${targetPlan.name}`,
     },
   });
 

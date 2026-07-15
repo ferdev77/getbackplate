@@ -55,28 +55,28 @@ export function initialInviteTemplate({ fullName, loginEmail, loginPassword, log
   return `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #171311; line-height: 1.6;">
       ${renderEmailBrandingHeader(branding)}
-      <h2>Hola ${safeName},</h2>
-      <p>Has sido invitado a acceder a la plataforma de <strong>${platformName}</strong>.</p>
+      <h2>Hello ${safeName},</h2>
+      <p>You have been invited to access the <strong>${platformName}</strong> platform.</p>
       
-      <p>Tu cuenta ya está lista. A continuación te detallamos tus credenciales de acceso temporal. Por tu seguridad, te solicitaremos que cambies la contraseña la primera vez que ingreses:</p>
+      <p>Your account is ready. Below are your temporary login credentials. For your security, you will be asked to change your password the first time you sign in:</p>
       
       <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin: 24px 0;">
-        <p style="margin: 0 0 8px 0;"><strong>Usuario / Email:</strong> ${safeEmail}</p>
-        ${safePassword ? `<p style="margin: 0;"><strong>Contraseña Temporal:</strong> ${safePassword}</p>` : `<p style="margin: 0;"><strong>Contraseña:</strong> (Ya la tienes configurada o usa la recuperación si la olvidaste)</p>`}
+        <p style="margin: 0 0 8px 0;"><strong>Username / Email:</strong> ${safeEmail}</p>
+        ${safePassword ? `<p style="margin: 0;"><strong>Temporary Password:</strong> ${safePassword}</p>` : `<p style="margin: 0;"><strong>Password:</strong> (You already have one set, or use password recovery if you forgot it)</p>`}
       </div>
       
       <div style="margin: 32px 0;">
         <a href="${loginUrl}" style="display: block; width: max-content; background-color: #171311; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; text-align: center;">
-          Ingresa con tus credenciales
+          Sign in with your credentials
         </a>
       </div>
 
       <p style="font-size: 14px; color: #555;">
-        Si tienes problemas para acceder, por favor contacta al administrador de tu empresa.
+        If you have trouble accessing your account, please contact your company administrator.
       </p>
 
       <hr style="border: none; border-top: 1px solid #eaeaea; margin: 24px 0;" />
-      <p style="color: #888; font-size: 12px;">El equipo de ${brandName}</p>
+      <p style="color: #888; font-size: 12px;">The ${brandName} team</p>
     </div>
   `;
 }
@@ -88,26 +88,26 @@ export function resendReminderTemplate({ fullName, loginUrl, recoveryUrl, brandi
   return `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #171311; line-height: 1.6;">
       ${renderEmailBrandingHeader(branding)}
-      <h2>Hola ${safeName},</h2>
-      <p>Este es un mensaje recordatorio de que tu acceso a la plataforma <strong>${brandName}</strong> ya está habilitado.</p>
+      <h2>Hello ${safeName},</h2>
+      <p>This is a reminder that your access to the <strong>${brandName}</strong> platform is enabled.</p>
       
-      <p>Puedes ingresar directamente a tu cuenta o, si no recuerdas tu clave o no la configuraste, puedes restablecerla fácilmente mediante los siguientes accesos directos:</p>
+      <p>You can sign in to your account directly or, if you do not remember or have not set your password, easily reset it using the links below:</p>
       
       <div style="margin: 32px 0;">
         <a href="${loginUrl}" style="display: block; width: max-content; margin-bottom: 12px; background-color: #171311; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; text-align: center;">
-          Ingresa con tus credenciales
+          Sign in with your credentials
         </a>
         <a href="${recoveryUrl}" style="display: block; width: max-content; background-color: #e5e7eb; color: #171311; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; text-align: center;">
-          Olvidé mi contraseña
+          I forgot my password
         </a>
       </div>
 
       <p style="font-size: 14px; color: #555;">
-        Si tienes problemas para acceder, por favor contacta al administrador de tu empresa.
+        If you have trouble accessing your account, please contact your company administrator.
       </p>
 
       <hr style="border: none; border-top: 1px solid #eaeaea; margin: 24px 0;" />
-      <p style="color: #888; font-size: 12px;">El equipo de ${brandName}</p>
+      <p style="color: #888; font-size: 12px;">The ${brandName} team</p>
     </div>
   `;
 }

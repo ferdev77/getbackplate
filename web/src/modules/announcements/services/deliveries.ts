@@ -313,13 +313,13 @@ async function sendAnnouncementEmail(
   const brandName = branding.companyName;
   const result = await sendTransactionalEmail({
     to: email,
-    subject: buildBrandedEmailSubject(`Nuevo aviso: ${title}`, branding),
+    subject: buildBrandedEmailSubject(`New announcement: ${title}`, branding),
     html: `
       <h2 style="margin:0 0 10px 0;">${title}</h2>
       <p style="margin:0 0 14px 0;color:#444;">${body.replace(/\n/g, "<br/>")}</p>
-      <p style="margin:14px 0 0 0;font-size:12px;color:#666;">Entra a ${brandName} para ver el aviso completo.</p>
+      <p style="margin:14px 0 0 0;font-size:12px;color:#666;">Go to ${brandName} to view the full announcement.</p>
     `,
-    text: `${title}\n\n${body}\n\nIngresa a ${brandName} para ver el aviso completo.`,
+    text: `${title}\n\n${body}\n\nGo to ${brandName} to view the full announcement.`,
     senderName: resolveEmailSenderName(branding),
     notification: {
       source: "announcement",
@@ -327,7 +327,7 @@ async function sendAnnouncementEmail(
       organizationId: notification.organizationId,
       userId: notification.userId,
       actionUrl: "/portal/announcements",
-      title: `Nuevo aviso: ${title}`,
+      title: `New announcement: ${title}`,
     },
   });
 

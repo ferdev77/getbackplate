@@ -6,14 +6,14 @@ export function planRenewalReminderTemplate({ orgName, renewalDate, amount, bran
   return `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #171311;">
       ${renderBrandingHeader(branding)}
-      <h2>Hola ${orgName},</h2>
-      <p>Queríamos recordarte que tu plan actual se renovará pronto, el próximo <strong>${renewalDate}</strong>.</p>
-      <p>El importe de la renovación será de <strong>${amount}</strong>.</p>
+      <h2>Hello ${orgName},</h2>
+      <p>This is a reminder that your current plan will renew soon, on <strong>${renewalDate}</strong>.</p>
+      <p>The renewal amount will be <strong>${amount}</strong>.</p>
       <br />
-      <p>Si deseas realizar algún cambio en tu suscripción, puedes hacerlo desde tu panel de administración.</p>
+      <p>If you would like to make changes to your subscription, you can do so from your admin dashboard.</p>
       <br />
-      <p>Gracias por confiar en ${brandName}.</p>
-      <p style="color: #666; font-size: 12px;">El equipo de ${brandName}</p>
+      <p>Thank you for choosing ${brandName}.</p>
+      <p style="color: #666; font-size: 12px;">The ${brandName} team</p>
     </div>
   `;
 }
@@ -91,10 +91,10 @@ export function planChangeDecisionTemplate({
   branding,
 }: PlanChangeDecisionProps) {
   const isDowngrade = direction === "downgrade";
-  const title = isDowngrade ? "Se solicitó un downgrade de plan" : "Se solicitó un upgrade de plan";
+  const title = isDowngrade ? "Plan downgrade requested" : "Plan upgrade requested";
   const subtitle = isDowngrade
-    ? "Revisa los módulos que pueden quedar desactivados con el nuevo plan."
-    : "Tu organización desbloquea nuevas capacidades con el nuevo plan.";
+    ? "Review the modules that may be disabled under the new plan."
+    : "Your organization unlocks new capabilities with the new plan.";
   const accent = isDowngrade ? "#d97706" : "#059669";
   const accentSoft = isDowngrade ? "#fff7ed" : "#ecfdf5";
 
@@ -124,33 +124,33 @@ export function planChangeDecisionTemplate({
 
         <div style="padding:16px 24px 0 24px;">
           <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;background:#fafafa;">
-            <p style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Resumen del cambio</p>
+            <p style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Change summary</p>
             <p style="margin:0;color:#111827;font-size:14px;"><strong>${previousPlanName}</strong> -> <strong>${targetPlanName}</strong></p>
-            <p style="margin:6px 0 0 0;color:#111827;font-size:14px;">Nuevo costo: <strong>${targetPlanPrice}</strong></p>
+            <p style="margin:6px 0 0 0;color:#111827;font-size:14px;">New cost: <strong>${targetPlanPrice}</strong></p>
           </div>
         </div>
 
         <div style="padding:16px 24px 0 24px;">
           <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;">
-            <p style="margin:0 0 6px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Solicitado por</p>
+            <p style="margin:0 0 6px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Requested by</p>
             <p style="margin:0;color:#111827;font-size:14px;"><strong>${actorName}</strong> (${actorEmail})</p>
-            <p style="margin:6px 0 0 0;color:#6b7280;font-size:12px;">Fecha: ${happenedAt}</p>
+            <p style="margin:6px 0 0 0;color:#6b7280;font-size:12px;">Date: ${happenedAt}</p>
           </div>
         </div>
 
         <div style="padding:16px 24px 0 24px;">
           <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;background:${accentSoft};">
-            <p style="margin:0 0 10px 0;font-size:12px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Módulos que se activan</p>
-            ${renderModuleList(modulesToEnable, "No se detectaron nuevos módulos para este cambio.", "#047857", "#d1fae5")}
+            <p style="margin:0 0 10px 0;font-size:12px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Modules being enabled</p>
+            ${renderModuleList(modulesToEnable, "No new modules were detected for this change.", "#047857", "#d1fae5")}
             <div style="height:12px;"></div>
-            <p style="margin:0 0 10px 0;font-size:12px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Módulos que se desactivan</p>
-            ${renderModuleList(modulesToDisable, "No se detectaron módulos a desactivar.", "#b45309", "#ffedd5")}
+            <p style="margin:0 0 10px 0;font-size:12px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Modules being disabled</p>
+            ${renderModuleList(modulesToDisable, "No modules were detected to disable.", "#b45309", "#ffedd5")}
           </div>
         </div>
 
         <div style="padding:16px 24px 8px 24px;">
           <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;">
-            <p style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Límites del nuevo plan</p>
+            <p style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">New plan limits</p>
             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
               <tbody>
                 ${limitsHtml}
@@ -161,8 +161,8 @@ export function planChangeDecisionTemplate({
 
         <div style="padding:12px 24px 24px 24px;">
           <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">
-            Esta notificación confirma que el cambio de plan fue solicitado desde la cuenta administradora de <strong>${orgName}</strong>.
-            Si no reconoces esta acción, revisa de inmediato los accesos en tu panel.
+            This notification confirms that the plan change was requested from the administrator account for <strong>${orgName}</strong>.
+            If you do not recognize this action, review access to your dashboard immediately.
           </p>
           <p style="margin:10px 0 0 0;color:#9ca3af;font-size:11px;">${brandName} Billing</p>
         </div>
@@ -201,7 +201,7 @@ export function planChangeAppliedTemplate({
   branding,
 }: PlanChangeAppliedProps) {
   const isDowngrade = direction === "downgrade";
-  const title = isDowngrade ? "Cambio de plan aplicado: downgrade completado" : "Cambio de plan aplicado: upgrade completado";
+  const title = isDowngrade ? "Plan change applied: downgrade completed" : "Plan change applied: upgrade completed";
   const accent = isDowngrade ? "#d97706" : "#059669";
   const accentSoft = isDowngrade ? "#fff7ed" : "#ecfdf5";
 
@@ -226,38 +226,38 @@ export function planChangeAppliedTemplate({
         <div style="padding:24px 24px 8px 24px;">
           ${renderBrandingHeader(branding)}
           <h2 style="margin:0;font-size:24px;line-height:1.2;color:#111827;">${title}</h2>
-          <p style="margin:10px 0 0 0;color:#4b5563;font-size:14px;line-height:1.5;">El cambio fue confirmado por Stripe y ya está activo para ${orgName}.</p>
+          <p style="margin:10px 0 0 0;color:#4b5563;font-size:14px;line-height:1.5;">The change was confirmed by Stripe and is now active for ${orgName}.</p>
         </div>
 
         <div style="padding:16px 24px 0 24px;">
           <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;background:#fafafa;">
-            <p style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Resultado final</p>
+            <p style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Final result</p>
             <p style="margin:0;color:#111827;font-size:14px;"><strong>${previousPlanName}</strong> -> <strong>${targetPlanName}</strong></p>
-            <p style="margin:6px 0 0 0;color:#111827;font-size:14px;">Costo actual: <strong>${targetPlanPrice}</strong></p>
+            <p style="margin:6px 0 0 0;color:#111827;font-size:14px;">Current cost: <strong>${targetPlanPrice}</strong></p>
           </div>
         </div>
 
         <div style="padding:16px 24px 0 24px;">
           <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;">
-            <p style="margin:0 0 6px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Administrador responsable</p>
+            <p style="margin:0 0 6px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Responsible administrator</p>
             <p style="margin:0;color:#111827;font-size:14px;"><strong>${actorName}</strong> (${actorEmail})</p>
-            <p style="margin:6px 0 0 0;color:#6b7280;font-size:12px;">Aplicado: ${appliedAt}</p>
+            <p style="margin:6px 0 0 0;color:#6b7280;font-size:12px;">Applied: ${appliedAt}</p>
           </div>
         </div>
 
         <div style="padding:16px 24px 0 24px;">
           <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;background:${accentSoft};">
-            <p style="margin:0 0 10px 0;font-size:12px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Módulos activados</p>
-            ${renderModuleList(modulesToEnable, "Sin nuevas activaciones de módulos.", "#047857", "#d1fae5")}
+            <p style="margin:0 0 10px 0;font-size:12px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Enabled modules</p>
+            ${renderModuleList(modulesToEnable, "No new module activations.", "#047857", "#d1fae5")}
             <div style="height:12px;"></div>
-            <p style="margin:0 0 10px 0;font-size:12px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Módulos desactivados</p>
-            ${renderModuleList(modulesToDisable, "Sin desactivaciones de módulos.", "#b45309", "#ffedd5")}
+            <p style="margin:0 0 10px 0;font-size:12px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Disabled modules</p>
+            ${renderModuleList(modulesToDisable, "No module deactivations.", "#b45309", "#ffedd5")}
           </div>
         </div>
 
         <div style="padding:16px 24px 8px 24px;">
           <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;">
-            <p style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Límites vigentes del plan</p>
+            <p style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Current plan limits</p>
             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
               <tbody>
                 ${limitsHtml}
@@ -267,7 +267,7 @@ export function planChangeAppliedTemplate({
         </div>
 
         <div style="padding:12px 24px 24px 24px;">
-          <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">Este email confirma que el plan ya fue sincronizado en la plataforma. Puedes validar el estado actual desde el panel de empresa.</p>
+          <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">This email confirms that the plan has been synchronized in the platform. You can verify its current status from the company dashboard.</p>
           <p style="margin:10px 0 0 0;color:#9ca3af;font-size:11px;">${brandName} Billing</p>
         </div>
       </div>
@@ -281,14 +281,14 @@ export function planChangedTemplate({ orgName, planName, branding }: PlanChanged
   return `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #171311;">
       ${renderBrandingHeader(branding)}
-      <h2>Hola ${orgName},</h2>
-      <p>Tu suscripción ha sido actualizada exitosamente.</p>
-      <p>Ahora tienes activo el plan: <strong>${planName}</strong>.</p>
+      <h2>Hello ${orgName},</h2>
+      <p>Your subscription has been updated successfully.</p>
+      <p>Your active plan is now: <strong>${planName}</strong>.</p>
       <br />
-      <p>Ya puedes disfrutar de todos los beneficios y nuevos límites de la plataforma de inmediato.</p>
+      <p>You can now immediately enjoy all platform benefits and new limits.</p>
       <br />
-      <p>Gracias por confiar en ${brandName}.</p>
-      <p style="color: #666; font-size: 12px;">El equipo de ${brandName}</p>
+      <p>Thank you for choosing ${brandName}.</p>
+      <p style="color: #666; font-size: 12px;">The ${brandName} team</p>
     </div>
   `;
 }
@@ -299,17 +299,17 @@ export function paymentFailedTemplate({ orgName, retryLink, branding }: PaymentF
   return `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #171311;">
       ${renderBrandingHeader(branding)}
-      <h2>Hola ${orgName},</h2>
-      <p style="color: #b91c1c;">Hemos detectado un inconveniente al procesar tu último pago de suscripción.</p>
-      <p>Para evitar interrupciones en tu servicio, por favor actualiza tu método de pago correspondiente.</p>
+      <h2>Hello ${orgName},</h2>
+      <p style="color: #b91c1c;">We detected an issue while processing your latest subscription payment.</p>
+      <p>To avoid interruptions to your service, please update your payment method.</p>
       <br />
       <a href="${retryLink}" style="display: inline-block; background-color: #171311; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold;">
-        Actualizar Método de Pago
+         Update Payment Method
       </a>
       <br />
       <br />
-      <p>Si ya solucionaste este problema, ignora este mensaje.</p>
-      <p style="color: #666; font-size: 12px;">El equipo de ${brandName}</p>
+      <p>If you have already resolved this issue, please ignore this message.</p>
+      <p style="color: #666; font-size: 12px;">The ${brandName} team</p>
     </div>
   `;
 }
@@ -326,8 +326,8 @@ export function subscriptionActivatedTemplate({ orgName, planName, trialDays, da
   const appUrl = dashboardUrl ?? `${(process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://getbackplate.com").replace(/\/$/, "")}/app/dashboard`;
   const trialCopy =
     trialDays > 0
-      ? `Tu prueba gratis de <strong>${trialDays} días</strong> ya está activa. Antes del primer cobro te enviaremos recordatorios para que gestiones tu plan con tranquilidad.`
-      : "Tu plan ya se encuentra activo y tu equipo puede operar con acceso completo a la plataforma.";
+      ? `Your <strong>${trialDays}-day free trial</strong> is now active. Before your first charge, we will send reminders so you can manage your plan with confidence.`
+      : "Your plan is now active and your team can use the platform with full access.";
 
   return `
     <div style="font-family:Inter,Segoe UI,Arial,sans-serif;max-width:680px;margin:0 auto;background:#f5f6f8;padding:24px;">
@@ -336,25 +336,25 @@ export function subscriptionActivatedTemplate({ orgName, planName, trialDays, da
 
         <div style="padding:24px 24px 8px 24px;">
           ${renderBrandingHeader(branding)}
-          <p style="margin:0;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#9ca3af;">Confirmación de suscripción</p>
-          <h2 style="margin:10px 0 0 0;font-size:24px;line-height:1.2;color:#111827;">Tu empresa ya quedó activada en ${brandName}</h2>
-          <p style="margin:10px 0 0 0;color:#4b5563;font-size:14px;line-height:1.6;">Hola <strong>${orgName}</strong>, validamos correctamente tu pago en Stripe y habilitamos tu entorno de trabajo.</p>
+          <p style="margin:0;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#9ca3af;">Subscription confirmation</p>
+          <h2 style="margin:10px 0 0 0;font-size:24px;line-height:1.2;color:#111827;">Your company is now active on ${brandName}</h2>
+          <p style="margin:10px 0 0 0;color:#4b5563;font-size:14px;line-height:1.6;">Hello <strong>${orgName}</strong>, we successfully validated your Stripe payment and enabled your workspace.</p>
         </div>
 
         <div style="padding:16px 24px 0 24px;">
           <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;background:#fafafa;">
-            <p style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Resumen</p>
-            <p style="margin:0;color:#111827;font-size:14px;">Plan activo: <strong>${planName}</strong></p>
+            <p style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Summary</p>
+            <p style="margin:0;color:#111827;font-size:14px;">Active plan: <strong>${planName}</strong></p>
             <p style="margin:8px 0 0 0;color:#374151;font-size:13px;line-height:1.6;">${trialCopy}</p>
           </div>
         </div>
 
         <div style="padding:18px 24px 0 24px;">
-          <a href="${appUrl}" style="display:inline-block;background:#171311;color:#ffffff;text-decoration:none;padding:11px 18px;border-radius:10px;font-size:13px;font-weight:700;">Ir al panel de empresa</a>
+          <a href="${appUrl}" style="display:inline-block;background:#171311;color:#ffffff;text-decoration:none;padding:11px 18px;border-radius:10px;font-size:13px;font-weight:700;">Go to the company dashboard</a>
         </div>
 
         <div style="padding:18px 24px 24px 24px;">
-          <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">Si no reconoces este movimiento, responde este correo para que el equipo de soporte te asista de inmediato.</p>
+          <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">If you do not recognize this transaction, reply to this email so our support team can assist you immediately.</p>
           <p style="margin:10px 0 0 0;color:#9ca3af;font-size:11px;">${brandName} Billing</p>
         </div>
       </div>

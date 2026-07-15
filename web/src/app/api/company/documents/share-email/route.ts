@@ -75,26 +75,26 @@ export async function POST(request: Request) {
   });
   const branding = await getTenantEmailBranding(tenant.organizationId);
   const html = `
-    <h2 style="margin:0 0 10px 0;">Documento compartido</h2>
-    <p style="margin:0 0 10px 0;color:#444;">Te compartieron el documento <strong>${document.title}</strong>.</p>
-    ${message ? `<p style="margin:0 0 10px 0;color:#444;">Mensaje: ${message}</p>` : ""}
-    <p style="margin:14px 0;"><a href="${signed.signedUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">Descargar documento</a></p>
-    <p style="margin:0;color:#666;font-size:12px;">Este enlace expira en 24 horas.</p>
-    ${appUrl ? `<p style="margin:10px 0 0 0;color:#666;font-size:12px;">Plataforma: ${appUrl}</p>` : ""}
+    <h2 style="margin:0 0 10px 0;">Shared document</h2>
+    <p style="margin:0 0 10px 0;color:#444;">The document <strong>${document.title}</strong> has been shared with you.</p>
+    ${message ? `<p style="margin:0 0 10px 0;color:#444;">Message: ${message}</p>` : ""}
+    <p style="margin:14px 0;"><a href="${signed.signedUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">Download document</a></p>
+    <p style="margin:0;color:#666;font-size:12px;">This link expires in 24 hours.</p>
+    ${appUrl ? `<p style="margin:10px 0 0 0;color:#666;font-size:12px;">Platform: ${appUrl}</p>` : ""}
   `;
 
   const emailResult = await sendTransactionalEmail({
     to: recipientEmail,
-    subject: buildBrandedEmailSubject(`Documento compartido: ${document.title}`, branding),
+    subject: buildBrandedEmailSubject(`Shared document: ${document.title}`, branding),
     html,
-    text: `Te compartieron el documento ${document.title}. Enlace: ${signed.signedUrl}. Expira en 24 horas.`,
+    text: `The document ${document.title} has been shared with you. Link: ${signed.signedUrl}. It expires in 24 hours.`,
     senderName: resolveEmailSenderName(branding),
     notification: {
       source: "document_share",
       sourceId: document.id,
       organizationId: tenant.organizationId,
       actionUrl: signed.signedUrl,
-      title: `Documento compartido: ${document.title}`,
+      title: `Shared document: ${document.title}`,
     },
   });
 

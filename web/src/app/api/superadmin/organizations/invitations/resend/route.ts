@@ -19,7 +19,7 @@ export async function POST(request: Request) {
 
   const organizationId = String(body?.organizationId ?? "").trim();
   const email = String(body?.email ?? "").trim().toLowerCase();
-  const fullName = String(body?.fullName ?? "").trim() || "Administrador";
+  const fullName = String(body?.fullName ?? "").trim() || "Administrator";
 
   if (!organizationId || !email) {
     return NextResponse.json({ ok: false, error: "Faltan datos para reenviar invitación" }, { status: 400 });
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
 
   const emailResult = await sendEmail({
     to: [{ email, name: fullName }],
-    subject: buildBrandedEmailSubject("Recordatorio de acceso a la plataforma", branding),
+    subject: buildBrandedEmailSubject("Platform access reminder", branding),
     senderName: resolveEmailSenderName(branding),
     htmlContent: resendReminderTemplate({
       fullName,

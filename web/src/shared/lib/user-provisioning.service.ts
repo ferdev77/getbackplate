@@ -51,7 +51,7 @@ export async function provisionOrganizationUserAccount(input: {
       if (!isMember) {
         await sendEmail({
           to: [{ email: loginEmail, name: fullName }],
-          subject: buildBrandedEmailSubject("Acceso activado para la plataforma", branding),
+          subject: buildBrandedEmailSubject("Platform access activated", branding),
           senderName: resolveEmailSenderName(branding),
           htmlContent: resendReminderTemplate({
             fullName,
@@ -87,7 +87,7 @@ export async function provisionOrganizationUserAccount(input: {
 
       await sendEmail({
         to: [{ email: loginEmail, name: fullName }],
-        subject: buildBrandedEmailSubject("Tus credenciales de acceso", branding),
+        subject: buildBrandedEmailSubject("Your login credentials", branding),
         senderName: resolveEmailSenderName(branding),
         htmlContent: initialInviteTemplate({
           fullName,
@@ -127,7 +127,7 @@ export async function provisionOrganizationUserAccount(input: {
 
       await sendEmail({
         to: [{ email: loginEmail, name: fullName }],
-        subject: buildBrandedEmailSubject("Bienvenido(a) - Tus credenciales", branding),
+        subject: buildBrandedEmailSubject("Welcome - Your login credentials", branding),
         senderName: resolveEmailSenderName(branding),
         htmlContent: initialInviteTemplate({
           fullName,

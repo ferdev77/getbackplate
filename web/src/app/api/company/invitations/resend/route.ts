@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     | null;
 
   const email = String(body?.email ?? "").trim().toLowerCase();
-  const fullName = String(body?.fullName ?? "").trim() || "Usuario";
+  const fullName = String(body?.fullName ?? "").trim() || "User";
   const roleCode = String(body?.roleCode ?? "employee").trim();
 
   if (!email) {
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
 
   const emailResult = await sendEmail({
     to: [{ email, name: fullName }],
-    subject: buildBrandedEmailSubject("Recordatorio de acceso a la plataforma", branding),
+    subject: buildBrandedEmailSubject("Platform access reminder", branding),
     senderName: resolveEmailSenderName(branding),
     htmlContent: resendReminderTemplate({
       fullName,

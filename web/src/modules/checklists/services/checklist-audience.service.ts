@@ -69,30 +69,30 @@ export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput &
   const branding = await getTenantEmailBranding(input.organizationId);
   const subject =
     input.event === "created"
-      ? `Nuevo checklist creado: ${input.templateName}`
-      : `Checklist enviado: ${input.templateName}`;
+      ? `New checklist created: ${input.templateName}`
+      : `Checklist submitted: ${input.templateName}`;
   const brandedSubject = buildBrandedEmailSubject(subject, branding);
   const html =
     input.event === "created"
       ? `
-    <h2 style="margin:0 0 10px 0;">Nuevo checklist creado</h2>
-    <p style="margin:0 0 8px 0;color:#444;">Plantilla: <strong>${input.templateName}</strong></p>
+    <h2 style="margin:0 0 10px 0;">New checklist created</h2>
+    <p style="margin:0 0 8px 0;color:#444;">Template: <strong>${input.templateName}</strong></p>
     <p style="margin:0 0 8px 0;color:#444;">Items: <strong>${input.itemsCount}</strong></p>
-    <p style="margin:0 0 14px 0;color:#444;">Creado por: <strong>${input.actorEmail ?? "Usuario interno"}</strong></p>
-    <p style="margin:14px 0 0 0;"><a href="${reportsUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">Ver checklists</a></p>
+    <p style="margin:0 0 14px 0;color:#444;">Created by: <strong>${input.actorEmail ?? "Internal user"}</strong></p>
+    <p style="margin:14px 0 0 0;"><a href="${reportsUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">View checklists</a></p>
   `
       : `
-    <h2 style="margin:0 0 10px 0;">Checklist enviado</h2>
-    <p style="margin:0 0 8px 0;color:#444;">Plantilla: <strong>${input.templateName}</strong></p>
+    <h2 style="margin:0 0 10px 0;">Checklist submitted</h2>
+    <p style="margin:0 0 8px 0;color:#444;">Template: <strong>${input.templateName}</strong></p>
     <p style="margin:0 0 8px 0;color:#444;">Items: <strong>${input.itemsCount}</strong></p>
-    <p style="margin:0 0 8px 0;color:#444;">Incidencias: <strong>${input.flaggedCount ?? 0}</strong></p>
-    <p style="margin:0 0 14px 0;color:#444;">Enviado por: <strong>${input.actorEmail ?? "Usuario interno"}</strong></p>
-    <p style="margin:14px 0 0 0;"><a href="${reportsUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">Ver en reportes</a></p>
+    <p style="margin:0 0 8px 0;color:#444;">Issues: <strong>${input.flaggedCount ?? 0}</strong></p>
+    <p style="margin:0 0 14px 0;color:#444;">Submitted by: <strong>${input.actorEmail ?? "Internal user"}</strong></p>
+    <p style="margin:14px 0 0 0;"><a href="${reportsUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">View in reports</a></p>
   `;
   const text =
     input.event === "created"
-      ? `Nuevo checklist creado\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nCreado por: ${input.actorEmail ?? "Usuario interno"}\nVer checklists: ${reportsUrl}`
-      : `Checklist enviado\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nIncidencias: ${input.flaggedCount ?? 0}\nEnviado por: ${input.actorEmail ?? "Usuario interno"}\nVer en reportes: ${reportsUrl}`;
+      ? `New checklist created\nTemplate: ${input.templateName}\nItems: ${input.itemsCount}\nCreated by: ${input.actorEmail ?? "Internal user"}\nView checklists: ${reportsUrl}`
+      : `Checklist submitted\nTemplate: ${input.templateName}\nItems: ${input.itemsCount}\nIssues: ${input.flaggedCount ?? 0}\nSubmitted by: ${input.actorEmail ?? "Internal user"}\nView in reports: ${reportsUrl}`;
 
   await Promise.allSettled(
     contacts.emails.map((to) =>

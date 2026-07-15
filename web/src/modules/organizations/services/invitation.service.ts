@@ -118,7 +118,7 @@ export async function sendOrganizationAdminInvitation(params: {
     try {
       await sendEmail({
         to: [{ email: params.email, name: params.fullName }],
-        subject: buildBrandedEmailSubject("Tus credenciales de acceso", branding),
+        subject: buildBrandedEmailSubject("Your login credentials", branding),
         senderName: resolveEmailSenderName(branding),
         htmlContent: initialInviteTemplate({
           fullName: params.fullName,
@@ -180,7 +180,7 @@ export async function sendOrganizationAdminInvitation(params: {
     try {
       await sendEmail({
         to: [{ email: params.email, name: params.fullName }],
-        subject: buildBrandedEmailSubject("Bienvenido(a) - Tus credenciales", branding),
+        subject: buildBrandedEmailSubject("Welcome - Your login credentials", branding),
         senderName: resolveEmailSenderName(branding),
         htmlContent: initialInviteTemplate({
           fullName: params.fullName,
