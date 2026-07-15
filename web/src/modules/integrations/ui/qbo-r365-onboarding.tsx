@@ -213,7 +213,7 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
                 </div>
                 <div>
                   <label className={labelCls}>Email</label>
-                  <input className={inputCls} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="ops@empresa.com" />
+                  <input className={inputCls} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="ops@company.com" />
                 </div>
                 <div>
                   <label className={labelCls}>{t("Teléfono")}</label>
@@ -221,7 +221,7 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
                 </div>
                 <div>
                   <label className={labelCls}>{t("Sitio web")}</label>
-                  <input className={inputCls} value={website} onChange={e => setWebsite(e.target.value)} placeholder="empresa.com" />
+                  <input className={inputCls} value={website} onChange={e => setWebsite(e.target.value)} placeholder="company.com" />
                 </div>
                 <div className="sm:col-span-2">
                   <label className={labelCls}>{t("Dirección")}</label>

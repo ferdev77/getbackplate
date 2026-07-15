@@ -256,7 +256,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
           companyFaviconUrl={brandingSettings?.company_favicon_url ?? ""}
           customBrandingEnabled={customBrandingEnabled}
         />
-        {integrationOrganization?.integration_plan_id && <IntegrationVendorProfileSettingsCard initialProfile={integrationOrganization.integration_vendor_profile as Record<string, string> | null} />}
+        {Boolean(integrationOrganization?.integration_plan_id) && <IntegrationVendorProfileSettingsCard initialProfile={integrationOrganization?.integration_vendor_profile as Record<string, string> | null} />}
         <CustomDomainSettingsCard
           locale={locale}
           enabled={customBrandingEnabled}
