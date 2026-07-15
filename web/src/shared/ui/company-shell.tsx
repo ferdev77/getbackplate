@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { type CSSProperties, useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ChevronDown,
@@ -255,10 +255,6 @@ export function CompanyShell({
   const [integrationPlanBusy, setIntegrationPlanBusy] = useState<string | null>(null);
   const [setupFeeSelected, setSetupFeeSelected] = useState<Record<string, boolean>>({});
   const [lockedViewTab, setLockedViewTab] = useState<"platform" | "integration">("platform");
-  const autoIntegrationCheckoutStarted = useRef(false);
-  const startSelectedIntegrationCheckout = useEffectEvent((planId: string, period: "monthly" | "annual") => {
-    void startIntegrationPlanCheckout(planId, period);
-  });
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(SECTIONS.map((section) => [section.label, false])),
   );
@@ -319,6 +315,9 @@ export function CompanyShell({
   const selectedPlanIdFromUrl = searchParams.get("selectPlanId");
   const selectedIntegrationPlanIdFromUrl = searchParams.get("selectIntegrationPlanId");
   const selectedBillingPeriodFromUrl = searchParams.get("billingPeriod");
+  const isIntegrationLandingCheckout = Boolean(
+    selectedIntegrationPlanIdFromUrl && integrationPlans.some((plan) => plan.id === selectedIntegrationPlanIdFromUrl),
+  );
   const shouldLockDashboard = Boolean(billingGate?.required && billingGate?.isBlocked && !impersonationMode);
   const lockScreenQboAddon = availableAddons.find((a) => a.integrationPlanType === "qbo_r365");
   const lockScreenOrgAddon = lockScreenQboAddon ? organizationAddons.find((a) => a.moduleId === lockScreenQboAddon.moduleId) : null;
@@ -641,16 +640,12 @@ export function CompanyShell({
 
   useEffect(() => {
     if (!shouldLockDashboard) return;
-    if (selectedIntegrationPlanIdFromUrl && integrationPlans.some((plan) => plan.id === selectedIntegrationPlanIdFromUrl)) {
+    if (isIntegrationLandingCheckout) {
       const integrationPeriod = selectedBillingPeriodFromUrl === "annual" || selectedBillingPeriodFromUrl === "yearly"
         ? "annual"
         : "monthly";
       setLockedViewTab("integration");
       setIntegrationPlanBillingCycle(integrationPeriod);
-      if (!autoIntegrationCheckoutStarted.current) {
-        autoIntegrationCheckoutStarted.current = true;
-        startSelectedIntegrationCheckout(selectedIntegrationPlanIdFromUrl, integrationPeriod);
-      }
       return;
     }
     if (selectedBillingPeriodFromUrl === "yearly" || selectedBillingPeriodFromUrl === "annual") {
@@ -660,7 +655,7 @@ export function CompanyShell({
     if (selectedBillingPeriodFromUrl === "monthly") {
       setPlanBillingCycle("monthly");
     }
-  }, [integrationPlans, selectedBillingPeriodFromUrl, selectedIntegrationPlanIdFromUrl, shouldLockDashboard]);
+  }, [isIntegrationLandingCheckout, selectedBillingPeriodFromUrl, shouldLockDashboard]);
 
   useEffect(() => {
     if (!planOpen) return;
@@ -1843,14 +1838,18 @@ export function CompanyShell({
               {/* Header */}
               <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--gbp-accent)]">Activación requerida</p>
               <h2 className="mt-1 text-xl font-bold">
-                {billingGate?.reason === "trial_expired" ? "Tu prueba venció — reactivá tu suscripción" : "Elegí tu plan para desbloquear el panel"}
+                {isIntegrationLandingCheckout
+                  ? "Elegí tu plan de integración QuickBooks"
+                  : billingGate?.reason === "trial_expired" ? "Tu prueba venció — reactivá tu suscripción" : "Elegí tu plan para desbloquear el panel"}
               </h2>
               <p className={`mt-1.5 text-sm ${isDarkTheme ? "text-white/65" : "text-[var(--gbp-text2)]"}`}>
-                Contratá un plan de plataforma para gestionar tu operación, o un plan de integración para conectar QuickBooks con R365.
+                {isIntegrationLandingCheckout
+                  ? "Conectá QuickBooks Online con Restaurant365 y sincronizá facturas automáticamente."
+                  : "Contratá un plan de plataforma para gestionar tu operación, o un plan de integración para conectar QuickBooks con R365."}
               </p>
 
               {/* Tab switcher */}
-              <div className={`mt-5 inline-flex gap-1 rounded-xl border p-1 ${isDarkTheme ? "border-white/10 bg-white/[0.04]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
+              {!isIntegrationLandingCheckout && <div className={`mt-5 inline-flex gap-1 rounded-xl border p-1 ${isDarkTheme ? "border-white/10 bg-white/[0.04]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                 <button
                   type="button"
                   onClick={() => setLockedViewTab("platform")}
@@ -1867,10 +1866,10 @@ export function CompanyShell({
                     Integración QuickBooks
                   </button>
                 )}
-              </div>
+              </div>}
 
               {/* ── Plataforma ──────────────────────────────────── */}
-              {lockedViewTab === "platform" && (
+              {!isIntegrationLandingCheckout && lockedViewTab === "platform" && (
                 <div className="mt-5">
                   <p className={`mb-4 text-xs ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>
                     Empleados, documentos, checklists y más — todo para gestionar tu operación.
@@ -1941,7 +1940,7 @@ export function CompanyShell({
               )}
 
               {/* ── Integración QuickBooks ───────────────────────── */}
-              {lockedViewTab === "integration" && integrationPlans.length > 0 && (
+              {(isIntegrationLandingCheckout || lockedViewTab === "integration") && integrationPlans.length > 0 && (
                 <div className="mt-5">
                   <p className={`mb-4 text-xs ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>
                     Conectá tu QuickBooks Online con Restaurant365 y sincronizá facturas automáticamente. No requiere un plan de plataforma.
@@ -1961,6 +1960,8 @@ export function CompanyShell({
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     {integrationPlans.map((plan) => {
                       const isCurrent = lockScreenOrgAddon?.integrationPlanId === plan.id;
+                      const isSelectedFromLanding = selectedIntegrationPlanIdFromUrl === plan.id;
+                      const includeSetupFee = setupFeeSelected[plan.id] ?? true;
                       const monthly = plan.priceAmount ?? 0;
                       const annualPerMonth = Math.round((monthly * 10) / 12);
                       const displayPrice = integrationPlanBillingCycle === "annual" ? annualPerMonth : monthly;
@@ -1970,9 +1971,10 @@ export function CompanyShell({
                       return (
                         <div
                           key={plan.id}
-                          className={`relative flex flex-col rounded-xl border p-4 transition ${plan.isFeatured ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent)]/5" : plan.isEnterprise ? (isDarkTheme ? "border-dashed border-white/20 bg-white/[0.03]" : "border-dashed border-[var(--gbp-border)] bg-transparent") : (isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]")}`}
+                          className={`relative flex flex-col rounded-xl border p-4 transition ${plan.isFeatured || isSelectedFromLanding ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent)]/5" : plan.isEnterprise ? (isDarkTheme ? "border-dashed border-white/20 bg-white/[0.03]" : "border-dashed border-[var(--gbp-border)] bg-transparent") : (isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]")}`}
                         >
                           {plan.isFeatured && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">Popular</span>}
+                          {isSelectedFromLanding && !plan.isFeatured && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">Seleccionado</span>}
                           {isCurrent && <span className="absolute -top-2.5 right-3 rounded-full bg-emerald-500 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">Actual</span>}
                           <p className="text-sm font-bold">{plan.name}</p>
                           {plan.description && <p className={`mt-1 mb-2 text-[10px] leading-relaxed ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>{plan.description}</p>}
@@ -2000,9 +2002,8 @@ export function CompanyShell({
                               <input
                                 type="checkbox"
                                 className="mt-px shrink-0 accent-[var(--gbp-accent)]"
-                                checked
-                                disabled
-                                readOnly
+                                checked={includeSetupFee}
+                                onChange={(event) => setSetupFeeSelected((current) => ({ ...current, [plan.id]: event.target.checked }))}
                               />
                               <span className={isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}>
                                 Setup de configuración inicial
@@ -2023,7 +2024,7 @@ export function CompanyShell({
                             <button
                               type="button"
                               disabled={isLoading || isCurrent}
-                              onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle, true)}
+                              onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle, includeSetupFee)}
                               className={`mt-auto w-full rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${isCurrent ? (isDarkTheme ? "bg-white/10 text-white/40" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]") : plan.isFeatured ? "bg-[var(--gbp-accent)] text-white hover:opacity-90" : (isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]")}`}
                             >
                               {isLoading ? "Redirigiendo..." : isCurrent ? "Plan actual" : "Contratar →"}
