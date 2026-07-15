@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { IntegrationSiteFooter, IntegrationSiteHeader } from "@/modules/landing/ui/integration-site-chrome";
 
 export const metadata = {
   title: "Legal Documents | GetBackplate",
@@ -26,21 +26,7 @@ const INTEGRATION = {
 export default function LegalIndexPage() {
   return (
     <div className="min-h-screen" style={{ background: "#f5f6f8", fontFamily: "var(--font-plus-jakarta-sans), sans-serif" }}>
-      <header className="border-b border-[#e5e7f0] bg-white px-6 py-5 sm:px-10">
-        <div className="mx-auto flex max-w-[1000px] items-center justify-between">
-          <Link href="/" className="inline-flex items-center" aria-label="GetBackplate home">
-            <Image src="/getbackplate-logo-light.svg" alt="GetBackplate" width={200} height={29} className="h-[29px] w-auto" />
-          </Link>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white transition hover:opacity-90"
-            style={{ background: "#c04a17" }}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to GetBackplate
-          </Link>
-        </div>
-      </header>
+      <IntegrationSiteHeader />
 
       <main className="mx-auto max-w-[1000px] px-6 py-16 sm:px-10">
         <div className="text-center">
@@ -90,6 +76,7 @@ export default function LegalIndexPage() {
           Intuit and QuickBooks are registered trademarks of Intuit Inc. Used with permission.
         </p>
       </main>
+      <IntegrationSiteFooter />
     </div>
   );
 }

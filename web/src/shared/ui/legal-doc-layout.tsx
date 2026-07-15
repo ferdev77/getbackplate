@@ -1,6 +1,6 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import "./legal-doc.css";
+import { IntegrationSiteFooter, IntegrationSiteHeader } from "@/modules/landing/ui/integration-site-chrome";
 
 type LegalDocLayoutProps = {
   docLabel: string;
@@ -15,10 +15,7 @@ type LegalDocLayoutProps = {
 export function LegalDocLayout({ docLabel, title, subtitle, effective, lastUpdated, version, children }: LegalDocLayoutProps) {
   return (
     <div className="legal-doc">
-      <nav className="page-nav">
-        <Link href="/">getbackplate.com</Link>
-        <Link href="/legal">Back to Legal</Link>
-      </nav>
+      <IntegrationSiteHeader />
 
       <main className="container">
         <span className="doc-label">{docLabel}</span>
@@ -34,16 +31,7 @@ export function LegalDocLayout({ docLabel, title, subtitle, effective, lastUpdat
         {children}
       </main>
 
-      <footer className="footer">
-        <div>
-          <strong>Backplate Technologies LLC, d/b/a GetBackplate</strong><br />
-          1001 S. 10th St., Suite G#784 · McAllen, TX 78501 · United States
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <Link href="/legal">Back to Legal</Link><br />
-          Version {version}
-        </div>
-      </footer>
+      <IntegrationSiteFooter />
 
     </div>
   );
