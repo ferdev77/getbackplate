@@ -3,10 +3,12 @@ import { redirect } from "next/navigation";
 
 import { getCurrentUser } from "@/modules/memberships/queries";
 import { getActiveOrganizationIdFromCookie } from "@/shared/lib/tenant-selection";
-import { verifyMfaCodeAction, resendMfaCodeAction } from "@/modules/auth/mfa-actions";
+import { verifyMfaCodeAction } from "@/modules/auth/mfa-actions";
+import { createEmailMfaChallenge } from "@/modules/auth/mfa.service";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import { ThemeAwareGetBackplateLogo } from "@/shared/ui/theme-aware-getbackplate-logo";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
+import { MfaResendButton } from "./mfa-resend-button";
 
 export const metadata: Metadata = {
   title: "Verificación en dos pasos | GetBackplate",
@@ -27,6 +29,13 @@ export default async function VerifyMfaPage({ searchParams }: VerifyMfaPageProps
   }
 
   const nextPath = params.next && params.next.startsWith("/") ? params.next : "/app/dashboard";
+  const challenge = await createEmailMfaChallenge({
+    userId: user.id,
+    organizationId,
+    email: user.email ?? "",
+  });
+  const initialCooldownSeconds = challenge.ok ? 45 : challenge.retryAfterSeconds ?? 0;
+  const initialError = !challenge.ok && !challenge.retryAfterSeconds ? challenge.error : null;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-6 py-10">
@@ -40,9 +49,9 @@ export default async function VerifyMfaPage({ searchParams }: VerifyMfaPageProps
           Te mandamos un código de 6 dígitos a <strong>{user.email}</strong>. Ingresalo para continuar.
         </p>
 
-        {params.error ? (
+        {params.error || initialError ? (
           <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {params.error}
+            {params.error ?? initialError}
           </div>
         ) : null}
         {params.notice ? (
@@ -75,12 +84,7 @@ export default async function VerifyMfaPage({ searchParams }: VerifyMfaPageProps
           <SubmitButton label="Verificar" pendingLabel="Verificando..." className="w-full" />
         </form>
 
-        <form action={resendMfaCodeAction} className="mt-3 text-center">
-          <input type="hidden" name="next" value={nextPath} />
-          <button type="submit" className="text-sm font-medium text-brand hover:underline">
-            Reenviar código
-          </button>
-        </form>
+        <MfaResendButton initialCooldownSeconds={initialCooldownSeconds} />
       </section>
     </main>
   );

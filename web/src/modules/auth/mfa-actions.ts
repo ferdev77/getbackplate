@@ -58,14 +58,13 @@ export async function verifyMfaCodeAction(formData: FormData) {
   }
 }
 
-export async function resendMfaCodeAction(formData: FormData) {
+export async function resendMfaCodeAction(): Promise<{ ok: boolean; error?: string; retryAfterSeconds?: number }> {
   try {
-    const next = safeNextPath(formData.get("next"));
     const user = await getCurrentUser();
     const organizationId = await getActiveOrganizationIdFromCookie();
 
     if (!user || !organizationId) {
-      redirect("/auth/login");
+      return { ok: false, error: "Tu sesión expiró. Iniciá sesión nuevamente." };
     }
 
     const result = await createEmailMfaChallenge({
@@ -75,14 +74,11 @@ export async function resendMfaCodeAction(formData: FormData) {
     });
 
     if (!result.ok) {
-      redirect(buildVerifyMfaPath({ error: result.error, next }));
+      return result;
     }
 
-    redirect(buildVerifyMfaPath({ notice: "Te mandamos un código nuevo.", next }));
-  } catch (error) {
-    if (isRedirectError(error)) {
-      throw error;
-    }
-    redirect(buildVerifyMfaPath({ error: "Ocurrió un error inesperado. Intentá de nuevo." }));
+    return { ok: true, retryAfterSeconds: 45 };
+  } catch {
+    return { ok: false, error: "Ocurrió un error inesperado. Intentá de nuevo." };
   }
 }

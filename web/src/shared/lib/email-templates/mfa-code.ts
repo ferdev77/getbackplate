@@ -34,14 +34,14 @@ export function mfaCodeTemplate({ code, ttlMinutes, branding }: MfaCodeTemplateP
     <div style="font-family:Inter,Segoe UI,Arial,sans-serif;max-width:620px;margin:0 auto;background:#f5f6f8;padding:24px;">
       <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;padding:24px;">
         ${brandingHeader(branding)}
-        <h2 style="margin:0 0 8px 0;color:#111827;font-size:24px;line-height:1.2;">Tu código de verificación</h2>
-        <p style="margin:0;color:#4b5563;font-size:14px;line-height:1.6;">Alguien está intentando iniciar sesión en tu cuenta de <strong>${brandName}</strong>. Usá este código para completar el acceso:</p>
+        <h2 style="margin:0 0 8px 0;color:#111827;font-size:24px;line-height:1.2;">Your verification code</h2>
+        <p style="margin:0;color:#4b5563;font-size:14px;line-height:1.6;">Someone is trying to sign in to your <strong>${brandName}</strong> account. Use this code to complete your sign-in:</p>
 
         <div style="margin:24px 0;text-align:center;">
           <span style="display:inline-block;background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:16px 28px;font-size:32px;font-weight:800;letter-spacing:8px;color:#171311;">${safeCode}</span>
         </div>
 
-        <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">Este código expira en ${ttlMinutes} minutos. Si no fuiste vos quien intentó iniciar sesión, ignorá este correo y considerá cambiar tu contraseña.</p>
+        <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">This code expires in ${ttlMinutes} minutes. If you did not try to sign in, ignore this email and consider changing your password.</p>
       </div>
     </div>
   `;

@@ -18,6 +18,7 @@ import {
 import { InlineBranchForm } from "@/modules/settings/ui/inline-branch-form";
 import { InlineDepartmentForm } from "@/modules/settings/ui/inline-department-form";
 import { CompanyContactSettingsCard } from "@/modules/settings/ui/company-contact-settings-card";
+import { IntegrationVendorProfileSettingsCard } from "@/modules/settings/ui/integration-vendor-profile-settings-card";
 import { CustomDomainSettingsCard } from "@/modules/settings/ui/custom-domain-settings-card";
 import { BranchList } from "@/modules/settings/ui/branch-list";
 import { ReorderableDepartmentList } from "@/modules/settings/ui/reorderable-department-list";
@@ -85,7 +86,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
   ] = await Promise.all([
     supabase
       .from("organizations")
-      .select("name, plan_id, plans(name)")
+      .select("name, plan_id, integration_plan_id, integration_vendor_profile, plans(name)")
       .eq("id", tenant.organizationId)
       .maybeSingle(),
     supabase
@@ -196,6 +197,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
         website_url: orgSettingsFallback?.dashboard_note ?? "",
       }
     : (orgSettingsWithWebsite ?? { website_url: "" });
+  const integrationOrganization = organization as Record<string, unknown> | null;
 
   const positionsByDepartment: Record<string, PositionRow[]> = {};
   for (const position of positionsData) {
@@ -254,6 +256,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
           companyFaviconUrl={brandingSettings?.company_favicon_url ?? ""}
           customBrandingEnabled={customBrandingEnabled}
         />
+        {integrationOrganization?.integration_plan_id && <IntegrationVendorProfileSettingsCard initialProfile={integrationOrganization.integration_vendor_profile as Record<string, string> | null} />}
         <CustomDomainSettingsCard
           locale={locale}
           enabled={customBrandingEnabled}

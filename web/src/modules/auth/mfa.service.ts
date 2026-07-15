@@ -52,7 +52,7 @@ export async function isEmailMfaRequired(input: {
 /**
  * Genera un codigo de 6 digitos, lo guarda con hash (nunca en texto plano)
  * y lo manda por email. Cualquier desafio previo sin consumir para este
- * usuario queda invalidado (evita que un codigo viejo siga siendo valido).
+ * organización queda invalidado (evita que un código viejo siga siendo válido).
  */
 export async function createEmailMfaChallenge(input: {
   userId: string;
@@ -65,6 +65,7 @@ export async function createEmailMfaChallenge(input: {
     .from("company_mfa_challenges")
     .select("created_at")
     .eq("user_id", input.userId)
+    .eq("organization_id", input.organizationId)
     .is("consumed_at", null)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -86,17 +87,22 @@ export async function createEmailMfaChallenge(input: {
     .from("company_mfa_challenges")
     .update({ consumed_at: new Date().toISOString() })
     .eq("user_id", input.userId)
+    .eq("organization_id", input.organizationId)
     .is("consumed_at", null);
 
   const code = generateSixDigitCode();
   const expiresAt = new Date(Date.now() + CODE_TTL_MINUTES * 60 * 1000).toISOString();
 
-  const { error: insertError } = await admin.from("company_mfa_challenges").insert({
-    user_id: input.userId,
-    organization_id: input.organizationId,
-    code_hash: hashCode(code),
-    expires_at: expiresAt,
-  });
+  const { data: challenge, error: insertError } = await admin
+    .from("company_mfa_challenges")
+    .insert({
+      user_id: input.userId,
+      organization_id: input.organizationId,
+      code_hash: hashCode(code),
+      expires_at: expiresAt,
+    })
+    .select("id")
+    .single();
 
   if (insertError) {
     return { ok: false, error: "No se pudo generar el código de verificación." };
@@ -108,7 +114,7 @@ export async function createEmailMfaChallenge(input: {
 
   const emailResult = await sendEmail({
     to: [{ email: input.email }],
-    subject: buildBrandedEmailSubject("Tu código de verificación", branding),
+    subject: buildBrandedEmailSubject("Your verification code", branding),
     htmlContent: mfaCodeTemplate({ code, branding, ttlMinutes: CODE_TTL_MINUTES }),
     notification: {
       source: "auth.mfa_challenge",
@@ -117,6 +123,8 @@ export async function createEmailMfaChallenge(input: {
   });
 
   if (!emailResult.ok) {
+    // An unsent code must not force the user to wait through the resend cooldown.
+    await admin.from("company_mfa_challenges").update({ consumed_at: new Date().toISOString() }).eq("id", challenge.id);
     return { ok: false, error: "No se pudo enviar el código por email." };
   }
 
@@ -134,6 +142,7 @@ export async function verifyEmailMfaChallenge(input: {
     .from("company_mfa_challenges")
     .select("id, code_hash, attempts, expires_at, consumed_at")
     .eq("user_id", input.userId)
+    .eq("organization_id", input.organizationId)
     .is("consumed_at", null)
     .order("created_at", { ascending: false })
     .limit(1)
