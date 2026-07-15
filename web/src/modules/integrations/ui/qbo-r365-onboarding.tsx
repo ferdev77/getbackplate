@@ -67,8 +67,9 @@ function StepIndicator({ current, connected, steps }: { current: Step; connected
   );
 }
 
-export function QboR365Onboarding({ locale, qboConnected: initialQboConnected, vendorProfile, maxConnections, syncConfigsCount, planName, onComplete }: Props) {
-  const t = useMemo(() => createTranslator(locale), [locale]);
+export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorProfile, maxConnections, syncConfigsCount, planName, onComplete }: Props) {
+  // The integration setup is a QuickBooks-specific workflow and is always English.
+  const t = useMemo(() => createTranslator("en"), []);
   const STEPS = useSteps(t);
   const [step, setStep] = useState<Step>(initialQboConnected ? "vendor" : "auth");
   const [qboConnected] = useState(initialQboConnected);
@@ -242,7 +243,7 @@ export function QboR365Onboarding({ locale, qboConnected: initialQboConnected, v
                     <p className="font-bold text-foreground">{t("Plan")} {planName}</p>
                     <p className="text-xs text-muted-foreground">
                       {maxConnections != null
-                        ? (locale === "en" ? `${maxConnections} R365 connection slots available` : `${maxConnections} slots de conexión R365 disponibles`)
+                        ? `${maxConnections} R365 connection slots available`
                         : t("Conexiones ilimitadas a R365")}
                     </p>
                   </div>

@@ -234,7 +234,7 @@ export const QUICKBOOKS_R365_EN: Record<string, string> = {
   "Calle, Ciudad, Estado": "Street, City, State",
   "Conexiones ilimitadas a R365": "Unlimited R365 connections",
   Configurado: "Configured",
-  Libre: "Free",
+  Libre: "Available",
   "¿Cómo configurar una conexión?": "How do I set up a connection?",
   "Desde el dashboard de integración podés configurar cada slot: nombre del cliente en R365, Account Number de QuickBooks y credenciales FTP del servidor de R365. Podés hacerlo ahora o en cualquier momento.":
     "From the integration dashboard you can configure each slot: the customer's name in R365, the QuickBooks Account Number, and the R365 server's FTP credentials. You can do this now or at any time.",
