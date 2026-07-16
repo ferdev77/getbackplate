@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link2, Search, X, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Plus, Play, Trash2, Eye, Pencil, ChevronDown, ChevronUp, ChevronsUpDown, Server, Layers } from "lucide-react";
+import { Link2, Search, X, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Plus, Minus, Play, Trash2, Eye, Pencil, ChevronDown, ChevronUp, ChevronsUpDown, Server, Layers } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { saveIntegrationConfigAction } from "@/modules/integrations/qbo-r365/actions";
@@ -361,6 +361,12 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
   const [syncConfigs, setSyncConfigs] = useState<SyncConfigSummary[]>([]);
   const [syncConfigsLoading, setSyncConfigsLoading] = useState(false);
   const [isCreateSyncOpen, setIsCreateSyncOpen] = useState(false);
+  const [isAddConnectionOpen, setIsAddConnectionOpen] = useState(false);
+  const [extraConnectionCount, setExtraConnectionCount] = useState(1);
+  const [extraConnectionPrice, setExtraConnectionPrice] = useState<{ amount: number; currency: string } | null>(null);
+  const [extraConnectionPriceError, setExtraConnectionPriceError] = useState<string | null>(null);
+  const [extraConnectionPriceLoading, setExtraConnectionPriceLoading] = useState(false);
+  const [extraConnectionSubmitting, setExtraConnectionSubmitting] = useState(false);
   const [deletingSyncId, setDeletingSyncId] = useState<string | null>(null);
   // Editar sincronizacion existente (developer-only) — reusa el mismo modal/estado de crear
   const [editingSyncConfigId, setEditingSyncConfigId] = useState<string | null>(null);
@@ -399,6 +405,52 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
     docNumber: string; entityType: string;
     pipelineStatus: string; importSource: string; sentAt: string | null;
   } | null>(null);
+
+  async function openAddConnectionModal() {
+    setExtraConnectionCount(1);
+    setExtraConnectionPrice(null);
+    setExtraConnectionPriceError(null);
+    setExtraConnectionPriceLoading(true);
+    setIsAddConnectionOpen(true);
+    try {
+      const response = await fetch("/api/stripe/integration/extra-connections");
+      const result = await response.json() as { price?: { amount: number; currency: string }; error?: string };
+      if (!response.ok || !result.price) throw new Error(result.error ?? "Pricing is unavailable.");
+      setExtraConnectionPrice(result.price);
+    } catch (error) {
+      setExtraConnectionPriceError(error instanceof Error ? error.message : "Pricing is unavailable.");
+    } finally {
+      setExtraConnectionPriceLoading(false);
+    }
+  }
+
+  async function submitExtraConnectionPurchase() {
+    setExtraConnectionSubmitting(true);
+    try {
+      const response = await fetch("/api/stripe/integration/extra-connections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ count: extraConnectionCount }),
+      });
+      const result = await response.json() as { paymentUrl?: string; applied?: boolean; pending?: boolean; error?: string };
+      if (!response.ok) throw new Error(result.error ?? "Unable to start the purchase.");
+      if (result.paymentUrl) {
+        window.location.assign(result.paymentUrl);
+        return;
+      }
+      setIsAddConnectionOpen(false);
+      if (result.applied) {
+        toast.success("R365 connection added.");
+        window.location.reload();
+      } else if (result.pending) {
+        toast.success("Your payment is being processed. Your connection will be available once payment is confirmed.");
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to start the purchase.");
+    } finally {
+      setExtraConnectionSubmitting(false);
+    }
+  }
 
   // Leer resultado del callback OAuth desde la URL y limpiarla
   useEffect(() => {
@@ -1541,7 +1593,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
               </p>
             )}
           </div>
-          {(maxR365Connections == null || syncConfigs.length < maxR365Connections) && (
+          {(maxR365Connections == null || syncConfigs.length < maxR365Connections) ? (
             <button
               type="button"
               onClick={() => {
@@ -1552,6 +1604,14 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
               className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 py-2 text-xs font-bold text-white transition hover:bg-[var(--gbp-accent)]"
             >
               <Plus className="h-3.5 w-3.5" /> {t("Nueva conexión")}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => { void openAddConnectionModal(); }}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-3 py-2 text-xs font-bold text-white transition hover:bg-[var(--gbp-accent)]"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add R365 connection
             </button>
           )}
         </div>
@@ -1708,6 +1768,46 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
           </div>
         )}
       </section>
+
+      {isAddConnectionOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="add-r365-connection-title">
+          <div className="w-full max-w-md rounded-2xl border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-accent)]">R365 capacity</p>
+                <h3 id="add-r365-connection-title" className="mt-1 text-lg font-bold text-[var(--gbp-text)]">Add R365 connections</h3>
+              </div>
+              <button type="button" onClick={() => setIsAddConnectionOpen(false)} className="rounded-lg p-1 text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg)]" aria-label="Close">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-[var(--gbp-text2)]">Each connection adds one monthly R365 synchronization slot to your active subscription.</p>
+            {extraConnectionPriceLoading ? (
+              <div className="mt-6 flex items-center gap-2 text-sm text-[var(--gbp-muted)]"><Loader2 className="h-4 w-4 animate-spin" /> Loading secure pricing...</div>
+            ) : extraConnectionPriceError ? (
+              <div className="mt-6 rounded-xl border border-[var(--gbp-error-soft)] bg-[var(--gbp-error-soft)] p-3 text-sm text-[var(--gbp-error)]">{extraConnectionPriceError}</div>
+            ) : extraConnectionPrice && (
+              <>
+                <div className="mt-6 flex items-center justify-between rounded-xl border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
+                  <button type="button" onClick={() => setExtraConnectionCount((count) => Math.max(1, count - 1))} disabled={extraConnectionCount === 1} className="rounded-lg p-2 text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface)] disabled:opacity-40"><Minus className="h-4 w-4" /></button>
+                  <input type="number" min="1" max="20" value={extraConnectionCount} onChange={(event) => setExtraConnectionCount(Math.min(20, Math.max(1, Number(event.target.value) || 1)))} className="w-16 bg-transparent text-center text-lg font-bold text-[var(--gbp-text)] outline-none" aria-label="Connections to add" />
+                  <button type="button" onClick={() => setExtraConnectionCount((count) => Math.min(20, count + 1))} disabled={extraConnectionCount === 20} className="rounded-lg p-2 text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface)] disabled:opacity-40"><Plus className="h-4 w-4" /></button>
+                </div>
+                <div className="mt-4 flex items-end justify-between border-t border-[var(--gbp-border)] pt-4">
+                  <span className="text-sm text-[var(--gbp-text2)]">Monthly total</span>
+                  <span className="text-xl font-bold text-[var(--gbp-text)]">{new Intl.NumberFormat("en-US", { style: "currency", currency: extraConnectionPrice.currency.toUpperCase() }).format((extraConnectionPrice.amount * extraConnectionCount) / 100)}<span className="ml-1 text-xs font-medium text-[var(--gbp-muted)]">/ month</span></span>
+                </div>
+              </>
+            )}
+            <div className="mt-6 flex justify-end gap-3">
+              <button type="button" disabled={extraConnectionSubmitting} onClick={() => setIsAddConnectionOpen(false)} className="rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)]">Cancel</button>
+              <button type="button" disabled={!extraConnectionPrice || extraConnectionSubmitting} onClick={() => { void submitExtraConnectionPurchase(); }} className="inline-flex items-center gap-2 rounded-lg bg-[var(--gbp-text)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--gbp-accent)] disabled:opacity-50">
+                {extraConnectionSubmitting && <Loader2 className="h-4 w-4 animate-spin" />} Continue to secure payment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showDisconnectConfirmation && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="disconnect-qbo-title">

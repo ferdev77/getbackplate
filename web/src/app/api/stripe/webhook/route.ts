@@ -928,10 +928,47 @@ export async function POST(req: Request) {
       // -------------------------------------------------------
       // TERTIARY HANDLERS: Invoices (Upcoming renewals, Payment Failures)
       // -------------------------------------------------------
+      case 'invoice.paid': {
+        const invoice = event.data.object as Stripe.Invoice;
+        const { data: purchase } = await supabase
+          .from('r365_connection_purchases')
+          .select('id, stripe_subscription_id, extra_price_id, target_quantity')
+          .eq('stripe_invoice_id', invoice.id)
+          .eq('status', 'pending_payment')
+          .maybeSingle();
+
+        if (purchase) {
+          const subscription = await stripe.subscriptions.retrieve(purchase.stripe_subscription_id);
+          const hasPurchasedQuantity = subscription.items.data.some(
+            (item) => item.price.id === purchase.extra_price_id && (item.quantity ?? 0) >= purchase.target_quantity,
+          );
+          if (!hasPurchasedQuantity) {
+            console.info(`[Webhook][r365-extra-connections] Purchase ${purchase.id} is paid but its pending update is not applied yet.`);
+            break;
+          }
+
+          const { error } = await supabase.rpc('apply_r365_connection_purchase', {
+            p_purchase_id: purchase.id,
+          });
+          if (error) throw error;
+          console.info(`[Webhook][r365-extra-connections] Applied purchase ${purchase.id}`);
+        }
+        break;
+      }
+
       case 'invoice.upcoming':
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
         const stripeCustomerId = invoice.customer as string;
+
+        if (event.type === 'invoice.payment_failed') {
+          const { error } = await supabase
+            .from('r365_connection_purchases')
+            .update({ status: 'payment_failed' })
+            .eq('stripe_invoice_id', invoice.id)
+            .eq('status', 'pending_payment');
+          if (error) throw error;
+        }
 
         // Find the organization from the customer ID mapping
         const { data: customerMapping } = await supabase
