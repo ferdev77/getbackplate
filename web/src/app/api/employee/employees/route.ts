@@ -529,6 +529,20 @@ export async function POST(request: Request) {
     // ── Account provisioning ──
     if (createMode === "with_account") {
       const loginEmail = accountEmailInput || email || "";
+
+      // Conversión de un usuario que YA tiene cuenta activa: reusar su user_id
+      // sin pasar por provisionOrganizationUserAccount (que exige contraseña),
+      // ya que el formulario no pide contraseña cuando el acceso ya existe.
+      if (!linkedUserId && organizationUserProfileId && existingDashboardAccess) {
+        const { data: sourceProfile } = await admin
+          .from("organization_user_profiles")
+          .select("user_id")
+          .eq("organization_id", organizationId)
+          .eq("id", organizationUserProfileId)
+          .maybeSingle();
+        linkedUserId = sourceProfile?.user_id ?? null;
+      }
+
       const needsProvision = !linkedUserId || !existingDashboardAccess;
 
       if (needsProvision) {

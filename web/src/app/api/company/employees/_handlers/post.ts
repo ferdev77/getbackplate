@@ -1032,22 +1032,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: EMPLOYEES_MESSAGES.ROLE_EMPLOYEE_UNAVAILABLE }, { status: 400 });
     }
 
-    const provisionResult = await provisionOrganizationUserAccount({
-      admin,
-      organizationId: tenant.organizationId,
-      loginEmail,
-      accountPassword,
-      firstName,
-      lastName,
-    });
-
-    if (!provisionResult.ok) {
-      return NextResponse.json({ error: provisionResult.error }, { status: 400 });
+    // Conversión de un usuario que YA tiene cuenta activa: reusar su user_id
+    // sin pasar por provisionOrganizationUserAccount (que exige contraseña),
+    // ya que el formulario no pide contraseña cuando el acceso ya existe.
+    if (organizationUserProfileId && existingDashboardAccess) {
+      const { data: sourceProfile } = await admin
+        .from("organization_user_profiles")
+        .select("user_id")
+        .eq("organization_id", tenant.organizationId)
+        .eq("id", organizationUserProfileId)
+        .maybeSingle();
+      linkedUserId = sourceProfile?.user_id ?? null;
     }
 
-    linkedUserId = provisionResult.userId;
-    if (provisionResult.isNewUser) {
-      createdAuthUserId = provisionResult.userId;
+    if (!linkedUserId) {
+      const provisionResult = await provisionOrganizationUserAccount({
+        admin,
+        organizationId: tenant.organizationId,
+        loginEmail,
+        accountPassword,
+        firstName,
+        lastName,
+      });
+
+      if (!provisionResult.ok) {
+        return NextResponse.json({ error: provisionResult.error }, { status: 400 });
+      }
+
+      linkedUserId = provisionResult.userId;
+      if (provisionResult.isNewUser) {
+        createdAuthUserId = provisionResult.userId;
+      }
     }
 
     if (!linkedUserId) {
