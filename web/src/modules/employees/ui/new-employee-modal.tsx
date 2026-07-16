@@ -486,17 +486,19 @@ export function NewEmployeeModal({
         method: "POST",
         body: formData,
       });
+      const data = await response.json().catch(() => ({}));
+
       if (!response.ok) {
-        throw new Error("Unable to save the record.");
+        throw new Error(typeof data.error === "string" && data.error ? data.error : "Unable to save the record.");
       }
 
-      toast.success(mode === "edit" ? "Record updated successfully." : "Record created successfully.");
+      toast.success(typeof data.message === "string" && data.message ? data.message : (mode === "edit" ? "Record updated successfully." : "Record created successfully."));
       startTransition(() => {
         router.refresh();
         handleClose();
       });
-    } catch {
-      toast.error("Unable to save the record.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to save the record.");
     } finally {
       setIsActionPending(false);
     }
