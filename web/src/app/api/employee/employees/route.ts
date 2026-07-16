@@ -150,9 +150,11 @@ export async function GET(request: Request) {
 
   // Usuarios sin perfil de empleado, visibles para que RRHH delegado pueda
   // convertirlos a empleado (una vez empleado, no se puede volver a usuario).
+  // RLS de organization_user_profiles solo permite company_admin o el dueño
+  // de la fila, así que un "employee" delegado necesita el cliente admin.
   const departmentNameById = new Map((departments ?? []).map((d) => [d.id, d.name]));
 
-  const { data: organizationUserProfiles } = await supabase
+  const { data: organizationUserProfiles } = await createSupabaseAdminClient()
     .from("organization_user_profiles")
     .select("id, user_id, first_name, last_name, email, phone, branch_id, all_locations, location_scope_ids, department_id, status")
     .eq("organization_id", organizationId)
@@ -233,6 +235,9 @@ export async function POST(request: Request) {
   const { tenant, userId: actorId } = access;
   const organizationId = tenant.organizationId;
   const supabase = await createSupabaseServerClient();
+  // organization_user_profiles solo es legible/editable por RLS para
+  // company_admin o el dueño de la fila; un "employee" delegado necesita admin.
+  const admin = createSupabaseAdminClient();
 
   // ── Parse form data ──
   const firstName = String(formData.get("first_name") ?? "").trim();
@@ -307,7 +312,7 @@ export async function POST(request: Request) {
   // Conversión de usuario existente a empleado: solo permitida si el usuario
   // origen está dentro del alcance de locaciones de este RRHH delegado.
   if (!isEditMode && isEmployeeProfile && organizationUserProfileId) {
-    const { data: targetProfile } = await supabase
+    const { data: targetProfile } = await admin
       .from("organization_user_profiles")
       .select("id, branch_id, location_scope_ids, all_locations")
       .eq("organization_id", organizationId)
@@ -434,7 +439,6 @@ export async function POST(request: Request) {
   const salaryAmount = salaryAmountRaw ? parseFloat(salaryAmountRaw) : null;
   const validSalaryAmount = Number.isFinite(salaryAmount) && (salaryAmount ?? 0) > 0 ? salaryAmount : null;
 
-  const admin = createSupabaseAdminClient();
   let linkedUserId: string | null = null;
   let createdAuthUserId: string | null = null;
   let createdMembershipForLinkedUser = false;
@@ -732,6 +736,7 @@ export async function PATCH(request: Request) {
   const { tenant, userId: actorId } = access;
   const organizationId = tenant.organizationId;
   const supabase = await createSupabaseServerClient();
+  const admin = createSupabaseAdminClient();
   const scopeIds = await resolveHrScope(organizationId, actorId);
 
   const body = await request.json().catch(() => null) as {
@@ -754,7 +759,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Estado inválido para usuario" }, { status: 400 });
     }
 
-    const { data: previousProfile } = await supabase
+    const { data: previousProfile } = await admin
       .from("organization_user_profiles")
       .select("status, user_id, branch_id, location_scope_ids, all_locations")
       .eq("organization_id", organizationId)
@@ -768,7 +773,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "No tenés permisos para editar este usuario" }, { status: 403 });
     }
 
-    const { error: profileError } = await supabase
+    const { error: profileError } = await admin
       .from("organization_user_profiles")
       .update({ status })
       .eq("organization_id", organizationId)
@@ -779,7 +784,6 @@ export async function PATCH(request: Request) {
     }
 
     if (previousProfile.user_id) {
-      const admin = createSupabaseAdminClient();
       const { error: membershipError } = await admin
         .from("memberships")
         .update({ status })
@@ -860,6 +864,7 @@ export async function DELETE(request: Request) {
   const { tenant, userId: actorId } = access;
   const organizationId = tenant.organizationId;
   const supabase = await createSupabaseServerClient();
+  const admin = createSupabaseAdminClient();
   const scopeIds = await resolveHrScope(organizationId, actorId);
 
   const body = await request.json().catch(() => null) as {
@@ -875,7 +880,7 @@ export async function DELETE(request: Request) {
   }
 
   if (organizationUserProfileId) {
-    const { data: existingProfile } = await supabase
+    const { data: existingProfile } = await admin
       .from("organization_user_profiles")
       .select("id, user_id, branch_id, location_scope_ids, all_locations")
       .eq("organization_id", organizationId)
@@ -889,7 +894,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "No tenés permisos para eliminar este usuario" }, { status: 403 });
     }
 
-    const { data: deletedProfiles, error: deleteProfileError } = await supabase
+    const { data: deletedProfiles, error: deleteProfileError } = await admin
       .from("organization_user_profiles")
       .delete()
       .eq("organization_id", organizationId)
@@ -946,7 +951,6 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "No se encontró el registro del empleado o faltan permisos para eliminarlo." }, { status: 400 });
   }
 
-  const admin = createSupabaseAdminClient();
   if (employee.user_id) {
     await admin.from("memberships").delete().eq("organization_id", organizationId).eq("user_id", employee.user_id);
   }
