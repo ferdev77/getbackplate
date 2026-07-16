@@ -571,7 +571,7 @@ export async function DELETE(request: Request) {
 
   const { data: document } = await supabase
     .from("documents")
-    .select("id, file_path")
+    .select("id, title, file_path")
     .eq("organization_id", tenant.organizationId)
     .eq("id", documentId)
     .maybeSingle();
@@ -602,6 +602,7 @@ export async function DELETE(request: Request) {
       severity: "high",
       actorId: context.userId,
       metadata: {
+        document_title: document.title,
         file_path: document.file_path,
         error: error.message,
       },
@@ -622,6 +623,7 @@ export async function DELETE(request: Request) {
     severity: "medium",
     actorId: context.userId,
     metadata: {
+      document_title: document.title,
       file_path: document.file_path,
     },
   });

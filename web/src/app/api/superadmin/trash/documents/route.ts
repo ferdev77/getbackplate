@@ -25,7 +25,7 @@ export async function PATCH(request: Request) {
 
   const { data: document } = await supabase
     .from("documents")
-    .select("id, organization_id")
+    .select("id, title, organization_id")
     .eq("id", documentId)
     .not("deleted_at", "is", null)
     .maybeSingle();
@@ -49,7 +49,7 @@ export async function PATCH(request: Request) {
       outcome: "error",
       severity: "high",
       actorId: access.userId,
-      metadata: { error: error.message },
+      metadata: { document_title: document.title, error: error.message },
     });
     return NextResponse.json({ error: `No se pudo restaurar el documento: ${error.message}` }, { status: 400 });
   }
@@ -63,7 +63,7 @@ export async function PATCH(request: Request) {
     outcome: "success",
     severity: "low",
     actorId: access.userId,
-    metadata: {},
+    metadata: { document_title: document.title },
   });
 
   return NextResponse.json({ ok: true, message: "Documento restaurado" });
@@ -86,7 +86,7 @@ export async function DELETE(request: Request) {
 
   const { data: document } = await supabase
     .from("documents")
-    .select("id, file_path, organization_id")
+    .select("id, title, file_path, organization_id")
     .eq("id", documentId)
     .not("deleted_at", "is", null)
     .maybeSingle();
@@ -110,7 +110,7 @@ export async function DELETE(request: Request) {
       outcome: "error",
       severity: "high",
       actorId: access.userId,
-      metadata: { file_path: document.file_path, error: error.message },
+      metadata: { document_title: document.title, file_path: document.file_path, error: error.message },
     });
     return NextResponse.json({ error: `No se pudo eliminar definitivamente: ${error.message}` }, { status: 400 });
   }
@@ -132,7 +132,7 @@ export async function DELETE(request: Request) {
     outcome: "success",
     severity: "medium",
     actorId: access.userId,
-    metadata: { file_path: document.file_path },
+    metadata: { document_title: document.title, file_path: document.file_path },
   });
 
   return NextResponse.json({ ok: true });

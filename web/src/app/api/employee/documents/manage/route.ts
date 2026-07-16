@@ -348,7 +348,7 @@ export async function DELETE(request: Request) {
   const admin = createSupabaseAdminClient();
   const { data: existing } = await admin
     .from("documents")
-    .select("id, owner_user_id")
+    .select("id, title, owner_user_id")
     .eq("organization_id", access.tenant.organizationId)
     .eq("id", documentId)
     .maybeSingle();
@@ -385,7 +385,7 @@ export async function DELETE(request: Request) {
     eventDomain: "documents",
     outcome: "success",
     severity: "medium",
-    metadata: {},
+    metadata: { document_title: existing.title },
   });
 
   revalidateDocumentsCaches();

@@ -76,9 +76,9 @@ export function SuperadminDocumentTrashList({ documents }: SuperadminDocumentTra
         <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]">
           <Trash2 className="h-6 w-6" />
         </div>
-        <h3 className="text-lg font-bold text-[var(--gbp-text)]">Papelera global vacía</h3>
+        <h3 className="text-lg font-bold text-[var(--gbp-text)]">Global trash is empty</h3>
         <p className="mt-1 text-sm text-[var(--gbp-text2)]">
-          Los documentos eliminados de todas las empresas aparecerán aquí. Retención máxima: 30 días.
+          Deleted documents from every organization appear here. Maximum retention: 30 days.
         </p>
       </div>
     );
@@ -97,10 +97,10 @@ export function SuperadminDocumentTrashList({ documents }: SuperadminDocumentTra
     <div className="overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-sm">
       <div className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-5 py-3">
         <div className="grid grid-cols-[1fr_150px_100px_120px] items-center gap-4 text-xs font-semibold uppercase tracking-wider text-[var(--gbp-muted)]">
-          <div>Documento y Empresa</div>
-          <div>Eliminado hace</div>
-          <div>Tamaño</div>
-          <div className="text-right">Acciones</div>
+          <div>Document and organization</div>
+          <div>Deleted</div>
+          <div>Size</div>
+          <div className="text-right">Actions</div>
         </div>
       </div>
       <div className="divide-y divide-[var(--gbp-border)]">
@@ -123,10 +123,10 @@ export function SuperadminDocumentTrashList({ documents }: SuperadminDocumentTra
                   <div className="mt-0.5 flex flex-wrap items-center gap-2">
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-[var(--gbp-text2)]">
                       <Building2 className="h-3 w-3" />
-                      {orgData?.name || "Empresa Borrada"}
+                      {orgData?.name || "Deleted organization"}
                     </span>
                     <span className="text-[10px] font-medium text-[var(--gbp-error)]">
-                      Purga: {daysLeft}d
+                      Purge: {daysLeft}d
                     </span>
                   </div>
                 </div>
@@ -158,7 +158,7 @@ export function SuperadminDocumentTrashList({ documents }: SuperadminDocumentTra
                       className="group/tooltip relative flex h-8 w-8 items-center justify-center rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
                     >
                       {isDeleting === doc.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                      <TooltipLabel label="Eliminar definitivamente" />
+                      <TooltipLabel label="Delete permanently" />
                     </button>
                   </div>
                 ) : (
@@ -169,14 +169,14 @@ export function SuperadminDocumentTrashList({ documents }: SuperadminDocumentTra
                       className="group/tooltip relative flex h-8 w-8 items-center justify-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-green-600 hover:border-green-200 hover:bg-green-50 disabled:opacity-50"
                     >
                       <RefreshCw className={`h-4 w-4 ${isRestoring === doc.id ? "animate-spin" : ""}`} />
-                      <TooltipLabel label="Restaurar" />
+                      <TooltipLabel label="Restore" />
                     </button>
                     <button
                       onClick={() => setShowConfirmDelete(doc.id)}
                       className="group/tooltip relative flex h-8 w-8 items-center justify-center rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-red-500 hover:border-red-200 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4" />
-                      <TooltipLabel label="Eliminar permanentemente" />
+                      <TooltipLabel label="Delete permanently" />
                     </button>
                   </>
                 )}
