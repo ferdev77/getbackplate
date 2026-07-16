@@ -226,8 +226,8 @@ export default function TrustCenterPage() {
                 </div>
                 <div className="status-cell-value">United States infrastructure</div>
                 <div className="status-cell-detail">
-                  Application functions run primarily in Vercel&apos;s Washington, D.C. region
-                  (iad1); the database is hosted in AWS us-west-2.
+                  Application functions run primarily in Vercel&apos;s Portland, Oregon region
+                  (pdx1), alongside the database in AWS us-west-2.
                 </div>
               </div>
 
@@ -353,12 +353,12 @@ export default function TrustCenterPage() {
                 <p>
                   Customer data is processed and stored on infrastructure located in the United
                   States. Application functions are configured to run primarily in Vercel&apos;s
-                  Washington, D.C. region (iad1), while the database runs on AWS us-west-2.
+                  Portland, Oregon region (pdx1), alongside the database on AWS us-west-2.
                 </p>
 
                 <table className="spec-table">
                   <tbody>
-                    <tr><th>Compute</th><td>Vercel Functions — Washington, D.C., USA (iad1), configured as the primary function region</td></tr>
+                    <tr><th>Compute</th><td>Vercel Functions — Portland, Oregon, USA (pdx1), configured as the primary function region near the database</td></tr>
                     <tr><th>Database</th><td>Supabase-managed PostgreSQL, hosted on AWS (us-west-2)</td></tr>
                     <tr><th>Outbound delivery</th><td>FTPS to a Restaurant365 endpoint, configurable per customer connection</td></tr>
                     <tr><th>Data residency</th><td>Application compute and database infrastructure are located in the United States</td></tr>
