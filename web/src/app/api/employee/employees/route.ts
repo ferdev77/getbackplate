@@ -93,8 +93,12 @@ export async function GET(request: Request) {
     (organizationMemberships ?? []).filter((m) => m.status === "active").map((m) => m.user_id),
   );
 
-  const branchNameById = new Map((viewData.branches ?? []).map((b) => [b.id, b.name]));
-  const activeBranchIds = new Set((viewData.branches ?? []).map((b) => b.id));
+  // getEmployeeDirectoryView solo trae "branches" cuando includeModalsData o
+  // includeUsersTab son true (acá van ambos en false por performance), así que
+  // viewData.branches siempre viene vacío. Usamos mappedBranches (ya calculado
+  // arriba con una query directa) para resolver los nombres de locación.
+  const branchNameById = new Map(mappedBranches.map((b) => [b.id, b.name]));
+  const activeBranchIds = new Set(mappedBranches.map((b) => b.id));
 
   const hasFullBranchCoverage = (ids: string[] | null | undefined) => {
     if (!Array.isArray(ids) || ids.length === 0 || activeBranchIds.size === 0) return false;
