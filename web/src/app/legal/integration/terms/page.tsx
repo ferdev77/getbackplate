@@ -3,7 +3,7 @@ import { LegalDocLayout } from "@/shared/ui/legal-doc-layout";
 
 export const metadata = {
   title: "End-User License Agreement | GetBackplate",
-  description: "End-User License Agreement for the GetBackplate QuickBooks Online to Restaurant365 integration.",
+  description: "End-User License Agreement for the GetBackplate QuickBooks® Online to Restaurant365 integration.",
 };
 
 export default function IntegrationTermsPage() {
@@ -11,26 +11,26 @@ export default function IntegrationTermsPage() {
     <LegalDocLayout
       docLabel="Integration"
       title="End-User License Agreement"
-      subtitle="QuickBooks Online to Restaurant365 Integration"
+      subtitle="QuickBooks® Online to Restaurant365 Integration"
       effective="July 23, 2026"
       lastUpdated="July 1, 2026"
       version="2026.07.23"
     >
       <h2><span className="section-num">1.</span>Acceptance of Terms</h2>
       <p>This End-User License Agreement (&quot;Agreement&quot; or &quot;EULA&quot;) is a binding legal agreement between you (&quot;User,&quot; &quot;Customer,&quot; &quot;you&quot;) and <strong>Backplate Technologies LLC</strong>, a Texas limited liability company, doing business as <strong>GetBackplate</strong> (&quot;GetBackplate,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;), located at 1001 S. 10th St., Suite G#784, McAllen, Texas 78501, United States.</p>
-      <p>By installing, accessing, authorizing, or using the GetBackplate QuickBooks Online to Restaurant365 integration software (the &quot;Service&quot; or &quot;Application&quot;), you acknowledge that you have read, understood, and agree to be bound by the terms of this Agreement. If you do not agree to these terms, you must not access or use the Service.</p>
+      <p>By installing, accessing, authorizing, or using the GetBackplate QuickBooks® Online to Restaurant365 integration software (the &quot;Service&quot; or &quot;Application&quot;), you acknowledge that you have read, understood, and agree to be bound by the terms of this Agreement. If you do not agree to these terms, you must not access or use the Service.</p>
       <p>If you are entering into this Agreement on behalf of a company or other legal entity, you represent that you have the authority to bind that entity to this Agreement, in which case &quot;you&quot; refers to that entity.</p>
       <p>By accepting these Terms of Service, you also agree to be bound by our <Link href="/legal/integration/privacy">Privacy Policy</Link> and, if you subscribe to a paid plan, our <Link href="/legal/integration/msa">Master Services Agreement</Link>. The Privacy Policy and the Master Services Agreement are incorporated into this Agreement by reference and form part of the binding terms between you and GetBackplate.</p>
 
       <h2><span className="section-num">2.</span>Description of the Service</h2>
       <p>The GetBackplate Application is a middleware integration service that:</p>
       <ol>
-        <li>Connects to a User&apos;s QuickBooks Online account via the Intuit Developer API using OAuth 2.0 authorization;</li>
-        <li>Retrieves invoice data and related financial records from the User&apos;s authorized QuickBooks Online account;</li>
+        <li>Connects to a User&apos;s QuickBooks® Online account via the Intuit Developer API using OAuth 2.0 authorization;</li>
+        <li>Retrieves invoice data and related financial records from the User&apos;s authorized QuickBooks® Online account;</li>
         <li>Transforms that data into a CSV, TXT, or EDI 810 format compatible with Restaurant365 (&quot;R365&quot;); and</li>
         <li>Delivers the transformed data to a designated Restaurant365 FTP endpoint specified by the User or their authorized counterparty.</li>
       </ol>
-      <p>The Service operates as an automated, unattended data pipeline. The Service does not modify, create, or delete records within QuickBooks Online.</p>
+      <p>The Service operates as an automated, unattended data pipeline. The Service does not modify, create, or delete records within QuickBooks® Online.</p>
 
       <h2><span className="section-num">3.</span>License Grant</h2>
       <p>Subject to your compliance with this Agreement, GetBackplate grants you a limited, non-exclusive, non-transferable, non-sublicensable, revocable license to access and use the Service solely for your internal business purposes during the term of your authorized subscription or engagement.</p>
@@ -53,14 +53,14 @@ export default function IntegrationTermsPage() {
       <h2><span className="section-num">5.</span>Third-Party Services</h2>
       <p>The Service depends on and integrates with third-party platforms, including:</p>
       <ul>
-        <li><strong>Intuit QuickBooks Online</strong>, operated by Intuit Inc.</li>
+        <li><strong>Intuit QuickBooks® Online</strong>, operated by Intuit Inc.</li>
         <li><strong>Restaurant365</strong>, operated by Restaurant365, LLC.</li>
         <li><strong>Vercel</strong>, operated by Vercel Inc., used for application hosting.</li>
         <li><strong>Supabase</strong>, operated by Supabase Inc., used for data storage and processing.</li>
       </ul>
       <p>You acknowledge that:</p>
       <ol>
-        <li>Your use of QuickBooks Online and Restaurant365 is governed by separate agreements between you and those providers. GetBackplate is not responsible for the availability, accuracy, or terms of those third-party services.</li>
+        <li>Your use of QuickBooks® Online and Restaurant365 is governed by separate agreements between you and those providers. GetBackplate is not responsible for the availability, accuracy, or terms of those third-party services.</li>
         <li>You must maintain valid, active accounts and credentials with the applicable third-party services for the Application to function.</li>
         <li>GetBackplate is not affiliated with, endorsed by, or sponsored by Intuit Inc. or Restaurant365, LLC.</li>
         <li>Changes, deprecations, or service interruptions in any third-party platform may affect the operation of the Service, and GetBackplate is not liable for any resulting downtime or data loss.</li>
@@ -69,7 +69,7 @@ export default function IntegrationTermsPage() {
       <h2><span className="section-num">6.</span>User Responsibilities</h2>
       <p>You are solely responsible for:</p>
       <ol>
-        <li>Maintaining the confidentiality of your QuickBooks Online and Restaurant365 credentials and OAuth tokens;</li>
+        <li>Maintaining the confidentiality of your QuickBooks® Online and Restaurant365 credentials and OAuth tokens;</li>
         <li>Ensuring you have lawful authority to access, transmit, and share the data processed by the Service;</li>
         <li>Verifying the accuracy of data transmitted by the Service;</li>
         <li>Reviewing all invoices and records delivered to Restaurant365 for correctness;</li>
@@ -108,7 +108,7 @@ export default function IntegrationTermsPage() {
       <p>This Agreement is effective as of the date you first access the Service and continues until terminated by either party.</p>
       <p>You may terminate this Agreement at any time by:</p>
       <ol>
-        <li>Revoking the Application&apos;s authorization within your QuickBooks Online account (Settings → Apps → Connected Apps → Disconnect); and</li>
+        <li>Revoking the Application&apos;s authorization within your QuickBooks® Online account (Settings → Apps → Connected Apps → Disconnect); and</li>
         <li>Discontinuing all use of the Service.</li>
       </ol>
       <p>GetBackplate may suspend or terminate this Agreement immediately, with or without notice, if you breach any provision of this Agreement, if required by law, or if GetBackplate ceases to offer the Service.</p>
@@ -148,7 +148,7 @@ export default function IntegrationTermsPage() {
         <a href="mailto:security@getbackplate.com">security@getbackplate.com</a> · +1 (956) 802-9639
       </div>
       <p style={{ marginTop: 28 }}>By using the Service, you acknowledge that you have read this Agreement, understand it, and agree to be bound by its terms and conditions.</p>
-      <p style={{ marginTop: 12, fontSize: 12, opacity: 0.7 }}>Intuit and QuickBooks are registered trademarks of Intuit Inc. Used with permission.</p>
+      <p style={{ marginTop: 12, fontSize: 12, opacity: 0.7 }}>Intuit and QuickBooks® Online are registered trademarks of Intuit Inc. Used with permission.</p>
     </LegalDocLayout>
   );
 }

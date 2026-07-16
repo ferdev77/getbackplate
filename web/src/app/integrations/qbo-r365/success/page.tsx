@@ -15,7 +15,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "You're in — QuickBooks ↔ R365 Integration | GetBackplate",
+  title: "You're in — QuickBooks® Online ↔ R365 Integration | GetBackplate",
 };
 
 type Props = {

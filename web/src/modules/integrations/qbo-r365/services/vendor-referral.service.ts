@@ -27,7 +27,7 @@ I'm Angelo Ramos, founder of GetBackplate.
 
 ${referrerName} uses our platform to automate invoice delivery from one of their vendors directly into their Restaurant365 — no manual entry, no PDFs, no reconciliation errors. They mentioned you as another vendor who might benefit from the same setup.
 
-What we do: we connect your QuickBooks Online to your restaurant customers' Restaurant365 via SFTP. Your invoices land in their system automatically, in the exact format R365 expects. We operate within the Restaurant365 ecosystem, delivering in production to multiple restaurant brands today.
+What we do: we connect your QuickBooks® Online to your restaurant customers' Restaurant365 via SFTP. Your invoices land in their system automatically, in the exact format R365 expects. We operate within the Restaurant365 ecosystem, delivering in production to multiple restaurant brands today.
 
 For your team, this means zero manual entry on your customers' side, zero PDF exports on yours, cleaner reconciliation, and positioning as a tech-forward vendor that R365 restaurants prefer.
 
@@ -108,7 +108,7 @@ ${LINK_PLACEHOLDER}`;
             </table>
 
             <p style="margin:0 0 20px 0;font-size:13px;color:#8A8C95;line-height:1.6;text-align:center;">
-              GetBackplate automates the delivery of invoices and credit memos from QuickBooks Online
+              GetBackplate automates the delivery of invoices and credit memos from QuickBooks® Online
               to your Restaurant365 &mdash; no manual entry, no errors.
             </p>
 
@@ -224,7 +224,7 @@ I'm Angelo Ramos, founder of GetBackplate.
 
 ${input.referrerName} uses our platform to automate invoice delivery from one of their vendors directly into their Restaurant365 — no manual entry, no PDFs, no reconciliation errors. They mentioned you as another vendor who might benefit from the same setup.
 
-What we do: we connect your QuickBooks Online to your restaurant customers' Restaurant365 via SFTP. Your invoices land in their system automatically, in the exact format R365 expects. We operate within the Restaurant365 ecosystem, delivering in production to multiple restaurant brands today.
+What we do: we connect your QuickBooks® Online to your restaurant customers' Restaurant365 via SFTP. Your invoices land in their system automatically, in the exact format R365 expects. We operate within the Restaurant365 ecosystem, delivering in production to multiple restaurant brands today.
 
 For your team, this means zero manual entry on your customers' side, zero PDF exports on yours, cleaner reconciliation, and positioning as a tech-forward vendor that R365 restaurants prefer.
 
@@ -283,7 +283,7 @@ I'm Angelo Ramos, founder of GetBackplate.
 
 ${input.referrerBranchName} uses our platform to automate invoice delivery from one of their vendors directly into their Restaurant365 — no manual entry, no PDFs, no reconciliation errors. They mentioned you as another vendor who might benefit from the same setup.
 
-What we do: we connect your QuickBooks Online to your restaurant customers' Restaurant365 via SFTP. Your invoices land in their system automatically, in the exact format R365 expects. We operate within the Restaurant365 ecosystem, delivering in production to multiple restaurant brands today.
+What we do: we connect your QuickBooks® Online to your restaurant customers' Restaurant365 via SFTP. Your invoices land in their system automatically, in the exact format R365 expects. We operate within the Restaurant365 ecosystem, delivering in production to multiple restaurant brands today.
 
 For your team, this means zero manual entry on your customers' side, zero PDF exports on yours, cleaner reconciliation, and positioning as a tech-forward vendor that R365 restaurants prefer.
 

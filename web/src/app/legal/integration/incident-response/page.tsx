@@ -154,7 +154,7 @@ export default function IncidentResponsePage() {
               <div className="approach-icon">5</div>
               <div className="approach-content">
                 <div className="approach-title">Coordinated partner and regulatory notification</div>
-                <div className="approach-desc">Notification to Intuit (QuickBooks Online), Restaurant365, Stripe, cyber insurance carriers, and regulatory authorities (CCPA, GDPR, state breach notification laws) as required by applicable law and contractual obligations.</div>
+                <div className="approach-desc">Notification to Intuit (QuickBooks® Online), Restaurant365, Stripe, cyber insurance carriers, and regulatory authorities (CCPA, GDPR, state breach notification laws) as required by applicable law and contractual obligations.</div>
               </div>
             </div>
 
@@ -203,7 +203,7 @@ export default function IncidentResponsePage() {
           <li>Texas Identity Theft Enforcement and Protection Act</li>
           <li>State breach notification laws across all 50 U.S. states</li>
           <li>Personal Information Protection and Electronic Documents Act (PIPEDA) for Canadian residents</li>
-          <li>Contractual obligations under Intuit QuickBooks Online App Store agreements, Restaurant365 integration agreements, and the Stripe Services Agreement</li>
+          <li>Contractual obligations under Intuit QuickBooks® Online App Store agreements, Restaurant365 integration agreements, and the Stripe Services Agreement</li>
           <li>NIST SP 800-61 Computer Security Incident Handling Guide</li>
           <li>NIST Cybersecurity Framework</li>
         </ul>

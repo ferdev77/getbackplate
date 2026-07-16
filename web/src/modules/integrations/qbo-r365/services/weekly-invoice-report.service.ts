@@ -310,9 +310,9 @@ export async function buildOrgWeeklyReportData(input: {
         if (override && !ownEmails.has(override)) {
           resolvedEmail = override;
         } else if (billEmail && ownEmails.has(billEmail)) {
-          skipReason = "the email QuickBooks has on file matches your own email, not the client's";
+          skipReason = "the email QuickBooks® Online has on file matches your own email, not the client's";
         } else {
-          skipReason = "QuickBooks has no email on file for this client and no backup email is configured";
+          skipReason = "QuickBooks® Online has no email on file for this client and no backup email is configured";
         }
       }
 

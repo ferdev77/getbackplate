@@ -155,7 +155,7 @@ export const SECTIONS: SidebarSection[] = [
   {
     label: "Integraciones",
     items: [
-      { href: "/app/integrations/quickbooks", label: "Integración QuickBooks", icon: Link2, moduleCode: "qbo_r365" },
+      { href: "/app/integrations/quickbooks", label: "Integración QuickBooks® Online", icon: Link2, moduleCode: "qbo_r365" },
     ],
   },
   {

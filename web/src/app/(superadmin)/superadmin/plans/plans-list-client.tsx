@@ -140,7 +140,7 @@ export function PlansFilteredList({
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`rounded-xl border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.11em] ${isIntegration ? "border-violet-200 bg-violet-50 text-violet-700" : "border-blue-100 bg-blue-50/50 text-blue-600"}`}>
-                        {isIntegration ? "QuickBooks ↔ R365" : "Platform"}
+                        {isIntegration ? "QuickBooks® Online ↔ R365" : "Platform"}
                       </span>
                       <span className={`rounded-xl border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.11em] ${plan.is_active ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-line bg-muted/20 text-muted-foreground"}`}>
                         {plan.is_active ? "Published" : "Draft"}

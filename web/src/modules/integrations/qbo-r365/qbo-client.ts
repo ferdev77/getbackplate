@@ -96,7 +96,7 @@ async function fetchToken(form: URLSearchParams, clientId: string, clientSecret:
 
   const data = (await response.json().catch(() => ({}))) as Partial<QboTokenResponse> & { error_description?: string };
   if (!response.ok || !data.access_token || !data.refresh_token || !data.expires_in || !data.token_type) {
-    throw new Error(data.error_description || "No se pudo autenticar con QuickBooks Online");
+    throw new Error(data.error_description || "No se pudo autenticar con QuickBooks® Online");
   }
 
   return data as QboTokenResponse;
@@ -155,7 +155,7 @@ export async function revokeQboToken(input: {
 
   if (!response.ok) {
     const data = (await response.json().catch(() => ({}))) as QboFaultError;
-    throw new Error(data.message || data.Message || "No se pudo revocar el acceso en QuickBooks");
+    throw new Error(data.message || data.Message || "No se pudo revocar el acceso en QuickBooks® Online");
   }
 }
 
@@ -268,9 +268,9 @@ async function queryQboTable<T>(input: {
       const errorCode = String(fault?.code ?? "").trim();
       const detail = (fault?.Detail ?? fault?.Message ?? fault?.detail ?? fault?.message ?? "").trim();
       if (errorCode === "3100") {
-        throw new Error("QBO_3100:La autorizacion de la app con esta company no es valida. Reconecta QuickBooks.");
+        throw new Error("QBO_3100:La autorizacion de la app con esta company no es valida. Reconecta QuickBooks® Online.");
       }
-      throw new Error(detail || message || `Error consultando ${input.table} en QuickBooks`);
+      throw new Error(detail || message || `Error consultando ${input.table} en QuickBooks® Online`);
     }
 
     const queryResponse = payload.QueryResponse ?? payload.queryResponse;
@@ -570,7 +570,7 @@ export async function fetchQboTransactionByDocNumber(input: {
     };
     if (!response.ok) {
       const fault = payload.Fault?.Error?.[0];
-      throw new Error(fault?.Detail ?? fault?.Message ?? `Error consultando ${type} por DocNumber en QuickBooks`);
+      throw new Error(fault?.Detail ?? fault?.Message ?? `Error consultando ${type} por DocNumber en QuickBooks® Online`);
     }
     const qr = payload.QueryResponse ?? payload.queryResponse;
     const items = (type === "Invoice" ? qr?.Invoice : qr?.CreditMemo) ?? [];
@@ -670,7 +670,7 @@ export async function fetchQboCustomers(input: {
     };
 
     if (!response.ok) {
-      throw new Error("Error consultando clientes en QuickBooks");
+      throw new Error("Error consultando clientes en QuickBooks® Online");
     }
 
     const batch = payload.QueryResponse?.Customer ?? [];

@@ -1544,15 +1544,15 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                 </span>
                 <h2 className="mt-3.5 text-[clamp(34px,4vw,52px)] font-bold leading-[1.05] tracking-[-0.03em] text-[var(--gbp-text)]">
                   {lang === "es" ? (
-                    <>QuickBooks Online no habla<br />con Restaurant365.<br /><span className="text-[var(--gbp-accent)]">Lo resolvimos.</span></>
+                    <>QuickBooks® Online no habla<br />con Restaurant365.<br /><span className="text-[var(--gbp-accent)]">Lo resolvimos.</span></>
                   ) : (
-                    <>QuickBooks Online doesn&apos;t<br />talk to Restaurant365.<br /><span className="text-[var(--gbp-accent)]">We fixed that.</span></>
+                    <>QuickBooks® Online doesn&apos;t<br />talk to Restaurant365.<br /><span className="text-[var(--gbp-accent)]">We fixed that.</span></>
                   )}
                 </h2>
                 <p className="mt-7 text-[15px] leading-[1.8] text-[var(--gbp-text2)]">
                   {lang === "es"
-                    ? "La única integración nativa entre QuickBooks Online y Restaurant365. Enviá facturas directamente a R365 — automáticamente, en tiempo real. Sin exportaciones. Sin cadenas de correos. Sin entrada manual."
-                    : "The only native integration between QuickBooks Online and Restaurant365. Send invoices directly into R365 — automatically, in real time. No exports. No email chains. No manual entry."}
+                    ? "La única integración nativa entre QuickBooks® Online y Restaurant365. Enviá facturas directamente a R365 — automáticamente, en tiempo real. Sin exportaciones. Sin cadenas de correos. Sin entrada manual."
+                    : "The only native integration between QuickBooks® Online and Restaurant365. Send invoices directly into R365 — automatically, in real time. No exports. No email chains. No manual entry."}
                 </p>
                 <div
                   className="mt-7 inline-flex items-center gap-2 rounded-xl border border-[var(--gbp-accent)]/20 px-4 py-2.5 text-[12px] font-bold whitespace-nowrap"
@@ -1590,7 +1590,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                   {intTab === "send" && (
                     <motion.div key="send" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.22 }}>
                       <div className="mb-3 flex items-center gap-2">
-                        <span className="inline-flex rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-white">QuickBooks → R365</span>
+                        <span className="inline-flex rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-white">QuickBooks® Online → R365</span>
                         <p className="text-[14px] font-semibold text-[var(--gbp-text2)]">
                           {lang === "es" ? "Tus clientes están en R365. Tus facturas también deberían estarlo." : "Your restaurant clients are on R365. Your invoices should be too."}
                         </p>
@@ -1600,7 +1600,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                           <span className="h-[7px] w-[7px] rounded-full bg-rose-500" />
                           <span className="h-[7px] w-[7px] rounded-full bg-amber-400" />
                           <span className="h-[7px] w-[7px] rounded-full bg-emerald-500" />
-                          <span className="ml-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">QuickBooks Online · Invoice Sent</span>
+                          <span className="ml-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">QuickBooks® Online · Invoice Sent</span>
                         </div>
                         <div>
                           {[
@@ -1632,9 +1632,9 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                   {intTab === "receive" && (
                     <motion.div key="receive" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.22 }}>
                       <div className="mb-3 flex items-center gap-2">
-                        <span className="inline-flex rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-white">QuickBooks → R365</span>
+                        <span className="inline-flex rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-white">QuickBooks® Online → R365</span>
                         <p className="text-[14px] font-semibold text-[var(--gbp-text2)]">
-                          {lang === "es" ? "Tus proveedores están en QuickBooks. Sus facturas deben llegar a R365 — no a tu bandeja." : "Your vendors are on QuickBooks. Their invoices should land in R365 — not your inbox."}
+                          {lang === "es" ? "Tus proveedores están en QuickBooks® Online. Sus facturas deben llegar a R365 — no a tu bandeja." : "Your vendors are on QuickBooks® Online. Their invoices should land in R365 — not your inbox."}
                         </p>
                       </div>
                       <div className="mt-3.5 overflow-hidden rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg2)]">
@@ -1772,7 +1772,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
           </p>
         </div>
         <p className="mx-auto mt-4 max-w-[1200px] text-center text-[10px] text-white/40">
-          Intuit and QuickBooks are registered trademarks of Intuit Inc. Used with permission.
+          Intuit and QuickBooks® Online are registered trademarks of Intuit Inc. Used with permission.
         </p>
       </footer>
 

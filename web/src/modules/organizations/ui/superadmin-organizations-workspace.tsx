@@ -289,8 +289,8 @@ export function SuperadminOrganizationsWorkspace({
                     <SuperadminInputField label="Organización" name="name" required className="md:col-span-2" />
                     <SuperadminSelectField label="Tipo de Provisioning" name="creation_mode" value={creationMode} onChange={(event) => setCreationMode(event.target.value as typeof creationMode)} className="md:col-span-2">
                       <option value="platform">Solo plataforma</option>
-                      <option value="integration">Solo integración QuickBooks</option>
-                      <option value="platform_integration">Plataforma + integración QuickBooks</option>
+                      <option value="integration">Solo integración QuickBooks® Online</option>
+                      <option value="platform_integration">Plataforma + integración QuickBooks® Online</option>
                     </SuperadminSelectField>
                     {(creationMode === "platform" || creationMode === "platform_integration") && (
                       <SuperadminSelectField label="Plan de Plataforma" name="plan_id" defaultValue="" required>

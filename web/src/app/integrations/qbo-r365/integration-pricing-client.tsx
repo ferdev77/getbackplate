@@ -51,21 +51,21 @@ const FAQ_ITEMS: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "How fast do invoices arrive in Restaurant365?",
-    a: "Every invoice is picked up automatically the moment you finalize it in QuickBooks Online and delivered to your customer's Restaurant365 on its next import — no manual steps, no waiting on email.",
+    a: "Every invoice is picked up automatically the moment you finalize it in QuickBooks® Online and delivered to your customer's Restaurant365 on its next import — no manual steps, no waiting on email.",
   },
   {
     q: "Do credit memos get delivered too, not just invoices?",
-    a: "Yes. When you finalize an invoice or a credit memo in QuickBooks Online, it's delivered to your customer's Restaurant365 automatically — no re-keying and no email attachments. Each document is delivered as finalized in QuickBooks.",
+    a: "Yes. When you finalize an invoice or a credit memo in QuickBooks® Online, it's delivered to your customer's Restaurant365 automatically — no re-keying and no email attachments. Each document is delivered as finalized in QuickBooks® Online.",
   },
   {
-    q: "Do I have to change how I use QuickBooks?",
-    a: "No. You keep invoicing in QuickBooks Online exactly as you do today. Once connected, delivery happens in the background on every invoice.",
+    q: "Do I have to change how I use QuickBooks® Online?",
+    a: "No. You keep invoicing in QuickBooks® Online exactly as you do today. Once connected, delivery happens in the background on every invoice.",
   },
   {
-    q: "Is my QuickBooks data secure?",
+    q: "Is my QuickBooks® Online data secure?",
     a: (
       <>
-        Yes. Your connection is authorized through QuickBooks Online&apos;s secure OAuth flow,
+        Yes. Your connection is authorized through QuickBooks® Online&apos;s secure OAuth flow,
         credentials are encrypted, and you can disconnect at any time. See our{" "}
         <Link href="/trust">Trust Center</Link> for details.
       </>
@@ -76,8 +76,8 @@ const FAQ_ITEMS: { q: string; a: React.ReactNode }[] = [
     a: "Refer them and we'll reach out and handle the setup so their invoices start landing in your Restaurant365 automatically — at no cost to you.",
   },
   {
-    q: "Does this work with QuickBooks Desktop?",
-    a: "This integration is built for QuickBooks Online. If you're on QuickBooks Desktop, reach out and we'll let you know what's possible.",
+    q: "Does this work with desktop accounting software?",
+    a: "This integration is built for QuickBooks® Online. If you use desktop accounting software, reach out and we'll let you know what's possible.",
   },
 ];
 
@@ -498,11 +498,11 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
               <div>
                 <span className="badge">Integrations</span>
                 <h1 className="h1">
-                  Your QuickBooks invoices don&apos;t land in your customers&apos; Restaurant365.{" "}
+                  Your QuickBooks® Online invoices don&apos;t land in your customers&apos; Restaurant365.{" "}
                   <span className="fix">We fixed that.</span>
                 </h1>
                 <p className="lead">
-                  Send every invoice from QuickBooks Online into your customers&apos; Restaurant365 —
+                  Send every invoice from QuickBooks® Online into your customers&apos; Restaurant365 —
                   automatically, no manual steps. No exports. No email chains. No re-typing.
                 </p>
               </div>
@@ -510,7 +510,7 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
                 <div className="tabs">
                   <button className={`tab${activeTab === "send" ? " active" : ""}`} onClick={() => setActiveTab("send")}>
                     <div className="tt">I send invoices.</div>
-                    <div className="ts">From QuickBooks Online to Restaurant365</div>
+                    <div className="ts">From QuickBooks® Online to Restaurant365</div>
                   </button>
                   <button className={`tab${activeTab === "recv" ? " active" : ""}`} onClick={() => setActiveTab("recv")}>
                     <div className="tt">I receive invoices.</div>
@@ -519,12 +519,12 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
                 </div>
 
                 <div className={`panel${activeTab === "send" ? " active" : ""}`}>
-                  <span className="pill">QuickBooks Online → R365</span>
+                  <span className="pill">QuickBooks® Online → R365</span>
                   <div className="pline">Your restaurant clients are on R365. Your invoices should be too.</div>
                   <div className="feed">
                     <div className="feed-h">
                       <span className="dots"><i></i><i></i><i></i></span>
-                      <span className="ftitle">QuickBooks Online · Invoice sent</span>
+                      <span className="ftitle">QuickBooks® Online · Invoice sent</span>
                     </div>
                     <div className="inv">
                       <div className="il"><div className="in">INV-1084 · Northside Grill</div><div className="im">$4,218.00 · just now</div></div>
@@ -547,7 +547,7 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
                 </div>
 
                 <div className={`panel${activeTab === "recv" ? " active" : ""}`}>
-                  <span className="pill">R365 ← QuickBooks Online</span>
+                  <span className="pill">R365 ← QuickBooks® Online</span>
                   <div className="pline">Get your vendors&apos; invoices into your Restaurant365 — automatically, no manual entry.</div>
                   <div className="feed">
                     <div className="feed-h">
@@ -628,7 +628,7 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
         {/* COLOR BANNER */}
         <div className="cbanner">
           <div className="ct">
-            Works with <span className="u">QuickBooks Online</span> and{" "}
+            Works with <span className="u">QuickBooks® Online</span> and{" "}
             <span className="u">Restaurant365</span> — no manual entry, no PDFs.
           </div>
         </div>
@@ -641,7 +641,7 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
               <h2 className="h2">Pricing that scales with your R365 reach.</h2>
               <p className="sec-sub">
                 Built for food vendors and distributors selling to Restaurant365. Send invoices and
-                credit memos automatically — from QuickBooks Online straight to your customers&apos;
+                credit memos automatically — from QuickBooks® Online straight to your customers&apos;
                 R365.
               </p>
             </div>
@@ -735,7 +735,7 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/getbackplate-logo-footer.svg" alt="GetBackplate" style={{ height: 22, width: "auto" }} />
                 <div className="ftag">
-                  Automated invoice delivery from QuickBooks Online into your customers&apos;
+                  Automated invoice delivery from QuickBooks® Online into your customers&apos;
                   Restaurant365 — built for food vendors and distributors.
                 </div>
                 <div className="faddr">
@@ -784,7 +784,7 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
         onClose={() => setSeatModal((s) => ({ ...s, open: false }))}
         toEmail={seatModal.email}
         planName={seatModal.planName}
-        source="QuickBooks ↔ R365 Integration"
+        source="QuickBooks® Online ↔ R365 Integration"
       />
     </>
   );

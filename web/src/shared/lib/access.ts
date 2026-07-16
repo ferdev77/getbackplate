@@ -40,7 +40,7 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   announcements: "Announcements",
   vendors: "Vendors",
   maintenance: "Maintenance",
-  qbo_r365: "QuickBooks / R365",
+  qbo_r365: "QuickBooks® Online / R365",
   custom_branding: "Custom Branding",
 };
 

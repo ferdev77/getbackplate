@@ -15,7 +15,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "QuickBooks disconnected | GetBackplate",
+  title: "QuickBooks® Online disconnected | GetBackplate",
 };
 
 export default function IntegrationDisconnectedPage() {
@@ -100,18 +100,18 @@ export default function IntegrationDisconnectedPage() {
               marginBottom: 20,
             }}
           >
-            QuickBooks disconnected.
+            QuickBooks® Online disconnected.
           </h1>
 
           <p style={{ fontSize: 18, color: "#595B66", lineHeight: 1.6, marginBottom: 12 }}>
-            The connection between GetBackplate and your QuickBooks Online account has been{" "}
+            The connection between GetBackplate and your QuickBooks® Online account has been{" "}
             <strong style={{ color: "#14151A" }}>disconnected</strong>.
           </p>
 
           <p style={{ fontSize: 15, color: "#8A8C95", lineHeight: 1.6, marginBottom: 40 }}>
             Automatic Restaurant365 syncs are paused until you reconnect your account. To
-            reconnect, sign in to GetBackplate, go to Integrations → QuickBooks Online, and select
-            &ldquo;Connect QuickBooks&rdquo;.
+            reconnect, sign in to GetBackplate, go to Integrations → QuickBooks® Online, and select
+            &ldquo;Connect QuickBooks® Online&rdquo;.
           </p>
 
           <a

@@ -4,7 +4,7 @@ import { IntegrationSiteFooter, IntegrationSiteHeader } from "@/modules/landing/
 
 export const metadata = {
   title: "Legal Documents | GetBackplate",
-  description: "Terms of service and privacy policies for the GetBackplate QuickBooks Online to Restaurant365 integration.",
+  description: "Terms of service and privacy policies for the GetBackplate QuickBooks® Online to Restaurant365 integration.",
 };
 
 const INTEGRATION = {
@@ -12,12 +12,12 @@ const INTEGRATION = {
   accent: "#6d28d9",
   rowHoverClass: "hover:bg-[#f3effd] hover:border-[#6d28d9]/30",
   iconHoverClass: "group-hover:text-[#6d28d9]",
-  title: "QuickBooks Online → Restaurant365",
+  title: "QuickBooks® Online → Restaurant365",
   description:
-    "Automated middleware that delivers QuickBooks Online invoices to Restaurant365 via FTP, with field mapping and audit logging. For vendors invoicing R365-based clients.",
+    "Automated middleware that delivers QuickBooks® Online invoices to Restaurant365 via FTP, with field mapping and audit logging. For vendors invoicing R365-based clients.",
   docs: [
     { label: "End-User License Agreement", description: "Terms of service for the Integration", href: "/legal/integration/terms" },
-    { label: "Privacy Policy", description: "Data handling for QuickBooks and R365", href: "/legal/integration/privacy" },
+    { label: "Privacy Policy", description: "Data handling for QuickBooks® Online and R365", href: "/legal/integration/privacy" },
     { label: "Master Services Agreement", description: "Subscription terms, fees, and SLA", href: "/legal/integration/msa" },
     { label: "Incident Response", description: "How we detect, respond to, and communicate security incidents", href: "/legal/integration/incident-response" },
   ],
@@ -38,7 +38,7 @@ export default function LegalIndexPage() {
           </span>
           <h1 className="text-4xl font-extrabold tracking-tight text-[#1a1a1a]">Legal Documents</h1>
           <p className="mx-auto mt-3 max-w-xl text-[15px] text-[#6b7280]">
-            Terms of service, privacy, and operational policies for the QuickBooks Online to Restaurant365 integration.
+            Terms of service, privacy, and operational policies for the QuickBooks® Online to Restaurant365 integration.
           </p>
         </div>
 
@@ -73,7 +73,7 @@ export default function LegalIndexPage() {
           For legal inquiries, contact GetBackplate at 1001 S. 10th St., Suite G#784, McAllen, Texas 78501 — Phone +1 (956) 802-9639.
         </p>
         <p className="mt-3 text-center text-[11px] text-[#9ca3af]">
-          Intuit and QuickBooks are registered trademarks of Intuit Inc. Used with permission.
+          Intuit and QuickBooks® Online are registered trademarks of Intuit Inc. Used with permission.
         </p>
       </main>
       <IntegrationSiteFooter />

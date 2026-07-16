@@ -170,7 +170,7 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
                     <Link2 className="h-6 w-6" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-bold text-foreground">QuickBooks Online</p>
+                    <p className="font-bold text-foreground">QuickBooks® Online</p>
                     <p className="text-xs text-muted-foreground">
                       {qboConnected ? t("Cuenta conectada correctamente") : t("Necesitás autorizar el acceso de solo lectura a tus facturas.")}
                     </p>

@@ -293,7 +293,7 @@ export default function TrustCenterPage() {
               <div className="section-content">
                 <p>
                   All traffic between the platform and your browser is encrypted in transit.
-                  Sensitive credentials — QuickBooks Online OAuth tokens and Restaurant365 delivery
+                  Sensitive credentials — QuickBooks® Online OAuth tokens and Restaurant365 delivery
                   credentials — are encrypted at the application layer before they are ever written
                   to the database.
                 </p>
@@ -304,7 +304,7 @@ export default function TrustCenterPage() {
                     <tr><th>Invoice delivery encryption</th><td>FTPS (TLS) enforced on every Restaurant365 delivery connection</td></tr>
                     <tr><th>Credential encryption</th><td>AES-256-GCM, applied at the application layer to OAuth tokens and Restaurant365 delivery credentials before storage</td></tr>
                     <tr><th>Database encryption</th><td>Managed Postgres (Supabase) with encryption at rest on the underlying volume</td></tr>
-                    <tr><th>Token refresh</th><td>QuickBooks Online access tokens are refreshed automatically before they expire; a failed refresh marks the connection as disconnected rather than failing silently</td></tr>
+                    <tr><th>Token refresh</th><td>QuickBooks® Online access tokens are refreshed automatically before they expire; a failed refresh marks the connection as disconnected rather than failing silently</td></tr>
                     <tr><th>Webhook verification</th><td>HMAC-SHA256 signature check with constant-time comparison on every incoming Intuit webhook</td></tr>
                   </tbody>
                 </table>
@@ -322,16 +322,16 @@ export default function TrustCenterPage() {
               </aside>
               <div className="section-content">
                 <p>
-                  Customer authentication to QuickBooks Online is fully mediated by Intuit&apos;s
-                  OAuth 2.0 flow — we never see or store QuickBooks passwords. Internal access to
+                  Customer authentication to QuickBooks® Online is fully mediated by Intuit&apos;s
+                  OAuth 2.0 flow — we never see or store QuickBooks® Online passwords. Internal access to
                   production data is restricted and scoped per organization at the database level.
                 </p>
 
                 <ul className="check-list">
-                  <li><span className="ck-icon" /><span className="ck-text"><strong>OAuth 2.0 with Intuit.</strong> Customers authorize access to their QuickBooks Online data through Intuit&apos;s own hosted flow.</span></li>
+                  <li><span className="ck-icon" /><span className="ck-text"><strong>OAuth 2.0 with Intuit.</strong> Customers authorize access to their QuickBooks® Online data through Intuit&apos;s own hosted flow.</span></li>
                   <li><span className="ck-icon" /><span className="ck-text"><strong>Tenant isolation via Row-Level Security.</strong> Every tenant-scoped table enforces RLS keyed to <code className="mono">organization_id</code>; membership and role tables are RLS-protected as well.</span></li>
                   <li><span className="ck-icon" /><span className="ck-text"><strong>Role-based access within each organization.</strong> Permissions are assigned per role (e.g. company admin vs. employee), enforced by policy, not just application logic.</span></li>
-                  <li><span className="ck-icon" /><span className="ck-text"><strong>Email-based two-step verification.</strong> Required on every login for administrative accounts on organizations with the QuickBooks integration active; available as an opt-in for other accounts.</span></li>
+                  <li><span className="ck-icon" /><span className="ck-text"><strong>Email-based two-step verification.</strong> Required on every login for administrative accounts on organizations with the QuickBooks® Online integration active; available as an opt-in for other accounts.</span></li>
                 </ul>
 
                 <div className="note-callout">
@@ -379,7 +379,7 @@ export default function TrustCenterPage() {
               </aside>
               <div className="section-content">
                 <p>
-                  We collect the minimum data needed to deliver QuickBooks Online invoices to
+                  We collect the minimum data needed to deliver QuickBooks® Online invoices to
                   Restaurant365. Most of what we process is B2B metadata: company names, invoice
                   lines, payment terms. We deliberately avoid sensitive data categories we don&apos;t
                   need.
@@ -388,7 +388,7 @@ export default function TrustCenterPage() {
                 <ul className="check-list">
                   <li><span className="ck-icon" /><span className="ck-text"><strong>Business contact information.</strong> Names, emails, phone numbers, and business addresses of customer contacts.</span></li>
                   <li><span className="ck-icon" /><span className="ck-text"><strong>Invoice and credit memo metadata.</strong> Vendor names, customer names, line items, amounts, dates, account numbers, and locations.</span></li>
-                  <li><span className="ck-icon" /><span className="ck-text"><strong>OAuth tokens.</strong> Encrypted Intuit tokens, used only to access the QuickBooks Online data each customer has authorized.</span></li>
+                  <li><span className="ck-icon" /><span className="ck-text"><strong>OAuth tokens.</strong> Encrypted Intuit tokens, used only to access the QuickBooks® Online data each customer has authorized.</span></li>
                   <li><span className="ck-icon" /><span className="ck-text"><strong>Operational logs.</strong> An audit trail of every document processed, for compliance and support purposes.</span></li>
                 </ul>
 
@@ -508,7 +508,7 @@ export default function TrustCenterPage() {
                     <div className="vendor-purpose">Payment processing, billing, tax calculation.</div>
                   </div>
                   <div className="vendor-card">
-                    <div className="vendor-name">Intuit (QuickBooks)</div>
+                    <div className="vendor-name">Intuit (QuickBooks® Online)</div>
                     <div className="vendor-purpose">OAuth authorization; source of truth for invoice and customer data.</div>
                   </div>
                   <div className="vendor-card">
@@ -543,7 +543,7 @@ export default function TrustCenterPage() {
                     <li><span className="ck-icon" /><span className="ck-text">Tech E&amp;O and Cyber Liability coverage committed at $1M / $2M USD via our Master Services Agreement.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Privacy Policy and Terms of Service published and versioned for both products.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Audit log retention policy — operational logs are purged automatically after 12 months via a scheduled daily job.</span></li>
-                    <li><span className="ck-icon" /><span className="ck-text">Email-based two-step verification, required for administrative accounts on organizations with the QuickBooks integration active.</span></li>
+                    <li><span className="ck-icon" /><span className="ck-text">Email-based two-step verification, required for administrative accounts on organizations with the QuickBooks® Online integration active.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Documented Incident Response and Breach Notification Protocol, following the NIST SP 800-61 framework — see our <Link href="/legal/integration/incident-response">Incident Response documentation</Link>.</span></li>
                   </ul>
                 </div>

@@ -63,7 +63,7 @@ export const MODULE_LABELS: Record<string, string> = {
   company_portal: "Portal Empresa",
   vendors: "Proveedores",
   maintenance: "Mantenimiento",
-  qbo_r365: "Integración QuickBooks",
+  qbo_r365: "Integración QuickBooks® Online",
 };
 
 // ── Billing / Plans ───────────────────────────────────────────────────────────

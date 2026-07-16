@@ -13,7 +13,7 @@ export async function GET() {
     return NextResponse.json({ customers }, { status: 200 });
   } catch {
     return NextResponse.json(
-      { error: "Unable to load QuickBooks customers. Please try again." },
+      { error: "Unable to load QuickBooks® Online customers. Please try again." },
       { status: 400 },
     );
   }

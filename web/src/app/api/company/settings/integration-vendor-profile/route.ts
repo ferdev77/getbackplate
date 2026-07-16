@@ -18,7 +18,7 @@ export async function PUT(request: Request) {
   const access = await assertCompanyAdminModuleApi("settings");
   if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
   if (!(await isModuleEnabledForOrganization(access.tenant.organizationId, "qbo_r365"))) {
-    return NextResponse.json({ error: "The QuickBooks integration is not active." }, { status: 403 });
+    return NextResponse.json({ error: "The QuickBooks® Online integration is not active." }, { status: 403 });
   }
 
   const parsed = vendorProfileSchema.safeParse(await request.json().catch(() => null));

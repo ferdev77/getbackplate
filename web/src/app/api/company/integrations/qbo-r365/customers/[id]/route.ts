@@ -16,12 +16,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   try {
     const customer = await getQboCustomerById(access.tenant.organizationId, id);
     if (!customer) {
-      return NextResponse.json({ error: "Customer not found in QuickBooks." }, { status: 404 });
+      return NextResponse.json({ error: "Customer not found in QuickBooks® Online." }, { status: 404 });
     }
     return NextResponse.json({ customer }, { status: 200 });
   } catch {
     return NextResponse.json(
-      { error: "Unable to retrieve the QuickBooks customer. Please try again." },
+      { error: "Unable to retrieve the QuickBooks® Online customer. Please try again." },
       { status: 400 },
     );
   }

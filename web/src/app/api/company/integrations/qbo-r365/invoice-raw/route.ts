@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   try {
     const result = await fetchRawQboInvoice(access.tenant.organizationId, invoiceId);
     if (!result) {
-      return NextResponse.json({ error: "Invoice not found in QuickBooks." }, { status: 404 });
+      return NextResponse.json({ error: "Invoice not found in QuickBooks® Online." }, { status: 404 });
     }
     return NextResponse.json(result, { status: 200 });
   } catch {

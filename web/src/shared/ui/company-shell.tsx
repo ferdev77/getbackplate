@@ -1838,7 +1838,7 @@ export function CompanyShell({
               <p className={`mt-1.5 text-sm ${isDarkTheme ? "text-white/65" : "text-[var(--gbp-text2)]"}`}>
                 {isIntegrationLandingCheckout
                   ? t("Conectá QuickBooks Online con Restaurant365 y sincronizá facturas automáticamente.")
-                  : "Contratá un plan de plataforma para gestionar tu operación, o un plan de integración para conectar QuickBooks con R365."}
+                  : "Contratá un plan de plataforma para gestionar tu operación, o un plan de integración para conectar QuickBooks® Online con R365."}
               </p>
 
               {/* Tab switcher */}
@@ -2638,7 +2638,7 @@ export function CompanyShell({
             {/* Header */}
             <div className={`flex items-center justify-between border-b px-6 py-4 ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`}>
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">QuickBooks ↔ R365 Integration</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">QuickBooks® Online ↔ R365 Integration</p>
                 <p className="mt-0.5 text-base font-bold">{t("Selecciona un plan")}</p>
               </div>
               <div className="flex items-center gap-3">

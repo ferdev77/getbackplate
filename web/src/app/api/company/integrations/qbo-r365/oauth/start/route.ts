@@ -17,7 +17,7 @@ export async function GET() {
     return NextResponse.json({ authorizeUrl });
   } catch {
     return NextResponse.json(
-      { error: "Unable to start QuickBooks authorization. Please try again." },
+      { error: "Unable to start QuickBooks® Online authorization. Please try again." },
       { status: 400 },
     );
   }

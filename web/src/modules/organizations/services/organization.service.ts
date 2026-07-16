@@ -107,7 +107,7 @@ export async function provisionManualIntegrationEntitlement(params: {
     .maybeSingle();
 
   if (moduleError || !qboModule) {
-    throw new Error(moduleError?.message ?? "No se encontró el módulo de integración QuickBooks");
+    throw new Error(moduleError?.message ?? "No se encontró el módulo de integración QuickBooks® Online");
   }
 
   const { error: addonError } = await supabase.from("organization_addons").upsert(

@@ -21,7 +21,7 @@ export default async function IntegrationQuickbooksPage() {
   let maxR365Connections: number | null = null;
   let showOnboarding = false;
   let vendorProfile: Record<string, string> | null = null;
-  let planName = "QuickBooks";
+  let planName = "QuickBooks® Online";
 
   {
     const supabase = createSupabaseAdminClient();
@@ -46,7 +46,7 @@ export default async function IntegrationQuickbooksPage() {
       const base = (planData.data as Record<string, unknown> | null)?.max_r365_connections as number | null ?? null;
       const extra = ((addonData.data as Record<string, unknown> | null)?.extra_r365_connections as number) ?? 0;
       maxR365Connections = base != null ? base + extra : null;
-      planName = (planData.data as Record<string, unknown> | null)?.name as string ?? "QuickBooks";
+      planName = (planData.data as Record<string, unknown> | null)?.name as string ?? "QuickBooks® Online";
     }
   }
 

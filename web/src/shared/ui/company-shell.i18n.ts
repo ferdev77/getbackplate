@@ -164,7 +164,7 @@ export const COMPANY_SHELL_EN: Record<string, string> = {
 
 export function createTranslator(locale: "es" | "en" | undefined) {
   return function t(spanish: string): string {
-    if (locale !== "en") return spanish;
-    return COMPANY_SHELL_EN[spanish] ?? spanish;
+    const text = locale === "en" ? (COMPANY_SHELL_EN[spanish] ?? spanish) : spanish;
+    return text.replace(/QuickBooks Online|QuickBooks/g, "QuickBooks® Online");
   };
 }

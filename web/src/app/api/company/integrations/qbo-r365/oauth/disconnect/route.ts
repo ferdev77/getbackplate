@@ -17,7 +17,7 @@ export async function POST() {
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json(
-      { error: "Unable to disconnect QuickBooks. Please try again." },
+      { error: "Unable to disconnect QuickBooks® Online. Please try again." },
       { status: 400 },
     );
   }

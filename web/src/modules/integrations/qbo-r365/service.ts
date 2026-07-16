@@ -459,7 +459,7 @@ export async function removeCustomerFromSyncConfig(
 export async function listQboCustomers(organizationId: string): Promise<QboCustomer[]> {
   const qboConnection = await getConnection(organizationId, "quickbooks_online");
   if (!qboConnection || qboConnection.status !== "connected") {
-    throw new Error("QuickBooks Online is not connected.");
+    throw new Error("QuickBooks® Online is not connected.");
   }
 
   const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
@@ -473,7 +473,7 @@ export async function listQboCustomers(organizationId: string): Promise<QboCusto
 export async function getQboCustomerById(organizationId: string, customerId: string): Promise<QboCustomer | null> {
   const qboConnection = await getConnection(organizationId, "quickbooks_online");
   if (!qboConnection || qboConnection.status !== "connected") {
-    throw new Error("QuickBooks Online is not connected.");
+    throw new Error("QuickBooks® Online is not connected.");
   }
   const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
   return fetchQboCustomerById({
@@ -486,7 +486,7 @@ export async function getQboCustomerById(organizationId: string, customerId: str
 export async function fetchRawQboInvoice(organizationId: string, invoiceId: string) {
   const qboConnection = await getConnection(organizationId, "quickbooks_online");
   if (!qboConnection || qboConnection.status !== "connected") {
-    throw new Error("QuickBooks Online is not connected.");
+    throw new Error("QuickBooks® Online is not connected.");
   }
   const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
   return fetchQboRawTransaction({
@@ -499,7 +499,7 @@ export async function fetchRawQboInvoice(organizationId: string, invoiceId: stri
 export async function fetchCrudoQboInvoice(organizationId: string, invoiceId: string, syncConfigId?: string | null) {
   const qboConnection = await getConnection(organizationId, "quickbooks_online");
   if (!qboConnection || qboConnection.status !== "connected") {
-    throw new Error("QuickBooks Online is not connected.");
+    throw new Error("QuickBooks® Online is not connected.");
   }
   const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
   const transactionCrudo = await fetchQboCrudoTransaction({
@@ -1439,7 +1439,7 @@ export async function runQboR365Sync(input: {
   }
 
   if (!qboConnection || qboConnection.status !== "connected") {
-    throw new Error("QuickBooks Online is not connected.");
+    throw new Error("QuickBooks® Online is not connected.");
   }
   if (!dryRun && !ftpForUpload) {
     throw new Error("Restaurant365 FTP is not connected.");
@@ -3216,7 +3216,7 @@ export async function importQboWebhookEventManually(input: { organizationId: str
 
   const qboConnection = await getConnection(input.organizationId, "quickbooks_online");
   if (!qboConnection || qboConnection.status !== "connected") {
-    throw new Error("QuickBooks Online is not connected.");
+    throw new Error("QuickBooks® Online is not connected.");
   }
 
   const qboAuth = await ensureFreshQboToken({ organizationId: input.organizationId, actorId: input.actorId, qboConnection, forceRefresh: true });

@@ -136,7 +136,7 @@ export default async function PaymentLinksPage() {
         <div>
           <h2 className="text-2xl font-bold text-foreground">Subscription Links</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Start a recurring platform or QuickBooks-R365 integration plan without requiring the customer to log in.
+            Start a recurring platform or QuickBooks® Online-R365 integration plan without requiring the customer to log in.
           </p>
         </div>
         <SubscriptionLinkModal
@@ -159,7 +159,7 @@ export default async function PaymentLinksPage() {
       <div className="mb-6 mt-14 border-t border-[var(--gbp-border)] pt-10">
         <h2 className="text-2xl font-bold text-foreground">Price per Sent Invoice</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Optional usage charge for each organization with an active QuickBooks-R365 integration. Leave it empty to disable billing.
+          Optional usage charge for each organization with an active QuickBooks® Online-R365 integration. Leave it empty to disable billing.
         </p>
       </div>
       <InvoicePriceList organizations={invoicePriceOrgs} />

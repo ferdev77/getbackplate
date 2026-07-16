@@ -3,7 +3,7 @@ import { LegalDocLayout } from "@/shared/ui/legal-doc-layout";
 
 export const metadata = {
   title: "Master Services Agreement — Integration | GetBackplate",
-  description: "Master Services Agreement for the GetBackplate QuickBooks Online to Restaurant365 integration subscription.",
+  description: "Master Services Agreement for the GetBackplate QuickBooks® Online to Restaurant365 integration subscription.",
 };
 
 export default function IntegrationMsaPage() {
@@ -11,7 +11,7 @@ export default function IntegrationMsaPage() {
     <LegalDocLayout
       docLabel="Integration · Subscription"
       title="Master Services Agreement"
-      subtitle="QuickBooks Online to Restaurant365 Integration"
+      subtitle="QuickBooks® Online to Restaurant365 Integration"
       effective="July 23, 2026"
       lastUpdated="July 1, 2026"
       version="2026.07.23"
@@ -25,20 +25,20 @@ export default function IntegrationMsaPage() {
       <p>GetBackplate and Customer are sometimes referred to herein individually as a <em>&quot;Party&quot;</em> and collectively as the <em>&quot;Parties.&quot;</em></p>
 
       <h2 style={{ fontSize: 16, marginTop: 28 }}>Recitals</h2>
-      <p><strong>WHEREAS,</strong> Provider operates a software-as-a-service platform that automates the delivery of invoices and credit memos from QuickBooks Online to Restaurant365 via secure file transfer (the &quot;Platform&quot; or &quot;Service&quot;);</p>
+      <p><strong>WHEREAS,</strong> Provider operates a software-as-a-service platform that automates the delivery of invoices and credit memos from QuickBooks® Online to Restaurant365 via secure file transfer (the &quot;Platform&quot; or &quot;Service&quot;);</p>
       <p><strong>WHEREAS,</strong> Customer wishes to subscribe to and use the Service to deliver invoices and credit memos to its customers who use Restaurant365; and</p>
       <p><strong>WHEREAS,</strong> the Parties wish to formalize the terms and conditions governing their relationship.</p>
       <p><strong>NOW, THEREFORE,</strong> in consideration of the mutual covenants and agreements set forth herein, and for other good and valuable consideration, the receipt and sufficiency of which are hereby acknowledged, the Parties agree as follows:</p>
 
       <h2><span className="section-num">1.</span>Definitions</h2>
       <h3><span className="sub-num">1.1</span>Customer Data</h3>
-      <p>&quot;Customer Data&quot; means all data, information, and content submitted by Customer to or processed by the Service, including without limitation invoice and credit memo data retrieved from Customer&apos;s QuickBooks Online account.</p>
+      <p>&quot;Customer Data&quot; means all data, information, and content submitted by Customer to or processed by the Service, including without limitation invoice and credit memo data retrieved from Customer&apos;s QuickBooks® Online account.</p>
       <h3><span className="sub-num">1.2</span>Documentation</h3>
       <p>&quot;Documentation&quot; means user manuals, technical documentation, and other written materials provided by Provider to Customer regarding the Service.</p>
       <h3><span className="sub-num">1.3</span>Acceptance Date</h3>
       <p>&quot;Acceptance Date&quot; has the meaning set forth in the preamble.</p>
       <h3><span className="sub-num">1.4</span>Service</h3>
-      <p>&quot;Service&quot; or &quot;Platform&quot; means Provider&apos;s proprietary software-as-a-service platform that integrates QuickBooks Online with Restaurant365 for the automated delivery of invoices and credit memos, as more particularly described in Schedule A.</p>
+      <p>&quot;Service&quot; or &quot;Platform&quot; means Provider&apos;s proprietary software-as-a-service platform that integrates QuickBooks® Online with Restaurant365 for the automated delivery of invoices and credit memos, as more particularly described in Schedule A.</p>
       <h3><span className="sub-num">1.5</span>Subscription Fee</h3>
       <p>&quot;Subscription Fee&quot; means the recurring monthly Base Subscription Fee and any Additional Connection Fees set forth in Schedule B.</p>
       <h3><span className="sub-num">1.6</span>Usage Fee</h3>
@@ -80,19 +80,19 @@ export default function IntegrationMsaPage() {
       <h3><span className="sub-num">5.1</span>Uptime target</h3>
       <p>Provider shall use commercially reasonable efforts to maintain Service availability of ninety-nine and five-tenths percent (99.5%) measured monthly.</p>
       <h3><span className="sub-num">5.2</span>Exclusions</h3>
-      <p>The uptime target excludes downtime caused by: (a) scheduled maintenance with at least 24 hours&apos; prior notice; (b) emergency maintenance; (c) outages of third-party services including but not limited to Intuit QuickBooks Online, Restaurant365, or other dependencies outside Provider&apos;s control; (d) Customer&apos;s acts or omissions; and (e) force majeure events as described in Section 14.</p>
+      <p>The uptime target excludes downtime caused by: (a) scheduled maintenance with at least 24 hours&apos; prior notice; (b) emergency maintenance; (c) outages of third-party services including but not limited to Intuit QuickBooks® Online, Restaurant365, or other dependencies outside Provider&apos;s control; (d) Customer&apos;s acts or omissions; and (e) force majeure events as described in Section 14.</p>
       <h3><span className="sub-num">5.3</span>Service credits</h3>
       <p>If Provider fails to meet the uptime target in any given month, Customer&apos;s sole and exclusive remedy shall be a service credit equal to five percent (5%) of the Base Subscription Fee for that month for each full percentage point below the uptime target, capped at one hundred percent (100%) of that month&apos;s Base Subscription Fee. Customer must request service credits in writing within thirty (30) days following the affected month.</p>
       <h3><span className="sub-num">5.4</span>Support</h3>
       <p>Provider shall provide email support during business hours (Monday through Friday, 9:00 AM to 5:00 PM Central Time, excluding U.S. federal holidays) with the following response time targets: Critical issues (Service unavailable): four (4) business hours; High priority issues: one (1) business day; Other issues: three (3) business days.</p>
 
       <h2><span className="section-num">6.</span>Customer responsibilities</h2>
-      <h3><span className="sub-num">6.1</span>QuickBooks Online connection</h3>
-      <p>Customer shall maintain a valid OAuth connection between its QuickBooks Online account and the Service. Customer shall re-authenticate the connection upon request from Provider or when required by Intuit.</p>
+        <h3><span className="sub-num">6.1</span>QuickBooks® Online connection</h3>
+        <p>Customer shall maintain a valid OAuth connection between its QuickBooks® Online account and the Service. Customer shall re-authenticate the connection upon request from Provider or when required by Intuit.</p>
       <h3><span className="sub-num">6.2</span>Account Number management</h3>
-      <p>Customer is responsible for maintaining accurate Account Number assignments at the customer profile level in QuickBooks Online for each Restaurant365 customer to whom invoices are to be delivered through the Service.</p>
+        <p>Customer is responsible for maintaining accurate Account Number assignments at the customer profile level in QuickBooks® Online for each Restaurant365 customer to whom invoices are to be delivered through the Service.</p>
       <h3><span className="sub-num">6.3</span>Invoice sending</h3>
-      <p>Customer acknowledges that the Service is triggered by Customer&apos;s affirmative action of sending invoices and credit memos via the QuickBooks Online &quot;Send&quot; function. Documents that are created and saved in QuickBooks Online but not sent (i.e., documents with EmailStatus of &quot;NotSet&quot;) will not be delivered through the Service. Customer is solely responsible for sending documents through the QuickBooks Online &quot;Send&quot; function.</p>
+        <p>Customer acknowledges that the Service is triggered by Customer&apos;s affirmative action of sending invoices and credit memos via the QuickBooks® Online &quot;Send&quot; function. Documents that are created and saved in QuickBooks® Online but not sent (i.e., documents with EmailStatus of &quot;NotSet&quot;) will not be delivered through the Service. Customer is solely responsible for sending documents through the QuickBooks® Online &quot;Send&quot; function.</p>
       <h3><span className="sub-num">6.4</span>Notification of issues</h3>
       <p>Customer shall promptly notify Provider of any suspected issues with the Service, including without limitation documents that fail to deliver or appear to be missing on the receiving end.</p>
       <h3><span className="sub-num">6.5</span>Compliance</h3>
@@ -222,9 +222,9 @@ export default function IntegrationMsaPage() {
         <h2>Description of Services</h2>
         <p>The Service provides the following functionality:</p>
         <ol>
-          <li><strong>Webhook reception.</strong> The Service receives real-time event notifications from Intuit QuickBooks Online via OAuth-authenticated webhooks for invoice and credit memo events.</li>
-          <li><strong>Document processing.</strong> Upon receipt of an event indicating that an invoice or credit memo has been sent by Customer (EmailStatus = &quot;EmailSent&quot;), the Service retrieves the document data from QuickBooks Online via API.</li>
-          <li><strong>Format transformation.</strong> The Service transforms the document data into the Restaurant365 Multi-Invoice CSV format, mapping Customer&apos;s Account Numbers (as configured in QuickBooks Online customer profiles) to the appropriate location identifiers in Restaurant365.</li>
+          <li><strong>Webhook reception.</strong> The Service receives real-time event notifications from Intuit QuickBooks® Online via OAuth-authenticated webhooks for invoice and credit memo events.</li>
+          <li><strong>Document processing.</strong> Upon receipt of an event indicating that an invoice or credit memo has been sent by Customer (EmailStatus = &quot;EmailSent&quot;), the Service retrieves the document data from QuickBooks® Online via API.</li>
+          <li><strong>Format transformation.</strong> The Service transforms the document data into the Restaurant365 Multi-Invoice CSV format, mapping Customer&apos;s Account Numbers (as configured in QuickBooks® Online customer profiles) to the appropriate location identifiers in Restaurant365.</li>
           <li><strong>Delivery to R365.</strong> The Service uploads the formatted CSV file to the Restaurant365 SFTP/FTP endpoint configured for each of Customer&apos;s R365 customer relationships.</li>
           <li><strong>Deduplication.</strong> The Service employs deduplication logic to ensure that each invoice or credit memo is delivered exactly once, even in the event of webhook retries or processing reattempts.</li>
           <li><strong>Retry logic.</strong> The Service implements retry logic for failed deliveries with progressive backoff intervals (5 minutes, 15 minutes, 1 hour, 4 hours, 24 hours) up to ten (10) total attempts before flagging a document as permanently failed.</li>
@@ -305,7 +305,7 @@ export default function IntegrationMsaPage() {
         By accepting this Agreement electronically, Customer acknowledges that they have read, understood, and agreed to be bound by its terms and conditions.
       </p>
       <p style={{ marginTop: 8, color: "var(--legal-text-muted)", fontSize: 12, textAlign: "center" }}>
-        Intuit and QuickBooks are registered trademarks of Intuit Inc. Used with permission.
+        Intuit and QuickBooks® Online are registered trademarks of Intuit Inc. Used with permission.
       </p>
     </LegalDocLayout>
   );

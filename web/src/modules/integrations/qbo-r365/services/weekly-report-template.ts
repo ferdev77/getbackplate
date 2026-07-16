@@ -305,7 +305,7 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
             </table>
 
             <p style="margin:0 0 20px 0;font-size:13px;color:#8A8C95;line-height:1.6;text-align:center;">
-              GetBackplate automates the delivery of invoices and credit memos from QuickBooks Online
+              GetBackplate automates the delivery of invoices and credit memos from QuickBooks® Online
               to your Restaurant365 &mdash; no manual entry, no errors.
             </p>
 
