@@ -224,7 +224,11 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const formData = await request.formData();
   const employeeId = String(formData.get("employee_id") ?? "").trim() || null;
-  const isEditMode = Boolean(employeeId);
+  const organizationUserProfileId = String(formData.get("organization_user_profile_id") ?? "").trim() || null;
+  const isEmployeeProfile = String(formData.get("is_employee") ?? "yes").trim().toLowerCase() !== "no";
+  // Editar un "usuario" (perfil sin empleado) existente también cuenta como
+  // edición para el chequeo de capacidad, aunque no tenga employee_id.
+  const isEditMode = Boolean(employeeId) || (Boolean(organizationUserProfileId) && !isEmployeeProfile);
 
   const capability = isEditMode ? "edit" : "create";
   const access = await assertEmployeeCapabilityApi("employees", capability);
@@ -260,8 +264,6 @@ export async function POST(request: Request) {
   const employmentStatusInput = String(formData.get("employment_status") ?? formData.get("status") ?? "").trim();
   const hiredAt = String(formData.get("hired_at") ?? formData.get("hire_date") ?? "").trim() || null;
   const createMode = String(formData.get("create_mode") ?? "without_account").trim();
-  const isEmployeeProfile = String(formData.get("is_employee") ?? "yes").trim().toLowerCase() !== "no";
-  const organizationUserProfileId = String(formData.get("organization_user_profile_id") ?? "").trim() || null;
   const existingDashboardAccess = String(formData.get("existing_dashboard_access") ?? "no").trim().toLowerCase() === "yes";
   const accountEmailInput = String(formData.get("account_email") ?? "").trim().toLowerCase();
   const accountPassword = String(formData.get("account_password") ?? "");
@@ -736,7 +738,147 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, employeeId: upsertedEmployeeId });
   }
 
-  return NextResponse.json({ error: "Solo se permite gestionar perfiles de empleado desde este portal" }, { status: 400 });
+  // ── Usuario sin perfil de empleado ──
+  {
+    let userLinkedUserId: string | null = null;
+
+    if (organizationUserProfileId) {
+      const { data: existingProfile } = await admin
+        .from("organization_user_profiles")
+        .select("user_id, branch_id, location_scope_ids, all_locations")
+        .eq("organization_id", organizationId)
+        .eq("id", organizationUserProfileId)
+        .maybeSingle();
+
+      if (!existingProfile) {
+        return NextResponse.json({ error: "Usuario no encontrado para editar" }, { status: 404 });
+      }
+      if (!isEmployeeInScope(existingProfile, scopeIds)) {
+        return NextResponse.json({ error: "No tenés permisos para editar este usuario" }, { status: 403 });
+      }
+
+      userLinkedUserId = existingProfile.user_id;
+    }
+
+    if (createMode === "with_account") {
+      const loginEmail = accountEmailInput || email || "";
+      const needsProvision = !userLinkedUserId || !existingDashboardAccess;
+
+      if (needsProvision) {
+        const provisionResult = await provisionOrganizationUserAccount({
+          admin,
+          organizationId,
+          loginEmail,
+          accountPassword,
+          firstName,
+          lastName,
+        });
+
+        if (!provisionResult.ok) {
+          return NextResponse.json({ error: provisionResult.error }, { status: 400 });
+        }
+
+        userLinkedUserId = provisionResult.userId;
+      }
+
+      if (!userLinkedUserId) {
+        return NextResponse.json({ error: EMPLOYEES_MESSAGES.AUTH_USER_UNRESOLVED }, { status: 400 });
+      }
+
+      const { data: role, error: roleError } = await admin.from("roles").select("id").eq("code", "employee").single();
+      if (roleError || !role) {
+        return NextResponse.json({ error: EMPLOYEES_MESSAGES.ROLE_EMPLOYEE_UNAVAILABLE }, { status: 400 });
+      }
+
+      const { data: existingMembership } = await admin
+        .from("memberships")
+        .select("id")
+        .eq("organization_id", organizationId)
+        .eq("user_id", userLinkedUserId)
+        .maybeSingle();
+
+      if (!existingMembership) {
+        try {
+          await assertPlanLimitForUsers(organizationId, 1);
+        } catch (error) {
+          return NextResponse.json({ error: getPlanLimitErrorMessage(error, EMPLOYEES_MESSAGES.PLAN_LIMIT_USERS) }, { status: 400 });
+        }
+      }
+
+      const { data: membershipRow, error: membershipError } = await admin
+        .from("memberships")
+        .upsert(
+          {
+            organization_id: organizationId,
+            user_id: userLinkedUserId,
+            role_id: role.id,
+            branch_id: branchId,
+            all_locations: allLocations,
+            location_scope_ids: locationScopeIds,
+            status: "active",
+          },
+          { onConflict: "organization_id,user_id" },
+        )
+        .select("id")
+        .single();
+
+      if (membershipError || !membershipRow) {
+        return NextResponse.json({ error: `No se pudo asignar acceso al usuario: ${membershipError?.message ?? "error"}` }, { status: 400 });
+      }
+    }
+
+    const profilePayload = {
+      organization_id: organizationId,
+      user_id: userLinkedUserId,
+      employee_id: null,
+      branch_id: branchId,
+      all_locations: allLocations,
+      location_scope_ids: locationScopeIds,
+      department_id: departmentId,
+      position_id: positionId,
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      phone,
+      is_employee: false,
+      status: createMode === "with_account" ? "active" : "inactive",
+      source: "users_employees_modal",
+    };
+
+    const profileResult = organizationUserProfileId
+      ? await admin
+          .from("organization_user_profiles")
+          .update(profilePayload)
+          .eq("organization_id", organizationId)
+          .eq("id", organizationUserProfileId)
+          .select("id")
+          .single()
+      : await admin.from("organization_user_profiles").insert(profilePayload).select("id").single();
+
+    if (profileResult.error) {
+      return NextResponse.json({ error: `No se pudo guardar perfil de usuario: ${profileResult.error.message}` }, { status: 400 });
+    }
+
+    await logAuditEvent({
+      action: organizationUserProfileId ? "users.update" : "users.create",
+      entityType: "organization_user_profile",
+      entityId: organizationUserProfileId,
+      organizationId,
+      eventDomain: "employees",
+      outcome: "success",
+      severity: "medium",
+      actorId,
+      metadata: { has_dashboard_access: createMode === "with_account", via: "hr_delegation" },
+    });
+
+    return NextResponse.json({
+      ok: true,
+      mode: organizationUserProfileId ? "edit-user" : "create-user",
+      message: organizationUserProfileId
+        ? "Usuario actualizado correctamente (sin perfil de empleado)"
+        : "Usuario creado correctamente (sin perfil de empleado)",
+    });
+  }
 }
 
 // ─── PATCH (status update) ────────────────────────────────────────────────────
