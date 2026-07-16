@@ -39,14 +39,14 @@ export function renderBrandingHeader(branding?: TenantEmailBranding) {
   if (!branding?.isCustom) {
     return `
       <div style="margin:0 0 10px 0;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;background:#f9fafb;display:inline-block;">
-        <img src="${defaultLogo}" alt="GetBackplate" style="max-height:42px;width:auto;display:block;" />
+        <img src="${escapeHtml(defaultLogo)}" alt="GetBackplate" style="max-height:42px;width:auto;display:block;" />
       </div>
     `;
   }
 
   const logo = branding.logoUrl
-    ? `<img src="${branding.logoUrl}" alt="Logo ${branding.companyName}" style="max-height:42px;width:auto;display:block;" />`
-    : `<p style="margin:0;font-size:12px;font-weight:700;color:#374151;">${branding.companyName}</p>`;
+    ? `<img src="${escapeHtml(branding.logoUrl)}" alt="Logo ${escapeHtml(branding.companyName)}" style="max-height:42px;width:auto;display:block;" />`
+    : `<p style="margin:0;font-size:12px;font-weight:700;color:#374151;">${escapeHtml(branding.companyName)}</p>`;
 
   return `
     <div style="margin:0 0 10px 0;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;background:#f9fafb;display:inline-block;">
@@ -57,6 +57,24 @@ export function renderBrandingHeader(branding?: TenantEmailBranding) {
 
 function resolveBillingBrandName(branding?: TenantEmailBranding) {
   return branding?.isCustom ? branding.companyName : "GetBackplate";
+}
+
+function escapeHtml(value: string | number) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function escapeHttpUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? escapeHtml(url.toString()) : "#";
+  } catch {
+    return "#";
+  }
 }
 
 function renderModuleList(items: string[], emptyLabel: string, accentColor: string, bgColor: string) {
@@ -356,6 +374,101 @@ export function subscriptionActivatedTemplate({ orgName, planName, trialDays, da
         <div style="padding:18px 24px 24px 24px;">
           <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">If you do not recognize this transaction, reply to this email so our support team can assist you immediately.</p>
           <p style="margin:10px 0 0 0;color:#9ca3af;font-size:11px;">${brandName} Billing</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+type SuccessfulPaymentProps = {
+  orgName: string;
+  paymentDate: string;
+  amount: string;
+  invoiceNumber: string;
+  lineItems: Array<{ description: string; amount: string }>;
+  extraR365Connections?: number;
+  invoiceUrl?: string;
+  billingPortalUrl: string;
+  branding?: TenantEmailBranding;
+};
+
+export function successfulPaymentTemplate({
+  orgName,
+  paymentDate,
+  amount,
+  invoiceNumber,
+  lineItems,
+  extraR365Connections,
+  invoiceUrl,
+  billingPortalUrl,
+  branding,
+}: SuccessfulPaymentProps) {
+  const brandName = resolveBillingBrandName(branding);
+  const ctaUrl = invoiceUrl || billingPortalUrl;
+  const ctaHref = escapeHttpUrl(ctaUrl);
+  const ctaLabel = invoiceUrl ? "View invoice in Stripe" : "Manage billing";
+  const itemRows = lineItems.length
+    ? lineItems
+      .map(
+        (item) => `
+          <tr>
+            <td style="padding:10px 0;color:#374151;font-size:13px;line-height:1.45;">${escapeHtml(item.description)}</td>
+            <td style="padding:10px 0;color:#111827;font-size:13px;font-weight:700;text-align:right;white-space:nowrap;">${escapeHtml(item.amount)}</td>
+          </tr>
+        `,
+      )
+      .join("")
+    : `
+      <tr>
+        <td style="padding:10px 0;color:#374151;font-size:13px;">Subscription payment</td>
+        <td style="padding:10px 0;color:#111827;font-size:13px;font-weight:700;text-align:right;">${escapeHtml(amount)}</td>
+      </tr>
+    `;
+  const extraConnectionsHtml = extraR365Connections && extraR365Connections > 0
+    ? `<p style="margin:10px 0 0 0;color:#065f46;font-size:13px;line-height:1.5;"><strong>${escapeHtml(extraR365Connections)}</strong> additional R365 connection${extraR365Connections === 1 ? "" : "s"} added to your subscription.</p>`
+    : "";
+
+  return `
+    <div style="font-family:Inter,Segoe UI,Arial,sans-serif;max-width:680px;margin:0 auto;background:#f5f6f8;padding:24px;">
+      <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.06);">
+        <div style="height:6px;background:#059669;"></div>
+        <div style="padding:24px 24px 8px 24px;">
+          ${renderBrandingHeader(branding)}
+          <p style="margin:0;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#059669;">Payment received</p>
+          <h2 style="margin:10px 0 0 0;font-size:24px;line-height:1.2;color:#111827;">Your payment was successful</h2>
+          <p style="margin:10px 0 0 0;color:#4b5563;font-size:14px;line-height:1.6;">Hello <strong>${escapeHtml(orgName)}</strong>, Stripe has confirmed your payment. Your services remain active.</p>
+        </div>
+        <div style="padding:16px 24px 0 24px;">
+          <div style="border:1px solid #a7f3d0;border-radius:12px;padding:14px 16px;background:#ecfdf5;">
+            <p style="margin:0;color:#065f46;font-size:13px;font-weight:700;">Paid successfully</p>
+            <p style="margin:6px 0 0 0;color:#374151;font-size:13px;">Payment date: ${escapeHtml(paymentDate)}</p>
+          </div>
+        </div>
+        <div style="padding:16px 24px 0 24px;">
+          <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;">
+            <p style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Receipt details</p>
+            <p style="margin:0;color:#374151;font-size:13px;">Invoice / reference: <strong style="color:#111827;">${escapeHtml(invoiceNumber)}</strong></p>
+            ${extraConnectionsHtml}
+          </div>
+        </div>
+        <div style="padding:16px 24px 0 24px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+            <tbody>
+              ${itemRows}
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;padding-top:12px;"></td></tr>
+              <tr>
+                <td style="color:#111827;font-size:14px;font-weight:800;">Total paid</td>
+                <td style="color:#111827;font-size:16px;font-weight:800;text-align:right;">${escapeHtml(amount)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:20px 24px 0 24px;">
+          <a href="${ctaHref}" style="display:inline-block;background:#171311;color:#ffffff;text-decoration:none;padding:11px 18px;border-radius:10px;font-size:13px;font-weight:700;">${ctaLabel}</a>
+        </div>
+        <div style="padding:18px 24px 24px 24px;">
+          <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">Keep this email for your records. For billing questions, please contact your account administrator or reply to this email.</p>
+          <p style="margin:10px 0 0 0;color:#9ca3af;font-size:11px;">${escapeHtml(brandName)} Billing</p>
         </div>
       </div>
     </div>

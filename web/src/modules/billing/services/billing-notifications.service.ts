@@ -5,6 +5,7 @@ import {
   paymentFailedTemplate,
   planChangedTemplate,
   planRenewalReminderTemplate,
+  successfulPaymentTemplate,
   subscriptionActivatedTemplate,
 } from "@/shared/lib/email-templates/billing";
 import { resolveTenantAppUrlByOrganizationId } from "@/shared/lib/custom-domains";
@@ -69,7 +70,7 @@ async function sendBillingEmail(params: {
   subject: string;
   html: string;
   branding: TenantEmailBranding;
-  type: "renewal_reminder" | "plan_changed" | "payment_failed" | "subscription_activated";
+  type: "renewal_reminder" | "plan_changed" | "payment_failed" | "subscription_activated" | "successful_payment";
   actionUrl: string;
 }) {
   const admin = await getOrganizationAdminEmail(params.organizationId);
@@ -218,4 +219,57 @@ export async function sendSubscriptionActivatedEmail(params: {
     },
     { source: "billing", sourceId: "subscription_activated", organizationId: params.organizationId },
   ).catch(() => {});
+}
+
+export async function sendSuccessfulPaymentEmail(params: {
+  organizationId: string;
+  invoiceUrl?: string;
+  invoiceNumber: string;
+  amount: string;
+  paymentDate: string;
+  lineItems: Array<{ description: string; amount: string }>;
+  extraR365Connections?: number;
+  sendPush?: boolean;
+}) {
+  const [orgName, branding, tenantAppUrl] = await Promise.all([
+    getOrganizationName(params.organizationId),
+    getTenantEmailBranding(params.organizationId),
+    resolveTenantAppUrlByOrganizationId({
+      organizationId: params.organizationId,
+      fallbackAppUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://getbackplate.com",
+    }),
+  ]);
+  const billingPortalUrl = `${tenantAppUrl.replace(/\/$/, "")}/app/billing`;
+  const html = successfulPaymentTemplate({
+    orgName,
+    paymentDate: params.paymentDate,
+    amount: params.amount,
+    invoiceNumber: params.invoiceNumber,
+    lineItems: params.lineItems,
+    extraR365Connections: params.extraR365Connections,
+    invoiceUrl: params.invoiceUrl,
+    billingPortalUrl,
+    branding,
+  });
+
+  await sendBillingEmail({
+    organizationId: params.organizationId,
+    subject: `Payment received — ${params.amount}`,
+    html,
+    branding,
+    type: "successful_payment",
+    actionUrl: params.invoiceUrl ?? "/app/billing",
+  });
+
+  if (params.sendPush) {
+    void sendPushToOrg(
+      params.organizationId,
+      {
+        title: "Payment received",
+        body: `Your payment of ${params.amount} was successful.`,
+        url: params.invoiceUrl ?? "/app/billing",
+      },
+      { source: "billing", sourceId: "successful_payment", organizationId: params.organizationId },
+    ).catch(() => {});
+  }
 }

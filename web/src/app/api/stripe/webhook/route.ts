@@ -7,6 +7,7 @@ import { syncOrganizationPlan } from '@/modules/organizations/services/organizat
 import { 
   sendRenewalReminderEmail, 
   sendPaymentFailedEmail,
+  sendSuccessfulPaymentEmail,
   sendSubscriptionActivatedEmail,
 } from '@/modules/billing/services/billing-notifications.service';
 import { sendPlanChangeAppliedEmail } from '@/modules/billing/services/plan-change-notifications.service';
@@ -35,6 +36,10 @@ function extractPreviousPriceId(previousAttributes: Partial<Stripe.Subscription>
   } catch {
     return null;
   }
+}
+
+function getStripeObjectId(value: string | { id: string } | null): string | null {
+  return typeof value === 'string' ? value : value?.id ?? null;
 }
 
 /**
@@ -926,32 +931,85 @@ export async function POST(req: Request) {
       }
 
       // -------------------------------------------------------
-      // TERTIARY HANDLERS: Invoices (Upcoming renewals, Payment Failures)
+      // TERTIARY HANDLERS: Invoices (Receipts, Upcoming renewals, Payment Failures)
       // -------------------------------------------------------
       case 'invoice.paid': {
         const invoice = event.data.object as Stripe.Invoice;
         const { data: purchase } = await supabase
           .from('r365_connection_purchases')
-          .select('id, stripe_subscription_id, extra_price_id, target_quantity')
+          .select('id, stripe_subscription_id, extra_price_id, target_quantity, delta_quantity, status')
           .eq('stripe_invoice_id', invoice.id)
-          .eq('status', 'pending_payment')
           .maybeSingle();
 
+        let appliedR365Purchase = purchase?.status === 'paid_applied';
         if (purchase) {
-          const subscription = await stripe.subscriptions.retrieve(purchase.stripe_subscription_id);
-          const hasPurchasedQuantity = subscription.items.data.some(
-            (item) => item.price.id === purchase.extra_price_id && (item.quantity ?? 0) >= purchase.target_quantity,
-          );
-          if (!hasPurchasedQuantity) {
-            console.info(`[Webhook][r365-extra-connections] Purchase ${purchase.id} is paid but its pending update is not applied yet.`);
-            break;
-          }
+          if (purchase.status === 'pending_payment') {
+            const subscription = await stripe.subscriptions.retrieve(purchase.stripe_subscription_id);
+            const hasPurchasedQuantity = subscription.items.data.some(
+              (item) => item.price.id === purchase.extra_price_id && (item.quantity ?? 0) >= purchase.target_quantity,
+            );
+            if (!hasPurchasedQuantity) {
+              console.info(`[Webhook][r365-extra-connections] Purchase ${purchase.id} is paid but its pending update is not applied yet.`);
+              break;
+            }
 
-          const { error } = await supabase.rpc('apply_r365_connection_purchase', {
-            p_purchase_id: purchase.id,
+            const { error } = await supabase.rpc('apply_r365_connection_purchase', {
+              p_purchase_id: purchase.id,
+            });
+            if (error) throw error;
+            appliedR365Purchase = true;
+            console.info(`[Webhook][r365-extra-connections] Applied purchase ${purchase.id}`);
+          }
+        }
+
+        const isRecurringRenewal = invoice.billing_reason === 'subscription_cycle';
+        if (!isRecurringRenewal && !appliedR365Purchase) break;
+
+        const stripeCustomerId = getStripeObjectId(invoice.customer);
+        if (!stripeCustomerId) {
+          console.error(`[Webhook] No Stripe customer found for paid invoice ${invoice.id}`);
+          break;
+        }
+
+        const { data: customerMapping } = await supabase
+          .from('stripe_customers')
+          .select('organization_id')
+          .eq('stripe_customer_id', stripeCustomerId)
+          .maybeSingle();
+        const organizationId = customerMapping?.organization_id;
+        if (!organizationId) {
+          console.error(`[Webhook] No organizationId for paid invoice ${invoice.id} on customer ${stripeCustomerId}`);
+          break;
+        }
+
+        const currency = invoice.currency.toUpperCase();
+        const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency });
+        const amount = currencyFormatter.format(invoice.amount_paid / 100);
+        const paymentTimestamp = invoice.status_transitions?.paid_at ?? invoice.created;
+        const paymentDate = new Date(paymentTimestamp * 1000).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        });
+
+        try {
+          await sendSuccessfulPaymentEmail({
+            organizationId,
+            invoiceUrl: invoice.hosted_invoice_url ?? undefined,
+            invoiceNumber: invoice.number ?? invoice.id,
+            amount,
+            paymentDate,
+            lineItems: invoice.lines.data.map((line) => ({
+              description: line.description ?? 'Subscription payment',
+              amount: currencyFormatter.format(line.amount / 100),
+            })),
+            extraR365Connections: appliedR365Purchase ? purchase?.delta_quantity ?? undefined : undefined,
+            sendPush: true,
           });
-          if (error) throw error;
-          console.info(`[Webhook][r365-extra-connections] Applied purchase ${purchase.id}`);
+          console.info(`[Webhook] Sent payment receipt for paid invoice ${invoice.id} org ${organizationId}`);
+        } catch (emailError) {
+          // A notification issue must not cause Stripe to retry an already-applied payment.
+          console.error(`[Webhook] Failed to send payment receipt for invoice ${invoice.id}:`, emailError);
         }
         break;
       }
