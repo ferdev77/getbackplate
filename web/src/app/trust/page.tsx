@@ -224,10 +224,10 @@ export default function TrustCenterPage() {
                   <div className="status-cell-name">Data residency</div>
                   <span className="pill pill-active">US-based</span>
                 </div>
-                <div className="status-cell-value">No international transfer</div>
+                <div className="status-cell-value">United States infrastructure</div>
                 <div className="status-cell-detail">
-                  Database and application infrastructure hosted in the United States. Payments
-                  processed by Stripe (US).
+                  Application functions run primarily in Vercel&apos;s Washington, D.C. region
+                  (iad1); the database is hosted in AWS us-west-2.
                 </div>
               </div>
 
@@ -352,16 +352,16 @@ export default function TrustCenterPage() {
               <div className="section-content">
                 <p>
                   Customer data is processed and stored on infrastructure located in the United
-                  States. We do not transfer data internationally. Our platform runs on providers
-                  that are themselves independently audited.
+                  States. Application functions are configured to run primarily in Vercel&apos;s
+                  Washington, D.C. region (iad1), while the database runs on AWS us-west-2.
                 </p>
 
                 <table className="spec-table">
                   <tbody>
-                    <tr><th>Compute</th><td>Vercel — serverless functions and scheduled cron jobs</td></tr>
+                    <tr><th>Compute</th><td>Vercel Functions — Washington, D.C., USA (iad1), configured as the primary function region</td></tr>
                     <tr><th>Database</th><td>Supabase-managed PostgreSQL, hosted on AWS (us-west-2)</td></tr>
                     <tr><th>Outbound delivery</th><td>FTPS to a Restaurant365 endpoint, configurable per customer connection</td></tr>
-                    <tr><th>Data residency</th><td>United States only — no international data transfer</td></tr>
+                    <tr><th>Data residency</th><td>Application compute and database infrastructure are located in the United States</td></tr>
                     <tr><th>Underlying provider</th><td>Amazon Web Services (AWS) — independently certified SOC 2 Type 2, ISO 27001, PCI DSS Level 1</td></tr>
                   </tbody>
                 </table>
