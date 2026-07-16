@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
+import { createLead } from "@/modules/leads/leads.service";
 
 function getLogoUrl() {
   const base = (process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://getbackplate.com").replace(/\/$/, "");
@@ -104,6 +105,25 @@ export async function POST(req: NextRequest) {
 
   if (!name || !email || !restaurant || !state || !locations || !toEmail) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
+
+  try {
+    await createLead({
+      source: "seat_request",
+      contactName: name,
+      contactEmail: email,
+      contactPhone: phone ?? null,
+      companyName: restaurant,
+      metadata: {
+        planName: planName ?? "GetBackplate",
+        state,
+        locations,
+        source: source ?? "Platform",
+      },
+    });
+  } catch (error) {
+    console.error("Failed to persist seat request lead", error);
+    return NextResponse.json({ error: "Unable to submit seat request" }, { status: 500 });
   }
 
   const result = await sendTransactionalEmail({

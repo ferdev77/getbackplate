@@ -15,6 +15,7 @@ const ITEMS = [
   { href: "/superadmin/organizations", label: "Organizaciones" },
   { href: "/superadmin/notifications", label: "Notificaciones" },
   { href: "/superadmin/feedback", label: "Feedback" },
+  { href: "/superadmin/leads", label: "Leads" },
   { href: "/superadmin/modules", label: "Módulos" },
   { href: "/superadmin/plans", label: "Planes" },
   { href: "/superadmin/payment-links", label: "Links de Pago" },

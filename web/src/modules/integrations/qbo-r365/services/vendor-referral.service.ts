@@ -1,5 +1,6 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
+import { createLead } from "@/modules/leads/leads.service";
 
 export type VendorReferralInput = {
   organizationId: string;
@@ -252,7 +253,7 @@ ${appBase}/integrations/qbo-r365`;
     },
   });
 
-  await admin.from("qbo_public_vendor_referrals").insert({
+  const { data: referral } = await admin.from("qbo_public_vendor_referrals").insert({
     referrer_name: input.referrerName,
     referrer_email: input.referrerEmail,
     vendor_company: input.vendorCompany,
@@ -261,7 +262,22 @@ ${appBase}/integrations/qbo-r365`;
     visitor_ip: input.visitorIp ?? null,
     user_agent: input.userAgent ?? null,
     outreach_sent_at: new Date().toISOString(),
-  });
+  }).select("id").single();
+
+  if (referral) {
+    try {
+      await createLead({
+        source: "public_referral",
+        sourceRecordId: referral.id,
+        contactName: input.vendorContactName,
+        contactEmail: input.vendorEmail,
+        companyName: input.vendorCompany,
+        metadata: { referrerName: input.referrerName, referrerEmail: input.referrerEmail },
+      });
+    } catch (error) {
+      console.error("Failed to persist public referral lead", error);
+    }
+  }
 
   // Internal delivery failures must not affect the vendor outreach already sent.
   try {
@@ -311,7 +327,7 @@ ${appBase}/integrations/qbo-r365`;
     },
   });
 
-  await admin.from("qbo_vendor_referrals").insert({
+  const { data: referral } = await admin.from("qbo_vendor_referrals").insert({
     organization_id: input.organizationId,
     sync_config_customer_id: input.syncConfigCustomerId,
     referrer_branch_name: input.referrerBranchName,
@@ -320,7 +336,27 @@ ${appBase}/integrations/qbo-r365`;
     vendor_email: input.vendorEmail,
     vendor_phone: input.vendorPhone,
     outreach_sent_at: new Date().toISOString(),
-  });
+  }).select("id").single();
+
+  if (referral) {
+    try {
+      await createLead({
+        source: "private_referral",
+        sourceRecordId: referral.id,
+        contactName: input.vendorContactName,
+        contactEmail: input.vendorEmail,
+        contactPhone: input.vendorPhone,
+        companyName: input.vendorCompany,
+        metadata: {
+          organizationId: input.organizationId,
+          syncConfigCustomerId: input.syncConfigCustomerId,
+          referrerBranchName: input.referrerBranchName,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to persist private referral lead", error);
+    }
+  }
 
   try {
     await sendPublicReferralOwnerNotification({
