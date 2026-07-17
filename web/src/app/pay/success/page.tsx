@@ -1,6 +1,6 @@
 import { CheckCircle2 } from "lucide-react";
 
-export const metadata = { title: "Pago confirmado — GetBackplate" };
+export const metadata = { title: "Payment confirmed | GetBackplate" };
 
 export default function PaySuccessPage() {
   return (
@@ -9,11 +9,11 @@ export default function PaySuccessPage() {
         <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
           <CheckCircle2 className="h-8 w-8 text-emerald-500" />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900">Pago confirmado</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Payment confirmed</h1>
         <p className="mt-3 text-sm text-gray-500">
-          Tu pago fue procesado correctamente.
+          Your payment was processed successfully.
         </p>
-        <p className="mt-6 text-xs text-gray-400">Podés cerrar esta pestaña.</p>
+        <p className="mt-6 text-xs text-gray-400">You can safely close this tab.</p>
       </div>
     </div>
   );
