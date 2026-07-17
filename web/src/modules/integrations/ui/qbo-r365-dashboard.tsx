@@ -1487,7 +1487,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
             )}
           </article>
         ))}
-        <article className="rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-5 py-4 transition hover:shadow-[var(--gbp-shadow-md)]">
+        <article className="flex flex-col rounded-[14px] border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-5 py-4 transition hover:shadow-[var(--gbp-shadow-md)]">
           <div className="flex items-center gap-2">
             <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${connDot(conns.qbo.status)}`} />
             <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">QuickBooks® Online</p>
@@ -1500,7 +1500,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
               type="button"
               disabled={oauthDisconnecting}
               onClick={() => setShowDisconnectConfirmation(true)}
-              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-1.5 text-[11px] font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-50 disabled:opacity-50"
+              className="mt-auto inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-1.5 text-[11px] font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-50 disabled:opacity-50"
             >
               <X className="h-3.5 w-3.5" /> {oauthDisconnecting ? t("Desconectando...") : "Disconnect from QuickBooks"}
             </button>
@@ -1508,7 +1508,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
             <ConnectToQuickBooksButton
               disabled={oauthConnecting}
               onClick={handleConnectQbo}
-              className="mt-3"
+              className="mt-auto"
             />
           )}
         </article>
