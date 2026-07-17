@@ -282,23 +282,23 @@ function presentIntegrationError(
   }
 
   if (context === "sync") {
-    toast.error(t("No se pudo ejecutar la sincronizacion"), { description: errorMessage });
+    toast.error(t("No se pudo ejecutar la sincronizacion"), { description: t(errorMessage) });
     return;
   }
   if (context === "oauth") {
-    toast.error(t("No se pudo iniciar QuickBooks OAuth"), { description: errorMessage });
+    toast.error(t("No se pudo iniciar QuickBooks OAuth"), { description: t(errorMessage) });
     return;
   }
   if (context === "prepare") {
-    toast.error(t("No se pudo preparar el lote"), { description: errorMessage });
+    toast.error(t("No se pudo preparar el lote"), { description: t(errorMessage) });
     return;
   }
   if (context === "preview") {
-    toast.error(t("No se pudo cargar la vista previa"), { description: errorMessage });
+    toast.error(t("No se pudo cargar la vista previa"), { description: t(errorMessage) });
     return;
   }
 
-  toast.error(t("No se pudo enviar a R365"), { description: errorMessage });
+  toast.error(t("No se pudo enviar a R365"), { description: t(errorMessage) });
 }
 
 export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, showDeveloperMode = false, className, orgName, orgLogoUrl, maxR365Connections, showOnboarding: initialShowOnboarding = false, vendorProfile = null, planName = "QuickBooks® Online" }: Props) {
@@ -1351,7 +1351,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
           [t("Estado QuickBooks"), inv.qboStatusRaw ?? inv.qboPaymentStatus ?? ""].map(esc).join(","),
           ["", ""].join(","),
         ];
-        const header = [t("Cant."), "SKU", "Item", t("Descripcion"), t("Precio"), t("Importe"), t("Impuesto"), t("Total"), "ID.QuickBooks"].map(esc).join(",");
+        const header = [t("Cant."), "SKU", "Item", t("Descripcion"), t("Precio"), t("Importe"), t("Impuesto"), t("Total"), "ID.QuickBooks® Online"].map(esc).join(",");
         const rows = inv.lines.map((l) => {
           const shortName = l.itemName ? l.itemName.split(":").pop()!.trim() : (l.targetCode ?? "");
           return [l.quantity, l.sku ?? "", shortName, l.description, l.unitPrice?.toFixed(2), l.lineAmount?.toFixed(2), l.taxAmount?.toFixed(2), l.totalAmount?.toFixed(2), l.targetCode].map(esc).join(",");

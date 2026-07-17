@@ -776,6 +776,9 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
               <span>© 2026 Backplate Technologies LLC. All rights reserved.</span>
               <span>hello@getbackplate.com</span>
             </div>
+            <p style={{ marginTop: 16, fontSize: 11, color: "#6B717C", textAlign: "center" }}>
+              Intuit and QuickBooks® Online are registered trademarks of Intuit Inc. Used with permission.
+            </p>
           </div>
         </footer>
       </div>

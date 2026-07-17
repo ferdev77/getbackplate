@@ -2010,7 +2010,7 @@ export function CompanyShell({
                             </label>
                           )}
                           {plan.isEnterprise ? (
-                            <a href={`mailto:${plan.ctaEmail ?? "angelo@mkthelp.com"}?subject=QuickBooks R365 - ${plan.name} Plan`} className={`mt-auto block w-full rounded-lg px-3 py-2 text-center text-[11px] font-bold transition ${isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]"}`}>
+                            <a href={`mailto:${plan.ctaEmail ?? "angelo@mkthelp.com"}?subject=QuickBooks%C2%AE Online R365 - ${plan.name} Plan`} className={`mt-auto block w-full rounded-lg px-3 py-2 text-center text-[11px] font-bold transition ${isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]"}`}>
                               {t("Contactar ventas →")}
                             </a>
                           ) : (
@@ -2754,7 +2754,7 @@ export function CompanyShell({
                     )}
                     {plan.isEnterprise ? (
                       <a
-                        href={`mailto:${plan.ctaEmail ?? "angelo@mkthelp.com"}?subject=QuickBooks R365 - ${plan.name} Plan`}
+                        href={`mailto:${plan.ctaEmail ?? "angelo@mkthelp.com"}?subject=QuickBooks%C2%AE Online R365 - ${plan.name} Plan`}
                         className={`block w-full rounded-lg px-3 py-2 text-center text-[11px] font-bold transition ${
                           isDarkTheme
                             ? "border border-white/20 bg-white/5 text-white hover:bg-white/10"
