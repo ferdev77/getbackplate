@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { CheckCircle2, ChevronRight, Loader2, Link2, Zap, ArrowRight, X, Layers } from "lucide-react";
 import { toast } from "sonner";
 import { createTranslator } from "@/modules/integrations/ui/qbo-r365.i18n";
+import { ConnectToQuickBooksButton } from "@/shared/ui/connect-to-quickbooks-button";
 
 type VendorProfile = {
   company: string;
@@ -178,14 +179,11 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
                   {qboConnected && <CheckCircle2 className="h-5 w-5 text-emerald-500" />}
                 </div>
                 {!qboConnected && (
-                  <button
-                    type="button"
+                  <ConnectToQuickBooksButton
                     onClick={() => void connectQbo()}
                     disabled={oauthLoading}
-                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#2CA01C] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#23830f] disabled:opacity-60"
-                  >
-                    {oauthLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> {t("Conectando...")}</> : <><Link2 className="h-4 w-4" /> {t("Conectar QuickBooks")}</>}
-                  </button>
+                    className="mt-4"
+                  />
                 )}
               </div>
               {qboConnected && (

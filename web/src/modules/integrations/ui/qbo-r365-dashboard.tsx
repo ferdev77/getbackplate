@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link2, Search, X, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Plus, Minus, Play, Trash2, Eye, Pencil, ChevronDown, ChevronUp, ChevronsUpDown, Server, Layers } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { EmptyState } from "@/shared/ui/empty-state";
+import { ConnectToQuickBooksButton } from "@/shared/ui/connect-to-quickbooks-button";
 import { saveIntegrationConfigAction } from "@/modules/integrations/qbo-r365/actions";
 import { resolveHistoryCustomerName } from "@/modules/integrations/qbo-r365/lib/resolve-customer-name";
 import { toast } from "sonner";
@@ -1567,17 +1568,14 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
               onClick={() => setShowDisconnectConfirmation(true)}
               className="mt-3 inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-1.5 text-[11px] font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-50 disabled:opacity-50"
             >
-              <X className="h-3.5 w-3.5" /> {oauthDisconnecting ? t("Desconectando...") : t("Desconectar QuickBooks")}
+              <X className="h-3.5 w-3.5" /> {oauthDisconnecting ? t("Desconectando...") : "Disconnect from QuickBooks"}
             </button>
           ) : (
-            <button
-              type="button"
+            <ConnectToQuickBooksButton
               disabled={oauthConnecting}
               onClick={handleConnectQbo}
-              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-1.5 text-[11px] font-semibold text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)] disabled:opacity-50"
-            >
-              <Link2 className="h-3.5 w-3.5" /> {oauthConnecting ? t("Conectando...") : t("Conectar QuickBooks")}
-            </button>
+              className="mt-3"
+            />
           )}
         </article>
       </section>
