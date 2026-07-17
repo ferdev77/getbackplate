@@ -18,7 +18,7 @@ import { DocumentPreviewPanel } from "@/modules/documents/ui/document-preview-pa
 import { getSystemFolderType } from "@/shared/lib/employee-documents-folders-contract";
 import { FilterBar } from "@/shared/ui/filter-bar";
 import { useDndSafetyNet, markDndActive, markDndInactive } from "@/modules/documents/hooks/use-dnd-safety-net";
-import { formatDate, formatSize, isPreviewableMime, normalizeSearchText, parseScope, hasAnyScopeValue } from "@/modules/documents/lib/documents-tree-utils";
+import { formatDate, isPreviewableMime, normalizeSearchText, parseScope, hasAnyScopeValue } from "@/modules/documents/lib/documents-tree-utils";
 
 type FolderRow = {
   id: string;
@@ -138,7 +138,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
   }
 
   // ── DnD Safety Net (see DOCS/DND_SAFETY_NET.md) ──
-  const { guardedRefresh, resetOnPropsSync } = useDndSafetyNet({
+  const { guardedRefresh } = useDndSafetyNet({
     resetDndState,
     isDragActive: () => Boolean(draggedDocumentId || draggedFolderId || dragMetaRef.current.kind),
     onDeferredRefresh: () => router.refresh(),
@@ -250,46 +250,6 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
     }
     return ids;
   }, [getEffectiveDocumentScope]);
-
-  const isDocumentInsideFolder = useCallback((doc: DocumentRow, targetFolderId: string) => {
-    let currentFolderId = doc.folder_id;
-    while (currentFolderId) {
-      if (currentFolderId === targetFolderId) {
-        return true;
-      }
-      currentFolderId = folderById.get(currentFolderId)?.parent_id ?? null;
-    }
-    return false;
-  }, [folderById]);
-
-  const isFolderInsideFolder = useCallback((folder: FolderRow, targetFolderId: string) => {
-    let currentFolderId: string | null = folder.id;
-    while (currentFolderId) {
-      if (currentFolderId === targetFolderId) {
-        return true;
-      }
-      currentFolderId = folderById.get(currentFolderId)?.parent_id ?? null;
-    }
-    return folderById;
-  }, [folderById]);
-
-  const contextualFolderId = useMemo(() => {
-    if (viewMode === "columns") {
-      return columnPath[columnPath.length - 1] ?? null;
-    }
-    if (selectedTreeFolderId !== ROOT_TREE_CONTEXT) return selectedTreeFolderId;
-    return folderFilter || null;
-  }, [columnPath, folderFilter, selectedTreeFolderId, viewMode]);
-
-  const locationDocumentsSource = useMemo(() => {
-    if (!contextualFolderId) return documentRows;
-    return documentRows.filter((doc) => isDocumentInsideFolder(doc, contextualFolderId));
-  }, [contextualFolderId, documentRows, isDocumentInsideFolder]);
-
-  const locationFoldersSource = useMemo(() => {
-    if (!contextualFolderId) return folderRows;
-    return folderRows.filter((folder) => isFolderInsideFolder(folder, contextualFolderId));
-  }, [contextualFolderId, folderRows, isFolderInsideFolder]);
 
   const locationFilterOptions = useMemo(() => {
     const ids = new Set<string>();

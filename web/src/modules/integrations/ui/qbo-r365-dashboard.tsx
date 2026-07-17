@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link2, Search, X, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Plus, Minus, Play, Trash2, Eye, Pencil, ChevronDown, ChevronUp, ChevronsUpDown, Server, Layers } from "lucide-react";
+import { Link2, Search, X, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Plus, Minus, Play, Trash2, Eye, Pencil, ChevronDown, ChevronUp, ChevronsUpDown, Layers } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ConnectToQuickBooksButton } from "@/shared/ui/connect-to-quickbooks-button";
-import { saveIntegrationConfigAction } from "@/modules/integrations/qbo-r365/actions";
 import { resolveHistoryCustomerName } from "@/modules/integrations/qbo-r365/lib/resolve-customer-name";
 import { toast } from "sonner";
 import { QboR365Onboarding } from "@/modules/integrations/ui/qbo-r365-onboarding";
@@ -93,15 +92,6 @@ type InvoiceDetailData = {
   subtotal: number;
   totalTax: number;
   grandTotal: number;
-};
-type ConfigSnapshot = {
-  settings?: {
-    template?: "by_item";
-    incrementalLookbackHours?: number;
-  };
-  qbo?: {
-    useSandbox?: boolean;
-  };
 };
 type SyncConfigSummary = {
   id: string;
@@ -311,24 +301,6 @@ function presentIntegrationError(
   toast.error(t("No se pudo enviar a R365"), { description: errorMessage });
 }
 
-type TemplateCol = { col: string; r365Name: string; qboSource: string; scope: "header" | "detail"; highlight?: boolean; note?: boolean };
-const TEMPLATE_COLS: Record<"by_item", TemplateCol[]> = {
-  by_item: [
-    { col: "A", r365Name: "Vendor", qboSource: "CustomerRef.name (nombre del proveedor configurado en el sync)", scope: "header" },
-    { col: "B", r365Name: "Location", qboSource: "Customer.AcctNum en QuickBooks — el campo «Account No.» del cliente, que contiene el código de ubicación en R365. Se cachea en el sync config.", scope: "header", highlight: true },
-    { col: "C", r365Name: "Document Number", qboSource: "DocNumber", scope: "header" },
-    { col: "D", r365Name: "Date", qboSource: "TxnDate", scope: "header" },
-    { col: "E", r365Name: "Vendor Item Number", qboSource: "ItemRef.Value → buscado en tabla de SKUs; fallback: ItemRef.Name si no hay mapeo", scope: "detail", highlight: true },
-    { col: "F", r365Name: "Vendor Item Name", qboSource: "ItemRef.Name — solo la parte final (después del último «:» si hay categorías)", scope: "detail" },
-    { col: "G", r365Name: "UofM", qboSource: "Line.Description de la línea (o «EACH» cuando es la fila de impuesto)", scope: "detail" },
-    { col: "H", r365Name: "Qty", qboSource: "SalesItemLineDetail.Qty", scope: "detail" },
-    { col: "I", r365Name: "Unit Price", qboSource: "SalesItemLineDetail.UnitPrice", scope: "detail" },
-    { col: "J", r365Name: "Total", qboSource: "Line.Amount", scope: "detail" },
-    { col: "K", r365Name: "Break Flag", qboSource: "Siempre vacío", scope: "detail" },
-    { col: "★", r365Name: "Fila impuesto (si TxnTaxDetail.TotalTax > 0)", qboSource: "Item 999999 · Vendor Item Name «Tax» · UofM «EACH» · Qty 1 · Unit Price = TxnTaxDetail.TotalTax", scope: "detail", note: true },
-  ],
-};
-
 export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, showDeveloperMode = false, className, orgName, orgLogoUrl, maxR365Connections, showOnboarding: initialShowOnboarding = false, vendorProfile = null, planName = "QuickBooks® Online" }: Props) {
   const t = useMemo(() => createTranslator(locale), [locale]);
   const [onboardingVisible, setOnboardingVisible] = useState(initialShowOnboarding);
@@ -344,15 +316,11 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
   const [oauthDisconnecting, setOauthDisconnecting] = useState(false);
   const [showDisconnectConfirmation, setShowDisconnectConfirmation] = useState(false);
   const [mode, setMode] = useState<"operation" | "developer">("operation");
-  const [sendingInvoice, setSendingInvoice] = useState(false);
   const [sendingUnifiedInvoice, setSendingUnifiedInvoice] = useState(false);
   const [mappingUnifiedInvoice, setMappingUnifiedInvoice] = useState(false);
-  const [invoiceDetailRefreshKey, setInvoiceDetailRefreshKey] = useState(0);
-  const [showMappingPreview, setShowMappingPreview] = useState(false);
+  const [invoiceDetailRefreshKey] = useState(0);
   const [csvPreview, setCsvPreview] = useState<{ headers: string[]; rows: string[][]; rowCount: number } | null>(null);
   const [previewingCsv, setPreviewingCsv] = useState(false);
-  const [isSavingSandbox, setIsSavingSandbox] = useState(false);
-  const [configUseSandbox, setConfigUseSandbox] = useState<boolean>(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unifiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [unifiedHistoryKey, setUnifiedHistoryKey] = useState(0);
@@ -516,20 +484,6 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
     const timer = setInterval(() => { if (document.visibilityState === "visible") setRefreshKey((p) => p + 1); }, 15000);
     return () => clearInterval(timer);
   }, []);
-
-  useEffect(() => {
-    if (mode !== "developer") return;
-    const ctrl = new AbortController();
-    void fetch("/api/company/integrations/qbo-r365/config", { cache: "no-store", signal: ctrl.signal })
-      .then((r) => r.json())
-      .then((d) => {
-        if (ctrl.signal.aborted) return;
-        const snap = d as ConfigSnapshot;
-        setConfigUseSandbox(snap.qbo?.useSandbox ?? false);
-      })
-      .catch(() => {});
-    return () => ctrl.abort();
-  }, [mode]);
 
   useEffect(() => {
     setUnifiedPage(1);
@@ -947,25 +901,6 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
     setTimeout(() => invoiceHistorySectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
   }
 
-  async function handleSandboxToggle(checked: boolean) {
-    setConfigUseSandbox(checked);
-    setIsSavingSandbox(true);
-    try {
-      const fd = new FormData();
-      fd.append("__sandboxVisible", "1");
-      if (checked) fd.append("useSandboxQbo", "true");
-      const res = await saveIntegrationConfigAction(fd);
-      if (res.status !== "success") {
-        toast.error(t("No se pudo guardar"), { description: res.message });
-      } else {
-        toast.success(t("Modo QuickBooks actualizado"), { description: res.message });
-      }
-    } catch {
-      toast.error(t("No se pudo guardar el modo sandbox"));
-    }
-    setIsSavingSandbox(false);
-  }
-
   const filteredRuns = useMemo(() => {
     if (!data?.runs) return [];
     const q = query.trim().toLowerCase();
@@ -1013,7 +948,6 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
 
   useEffect(() => {
     if (!selectedInvoiceId) return;
-    setShowMappingPreview(false);
     setCsvPreview(null);
     setPreviewingCsv(false);
   }, [selectedInvoiceId]);

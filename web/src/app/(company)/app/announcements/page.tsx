@@ -50,7 +50,6 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
     departmentNameMap,
     positionNameMap,
     authorNameMap,
-    employeeNameByUserId,
     adminUserIds,
     scopeUsers,
     publisherName,

@@ -9,7 +9,7 @@ import {
   type TenantEmailBranding,
 } from "@/shared/lib/email-branding";
 import { resolveAudienceContacts } from "@/shared/lib/audience-resolver";
-import { AnnouncementScope, parseAnnouncementScope } from "../lib/scope";
+import { parseAnnouncementScope } from "../lib/scope";
 
 type DeliveryRow = {
   id: string;

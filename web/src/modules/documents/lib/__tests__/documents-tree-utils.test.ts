@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatDate, formatSize, isPreviewableMime, normalizeSearchText, parseScope, hasAnyScopeValue } from "../documents-tree-utils";
+import { formatSize, isPreviewableMime, normalizeSearchText, parseScope, hasAnyScopeValue } from "../documents-tree-utils";
 
 describe("formatSize", () => {
   it("returns dash for null", () => {

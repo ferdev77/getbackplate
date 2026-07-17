@@ -127,8 +127,6 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
     invoiceLines,
     vendorCompany,
     vendorLogoUrl,
-    vendorPhone,
-    vendorEmail,
     showReferralCta,
     referralUrl,
     platformUrl,

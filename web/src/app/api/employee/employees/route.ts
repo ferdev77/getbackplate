@@ -448,7 +448,6 @@ export async function POST(request: Request) {
   let linkedUserId: string | null = null;
   let createdAuthUserId: string | null = null;
   let createdMembershipForLinkedUser = false;
-  const resolvedEmployeeId: string | null = employeeId;
 
   // ── Employee profile flow ──
   if (isEmployeeProfile) {

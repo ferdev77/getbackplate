@@ -141,12 +141,18 @@ function ItemsBreakdown({ items, currency }: { items: StoredItem[]; currency: st
 }
 
 function CountdownTimer({ expiresAt }: { expiresAt: string }) {
-  const getSecondsLeft = () => Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000));
-  const [secs, setSecs] = useState(getSecondsLeft);
+  const [secs, setSecs] = useState(() => Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000)));
 
   useEffect(() => {
-    if (secs <= 0) return;
-    const id = setInterval(() => setSecs(getSecondsLeft()), 1000);
+    const updateSecondsLeft = () => {
+      const next = Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000));
+      setSecs(next);
+      return next;
+    };
+    if (updateSecondsLeft() <= 0) return;
+    const id = setInterval(() => {
+      if (updateSecondsLeft() <= 0) clearInterval(id);
+    }, 1000);
     return () => clearInterval(id);
   }, [expiresAt]);
 

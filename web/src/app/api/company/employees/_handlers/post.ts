@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
@@ -34,8 +33,6 @@ import {
   BUCKET_NAME,
   MAX_FILE_SIZE_BYTES,
   ASYNC_POST_PROCESS_THRESHOLD_BYTES,
-  EMPLOYEE_DOCUMENT_SLOT_RULES,
-  resolveDocumentSlotFromTitle,
   emailSchema,
   dateOnlySchema,
   DOCUMENT_SLOT_LABELS,
@@ -1458,4 +1455,3 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true, employeeId: employee.id });
 }
-

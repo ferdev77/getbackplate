@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ChevronRight, Folder, GripVertical, UploadCloud, FolderPlus } from "lucide-react";
+import { ChevronRight, Folder, GripVertical, UploadCloud, FolderPlus } from "lucide-react";
 // AnimatePresence removed — it interferes with HTML5 DnD by controlling DOM mounting
 
 import { EmptyState } from "@/shared/ui/empty-state";
@@ -84,13 +84,6 @@ type Props = {
   allowedLocationIds?: string[];
 };
 
-function formatSize(bytes: number | null) {
-  if (!bytes) return "-";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 function isPreviewableMime(mimeType: string | null) {
   if (!mimeType) return false;
   return mimeType.startsWith("image/") || mimeType === "application/pdf" || mimeType.startsWith("text/");
@@ -122,7 +115,7 @@ export function EmployeeDocumentsTree({
   const [folderFilter, setFolderFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
-  const [sortBy, setSortBy] = useState("date-desc");
+  const [sortBy] = useState("date-desc");
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set());
   const [selectedColumnDocId, setSelectedColumnDocId] = useState<string | null>(null);
   const [columnPath, setColumnPath] = useState<string[]>([]);
@@ -186,7 +179,7 @@ export function EmployeeDocumentsTree({
   }
 
   // ── DnD Safety Net (see DOCS/DND_SAFETY_NET.md) ──
-  const { resetOnPropsSync } = useDndSafetyNet({
+  useDndSafetyNet({
     resetDndState,
     isDragActive: () => Boolean(draggedDocumentId || draggedFolderId || dragMetaRef.current.kind),
     onDeferredRefresh: () => router.refresh(),
@@ -367,7 +360,7 @@ export function EmployeeDocumentsTree({
       }
     }
     return ids;
-  }, [documentsState, folderParentById, getEffectiveDocumentScope, ownedFolderIds, ownershipView, viewerUserId]);
+  }, [documentsState, folderParentById, ownedFolderIds, ownershipView, viewerUserId]);
 
   const orderedFolderRows = useMemo(
     () => [...folderRows].sort((a, b) => a.name.localeCompare(b.name, "es")),
@@ -588,7 +581,6 @@ export function EmployeeDocumentsTree({
                         isOwner={isOwner(doc)}
                         onEdit={() => setEditingDocument(doc)}
                         onDelete={() => setDeleteDocument(doc)}
-                        labelMode="responsive"
                       />
                     </div>
                   ))}
@@ -965,7 +957,6 @@ export function EmployeeDocumentsTree({
                                   isOwner={isOwner(doc)}
                                   onEdit={() => setEditingDocument(doc)}
                                   onDelete={() => setDeleteDocument(doc)}
-                                  labelMode="responsive"
                                 />
                               </div>
                             </div>
@@ -1212,7 +1203,6 @@ export function EmployeeDocumentsTree({
                               isOwner={isOwner(selectedColumnDocument)}
                               onEdit={() => setEditingDocument(selectedColumnDocument)}
                               onDelete={() => setDeleteDocument(selectedColumnDocument)}
-                              labelMode="full"
                             />
                             <DocumentPreviewPanel
                               document={selectedColumnDocument}

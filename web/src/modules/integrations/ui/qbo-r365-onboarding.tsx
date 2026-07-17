@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CheckCircle2, ChevronRight, Loader2, Link2, Zap, ArrowRight, X, Layers } from "lucide-react";
+import { CheckCircle2, ChevronRight, Loader2, Link2, ArrowRight, X, Layers } from "lucide-react";
 import { toast } from "sonner";
 import { createTranslator } from "@/modules/integrations/ui/qbo-r365.i18n";
 import { ConnectToQuickBooksButton } from "@/shared/ui/connect-to-quickbooks-button";

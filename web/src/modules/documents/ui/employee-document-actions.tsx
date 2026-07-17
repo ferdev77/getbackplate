@@ -11,7 +11,6 @@ type Props = {
   isOwner: boolean;
   onEdit: () => void;
   onDelete: () => void;
-  labelMode?: "responsive" | "full";
 };
 
 export function EmployeeDocumentActions({
@@ -21,7 +20,6 @@ export function EmployeeDocumentActions({
   isOwner,
   onEdit,
   onDelete,
-  labelMode = "responsive",
 }: Props) {
 
 

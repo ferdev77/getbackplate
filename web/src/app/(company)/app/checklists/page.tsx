@@ -1,12 +1,10 @@
 import Link from "next/link";
 import { ClipboardPlus } from "lucide-react";
-import { EmptyState } from "@/shared/ui/empty-state";
 import { ChecklistsListWorkspace } from "@/modules/checklists/ui/checklists-list-workspace";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { ChecklistCreateTrigger } from "@/modules/checklists/ui/checklist-create-trigger";
-import { ChecklistEditTrigger } from "@/modules/checklists/ui/checklist-edit-trigger";
 import { ChecklistUpsertModal } from "@/modules/checklists/ui/checklist-upsert-modal";
 import { ChecklistDeleteModal } from "@/modules/checklists/ui/checklist-delete-modal";
 import { EmployeeChecklistRealtimeRefresh } from "@/modules/checklists/ui/employee-checklist-realtime-refresh";
@@ -38,10 +36,6 @@ const TEXT_STRONG = "text-[var(--gbp-text)]";
 const TEXT_MUTED = "text-[var(--gbp-text2)]";
 const CARD = "border-[var(--gbp-border)] bg-[var(--gbp-surface)]";
 const CARD_SOFT = "border-[var(--gbp-border)] bg-[var(--gbp-bg)]";
-const BTN_GHOST = "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
-const ACTION_BTN_NEUTRAL = `group/tooltip relative inline-flex h-7 w-7 items-center justify-center rounded-md border ${BTN_GHOST}`;
-const ACTION_BTN_PREVIEW = "group/tooltip relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] text-[var(--gbp-success)] hover:bg-[color:color-mix(in_oklab,var(--gbp-success)_18%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-success)_45%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-success-soft)] [.theme-dark-pro_&]:text-[var(--gbp-success)]";
-const ACTION_BTN_DANGER = "group/tooltip relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-[color:color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] text-[var(--gbp-error)] hover:bg-[color:color-mix(in_oklab,var(--gbp-error)_16%,transparent)] [.theme-dark-pro_&]:border-[color:color-mix(in_oklab,var(--gbp-error)_45%,transparent)] [.theme-dark-pro_&]:bg-[var(--gbp-error-soft)] [.theme-dark-pro_&]:text-[var(--gbp-error)]";
 
 function firstParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) return value[0] ?? "";
@@ -326,13 +320,6 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
       branchName: template.branch_id ? branchNameMap.get(template.branch_id) ?? "Locación" : "Global",
       created_by_name: template.created_by ? checklistAuthorNameMap.get(template.created_by) ?? "Usuario" : "Sin autor",
     };
-  });
-
-  const filteredTemplates = templateRows.filter((row) => {
-    const byQ = !q || row.name.toLowerCase().includes(q);
-    const byType = !typeFilter || row.checklist_type === typeFilter;
-    const byLoc = !locFilter || row.branch_id === locFilter;
-    return byQ && byType && byLoc;
   });
 
   const editingTemplate = action === "edit" ? templateRows.find((row) => row.id === templateId) ?? null : null;
