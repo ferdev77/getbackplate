@@ -2,7 +2,7 @@
 
 Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 
-> **Última actualización:** 2026-07-17 (161 migraciones en `supabase/migrations/`; la fila 114 también conserva una copia en `web/supabase/migrations/`) — migración 161 aplicada en DEV y PROD el 2026-07-17
+> **Última actualización:** 2026-07-17 (162 migraciones en `supabase/migrations/`; la fila 114 también conserva una copia en `web/supabase/migrations/`) — migración 162 aplicada en DEV y PROD el 2026-07-17
 
 ## Todas las migraciones (orden cronológico)
 
@@ -169,6 +169,7 @@ Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 | 159 | `20260716000001_superadmin_leads.sql` | Bandeja centralizada de leads para solicitudes y referidos en superadmin |
 | 160 | `20260716000002_r365_connection_purchases.sql` | Seguimiento transaccional de compras recurrentes de conexiones R365 |
 | 161 | `20260717000001_superadmin_leads_assignment.sql` | Asignación de leads a usuarios superadmin |
+| 162 | `20260717000002_audit_log_retention_runs.sql` | Historial durable de limpiezas automáticas de audit logs y RPC transaccional de retención |
 
 ## Convención de naming
 

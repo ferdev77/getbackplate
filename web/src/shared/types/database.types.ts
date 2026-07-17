@@ -2466,6 +2466,36 @@ export type Database = {
         }
         Relationships: []
       }
+      system_maintenance_logs: {
+        Row: {
+          cutoff_at: string | null
+          error_message: string | null
+          id: string
+          ran_at: string
+          records_affected: number
+          status: string
+          task: string
+        }
+        Insert: {
+          cutoff_at?: string | null
+          error_message?: string | null
+          id?: string
+          ran_at?: string
+          records_affected?: number
+          status: string
+          task: string
+        }
+        Update: {
+          cutoff_at?: string | null
+          error_message?: string | null
+          id?: string
+          ran_at?: string
+          records_affected?: number
+          status?: string
+          task?: string
+        }
+        Relationships: []
+      }
       user_preferences: {
         Row: {
           analytics_enabled: boolean
@@ -2582,6 +2612,10 @@ export type Database = {
             }
             Returns: boolean
           }
+      purge_expired_audit_logs: {
+        Args: { p_cutoff: string }
+        Returns: number
+      }
       can_manage_org: { Args: { org_id: string }; Returns: boolean }
       can_read_announcement: {
         Args: {

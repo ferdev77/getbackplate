@@ -41,10 +41,26 @@ function lifecycleAction(action: string): Exclude<ActionFilter, "all"> | null {
   return null;
 }
 
-function documentLabel(log: DeletionAuditLog) {
+function eventLabel(log: DeletionAuditLog) {
+  if (log.metadata?.system_maintenance === true) {
+    const count = typeof log.metadata.records_affected === "number" ? log.metadata.records_affected : 0;
+    return `System deleted ${count.toLocaleString()} old audit ${count === 1 ? "log" : "logs"}`;
+  }
   const title = log.metadata?.document_title;
   if (typeof title === "string" && title.trim()) return title.trim();
+  const entityName = log.metadata?.entity_name;
+  if (typeof entityName === "string" && entityName.trim()) {
+    return `${log.entity_type.replace(/_/g, " ")} · ${entityName.trim()}`;
+  }
   return `${log.entity_type.replace(/_/g, " ")} ${log.entity_id ? `#${log.entity_id.slice(0, 8)}` : ""}`.trim();
+}
+
+function outcomeLabel(log: DeletionAuditLog) {
+  const outcome = log.metadata?.outcome;
+  if (outcome === "success") return { label: "Successful", color: "text-emerald-700" };
+  if (outcome === "denied") return { label: "Denied", color: "text-amber-700" };
+  if (outcome === "error" || outcome === "failed") return { label: "Failed", color: "text-rose-700" };
+  return { label: "Unknown", color: "text-[var(--gbp-text2)]" };
 }
 
 function actionStyle(action: Exclude<ActionFilter, "all">) {
@@ -62,11 +78,17 @@ function DeletionLog({ logs }: { logs: DeletionAuditLog[] }) {
     const lifecycle = lifecycleAction(log.action);
     if (!lifecycle || (action !== "all" && lifecycle !== action)) return false;
     if (new Date(log.created_at).getTime() < now - Number(range) * 86_400_000) return false;
-    const searchable = [documentLabel(log), log.entity_type, log.organization_name, log.actor_email].filter(Boolean).join(" ").toLowerCase();
+    const searchable = [eventLabel(log), log.action, log.entity_type, log.organization_name, log.actor_email, log.metadata?.entity_slug].filter(Boolean).join(" ").toLowerCase();
     return searchable.includes(query.trim().toLowerCase());
   });
   const last30 = logs.filter((log) => new Date(log.created_at).getTime() >= now - 30 * 86_400_000);
-  const metric = (target: Exclude<ActionFilter, "all">) => last30.filter((log) => lifecycleAction(log.action) === target).length;
+  const metric = (target: Exclude<ActionFilter, "all">) => last30.reduce((total, log) => {
+    if (lifecycleAction(log.action) !== target || log.metadata?.outcome !== "success") return total;
+    if (log.metadata.system_maintenance === true && typeof log.metadata.records_affected === "number") {
+      return total + log.metadata.records_affected;
+    }
+    return total + 1;
+  }, 0);
 
   return (
     <div className="space-y-5">
@@ -102,15 +124,24 @@ function DeletionLog({ logs }: { logs: DeletionAuditLog[] }) {
 
       <div className="overflow-hidden rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-sm">
         <div className="border-b border-[var(--gbp-border)] px-4 py-3 text-xs text-[var(--gbp-text2)]">Read-only record of deletion lifecycle activity. Outcomes are shown for every event.</div>
+        <div className="hidden grid-cols-[minmax(0,1.7fr)_auto_minmax(140px,0.8fr)] items-center gap-3 border-b border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)] sm:grid">
+          <span>Deleted item and actor</span>
+          <span>Action and result</span>
+          <span className="text-right">Date and source</span>
+        </div>
         {visible.length === 0 ? <div className="p-10 text-center text-sm text-[var(--gbp-text2)]">No deletion activity matches these filters.</div> : (
           <div className="divide-y divide-[var(--gbp-border)]">
             {visible.map((log) => {
               const lifecycle = lifecycleAction(log.action)!;
-              const outcome = log.metadata?.outcome === "success" ? "Successful" : "Failed";
+              const outcome = outcomeLabel(log);
+              const isSystemMaintenance = log.metadata?.system_maintenance === true;
+              const historicalOrganization = typeof log.metadata?.entity_name === "string" && log.entity_type === "organization"
+                ? log.metadata.entity_name
+                : null;
               return <div key={log.id} className="grid gap-3 px-4 py-4 sm:grid-cols-[minmax(0,1.7fr)_auto_minmax(140px,0.8fr)] sm:items-center">
-                <div className="min-w-0"><p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{documentLabel(log)}</p><p className="mt-1 truncate text-xs text-[var(--gbp-text2)]">{log.organization_name ?? "Organization unavailable"} · {log.actor_email ?? "System"}</p></div>
-                <div className="flex items-center gap-2"><span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset ${actionStyle(lifecycle)}`}>{lifecycle}</span><span className={outcome === "Successful" ? "text-xs font-medium text-emerald-700" : "text-xs font-medium text-rose-700"}>{outcome}</span></div>
-                <div className="text-xs text-[var(--gbp-text2)] sm:text-right"><time dateTime={log.created_at}>{format(new Date(log.created_at), "MMM d, yyyy h:mm a")}</time><p className="mt-1 capitalize">{log.entity_type.replace(/_/g, " ")} lifecycle event</p></div>
+                <div className="min-w-0"><p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{eventLabel(log)}</p><p className="mt-1 truncate text-xs text-[var(--gbp-text2)]">{isSystemMaintenance ? "Audit log retention" : log.organization_name ?? historicalOrganization ?? "No organization"} · {log.actor_email ?? "System"}</p></div>
+                <div className="flex items-center gap-2"><span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset ${actionStyle(lifecycle)}`}>{lifecycle}</span><span className={`text-xs font-medium ${outcome.color}`}>{outcome.label}</span></div>
+                <div className="text-xs text-[var(--gbp-text2)] sm:text-right"><time dateTime={log.created_at}>{format(new Date(log.created_at), "MMM d, yyyy h:mm a")}</time><p className="mt-1">{isSystemMaintenance ? "Daily cron" : log.action}</p></div>
               </div>;
             })}
           </div>

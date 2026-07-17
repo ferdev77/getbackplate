@@ -85,15 +85,30 @@ export async function GET(request: Request) {
       error: qboRawEntityCleanupError?.message ?? null,
     });
 
-    // 8. Purge general audit_logs older than 12 months.
-    const { error: auditLogsCleanupError } = await admin
-      .from("audit_logs")
-      .delete()
-      .lt("created_at", twelveMonthRetentionCutoff);
+    // 8. Purge general audit_logs older than 12 months. The RPC records a
+    // durable summary in system_maintenance_logs in the same transaction.
+    const { data: deletedAuditLogCount, error: auditLogsCleanupError } = await admin
+      .rpc("purge_expired_audit_logs", { p_cutoff: twelveMonthRetentionCutoff });
+
+    if (auditLogsCleanupError) {
+      const { error: maintenanceLogError } = await admin
+        .from("system_maintenance_logs")
+        .insert({
+          task: "audit_logs_retention",
+          status: "failed",
+          records_affected: 0,
+          cutoff_at: twelveMonthRetentionCutoff,
+          error_message: auditLogsCleanupError.message,
+        });
+      if (maintenanceLogError) {
+        console.error("Unable to record failed audit log cleanup", maintenanceLogError);
+      }
+    }
 
     results.push({
       task: "purgeAuditLogs",
       status: auditLogsCleanupError ? 500 : 200,
+      recordsDeleted: deletedAuditLogCount ?? 0,
       error: auditLogsCleanupError?.message ?? null,
     });
 
