@@ -2400,6 +2400,57 @@ export type Database = {
           },
         ]
       }
+      superadmin_leads: {
+        Row: {
+          assigned_to: string | null
+          company_name: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          notes: string | null
+          resolved_at: string | null
+          source: string
+          source_record_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          company_name?: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          notes?: string | null
+          resolved_at?: string | null
+          source: string
+          source_record_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          company_name?: string | null
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          notes?: string | null
+          resolved_at?: string | null
+          source?: string
+          source_record_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       superadmin_users: {
         Row: {
           created_at: string

@@ -2,7 +2,7 @@
 
 Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 
-> **Última actualización:** 2026-07-03 (149 migraciones: 148 en `supabase/migrations/` + 1 en `web/supabase/migrations/`, fila 114) — migración 149 aplicada en DEV y PROD el 2026-07-03 (claim atómico en pipeline QBO → R365)
+> **Última actualización:** 2026-07-17 (161 migraciones en `supabase/migrations/`; la fila 114 también conserva una copia en `web/supabase/migrations/`) — migración 161 aplicada en DEV y PROD el 2026-07-17
 
 ## Todas las migraciones (orden cronológico)
 
@@ -162,6 +162,13 @@ Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 | 152 | `20260710000001_rls_auto_enable_event_trigger.sql` | Replica en dev el event trigger `ensure_rls` que ya existía en prod (creado fuera de banda) — fuerza RLS automáticamente en cualquier tabla nueva del schema `public` |
 | 153 | `20260713000001_qbo_public_vendor_referrals.sql` | Tabla `qbo_public_vendor_referrals` — referidos de vendors enviados desde el formulario público (sin token) en `/refer`, sin policy de INSERT para anon/authenticated (solo vía service_role) |
 | 154 | `20260713000002_qbo_owner_weekly_report_runs.sql` | Tabla `qbo_owner_weekly_report_runs` — control de deduplicación del reporte semanal de operaciones al owner, por destinatario individual (a diferencia de `qbo_weekly_invoice_report_runs` que dedupe por organización) |
+| 155 | `20260714000001_company_mfa_challenges.sql` | Desafíos MFA para accesos administrativos de empresa |
+| 156 | `20260714000002_user_preferences_language_nullable.sql` | Permite idioma nullable en preferencias de usuario |
+| 157 | `20260714000003_allow_integration_only_module_profile.sql` | Permite perfiles de módulos exclusivos de integración |
+| 158 | `20260715000001_add_public_referral_contact_details.sql` | Datos de contacto adicionales para referidos públicos de vendors |
+| 159 | `20260716000001_superadmin_leads.sql` | Bandeja centralizada de leads para solicitudes y referidos en superadmin |
+| 160 | `20260716000002_r365_connection_purchases.sql` | Seguimiento transaccional de compras recurrentes de conexiones R365 |
+| 161 | `20260717000001_superadmin_leads_assignment.sql` | Asignación de leads a usuarios superadmin |
 
 ## Convención de naming
 
