@@ -305,7 +305,7 @@ export default function IntegrationMsaPage() {
         By accepting this Agreement electronically, Customer acknowledges that they have read, understood, and agreed to be bound by its terms and conditions.
       </p>
       <p style={{ marginTop: 8, color: "var(--legal-text-muted)", fontSize: 12, textAlign: "center" }}>
-        Intuit and QuickBooks® Online are registered trademarks of Intuit Inc. Used with permission.
+        Intuit and QuickBooks® Online are registered trademarks of Intuit Inc.
       </p>
     </LegalDocLayout>
   );

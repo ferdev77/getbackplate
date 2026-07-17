@@ -222,7 +222,7 @@ export const QUICKBOOKS_R365_EN: Record<string, string> = {
   "Activá tu integración QuickBooks → R365": "Activate your QuickBooks → R365 integration",
   "Configurar más tarde": "Configure later",
   "Cuenta conectada correctamente": "Account connected successfully",
-  "Necesitás autorizar el acceso de solo lectura a tus facturas.": "You need to authorize read-only access to your invoices.",
+  "Necesitás autorizar el acceso a tus facturas de QuickBooks.": "You need to authorize access to your QuickBooks invoices.",
   "QuickBooks ya está conectado. Podés continuar al siguiente paso.": "QuickBooks is already connected. You can continue to the next step.",
   "Esta información identifica a tu empresa como vendor en las facturas que se envían a R365.":
     "This information identifies your company as the vendor on invoices sent to R365.",

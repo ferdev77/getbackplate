@@ -1772,7 +1772,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
           </p>
         </div>
         <p className="mx-auto mt-4 max-w-[1200px] text-center text-[10px] text-white/40">
-          Intuit and QuickBooks® Online are registered trademarks of Intuit Inc. Used with permission.
+          Intuit and QuickBooks® Online are registered trademarks of Intuit Inc.
         </p>
       </footer>
 
