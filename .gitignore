@@ -5,6 +5,7 @@ node_modules/
 
 # testing
 coverage/
+.playwright-cli/
 web/playwright-report/
 web/test-results/
 web/.playwright/
