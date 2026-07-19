@@ -29,6 +29,7 @@ import { DevClientCachePanel } from "@/shared/ui/dev-client-cache-panel";
 import { GetBackplateLogo } from "@/shared/ui/getbackplate-logo";
 import { GetBackplateMark } from "@/shared/ui/getbackplate-mark";
 import { NotificationBell } from "@/shared/ui/notification-bell";
+import { IntuitIdentityControl } from "@/shared/ui/intuit-identity-control";
 import { createTranslator } from "@/shared/ui/company-shell.i18n";
 
 // ── Lazy-loaded modals (code-split — only downloaded when opened) ────
@@ -2146,6 +2147,7 @@ export function CompanyShell({
                   <div className={`rounded-lg border p-3 ${isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                     <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.08em] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>Account</p>
                     <div className={`flex items-center justify-between border-b py-1.5 ${isDarkTheme ? "border-white/5" : "border-[var(--gbp-border)]"}`}><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Email</span><span className={`max-w-[160px] truncate text-[11px] tracking-[0.04em] ${isDarkTheme ? "text-white/45" : "text-[var(--gbp-text2)]"}`}>{sessionUserEmail || "-"}</span></div>
+                    <IntuitIdentityControl isDarkTheme={isDarkTheme} />
                     <div className={`flex items-center justify-between border-b py-1.5 ${isDarkTheme ? "border-white/5" : "border-[var(--gbp-border)]"}`}>
                       <span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Password</span>
                       <button

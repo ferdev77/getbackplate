@@ -1098,34 +1098,22 @@ export async function buildQboOAuthStartUrl(input: {
   });
 }
 
-export async function completeQboOAuthCallback(input: {
+async function storeQboConnectionToken(input: {
   organizationId: string;
   actorId: string;
-  code: string;
   realmId: string;
+  token: { access_token: string; refresh_token: string; token_type: string; expires_in: number };
 }) {
-  const globalQbo = getGlobalQboOAuthConfig();
-  if (!globalQbo.ready) {
-    throw new Error("QuickBooks is not configured globally. Contact a super administrator.");
-  }
-
   const connection = await getConnection(input.organizationId, "quickbooks_online");
   const config = (connection?.config ?? {}) as Record<string, unknown>;
   const currentSecrets = parseConnectionSecrets<QboStoredSecrets>(connection);
 
-  const token = await exchangeQboOAuthCode({
-    clientId: globalQbo.clientId,
-    clientSecret: globalQbo.clientSecret,
-    redirectUri: globalQbo.redirectUri,
-    code: input.code,
-  });
-
-  const expiresAtEpochSec = Math.floor(Date.now() / 1000) + token.expires_in;
+  const expiresAtEpochSec = Math.floor(Date.now() / 1000) + input.token.expires_in;
   const mergedSecrets: QboStoredSecrets = {
     ...currentSecrets,
-    accessToken: token.access_token,
-    refreshToken: token.refresh_token,
-    tokenType: token.token_type,
+    accessToken: input.token.access_token,
+    refreshToken: input.token.refresh_token,
+    tokenType: input.token.token_type,
     expiresAtEpochSec,
     realmId: input.realmId,
   };
@@ -1157,6 +1145,32 @@ export async function completeQboOAuthCallback(input: {
     metadata: {
       realm_id: input.realmId,
     },
+  });
+}
+
+export async function completeQboOAuthCallback(input: {
+  organizationId: string;
+  actorId: string;
+  code: string;
+  realmId: string;
+}) {
+  const globalQbo = getGlobalQboOAuthConfig();
+  if (!globalQbo.ready) {
+    throw new Error("QuickBooks is not configured globally. Contact a super administrator.");
+  }
+
+  const token = await exchangeQboOAuthCode({
+    clientId: globalQbo.clientId,
+    clientSecret: globalQbo.clientSecret,
+    redirectUri: globalQbo.redirectUri,
+    code: input.code,
+  });
+
+  await storeQboConnectionToken({
+    organizationId: input.organizationId,
+    actorId: input.actorId,
+    realmId: input.realmId,
+    token,
   });
 }
 

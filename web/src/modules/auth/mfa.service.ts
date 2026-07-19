@@ -137,46 +137,35 @@ export async function verifyEmailMfaChallenge(input: {
   code: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const admin = createSupabaseAdminClient();
+  const { data, error } = await admin.rpc("verify_email_mfa_challenge", {
+    p_user_id: input.userId,
+    p_organization_id: input.organizationId,
+    p_code_hash: hashCode(input.code.trim()),
+  });
+  const verification = data?.[0] as { result: string; attempts: number } | undefined;
 
-  const { data: challenge } = await admin
-    .from("company_mfa_challenges")
-    .select("id, code_hash, attempts, expires_at, consumed_at")
-    .eq("user_id", input.userId)
-    .eq("organization_id", input.organizationId)
-    .is("consumed_at", null)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (!challenge) {
+  if (error || !verification || verification.result === "missing") {
     return { ok: false, error: "There is no pending code. Request a new one." };
   }
 
-  if (new Date(challenge.expires_at).getTime() < Date.now()) {
+  if (verification.result === "expired") {
     return { ok: false, error: "The code has expired. Request a new one." };
   }
 
-  if (challenge.attempts >= MAX_ATTEMPTS) {
+  if (verification.result === "max_attempts") {
     return { ok: false, error: "You have exceeded the maximum number of attempts. Request a new code." };
   }
 
-  const providedHash = hashCode(input.code.trim());
-
-  if (providedHash !== challenge.code_hash) {
-    await admin
-      .from("company_mfa_challenges")
-      .update({ attempts: challenge.attempts + 1 })
-      .eq("id", challenge.id);
-
+  if (verification.result === "incorrect") {
     await logAuthEvent({
       action: "login.mfa_failed",
       outcome: "denied",
       organizationId: input.organizationId,
       severity: "medium",
-      metadata: { attempts: challenge.attempts + 1 },
+      metadata: { attempts: verification.attempts },
     });
 
-    const remaining = MAX_ATTEMPTS - (challenge.attempts + 1);
+    const remaining = MAX_ATTEMPTS - verification.attempts;
     return {
       ok: false,
       error: remaining > 0
@@ -185,10 +174,9 @@ export async function verifyEmailMfaChallenge(input: {
     };
   }
 
-  await admin
-    .from("company_mfa_challenges")
-    .update({ consumed_at: new Date().toISOString() })
-    .eq("id", challenge.id);
+  if (verification.result !== "verified") {
+    return { ok: false, error: "The verification code could not be validated." };
+  }
 
   await logAuthEvent({
     action: "login.mfa_verified",

@@ -1,19 +1,24 @@
 import "server-only";
 
 import { cookies } from "next/headers";
+import {
+  createMfaVerificationToken,
+  verifyMfaVerificationToken,
+} from "@/shared/lib/mfa-verification-token";
 
 export const MFA_VERIFIED_COOKIE = "gb_mfa_verified";
-const MFA_VERIFIED_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+const MFA_VERIFIED_COOKIE_MAX_AGE = 60 * 60 * 12;
 
-/**
- * El valor guardado es el user_id, no un simple "1" -- así, si dos
- * usuarios distintos comparten navegador (uno cierra sesión y otro
- * entra), la cookie del primero nunca cuenta como válida para el
- * segundo.
- */
+function getSigningSecret() {
+  return process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? "";
+}
+
+// La firma vincula la verificacion al usuario y evita aceptar cookies manipuladas.
 export async function markMfaVerifiedForUser(userId: string) {
+  const secret = getSigningSecret();
+  if (!secret) throw new Error("MFA verification signing secret is not configured.");
   const store = await cookies();
-  store.set(MFA_VERIFIED_COOKIE, userId, {
+  store.set(MFA_VERIFIED_COOKIE, createMfaVerificationToken({ userId, secret }), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -24,7 +29,15 @@ export async function markMfaVerifiedForUser(userId: string) {
 
 export async function isMfaVerifiedForUser(userId: string): Promise<boolean> {
   const store = await cookies();
-  return store.get(MFA_VERIFIED_COOKIE)?.value === userId;
+  const token = store.get(MFA_VERIFIED_COOKIE)?.value;
+  const secret = getSigningSecret();
+  if (!token || !secret) return false;
+  return verifyMfaVerificationToken({
+    token,
+    userId,
+    secret,
+    maxAgeSeconds: MFA_VERIFIED_COOKIE_MAX_AGE,
+  });
 }
 
 export async function clearMfaVerifiedCookie() {

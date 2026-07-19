@@ -433,6 +433,22 @@ export async function assertTenantModuleApi(
     };
   }
 
+  const isImpersonating = tenant.roleId === "impersonation";
+  if (!isImpersonating) {
+    const mfaRequired = await isEmailMfaRequired({
+      organizationId: tenant.organizationId,
+      userId: user.id,
+    });
+    if (mfaRequired && !(await isMfaVerifiedForUser(user.id))) {
+      return {
+        ok: false,
+        status: 403,
+        error: "mfa_required",
+        reasonCode: AUDIT_REASON_CODES.MISSING_AUTH_SESSION,
+      };
+    }
+  }
+
   if (!options?.allowBillingBypass) {
     const supabase = await createSupabaseServerClient();
     const billingGate = await getBillingGateForOrganization({

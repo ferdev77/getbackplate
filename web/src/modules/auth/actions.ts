@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { clearMfaVerifiedCookie } from "@/shared/lib/mfa-verification";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { getCurrentUserMemberships } from "@/modules/memberships/queries";
 import { logAuditEvent, logAuthEvent } from "@/shared/lib/audit";
@@ -147,6 +148,8 @@ export async function loginWithPasswordAction(formData: FormData) {
       });
       redirect(buildLoginPath({ error: "Your session could not be validated.", organizationIdHint: organizationHint }));
     }
+
+    await clearMfaVerifiedCookie();
 
     const admin = createSupabaseAdminClient();
 
@@ -560,6 +563,11 @@ export async function updatePasswordAction(formData: FormData) {
         encodeURIComponent("Your password could not be updated. Please try again."),
     );
   }
+
+  const adminForMetadata = createSupabaseAdminClient();
+  await adminForMetadata.auth.admin.updateUserById(user.id, {
+    app_metadata: { ...user.app_metadata, intuit_sso_only: false },
+  });
 
   await logAuditEvent({
     action: "password.update.success",

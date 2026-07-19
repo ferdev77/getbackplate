@@ -768,7 +768,7 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
                   <li><Link href="/trust">Trust Center</Link></li>
                   <li><Link href="/refer">Refer a vendor</Link></li>
                   <li><a href="mailto:hello@getbackplate.com">Contact</a></li>
-                  <li><a href="https://app.getbackplate.com">Login</a></li>
+                  <li><a href="https://app.getbackplate.com/auth/login?desde=integracion">Login</a></li>
                 </ul>
               </div>
             </div>

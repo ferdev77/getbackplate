@@ -11,6 +11,7 @@ const __dirname = path.dirname(__filename);
 const webRoot = path.resolve(__dirname, "..");
 const repoRoot = path.resolve(webRoot, "..");
 const localMigrationsDir = path.resolve(repoRoot, "supabase", "migrations");
+const developmentEnvPath = path.resolve(webRoot, ".env.local");
 const productionEnvTmpPath = path.resolve(webRoot, ".env.production.verify.tmp");
 
 function parseEnvFile(content) {
@@ -50,36 +51,30 @@ function listLocalMigrationVersions() {
     .sort();
 }
 
-function parseLinkedRemoteVersions(supabaseOutput) {
-  const versions = [];
-  const lines = supabaseOutput.split(/\r?\n/);
-
-  for (const rawLine of lines) {
-    if (!rawLine.includes("|")) continue;
-
-    const [local, remote] = rawLine.split("|").map((part) => part.trim());
-
-    if (!local || !remote) continue;
-    if (local.toLowerCase() === "local" || local.startsWith("-")) continue;
-
-    versions.push(remote);
-  }
-
-  return Array.from(new Set(versions)).sort();
-}
-
-function getLinkedProjectMigrationVersions() {
-  const output = execSync("npx supabase migration list --linked", {
-    cwd: repoRoot,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
+async function getMigrationVersionsFromConnectionString(connectionString) {
+  const client = new Client({
+    connectionString,
+    ssl: { rejectUnauthorized: false },
   });
 
-  const versions = parseLinkedRemoteVersions(output);
-  if (versions.length === 0) {
-    throw new Error("No se pudieron leer migraciones remotas del proyecto linkeado (dev). Verifica login/link de Supabase CLI.");
+  try {
+    await client.connect();
+    const result = await client.query("select version from supabase_migrations.schema_migrations order by version");
+    return result.rows.map((row) => String(row.version)).sort();
+  } finally {
+    await client.end();
   }
-  return versions;
+}
+
+function getDevelopmentMigrationVersions() {
+  const env = parseEnvFile(readFileSync(developmentEnvPath, "utf8"));
+  const connectionString = env.SUPABASE_DB_POOLER_URL || env.DATABASE_URL;
+
+  if (!connectionString) {
+    throw new Error("No se encontro SUPABASE_DB_POOLER_URL o DATABASE_URL en .env.local.");
+  }
+
+  return getMigrationVersionsFromConnectionString(connectionString);
 }
 
 function getProductionMigrationVersions() {
@@ -97,29 +92,7 @@ function getProductionMigrationVersions() {
     throw new Error("No se encontro SUPABASE_DB_POOLER_URL en variables de production.");
   }
 
-  return new Promise((resolve, reject) => {
-    const client = new Client({
-      connectionString,
-      ssl: { rejectUnauthorized: false },
-    });
-
-    client
-      .connect()
-      .then(() => client.query("select version from supabase_migrations.schema_migrations order by version"))
-      .then((result) => result.rows.map((row) => String(row.version)).sort())
-      .then(async (versions) => {
-        await client.end();
-        resolve(versions);
-      })
-      .catch(async (error) => {
-        try {
-          await client.end();
-        } catch {
-          // no-op
-        }
-        reject(error);
-      });
-  });
+  return getMigrationVersionsFromConnectionString(connectionString);
 }
 
 function diffVersions(localVersions, remoteVersions) {
@@ -148,7 +121,7 @@ async function main() {
   let prodVersions = [];
 
   try {
-    devVersions = getLinkedProjectMigrationVersions();
+    devVersions = await getDevelopmentMigrationVersions();
     prodVersions = await getProductionMigrationVersions();
   } finally {
     rmSync(productionEnvTmpPath, { force: true });
@@ -157,7 +130,7 @@ async function main() {
   const devResult = diffVersions(localVersions, devVersions);
   const prodResult = diffVersions(localVersions, prodVersions);
 
-  printResult("DEV (Supabase linked project)", devResult);
+  printResult("DEV (.env.local + SQL)", devResult);
   printResult("PROD (Vercel production env + SQL)", prodResult);
 
   const hasDrift =

@@ -1,10 +1,16 @@
 import { createClient } from "@supabase/supabase-js";
 import { createDecipheriv, createHash } from "crypto";
 
-const SUPABASE_URL = "https://mfhyemwypuzsqjqxtbjf.supabase.co";
-const SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1maHllbXd5cHV6c3FqcXh0YmpmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzIxMDU5OSwiZXhwIjoyMDg4Nzg2NTk5fQ.KeJhP3-FTQJPcjdOrmFB43vGTrF44RXS7GKZ-Yb1VHA";
-const ENCRYPTION_KEY = "a42e11b8de53636c3e7e278118dcf128e4bbb1e8cdcda0a6783cf0995f01a88b";
-const ORG_ID = "55fa3893-666f-4562-a39e-fae5fe06d6f1";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "";
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? "";
+const ENCRYPTION_KEY = process.env.INTEGRATIONS_ENCRYPTION_KEY?.trim() ?? "";
+const ORG_ID = process.env.TARGET_ORG_ID?.trim() ?? "";
+const QBO_CLIENT_ID = process.env.QBO_CLIENT_ID?.trim() ?? "";
+const QBO_CLIENT_SECRET = process.env.QBO_CLIENT_SECRET?.trim() ?? "";
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !ENCRYPTION_KEY || !ORG_ID || !QBO_CLIENT_ID || !QBO_CLIENT_SECRET) {
+  throw new Error("Missing Supabase, integration encryption, target organization, or QBO environment variables.");
+}
 
 function getKey() {
   return createHash("sha256").update(ENCRYPTION_KEY).digest();
@@ -38,7 +44,6 @@ async function refreshToken(clientId, clientSecret, refreshToken) {
 async function main() {
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  // Obtener conexión QBO de Prodel
   const { data: conn } = await admin
     .from("integration_connections")
     .select("config, secrets_ciphertext, secrets_iv, secrets_tag")
@@ -46,7 +51,10 @@ async function main() {
     .eq("provider", "quickbooks_online")
     .maybeSingle();
 
-  if (!conn) { console.error("No se encontró conexión QBO para Prodel"); return; }
+  if (!conn) {
+    console.error("No QuickBooks connection was found for the target organization.");
+    return;
+  }
 
   const secrets = decryptJsonPayload({
     ciphertext: conn.secrets_ciphertext,
@@ -60,15 +68,11 @@ async function main() {
     ? "https://sandbox-quickbooks.api.intuit.com"
     : "https://quickbooks.api.intuit.com";
 
-  // Refrescar token
-  const QBO_CLIENT_ID = "ABRKOacLp4ZEE6XYXLdxlw65hK7nfRxCdACWJyjiLGJ1ZaoZbx";
-  const QBO_CLIENT_SECRET = "9VuufBXV8C4j75aoQYEVjrz6NgLq3Ev40CJ7uoZN";
-  console.log("Refrescando token QBO...");
+  console.log("Refreshing QBO token...");
   const tokenRes = await refreshToken(QBO_CLIENT_ID, QBO_CLIENT_SECRET, secrets.refreshToken);
   const accessToken = tokenRes.access_token;
 
-  // Consultar customers
-  console.log(`\nConsultando customers en QBO (realmId: ${realmId}, sandbox: ${useSandbox})...\n`);
+  console.log(`\nQuerying QBO customers (realmId: ${realmId}, sandbox: ${useSandbox})...\n`);
   const query = "select Id, DisplayName, AcctNum from Customer where Active = true startposition 1 maxresults 100";
   const res = await fetch(`${baseUrl}/v3/company/${realmId}/query?minorversion=75`, {
     method: "POST",
@@ -80,16 +84,16 @@ async function main() {
   const customers = data?.QueryResponse?.Customer ?? [];
 
   if (customers.length === 0) {
-    console.log("Sin customers encontrados.");
+    console.log("No customers found.");
     return;
   }
 
-  console.log(`Customers encontrados: ${customers.length}\n`);
+  console.log(`Customers found: ${customers.length}\n`);
   console.log("ID          | AcctNum    | DisplayName");
   console.log("------------|------------|----------------------------");
-  for (const c of customers) {
-    const acctNum = c.AcctNum?.trim() || "(vacío)";
-    console.log(`${String(c.Id).padEnd(12)}| ${acctNum.padEnd(11)}| ${c.DisplayName}`);
+  for (const customer of customers) {
+    const acctNum = customer.AcctNum?.trim() || "(empty)";
+    console.log(`${String(customer.Id).padEnd(12)}| ${acctNum.padEnd(11)}| ${customer.DisplayName}`);
   }
 }
 

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { headers } from "next/headers";
 
@@ -12,7 +13,7 @@ import { PasswordInput } from "@/shared/ui/password-input";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 
 type LoginPageProps = {
-  searchParams: Promise<{ error?: string; org?: string }>;
+  searchParams: Promise<{ error?: string; org?: string; desde?: string }>;
 };
 
 export async function generateMetadata({ searchParams }: LoginPageProps): Promise<Metadata> {
@@ -41,6 +42,7 @@ export async function generateMetadata({ searchParams }: LoginPageProps): Promis
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const error = params.error;
+  const showIntuitSso = params.desde === "integracion";
   const organizationIdHint = String(params.org ?? "").trim();
   const requestHeaders = await headers();
   const requestHost = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
@@ -82,6 +84,44 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <p className="mb-6 text-sm text-[var(--gbp-text2)]">
             Enter your credentials to access the dashboard.
           </p>
+
+          {showIntuitSso ? (
+            <>
+              <div className="mb-4 flex justify-center">
+                <a
+                  href="/api/auth/intuit/start?returnTo=%2Fapp%2Fdashboard"
+                  aria-label="Sign in with Intuit"
+                  className="group block h-9 w-[161px] overflow-hidden rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0077C5]"
+                >
+                  <Image
+                    src="/intuit/sign-in-with-intuit-default.svg"
+                    alt="Sign in with Intuit"
+                    width={161}
+                    height={36}
+                    unoptimized
+                    className="block group-hover:hidden"
+                  />
+                  <Image
+                    src="/intuit/sign-in-with-intuit-hover.svg"
+                    alt=""
+                    aria-hidden="true"
+                    width={161}
+                    height={36}
+                    unoptimized
+                    className="hidden group-hover:block"
+                  />
+                </a>
+              </div>
+              <p className="-mt-2 mb-4 text-center text-[11px] text-[var(--gbp-muted)]">
+                This verifies your identity only. QuickBooks access is requested separately.
+              </p>
+              <div className="mb-4 flex items-center gap-3 text-xs text-[var(--gbp-muted)]">
+                <span className="h-px flex-1 bg-[var(--gbp-border)]" />
+                or
+                <span className="h-px flex-1 bg-[var(--gbp-border)]" />
+              </div>
+            </>
+          ) : null}
 
           {error ? (
             <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">

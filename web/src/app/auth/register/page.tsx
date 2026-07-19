@@ -27,6 +27,10 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
   const planId = params.planId;
   const integrationPlanId = params.integrationPlanId;
   const billingPeriod = params.billingPeriod;
+  const completeParams = new URLSearchParams();
+  if (integrationPlanId) completeParams.set("integrationPlanId", integrationPlanId);
+  if (billingPeriod) completeParams.set("billingPeriod", billingPeriod);
+  const intuitReturnTo = `/auth/intuit/complete${completeParams.size ? `?${completeParams.toString()}` : ""}`;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-6 py-10">
@@ -40,13 +44,23 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
           </p>
           <h1 className="mb-1 text-2xl font-bold tracking-tight">Create your account</h1>
           <p className="mb-6 text-sm text-neutral-600">
-            Register your restaurant and start operating like the best.
+            Register your company and continue to the selected product.
           </p>
 
           {error ? (
             <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               {error}
             </div>
+          ) : null}
+
+          {integrationPlanId ? (
+            <>
+              <a href={`/api/auth/intuit/start?returnTo=${encodeURIComponent(intuitReturnTo)}`} className="mb-4 flex w-full items-center justify-center rounded-lg border border-line bg-white px-3 py-2.5 text-sm font-semibold transition hover:bg-neutral-50">
+                Continue with Intuit
+              </a>
+              <p className="-mt-2 mb-4 text-center text-[11px] text-neutral-500">Identity only. You will connect QuickBooks after checkout.</p>
+              <div className="mb-4 flex items-center gap-3 text-xs text-neutral-400"><span className="h-px flex-1 bg-line" />or use email<span className="h-px flex-1 bg-line" /></div>
+            </>
           ) : null}
 
           <form action={registerPublicAction} className="space-y-4">
@@ -58,7 +72,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
 
             <div>
               <label htmlFor="companyName" className="mb-1 block text-sm font-medium">
-                Company / restaurant name
+                Company name
               </label>
               <input
                 id="companyName"
