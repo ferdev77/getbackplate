@@ -170,6 +170,12 @@ Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 | 160 | `20260716000002_r365_connection_purchases.sql` | Seguimiento transaccional de compras recurrentes de conexiones R365 |
 | 161 | `20260717000001_superadmin_leads_assignment.sql` | Asignación de leads a usuarios superadmin |
 | 162 | `20260717000002_audit_log_retention_runs.sql` | Historial durable de limpiezas automáticas de audit logs y RPC transaccional de retención |
+| 163 | `20260717000003_intuit_sso_identities.sql` | Identidades externas de Sign in with Intuit vinculadas por issuer y subject |
+| 164 | `20260717000004_intuit_sso_provisioning.sql` | Aprovisionamiento transaccional para registro e ingreso con Intuit SSO |
+| 165 | `20260718000001_harden_intuit_sso_and_mfa.sql` | Hardening de RPC SSO, nonce/state y verificación MFA atómica |
+| 166 | `20260719000001_intuit_retention_support_billing.sql` | Retención Intuit, evidencia fiscal/legal y solicitudes públicas de soporte y privacidad |
+| 167 | `20260719000002_qbo_realm_ownership.sql` | Blind index único para propiedad exclusiva de cada realm QBO |
+| 168 | `20260720000001_intuit_retention_hardening.sql` | Conservación de compras R365 pagadas e índices de purga fiscal |
 
 ## Convención de naming
 
@@ -184,4 +190,4 @@ Se utilizan dos formatos de timestamp (ambos válidos para Supabase que ordena a
 npm run verify:migrations-sync
 ```
 
-**Advertencia conocida (detectada 2026-06-29):** la columna "DEV" de este script en realidad lee el proyecto que tiene linkeado el Supabase CLI local (`supabase migration list --linked`) — y ese link hoy apunta al proyecto de **producción** (`mfhyemwypuzsqjqxtbjf`, el mismo que usa Vercel), no al proyecto real de desarrollo (`uubdslmtfxwraszinpao`, el que usa `web/.env.local`). En la práctica el script compara producción contra sí misma dos veces y nunca toca el dev real. Para chequear el dev real, conectar manualmente con `SUPABASE_DB_POOLER_URL` de `web/.env.local` contra `supabase_migrations.schema_migrations`. Detalle completo en la memoria de proyecto `project_supabase_envs`.
+El verificador consulta DEV mediante `SUPABASE_DB_POOLER_URL`/`DATABASE_URL` de `web/.env.local` y PROD mediante las variables de producción de Vercel. No depende del proyecto enlazado actualmente en Supabase CLI.
