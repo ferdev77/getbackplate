@@ -12,7 +12,7 @@ export default function IntegrationPrivacyPage() {
       title="Privacy Policy"
       subtitle="QuickBooks® Online to Restaurant365 Integration"
       effective="July 23, 2026"
-      lastUpdated="July 1, 2026"
+      lastUpdated="July 19, 2026"
       version="2026.07.23"
     >
       <h2><span className="section-num">1.</span>Introduction</h2>
@@ -28,7 +28,7 @@ export default function IntegrationPrivacyPage() {
       <ul>
         <li><strong>Contact information:</strong> name, business name, email address, phone number.</li>
         <li><strong>Account credentials:</strong> OAuth 2.0 authorization tokens granted by you through QuickBooks® Online (we do <strong>not</strong> receive or store your QuickBooks® Online username or password).</li>
-        <li><strong>Configuration data:</strong> Restaurant365 FTP endpoint details, field-mapping preferences, and delivery schedules that you or your administrator provide.</li>
+        <li><strong>Configuration data:</strong> Restaurant365 FTP or FTPS endpoint details, field-mapping preferences, and delivery schedules that you or your administrator provide.</li>
       </ul>
 
       <h3><span className="sub-num">2.2</span>Information We Access From QuickBooks® Online</h3>
@@ -41,7 +41,7 @@ export default function IntegrationPrivacyPage() {
         <li>Vendor and company profile data needed for proper accounting categorization</li>
         <li>Tax codes, payment terms, and currency settings</li>
       </ul>
-      <p>We access this data <strong>only</strong> to perform the integration&apos;s stated purpose: transforming and delivering invoice data to your designated Restaurant365 FTP endpoint.</p>
+      <p>We access this data <strong>only</strong> to perform the integration&apos;s stated purpose: transforming and delivering invoice data to your designated Restaurant365 FTP or FTPS endpoint.</p>
       <p>We do <strong>not</strong> access, collect, or process:</p>
       <ul>
         <li>QuickBooks® Online usernames, passwords, or other login credentials</li>
@@ -55,13 +55,13 @@ export default function IntegrationPrivacyPage() {
       <ul>
         <li><strong>Operational data:</strong> webhook events, job timestamps, processing duration, success/failure status, error messages.</li>
         <li><strong>Technical data:</strong> IP addresses, request headers, API response codes from Intuit and Restaurant365.</li>
-        <li><strong>Backup artifacts:</strong> copies of generated CSV/TXT files transmitted to Restaurant365, retained for audit and recovery purposes.</li>
+        <li><strong>Delivery metadata:</strong> generated CSV filename, destination path, size, checksum, timestamps, and delivery status. The generated CSV content is not retained by GetBackplate after transmission.</li>
       </ul>
 
       <h2><span className="section-num">3.</span>How We Use Information</h2>
       <p>We use the information collected for the following purposes:</p>
       <ol>
-        <li><strong>Service delivery:</strong> to retrieve QuickBooks® Online invoices, transform them into Restaurant365-compatible formats (CSV, TXT, or EDI 810), and deliver them to your designated FTP endpoint;</li>
+        <li><strong>Service delivery:</strong> to retrieve QuickBooks® Online invoices, transform them into Restaurant365-compatible CSV files, and deliver them to your designated FTP or FTPS endpoint;</li>
         <li><strong>Operational monitoring:</strong> to log job execution, detect errors, alert on failures, and maintain service reliability;</li>
         <li><strong>Support and troubleshooting:</strong> to investigate issues you or your counterparty report;</li>
         <li><strong>Security:</strong> to detect, prevent, and respond to fraud, abuse, or unauthorized access;</li>
@@ -74,13 +74,13 @@ export default function IntegrationPrivacyPage() {
       <p>We share information only as described below:</p>
 
       <h3><span className="sub-num">4.1</span>With Restaurant365</h3>
-      <p>The core function of the Service is to transmit transformed invoice data to a Restaurant365 FTP endpoint that you or your authorized counterparty have designated. By using the Service, you authorize this transmission.</p>
+      <p>The core function of the Service is to transmit transformed invoice data to a Restaurant365 FTP or FTPS endpoint that you or your authorized counterparty have designated. By using the Service, you authorize this transmission.</p>
 
       <h3><span className="sub-num">4.2</span>With Service Providers</h3>
       <p>We use the following third-party infrastructure providers, which process data on our behalf under their own privacy and security commitments:</p>
       <ul>
         <li><strong>Vercel Inc.</strong> — application hosting and serverless compute.</li>
-        <li><strong>Supabase Inc.</strong> — managed PostgreSQL database (job logs), object storage (CSV backups), and edge function execution.</li>
+        <li><strong>Supabase Inc.</strong> — managed PostgreSQL database for account, fiscal-summary, configuration, and operational records.</li>
         <li><strong>Intuit Inc.</strong> — source platform for invoice data via the Intuit Developer API.</li>
       </ul>
       <p>These providers are contractually obligated to use the data only to provide their services to us and to maintain appropriate security safeguards.</p>
@@ -97,9 +97,10 @@ export default function IntegrationPrivacyPage() {
 
       <h2><span className="section-num">5.</span>Data Storage and Retention</h2>
       <ul>
-        <li><strong>OAuth tokens</strong> are stored encrypted at rest in our database and refreshed automatically according to Intuit&apos;s token lifecycle. Tokens are deleted within 30 days after disconnection.</li>
-        <li><strong>Operational logs</strong> (job execution records, error messages) are retained for up to <strong>twelve (12) months</strong> for monitoring, audit, and troubleshooting purposes.</li>
-        <li><strong>CSV/TXT backup files</strong> delivered to Restaurant365 are retained in Supabase Storage for up to <strong>twelve (12) months</strong> to support recovery, dispute resolution, and audit needs.</li>
+        <li><strong>OAuth tokens</strong> are stored encrypted at rest and cleared from the Service when the QuickBooks® Online connection is disconnected through GetBackplate.</li>
+        <li><strong>Operational records</strong> (webhook payloads, job execution records, detailed transformation data, delivery metadata, and error messages) are retained for up to <strong>twelve (12) months</strong>.</li>
+        <li><strong>Fiscal and billing records</strong> (minimum invoice or credit-memo summaries, payment records, and contract acceptance evidence) are retained for up to <strong>seven (7) years</strong> where needed for tax, accounting, dispute, or legal compliance. Raw QuickBooks® payloads are not retained for that seven-year period.</li>
+        <li><strong>Generated CSV files</strong> are created in application memory and transmitted directly to the configured destination. GetBackplate does not retain a stored copy of the generated CSV content.</li>
         <li><strong>Account and configuration data</strong> is retained for the duration of your active use of the Service plus a reasonable period thereafter for legal and accounting compliance.</li>
       </ul>
       <p>You may request earlier deletion of your data at any time, subject to legal retention requirements (see Section 7).</p>
@@ -127,7 +128,7 @@ export default function IntegrationPrivacyPage() {
         <li><strong>Objection:</strong> object to certain types of processing.</li>
         <li><strong>Withdrawal of consent:</strong> withdraw any consent you previously provided.</li>
       </ul>
-      <p>To exercise these rights, contact us using the information in Section 12. We will respond within the timeframe required by applicable law (typically 30–45 days).</p>
+      <p>To exercise these rights, submit a trackable request through our <a href="/support">Support and Privacy Request form</a> or contact us using the information in Section 12. We will respond within the timeframe required by applicable law (typically 30–45 days).</p>
 
       <h3><span className="sub-num">7.1</span>How to Disconnect the Application</h3>
       <p>You can revoke the Service&apos;s access to your QuickBooks® Online data at any time:</p>
@@ -159,6 +160,7 @@ export default function IntegrationPrivacyPage() {
         1001 S. 10th St., Suite G#784<br />
         McAllen, Texas 78501<br />
         United States<br />
+        <a href="/support">Support and Privacy Request form</a><br />
         <a href="mailto:privacy@getbackplate.com">privacy@getbackplate.com</a> · +1 (956) 802-9639
       </div>
       <p style={{ marginTop: 28 }}>We will acknowledge your inquiry within a reasonable time and respond as required by applicable law.</p>

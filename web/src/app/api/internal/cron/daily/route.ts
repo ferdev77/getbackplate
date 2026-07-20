@@ -67,28 +67,15 @@ export async function GET(request: Request) {
       ...pendingReminderResult,
     });
 
-    // Shared 12-month retention cutoff for steps 7-9 below.
-    const twelveMonthRetentionCutoff = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
+    const operationalCutoff = new Date();
+    operationalCutoff.setUTCMonth(operationalCutoff.getUTCMonth() - 12);
+    const fiscalCutoff = new Date();
+    fiscalCutoff.setUTCFullYear(fiscalCutoff.getUTCFullYear() - 7);
 
-    // 7. Purge raw QuickBooks invoice payloads older than 12 months.
-    // Keeps the summary columns (amount, customer, dates) for history/reporting,
-    // only clears the full raw_entity payload we no longer need functionally.
-    const { error: qboRawEntityCleanupError } = await admin
-      .from("qbo_unified_invoices")
-      .update({ raw_entity: null })
-      .lt("created_at", twelveMonthRetentionCutoff)
-      .not("raw_entity", "is", null);
-
-    results.push({
-      task: "purgeQboUnifiedInvoicesRawEntity",
-      status: qboRawEntityCleanupError ? 500 : 200,
-      error: qboRawEntityCleanupError?.message ?? null,
-    });
-
-    // 8. Purge general audit_logs older than 12 months. The RPC records a
+    // 7. Purge general audit_logs older than 12 months. The RPC records a
     // durable summary in system_maintenance_logs in the same transaction.
     const { data: deletedAuditLogCount, error: auditLogsCleanupError } = await admin
-      .rpc("purge_expired_audit_logs", { p_cutoff: twelveMonthRetentionCutoff });
+      .rpc("purge_expired_audit_logs", { p_cutoff: operationalCutoff.toISOString() });
 
     if (auditLogsCleanupError) {
       const { error: maintenanceLogError } = await admin
@@ -97,7 +84,7 @@ export async function GET(request: Request) {
           task: "audit_logs_retention",
           status: "failed",
           records_affected: 0,
-          cutoff_at: twelveMonthRetentionCutoff,
+          cutoff_at: operationalCutoff.toISOString(),
           error_message: auditLogsCleanupError.message,
         });
       if (maintenanceLogError) {
@@ -112,16 +99,31 @@ export async function GET(request: Request) {
       error: auditLogsCleanupError?.message ?? null,
     });
 
-    // 9. Purge QBO/R365 integration_audit_logs older than 12 months.
-    const { error: integrationAuditLogsCleanupError } = await admin
-      .from("integration_audit_logs")
-      .delete()
-      .lt("created_at", twelveMonthRetentionCutoff);
+    // 8. Enforce Intuit operational (12-month) and fiscal (7-year) retention.
+    const { data: intuitRetentionCounts, error: intuitRetentionError } = await admin
+      .rpc("purge_expired_intuit_data", {
+        p_operational_cutoff: operationalCutoff.toISOString(),
+        p_fiscal_cutoff: fiscalCutoff.toISOString(),
+      });
+
+    if (intuitRetentionError) {
+      const { error: maintenanceLogError } = await admin.from("system_maintenance_logs").insert({
+        task: "intuit_data_retention",
+        status: "failed",
+        records_affected: 0,
+        cutoff_at: operationalCutoff.toISOString(),
+        error_message: intuitRetentionError.message,
+      });
+      if (maintenanceLogError) {
+        console.error("Unable to record failed Intuit data cleanup", maintenanceLogError);
+      }
+    }
 
     results.push({
-      task: "purgeIntegrationAuditLogs",
-      status: integrationAuditLogsCleanupError ? 500 : 200,
-      error: integrationAuditLogsCleanupError?.message ?? null,
+      task: "purgeExpiredIntuitData",
+      status: intuitRetentionError ? 500 : 200,
+      counts: intuitRetentionCounts ?? null,
+      error: intuitRetentionError?.message ?? null,
     });
 
     return NextResponse.json({ ok: true, results });

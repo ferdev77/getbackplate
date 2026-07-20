@@ -9,6 +9,7 @@ import { requireSuperadmin } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { createSuperadminImpersonationSession, setSuperadminImpersonationCookie } from "@/shared/lib/impersonation";
 import { setActiveOrganizationIdCookie } from "@/shared/lib/tenant-selection";
+import { disconnectQboConnection } from "@/modules/integrations/qbo-r365/service";
 
 import {
   sendOrganizationAdminInvitation,
@@ -374,7 +375,18 @@ export async function deleteOrganizationAction(formData: FormData) {
     );
   }
 
-  await cleanupTenantStorageArtifacts(organizationId);
+  try {
+    await disconnectQboConnection({
+      organizationId,
+      actorId: null,
+      requireRemoteRevocation: true,
+    });
+  } catch (error) {
+    redirect(
+      `/superadmin/organizations?action=delete&org=${organizationId}&status=error&message=` +
+        qs(error instanceof Error ? `No se pudo revocar QuickBooks: ${error.message}` : "No se pudo revocar QuickBooks"),
+    );
+  }
 
   const { error: deleteError } = await supabase
     .from("organizations")
@@ -387,6 +399,9 @@ export async function deleteOrganizationAction(formData: FormData) {
         qs(`No se pudo eliminar organización: ${deleteError.message}`),
     );
   }
+
+  // Remove external artifacts only after the relational delete succeeded.
+  await cleanupTenantStorageArtifacts(organizationId);
 
   await logAuditEvent({
     action: "organization.delete",

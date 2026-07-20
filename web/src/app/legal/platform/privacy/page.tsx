@@ -136,7 +136,7 @@ export default function PlatformPrivacyPage() {
         <li><strong>Billing records</strong> are retained for seven (7) years as required for financial and tax compliance.</li>
         <li><strong>Technical logs</strong> (error logs, access logs) are retained for twelve (12) months.</li>
       </ul>
-      <p>You may request export or deletion of your data at any time by contacting us at the address in Section 13.</p>
+      <p>You may request export or deletion of your data at any time through our <a href="/support">Support and Privacy Request form</a> or by contacting us at the address in Section 13.</p>
 
       <h2><span className="section-num">7.</span>Communications Consent and Preferences</h2>
 
@@ -192,6 +192,7 @@ export default function PlatformPrivacyPage() {
         1001 S. 10th St., Suite G#784<br />
         McAllen, Texas 78501<br />
         United States<br />
+        <a href="/support">Support and Privacy Request form</a><br />
         <a href="mailto:privacy@getbackplate.com">privacy@getbackplate.com</a> · +1 (956) 802-9639
       </div>
       <p style={{ marginTop: 28 }}>We will acknowledge your inquiry within a reasonable time and respond as required by applicable law.</p>

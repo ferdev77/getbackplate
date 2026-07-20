@@ -13,7 +13,7 @@ export default function IntegrationTermsPage() {
       title="End-User License Agreement"
       subtitle="QuickBooks® Online to Restaurant365 Integration"
       effective="July 23, 2026"
-      lastUpdated="July 1, 2026"
+      lastUpdated="July 19, 2026"
       version="2026.07.23"
     >
       <h2><span className="section-num">1.</span>Acceptance of Terms</h2>
@@ -27,8 +27,8 @@ export default function IntegrationTermsPage() {
       <ol>
         <li>Connects to a User&apos;s QuickBooks® Online account via the Intuit Developer API using OAuth 2.0 authorization;</li>
         <li>Retrieves invoice data and related financial records from the User&apos;s authorized QuickBooks® Online account;</li>
-        <li>Transforms that data into a CSV, TXT, or EDI 810 format compatible with Restaurant365 (&quot;R365&quot;); and</li>
-        <li>Delivers the transformed data to a designated Restaurant365 FTP endpoint specified by the User or their authorized counterparty.</li>
+        <li>Transforms that data into a CSV format compatible with Restaurant365 (&quot;R365&quot;); and</li>
+        <li>Delivers the transformed data to a designated Restaurant365 FTP or FTPS endpoint specified by the User or their authorized counterparty.</li>
       </ol>
       <p>The Service operates as an automated, unattended data pipeline. The Service does not modify, create, or delete records within QuickBooks® Online.</p>
 

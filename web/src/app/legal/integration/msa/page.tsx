@@ -13,7 +13,7 @@ export default function IntegrationMsaPage() {
       title="Master Services Agreement"
       subtitle="QuickBooks® Online to Restaurant365 Integration"
       effective="July 23, 2026"
-      lastUpdated="July 1, 2026"
+      lastUpdated="July 19, 2026"
       version="2026.07.23"
     >
       <div className="preamble">
@@ -54,7 +54,7 @@ export default function IntegrationMsaPage() {
 
       <h2><span className="section-num">3.</span>Term and termination</h2>
       <h3><span className="sub-num">3.1</span>Term</h3>
-      <p>This Agreement shall commence on the Acceptance Date and continue on a month-to-month basis until terminated by either Party in accordance with this Section 3.</p>
+      <p>This Agreement shall commence on the Acceptance Date and continue for the monthly or annual billing term selected by Customer until terminated in accordance with this Section 3.</p>
       <h3><span className="sub-num">3.2</span>Termination for convenience</h3>
       <p>Either Party may terminate this Agreement for convenience at any time upon thirty (30) days&apos; prior written notice to the other Party.</p>
       <h3><span className="sub-num">3.3</span>Termination for cause</h3>
@@ -66,7 +66,7 @@ export default function IntegrationMsaPage() {
       <h3><span className="sub-num">4.1</span>Fees</h3>
       <p>Customer shall pay Provider the fees set forth in Schedule B.</p>
       <h3><span className="sub-num">4.2</span>Billing</h3>
-      <p>All fees shall be billed monthly via Stripe or such other payment processor as Provider may designate. Subscription Fees are billed in advance for the upcoming month. Usage Fees are billed in arrears for the prior month based on the volume of documents successfully delivered.</p>
+      <p>Subscription Fees shall be billed monthly or annually in advance, according to the billing term selected by Customer, via Stripe or such other payment processor as Provider may designate. Usage Fees are billed in arrears based on the volume of documents successfully delivered.</p>
       <h3><span className="sub-num">4.3</span>Payment method</h3>
       <p>Customer shall maintain a valid payment method on file with Provider&apos;s payment processor and authorizes Provider to charge such method automatically for fees due hereunder.</p>
       <h3><span className="sub-num">4.4</span>Late payment</h3>
@@ -106,7 +106,7 @@ export default function IntegrationMsaPage() {
       <h3><span className="sub-num">7.3</span>Privacy Policy</h3>
       <p>Provider&apos;s collection, use, and storage of Customer Data is further described in its Privacy Policy available at <Link href="/legal/integration/privacy">getbackplate.com/legal/integration/privacy</Link>, as may be updated from time to time.</p>
       <h3><span className="sub-num">7.4</span>Data retention</h3>
-      <p>Provider shall retain processed documents and associated metadata for a period of seven (7) years from creation, or such longer period as may be required by applicable law, for audit and recovery purposes.</p>
+      <p>Provider retains operational processing data, webhook payloads, detailed transformation records, and delivery logs for up to twelve (12) months. Provider retains minimum fiscal records, including invoice or credit-memo summaries, delivery evidence needed for billing, payment records, and contract acceptance records, for up to seven (7) years where required for tax, accounting, dispute, or legal compliance. Generated CSV content is not retained by Provider after transmission.</p>
       <h3><span className="sub-num">7.5</span>Data return and deletion</h3>
       <p>Upon termination, Provider shall, upon Customer&apos;s written request made within thirty (30) days of termination, return or destroy Customer Data within an additional thirty (30) days thereafter, except where retention is required by applicable law or for legitimate business purposes.</p>
       <h3><span className="sub-num">7.6</span>Security</h3>
@@ -195,7 +195,7 @@ export default function IntegrationMsaPage() {
       <h3><span className="sub-num">18.2</span>Authority</h3>
       <p>By accepting this Agreement, the individual completing checkout or otherwise providing acceptance represents and warrants that they are authorized to bind Customer to this Agreement.</p>
       <h3><span className="sub-num">18.3</span>Record of acceptance</h3>
-      <p>Provider shall maintain a record of Customer&apos;s acceptance, including (i) the date and time of acceptance, (ii) the IP address from which acceptance was given, (iii) the version of this Agreement accepted, and (iv) the email address and business name provided during checkout. Such record shall be admissible evidence of acceptance and constitutes Customer&apos;s electronic signature under the Electronic Signatures in Global and National Commerce Act (E-SIGN) and applicable state equivalents.</p>
+      <p>Provider shall maintain the acceptance evidence made available by Stripe Checkout, including the date and time of acceptance, the version of this Agreement accepted, the Checkout Session identifier, and the customer email provided during checkout. Stripe does not provide the customer&apos;s acceptance IP address to Provider. The retained record constitutes Customer&apos;s electronic acceptance under the Electronic Signatures in Global and National Commerce Act (E-SIGN) and applicable state equivalents.</p>
       <h3><span className="sub-num">18.4</span>Additional connections</h3>
       <p>Customer may add additional R365 customer connections via Provider&apos;s dashboard or by request to Provider&apos;s support team. Each additional connection is billed at the rate set forth in Schedule B, and Customer&apos;s acceptance of this Agreement extends to such additional connections without additional formal acceptance required.</p>
 
@@ -225,7 +225,7 @@ export default function IntegrationMsaPage() {
           <li><strong>Webhook reception.</strong> The Service receives real-time event notifications from Intuit QuickBooks® Online via OAuth-authenticated webhooks for invoice and credit memo events.</li>
           <li><strong>Document processing.</strong> Upon receipt of an event indicating that an invoice or credit memo has been sent by Customer (EmailStatus = &quot;EmailSent&quot;), the Service retrieves the document data from QuickBooks® Online via API.</li>
           <li><strong>Format transformation.</strong> The Service transforms the document data into the Restaurant365 Multi-Invoice CSV format, mapping Customer&apos;s Account Numbers (as configured in QuickBooks® Online customer profiles) to the appropriate location identifiers in Restaurant365.</li>
-          <li><strong>Delivery to R365.</strong> The Service uploads the formatted CSV file to the Restaurant365 SFTP/FTP endpoint configured for each of Customer&apos;s R365 customer relationships.</li>
+          <li><strong>Delivery to R365.</strong> The Service uploads the formatted CSV file to the Restaurant365 FTP or FTPS endpoint configured for each of Customer&apos;s R365 customer relationships. FTPS uses TLS when enabled for that endpoint; SFTP is not currently supported.</li>
           <li><strong>Deduplication.</strong> The Service employs deduplication logic to ensure that each invoice or credit memo is delivered exactly once, even in the event of webhook retries or processing reattempts.</li>
           <li><strong>Retry logic.</strong> The Service implements retry logic for failed deliveries with progressive backoff intervals (5 minutes, 15 minutes, 1 hour, 4 hours, 24 hours) up to ten (10) total attempts before flagging a document as permanently failed.</li>
           <li><strong>Scheduled sweeps.</strong> The Service runs scheduled background jobs throughout the day to catch any documents missed by real-time webhooks.</li>

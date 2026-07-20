@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { completeQboOAuthCallback } from "@/modules/integrations/qbo-r365/service";
+import { completeQboOAuthCallback, QboRealmOwnershipError } from "@/modules/integrations/qbo-r365/service";
 import { verifyOAuthStateToken } from "@/modules/integrations/qbo-r365/oauth-state";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { getCanonicalAppUrl } from "@/shared/lib/app-url";
@@ -53,7 +53,10 @@ export async function GET(request: Request) {
     });
 
     return redirectToIntegration("ok", "QuickBooks® Online connected successfully.");
-  } catch {
+  } catch (error) {
+    if (error instanceof QboRealmOwnershipError) {
+      return redirectToIntegration("error", error.message);
+    }
     return redirectToIntegration("error", "Unable to complete QuickBooks® Online authorization. Please try again.");
   }
 }

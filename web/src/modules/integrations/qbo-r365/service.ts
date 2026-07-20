@@ -5,8 +5,9 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { notifyIntegrationEvent } from "@/infrastructure/push/integration-alerts";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { getCanonicalAppUrl } from "@/shared/lib/app-url";
-import { decryptJsonPayload, encryptJsonPayload } from "@/modules/integrations/qbo-r365/crypto";
+import { decryptJsonPayload, encryptJsonPayload, hashQboRealmId } from "@/modules/integrations/qbo-r365/crypto";
 import { createOAuthStateToken } from "@/modules/integrations/qbo-r365/oauth-state";
+import { shouldApplyQboAppDisconnect } from "@/modules/integrations/qbo-r365/lifecycle";
 import {
   buildQboAuthorizeUrl,
   exchangeQboOAuthCode,
@@ -43,9 +44,18 @@ type ConnectionRow = {
   secrets_ciphertext: string | null;
   secrets_iv: string | null;
   secrets_tag: string | null;
+  realm_id_hash: string | null;
   connected_at: string | null;
   last_error: string | null;
+  updated_at: string;
 };
+
+export class QboRealmOwnershipError extends Error {
+  constructor() {
+    super("This QuickBooks company is already connected to another organization.");
+    this.name = "QboRealmOwnershipError";
+  }
+}
 
 type SettingsRow = {
   organization_id: string;
@@ -122,7 +132,7 @@ async function getConnection(organizationId: string, provider: IntegrationProvid
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin
     .from("integration_connections")
-    .select("id, organization_id, provider, status, config, secrets_ciphertext, secrets_iv, secrets_tag, connected_at, last_error")
+    .select("id, organization_id, provider, status, config, secrets_ciphertext, secrets_iv, secrets_tag, realm_id_hash, connected_at, last_error, updated_at")
     .eq("organization_id", organizationId)
     .eq("provider", provider)
     .maybeSingle();
@@ -141,6 +151,7 @@ async function upsertConnection(input: {
   status?: "disconnected" | "connected" | "error";
   config?: Record<string, unknown>;
   secretPayload?: Record<string, unknown> | null;
+  realmIdHash?: string | null;
   connectedAt?: string | null;
   lastError?: string | null;
 }) {
@@ -161,10 +172,15 @@ async function upsertConnection(input: {
   if (input.config) payload.config = input.config;
   if (input.connectedAt !== undefined) payload.connected_at = input.connectedAt;
   if (input.lastError !== undefined) payload.last_error = input.lastError;
+  if (input.realmIdHash !== undefined) payload.realm_id_hash = input.realmIdHash;
   if (encrypted) {
     payload.secrets_ciphertext = encrypted.ciphertext;
     payload.secrets_iv = encrypted.iv;
     payload.secrets_tag = encrypted.tag;
+  } else if (input.secretPayload === null) {
+    payload.secrets_ciphertext = null;
+    payload.secrets_iv = null;
+    payload.secrets_tag = null;
   }
 
   const { error } = await admin
@@ -172,7 +188,7 @@ async function upsertConnection(input: {
     .upsert({ ...payload, created_by: input.actorId ?? null }, { onConflict: "organization_id,provider" });
 
   if (error) {
-    throw new Error(error.message);
+    throw Object.assign(new Error(error.message), { code: error.code });
   }
 }
 
@@ -1104,8 +1120,18 @@ async function storeQboConnectionToken(input: {
   realmId: string;
   token: { access_token: string; refresh_token: string; token_type: string; expires_in: number };
 }) {
+  const realmId = input.realmId.trim();
+  const realmIdHash = hashQboRealmId(realmId);
+  const existingOwnerId = await getOrganizationIdByRealmId(realmId, ["connected", "error"]);
+  if (existingOwnerId && existingOwnerId !== input.organizationId) {
+    throw new QboRealmOwnershipError();
+  }
+
   const connection = await getConnection(input.organizationId, "quickbooks_online");
   const config = (connection?.config ?? {}) as Record<string, unknown>;
+  if (config.disconnectInProgress === true) {
+    throw new Error("QuickBooks is currently being disconnected. Please try again.");
+  }
   const currentSecrets = parseConnectionSecrets<QboStoredSecrets>(connection);
 
   const expiresAtEpochSec = Math.floor(Date.now() / 1000) + input.token.expires_in;
@@ -1115,24 +1141,44 @@ async function storeQboConnectionToken(input: {
     refreshToken: input.token.refresh_token,
     tokenType: input.token.token_type,
     expiresAtEpochSec,
-    realmId: input.realmId,
+    realmId,
   };
 
   // El realmId ya no se guarda en `config` (texto plano) -- vive cifrado
   // dentro de `secretPayload`, igual que los tokens.
-  const { realmId: _staleRealmId, ...configWithoutRealmId } = config;
+  const { realmId: _staleRealmId, disconnectInProgress: _disconnectInProgress, ...configWithoutRealmId } = config;
   void _staleRealmId;
+  void _disconnectInProgress;
 
-  await upsertConnection({
-    organizationId: input.organizationId,
-    provider: "quickbooks_online",
-    actorId: input.actorId,
-    status: "connected",
-    config: configWithoutRealmId,
-    secretPayload: mergedSecrets,
-    connectedAt: new Date().toISOString(),
-    lastError: null,
-  });
+  if (connection) {
+    const encrypted = encryptJsonPayload(mergedSecrets);
+    const admin = createSupabaseAdminClient();
+    const { data, error } = await admin.from("integration_connections").update({
+      status: "connected",
+      config: configWithoutRealmId,
+      secrets_ciphertext: encrypted.ciphertext,
+      secrets_iv: encrypted.iv,
+      secrets_tag: encrypted.tag,
+      realm_id_hash: realmIdHash,
+      connected_at: new Date().toISOString(),
+      last_error: null,
+      updated_by: input.actorId,
+    }).eq("id", connection.id).eq("updated_at", connection.updated_at).select("id").maybeSingle();
+    if (error) throw Object.assign(new Error(error.message), { code: error.code });
+    if (!data) throw new Error("QuickBooks changed while it was being connected. Please try again.");
+  } else {
+    await upsertConnection({
+      organizationId: input.organizationId,
+      provider: "quickbooks_online",
+      actorId: input.actorId,
+      status: "connected",
+      config: configWithoutRealmId,
+      secretPayload: mergedSecrets,
+      realmIdHash,
+      connectedAt: new Date().toISOString(),
+      lastError: null,
+    });
+  }
 
   await logAuditEvent({
     action: "integration.qbo_r365.qbo.connected",
@@ -1143,7 +1189,7 @@ async function storeQboConnectionToken(input: {
     outcome: "success",
     severity: "medium",
     metadata: {
-      realm_id: input.realmId,
+      realm_id_hash: realmIdHash,
     },
   });
 }
@@ -1159,6 +1205,11 @@ export async function completeQboOAuthCallback(input: {
     throw new Error("QuickBooks is not configured globally. Contact a super administrator.");
   }
 
+  const existingOwnerId = await getOrganizationIdByRealmId(input.realmId, ["connected", "error"]);
+  if (existingOwnerId && existingOwnerId !== input.organizationId) {
+    throw new QboRealmOwnershipError();
+  }
+
   const token = await exchangeQboOAuthCode({
     clientId: globalQbo.clientId,
     clientSecret: globalQbo.clientSecret,
@@ -1166,52 +1217,98 @@ export async function completeQboOAuthCallback(input: {
     code: input.code,
   });
 
-  await storeQboConnectionToken({
-    organizationId: input.organizationId,
-    actorId: input.actorId,
-    realmId: input.realmId,
-    token,
-  });
+  try {
+    await storeQboConnectionToken({
+      organizationId: input.organizationId,
+      actorId: input.actorId,
+      realmId: input.realmId,
+      token,
+    });
+  } catch (error) {
+    const isOwnershipConflict = error instanceof QboRealmOwnershipError
+      || (error instanceof Error && "code" in error && error.code === "23505");
+    if (!isOwnershipConflict) throw error;
+
+    // Do not revoke here: Intuit may have issued this token from the same
+    // app/company grant currently used by the legitimate owner.
+    throw new QboRealmOwnershipError();
+  }
 }
 
 export async function disconnectQboConnection(input: {
   organizationId: string;
-  actorId: string;
+  actorId: string | null;
+  requireRemoteRevocation?: boolean;
 }) {
-  const connection = await getConnection(input.organizationId, "quickbooks_online");
-  if (!connection || connection.status !== "connected") {
-    throw new Error("QuickBooks is not connected.");
-  }
-
-  const secrets = parseConnectionSecrets<QboStoredSecrets>(connection);
   const globalQbo = getGlobalQboOAuthConfig();
-
   let revokeError: string | null = null;
-  if (globalQbo.ready && secrets?.refreshToken) {
-    try {
-      await revokeQboToken({
-        clientId: globalQbo.clientId,
-        clientSecret: globalQbo.clientSecret,
-        token: secrets.refreshToken,
-      });
-    } catch (error) {
-      // Seguimos desconectando localmente aunque Intuit rechace la
-      // revocacion (por ejemplo, si el usuario ya la revoco desde su
-      // cuenta de Intuit y el token ya esta muerto).
-      revokeError = error instanceof Error ? error.message : "No se pudo revocar el token en Intuit";
-    }
+  const connection = await getConnection(input.organizationId, "quickbooks_online");
+  if (!connection) return;
+
+  const hasStoredState = Boolean(
+    connection.realm_id_hash
+    || connection.secrets_ciphertext
+    || connection.secrets_iv
+    || connection.secrets_tag
+    || connection.connected_at
+    || Object.keys(connection.config ?? {}).length,
+  );
+  if (connection.status === "disconnected" && !hasStoredState) return;
+
+  let secrets: QboStoredSecrets | null = null;
+  try {
+    secrets = parseConnectionSecrets<QboStoredSecrets>(connection);
+  } catch (error) {
+    revokeError = error instanceof Error ? error.message : "Could not decrypt QuickBooks credentials.";
+    if (input.requireRemoteRevocation) throw new Error(revokeError);
   }
 
-  await upsertConnection({
-    organizationId: input.organizationId,
-    provider: "quickbooks_online",
-    actorId: input.actorId,
+  const admin = createSupabaseAdminClient();
+  let claimedConnection = connection;
+  if (connection.config?.disconnectInProgress !== true) {
+    const { data, error } = await admin.from("integration_connections").update({
+      status: "error",
+      config: { ...(connection.config ?? {}), disconnectInProgress: true },
+      last_error: "QuickBooks disconnect in progress.",
+      updated_by: input.actorId,
+    }).eq("id", connection.id).eq("updated_at", connection.updated_at)
+      .select("id, organization_id, provider, status, config, secrets_ciphertext, secrets_iv, secrets_tag, realm_id_hash, connected_at, last_error, updated_at")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error("QuickBooks changed while it was being disconnected. Please try again.");
+    claimedConnection = data as ConnectionRow;
+  }
+
+  const token = secrets?.refreshToken ?? secrets?.accessToken;
+  if (token) {
+    if (!globalQbo.ready) {
+      revokeError = "QuickBooks OAuth is not configured globally.";
+      if (input.requireRemoteRevocation) throw new Error(revokeError);
+    } else {
+      try {
+        await revokeQboToken({ clientId: globalQbo.clientId, clientSecret: globalQbo.clientSecret, token });
+      } catch (error) {
+        revokeError = error instanceof Error ? error.message : "Could not revoke the token in Intuit.";
+        if (input.requireRemoteRevocation) throw new Error(revokeError);
+      }
+    }
+  } else if (input.requireRemoteRevocation && (connection.status !== "disconnected" || connection.realm_id_hash)) {
+    throw new Error("The QuickBooks connection has no token available to revoke.");
+  }
+
+  const { data: cleared, error: clearError } = await admin.from("integration_connections").update({
     status: "disconnected",
     config: {},
-    secretPayload: {},
-    connectedAt: null,
-    lastError: null,
-  });
+    secrets_ciphertext: null,
+    secrets_iv: null,
+    secrets_tag: null,
+    realm_id_hash: null,
+    connected_at: null,
+    last_error: null,
+    updated_by: input.actorId,
+  }).eq("id", claimedConnection.id).eq("updated_at", claimedConnection.updated_at).select("id").maybeSingle();
+  if (clearError) throw new Error(clearError.message);
+  if (!cleared) throw new Error("QuickBooks changed while it was being disconnected. Please try again.");
 
   await logAuditEvent({
     action: "integration.qbo_r365.qbo.disconnected",
@@ -1297,6 +1394,7 @@ async function ensureFreshQboToken(input: {
     status: "connected",
     config: configWithoutRealmId,
     secretPayload: nextSecrets,
+    realmIdHash: hashQboRealmId(realmId),
     lastError: null,
   });
 
@@ -3081,39 +3179,109 @@ export type QboWebhookEventRow = {
   created_at: string;
 };
 
-async function getOrganizationIdByRealmId(realmId: string): Promise<string | null> {
+async function getQboConnectionByRealmId(
+  realmId: string,
+  statuses: Array<ConnectionRow["status"]> = ["connected"],
+): Promise<ConnectionRow | null> {
   const admin = createSupabaseAdminClient();
-  // El realmId vive cifrado dentro de `secrets_*` (junto a los tokens), asi
-  // que no se puede filtrar directo en la base de datos como antes -- hay
-  // que traer las conexiones y comparar en memoria despues de descifrar.
-  // Se deja `config.realmId` como fallback para conexiones viejas que
-  // todavia no pasaron por un connect/refresh desde que se cifro.
+  const normalizedRealmId = realmId.trim();
+  const realmIdHash = hashQboRealmId(normalizedRealmId);
+  const select = "id, organization_id, provider, status, config, secrets_ciphertext, secrets_iv, secrets_tag, realm_id_hash, connected_at, last_error, updated_at";
+  const { data: hashedRow, error: hashError } = await admin
+    .from("integration_connections")
+    .select(select)
+    .eq("provider", "quickbooks_online")
+    .eq("realm_id_hash", realmIdHash)
+    .in("status", statuses)
+    .maybeSingle();
+  if (hashError) throw new Error(hashError.message);
+  if (hashedRow) return hashedRow as ConnectionRow;
+
+  // Rollout fallback for rows that predate the deterministic blind index.
   const { data, error } = await admin
     .from("integration_connections")
-    .select("organization_id, config, secrets_ciphertext, secrets_iv, secrets_tag")
+    .select(select)
     .eq("provider", "quickbooks_online")
-    .eq("status", "connected");
+    .is("realm_id_hash", null)
+    .in("status", statuses);
   if (error) throw new Error(error.message);
 
   for (const row of data ?? []) {
     const config = (row.config as Record<string, unknown> | null) ?? {};
-    let rowRealmId: string | undefined = typeof config.realmId === "string" ? config.realmId : undefined;
+    let rowRealmId: string | undefined = typeof config.realmId === "string" ? config.realmId.trim() : undefined;
 
     if (!rowRealmId && row.secrets_ciphertext && row.secrets_iv && row.secrets_tag) {
-      const secrets = decryptJsonPayload<QboStoredSecrets>({
-        ciphertext: row.secrets_ciphertext,
-        iv: row.secrets_iv,
-        tag: row.secrets_tag,
-      });
-      rowRealmId = secrets?.realmId;
+      try {
+        const secrets = decryptJsonPayload<QboStoredSecrets>({
+          ciphertext: row.secrets_ciphertext,
+          iv: row.secrets_iv,
+          tag: row.secrets_tag,
+        });
+        rowRealmId = secrets?.realmId?.trim();
+      } catch {
+        continue;
+      }
     }
 
-    if (rowRealmId === realmId) {
-      return row.organization_id as string;
+    if (rowRealmId === normalizedRealmId) {
+      return row as ConnectionRow;
     }
   }
 
   return null;
+}
+
+async function getOrganizationIdByRealmId(
+  realmId: string,
+  statuses: Array<ConnectionRow["status"]> = ["connected"],
+): Promise<string | null> {
+  const connection = await getQboConnectionByRealmId(realmId, statuses);
+  return connection?.organization_id ?? null;
+}
+
+async function handleQboAppDisconnect(event: QboWebhookEventInsert) {
+  if (!event.signatureValid || event.entity !== "AppDisconnect") return;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const connection = await getQboConnectionByRealmId(event.realmId, ["connected", "error"]);
+    if (!connection) return;
+    if (!shouldApplyQboAppDisconnect(connection.connected_at, event.lastUpdatedAt)) return;
+
+    const admin = createSupabaseAdminClient();
+    const { data, error } = await admin
+      .from("integration_connections")
+      .update({
+        status: "disconnected",
+        config: {},
+        secrets_ciphertext: null,
+        secrets_iv: null,
+        secrets_tag: null,
+        realm_id_hash: null,
+        connected_at: null,
+        last_error: null,
+        updated_by: null,
+      })
+      .eq("id", connection.id)
+      .eq("updated_at", connection.updated_at)
+      .select("id")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) continue;
+
+    await logAuditEvent({
+      action: "integration.qbo_r365.qbo.disconnected",
+      entityType: "integration",
+      organizationId: connection.organization_id,
+      actorId: null,
+      eventDomain: "settings",
+      outcome: "success",
+      severity: "medium",
+      metadata: { source: "intuit_app_disconnect", realm_id_hash: hashQboRealmId(event.realmId) },
+    });
+    return;
+  }
+
+  throw new Error("QuickBooks changed while processing AppDisconnect. Intuit should retry the webhook.");
 }
 
 export async function insertQboWebhookEvents(input: QboWebhookEventInsert[]) {
@@ -3123,7 +3291,12 @@ export async function insertQboWebhookEvents(input: QboWebhookEventInsert[]) {
   let duplicates = 0;
 
   for (const event of input) {
-    const organizationId = await getOrganizationIdByRealmId(event.realmId).catch(() => null);
+    const lookupStatuses: Array<ConnectionRow["status"]> = event.entity === "AppDisconnect"
+      ? ["connected", "error"]
+      : ["connected"];
+    const organizationId = event.signatureValid
+      ? await getOrganizationIdByRealmId(event.realmId, lookupStatuses).catch(() => null)
+      : null;
     const { data: insertedRow, error } = await admin.from("qbo_webhook_events").insert({
       signature_valid: event.signatureValid,
       intuit_event_id: event.intuitEventId,
@@ -3144,11 +3317,14 @@ export async function insertQboWebhookEvents(input: QboWebhookEventInsert[]) {
     if (error) {
       if (error.code === "23505") {
         duplicates += 1;
+        await handleQboAppDisconnect(event);
         continue;
       }
       throw new Error(error.message);
     }
     inserted += 1;
+
+    await handleQboAppDisconnect(event);
 
     // Si la firma es válida, la org fue identificada y es Invoice/CreditMemo:
     // insertar en tabla unificada como 'en_cola' y disparar fetch en background

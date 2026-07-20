@@ -61,7 +61,7 @@ async function run() {
 
     const qboConnection = await client.query(
       `
-      select status, config, (secrets_ciphertext is not null) as has_secrets
+      select status, config, realm_id_hash, (secrets_ciphertext is not null) as has_secrets
       from public.integration_connections
       where organization_id = $1 and provider = 'quickbooks_online'
       limit 1
@@ -95,7 +95,7 @@ async function run() {
       qbo_has_global_client_id: Boolean(process.env.QBO_CLIENT_ID),
       qbo_has_global_client_secret: Boolean(process.env.QBO_CLIENT_SECRET),
       qbo_has_global_redirect_uri: Boolean(process.env.QBO_REDIRECT_URI),
-      qbo_has_realm_id: Boolean(qboRow?.config?.realmId),
+      qbo_has_realm_ownership_hash: Boolean(qboRow?.realm_id_hash),
       r365_ftp_configured: Boolean(ftpRow),
       r365_ftp_status: ftpRow?.status ?? null,
       r365_ftp_has_secrets_blob: Boolean(ftpRow?.has_secrets),

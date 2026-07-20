@@ -155,7 +155,9 @@ export async function revokeQboToken(input: {
 
   if (!response.ok) {
     const data = (await response.json().catch(() => ({}))) as QboFaultError;
-    throw new Error(data.message || data.Message || "No se pudo revocar el acceso en QuickBooks® Online");
+    const message = data.message || data.Message || "";
+    if (response.status === 400 && /invalid.*token|token.*invalid|already.*revok/i.test(message)) return;
+    throw new Error(message || "No se pudo revocar el acceso en QuickBooks® Online");
   }
 }
 

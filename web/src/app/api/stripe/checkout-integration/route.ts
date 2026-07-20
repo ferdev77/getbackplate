@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { stripe } from "@/infrastructure/stripe/client";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { buildTermsConsentParams, legalConsentMetadata } from "@/shared/lib/legal-consent";
+import { calculateSetupFeeCents } from "@/modules/billing/setup-fee";
 
 type BillingPeriod = "monthly" | "annual";
 
@@ -51,12 +52,10 @@ export async function POST(request: Request) {
     const payload = (await request.json()) as {
       planId?: string;
       billingPeriod?: string;
-      includeSetupFee?: boolean;
     };
 
     const planId = typeof payload.planId === "string" ? payload.planId.trim() : "";
     const period: BillingPeriod = payload.billingPeriod === "annual" ? "annual" : "monthly";
-    const includeSetupFee = payload.includeSetupFee === true;
 
     if (!planId) {
       return NextResponse.json({ error: "Missing planId" }, { status: 400 });
@@ -123,11 +122,20 @@ export async function POST(request: Request) {
         ? ((plan as Record<string, unknown>).code as string)
         : "";
 
-    // Setup fee: solo en nuevas contrataciones, opcional
+    const { data: existingAddon } = await supabase
+      .from("organization_addons")
+      .select("stripe_subscription_id, status, integration_plan_id, setup_fee_paid")
+      .eq("organization_id", organizationId)
+      .eq("module_id", moduleId ?? "")
+      .maybeSingle();
+
+    // Setup is a one-time charge. Existing subscriptions are not charged again,
+    // including legacy subscriptions created before setup tracking was added.
+    const shouldChargeSetupFee = !existingAddon?.setup_fee_paid && !existingAddon?.stripe_subscription_id;
     const rawSetupFee = (plan as Record<string, unknown>).setup_fee_amount as number | null ?? null;
     const discountPct = (plan as Record<string, unknown>).setup_fee_annual_discount_pct as number ?? 25;
-    const setupFeeAmountCents = rawSetupFee
-      ? Math.round((period === "annual" && discountPct > 0 ? rawSetupFee * (1 - discountPct / 100) : rawSetupFee) * 100)
+    const setupFeeAmountCents = shouldChargeSetupFee
+      ? calculateSetupFeeCents({ setupFeeAmount: rawSetupFee, billingPeriod: period, annualDiscountPct: discountPct })
       : 0;
 
     const sharedMeta = {
@@ -139,19 +147,12 @@ export async function POST(request: Request) {
       integrationPlanId: plan.id,
       integrationPlanCode: planCode,
       billingPeriod: period,
-      setupFeePaid: includeSetupFee && setupFeeAmountCents > 0 ? "true" : "false",
-      setupFeeAmount: includeSetupFee && setupFeeAmountCents > 0 ? String(setupFeeAmountCents) : "0",
+      setupFeePaid: setupFeeAmountCents > 0 ? "true" : "false",
+      setupFeeAmount: String(setupFeeAmountCents),
       ...legalConsentMetadata(),
     };
 
     // ── UPGRADE / DOWNGRADE: org already has an active integration subscription ──
-    const { data: existingAddon } = await supabase
-      .from("organization_addons")
-      .select("stripe_subscription_id, status, integration_plan_id")
-      .eq("organization_id", organizationId)
-      .eq("module_id", moduleId ?? "")
-      .maybeSingle();
-
     if (
       existingAddon?.status === "active" &&
       existingAddon.stripe_subscription_id &&
@@ -214,12 +215,12 @@ export async function POST(request: Request) {
     // Setup fee: precio one-time agregado directamente a line_items.
     // En subscription mode, Stripe cobra los items sin `recurring` solo en el
     // primer invoice y los muestra en el resumen del checkout.
-    const setupLineItem = includeSetupFee && setupFeeAmountCents > 0
+    const setupLineItem = setupFeeAmountCents > 0
       ? [{
           price_data: {
             currency: "usd" as const,
             product_data: {
-              name: `Setup · ${planName}${period === "annual" ? " (25% annual discount)" : ""}`,
+              name: `Setup · ${planName}${period === "annual" ? ` (${discountPct}% annual discount)` : ""}`,
             },
             unit_amount: setupFeeAmountCents,
           },

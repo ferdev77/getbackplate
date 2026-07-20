@@ -171,8 +171,8 @@ export default function TrustCenterPage() {
               teams, partners, and customers doing real due diligence.
             </p>
             <div className="hero-meta">
-              <span><strong>Last updated</strong> July 13, 2026</span>
-              <span><strong>Version</strong> 2026.07.13</span>
+              <span><strong>Last updated</strong> July 19, 2026</span>
+              <span><strong>Version</strong> 2026.07.19</span>
               <span><strong>Entity</strong> Backplate Technologies LLC</span>
             </div>
           </div>
@@ -301,7 +301,7 @@ export default function TrustCenterPage() {
                 <table className="spec-table">
                   <tbody>
                     <tr><th>Transport encryption</th><td>TLS enforced for all HTTP traffic, with HSTS (Strict-Transport-Security) on every response</td></tr>
-                    <tr><th>Invoice delivery encryption</th><td>FTPS (TLS) enforced on every Restaurant365 delivery connection</td></tr>
+                    <tr><th>Invoice delivery transport</th><td>FTP or FTPS, according to the destination endpoint configuration; FTPS uses TLS when enabled</td></tr>
                     <tr><th>Credential encryption</th><td>AES-256-GCM, applied at the application layer to OAuth tokens and Restaurant365 delivery credentials before storage</td></tr>
                     <tr><th>Database encryption</th><td>Managed Postgres (Supabase) with encryption at rest on the underlying volume</td></tr>
                     <tr><th>Token refresh</th><td>QuickBooks® Online access tokens are refreshed automatically before they expire; a failed refresh marks the connection as disconnected rather than failing silently</td></tr>
@@ -360,7 +360,7 @@ export default function TrustCenterPage() {
                   <tbody>
                     <tr><th>Compute</th><td>Vercel Functions — Portland, Oregon, USA (pdx1), configured as the primary function region near the database</td></tr>
                     <tr><th>Database</th><td>Supabase-managed PostgreSQL, hosted on AWS (us-west-2)</td></tr>
-                    <tr><th>Outbound delivery</th><td>FTPS to a Restaurant365 endpoint, configurable per customer connection</td></tr>
+                    <tr><th>Outbound delivery</th><td>FTP or FTPS to a Restaurant365 endpoint, configurable per customer connection; SFTP is not currently supported</td></tr>
                     <tr><th>Data residency</th><td>Application compute and database infrastructure are located in the United States</td></tr>
                     <tr><th>Underlying provider</th><td>Amazon Web Services (AWS) — independently certified SOC 2 Type 2, ISO 27001, PCI DSS Level 1</td></tr>
                   </tbody>
@@ -403,8 +403,8 @@ export default function TrustCenterPage() {
                 </ul>
 
                 <div className="note-callout">
-                  <strong>Note on log retention:</strong> operational audit logs are automatically
-                  purged after 12 months via a scheduled daily job.
+                  <strong>Note on retention:</strong> operational QBO/webhook/run records and raw payloads are automatically
+                  purged after 12 months. Minimum fiscal and billing records are retained for up to seven years.
                 </div>
               </div>
             </div>
@@ -536,13 +536,13 @@ export default function TrustCenterPage() {
                 <div className="transparency-block">
                   <div className="section-title" style={{ marginBottom: 12, fontSize: 18 }}>What we have today</div>
                   <ul className="check-list">
-                    <li><span className="ck-icon" /><span className="ck-text">Encryption in transit and at rest across production data.</span></li>
-                    <li><span className="ck-icon" /><span className="ck-text">FTPS (encrypted transport) enforced on every Restaurant365 delivery connection.</span></li>
+                    <li><span className="ck-icon" /><span className="ck-text">TLS for HTTP traffic and configured FTPS deliveries, plus encryption at rest for production data.</span></li>
+                    <li><span className="ck-icon" /><span className="ck-text">FTP or FTPS delivery according to each Restaurant365 endpoint configuration, with TLS when FTPS is enabled.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Row-Level Security enforcing tenant isolation, with a database trigger that auto-enables it on new tables.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Role-based access control and a functioning audit log.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Tech E&amp;O and Cyber Liability coverage committed at $1M / $2M USD via our Master Services Agreement.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Privacy Policy and Terms of Service published and versioned for both products.</span></li>
-                    <li><span className="ck-icon" /><span className="ck-text">Audit log retention policy — operational logs are purged automatically after 12 months via a scheduled daily job.</span></li>
+                    <li><span className="ck-icon" /><span className="ck-text">Retention policy enforced by a scheduled daily job: 12 months for operational integration data and seven years for minimum fiscal and billing records.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Email-based two-step verification, required for administrative accounts on organizations with the QuickBooks® Online integration active.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Documented Incident Response and Breach Notification Protocol, following the NIST SP 800-61 framework — see our <Link href="/legal/integration/incident-response">Incident Response documentation</Link>.</span></li>
                   </ul>
@@ -610,7 +610,7 @@ export default function TrustCenterPage() {
                 <li><Link href="/trust">Trust Center</Link></li>
                 <li><Link href="/legal/integration/incident-response">Incident Response</Link></li>
                 <li><a href="mailto:security@getbackplate.com">Report a security issue</a></li>
-                <li><a href="mailto:privacy@getbackplate.com">Privacy inquiries</a></li>
+                <li><Link href="/support">Support and privacy requests</Link></li>
               </ul>
             </div>
             <div className="footer-col">
@@ -623,7 +623,7 @@ export default function TrustCenterPage() {
           </div>
           <div className="footer-bottom">
             <div><strong>Backplate Technologies LLC</strong>, d/b/a GetBackplate · 1001 S. 10th St., Suite G#784, McAllen, TX 78501</div>
-            <div>Last reviewed July 13, 2026</div>
+            <div>Last reviewed July 19, 2026</div>
           </div>
         </div>
       </footer>

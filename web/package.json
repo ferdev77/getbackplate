@@ -60,6 +60,7 @@
     "report:tenant-usage:csv": "node --env-file=.env.local scripts/generate-tenant-usage-report.mjs --format=csv",
     "verify:layout-guardrails": "node scripts/verify-layout-guardrails.mjs",
     "verify:qbo-r365-readiness": "node --env-file=.env.local scripts/verify-qbo-r365-readiness.mjs",
+    "backfill:qbo-realm-ownership": "tsx scripts/backfill-qbo-realm-ownership.ts",
     "verify:employee-all-locations-multi-position": "node --env-file=.env.production.local scripts/verify-employee-all-locations-multi-position.mjs"
   },
   "dependencies": {

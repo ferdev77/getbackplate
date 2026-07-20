@@ -249,7 +249,6 @@ export function CompanyShell({
   const [integrationPlanOpen, setIntegrationPlanOpen] = useState<string | null>(null); // stores integrationPlanType
   const [integrationPlanBillingCycle, setIntegrationPlanBillingCycle] = useState<"monthly" | "annual">("monthly");
   const [integrationPlanBusy, setIntegrationPlanBusy] = useState<string | null>(null);
-  const [setupFeeSelected, setSetupFeeSelected] = useState<Record<string, boolean>>({});
   const [lockedViewTab, setLockedViewTab] = useState<"platform" | "integration">("platform");
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(SECTIONS.map((section) => [section.label, false])),
@@ -855,13 +854,13 @@ export function CompanyShell({
     }
   }
 
-  async function startIntegrationPlanCheckout(planId: string, period: "monthly" | "annual", includeSetupFee = false) {
+  async function startIntegrationPlanCheckout(planId: string, period: "monthly" | "annual") {
     setIntegrationPlanBusy(planId);
     try {
       const res = await fetch("/api/stripe/checkout-integration", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId, billingPeriod: period, includeSetupFee }),
+        body: JSON.stringify({ planId, billingPeriod: period }),
       });
       const data = await res.json() as { url?: string; upgraded?: boolean; error?: string };
       if (res.status === 401) {
@@ -1955,7 +1954,6 @@ export function CompanyShell({
                     {integrationPlans.map((plan) => {
                       const isCurrent = lockScreenOrgAddon?.integrationPlanId === plan.id;
                       const isSelectedFromLanding = selectedIntegrationPlanIdFromUrl === plan.id;
-                      const includeSetupFee = setupFeeSelected[plan.id] ?? true;
                       const monthly = plan.priceAmount ?? 0;
                       const annualPerMonth = Math.round((monthly * 10) / 12);
                       const displayPrice = integrationPlanBillingCycle === "annual" ? annualPerMonth : monthly;
@@ -1992,23 +1990,24 @@ export function CompanyShell({
                             </p>
                           ))}
                           {!plan.isEnterprise && !isCurrent && plan.setupFeeAmount != null && (
-                            <label className={`mt-3 flex items-start gap-2 rounded-lg border p-2.5 text-[10px] transition ${isDarkTheme ? "border-white/20 bg-white/[0.06]" : "border-[var(--gbp-accent)]/30 bg-[var(--gbp-accent-glow)]"}`}>
+                            <div className={`mt-3 flex items-start gap-2 rounded-lg border p-2.5 text-[10px] ${isDarkTheme ? "border-white/20 bg-white/[0.06]" : "border-[var(--gbp-accent)]/30 bg-[var(--gbp-accent-glow)]"}`}>
                               <input
                                 type="checkbox"
                                 className="mt-px shrink-0 accent-[var(--gbp-accent)]"
-                                checked={includeSetupFee}
-                                onChange={(event) => setSetupFeeSelected((current) => ({ ...current, [plan.id]: event.target.checked }))}
+                                checked
+                                disabled
+                                readOnly
                               />
                               <span className={isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}>
                                 {t("Setup de configuración inicial")}
                                 {integrationPlanBillingCycle === "annual" && plan.setupFeeDiscountPct > 0 ? (
-                                  <> · <span className="line-through opacity-50">${plan.setupFeeAmount.toLocaleString("en-US")}</span> <span className="font-semibold text-emerald-500">${Math.round(plan.setupFeeAmount * (1 - plan.setupFeeDiscountPct / 100)).toLocaleString("en-US")}</span> <span className="text-emerald-500 text-[9px]">−{plan.setupFeeDiscountPct}%</span></>
+                                  <> · <span className="line-through opacity-50">${plan.setupFeeAmount.toLocaleString("en-US")}</span> <span className="font-semibold text-emerald-500">${(plan.setupFeeAmount * (1 - plan.setupFeeDiscountPct / 100)).toLocaleString("en-US")}</span> <span className="text-emerald-500 text-[9px]">−{plan.setupFeeDiscountPct}%</span></>
                                 ) : (
                                   <> · <span className="font-semibold">${plan.setupFeeAmount.toLocaleString("en-US")}</span></>
                                 )}
                                 <span className={`ml-1 text-[9px] ${isDarkTheme ? "opacity-40" : "opacity-60"}`}>one-time</span>
                               </span>
-                            </label>
+                            </div>
                           )}
                           {plan.isEnterprise ? (
                             <a href={`mailto:${plan.ctaEmail ?? "angelo@mkthelp.com"}?subject=QuickBooks%C2%AE Online R365 - ${plan.name} Plan`} className={`mt-auto block w-full rounded-lg px-3 py-2 text-center text-[11px] font-bold transition ${isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]"}`}>
@@ -2018,7 +2017,7 @@ export function CompanyShell({
                             <button
                               type="button"
                               disabled={isLoading || isCurrent}
-                              onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle, includeSetupFee)}
+                              onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle)}
                               className={`mt-auto w-full rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${isCurrent ? (isDarkTheme ? "bg-white/10 text-white/40" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]") : plan.isFeatured ? "bg-[var(--gbp-accent)] text-white hover:opacity-90" : (isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]")}`}
                             >
                               {isLoading ? t("Redirigiendo...") : isCurrent ? t("Plan actual") : t("Contratar →")}
@@ -2746,7 +2745,7 @@ export function CompanyShell({
                         <span className={isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}>
                           {t("Setup de configuración inicial")}
                           {integrationPlanBillingCycle === "annual" && plan.setupFeeDiscountPct > 0 ? (
-                            <> · <span className="line-through opacity-50">${plan.setupFeeAmount.toLocaleString("en-US")}</span> <span className="font-semibold text-emerald-500">${Math.round(plan.setupFeeAmount * (1 - plan.setupFeeDiscountPct / 100)).toLocaleString("en-US")}</span> <span className="text-emerald-500 text-[9px]">−{plan.setupFeeDiscountPct}%</span></>
+                            <> · <span className="line-through opacity-50">${plan.setupFeeAmount.toLocaleString("en-US")}</span> <span className="font-semibold text-emerald-500">${(plan.setupFeeAmount * (1 - plan.setupFeeDiscountPct / 100)).toLocaleString("en-US")}</span> <span className="text-emerald-500 text-[9px]">−{plan.setupFeeDiscountPct}%</span></>
                           ) : (
                             <> · <span className="font-semibold">${plan.setupFeeAmount.toLocaleString("en-US")}</span></>
                           )}
@@ -2769,7 +2768,7 @@ export function CompanyShell({
                       <button
                         type="button"
                         disabled={isLoading || isCurrent}
-                        onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle, true)}
+                        onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle)}
                         className={`w-full rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                           isCurrent
                             ? isDarkTheme ? "bg-white/10 text-white/40" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]"

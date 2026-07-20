@@ -40,7 +40,7 @@ export async function getActivePlansForIntegration(integrationType: string) {
   const supabase = createSupabaseAdminClient();
   const { data: plans, error } = await supabase
     .from("plans")
-    .select("id, code, name, description, price_amount, currency_code, billing_period, is_featured, is_enterprise, setup_fee_amount, features, cta_text, cta_email, sort_order, stripe_price_id")
+    .select("id, code, name, description, price_amount, currency_code, billing_period, is_featured, is_enterprise, setup_fee_amount, setup_fee_annual_discount_pct, features, cta_text, cta_email, sort_order, stripe_price_id")
     .eq("is_active", true)
     .eq("plan_type", integrationType)
     .order("sort_order", { ascending: true })

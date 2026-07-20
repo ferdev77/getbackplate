@@ -42,6 +42,51 @@ function getStripeObjectId(value: string | { id: string } | null): string | null
   return typeof value === 'string' ? value : value?.id ?? null;
 }
 
+async function retryComplianceWrite(
+  label: string,
+  write: () => PromiseLike<{ error: { message: string } | null }>,
+) {
+  let lastError: { message: string } | null = null;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const result = await write();
+    if (!result.error) return;
+    lastError = result.error;
+    if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 100));
+  }
+  console.error(`[Webhook] Unable to archive ${label} after retries:`, lastError);
+}
+
+async function recordBillingPayment(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  record: {
+    organizationId: string;
+    recordType: 'stripe_invoice' | 'manual_payment';
+    sourceEventId: string;
+    amountCents: number;
+    currency: string;
+    paidAt: string;
+    stripeInvoiceId?: string | null;
+    stripePaymentIntentId?: string | null;
+    stripeCheckoutSessionId?: string | null;
+    description?: string | null;
+    metadata?: Record<string, unknown>;
+  },
+) {
+  await retryComplianceWrite('billing record', () => supabase.from('billing_records').upsert({
+    organization_id: record.organizationId,
+    record_type: record.recordType,
+    source_event_id: record.sourceEventId,
+    stripe_invoice_id: record.stripeInvoiceId ?? null,
+    stripe_payment_intent_id: record.stripePaymentIntentId ?? null,
+    stripe_checkout_session_id: record.stripeCheckoutSessionId ?? null,
+    amount_cents: Math.max(0, Math.round(record.amountCents)),
+    currency: record.currency.toLowerCase(),
+    paid_at: record.paidAt,
+    description: record.description ?? null,
+    metadata: record.metadata ?? {},
+  }, { onConflict: 'source_event_id', ignoreDuplicates: true }));
+}
+
 /**
  * Compute the real period end based on subscription interval and trial status.
  * Stripe API v2026-02-25 removed current_period_start/end — we must derive them.
@@ -221,6 +266,14 @@ export async function POST(req: Request) {
         // dejamos constancia en audit_logs. No incluye IP (Stripe no la expone
         // via API), solo fecha, organizacion, email y version del documento.
         if (session.consent?.terms_of_service === 'accepted') {
+          await retryComplianceWrite('legal acceptance', () => supabase.from('legal_acceptance_records').upsert({
+            organization_id: session.metadata?.organizationId ?? null,
+            stripe_checkout_session_id: session.id,
+            customer_email: session.customer_details?.email ?? null,
+            legal_version: session.metadata?.legalVersion ?? null,
+            accepted_at: new Date().toISOString(),
+          }, { onConflict: 'stripe_checkout_session_id', ignoreDuplicates: true }));
+
           await logAuditEvent({
             action: 'organization.billing.terms_accepted',
             entityType: 'stripe_checkout',
@@ -266,6 +319,21 @@ export async function POST(req: Request) {
               ? session.payment_intent
               : (session.payment_intent as { id: string } | null)?.id ?? null;
           const customerEmail = session.customer_details?.email ?? null;
+
+          if (orgId && session.amount_total != null && session.currency) {
+            await recordBillingPayment(supabase, {
+              organizationId: orgId,
+              recordType: 'manual_payment',
+              sourceEventId: `checkout_session:${session.id}`,
+              amountCents: session.amount_total,
+              currency: session.currency,
+              paidAt: new Date().toISOString(),
+              stripePaymentIntentId: paymentIntentId,
+              stripeCheckoutSessionId: session.id,
+              description: 'Manual payment order',
+              metadata: { manualPaymentOrderId: orderId },
+            });
+          }
 
           const { data: paidOrder, error: paidErr } = await supabase
             .from('manual_payment_orders')
@@ -935,6 +1003,43 @@ export async function POST(req: Request) {
       // -------------------------------------------------------
       case 'invoice.paid': {
         const invoice = event.data.object as Stripe.Invoice;
+        const billingStripeCustomerId = getStripeObjectId(invoice.customer);
+        if (billingStripeCustomerId) {
+          const { data: billingCustomerMapping } = await supabase
+            .from('stripe_customers')
+            .select('organization_id')
+            .eq('stripe_customer_id', billingStripeCustomerId)
+            .maybeSingle();
+          let billingOrganizationId = billingCustomerMapping?.organization_id ?? null;
+          if (!billingOrganizationId) {
+            const invoiceSubscription = invoice.parent?.subscription_details?.subscription;
+            const invoiceSubscriptionId = typeof invoiceSubscription === 'string'
+              ? invoiceSubscription
+              : invoiceSubscription?.id ?? null;
+            if (invoiceSubscriptionId) {
+              const liveSubscription = await stripe.subscriptions.retrieve(invoiceSubscriptionId);
+              billingOrganizationId = liveSubscription.metadata.organizationId || null;
+            }
+          }
+
+          if (billingOrganizationId) {
+            const paidTimestamp = invoice.status_transitions?.paid_at ?? invoice.created;
+            await recordBillingPayment(supabase, {
+              organizationId: billingOrganizationId,
+              recordType: 'stripe_invoice',
+              sourceEventId: `stripe_invoice:${invoice.id}`,
+              amountCents: invoice.amount_paid,
+              currency: invoice.currency,
+              paidAt: new Date(paidTimestamp * 1000).toISOString(),
+              stripeInvoiceId: invoice.id,
+              description: invoice.billing_reason ?? 'Stripe invoice payment',
+              metadata: { billingReason: invoice.billing_reason },
+            });
+          } else {
+            console.error(`[Webhook][billing-record] No organization mapping for paid invoice ${invoice.id}`);
+          }
+        }
+
         const { data: purchase } = await supabase
           .from('r365_connection_purchases')
           .select('id, stripe_subscription_id, extra_price_id, target_quantity, delta_quantity, status')

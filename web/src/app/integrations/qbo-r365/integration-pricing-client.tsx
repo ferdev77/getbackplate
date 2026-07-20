@@ -20,6 +20,7 @@ export type IntegrationPlan = {
   is_featured: boolean;
   is_enterprise: boolean;
   setup_fee_amount: number | null;
+  setup_fee_annual_discount_pct: number | null;
   features: unknown;
   cta_text: string | null;
   cta_email: string | null;
@@ -115,6 +116,10 @@ function PlanCard({
 
   const setupAmount = plan.setup_fee_amount;
   const setupText = setupAmount != null ? `$${formatPrice(setupAmount)}` : "Negotiated";
+  const setupDiscountPct = plan.setup_fee_annual_discount_pct ?? 25;
+  const annualSetupAmount = setupAmount == null
+    ? null
+    : setupAmount * (1 - setupDiscountPct / 100);
 
   function handleCta() {
     if (isEnterprise) {
@@ -156,9 +161,10 @@ function PlanCard({
       <div className="setup">
         <div className="setup-row">
           <span className="tsetup-lab">Setup fee</span>
-          {isAnnual && setupAmount != null ? (
+          {isAnnual && annualSetupAmount != null ? (
             <span className="tsetup-amt">
-              <s className="tsetup-strike">{setupText}</s> <span className="tsetup-waived">Waived</span>
+              <s className="tsetup-strike">{setupText}</s>{" "}
+              <span className="tsetup-waived">${formatPrice(annualSetupAmount)} (-{setupDiscountPct}%)</span>
             </span>
           ) : (
             <span className="tsetup-amt">{setupText}</span>
@@ -663,7 +669,7 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
                 </button>
                 <span className="freebadge">2 months free</span>
               </div>
-              <div className="bnote">Annual billing = pay 10 months, get 12. Setup fee waived.</div>
+              <div className="bnote">Annual billing = pay 10 months, get 12. One-time setup fee is discounted 25%.</div>
             </div>
 
             {checkoutError && <div className="checkout-error">{checkoutError}</div>}
@@ -767,7 +773,7 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
                 <ul>
                   <li><Link href="/trust">Trust Center</Link></li>
                   <li><Link href="/refer">Refer a vendor</Link></li>
-                  <li><a href="mailto:hello@getbackplate.com">Contact</a></li>
+                  <li><Link href="/support">Support</Link></li>
                   <li><a href="https://app.getbackplate.com/auth/login?desde=integracion">Login</a></li>
                 </ul>
               </div>

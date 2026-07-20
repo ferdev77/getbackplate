@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto";
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from "crypto";
 
 type EncryptedPayload = {
   ciphertext: string;
@@ -6,13 +6,24 @@ type EncryptedPayload = {
   tag: string;
 };
 
-function getEncryptionKey() {
+function getRawEncryptionKey() {
   const raw = process.env.INTEGRATIONS_ENCRYPTION_KEY?.trim();
   if (!raw) {
     throw new Error("INTEGRATIONS_ENCRYPTION_KEY no configurada");
   }
 
-  return createHash("sha256").update(raw).digest();
+  return raw;
+}
+
+function getEncryptionKey() {
+  return createHash("sha256").update(getRawEncryptionKey()).digest();
+}
+
+export function hashQboRealmId(realmId: string) {
+  return createHmac("sha256", getRawEncryptionKey())
+    .update("qbo-realm-id\0", "utf8")
+    .update(realmId.trim(), "utf8")
+    .digest("hex");
 }
 
 export function encryptJsonPayload(payload: Record<string, unknown>): EncryptedPayload {

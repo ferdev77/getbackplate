@@ -1,10 +1,11 @@
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 
 type OAuthStatePayload = {
   organizationId: string;
   userId: string;
   iat: number;
   exp: number;
+  nonce: string;
 };
 
 function getStateSecret() {
@@ -26,6 +27,7 @@ export function createOAuthStateToken(organizationId: string, userId: string, tt
     userId,
     iat: now,
     exp: now + ttlSec,
+    nonce: randomBytes(16).toString("base64url"),
   };
 
   const payloadBase64 = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
@@ -50,7 +52,17 @@ export function verifyOAuthStateToken(token: string): OAuthStatePayload {
 
   const payload = JSON.parse(Buffer.from(payloadBase64, "base64url").toString("utf8")) as OAuthStatePayload;
   const now = Math.floor(Date.now() / 1000);
-  if (payload.exp < now) {
+  if (
+    typeof payload.organizationId !== "string"
+    || typeof payload.userId !== "string"
+    || typeof payload.nonce !== "string"
+    || payload.nonce.length < 16
+    || !Number.isInteger(payload.iat)
+    || !Number.isInteger(payload.exp)
+    || payload.iat > now + 60
+    || payload.exp < now
+    || payload.exp - payload.iat > 900
+  ) {
     throw new Error("State expirado");
   }
 
