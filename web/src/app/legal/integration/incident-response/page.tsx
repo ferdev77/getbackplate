@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LEGAL_ADDRESS } from "@/shared/lib/company-addresses";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -238,7 +239,7 @@ export default function IncidentResponsePage() {
       <footer className="footer">
         <div>
           <strong>Backplate Technologies LLC, d/b/a GetBackplate</strong><br />
-          1001 S. 10th St., Suite G#784 · McAllen, TX 78501 · United States<br />
+          {LEGAL_ADDRESS.inline} · United States<br />
           <a href="mailto:security@getbackplate.com">security@getbackplate.com</a> · <a href="mailto:hello@getbackplate.com">hello@getbackplate.com</a>
         </div>
         <div style={{ textAlign: "right" }}>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -134,6 +135,9 @@ export default function IntegrationDisconnectedPage() {
           </a>
         </div>
       </main>
+      <footer style={{ padding: "20px 32px", borderTop: "1px solid #E6E8EE", color: "#8A8C95", fontSize: 12, textAlign: "center" }}>
+        Backplate Technologies LLC, d/b/a GetBackplate · {COMPANY_ADDRESS.inline}
+      </footer>
     </div>
   );
 }

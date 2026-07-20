@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
 import { SupportForm } from "./support-form";
 
 export const metadata: Metadata = {
@@ -17,6 +18,7 @@ export default function SupportPage() {
         <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600">Use this form for product support or to request access, correction, export, or deletion of data. You can also email <a className="font-semibold text-[#d4531a]" href="mailto:support@getbackplate.com">support@getbackplate.com</a>.</p>
         <div className="mt-10"><SupportForm /></div>
         <p className="mt-6 text-center text-xs text-slate-500"><Link href="/legal/integration/privacy" className="underline">Integration Privacy Policy</Link> · <Link href="/trust" className="underline">Trust Center</Link></p>
+        <p className="mt-3 text-center text-xs text-slate-500">Backplate Technologies LLC, d/b/a GetBackplate · {COMPANY_ADDRESS.inline}</p>
       </div>
     </main>
   );

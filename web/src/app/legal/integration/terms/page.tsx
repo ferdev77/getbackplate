@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LegalDocLayout } from "@/shared/ui/legal-doc-layout";
+import { LEGAL_ADDRESS } from "@/shared/lib/company-addresses";
 
 export const metadata = {
   title: "End-User License Agreement | GetBackplate",
@@ -17,7 +18,7 @@ export default function IntegrationTermsPage() {
       version="2026.07.23"
     >
       <h2><span className="section-num">1.</span>Acceptance of Terms</h2>
-      <p>This End-User License Agreement (&quot;Agreement&quot; or &quot;EULA&quot;) is a binding legal agreement between you (&quot;User,&quot; &quot;Customer,&quot; &quot;you&quot;) and <strong>Backplate Technologies LLC</strong>, a Texas limited liability company, doing business as <strong>GetBackplate</strong> (&quot;GetBackplate,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;), located at 1001 S. 10th St., Suite G#784, McAllen, Texas 78501, United States.</p>
+      <p>This End-User License Agreement (&quot;Agreement&quot; or &quot;EULA&quot;) is a binding legal agreement between you (&quot;User,&quot; &quot;Customer,&quot; &quot;you&quot;) and <strong>Backplate Technologies LLC</strong>, a Texas limited liability company, doing business as <strong>GetBackplate</strong> (&quot;GetBackplate,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;), located at {LEGAL_ADDRESS.inlineWithCountry}.</p>
       <p>By installing, accessing, authorizing, or using the GetBackplate QuickBooks® Online to Restaurant365 integration software (the &quot;Service&quot; or &quot;Application&quot;), you acknowledge that you have read, understood, and agree to be bound by the terms of this Agreement. If you do not agree to these terms, you must not access or use the Service.</p>
       <p>If you are entering into this Agreement on behalf of a company or other legal entity, you represent that you have the authority to bind that entity to this Agreement, in which case &quot;you&quot; refers to that entity.</p>
       <p>By accepting these Terms of Service, you also agree to be bound by our <Link href="/legal/integration/privacy">Privacy Policy</Link> and, if you subscribe to a paid plan, our <Link href="/legal/integration/msa">Master Services Agreement</Link>. The Privacy Policy and the Master Services Agreement are incorporated into this Agreement by reference and form part of the binding terms between you and GetBackplate.</p>
@@ -142,8 +143,8 @@ export default function IntegrationTermsPage() {
       <p>For questions regarding this Agreement, please contact:</p>
       <div className="contact-block">
         <strong>Backplate Technologies LLC, d/b/a GetBackplate</strong>
-        1001 S. 10th St., Suite G#784<br />
-        McAllen, Texas 78501<br />
+        {LEGAL_ADDRESS.line1}<br />
+        {LEGAL_ADDRESS.cityStatePostal}<br />
         United States<br />
         <a href="mailto:security@getbackplate.com">security@getbackplate.com</a> · +1 (956) 802-9639
       </div>

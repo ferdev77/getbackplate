@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { createLead } from "@/modules/leads/leads.service";
+import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
 
 function getLogoUrl() {
   const base = (process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://getbackplate.com").replace(/\/$/, "");
@@ -86,7 +87,8 @@ function buildHtml(p: {
         <!-- Footer -->
         <tr><td style="padding:20px 8px 0;text-align:center">
           <p style="margin:0;font-size:11px;color:#9CA3AF">
-            Sent automatically from <a href="https://getbackplate.com" style="color:#9CA3AF">getbackplate.com</a> — landing page seat request form.
+            Sent automatically from <a href="https://getbackplate.com" style="color:#9CA3AF">getbackplate.com</a> — landing page seat request form.<br>
+            ${COMPANY_ADDRESS.inline}
           </p>
         </td></tr>
 
@@ -130,7 +132,7 @@ export async function POST(req: NextRequest) {
     to: toEmail,
     subject: `Seat Request — ${restaurant} (${state})`,
     html: buildHtml({ name, email, phone, state, restaurant, locations, planName: planName ?? "GetBackplate", source: source ?? "Platform" }),
-    text: `New seat request\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone || "—"}\nState: ${state}\nRestaurant: ${restaurant}\nLocations: ${locations}\nPlan: ${planName}\nSource: ${source ?? "Platform"}`,
+    text: `New seat request\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone || "—"}\nState: ${state}\nRestaurant: ${restaurant}\nLocations: ${locations}\nPlan: ${planName}\nSource: ${source ?? "Platform"}\n\n${COMPANY_ADDRESS.inline}`,
     notification: {
       source: "landing_seat_request",
       userId: null,

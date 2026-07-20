@@ -1,4 +1,5 @@
 import { CheckCircle2 } from "lucide-react";
+import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
 
 export const metadata = { title: "Payment confirmed | GetBackplate" };
 
@@ -14,6 +15,7 @@ export default function PaySuccessPage() {
           Your payment was processed successfully.
         </p>
         <p className="mt-6 text-xs text-gray-400">You can safely close this tab.</p>
+        <p className="mt-4 text-[11px] leading-5 text-gray-400">Backplate Technologies LLC<br />{COMPANY_ADDRESS.inline}</p>
       </div>
     </div>
   );

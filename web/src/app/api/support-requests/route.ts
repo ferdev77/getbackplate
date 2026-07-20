@@ -5,6 +5,7 @@ import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { escapeSupportText, supportRequestSchema } from "@/modules/support/support-request";
 import { applySharedRateLimit } from "@/shared/lib/ai-runtime-store";
+import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
 
 function visitorAddress(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
@@ -82,15 +83,15 @@ export async function POST(request: Request) {
     sendTransactionalEmail({
       to: parsed.data.email,
       subject: `We received your GetBackplate ${parsed.data.requestType} request`,
-      html: `<p>Hello ${safeName},</p><p>We received your request and assigned reference <strong>${created.id}</strong>.</p><p>Privacy and data requests require identity and authority verification before we take action. We will follow up by email. Fiscal and billing records may be retained where legally required.</p><p>GetBackplate Support</p>`,
-      text: `We received your request. Reference: ${created.id}. We will follow up by email after any required identity verification.`,
+      html: `<p>Hello ${safeName},</p><p>We received your request and assigned reference <strong>${created.id}</strong>.</p><p>Privacy and data requests require identity and authority verification before we take action. We will follow up by email. Fiscal and billing records may be retained where legally required.</p><p>GetBackplate Support<br />${COMPANY_ADDRESS.inline}</p>`,
+      text: `We received your request. Reference: ${created.id}. We will follow up by email after any required identity verification.\n\nGetBackplate Support\n${COMPANY_ADDRESS.inline}`,
       notification: { source: "public_support_acknowledgement", sourceId: created.id },
     }),
     sendTransactionalEmail({
       to: internalEmail,
       subject: `[${parsed.data.requestType.toUpperCase()}] Public support request ${created.id}`,
-      html: `<p><strong>Reference:</strong> ${created.id}</p><p><strong>Name:</strong> ${safeName}<br /><strong>Email:</strong> ${safeEmail}<br /><strong>Company:</strong> ${safeCompany}<br /><strong>Type:</strong> ${parsed.data.requestType}</p><p><strong>Details</strong><br />${safeDetails}</p>`,
-      text: `A new ${parsed.data.requestType} request was recorded. Reference: ${created.id}. Review it in the support_requests table.`,
+      html: `<p><strong>Reference:</strong> ${created.id}</p><p><strong>Name:</strong> ${safeName}<br /><strong>Email:</strong> ${safeEmail}<br /><strong>Company:</strong> ${safeCompany}<br /><strong>Type:</strong> ${parsed.data.requestType}</p><p><strong>Details</strong><br />${safeDetails}</p><p>${COMPANY_ADDRESS.inline}</p>`,
+      text: `A new ${parsed.data.requestType} request was recorded. Reference: ${created.id}. Review it in the support_requests table.\n\n${COMPANY_ADDRESS.inline}`,
       notification: { source: "public_support_internal", sourceId: created.id },
     }),
   ]);

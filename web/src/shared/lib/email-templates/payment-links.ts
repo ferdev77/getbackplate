@@ -1,3 +1,5 @@
+import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
+
 /**
  * Emails sent from SuperAdmin > Cobros when sharing a payment/subscription
  * link directly with a customer. Always in English, always with the
@@ -24,7 +26,7 @@ function renderShell(accent: string, innerHtml: string) {
         ${innerHtml}
         <div style="padding:18px 24px 24px 24px;">
           <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">This link was generated and sent by the GetBackplate team. If you weren't expecting this email, you can safely ignore it.</p>
-          <p style="margin:10px 0 0 0;color:#9ca3af;font-size:11px;">The GetBackplate Team</p>
+          <p style="margin:10px 0 0 0;color:#9ca3af;font-size:11px;line-height:1.5;">The GetBackplate Team<br>${COMPANY_ADDRESS.inline}</p>
         </div>
       </div>
     </div>
@@ -382,7 +384,7 @@ export function subscriptionLinkEmailTemplate({
             <td style="padding:24px 40px; border-top:1px solid #E5E7F0;" class="px-mobile">
               <p style="margin:0 0 8px 0; font-family:'Plus Jakarta Sans', Arial, sans-serif; font-size:12px; line-height:1.55; color:#9ca3af;">
                 <strong style="color:#6b7280; font-weight:600;">Backplate Technologies LLC</strong>, d/b/a GetBackplate<br>
-                1001 S. 10th St., Suite G#784 &middot; McAllen, TX 78501 &middot; United States<br>
+                ${COMPANY_ADDRESS.line1} &middot; ${COMPANY_ADDRESS.cityStatePostal} &middot; United States<br>
                 <a href="mailto:support@getbackplate.com" style="color:#9ca3af; text-decoration:underline;">support@getbackplate.com</a> &middot; <a href="tel:+19568029639" style="color:#9ca3af; text-decoration:underline;">(956) 802-9639</a>
               </p>
               <p style="margin:16px 0 0 0; font-family:'Plus Jakarta Sans', Arial, sans-serif; font-size:12px; line-height:1.6; color:#9ca3af;">

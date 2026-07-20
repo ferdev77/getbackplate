@@ -1,3 +1,5 @@
+import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
+
 export type WeeklyReportInvoiceLine = {
   docNumber: string;
   sentAt: string;
@@ -317,7 +319,7 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
 
             <p style="margin:14px 0 0 0;font-size:11px;color:#595B66;line-height:1.5;text-align:center;">
               Backplate Technologies LLC, d/b/a GetBackplate<br>
-              1001 S. 10th St., Suite G#784, McAllen, TX 78501
+              ${COMPANY_ADDRESS.inline}
             </p>
 
           </td>

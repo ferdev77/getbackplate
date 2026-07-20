@@ -1,4 +1,5 @@
 import { LegalDocLayout } from "@/shared/ui/legal-doc-layout";
+import { LEGAL_ADDRESS } from "@/shared/lib/company-addresses";
 
 export const metadata = {
   title: "Privacy Policy | GetBackplate Platform",
@@ -17,7 +18,7 @@ export default function PlatformPrivacyPage() {
     >
       <h2><span className="section-num">1.</span>Introduction</h2>
       <p>This Privacy Policy explains how <strong>Backplate Technologies LLC</strong>, a Texas limited liability company, doing business as <strong>GetBackplate</strong> (&quot;GetBackplate,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) collects, uses, stores, shares, and protects information when you use the GetBackplate restaurant operations management platform (the &quot;Service&quot; or &quot;Platform&quot;).</p>
-      <p>GetBackplate is headquartered at 1001 S. 10th St., Suite G#784, McAllen, Texas 78501, United States.</p>
+      <p>GetBackplate&apos;s legal and privacy notice address is {LEGAL_ADDRESS.inlineWithCountry}.</p>
       <p>This Privacy Policy applies to all users of the Platform, including account administrators (owners and managers) and employees who access the Platform through the employee portal. By using the Service, you consent to the practices described in this Policy.</p>
 
       <h2><span className="section-num">2.</span>Information We Collect</h2>
@@ -189,8 +190,8 @@ export default function PlatformPrivacyPage() {
       <p>If you have questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact:</p>
       <div className="contact-block">
         <strong>Backplate Technologies LLC, d/b/a GetBackplate — Privacy Officer</strong>
-        1001 S. 10th St., Suite G#784<br />
-        McAllen, Texas 78501<br />
+        {LEGAL_ADDRESS.line1}<br />
+        {LEGAL_ADDRESS.cityStatePostal}<br />
         United States<br />
         <a href="/support">Support and Privacy Request form</a><br />
         <a href="mailto:privacy@getbackplate.com">privacy@getbackplate.com</a> · +1 (956) 802-9639

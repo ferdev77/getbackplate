@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { createLead } from "@/modules/leads/leads.service";
+import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
 
 export type VendorReferralInput = {
   organizationId: string;
@@ -123,7 +124,7 @@ ${LINK_PLACEHOLDER}`;
 
             <p style="margin:14px 0 0 0;font-size:11px;color:#595B66;line-height:1.5;text-align:center;">
               Backplate Technologies LLC, d/b/a GetBackplate<br>
-              1001 S. 10th St., Suite G#784, McAllen, TX 78501
+              ${COMPANY_ADDRESS.inline}
             </p>
 
           </td>
@@ -172,7 +173,7 @@ export async function sendPublicReferralOwnerNotification(input: {
   const subject = `Integration referred by ${input.referrerName}`;
   const referrerEmail = input.referrerEmail ? ` (${input.referrerEmail})` : "";
   const referrerEmailHtml = input.referrerEmail ? `<br><a href="mailto:${escapeHtml(input.referrerEmail)}" style="font-size:13px;font-weight:400;color:#d4531a;text-decoration:none;">${escapeHtml(input.referrerEmail)}</a>` : "";
-  const text = `A GetBackplate integration was referred by ${input.referrerName}${referrerEmail}. Vendor: ${input.vendorCompany}. Contact: ${input.vendorContactName} (${input.vendorEmail}).`;
+  const text = `A GetBackplate integration was referred by ${input.referrerName}${referrerEmail}. Vendor: ${input.vendorCompany}. Contact: ${input.vendorContactName} (${input.vendorEmail}).\n\n${COMPANY_ADDRESS.inline}`;
   const html = `<!DOCTYPE html>
 <html lang="en">
 <body style="margin:0;padding:0;background:#f5f6fa;font-family:Arial,sans-serif;color:#14151a;">
@@ -196,7 +197,7 @@ export async function sendPublicReferralOwnerNotification(input: {
             <tr><td style="padding:15px 16px;font-size:15px;font-weight:700;">${escapeHtml(input.vendorCompany)}<br><span style="font-size:13px;font-weight:400;color:#595b66;">${escapeHtml(input.vendorContactName)} · </span><a href="mailto:${escapeHtml(input.vendorEmail)}" style="font-size:13px;font-weight:400;color:#d4531a;text-decoration:none;">${escapeHtml(input.vendorEmail)}</a></td></tr>
           </table>
         </td></tr>
-        <tr><td style="padding:20px 32px;background:#f8f9fc;border-top:1px solid #e6e8ee;font-size:12px;line-height:1.5;color:#8a8c95;text-align:center;">GetBackplate · Restaurant365 invoice automation</td></tr>
+        <tr><td style="padding:20px 32px;background:#f8f9fc;border-top:1px solid #e6e8ee;font-size:12px;line-height:1.5;color:#8a8c95;text-align:center;">GetBackplate · Restaurant365 invoice automation<br>${COMPANY_ADDRESS.inline}</td></tr>
       </table>
     </td></tr>
   </table>
@@ -238,6 +239,7 @@ Best,
 Angelo Ramos
 Founder, GetBackplate
 angelo@getbackplate.com · (956) 802-9639
+${COMPANY_ADDRESS.inline}
 ${appBase}/integrations/qbo-r365`;
 
   await sendTransactionalEmail({
@@ -312,6 +314,7 @@ Best,
 Angelo Ramos
 Founder, GetBackplate
 angelo@getbackplate.com · (956) 802-9639
+${COMPANY_ADDRESS.inline}
 ${appBase}/integrations/qbo-r365`;
 
   await sendTransactionalEmail({

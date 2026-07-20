@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -622,7 +623,7 @@ export default function TrustCenterPage() {
             </div>
           </div>
           <div className="footer-bottom">
-            <div><strong>Backplate Technologies LLC</strong>, d/b/a GetBackplate · 1001 S. 10th St., Suite G#784, McAllen, TX 78501</div>
+            <div><strong>Backplate Technologies LLC</strong>, d/b/a GetBackplate · {COMPANY_ADDRESS.inline}</div>
             <div>Last reviewed July 19, 2026</div>
           </div>
         </div>

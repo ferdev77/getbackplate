@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ChevronDown, Menu, X } from "lucide-react";
+import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
 import { RequestSeatModal } from "./request-seat-modal";
 
 type PlanInput = {
@@ -1766,6 +1767,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
           </p>
           <p className="text-right text-[11px] text-white/50">
             © 2026 GetBackplate. All rights reserved.<br />
+            {COMPANY_ADDRESS.inline}<br />
             Site by <a href="https://marketingsolutions.formstack.com/forms/webform" target="_blank" rel="noopener noreferrer" className="text-[var(--gbp-accent)] hover:opacity-80">Marketing Solutions</a>
             {" · "}
             <a href="/legal/" className="underline underline-offset-2 opacity-70 hover:opacity-100">Legal</a>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LegalDocLayout } from "@/shared/ui/legal-doc-layout";
+import { LEGAL_ADDRESS } from "@/shared/lib/company-addresses";
 
 export const metadata = {
   title: "Master Services Agreement — Integration | GetBackplate",
@@ -20,7 +21,7 @@ export default function IntegrationMsaPage() {
         This Master Services Agreement (the <strong>&quot;Agreement&quot;</strong>) governs your subscription to the Service. By checking the acceptance box during Stripe Checkout or otherwise affirmatively accepting these terms via Provider&apos;s electronic acceptance mechanism (the <strong>&quot;Acceptance Date&quot;</strong>), you agree to be bound by this Agreement.
       </div>
 
-      <p>This Agreement is entered into by and between <strong>Backplate Technologies LLC</strong>, a Texas limited liability company, doing business as <strong>GetBackplate</strong>, located at 1001 S. 10th St., Suite G#784, McAllen, Texas 78501, United States (hereinafter referred to as <strong>&quot;GetBackplate&quot;</strong> or <strong>&quot;Provider&quot;</strong>), and the legal entity identified during electronic acceptance and on whose behalf the individual completing checkout represents and warrants they have authority to bind (hereinafter referred to as <strong>&quot;Customer&quot;</strong>).</p>
+      <p>This Agreement is entered into by and between <strong>Backplate Technologies LLC</strong>, a Texas limited liability company, doing business as <strong>GetBackplate</strong>, located at {LEGAL_ADDRESS.inlineWithCountry} (hereinafter referred to as <strong>&quot;GetBackplate&quot;</strong> or <strong>&quot;Provider&quot;</strong>), and the legal entity identified during electronic acceptance and on whose behalf the individual completing checkout represents and warrants they have authority to bind (hereinafter referred to as <strong>&quot;Customer&quot;</strong>).</p>
 
       <p>GetBackplate and Customer are sometimes referred to herein individually as a <em>&quot;Party&quot;</em> and collectively as the <em>&quot;Parties.&quot;</em></p>
 
@@ -167,7 +168,7 @@ export default function IntegrationMsaPage() {
       <p>Notwithstanding the foregoing, either Party may seek injunctive or other equitable relief in any court of competent jurisdiction to protect its intellectual property or Confidential Information.</p>
 
       <h2><span className="section-num">16.</span>Notices</h2>
-      <p>All notices under this Agreement shall be in writing and delivered by email with confirmation of receipt, or by certified mail or recognized overnight courier. Notices to Provider shall be sent to <a href="mailto:security@getbackplate.com">security@getbackplate.com</a> with a copy to 1001 S. 10th St., Suite G#784, McAllen, Texas 78501. Notices to Customer shall be sent to the email address provided by Customer during electronic acceptance.</p>
+      <p>All notices under this Agreement shall be in writing and delivered by email with confirmation of receipt, or by certified mail or recognized overnight courier. Notices to Provider shall be sent to <a href="mailto:security@getbackplate.com">security@getbackplate.com</a> with a copy to {LEGAL_ADDRESS.inline}. Notices to Customer shall be sent to the email address provided by Customer during electronic acceptance.</p>
 
       <h2><span className="section-num">17.</span>Miscellaneous</h2>
       <h3><span className="sub-num">17.1</span>Entire agreement</h3>

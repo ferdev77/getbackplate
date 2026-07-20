@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { verifyReferralToken } from "@/modules/integrations/qbo-r365/services/referral-token";
+import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
 import { ReferralFormClient } from "./referral-form-client";
 
 export const metadata: Metadata = {
@@ -142,6 +143,7 @@ export default async function ReferPage({ params }: Props) {
           </p>
           <p style={{ margin: 0, textAlign: "right", fontSize: 11, color: "rgba(255,255,255,0.5)", lineHeight: 1.8 }}>
             © 2026 GetBackplate. All rights reserved.<br />
+            {COMPANY_ADDRESS.inline}<br />
             Site by <a href="https://marketingsolutions.formstack.com/forms/webform" target="_blank" rel="noopener noreferrer" style={{ color: "#ff6b35", textDecoration: "none" }}>Marketing Solutions</a>
             {" · "}
             <a href="/legal/" style={{ textDecoration: "underline", textUnderlineOffset: 2, color: "rgba(255,255,255,0.5)" }}>Legal</a>

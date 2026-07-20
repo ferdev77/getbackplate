@@ -1,4 +1,5 @@
 import { PublicReferralFormClient } from "./public-referral-form-client";
+import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
 
 export const metadata = {
   title: "Refer a vendor · GetBackplate",
@@ -102,6 +103,7 @@ export default function PublicReferPage() {
           </p>
           <p style={{ margin: 0, textAlign: "right", fontSize: 11, color: "rgba(255,255,255,0.5)", lineHeight: 1.8 }}>
             © 2026 GetBackplate. All rights reserved.<br />
+            {COMPANY_ADDRESS.inline}<br />
             Site by <a href="https://marketingsolutions.formstack.com/forms/webform" target="_blank" rel="noopener noreferrer" style={{ color: "#ff6b35", textDecoration: "none" }}>Marketing Solutions</a>
             {" · "}
             <a href="/legal/" style={{ textDecoration: "underline", textUnderlineOffset: 2, color: "rgba(255,255,255,0.5)" }}>Legal</a>

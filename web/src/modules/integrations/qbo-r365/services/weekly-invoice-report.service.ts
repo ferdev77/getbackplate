@@ -1,4 +1,5 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
 import { buildWeeklyReportHtml } from "./weekly-report-template";
@@ -405,6 +406,8 @@ export function buildOrgReportText(data: OrgWeeklyReportData): { subject: string
     }
   }
 
+  lines.push("", COMPANY_ADDRESS.inline);
+
   return { subject, text: lines.join("\n") };
 }
 
@@ -429,6 +432,8 @@ export function buildBranchReportText(data: OrgWeeklyReportData, branch: BranchR
       lines.push(`  • Invoice #${inv.docNumber} — ${formatDate(inv.sentAt)}`);
     }
   }
+
+  lines.push("", COMPANY_ADDRESS.inline);
 
   return { subject, text: lines.join("\n") };
 }

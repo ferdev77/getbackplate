@@ -1,3 +1,5 @@
+import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
+
 export type OwnerBranchStatus = {
   branchLabel: string;
   qboCustomerId: string;
@@ -276,6 +278,7 @@ export function buildOwnerWeeklyOpsHtml(input: OwnerWeeklyOpsTemplateInput): str
         <tr>
           <td style="padding:20px 28px 24px;color:#8A8C95;font-size:12px;line-height:1.65;border-top:1px solid #E6E8EE;margin-top:20px;">
             Generated <span style="font-family:'Courier New',monospace;">${input.generatedAtLabel}</span> &middot; internal use only.<br>
+            ${COMPANY_ADDRESS.inline}<br>
             ${
               input.inNormalGapLocations > 0
                 ? `${input.inNormalGapLocations} other location${input.inNormalGapLocations === 1 ? "" : "s"} had no activity this week but ${input.inNormalGapLocations === 1 ? "is" : "are"} within a normal gap &mdash; not flagged yet.`

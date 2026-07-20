@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
 import { useState } from "react";
 import { RequestSeatModal } from "@/modules/landing/ui/request-seat-modal";
 
@@ -745,9 +746,9 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
                   Restaurant365 — built for food vendors and distributors.
                 </div>
                 <div className="faddr">
-                  1001 S. 10th St., Suite G#784
+                  {COMPANY_ADDRESS.line1}
                   <br />
-                  McAllen, TX 78501
+                  {COMPANY_ADDRESS.cityStatePostal}
                 </div>
               </div>
               <div>

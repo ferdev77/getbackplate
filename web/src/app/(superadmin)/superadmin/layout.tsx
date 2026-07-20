@@ -1,6 +1,7 @@
 import { logoutAction } from "@/modules/auth/actions";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { requireSuperadmin } from "@/shared/lib/access";
+import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
 import { PageContent } from "@/shared/ui/page-content";
 import { PushPermissionManager } from "@/shared/ui/push-permission";
 import { SuperadminRealtimeListener } from "@/shared/ui/superadmin-realtime-listener";
@@ -42,6 +43,9 @@ export default async function SuperadminLayout({
       <div className="w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
         {children}
       </div>
+      <footer className="border-t border-[var(--gbp-border)] px-4 py-5 text-center text-xs text-[var(--gbp-muted)]">
+        Backplate Technologies LLC, d/b/a GetBackplate · {COMPANY_ADDRESS.inline}
+      </footer>
     </div>
   );
 }

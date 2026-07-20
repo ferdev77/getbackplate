@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LEGAL_ADDRESS } from "@/shared/lib/company-addresses";
 import { ArrowRight } from "lucide-react";
 import { IntegrationSiteFooter, IntegrationSiteHeader } from "@/modules/landing/ui/integration-site-chrome";
 
@@ -70,7 +71,7 @@ export default function LegalIndexPage() {
         </div>
 
         <p className="mt-12 text-center text-[13px] italic text-[#9ca3af]">
-          For legal inquiries, contact GetBackplate at 1001 S. 10th St., Suite G#784, McAllen, Texas 78501 — Phone +1 (956) 802-9639.
+          For legal inquiries, contact GetBackplate at {LEGAL_ADDRESS.inline} — Phone +1 (956) 802-9639.
         </p>
         <p className="mt-3 text-center text-[11px] text-[#9ca3af]">
           Intuit and QuickBooks® Online are registered trademarks of Intuit Inc.
