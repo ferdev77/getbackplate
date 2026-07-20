@@ -153,6 +153,10 @@ export const COMPANY_SHELL_EN: Record<string, string> = {
   "Cuentanos con detalle...": "Tell us in detail...",
   "Enviando msj...": "Sending msg...",
   "Enviar mensaje": "Send message",
+  "Soporte de integracion y privacidad": "Integration support and privacy",
+  "Solicita soporte tecnico, acceso, exportacion, correccion o eliminacion de datos con un numero de seguimiento.":
+    "Request technical support, data access, export, correction, or deletion with a tracking reference.",
+  "Ir a soporte y privacidad": "Go to support and privacy",
 
   // ── Misc labels used across the shell ─────────────────────────
   "Admin de empresa": "Company admin",

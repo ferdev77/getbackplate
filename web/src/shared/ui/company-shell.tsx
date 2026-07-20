@@ -9,6 +9,7 @@ import {
   ChevronDown,
   Download,
   Loader2,
+  LifeBuoy,
   LogOut,
   MessageSquarePlus,
   MapPin,
@@ -2287,6 +2288,23 @@ export function CompanyShell({
                 {busy && <Loader2 className="h-4 w-4 animate-spin" />}
                 {busy ? t("Enviando msj...") : t("Enviar mensaje")}
               </button>
+              {enabledModuleSet.has("qbo_r365") ? (
+                <div className="mt-5 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]">
+                      <LifeBuoy className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-[var(--gbp-text)]">{t("Soporte de integracion y privacidad")}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-[var(--gbp-text2)]">{t("Solicita soporte tecnico, acceso, exportacion, correccion o eliminacion de datos con un numero de seguimiento.")}</p>
+                    </div>
+                  </div>
+                  <Link href="/support" className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2.5 text-sm font-bold text-[var(--gbp-text)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]">
+                    <LifeBuoy className="h-4 w-4" />
+                    {t("Ir a soporte y privacidad")}
+                  </Link>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
