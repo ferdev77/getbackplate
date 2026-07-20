@@ -4614,7 +4614,9 @@ export async function processQboUnifiedQueue(): Promise<{
 
       if (!resolvedSyncConfigId) {
         await admin.from("qbo_unified_invoices").delete().eq("id", unifiedInvoiceId);
-        results.push({ unifiedInvoiceId, status: "failed", error: "Cliente sin sync config" });
+        // QuickBooks emits events for every emailed transaction, including
+        // customers that are intentionally outside the R365 integration.
+        results.push({ unifiedInvoiceId, status: "skipped", error: "Cliente sin sync config" });
         continue;
       }
 

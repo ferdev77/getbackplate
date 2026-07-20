@@ -71,6 +71,12 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
 }
 
+function nextUtcDate(isoDate: string): string {
+  const date = new Date(`${isoDate}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
+}
+
 // ---------------------------------------------------------------------------
 // Organizaciones con plan de integracion QBO-R365 activo
 // ---------------------------------------------------------------------------
@@ -269,7 +275,7 @@ export async function buildOrgWeeklyReportData(input: {
         .order("sent_at", { ascending: false });
 
       if (!input.isHistorical && input.periodStart && input.periodEnd) {
-        invoiceQuery = invoiceQuery.gte("sent_at", input.periodStart).lt("sent_at", input.periodEnd);
+        invoiceQuery = invoiceQuery.gte("sent_at", input.periodStart).lt("sent_at", nextUtcDate(input.periodEnd));
       }
 
       const { data: invoices, error: invoicesError } = await invoiceQuery;

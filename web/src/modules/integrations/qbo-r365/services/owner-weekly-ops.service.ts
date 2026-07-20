@@ -15,6 +15,12 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
 }
 
+function nextUtcDate(isoDate: string): string {
+  const date = new Date(`${isoDate}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
+}
+
 type BranchAggregate = OwnerBranchStatus & {
   invoicesThisWeek: number;
 };
@@ -57,7 +63,7 @@ async function buildOrgSection(input: {
         .ilike("customer_name", customer.qbo_customer_name)
         .eq("pipeline_status", "enviada")
         .gte("sent_at", input.periodStart)
-        .lt("sent_at", input.periodEnd);
+        .lt("sent_at", nextUtcDate(input.periodEnd));
       if (weekError) throw new Error(weekError.message);
 
       const { data: lastEver, error: lastEverError } = await admin
@@ -161,13 +167,23 @@ export async function sendOwnerWeeklyOpsReport(input: {
 
   const { data: recoveryRuns, error: recoveryError } = await admin
     .from("qbo_recovery_run_log")
-    .select("completed, failed")
+    .select("completed")
     .gte("ran_at", input.periodStart)
-    .lt("ran_at", input.periodEnd);
+    .lt("ran_at", nextUtcDate(input.periodEnd));
   if (recoveryError) throw new Error(recoveryError.message);
 
   const recovered = (recoveryRuns ?? []).reduce((sum, r) => sum + (r.completed ?? 0), 0);
-  const failed = (recoveryRuns ?? []).reduce((sum, r) => sum + (r.failed ?? 0), 0);
+  let failed = 0;
+  if (orgs.length) {
+    const { count, error: stuckError } = await admin
+      .from("qbo_unified_invoices")
+      .select("id", { count: "exact", head: true })
+      .in("organization_id", orgs.map((org) => org.id))
+      .in("pipeline_status", ["en_cola", "capturada", "mapeada"])
+      .eq("import_source", "webhook");
+    if (stuckError) throw new Error(stuckError.message);
+    failed = count ?? 0;
+  }
 
   quietList.sort((a, b) => (b.quietWeeks ?? 0) - (a.quietWeeks ?? 0));
 
