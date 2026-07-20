@@ -176,6 +176,9 @@ Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 | 166 | `20260719000001_intuit_retention_support_billing.sql` | Retención Intuit, evidencia fiscal/legal y solicitudes públicas de soporte y privacidad |
 | 167 | `20260719000002_qbo_realm_ownership.sql` | Blind index único para propiedad exclusiva de cada realm QBO |
 | 168 | `20260720000001_intuit_retention_hardening.sql` | Conservación de compras R365 pagadas e índices de purga fiscal |
+| 169 | `20260720000002_support_request_workflow.sql` | Gestión transaccional e historial de solicitudes públicas de soporte y privacidad |
+| 170 | `20260720000003_support_request_workflow_hardening.sql` | Flujo obligatorio, historial append-only y actualización Realtime para soporte |
+| 171 | `20260720000004_support_request_actor_retention.sql` | Conservación de actores históricos y desasignación obligatoria antes de borrar superadmins |
 
 ## Convención de naming
 

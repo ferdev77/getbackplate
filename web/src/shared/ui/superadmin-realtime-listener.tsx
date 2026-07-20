@@ -28,6 +28,7 @@ export function SuperadminRealtimeListener() {
       .on("postgres_changes", { event: "*", schema: "public", table: "organization_limits" }, scheduleRefresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "plan_modules" }, scheduleRefresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "feedback_messages" }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "support_requests" }, scheduleRefresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "memberships" }, scheduleRefresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "employees" }, scheduleRefresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "branches" }, scheduleRefresh)

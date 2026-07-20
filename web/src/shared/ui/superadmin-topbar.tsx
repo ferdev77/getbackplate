@@ -14,7 +14,7 @@ const ITEMS = [
   { href: "/superadmin/dashboard", label: "Dashboard" },
   { href: "/superadmin/organizations", label: "Organizaciones" },
   { href: "/superadmin/notifications", label: "Notificaciones" },
-  { href: "/superadmin/feedback", label: "Feedback" },
+  { href: "/superadmin/feedback", label: "Inbox" },
   { href: "/superadmin/leads", label: "Leads" },
   { href: "/superadmin/modules", label: "Módulos" },
   { href: "/superadmin/plans", label: "Planes" },
@@ -27,7 +27,7 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function SuperadminTopbar() {
+export function SuperadminTopbar({ inboxCount = 0 }: { inboxCount?: number }) {
   const pathname = usePathname();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
@@ -69,7 +69,14 @@ export function SuperadminTopbar() {
                      : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)] hover:bg-[var(--gbp-surface2)]"
                 }`}
               >
-                {item.label}
+                <span className="inline-flex items-center gap-1.5">
+                  {item.label}
+                  {item.href === "/superadmin/feedback" && inboxCount > 0 && (
+                    <span className="grid h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white">
+                      {inboxCount > 99 ? "99+" : inboxCount}
+                    </span>
+                  )}
+                </span>
                 {active && (
                   <motion.div
                     layoutId="active-pill"
@@ -123,7 +130,14 @@ export function SuperadminTopbar() {
                         : "text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"
                     }`}
                   >
-                    <span className="text-sm">{item.label}</span>
+                    <span className="inline-flex items-center gap-2 text-sm">
+                      {item.label}
+                      {item.href === "/superadmin/feedback" && inboxCount > 0 && (
+                        <span className="grid h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white">
+                          {inboxCount > 99 ? "99+" : inboxCount}
+                        </span>
+                      )}
+                    </span>
                     {active && <ChevronRight className="h-4 w-4" />}
                   </Link>
                 );

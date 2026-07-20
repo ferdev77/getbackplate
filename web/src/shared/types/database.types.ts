@@ -2592,6 +2592,14 @@ export type Database = {
       }
     }
     Functions: {
+      manage_support_request: {
+        Args: {
+          p_action: string
+          p_request_id: string
+          p_value?: string | null
+        }
+        Returns: Json
+      }
       announcement_scope_match:
         | {
             Args: {
