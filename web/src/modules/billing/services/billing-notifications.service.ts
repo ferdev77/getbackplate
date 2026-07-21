@@ -2,6 +2,8 @@ import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { sendPushToOrg } from "@/infrastructure/push/send-to-org";
 import {
+  BILLING_SENDER_NAME,
+  buildBillingSubject,
   paymentFailedTemplate,
   planChangedTemplate,
   planRenewalReminderTemplate,
@@ -9,12 +11,6 @@ import {
   subscriptionActivatedTemplate,
 } from "@/shared/lib/email-templates/billing";
 import { resolveTenantAppUrlByOrganizationId } from "@/shared/lib/custom-domains";
-import {
-  buildBrandedEmailSubject,
-  getTenantEmailBranding,
-  resolveEmailSenderName,
-  type TenantEmailBranding,
-} from "@/shared/lib/email-branding";
 
 async function getOrganizationAdminEmail(organizationId: string): Promise<{ email: string; userId: string | null } | null> {
   const supabase = createSupabaseAdminClient();
@@ -69,7 +65,6 @@ async function sendBillingEmail(params: {
   organizationId: string;
   subject: string;
   html: string;
-  branding: TenantEmailBranding;
   type: "renewal_reminder" | "plan_changed" | "payment_failed" | "subscription_activated" | "successful_payment";
   actionUrl: string;
 }) {
@@ -81,9 +76,9 @@ async function sendBillingEmail(params: {
 
   const result = await sendTransactionalEmail({
     to: admin.email,
-    subject: buildBrandedEmailSubject(params.subject, params.branding),
+    subject: buildBillingSubject(params.subject),
     html: params.html,
-    senderName: resolveEmailSenderName(params.branding),
+    senderName: BILLING_SENDER_NAME,
     notification: {
       source: "billing",
       sourceId: params.type,
@@ -106,16 +101,12 @@ async function sendBillingEmail(params: {
 }
 
 export async function sendRenewalReminderEmail(organizationId: string, renewalDate: string, amount: string) {
-  const [orgName, branding] = await Promise.all([
-    getOrganizationName(organizationId),
-    getTenantEmailBranding(organizationId),
-  ]);
-  const html = planRenewalReminderTemplate({ orgName, renewalDate, amount, branding });
+  const orgName = await getOrganizationName(organizationId);
+  const html = planRenewalReminderTemplate({ orgName, renewalDate, amount });
   await sendBillingEmail({
     organizationId,
     subject: "Your plan renews soon",
     html,
-    branding,
     type: "renewal_reminder",
     actionUrl: "/app/billing",
   });
@@ -131,16 +122,12 @@ export async function sendRenewalReminderEmail(organizationId: string, renewalDa
 }
 
 export async function sendPlanChangedEmail(organizationId: string, planName: string) {
-  const [orgName, branding] = await Promise.all([
-    getOrganizationName(organizationId),
-    getTenantEmailBranding(organizationId),
-  ]);
-  const html = planChangedTemplate({ orgName, planName, branding });
+  const orgName = await getOrganizationName(organizationId);
+  const html = planChangedTemplate({ orgName, planName });
   await sendBillingEmail({
     organizationId,
     subject: "Your plan has been updated",
     html,
-    branding,
     type: "plan_changed",
     actionUrl: "/app/billing",
   });
@@ -156,17 +143,13 @@ export async function sendPlanChangedEmail(organizationId: string, planName: str
 }
 
 export async function sendPaymentFailedEmail(organizationId: string, retryLink: string) {
-  const [orgName, branding] = await Promise.all([
-    getOrganizationName(organizationId),
-    getTenantEmailBranding(organizationId),
-  ]);
-  const html = paymentFailedTemplate({ orgName, retryLink, branding });
+  const orgName = await getOrganizationName(organizationId);
+  const html = paymentFailedTemplate({ orgName, retryLink });
 
   await sendBillingEmail({
     organizationId,
     subject: "Action required: Issue with your payment",
     html,
-    branding,
     type: "payment_failed",
     actionUrl: "/app/billing",
   });
@@ -186,9 +169,8 @@ export async function sendSubscriptionActivatedEmail(params: {
   planName: string;
   trialDays: number;
 }) {
-  const [orgName, branding, tenantAppUrl] = await Promise.all([
+  const [orgName, tenantAppUrl] = await Promise.all([
     getOrganizationName(params.organizationId),
-    getTenantEmailBranding(params.organizationId),
     resolveTenantAppUrlByOrganizationId({
       organizationId: params.organizationId,
       fallbackAppUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://getbackplate.com",
@@ -199,14 +181,12 @@ export async function sendSubscriptionActivatedEmail(params: {
     planName: params.planName,
     trialDays: params.trialDays,
     dashboardUrl: `${tenantAppUrl.replace(/\/$/, "")}/app/dashboard`,
-    branding,
   });
 
   await sendBillingEmail({
     organizationId: params.organizationId,
     subject: "Your subscription is now active!",
     html,
-    branding,
     type: "subscription_activated",
     actionUrl: "/app/dashboard",
   });
@@ -231,9 +211,8 @@ export async function sendSuccessfulPaymentEmail(params: {
   extraR365Connections?: number;
   sendPush?: boolean;
 }) {
-  const [orgName, branding, tenantAppUrl] = await Promise.all([
+  const [orgName, tenantAppUrl] = await Promise.all([
     getOrganizationName(params.organizationId),
-    getTenantEmailBranding(params.organizationId),
     resolveTenantAppUrlByOrganizationId({
       organizationId: params.organizationId,
       fallbackAppUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://getbackplate.com",
@@ -249,14 +228,12 @@ export async function sendSuccessfulPaymentEmail(params: {
     extraR365Connections: params.extraR365Connections,
     invoiceUrl: params.invoiceUrl,
     billingPortalUrl,
-    branding,
   });
 
   await sendBillingEmail({
     organizationId: params.organizationId,
     subject: `Payment received — ${params.amount}`,
     html,
-    branding,
     type: "successful_payment",
     actionUrl: params.invoiceUrl ?? "/app/billing",
   });

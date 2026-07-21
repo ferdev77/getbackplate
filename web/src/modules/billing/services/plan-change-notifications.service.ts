@@ -1,8 +1,7 @@
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { stripe } from "@/infrastructure/stripe/client";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { buildBrandedEmailSubject, getTenantEmailBranding, resolveEmailSenderName } from "@/shared/lib/email-branding";
-import { planChangeAppliedTemplate, planChangeDecisionTemplate } from "@/shared/lib/email-templates/billing";
+import { BILLING_SENDER_NAME, buildBillingSubject, planChangeAppliedTemplate, planChangeDecisionTemplate } from "@/shared/lib/email-templates/billing";
 
 type PlanRow = {
   id: string;
@@ -246,8 +245,6 @@ export async function sendPlanChangeDecisionEmail(params: {
     { label: "Storage", value: targetPlan.max_storage_mb != null ? `${targetPlan.max_storage_mb} MB` : "Unlimited" },
   ];
 
-  const branding = await getTenantEmailBranding(params.organizationId);
-
   const html = planChangeDecisionTemplate({
     orgName,
     actorName: params.actorFullName,
@@ -260,14 +257,13 @@ export async function sendPlanChangeDecisionEmail(params: {
     modulesToDisable,
     direction,
     happenedAt: new Date().toLocaleString("en-US"),
-    branding,
   });
 
   const result = await sendTransactionalEmail({
     to: params.actorEmail,
-    subject: buildBrandedEmailSubject(`Plan change requested: ${targetPlan.name}`, branding),
+    subject: buildBillingSubject(`Plan change requested: ${targetPlan.name}`),
     html,
-    senderName: resolveEmailSenderName(branding),
+    senderName: BILLING_SENDER_NAME,
     notification: {
       source: "plan_change",
       sourceId: "requested",
@@ -348,8 +344,6 @@ export async function sendPlanChangeAppliedEmail(params: {
     { label: "Storage", value: targetPlan.max_storage_mb != null ? `${targetPlan.max_storage_mb} MB` : "Unlimited" },
   ];
 
-  const branding = await getTenantEmailBranding(params.organizationId);
-
   const html = planChangeAppliedTemplate({
     orgName,
     actorName: actor.actorName,
@@ -362,14 +356,13 @@ export async function sendPlanChangeAppliedEmail(params: {
     modulesToDisable,
     direction,
     appliedAt: new Date().toLocaleString("en-US"),
-    branding,
   });
 
   const result = await sendTransactionalEmail({
     to: actor.actorEmail,
-    subject: buildBrandedEmailSubject(`Plan change applied: ${targetPlan.name}`, branding),
+    subject: buildBillingSubject(`Plan change applied: ${targetPlan.name}`),
     html,
-    senderName: resolveEmailSenderName(branding),
+    senderName: BILLING_SENDER_NAME,
     notification: {
       source: "plan_change",
       sourceId: "applied",
