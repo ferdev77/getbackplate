@@ -224,7 +224,13 @@ export async function requireTenantContext() {
 export async function getOptionalCompanyAdminContext() {
   const supabase = await createSupabaseServerClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError) return { kind: "error" as const };
+  if (authError) {
+    const missingSession = authError.name === "AuthSessionMissingError"
+      || /auth session missing/i.test(authError.message);
+    return missingSession
+      ? { kind: "anonymous" as const }
+      : { kind: "error" as const };
+  }
   const user = authData.user;
   if (!user) return { kind: "anonymous" as const };
 
