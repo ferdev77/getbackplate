@@ -19,6 +19,15 @@ try {
   `);
   const regularUserId = regularUsers[0]?.id;
   if (!regularUserId) throw new Error("No regular user is available for authorization verification");
+  const { rows: companyAdmins } = await client.query(`
+    select membership.user_id, membership.organization_id
+    from public.memberships membership
+    join public.roles role on role.id = membership.role_id
+    where membership.status = 'active' and role.code = 'company_admin'
+    order by membership.created_at limit 1
+  `);
+  const companyAdmin = companyAdmins[0];
+  if (!companyAdmin) throw new Error("No active Company Admin membership is available for identity verification");
 
   await client.query("select set_config('request.jwt.claim.sub', $1, true)", [superadminId]);
   const { rows: requests } = await client.query(`
@@ -30,6 +39,27 @@ try {
     ) returning id
   `);
   const requestId = requests[0].id;
+
+  await client.query("savepoint before_invalid_identity_evidence");
+  try {
+    await client.query("update public.support_requests set identity_source = 'authenticated' where id = $1", [requestId]);
+    throw new Error("Authenticated identity without evidence unexpectedly succeeded");
+  } catch (error) {
+    await client.query("rollback to savepoint before_invalid_identity_evidence");
+    if (error.code !== "23514" && !String(error.message).includes("identity evidence is incomplete")) throw error;
+  }
+
+  await client.query("savepoint before_valid_identity_evidence");
+  const validIdentity = await client.query(`
+    update public.support_requests
+    set identity_source = 'authenticated', requester_user_id = $2,
+        organization_id = $3, authenticated_at = now()
+    where id = $1 returning identity_source
+  `, [requestId, companyAdmin.user_id, companyAdmin.organization_id]);
+  if (validIdentity.rows[0]?.identity_source !== "authenticated") {
+    throw new Error("Valid authenticated identity evidence was not accepted");
+  }
+  await client.query("rollback to savepoint before_valid_identity_evidence");
   await client.query("set local role authenticated");
 
   await client.query("select set_config('request.jwt.claim.sub', $1, true)", [regularUserId]);
@@ -71,7 +101,8 @@ try {
   }
 
   const { rows: finalRows } = await client.query(`
-    select status, assigned_to, verified_at is not null as verified, resolved_at is not null as resolved
+    select status, assigned_to, identity_source,
+           verified_at is not null as verified, resolved_at is not null as resolved
     from public.support_requests where id = $1
   `, [requestId]);
   const { rows: eventRows } = await client.query(`
@@ -81,7 +112,7 @@ try {
     group by event_type order by event_type
   `, [requestId, superadminId]);
   const final = finalRows[0];
-  if (final?.status !== "resolved" || final.assigned_to !== superadminId || !final.verified || !final.resolved) {
+  if (final?.status !== "resolved" || final.assigned_to !== superadminId || final.identity_source !== "public" || !final.verified || !final.resolved) {
     throw new Error("Support workflow final state is incorrect");
   }
   const expectedEvents = { assignment_changed: 1, created: 1, notes_updated: 1, status_changed: 2, verification_changed: 1 };

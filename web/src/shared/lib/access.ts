@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
+import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import {
   getCurrentUser,
   getCurrentUserMemberships,
@@ -14,8 +15,11 @@ import { AUDIT_REASON_CODES } from "@/shared/lib/audit-taxonomy";
 import {
   getActiveOrganizationIdFromCookie,
 } from "@/shared/lib/tenant-selection";
-import { resolveOrganizationIdFromActiveDomain } from "@/shared/lib/custom-domains";
-import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impersonation";
+import { isReservedPlatformHost, resolveOrganizationIdFromActiveDomain } from "@/shared/lib/custom-domains";
+import {
+  resolveActiveSuperadminImpersonationSession,
+  resolveActiveSuperadminImpersonationSessionStrict,
+} from "@/shared/lib/impersonation";
 import { markInvitedAdminFirstLoginIfNeeded } from "@/shared/lib/invited-admin-first-login";
 import { isEmailMfaRequired } from "@/modules/auth/mfa.service";
 import { isMfaVerifiedForUser } from "@/shared/lib/mfa-verification";
@@ -215,6 +219,79 @@ export async function requireTenantContext() {
   }
 
   return tenant;
+}
+
+export async function getOptionalCompanyAdminContext() {
+  const supabase = await createSupabaseServerClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError) return { kind: "error" as const };
+  const user = authData.user;
+  if (!user) return { kind: "anonymous" as const };
+
+  const admin = createSupabaseAdminClient();
+  const { data: superadminRow, error: superadminError } = await admin
+    .from("superadmin_users")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (superadminError) return { kind: "error" as const };
+  const impersonationResolution = superadminRow
+    ? await resolveActiveSuperadminImpersonationSessionStrict(user.id)
+    : { kind: "none" as const };
+  if (impersonationResolution.kind === "error") return { kind: "error" as const };
+  const impersonation = impersonationResolution.kind === "active"
+    ? impersonationResolution.session
+    : null;
+
+  const { data: membershipRows, error: membershipError } = await supabase
+    .from("memberships")
+    .select("id, organization_id, role_id, branch_id, created_at, roles!inner(code)")
+    .eq("user_id", user.id)
+    .eq("status", "active");
+  if (membershipError) return { kind: "error" as const };
+
+  const memberships: MembershipContext[] = (membershipRows ?? []).map((row) => ({
+    membershipId: row.id,
+    organizationId: row.organization_id,
+    roleId: row.role_id,
+    branchId: row.branch_id,
+    roleCode: Array.isArray(row.roles) ? row.roles[0]?.code ?? "" : (row.roles as { code?: string } | null)?.code ?? "",
+    createdAt: row.created_at,
+  })).filter((membership) => membership.roleCode === "company_admin");
+
+  const requestHeaders = await headers();
+  const requestHost = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const isPlatformHost = isReservedPlatformHost(requestHost);
+  const hostOrganizationId = await resolveOrganizationIdFromActiveDomain(requestHost);
+  const cookieOrganizationId = await getActiveOrganizationIdFromCookie();
+  if (!isPlatformHost && !hostOrganizationId) return { kind: "unresolved" as const, user };
+
+  if (impersonation) {
+    if (hostOrganizationId && hostOrganizationId !== impersonation.organizationId) {
+      return { kind: "unresolved" as const, user };
+    }
+    return {
+      kind: "resolved" as const,
+      user,
+      tenant: {
+        membershipId: `impersonation:${impersonation.id}`,
+        organizationId: impersonation.organizationId,
+        roleId: "impersonation",
+        branchId: null,
+        roleCode: "company_admin",
+        createdAt: impersonation.createdAt,
+      } satisfies MembershipContext,
+    };
+  }
+
+  const preferredOrganizationId = hostOrganizationId ?? cookieOrganizationId;
+  const tenant = preferredOrganizationId
+    ? memberships.find((membership) => membership.organizationId === preferredOrganizationId) ?? null
+    : memberships.length === 1 ? memberships[0] : null;
+
+  return tenant
+    ? { kind: "resolved" as const, user, tenant }
+    : { kind: "unresolved" as const, user };
 }
 
 export async function requireTenantModule(moduleCode: string) {

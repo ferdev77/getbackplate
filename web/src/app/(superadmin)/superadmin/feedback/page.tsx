@@ -29,6 +29,9 @@ type SupportRecord = {
   request_type: string;
   requester_name: string;
   requester_email: string;
+  requester_user_id: string | null;
+  identity_source: string;
+  authenticated_at: string | null;
   company_name: string | null;
   organization_id: string | null;
   details: string;
@@ -84,7 +87,8 @@ export default async function SuperadminFeedbackPage({
     `, { count: "exact" }).order("created_at", { ascending: false })
       .range((feedbackPage - 1) * PAGE_SIZE, feedbackPage * PAGE_SIZE - 1),
     supabase.from("support_requests").select(`
-      id, request_type, requester_name, requester_email, company_name,
+      id, request_type, requester_name, requester_email, requester_user_id,
+      identity_source, authenticated_at, company_name,
       organization_id, details, status, verified_at, resolved_at, assigned_to,
       internal_notes, acknowledgement_sent_at, internal_notified_at,
       notification_error, created_at, updated_at
@@ -156,6 +160,9 @@ export default async function SuperadminFeedbackPage({
     type: row.request_type,
     requesterName: row.requester_name,
     requesterEmail: row.requester_email,
+    requesterUserId: row.requester_user_id,
+    identitySource: row.identity_source,
+    authenticatedAt: row.authenticated_at,
     companyName: row.company_name,
     organizationId: row.organization_id,
     details: row.details,

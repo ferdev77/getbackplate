@@ -162,12 +162,13 @@ export async function resolveOrganizationIdFromActiveDomain(host: string | null 
   }
 
   const admin = createSupabaseAdminClient();
-  const { data } = await admin
+  const { data, error } = await admin
     .from("organization_domains")
     .select("organization_id")
     .eq("domain", normalizedHost)
     .in("status", ["active", "verifying_ssl"])
     .maybeSingle();
+  if (error) throw new Error(`Unable to resolve active organization domain: ${error.message}`);
 
   const organizationId = data?.organization_id ?? null;
   organizationIdByDomainCache.set(normalizedHost, {

@@ -179,6 +179,8 @@ Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 | 169 | `20260720000002_support_request_workflow.sql` | Gestión transaccional e historial de solicitudes públicas de soporte y privacidad |
 | 170 | `20260720000003_support_request_workflow_hardening.sql` | Flujo obligatorio, historial append-only y actualización Realtime para soporte |
 | 171 | `20260720000004_support_request_actor_retention.sql` | Conservación de actores históricos y desasignación obligatoria antes de borrar superadmins |
+| 172 | `20260720000005_support_request_authenticated_identity.sql` | Identidad autenticada y organización confiable para solicitudes iniciadas por Company Admin |
+| 173 | `20260720000006_support_request_identity_validation.sql` | Validación DB de membresía Company Admin o impersonación para identidad autenticada de soporte |
 
 ## Convención de naming
 

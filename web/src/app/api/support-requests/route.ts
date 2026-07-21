@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { escapeSupportText, supportRequestSchema } from "@/modules/support/support-request";
+import { getAuthenticatedSupportIdentity } from "@/modules/support/authenticated-support-identity";
+import { escapeSupportText, resolveSupportRequester, supportIdentityMatchesForm, supportRequestSchema } from "@/modules/support/support-request";
 import { applySharedRateLimit } from "@/shared/lib/ai-runtime-store";
 import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
 
@@ -28,8 +29,28 @@ export async function POST(request: Request) {
   // Bots commonly populate this hidden field. Return success without persisting.
   if (parsed.data.website) return NextResponse.json({ ok: true });
 
+  const identityResolution = await getAuthenticatedSupportIdentity().catch(() => null);
+  if (!identityResolution) {
+    return NextResponse.json({ error: "Unable to verify your session. Please try again." }, { status: 503 });
+  }
+  if (identityResolution.kind === "error") {
+    return NextResponse.json({ error: "Unable to verify your session. Please try again." }, { status: 503 });
+  }
+  if (identityResolution.kind === "unresolved") {
+    return NextResponse.json({ error: "Select an active company and reopen the support form." }, { status: 409 });
+  }
+  if (
+    identityResolution.kind === "resolved"
+    && !supportIdentityMatchesForm(parsed.data, identityResolution.identity)
+  ) {
+    return NextResponse.json({ error: "Your active company changed. Reopen the support form before submitting." }, { status: 409 });
+  }
+  const requester = resolveSupportRequester(
+    parsed.data,
+    identityResolution.kind === "resolved" ? identityResolution.identity : null,
+  );
   const ip = visitorAddress(request);
-  const email = parsed.data.email.toLowerCase();
+  const email = requester.email;
   const ipHash = visitorHash(ip);
   const [ipAllowed, emailAllowed] = await Promise.all([
     applySharedRateLimit({ userId: `support-ip:${ip}`, windowMs: 60 * 60 * 1000, maxRequests: 5 }),
@@ -58,9 +79,13 @@ export async function POST(request: Request) {
     .from("support_requests")
     .insert({
       request_type: parsed.data.requestType,
-      requester_name: parsed.data.name,
+      requester_name: requester.name,
       requester_email: email,
-      company_name: parsed.data.company || null,
+      company_name: requester.company || null,
+      organization_id: requester.organizationId,
+      requester_user_id: requester.userId,
+      identity_source: requester.identitySource,
+      authenticated_at: requester.authenticatedAt,
       details: parsed.data.details,
       visitor_ip_hash: ipHash,
       user_agent: request.headers.get("user-agent")?.slice(0, 500) ?? null,
@@ -73,15 +98,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unable to submit your request." }, { status: 500 });
   }
 
-  const safeName = escapeSupportText(parsed.data.name);
-  const safeEmail = escapeSupportText(parsed.data.email);
-  const safeCompany = escapeSupportText(parsed.data.company || "Not provided");
+  const safeName = escapeSupportText(requester.name);
+  const safeEmail = escapeSupportText(requester.email);
+  const safeCompany = escapeSupportText(requester.company || "Not provided");
   const safeDetails = escapeSupportText(parsed.data.details).replaceAll("\n", "<br />");
+  const identityLabel = requester.identitySource === "authenticated" ? "Authenticated company session" : "Public form";
   const internalEmail = process.env.PRIVACY_SUPPORT_EMAIL?.trim() || "support@getbackplate.com";
 
   const [acknowledgement, internalNotice] = await Promise.all([
     sendTransactionalEmail({
-      to: parsed.data.email,
+      to: requester.email,
       subject: `We received your GetBackplate ${parsed.data.requestType} request`,
       html: `<p>Hello ${safeName},</p><p>We received your request and assigned reference <strong>${created.id}</strong>.</p><p>Privacy and data requests require identity and authority verification before we take action. We will follow up by email. Fiscal and billing records may be retained where legally required.</p><p>GetBackplate Support<br />${COMPANY_ADDRESS.inline}</p>`,
       text: `We received your request. Reference: ${created.id}. We will follow up by email after any required identity verification.\n\nGetBackplate Support\n${COMPANY_ADDRESS.inline}`,
@@ -89,8 +115,8 @@ export async function POST(request: Request) {
     }),
     sendTransactionalEmail({
       to: internalEmail,
-      subject: `[${parsed.data.requestType.toUpperCase()}] Public support request ${created.id}`,
-      html: `<p><strong>Reference:</strong> ${created.id}</p><p><strong>Name:</strong> ${safeName}<br /><strong>Email:</strong> ${safeEmail}<br /><strong>Company:</strong> ${safeCompany}<br /><strong>Type:</strong> ${parsed.data.requestType}</p><p><strong>Details</strong><br />${safeDetails}</p><p>${COMPANY_ADDRESS.inline}</p>`,
+      subject: `[${parsed.data.requestType.toUpperCase()}] Support request ${created.id}`,
+      html: `<p><strong>Reference:</strong> ${created.id}</p><p><strong>Identity source:</strong> ${identityLabel}<br /><strong>Name:</strong> ${safeName}<br /><strong>Email:</strong> ${safeEmail}<br /><strong>Company:</strong> ${safeCompany}<br /><strong>Type:</strong> ${parsed.data.requestType}</p><p><strong>Details</strong><br />${safeDetails}</p><p>${COMPANY_ADDRESS.inline}</p>`,
       text: `A new ${parsed.data.requestType} request was recorded. Reference: ${created.id}. Review it in the support_requests table.\n\n${COMPANY_ADDRESS.inline}`,
       notification: { source: "public_support_internal", sourceId: created.id },
     }),

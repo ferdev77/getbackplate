@@ -124,6 +124,36 @@ export async function resolveActiveSuperadminImpersonationSession(superadminUser
   };
 }
 
+export async function resolveActiveSuperadminImpersonationSessionStrict(superadminUserId: string) {
+  const sessionId = await getSuperadminImpersonationCookieValue();
+  if (!sessionId) return { kind: "none" as const };
+
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("superadmin_impersonation_sessions")
+    .select("id, organization_id, superadmin_user_id, reason, expires_at, created_at, revoked_at")
+    .eq("id", sessionId)
+    .eq("superadmin_user_id", superadminUserId)
+    .maybeSingle<ImpersonationSessionRow>();
+  if (error) return { kind: "error" as const };
+  if (!data || data.revoked_at || isSessionExpired(data.expires_at)) {
+    await clearSuperadminImpersonationCookie();
+    return { kind: "none" as const };
+  }
+
+  return {
+    kind: "active" as const,
+    session: {
+      id: data.id,
+      organizationId: data.organization_id,
+      superadminUserId: data.superadmin_user_id,
+      reason: data.reason,
+      expiresAt: data.expires_at,
+      createdAt: data.created_at,
+    },
+  };
+}
+
 export async function isSuperadminImpersonating(userId: string, organizationId?: string | null) {
   const active = await resolveActiveSuperadminImpersonationSession(userId);
   if (!active) return false;
