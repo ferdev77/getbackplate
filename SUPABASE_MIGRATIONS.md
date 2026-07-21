@@ -181,6 +181,7 @@ Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 | 171 | `20260720000004_support_request_actor_retention.sql` | Conservación de actores históricos y desasignación obligatoria antes de borrar superadmins |
 | 172 | `20260720000005_support_request_authenticated_identity.sql` | Identidad autenticada y organización confiable para solicitudes iniciadas por Company Admin |
 | 173 | `20260720000006_support_request_identity_validation.sql` | Validación DB de membresía Company Admin o impersonación para identidad autenticada de soporte |
+| 174 | `20260720000007_intuit_api_response_logs.sql` | Trazabilidad por respuesta Intuit (`intuit_tid`) con metadata segura y retención operativa |
 
 ## Convención de naming
 

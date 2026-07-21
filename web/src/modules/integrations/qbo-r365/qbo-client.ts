@@ -1,16 +1,27 @@
+import {
+  extractIntuitTid,
+  recordIntuitApiResponse,
+  type IntuitResponseTelemetry,
+} from "./intuit-api-telemetry";
+
 const QBO_AUTHORIZE_URL = "https://appcenter.intuit.com/connect/oauth2";
 const QBO_TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer";
 const QBO_REVOKE_URL = "https://developer.api.intuit.com/v2/oauth2/tokens/revoke";
 const QBO_API_BASE_URL = "https://quickbooks.api.intuit.com";
 
-type ExchangeTokenInput = {
+type QboRequestContext = {
+  organizationId?: string | null;
+  runId?: string | null;
+};
+
+type ExchangeTokenInput = QboRequestContext & {
   clientId: string;
   clientSecret: string;
   redirectUri: string;
   code: string;
 };
 
-type RefreshTokenInput = {
+type RefreshTokenInput = QboRequestContext & {
   clientId: string;
   clientSecret: string;
   refreshToken: string;
@@ -82,8 +93,45 @@ function basicAuth(clientId: string, clientSecret: string) {
   return Buffer.from(`${clientId}:${clientSecret}`, "utf8").toString("base64");
 }
 
-async function fetchToken(form: URLSearchParams, clientId: string, clientSecret: string) {
-  const response = await fetch(QBO_TOKEN_URL, {
+type IntuitFetchMetadata = Pick<IntuitResponseTelemetry, "operation" | "endpoint"> & {
+  organizationId?: string | null;
+  runId?: string | null;
+  realmId?: string | null;
+};
+
+type IntuitTelemetryRecorder = (input: IntuitResponseTelemetry) => Promise<void>;
+
+export async function fetchWithIntuitTelemetry(
+  url: string,
+  init: RequestInit,
+  metadata: IntuitFetchMetadata,
+  recorder: IntuitTelemetryRecorder = recordIntuitApiResponse,
+) {
+  const startedAt = performance.now();
+  const response = await fetch(url, init);
+  try {
+    await recorder({
+      ...metadata,
+      method: init.method ?? "GET",
+      statusCode: response.status,
+      ok: response.ok,
+      intuitTid: extractIntuitTid(response.headers),
+      durationMs: performance.now() - startedAt,
+    });
+  } catch (error) {
+    console.error("[Intuit telemetry] Response recorder failed", error instanceof Error ? error.message : error);
+  }
+  return response;
+}
+
+async function fetchToken(
+  form: URLSearchParams,
+  clientId: string,
+  clientSecret: string,
+  operation: string,
+  context: QboRequestContext,
+) {
+  const response = await fetchWithIntuitTelemetry(QBO_TOKEN_URL, {
     method: "POST",
     headers: {
       Authorization: `Basic ${basicAuth(clientId, clientSecret)}`,
@@ -92,6 +140,10 @@ async function fetchToken(form: URLSearchParams, clientId: string, clientSecret:
     },
     body: form.toString(),
     cache: "no-store",
+  }, {
+    operation,
+    endpoint: "/oauth2/v1/tokens/bearer",
+    ...context,
   });
 
   const data = (await response.json().catch(() => ({}))) as Partial<QboTokenResponse> & { error_description?: string };
@@ -122,7 +174,7 @@ export async function exchangeQboOAuthCode(input: ExchangeTokenInput) {
   form.set("code", input.code);
   form.set("redirect_uri", input.redirectUri);
 
-  return fetchToken(form, input.clientId, input.clientSecret);
+  return fetchToken(form, input.clientId, input.clientSecret, "oauth.exchange_token", input);
 }
 
 export async function refreshQboAccessToken(input: RefreshTokenInput) {
@@ -130,7 +182,7 @@ export async function refreshQboAccessToken(input: RefreshTokenInput) {
   form.set("grant_type", "refresh_token");
   form.set("refresh_token", input.refreshToken);
 
-  return fetchToken(form, input.clientId, input.clientSecret);
+  return fetchToken(form, input.clientId, input.clientSecret, "oauth.refresh_token", input);
 }
 
 /**
@@ -141,8 +193,8 @@ export async function revokeQboToken(input: {
   clientId: string;
   clientSecret: string;
   token: string;
-}) {
-  const response = await fetch(QBO_REVOKE_URL, {
+} & QboRequestContext) {
+  const response = await fetchWithIntuitTelemetry(QBO_REVOKE_URL, {
     method: "POST",
     headers: {
       Authorization: `Basic ${basicAuth(input.clientId, input.clientSecret)}`,
@@ -151,6 +203,11 @@ export async function revokeQboToken(input: {
     },
     body: JSON.stringify({ token: input.token }),
     cache: "no-store",
+  }, {
+    operation: "oauth.revoke_token",
+    endpoint: "/v2/oauth2/tokens/revoke",
+    organizationId: input.organizationId,
+    runId: input.runId,
   });
 
   if (!response.ok) {
@@ -182,7 +239,7 @@ async function queryQboTable<T>(input: {
   sinceIso?: string;
   /** Filtra por TxnDate >= 'YYYY-MM-DD' (modo backfill histórico) */
   txnDateFrom?: string;
-}) {
+} & QboRequestContext) {
   const sanitizeCustomerId = (value: string) => {
     const trimmed = value.trim();
     if (!/^[A-Za-z0-9._-]+$/.test(trimmed)) {
@@ -216,7 +273,7 @@ async function queryQboTable<T>(input: {
   }) => payload.Fault?.Error?.[0] ?? payload.fault?.error?.[0];
 
   const doRequest = async (baseUrl: string, query: string) => {
-    const response = await fetch(
+    const response = await fetchWithIntuitTelemetry(
       `${baseUrl}/v3/company/${input.realmId}/query?minorversion=75`,
       {
         method: "POST",
@@ -227,6 +284,12 @@ async function queryQboTable<T>(input: {
         },
         body: query,
         cache: "no-store",
+      }, {
+        operation: `accounting.query_${input.table.toLowerCase()}`,
+        endpoint: "/v3/company/{realmId}/query",
+        realmId: input.realmId,
+        organizationId: input.organizationId,
+        runId: input.runId,
       },
     );
 
@@ -317,7 +380,7 @@ export async function fetchQboSalesTransactions(input: {
   txnDateFrom?: string;
   /** Si true, omite la query de SalesReceipts (no aplican a R365) */
   skipSalesReceipts?: boolean;
-}) {
+} & QboRequestContext) {
   const invoiceQuery = queryQboTable<QboInvoiceLike>({
     accessToken: input.accessToken,
     realmId: input.realmId,
@@ -325,6 +388,8 @@ export async function fetchQboSalesTransactions(input: {
     customerIds: input.customerIds,
     sinceIso: input.sinceIso,
     txnDateFrom: input.txnDateFrom,
+    organizationId: input.organizationId,
+    runId: input.runId,
   });
   const salesReceiptQuery = input.skipSalesReceipts
     ? Promise.resolve([] as QboInvoiceLike[])
@@ -335,6 +400,8 @@ export async function fetchQboSalesTransactions(input: {
         customerIds: input.customerIds,
         sinceIso: input.sinceIso,
         txnDateFrom: input.txnDateFrom,
+        organizationId: input.organizationId,
+        runId: input.runId,
       });
   const creditMemoQuery = queryQboTable<QboInvoiceLike>({
     accessToken: input.accessToken,
@@ -343,6 +410,8 @@ export async function fetchQboSalesTransactions(input: {
     customerIds: input.customerIds,
     sinceIso: input.sinceIso,
     txnDateFrom: input.txnDateFrom,
+    organizationId: input.organizationId,
+    runId: input.runId,
   });
   const [invoices, salesReceipts, creditMemos] = await Promise.all([invoiceQuery, salesReceiptQuery, creditMemoQuery]);
 
@@ -376,11 +445,11 @@ export async function fetchQboRawTransaction(input: {
   accessToken: string;
   realmId: string;
   invoiceId: string;
-}): Promise<{ type: string; data: unknown } | null> {
+} & QboRequestContext): Promise<{ type: string; data: unknown } | null> {
   const types = ["Invoice", "SalesReceipt", "CreditMemo"] as const;
   for (const type of types) {
     const query = `select * from ${type} where Id = '${input.invoiceId}'`;
-    const response = await fetch(
+    const response = await fetchWithIntuitTelemetry(
       `${QBO_API_BASE_URL}/v3/company/${input.realmId}/query?minorversion=75`,
       {
         method: "POST",
@@ -391,6 +460,12 @@ export async function fetchQboRawTransaction(input: {
         },
         body: query,
         cache: "no-store",
+      }, {
+        operation: `accounting.lookup_${type.toLowerCase()}_by_id`,
+        endpoint: "/v3/company/{realmId}/query",
+        realmId: input.realmId,
+        organizationId: input.organizationId,
+        runId: input.runId,
       },
     );
     const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
@@ -407,7 +482,7 @@ export async function fetchQboCrudoTransaction(input: {
   accessToken: string;
   realmId: string;
   invoiceId: string;
-}): Promise<{
+} & QboRequestContext): Promise<{
   foundType: string | null;
   invoiceId: string;
   attempts: Array<{
@@ -437,7 +512,7 @@ export async function fetchQboCrudoTransaction(input: {
   for (const type of types) {
     const query = `select * from ${type} where Id = '${input.invoiceId}'`;
     const url = `${QBO_API_BASE_URL}/v3/company/${input.realmId}/query?minorversion=75`;
-    const response = await fetch(
+    const response = await fetchWithIntuitTelemetry(
       url,
       {
         method: "POST",
@@ -448,6 +523,12 @@ export async function fetchQboCrudoTransaction(input: {
         },
         body: query,
         cache: "no-store",
+      }, {
+        operation: `accounting.inspect_${type.toLowerCase()}_by_id`,
+        endpoint: "/v3/company/{realmId}/query",
+        realmId: input.realmId,
+        organizationId: input.organizationId,
+        runId: input.runId,
       },
     );
 
@@ -493,7 +574,7 @@ export type QboCustomer = {
 export async function fetchQboItemSkus(input: {
   accessToken: string;
   realmId: string;
-}): Promise<Map<string, string>> {
+} & QboRequestContext): Promise<Map<string, string>> {
   const baseUrl = QBO_API_BASE_URL;
   const skuMap = new Map<string, string>();
   const pageSize = 1000;
@@ -501,7 +582,7 @@ export async function fetchQboItemSkus(input: {
 
   while (true) {
     const query = `select * from Item startposition ${startPosition} maxresults ${pageSize}`;
-    const response = await fetch(
+    const response = await fetchWithIntuitTelemetry(
       `${baseUrl}/v3/company/${input.realmId}/query?minorversion=75`,
       {
         method: "POST",
@@ -512,6 +593,12 @@ export async function fetchQboItemSkus(input: {
         },
         body: query,
         cache: "no-store",
+      }, {
+        operation: "accounting.query_items",
+        endpoint: "/v3/company/{realmId}/query",
+        realmId: input.realmId,
+        organizationId: input.organizationId,
+        runId: input.runId,
       },
     );
 
@@ -548,13 +635,13 @@ export async function fetchQboTransactionByDocNumber(input: {
   accessToken: string;
   realmId: string;
   docNumber: string;
-}): Promise<{ type: "Invoice" | "CreditMemo"; data: QboInvoiceLike } | null> {
+} & QboRequestContext): Promise<{ type: "Invoice" | "CreditMemo"; data: QboInvoiceLike } | null> {
   const safeDocNumber = input.docNumber.replace(/'/g, "''");
   const types = ["Invoice", "CreditMemo"] as const;
 
   for (const type of types) {
     const query = `select * from ${type} where DocNumber = '${safeDocNumber}'`;
-    const response = await fetch(
+    const response = await fetchWithIntuitTelemetry(
       `${QBO_API_BASE_URL}/v3/company/${input.realmId}/query?minorversion=75`,
       {
         method: "POST",
@@ -565,6 +652,12 @@ export async function fetchQboTransactionByDocNumber(input: {
         },
         body: query,
         cache: "no-store",
+      }, {
+        operation: `accounting.lookup_${type.toLowerCase()}_by_doc_number`,
+        endpoint: "/v3/company/{realmId}/query",
+        realmId: input.realmId,
+        organizationId: input.organizationId,
+        runId: input.runId,
       },
     );
     const payload = (await response.json().catch(() => ({}))) as QueryResponse<QboInvoiceLike> & {
@@ -604,9 +697,9 @@ export async function fetchQboCustomerById(input: {
   accessToken: string;
   realmId: string;
   customerId: string;
-}): Promise<QboCustomer | null> {
+} & QboRequestContext): Promise<QboCustomer | null> {
   const baseUrl = QBO_API_BASE_URL;
-  const response = await fetch(
+  const response = await fetchWithIntuitTelemetry(
     `${baseUrl}/v3/company/${input.realmId}/customer/${input.customerId}?minorversion=75&include=enhancedAllCustomFields`,
     {
       headers: {
@@ -614,6 +707,12 @@ export async function fetchQboCustomerById(input: {
         Accept: "application/json",
       },
       cache: "no-store",
+    }, {
+      operation: "accounting.get_customer",
+      endpoint: "/v3/company/{realmId}/customer/{customerId}",
+      realmId: input.realmId,
+      organizationId: input.organizationId,
+      runId: input.runId,
     },
   );
   if (!response.ok) return null;
@@ -625,7 +724,13 @@ export async function fetchQboCustomerById(input: {
   if (!acctNum) {
     const parentRef = c.ParentRef as { value?: string } | undefined;
     if (parentRef?.value) {
-      const parent = await fetchQboCustomerById({ accessToken: input.accessToken, realmId: input.realmId, customerId: parentRef.value }).catch(() => null);
+      const parent = await fetchQboCustomerById({
+        accessToken: input.accessToken,
+        realmId: input.realmId,
+        customerId: parentRef.value,
+        organizationId: input.organizationId,
+        runId: input.runId,
+      }).catch(() => null);
       acctNum = parent?.acctNum;
     }
   }
@@ -636,7 +741,7 @@ export async function fetchQboCustomerById(input: {
 export async function fetchQboCustomers(input: {
   accessToken: string;
   realmId: string;
-}): Promise<QboCustomer[]> {
+} & QboRequestContext): Promise<QboCustomer[]> {
   const baseUrl = QBO_API_BASE_URL;
   const pageSize = 1000;
   const output: QboCustomer[] = [];
@@ -653,7 +758,7 @@ export async function fetchQboCustomers(input: {
 
   while (true) {
     const query = `select * from Customer where Active = true startposition ${startPosition} maxresults ${pageSize}`;
-    const response = await fetch(
+    const response = await fetchWithIntuitTelemetry(
       `${baseUrl}/v3/company/${input.realmId}/query?minorversion=75&include=enhancedAllCustomFields`,
       {
         method: "POST",
@@ -664,6 +769,12 @@ export async function fetchQboCustomers(input: {
         },
         body: query,
         cache: "no-store",
+      }, {
+        operation: "accounting.query_customers",
+        endpoint: "/v3/company/{realmId}/query",
+        realmId: input.realmId,
+        organizationId: input.organizationId,
+        runId: input.runId,
       },
     );
 

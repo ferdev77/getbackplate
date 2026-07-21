@@ -483,6 +483,7 @@ export async function listQboCustomers(organizationId: string): Promise<QboCusto
   return fetchQboCustomers({
     accessToken: qboAuth.accessToken,
     realmId: qboAuth.realmId,
+    organizationId,
   });
 }
 
@@ -496,6 +497,7 @@ export async function getQboCustomerById(organizationId: string, customerId: str
     accessToken: qboAuth.accessToken,
     realmId: qboAuth.realmId,
     customerId,
+    organizationId,
   });
 }
 
@@ -509,6 +511,7 @@ export async function fetchRawQboInvoice(organizationId: string, invoiceId: stri
     accessToken: qboAuth.accessToken,
     realmId: qboAuth.realmId,
     invoiceId,
+    organizationId,
   });
 }
 
@@ -522,6 +525,7 @@ export async function fetchCrudoQboInvoice(organizationId: string, invoiceId: st
     accessToken: qboAuth.accessToken,
     realmId: qboAuth.realmId,
     invoiceId,
+    organizationId,
   });
 
   let syncCustomer: {
@@ -555,6 +559,7 @@ export async function fetchCrudoQboInvoice(organizationId: string, invoiceId: st
         accessToken: qboAuth.accessToken,
         realmId: qboAuth.realmId,
         customerId: qboCustomerId,
+        organizationId,
       });
     }
   }
@@ -574,6 +579,7 @@ export async function fetchCrudoQboInvoice(organizationId: string, invoiceId: st
       accessToken: qboAuth.accessToken,
       realmId: qboAuth.realmId,
       customerId: invoiceCustomerId,
+      organizationId,
     });
   }
 
@@ -1215,6 +1221,7 @@ export async function completeQboOAuthCallback(input: {
     clientSecret: globalQbo.clientSecret,
     redirectUri: globalQbo.redirectUri,
     code: input.code,
+    organizationId: input.organizationId,
   });
 
   try {
@@ -1286,7 +1293,12 @@ export async function disconnectQboConnection(input: {
       if (input.requireRemoteRevocation) throw new Error(revokeError);
     } else {
       try {
-        await revokeQboToken({ clientId: globalQbo.clientId, clientSecret: globalQbo.clientSecret, token });
+        await revokeQboToken({
+          clientId: globalQbo.clientId,
+          clientSecret: globalQbo.clientSecret,
+          token,
+          organizationId: input.organizationId,
+        });
       } catch (error) {
         revokeError = error instanceof Error ? error.message : "Could not revoke the token in Intuit.";
         if (input.requireRemoteRevocation) throw new Error(revokeError);
@@ -1356,6 +1368,7 @@ async function ensureFreshQboToken(input: {
       clientId,
       clientSecret: globalQbo.clientSecret,
       refreshToken: secrets.refreshToken,
+      organizationId: input.organizationId,
     });
   } catch (error) {
     // El refresh token ya no sirve (el usuario revoco el acceso desde su
@@ -1470,6 +1483,7 @@ function buildFileName(prefix: string, invoiceNumber?: string) {
 async function getQboCustomerAcctNumMap(
   qboAuth: { accessToken: string; realmId: string },
   customerIds: string[],
+  organizationId?: string,
 ): Promise<Map<string, string>> {
   const map = new Map<string, string>();
   const uniqueIds = Array.from(new Set(customerIds.filter(Boolean)));
@@ -1478,7 +1492,12 @@ async function getQboCustomerAcctNumMap(
     const batch = uniqueIds.slice(i, i + batchSize);
     const results = await Promise.all(
       batch.map((customerId) =>
-        fetchQboCustomerById({ accessToken: qboAuth.accessToken, realmId: qboAuth.realmId, customerId }).catch(() => null),
+        fetchQboCustomerById({
+          accessToken: qboAuth.accessToken,
+          realmId: qboAuth.realmId,
+          customerId,
+          organizationId,
+        }).catch(() => null),
       ),
     );
     for (const customer of results) {
@@ -1582,6 +1601,8 @@ export async function runQboR365Sync(input: {
         realmId: qboAuth.realmId,
         customerIds: groupCustomerIds.length > 0 ? groupCustomerIds : undefined,
         sinceIso,
+        organizationId: input.organizationId,
+        runId,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Error consultando Invoice en QuickBooks";
@@ -1602,6 +1623,8 @@ export async function runQboR365Sync(input: {
         realmId: qboAuth.realmId,
         customerIds: groupCustomerIds.length > 0 ? groupCustomerIds : undefined,
         sinceIso,
+        organizationId: input.organizationId,
+        runId,
       });
     }
 
@@ -1610,6 +1633,8 @@ export async function runQboR365Sync(input: {
     const itemSkuMap = await fetchQboItemSkus({
       accessToken: qboAuth.accessToken,
       realmId: qboAuth.realmId,
+      organizationId: input.organizationId,
+      runId,
     }).catch(() => new Map<string, string>());
     const customerAcctNumMap = new Map(
       (syncConfig?.customers ?? [])
@@ -3414,6 +3439,7 @@ export async function importQboWebhookEventManually(input: { organizationId: str
     accessToken: qboAuth.accessToken,
     realmId: qboAuth.realmId,
     invoiceId: String(data.entity_id ?? ""),
+    organizationId: input.organizationId,
   });
   if (!raw || raw.type !== data.entity) {
     throw new Error("Unable to retrieve the entity from QuickBooks for this webhook.");
@@ -3700,6 +3726,7 @@ async function fetchAndCaptureWebhookInvoice(input: {
       accessToken: qboAuth.accessToken,
       realmId: qboAuth.realmId,
       invoiceId: input.entityId,
+      organizationId: input.organizationId,
     });
 
     if (!raw?.data) {
@@ -3856,6 +3883,7 @@ async function getQboItemSkuMapForOrganization(organizationId: string): Promise<
   return fetchQboItemSkus({
     accessToken: qboAuth.accessToken,
     realmId: qboAuth.realmId,
+    organizationId,
   }).catch(() => new Map<string, string>());
 }
 
@@ -3866,7 +3894,7 @@ async function getQboCustomerAcctNumMapForOrganization(organizationId: string, c
   const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection }).catch(() => null);
   if (!qboAuth) return new Map<string, string>();
 
-  return getQboCustomerAcctNumMap(qboAuth, customerIds);
+  return getQboCustomerAcctNumMap(qboAuth, customerIds, organizationId);
 }
 
 /**
@@ -3908,6 +3936,7 @@ export async function fetchInvoiceByDocNumber(
     accessToken: qboAuth.accessToken,
     realmId: qboAuth.realmId,
     docNumber: docNumber.trim(),
+    organizationId,
   });
 
   if (!result) {
@@ -4125,6 +4154,8 @@ export async function backfillFromQboSinceDate(
       customerIds: syncConfigRow.customers.map((c) => c.qbo_customer_id),
       txnDateFrom,
       skipSalesReceipts: true,
+      organizationId,
+      runId,
     });
 
     const nowIso = new Date().toISOString();
@@ -4563,6 +4594,7 @@ export async function processQboUnifiedQueue(): Promise<{
           accessToken: qboAuth.accessToken,
           realmId: qboAuth.realmId,
           invoiceId: String(row.entity_id),
+          organizationId,
         });
         if (!raw?.data) {
           await markIdentificationFailed(row, organizationId, String(row.entity_id), String(row.entity_type), "Entidad no encontrada en QuickBooks");

@@ -126,6 +126,25 @@ export async function GET(request: Request) {
       error: intuitRetentionError?.message ?? null,
     });
 
+    // 9. Intuit response trace IDs are operational diagnostics (12 months).
+    const { count: intuitResponseLogCount, error: intuitResponseLogError } = await admin
+      .from("intuit_api_response_logs")
+      .delete({ count: "exact" })
+      .lt("created_at", operationalCutoff.toISOString());
+    await admin.from("system_maintenance_logs").insert({
+      task: "intuit_api_response_retention",
+      status: intuitResponseLogError ? "failed" : "success",
+      records_affected: intuitResponseLogError ? 0 : (intuitResponseLogCount ?? 0),
+      cutoff_at: operationalCutoff.toISOString(),
+      error_message: intuitResponseLogError?.message ?? null,
+    });
+    results.push({
+      task: "purgeIntuitApiResponseLogs",
+      status: intuitResponseLogError ? 500 : 200,
+      recordsDeleted: intuitResponseLogCount ?? 0,
+      error: intuitResponseLogError?.message ?? null,
+    });
+
     return NextResponse.json({ ok: true, results });
   } catch (error: unknown) {
     console.error("Master daily cron error:", error);
