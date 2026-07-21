@@ -111,7 +111,6 @@ export function subscriptionLinkEmailTemplate({
   const legalLinksHtml = joinWithAnd(
     legalLinks.map((l) => `<a href="${l.url}" style="color:#C24A1E;text-decoration:underline;">${l.label}</a>`),
   );
-  const legalLabelsJoined = joinWithAnd(legalLinks.map((l) => l.label));
 
   const additionalConnectionsRow = extraConnections
     ? `
@@ -295,85 +294,15 @@ export function subscriptionLinkEmailTemplate({
             </td>
           </tr>
 
-          <tr><td style="height:16px; line-height:16px; font-size:1px;">&nbsp;</td></tr>
-
-          <tr>
-            <td style="background-color:#ffffff; border-radius:14px; padding:40px;" class="px-mobile py-mobile">
-              <p style="margin:0 0 8px 0; font-family:'Plus Jakarta Sans', Arial, sans-serif; font-size:12px; font-weight:600; color:#C24A1E; text-transform:uppercase; letter-spacing:0.08em;">
-                What happens next
-              </p>
-              <h2 style="margin:0 0 28px 0; font-family:'Plus Jakarta Sans', Arial, sans-serif; font-size:22px; line-height:1.3; font-weight:600; color:#1a1a1a; letter-spacing:-0.01em;">
-                Four steps to recurring billing
-              </h2>
-
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:18px;">
-                <tr>
-                  <td width="40" valign="top" style="padding:0 16px 0 0;">
-                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-                      <tr><td width="32" height="32" align="center" valign="middle" style="background-color:#FEF7F2; border-radius:50%; font-family:'Plus Jakarta Sans', Arial, sans-serif; font-size:14px; font-weight:700; color:#C24A1E; line-height:32px;">1</td></tr>
-                    </table>
-                  </td>
-                  <td valign="top" style="padding:6px 0 16px 0; font-family:'Plus Jakarta Sans', Arial, sans-serif; font-size:15px; line-height:1.55; color:#1a1a1a; border-bottom:1px solid #E5E7F0;">
-                    <strong style="font-weight:600;">Review on Stripe Checkout.</strong>
-                    <span style="color:#6b7280;"> Confirm your subscription pricing and tax calculation.</span>
-                  </td>
-                </tr>
-              </table>
-
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:18px;">
-                <tr>
-                  <td width="40" valign="top" style="padding:0 16px 0 0;">
-                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-                      <tr><td width="32" height="32" align="center" valign="middle" style="background-color:#FEF7F2; border-radius:50%; font-family:'Plus Jakarta Sans', Arial, sans-serif; font-size:14px; font-weight:700; color:#C24A1E; line-height:32px;">2</td></tr>
-                    </table>
-                  </td>
-                  <td valign="top" style="padding:6px 0 16px 0; font-family:'Plus Jakarta Sans', Arial, sans-serif; font-size:15px; line-height:1.55; color:#1a1a1a; border-bottom:1px solid #E5E7F0;">
-                    <strong style="font-weight:600;">Enter payment method.</strong>
-                    <span style="color:#6b7280;"> Card or ACH via Stripe&rsquo;s PCI-compliant form.</span>
-                  </td>
-                </tr>
-              </table>
-
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:18px;">
-                <tr>
-                  <td width="40" valign="top" style="padding:0 16px 0 0;">
-                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-                      <tr><td width="32" height="32" align="center" valign="middle" style="background-color:#FEF7F2; border-radius:50%; font-family:'Plus Jakarta Sans', Arial, sans-serif; font-size:14px; font-weight:700; color:#C24A1E; line-height:32px;">3</td></tr>
-                    </table>
-                  </td>
-                  <td valign="top" style="padding:6px 0 16px 0; font-family:'Plus Jakarta Sans', Arial, sans-serif; font-size:15px; line-height:1.55; color:#1a1a1a; border-bottom:1px solid #E5E7F0;">
-                    <strong style="font-weight:600;">Accept the terms.</strong>
-                    <span style="color:#6b7280;"> Single checkbox covers ${legalLinks.length === 3 ? "all three legal documents" : "both legal documents"} (${legalLabelsJoined}).</span>
-                  </td>
-                </tr>
-              </table>
-
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                <tr>
-                  <td width="40" valign="top" style="padding:0 16px 0 0;">
-                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-                      <tr><td width="32" height="32" align="center" valign="middle" style="background-color:#FEF7F2; border-radius:50%; font-family:'Plus Jakarta Sans', Arial, sans-serif; font-size:14px; font-weight:700; color:#C24A1E; line-height:32px;">4</td></tr>
-                    </table>
-                  </td>
-                  <td valign="top" style="padding:6px 0 0 0; font-family:'Plus Jakarta Sans', Arial, sans-serif; font-size:15px; line-height:1.55; color:#1a1a1a;">
-                    <strong style="font-weight:600;">Subscription becomes recurring.</strong>
-                    <span style="color:#6b7280;"> Automatic billing going forward.</span>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
           <tr><td style="height:24px; line-height:24px; font-size:1px;">&nbsp;</td></tr>
 
           <tr>
             <td style="padding:0 40px;" class="px-mobile">
               <p style="margin:0 0 8px 0; font-family:'Plus Jakarta Sans', Arial, sans-serif; font-size:15px; line-height:1.6; color:#1a1a1a;">
-                Questions before you activate? Reply to this email or call <a href="tel:+19568029639" style="color:#C24A1E; text-decoration:none;">(956)&nbsp;802-9639</a>. You know where to find me.
+                Questions before you activate? Reply to this email or call <a href="tel:+19568029639" style="color:#C24A1E; text-decoration:none;">(956)&nbsp;802-9639</a>. Our team is here to help.
               </p>
               <p style="margin:24px 0 0 0; font-family:'Plus Jakarta Sans', Arial, sans-serif; font-size:15px; line-height:1.6; color:#1a1a1a;">
-                &mdash; Angelo<br>
-                <span style="color:#6b7280; font-size:14px;">Founder, GetBackplate</span>
+                GetBackplate Support
               </p>
             </td>
           </tr>
