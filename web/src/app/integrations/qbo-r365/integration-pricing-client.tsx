@@ -49,37 +49,53 @@ const MARQUEE_ITEMS = [
 const FAQ_ITEMS: { q: string; a: React.ReactNode }[] = [
   {
     q: "Who pays — the vendor or the restaurant?",
-    a: "The vendor or distributor sending the invoices pays. Your restaurant customers receive invoices into their Restaurant365 at no cost — and if you're a restaurant, you can refer a vendor to get set up for free.",
+    a: (
+      <>
+        The vendor or distributor sending the invoices pays. Your restaurant customers receive invoices into their Restaurant365 at no cost — and if you&apos;re a restaurant, you can{" "}
+        <Link href="/refer">refer a vendor</Link> to get set up for free.
+      </>
+    ),
+  },
+  {
+    q: "Will connecting to R365 cost me anything extra?",
+    a: "Nope. And if R365 ever charges a fee to activate your first connection, we cover it on annual plans — one more reason to go annual.",
+  },
+  {
+    q: "What happens if I go over my monthly invoice limit?",
+    a: "You're never cut off — invoices keep flowing. Extra invoices are simply billed per invoice: $0.99 each on Connect (over 75), $0.79 on Grow (over 250), and $0.59 on Scale (over 1,000). You only ever pay for what you actually send.",
   },
   {
     q: "How fast do invoices arrive in Restaurant365?",
-    a: "Every invoice is picked up automatically the moment you finalize it in QuickBooks® Online and delivered to your customer's Restaurant365 on its next import — no manual steps, no waiting on email.",
+    a: "Every invoice is picked up automatically the moment you finalize it in QuickBooks Online and delivered to your customer's Restaurant365 on its next import — no manual steps, no waiting on email.",
   },
   {
     q: "Do credit memos get delivered too, not just invoices?",
-    a: "Yes. When you finalize an invoice or a credit memo in QuickBooks® Online, it's delivered to your customer's Restaurant365 automatically — no re-keying and no email attachments. Each document is delivered as finalized in QuickBooks® Online.",
+    a: "Yes. When you finalize an invoice or a credit memo in QuickBooks Online, it's delivered to your customer's Restaurant365 automatically — no re-keying and no email attachments.",
   },
   {
-    q: "Do I have to change how I use QuickBooks® Online?",
-    a: "No. You keep invoicing in QuickBooks® Online exactly as you do today. Once connected, delivery happens in the background on every invoice.",
+    q: "Do I have to change how I use QuickBooks?",
+    a: "No. You keep invoicing in QuickBooks Online exactly as you do today. Once connected, delivery happens in the background on every invoice.",
   },
   {
-    q: "Is my QuickBooks® Online data secure?",
+    q: "What's involved in getting set up?",
+    a: "Very little on your end. You authorize QuickBooks Online through its secure connection, and we handle the R365 side of the setup for you. Most vendors are live within 3 business days, and once you're connected, delivery runs automatically on every invoice — there's nothing to maintain.",
+  },
+  {
+    q: "Is my QuickBooks data secure?",
     a: (
       <>
-        Yes. Your connection is authorized through QuickBooks® Online&apos;s secure OAuth flow,
-        credentials are encrypted, and you can disconnect at any time. See our{" "}
+        Yes. Your connection is authorized through QuickBooks Online&apos;s secure OAuth flow, credentials are encrypted, and you can disconnect at any time. See our{" "}
         <Link href="/trust">Trust Center</Link> for details.
       </>
     ),
   },
   {
     q: "I'm a restaurant — my vendor isn't set up. What do I do?",
-    a: "Refer them and we'll reach out and handle the setup so their invoices start landing in your Restaurant365 automatically — at no cost to you.",
-  },
-  {
-    q: "Does this work with desktop accounting software?",
-    a: "This integration is built for QuickBooks® Online. If you use desktop accounting software, reach out and we'll let you know what's possible.",
+    a: (
+      <>
+        <Link href="/refer">Refer them</Link> and we&apos;ll reach out and handle the setup so their invoices start landing in your Restaurant365 automatically — at no cost to you.
+      </>
+    ),
   },
 ];
 
