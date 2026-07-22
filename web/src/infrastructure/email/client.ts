@@ -12,6 +12,7 @@ type SendEmailNotificationMeta = {
 
 type SendEmailInput = {
   to: string;
+  bcc?: string[];
   subject: string;
   html: string;
   text?: string;
@@ -56,6 +57,7 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
         body: JSON.stringify({
           sender: { email: senderEmail, name: senderName },
           to: [{ email: input.to }],
+          bcc: input.bcc?.map((email) => ({ email })),
           subject: input.subject,
           htmlContent: input.html,
           textContent: input.text,

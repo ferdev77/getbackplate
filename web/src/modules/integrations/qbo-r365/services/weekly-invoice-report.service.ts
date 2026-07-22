@@ -13,6 +13,22 @@ function brandedSubject(subject: string): string {
   return `[${FIXED_SENDER_NAME}] ${subject}`;
 }
 
+function ownerReportCopies(primaryRecipient: string, isPreview: boolean): string[] | undefined {
+  if (isPreview) return undefined;
+
+  const primary = primaryRecipient.trim().toLowerCase();
+  const recipients = (process.env.OWNER_WEEKLY_REPORT_EMAIL ?? "")
+    .split(",")
+    .map((email) => email.trim())
+    .filter((email, index, all) =>
+      Boolean(email) &&
+      email.toLowerCase() !== primary &&
+      all.findIndex((candidate) => candidate.toLowerCase() === email.toLowerCase()) === index,
+    );
+
+  return recipients.length ? recipients : undefined;
+}
+
 type BranchInvoiceLine = {
   docNumber: string;
   sentAt: string;
@@ -513,6 +529,7 @@ export async function sendWeeklyInvoiceReport(input: {
 
     await sendTransactionalEmail({
       to: orgEmailTarget,
+      bcc: ownerReportCopies(orgEmailTarget, Boolean(input.overrideRecipientEmail)),
       subject: brandedSubject(subject),
       html,
       text: `${orgReport.text}\n\n${orgRecurrenceNotice}`,
@@ -588,6 +605,7 @@ export async function sendWeeklyInvoiceReport(input: {
 
         await sendTransactionalEmail({
           to: target,
+          bcc: ownerReportCopies(target, Boolean(input.overrideRecipientEmail)),
           subject: brandedSubject(subject),
           html,
           text: `${branchReport.text}\n\n${branchRecurrenceNotice}`,
