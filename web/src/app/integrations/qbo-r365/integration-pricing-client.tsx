@@ -400,6 +400,8 @@ const STYLES = `
 .int-landing .faq.open .faq-a{grid-template-rows:1fr;}
 .int-landing .faq-a .inner{overflow:hidden;min-height:0;}
 .int-landing .faq-a .inner .pad{padding:0 4px 20px;font-size:14.5px;color:var(--text-secondary);line-height:1.6;}
+.int-landing .faq-a .inner .pad a{color:var(--accent);font-weight:600;text-decoration:none;border-bottom:1px solid rgba(212,83,26,.35);}
+.int-landing .faq-a .inner .pad a:hover{border-bottom-color:var(--accent);}
 
 /* REFER BAND */
 .int-landing .referband{background:var(--accent-light);border-top:1px solid var(--border);}
