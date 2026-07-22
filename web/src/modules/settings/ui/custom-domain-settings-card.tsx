@@ -33,6 +33,14 @@ function statusClass(status: string) {
   return "border-neutral-200 bg-neutral-100 text-neutral-600";
 }
 
+function localizedStatusLabel(status: string, t: (s: string) => string) {
+  if (status === "active") return t("Activo");
+  if (status === "verifying_ssl") return t("Verificando SSL");
+  if (status === "error") return t("Error");
+  if (status === "disabled") return t("Deshabilitado");
+  return t("Pendiente DNS");
+}
+
 function formatLastChecked(value: string | null, t: (s: string) => string, locale: "es" | "en" | undefined) {
   if (!value) return t("Sin verificación reciente");
 
@@ -426,7 +434,7 @@ export function CustomDomainSettingsCard({
                       </div>
                     </div>
                     <span className={`rounded-full border px-2.5 py-1 text-xs ${statusClass(row.status)}`}>
-                      {row.statusLabel}
+                      {localizedStatusLabel(row.status, t)}
                     </span>
                   </div>
 

@@ -248,6 +248,9 @@ export function EditableDepartmentItem({
           title={`${t("Eliminar departamento")}: ${department.name}`}
           description={t("¿Estás seguro de eliminar este departamento? Se eliminará permanentemente si no tiene puestos asociados ni personal asignado.")}
           busy={busy}
+          confirmLabel={t("Eliminar")}
+          cancelLabel={t("Cancelar")}
+          busyLabel={t("Procesando...")}
           onCancel={() => setIsDeleting(false)}
           onConfirm={handleDelete}
         />

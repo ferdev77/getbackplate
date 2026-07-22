@@ -152,7 +152,7 @@ export function CompanyContactSettingsCard({
               </label>
             </div>
             <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg2)] p-3">
-              <p className="mb-2 text-[11px] font-semibold text-[var(--gbp-text)]">Logo dark</p>
+              <p className="mb-2 text-[11px] font-semibold text-[var(--gbp-text)]">{t("Logo dark")}</p>
               <div className="mb-2 grid min-h-[92px] w-full place-items-center rounded-md border border-[var(--gbp-border2)] bg-[var(--gbp-bg)] p-2">
                 {darkLogoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -218,7 +218,7 @@ export function CompanyContactSettingsCard({
             type="email"
             value={emailValue}
             onChange={(event) => setEmailValue(event.target.value)}
-            placeholder="empresa@dominio.com"
+            placeholder={locale === "en" ? "company@domain.com" : "empresa@dominio.com"}
             disabled={!isEditing || isSaving}
             className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] disabled:cursor-not-allowed disabled:bg-[var(--gbp-bg)] disabled:text-[var(--gbp-muted)]"
           />
@@ -229,7 +229,7 @@ export function CompanyContactSettingsCard({
             name="support_phone"
             value={phoneValue}
             onChange={(event) => setPhoneValue(event.target.value)}
-            placeholder="+54 11 ..."
+            placeholder={locale === "en" ? "+1 555 123 4567" : "+54 11 ..."}
             disabled={!isEditing || isSaving}
             className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] disabled:cursor-not-allowed disabled:bg-[var(--gbp-bg)] disabled:text-[var(--gbp-muted)]"
           />
@@ -240,7 +240,7 @@ export function CompanyContactSettingsCard({
             name="feedback_whatsapp"
             value={whatsappValue}
             onChange={(event) => setWhatsappValue(event.target.value)}
-            placeholder="+54 9 11 ..."
+            placeholder={locale === "en" ? "+1 555 123 4567" : "+54 9 11 ..."}
             disabled={!isEditing || isSaving}
             className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] disabled:cursor-not-allowed disabled:bg-[var(--gbp-bg)] disabled:text-[var(--gbp-muted)]"
           />
@@ -251,7 +251,7 @@ export function CompanyContactSettingsCard({
             name="website_url"
             value={websiteValue}
             onChange={(event) => setWebsiteValue(event.target.value)}
-            placeholder="https://tuempresa.com"
+            placeholder={locale === "en" ? "https://yourcompany.com" : "https://tuempresa.com"}
             disabled={!isEditing || isSaving}
             className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] disabled:cursor-not-allowed disabled:bg-[var(--gbp-bg)] disabled:text-[var(--gbp-muted)]"
           />

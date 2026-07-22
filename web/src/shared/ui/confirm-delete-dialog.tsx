@@ -8,6 +8,7 @@ type ConfirmDeleteDialogProps = {
   onConfirm: () => void;
   confirmLabel?: string;
   cancelLabel?: string;
+  busyLabel?: string;
 };
 
 const PANEL =
@@ -25,6 +26,7 @@ export function ConfirmDeleteDialog({
   onConfirm,
   confirmLabel = "Eliminar",
   cancelLabel = "Cancelar",
+  busyLabel = "Procesando...",
 }: ConfirmDeleteDialogProps) {
   return (
     <div
@@ -48,7 +50,7 @@ export function ConfirmDeleteDialog({
             {cancelLabel}
           </button>
           <button type="button" disabled={busy} onClick={onConfirm} className={DANGER}>
-            {busy ? "Procesando..." : confirmLabel}
+            {busy ? busyLabel : confirmLabel}
           </button>
         </div>
       </div>

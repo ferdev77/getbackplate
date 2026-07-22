@@ -188,6 +188,9 @@ export function EditablePositionItem({
           title={`${t("Eliminar puesto")}: ${position.name}`}
           description={t("¿Estás seguro de eliminar este puesto? Esta acción no se puede deshacer si no está en uso.")}
           busy={busy}
+          confirmLabel={t("Eliminar")}
+          cancelLabel={t("Cancelar")}
+          busyLabel={t("Procesando...")}
           onCancel={() => setIsDeleting(false)}
           onConfirm={handleDelete}
         />

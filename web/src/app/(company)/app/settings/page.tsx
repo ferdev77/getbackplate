@@ -247,7 +247,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
       <section className="grid gap-4">
         <CompanyContactSettingsCard
           locale={locale}
-          organizationName={organization?.name ?? "Empresa"}
+          organizationName={organization?.name ?? t("Empresa")}
           supportEmail={orgSettings?.support_email ?? ""}
           supportPhone={orgSettings?.support_phone ?? ""}
           feedbackWhatsapp={orgSettings?.feedback_whatsapp ?? ""}

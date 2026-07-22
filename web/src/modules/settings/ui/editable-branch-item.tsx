@@ -246,6 +246,9 @@ export function EditableBranchItem({
           title={`${t("Eliminar locación")}: ${branch.name}`}
           description={t("¿Seguro que deseas eliminar esta locación de forma permanente? Solo se podrá eliminar si no tiene personal asignado.")}
           busy={busy}
+          confirmLabel={t("Eliminar")}
+          cancelLabel={t("Cancelar")}
+          busyLabel={t("Procesando...")}
           onCancel={() => setIsDeleting(false)}
           onConfirm={handleDelete}
         />
