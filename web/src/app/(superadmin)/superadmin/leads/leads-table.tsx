@@ -289,12 +289,6 @@ export function LeadsTable({ leads, assignees, currentUserName, renderedAt, toda
 
   return (
     <div className="mx-auto w-full max-w-[1180px] pb-8">
-      <header className="mb-5 flex flex-wrap items-baseline gap-3">
-        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gbp-accent)]">GetBackplate</span>
-        <h1 className="text-[26px] font-extrabold tracking-[-0.02em] text-[var(--gbp-text)]">Referral Leads</h1>
-        <span className="rounded-full bg-[var(--gbp-surface2)] px-2.5 py-1 font-mono text-xs font-semibold text-[var(--gbp-text2)]">{rows.length} lead{rows.length === 1 ? "" : "s"}</span>
-      </header>
-
       <section className="mb-4 flex flex-wrap items-center gap-2.5 rounded-[18px] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-3.5">
         <label className="relative min-w-[210px] flex-1 basis-60">
           <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--gbp-muted)]" />
