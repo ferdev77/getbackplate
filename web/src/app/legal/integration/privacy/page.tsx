@@ -166,7 +166,7 @@ export default function IntegrationPrivacyPage() {
       </div>
       <p style={{ marginTop: 28 }}>We will acknowledge your inquiry within a reasonable time and respond as required by applicable law.</p>
       <p>This Privacy Policy is designed to meet the disclosure requirements of the Intuit Developer Program and applicable data protection laws. By using the Service, you confirm that you have read and understood this Privacy Policy.</p>
-      <p style={{ marginTop: 12, fontSize: 12, opacity: 0.7 }}>Intuit and QuickBooks® Online are registered trademarks of Intuit Inc.</p>
+      <p style={{ marginTop: 12, fontSize: 12, opacity: 0.7 }}>QuickBooks® Online is a registered trademark of Intuit Inc. Restaurant365 is a trademark of Restaurant365, LLC. Backplate Technologies LLC (&quot;GetBackplate&quot;) is not affiliated with, endorsed by, or sponsored by Intuit Inc. or Restaurant365, LLC.</p>
     </LegalDocLayout>
   );
 }

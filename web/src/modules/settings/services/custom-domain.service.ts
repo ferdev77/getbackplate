@@ -94,7 +94,7 @@ function mapVercelDomainStatus(payload: Record<string, unknown>): VercelDomainCh
   if (misconfigured || verificationError) {
     return {
       status: "error",
-      verificationError: verificationError || "Dominio mal configurado en DNS",
+      verificationError: verificationError || "Domain DNS is misconfigured",
       dnsTarget,
     };
   }

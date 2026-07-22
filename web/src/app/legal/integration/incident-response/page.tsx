@@ -240,7 +240,7 @@ export default function IncidentResponsePage() {
         <div>
           <strong>Backplate Technologies LLC, d/b/a GetBackplate</strong><br />
           {LEGAL_ADDRESS.inline} · United States<br />
-          <a href="mailto:security@getbackplate.com">security@getbackplate.com</a> · <a href="mailto:hello@getbackplate.com">hello@getbackplate.com</a>
+          <a href="mailto:security@getbackplate.com">security@getbackplate.com</a>
         </div>
         <div style={{ textAlign: "right" }}>
           <Link href="/trust">Back to Trust</Link><br />

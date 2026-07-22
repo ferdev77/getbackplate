@@ -1,6 +1,10 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { stripe } from "@/infrastructure/stripe/client";
 
+export function formatInvoiceUsageDescription(sentCount: number, allowance: number, billableCount: number, unitPrice: string) {
+  return `Invoices sent to R365 (${sentCount} sent, ${allowance} included, ${billableCount} × $${unitPrice})`;
+}
+
 /**
  * Suma un cargo por el EXCEDENTE de facturas enviadas a R365 sobre lo que el
  * plan ya incluye, durante el periodo que termina -- como un "pending
@@ -79,7 +83,7 @@ export async function billInvoiceUsageForRenewal(params: {
     subscription: stripeSubscriptionId,
     currency: "usd",
     amount: amountCents,
-    description: `Facturas enviadas a R365 (${sentCount} enviadas, ${allowance} incluidas, ${billableCount} × $${unitPrice})`,
+    description: formatInvoiceUsageDescription(sentCount, allowance, billableCount, unitPrice),
   });
 
   await supabase

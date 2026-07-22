@@ -49,7 +49,7 @@ export default async function ReferPage({ params }: Props) {
   const initials = getInitials(branchName);
 
   return (
-    <div style={{
+    <div lang="en" style={{
       fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
       fontSize: 16,
       lineHeight: 1.6,

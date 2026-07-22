@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { getQboR365Snapshot, getUnifiedInvoiceStats, listQboR365Runs, listQboR365InvoiceHistory } from "@/modules/integrations/qbo-r365/service";
+import { getInvoiceQuotaCopy } from "@/modules/integrations/qbo-r365/dashboard-copy";
 
 export const dynamic = "force-dynamic";
 
@@ -81,6 +82,9 @@ export async function GET() {
 
     const lastRun = runs[0] ?? null;
     const totalFailed = runs.reduce((sum, r) => sum + Number(r.total_failed ?? 0), 0);
+    const quotaCopy = invoicesIncluded != null
+      ? getInvoiceQuotaCopy(unifiedStats.enviadasThisPeriod, invoicesIncluded)
+      : null;
 
     const statCards: StatCard[] = [
       {
@@ -90,19 +94,15 @@ export async function GET() {
         tone: unifiedStats.total > 0 ? "success" : "muted",
       },
       {
-        label: invoicesIncluded ? "Invoices This Month" : "Invoices Sent",
-        value: invoicesIncluded
+        label: quotaCopy?.label ?? "Invoices Sent",
+        value: invoicesIncluded != null
           ? `${unifiedStats.enviadasThisPeriod} / ${invoicesIncluded}`
           : String(unifiedStats.enviadas),
-        subLabel: invoicesIncluded
-          ? (unifiedStats.enviadasThisPeriod > invoicesIncluded
-              ? `${unifiedStats.enviadasThisPeriod - invoicesIncluded} overage · $0.99 each`
-              : `${invoicesIncluded - unifiedStats.enviadasThisPeriod} available this month`)
-          : "Delivered to R365 via FTP",
-        tone: invoicesIncluded && unifiedStats.enviadasThisPeriod > invoicesIncluded
+        subLabel: quotaCopy?.subLabel ?? "Delivered to R365 via FTP",
+        tone: invoicesIncluded != null && unifiedStats.enviadasThisPeriod > invoicesIncluded
           ? "warning"
           : unifiedStats.enviadas > 0 ? "success" : "muted",
-        ...(invoicesIncluded ? {
+        ...(invoicesIncluded != null ? {
           quota: {
             used: unifiedStats.enviadasThisPeriod,
             limit: invoicesIncluded,

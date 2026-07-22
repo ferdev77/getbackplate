@@ -472,7 +472,7 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
-      <div className="int-landing">
+      <div className="int-landing" lang="en">
         {/* NAV */}
         <nav className="nav">
           <div className="nav-inner">
@@ -481,7 +481,6 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
               <img src="/getbackplate-logo-light.svg" alt="GetBackplate" style={{ height: 28, width: "auto", display: "block" }} />
             </Link>
             <div className="navlinks">
-              <Link href="/platform">Platform</Link>
               <a href="#integrations">Integration</a>
               <a href="#proof">Case study</a>
               <a href="#pricing">Pricing</a>
@@ -781,10 +780,9 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
             </div>
             <div className="foot-bottom">
               <span>© 2026 Backplate Technologies LLC. All rights reserved.</span>
-              <span>hello@getbackplate.com</span>
             </div>
             <p style={{ marginTop: 16, fontSize: 11, color: "#6B717C", textAlign: "center" }}>
-              Intuit and QuickBooks® Online are registered trademarks of Intuit Inc. Used with permission.
+              QuickBooks® Online is a registered trademark of Intuit Inc. Restaurant365 is a trademark of Restaurant365, LLC. Backplate Technologies LLC (&quot;GetBackplate&quot;) is not affiliated with, endorsed by, or sponsored by Intuit Inc. or Restaurant365, LLC.
             </p>
           </div>
         </footer>

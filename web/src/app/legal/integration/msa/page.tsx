@@ -306,7 +306,7 @@ export default function IntegrationMsaPage() {
         By accepting this Agreement electronically, Customer acknowledges that they have read, understood, and agreed to be bound by its terms and conditions.
       </p>
       <p style={{ marginTop: 8, color: "var(--legal-text-muted)", fontSize: 12, textAlign: "center" }}>
-        Intuit and QuickBooks® Online are registered trademarks of Intuit Inc.
+        QuickBooks® Online is a registered trademark of Intuit Inc. Restaurant365 is a trademark of Restaurant365, LLC. Backplate Technologies LLC (&quot;GetBackplate&quot;) is not affiliated with, endorsed by, or sponsored by Intuit Inc. or Restaurant365, LLC.
       </p>
     </LegalDocLayout>
   );

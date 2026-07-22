@@ -126,6 +126,7 @@ export function CustomDomainSettingsCard({
   defaultCnameTarget,
 }: CustomDomainSettingsCardProps) {
   const t = createTranslator(locale);
+  const exampleDomain = locale === "en" ? "app.yourcompany.com" : "app.tuempresa.com";
   const [domainInput, setDomainInput] = useState("");
   const [rows, setRows] = useState<CustomDomainRow[]>(initialRows);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
@@ -335,7 +336,7 @@ export function CustomDomainSettingsCard({
         </p>
         <p className="text-base font-semibold text-[var(--gbp-text)]">{t("Dominio personalizado")}</p>
         <p className="mt-1 text-sm text-[var(--gbp-text2)]">
-          {t("Publica tu acceso con identidad de marca:")} <strong>app.tuempresa.com</strong>
+          {t("Publica tu acceso con identidad de marca:")} <strong>{exampleDomain}</strong>
         </p>
 
         {enabled ? (
@@ -388,7 +389,7 @@ export function CustomDomainSettingsCard({
                   onKeyDown={(event) => {
                     if (event.key === "Enter") void createDomain();
                   }}
-                  placeholder="app.nombreempresa.com"
+                  placeholder={exampleDomain}
                   className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)]"
                 />
                 <button
@@ -475,7 +476,7 @@ export function CustomDomainSettingsCard({
 
               {!hasRows ? (
                 <div className="rounded-lg border border-dashed border-[var(--gbp-border2)] bg-[var(--gbp-bg)] p-4 text-xs text-[var(--gbp-text2)]">
-                  {t("Aún no hay dominios configurados. Carga")} `app.tuempresa.com` {t("para iniciar verificación.")}
+                  {t("Aún no hay dominios configurados. Carga")} <code>{exampleDomain}</code> {t("para iniciar verificación.")}
                 </div>
               ) : null}
             </div>

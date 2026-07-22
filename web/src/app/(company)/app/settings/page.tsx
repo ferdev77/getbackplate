@@ -72,23 +72,24 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
   const tenant = await requireTenantModule("settings");
   const supabase = await createSupabaseServerClient();
   const user = await getCurrentUser();
-  const [customBrandingEnabled, locale] = await Promise.all([
+  const [customBrandingEnabled, { data: organization }] = await Promise.all([
     isModuleEnabledForOrganization(tenant.organizationId, "custom_branding"),
-    resolveUserLocale({ organizationId: tenant.organizationId, userId: user?.id ?? null }),
-  ]);
-  const t = createTranslator(locale);
-
-  const [
-    { data: organization },
-    { data: orgSettingsWithWebsite, error: orgSettingsWithWebsiteError },
-    { data: brandingSettings },
-    { data: customDomains },
-  ] = await Promise.all([
     supabase
       .from("organizations")
       .select("name, plan_id, integration_plan_id, integration_vendor_profile, plans(name)")
       .eq("id", tenant.organizationId)
       .maybeSingle(),
+  ]);
+  const locale = organization?.integration_plan_id
+    ? "en"
+    : await resolveUserLocale({ organizationId: tenant.organizationId, userId: user?.id ?? null });
+  const t = createTranslator(locale);
+
+  const [
+    { data: orgSettingsWithWebsite, error: orgSettingsWithWebsiteError },
+    { data: brandingSettings },
+    { data: customDomains },
+  ] = await Promise.all([
     supabase
       .from("organization_settings")
       .select(

@@ -26,7 +26,7 @@ const INTEGRATION = {
 
 export default function LegalIndexPage() {
   return (
-    <div className="min-h-screen" style={{ background: "#f5f6f8", fontFamily: "var(--font-plus-jakarta-sans), sans-serif" }}>
+    <div className="min-h-screen" lang="en" style={{ background: "#f5f6f8", fontFamily: "var(--font-plus-jakarta-sans), sans-serif" }}>
       <IntegrationSiteHeader />
 
       <main className="mx-auto max-w-[1000px] px-6 py-16 sm:px-10">
@@ -74,7 +74,7 @@ export default function LegalIndexPage() {
           For legal inquiries, contact GetBackplate at {LEGAL_ADDRESS.inline} — Phone +1 (956) 802-9639.
         </p>
         <p className="mt-3 text-center text-[11px] text-[#9ca3af]">
-          Intuit and QuickBooks® Online are registered trademarks of Intuit Inc.
+          QuickBooks® Online is a registered trademark of Intuit Inc. Restaurant365 is a trademark of Restaurant365, LLC. Backplate Technologies LLC (&quot;GetBackplate&quot;) is not affiliated with, endorsed by, or sponsored by Intuit Inc. or Restaurant365, LLC.
         </p>
       </main>
       <IntegrationSiteFooter />

@@ -379,16 +379,16 @@ function periodLabel(data: OrgWeeklyReportData): string {
   return `${formatDate(data.periodStart!)} – ${formatDate(data.periodEnd!)}`;
 }
 
-export function buildOrgReportText(data: OrgWeeklyReportData): { subject: string; text: string } {
+export function buildOrgReportText(data: OrgWeeklyReportData, cadence: "weekly" | "monthly" = "weekly"): { subject: string; text: string } {
   const subject = data.isHistorical
     ? "Historical invoice delivery summary"
-    : `Weekly invoice delivery summary — ${periodLabel(data)}`;
+    : `${cadence === "monthly" ? "Monthly" : "Weekly"} invoice delivery summary — ${periodLabel(data)}`;
 
   const lines: string[] = [];
   lines.push(
     data.isHistorical
       ? "Hi! Here is your first report: a summary of all invoices your integration has delivered through today."
-      : `Here is your weekly report: a summary of invoices your integration delivered ${periodLabel(data)}.`,
+      : `Here is your ${cadence} report: a summary of invoices your integration delivered ${periodLabel(data)}.`,
   );
   lines.push("");
 
@@ -485,14 +485,14 @@ export async function sendWeeklyInvoiceReport(input: {
   ]);
 
   const pLabel = periodLabel(data);
-  const orgReport = buildOrgReportText(data);
+  const sendTo = input.sendTo ?? "all";
+  const orgReport = buildOrgReportText(data, sendTo === "org" ? "monthly" : "weekly");
   const orgRecipient = await getOrgReportRecipient(input.organizationId);
   const orgEmailTarget = input.overrideRecipientEmail ?? orgRecipient.email;
 
   // Org email: link a la landing pública de la integración
   const orgPlatformUrl = `${appBase}/integrations/qbo-r365`;
 
-  const sendTo = input.sendTo ?? "all";
   const orgRecurrenceNotice = data.isHistorical ? FIRST_ORG_REPORT_NOTICE : MONTHLY_RECURRENCE_NOTICE;
   const branchRecurrenceNotice = data.isHistorical ? FIRST_REPORT_NOTICE : WEEKLY_RECURRENCE_NOTICE;
 

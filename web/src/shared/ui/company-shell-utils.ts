@@ -34,6 +34,20 @@ export function isActive(pathname: string, searchParams: URLSearchParams, href: 
   return true;
 }
 
+export function resolveCompanyShellLocale({
+  integrationPlanId,
+  preferredLanguage,
+  hasIntegrationModule,
+}: {
+  integrationPlanId: string | null | undefined;
+  preferredLanguage: string | null | undefined;
+  hasIntegrationModule: boolean;
+}): "es" | "en" {
+  if (integrationPlanId) return "en";
+  if (preferredLanguage === "en" || preferredLanguage === "es") return preferredLanguage;
+  return hasIntegrationModule ? "en" : "es";
+}
+
 // ── Theme ─────────────────────────────────────────────────────────────────────
 
 export function normalizeTheme(value: string) {
@@ -87,10 +101,10 @@ export function getPlanAmountByCycle(plan: PlanForBilling, cycle: BillingCycle):
   return Math.round((plan.priceAmount / 10) * 100) / 100;
 }
 
-export function formatPlanPrice(plan: PlanForBilling, cycle?: BillingCycle): string {
+export function formatPlanPrice(plan: PlanForBilling, cycle?: BillingCycle, locale: "es" | "en" = "es"): string {
   const selectedCycle = cycle ?? normalizePlanPeriod(plan.billingPeriod);
   const amount = getPlanAmountByCycle(plan, selectedCycle);
-  if (typeof amount !== "number") return "Precio no definido";
-  const period = selectedCycle === "yearly" ? "año" : "mes";
+  if (typeof amount !== "number") return locale === "en" ? "Price not defined" : "Precio no definido";
+  const period = selectedCycle === "yearly" ? (locale === "en" ? "year" : "año") : (locale === "en" ? "month" : "mes");
   return `$${amount}/${period}`;
 }

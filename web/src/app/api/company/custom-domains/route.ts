@@ -72,7 +72,7 @@ export async function POST(request: Request) {
   const customBrandingEnabled = await assertCustomBrandingModuleEnabled(moduleAccess.tenant.organizationId);
   if (!customBrandingEnabled) {
     return NextResponse.json(
-      { error: "El módulo Custom Branding debe estar activo para configurar dominios personalizados." },
+      { error: "The Custom Branding module must be active to configure custom domains." },
       { status: 403 },
     );
   }
@@ -80,16 +80,16 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Dominio inválido" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid domain" }, { status: 400 });
   }
 
   const domain = normalizeCustomDomainInput(parsed.data.domain);
   if (!domain) {
-    return NextResponse.json({ error: "Dominio inválido" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid domain" }, { status: 400 });
   }
 
   if (!domain.startsWith("app.")) {
-    return NextResponse.json({ error: "Usa formato app.tudominio.com" }, { status: 400 });
+    return NextResponse.json({ error: "Use the format app.yourdomain.com" }, { status: 400 });
   }
 
   const supabase = await createSupabaseServerClient();
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "Tu empresa ya tiene un dominio personalizado configurado. Elimínalo primero para cargar uno nuevo.",
+          "Your company already has a custom domain. Delete it before adding a new one.",
       },
       { status: 409 },
     );
@@ -128,7 +128,7 @@ export async function POST(request: Request) {
     .single();
 
   if (insertError) {
-    return NextResponse.json({ error: `No se pudo registrar dominio: ${insertError.message}` }, { status: 400 });
+    return NextResponse.json({ error: `Could not register the domain: ${insertError.message}` }, { status: 400 });
   }
 
   let vercelResult;
@@ -160,7 +160,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ error: `No se pudo registrar dominio en Vercel: ${message}` }, { status: 400 });
+    return NextResponse.json({ error: `Could not register the domain in Vercel: ${message}` }, { status: 400 });
   }
 
   const nowIso = new Date().toISOString();
@@ -216,7 +216,7 @@ export async function DELETE(request: Request) {
   const { searchParams } = new URL(request.url);
   const domain = normalizeCustomDomainInput(searchParams.get("domain"));
   if (!domain) {
-    return NextResponse.json({ error: "Dominio inválido" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid domain" }, { status: 400 });
   }
 
   const supabase = await createSupabaseServerClient();
@@ -228,7 +228,7 @@ export async function DELETE(request: Request) {
     .maybeSingle();
 
   if (existingError || !existing?.id) {
-    return NextResponse.json({ error: "Dominio no encontrado" }, { status: 404 });
+    return NextResponse.json({ error: "Domain not found" }, { status: 404 });
   }
 
   try {

@@ -1,15 +1,19 @@
-import { getUserPreferencesCached } from "@/modules/organizations/cached-queries";
+import { getOrganizationByIdCached, getUserPreferencesCached } from "@/modules/organizations/cached-queries";
 import { isModuleEnabledForOrganization } from "@/shared/lib/tenant-modules";
 
 export type AppLocale = "es" | "en";
 
-// Idioma automatico por plan (ingles para cuentas con la integracion QBO
-// activa, espanol para el resto) salvo que el usuario ya haya guardado una
-// preferencia explicita desde Ajustes (ver migracion 20260714000002).
+// Integration-plan organizations are contractually English-only. Other
+// organizations keep their explicit preference and existing module fallback.
 export async function resolveUserLocale(input: { organizationId: string; userId: string | null }): Promise<AppLocale> {
-  const preferences = input.userId
-    ? await getUserPreferencesCached(input.userId, input.organizationId)
-    : null;
+  const [organization, preferences] = await Promise.all([
+    getOrganizationByIdCached(input.organizationId),
+    input.userId
+      ? getUserPreferencesCached(input.userId, input.organizationId)
+      : Promise.resolve(null),
+  ]);
+
+  if (organization?.integration_plan_id) return "en";
 
   if (preferences?.language === "en" || preferences?.language === "es") {
     return preferences.language;

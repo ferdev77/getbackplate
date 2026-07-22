@@ -12,6 +12,7 @@ import {
 } from '@/modules/billing/services/billing-notifications.service';
 import { sendPlanChangeAppliedEmail } from '@/modules/billing/services/plan-change-notifications.service';
 import { billInvoiceUsageForRenewal } from '@/modules/integrations/qbo-r365/usage-billing';
+import { formatIntegrationRenewalReminder } from '@/modules/integrations/qbo-r365/renewal-format';
 import { logAuditEvent } from '@/shared/lib/audit';
 
 // Deduplication is handled via the stripe_processed_events table in Supabase.
@@ -1148,12 +1149,6 @@ export async function POST(req: Request) {
         }
 
         if (event.type === 'invoice.upcoming') {
-            const amountStr = new Intl.NumberFormat('es-US', { style: 'currency', currency: invoice.currency.toUpperCase() }).format(invoice.amount_due / 100);
-            const renewalDate = new Date(invoice.period_end * 1000).toLocaleDateString('es-US');
-
-            await sendRenewalReminderEmail(organizationId, renewalDate, amountStr);
-            console.info(`[Webhook] Sent renewal reminder for org ${organizationId}`);
-
             // ── USAGE BILLING: cobro por factura enviada (solo integración QBO-R365) ──
             // Si esta renovación es la de la suscripción de integración (no la de
             // plataforma), y la organización tiene un precio por factura configurado,
@@ -1163,15 +1158,26 @@ export async function POST(req: Request) {
               ? invoiceSubscription
               : invoiceSubscription?.id ?? null;
 
-            if (upcomingSubscriptionId) {
-              const { data: integrationAddon } = await supabase
+            const { data: integrationAddon } = upcomingSubscriptionId
+              ? await supabase
                 .from('organization_addons')
                 .select('id')
                 .eq('organization_id', organizationId)
                 .eq('stripe_subscription_id', upcomingSubscriptionId)
-                .maybeSingle();
+                .maybeSingle()
+              : { data: null };
 
-              if (integrationAddon) {
+            const reminderValues = integrationAddon
+              ? formatIntegrationRenewalReminder(invoice.amount_due, invoice.currency, invoice.period_end)
+              : {
+                  amount: new Intl.NumberFormat('es-US', { style: 'currency', currency: invoice.currency.toUpperCase() }).format(invoice.amount_due / 100),
+                  renewalDate: new Date(invoice.period_end * 1000).toLocaleDateString('es-US'),
+                };
+
+            await sendRenewalReminderEmail(organizationId, reminderValues.renewalDate, reminderValues.amount);
+            console.info(`[Webhook] Sent renewal reminder for org ${organizationId}`);
+
+            if (upcomingSubscriptionId && integrationAddon) {
                 const liveSubscription = await stripe.subscriptions.retrieve(upcomingSubscriptionId);
                 const item = liveSubscription.items.data[0] as unknown as {
                   current_period_start?: number;
@@ -1188,7 +1194,6 @@ export async function POST(req: Request) {
                 } else {
                   console.error(`[Webhook][usage-billing] No current_period_start/end on subscription item for org ${organizationId}`);
                 }
-              }
             }
             // ── END USAGE BILLING ─────────────────────────────────────────────────────
         } else if (event.type === 'invoice.payment_failed') {

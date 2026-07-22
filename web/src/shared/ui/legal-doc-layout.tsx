@@ -14,7 +14,7 @@ type LegalDocLayoutProps = {
 
 export function LegalDocLayout({ docLabel, title, subtitle, effective, lastUpdated, version, children }: LegalDocLayoutProps) {
   return (
-    <div className="legal-doc">
+    <div className="legal-doc" lang="en">
       <IntegrationSiteHeader />
 
       <main className="container">

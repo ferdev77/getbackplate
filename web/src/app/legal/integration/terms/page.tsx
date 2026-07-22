@@ -149,7 +149,7 @@ export default function IntegrationTermsPage() {
         <a href="mailto:security@getbackplate.com">security@getbackplate.com</a> · +1 (956) 802-9639
       </div>
       <p style={{ marginTop: 28 }}>By using the Service, you acknowledge that you have read this Agreement, understand it, and agree to be bound by its terms and conditions.</p>
-      <p style={{ marginTop: 12, fontSize: 12, opacity: 0.7 }}>Intuit and QuickBooks® Online are registered trademarks of Intuit Inc.</p>
+      <p style={{ marginTop: 12, fontSize: 12, opacity: 0.7 }}>QuickBooks® Online is a registered trademark of Intuit Inc. Restaurant365 is a trademark of Restaurant365, LLC. Backplate Technologies LLC (&quot;GetBackplate&quot;) is not affiliated with, endorsed by, or sponsored by Intuit Inc. or Restaurant365, LLC.</p>
     </LegalDocLayout>
   );
 }

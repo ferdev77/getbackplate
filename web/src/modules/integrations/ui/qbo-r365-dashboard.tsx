@@ -179,15 +179,14 @@ function connLabel(status: string, t: (s: string) => string = (s) => s) {
   return t("Desconectado");
 }
 
-function formatQboDate(value: string | null | undefined, locale: "es" | "en" | undefined = "es") {
+function formatQboDate(value: string | null | undefined) {
   if (!value) return "-";
-  const localeTag = locale === "en" ? "en-US" : "es-AR";
   const dateOnly = value.match(/^\d{4}-\d{2}-\d{2}$/);
   if (dateOnly) {
     const [year, month, day] = value.split("-").map((part) => Number(part));
-    return new Date(year, month - 1, day).toLocaleDateString(localeTag);
+    return new Date(year, month - 1, day).toLocaleDateString("en-US");
   }
-  return new Date(value).toLocaleDateString(localeTag);
+  return new Date(value).toLocaleDateString("en-US");
 }
 
 function formatCurrencyLabel(value: string | null | undefined) {
@@ -199,26 +198,18 @@ function formatCurrencyLabel(value: string | null | undefined) {
   return value;
 }
 
-function relativeTime(iso: string, locale: "es" | "en" | undefined = "es") {
+function relativeTime(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
-  if (locale === "en") {
-    if (mins < 1) return "Now";
-    if (mins < 60) return `${mins} min ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    const days = Math.floor(hrs / 24);
-    return `${days}d ago`;
-  }
-  if (mins < 1) return "Ahora";
-  if (mins < 60) return `Hace ${mins} min`;
+  if (mins < 1) return "Now";
+  if (mins < 60) return `${mins} min ago`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `Hace ${hrs}h`;
+  if (hrs < 24) return `${hrs}h ago`;
   const days = Math.floor(hrs / 24);
-  return `Hace ${days}d`;
+  return `${days}d ago`;
 }
 
-function importedTime(iso: string, locale: "es" | "en" | undefined = "es") {
+function importedTime(iso: string) {
   const date = new Date(iso);
   const diff = Date.now() - date.getTime();
   const mins = Math.floor(diff / 60000);
@@ -228,23 +219,13 @@ function importedTime(iso: string, locale: "es" | "en" | undefined = "es") {
   const mm = String(date.getMinutes()).padStart(2, "0");
   const yearSuffix = date.getFullYear() !== currentYear ? ` ${date.getFullYear()}` : "";
 
-  if (locale === "en") {
-    if (mins < 1) return "Now";
-    if (mins < 60) return `${mins} min ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return hrs === 1 ? "1 hour ago" : `${hrs} hours ago`;
-    const monthsEn = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    const month = monthsEn[date.getMonth()];
-    return `${month} ${day}${yearSuffix}, ${hh}:${mm}`;
-  }
-
-  if (mins < 1) return "Ahora";
-  if (mins < 60) return `Hace ${mins} min`;
+  if (mins < 1) return "Now";
+  if (mins < 60) return `${mins} min ago`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return hrs === 1 ? "Hace 1 hora" : `Hace ${hrs} horas`;
-  const months = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  if (hrs < 24) return hrs === 1 ? "1 hour ago" : `${hrs} hours ago`;
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const month = months[date.getMonth()];
-  return `${day} ${month}${yearSuffix}, ${hh}:${mm}`;
+  return `${month} ${day}${yearSuffix}, ${hh}:${mm}`;
 }
 
 function normalizeApiError(error: unknown, fallback: string) {
@@ -668,12 +649,10 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
         }),
       });
       const payload = (await response.json().catch(() => ({}))) as { error?: string; id?: string; backfilling?: boolean };
-      if (!response.ok) throw new Error(payload.error || "Error al crear");
+      if (!response.ok) throw new Error(payload.error || t("Error al crear"));
       if (payload.backfilling) {
         toast.success(t("Sincronización creada"), {
-          description: locale === "en"
-            ? `Importing invoices from ${newSyncBackfillFromDate} in the background. They will appear in the history shortly.`
-            : `Importando facturas desde ${newSyncBackfillFromDate} en segundo plano. Aparecerán en el historial en instantes.`,
+          description: `Importing invoices from ${newSyncBackfillFromDate} in the background. They will appear in the history shortly.`,
         });
       } else {
         toast.success(t("Sincronización creada"));
@@ -755,7 +734,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
         body: JSON.stringify(patch),
       });
       const payload = (await response.json().catch(() => ({}))) as { error?: string };
-      if (!response.ok) throw new Error(payload.error || "Error al guardar");
+      if (!response.ok) throw new Error(payload.error || t("Error al guardar"));
 
       toast.success(t("Cambios guardados"));
       setIsCreateSyncOpen(false);
@@ -850,12 +829,10 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
         body: JSON.stringify({ unifiedInvoiceId }),
       });
       const payload = (await response.json().catch(() => ({}))) as { error?: string; mapped?: number };
-      if (!response.ok) throw new Error(payload.error || "No se pudo mapear la factura");
+      if (!response.ok) throw new Error(payload.error || t("No se pudo mapear la factura"));
       toast.dismiss(loadingToastId);
       toast.success(t("Factura mapeada"), {
-        description: locale === "en"
-          ? `${payload.mapped ?? 0} line(s) ready to send to R365.`
-          : `${payload.mapped ?? 0} línea(s) listas para enviar a R365.`,
+        description: `${payload.mapped ?? 0} line(s) ready to send to R365.`,
       });
       setUnifiedHistoryKey((p) => p + 1);
     } catch (error) {
@@ -877,13 +854,11 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
         body: JSON.stringify({ unifiedInvoiceId }),
       });
       const payload = (await response.json().catch(() => ({}))) as { error?: string; uploaded?: number; fileName?: string };
-      if (!response.ok) throw new Error(payload.error || "No se pudo enviar la factura");
+      if (!response.ok) throw new Error(payload.error || t("No se pudo enviar la factura"));
       toast.dismiss(loadingToastId);
       toast.success(t("Factura enviada a R365"), {
         description: payload.fileName
-          ? (locale === "en"
-            ? `File ${payload.fileName} uploaded (${payload.uploaded ?? 0} lines).`
-            : `Archivo ${payload.fileName} subido (${payload.uploaded ?? 0} líneas).`)
+          ? `File ${payload.fileName} uploaded (${payload.uploaded ?? 0} lines).`
           : t("Enviado correctamente."),
       });
       setUnifiedHistoryKey((p) => p + 1);
@@ -959,7 +934,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
       const response = await fetch("/api/company/integrations/qbo-r365/oauth/start", { cache: "no-store" });
       const payload = (await response.json().catch(() => ({}))) as { authorizeUrl?: string; error?: string };
       if (!response.ok || !payload.authorizeUrl) {
-        throw new Error(payload.error || "No se pudo iniciar conexion OAuth");
+        throw new Error(payload.error || t("No se pudo iniciar conexion OAuth"));
       }
       window.location.href = payload.authorizeUrl;
     } catch (error) {
@@ -977,7 +952,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
       });
       const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
       if (!response.ok || !payload.ok) {
-        throw new Error(payload.error || "No se pudo desconectar QuickBooks");
+        throw new Error(payload.error || t("No se pudo desconectar QuickBooks"));
       }
       toast.success(t("QuickBooks desconectado"));
       setShowDisconnectConfirmation(false);
@@ -1004,7 +979,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
         rows?: string[][];
         rowCount?: number;
       };
-      if (!response.ok) throw new Error(payload.error || "No se pudo generar la previsualización");
+      if (!response.ok) throw new Error(payload.error || t("No se pudo generar la previsualización"));
       setCsvPreview({ headers: payload.headers ?? [], rows: payload.rows ?? [], rowCount: payload.rowCount ?? 0 });
     } catch (error) {
       toast.error(t("No se pudo previsualizar"), {
@@ -1108,7 +1083,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
         doc.text("DATE", labelRX, rightY, { align: "right" });
         doc.setFont("helvetica", "normal");
         doc.setTextColor(0, 0, 0);
-        doc.text(formatQboDate(inv.invoiceDate, locale), valueRX, rightY, { align: "right" });
+        doc.text(formatQboDate(inv.invoiceDate), valueRX, rightY, { align: "right" });
 
         const cmTableY = Math.max(leftY + 14, rightY + 14);
 
@@ -1203,7 +1178,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
       doc.text("DATE", labelRX, rightY, { align: "right" });
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      doc.text(formatQboDate(inv.invoiceDate, locale), valueRX, rightY, { align: "right" });
+      doc.text(formatQboDate(inv.invoiceDate), valueRX, rightY, { align: "right" });
       if (inv.terms) {
         rightY += 6;
         doc.setFont("helvetica", "bold");
@@ -1219,7 +1194,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
       doc.text("DUE DATE", labelRX, rightY, { align: "right" });
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      doc.text(formatQboDate(inv.dueDate, locale), valueRX, rightY, { align: "right" });
+      doc.text(formatQboDate(inv.dueDate), valueRX, rightY, { align: "right" });
 
       // Left: BILL TO
       let leftY = 36;
@@ -1342,8 +1317,8 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
         const metaRows = [
           [t("Factura N°"), inv.invoiceNumber ?? inv.sourceInvoiceId ?? ""].map(esc).join(","),
           [t("Cliente"), inv.vendor ?? ""].map(esc).join(","),
-          [t("Fecha"), formatQboDate(inv.invoiceDate, locale) ?? ""].map(esc).join(","),
-          [t("Vencimiento"), formatQboDate(inv.dueDate, locale) ?? ""].map(esc).join(","),
+          [t("Fecha"), formatQboDate(inv.invoiceDate) ?? ""].map(esc).join(","),
+          [t("Vencimiento"), formatQboDate(inv.dueDate) ?? ""].map(esc).join(","),
           ...(inv.terms ? [[t("Terminos"), inv.terms].map(esc).join(",")] : []),
           ...(inv.poNumber ? [["PO#", inv.poNumber].map(esc).join(",")] : []),
           ...(inv.memo ? [["Memo", inv.memo].map(esc).join(",")] : []),
@@ -1368,7 +1343,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
       const hdr = [
         `${t("FACTURA N°")} ${inv.invoiceNumber ?? inv.sourceInvoiceId}`,
         `${t("Cliente")}   : ${inv.vendor ?? "-"}`,
-        `${t("Fecha")}     : ${formatQboDate(inv.invoiceDate, locale)}   ${t("Vencimiento")}: ${formatQboDate(inv.dueDate, locale)}`,
+        `${t("Fecha")}     : ${formatQboDate(inv.invoiceDate)}   ${t("Vencimiento")}: ${formatQboDate(inv.dueDate)}`,
         ...(inv.terms ? [`Terms     : ${inv.terms}`] : []),
         ...(inv.poNumber ?? inv.memo ? [`PO#       : ${inv.poNumber ?? inv.memo ?? "-"}`] : []),
         `${t("Estado QuickBooks")}: ${inv.qboStatusRaw ?? inv.qboPaymentStatus ?? "-"}`,
@@ -1466,7 +1441,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
               const pct = Math.min(100, Math.round((card.quota.used / card.quota.limit) * 100));
               const isOver = card.quota.used > card.quota.limit;
               const renewDate = card.quota.periodEnd
-                ? new Date(card.quota.periodEnd).toLocaleDateString(locale === "en" ? "en-US" : "es-AR", { day: "numeric", month: "short" })
+                ? new Date(card.quota.periodEnd).toLocaleDateString("en-US", { day: "numeric", month: "short" })
                 : null;
               return (
                 <>
@@ -1494,7 +1469,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
             <span className="ml-auto rounded-full bg-[var(--gbp-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--gbp-text2)]">{connLabel(conns.qbo.status, t)}</span>
           </div>
           {conns.qbo.realmId && <p className="mt-2 text-xs text-[var(--gbp-text2)]">Realm: {String(conns.qbo.realmId).slice(0, 12)}...</p>}
-          {conns.qbo.lastRefreshed && <p className="mt-1 text-[11px] text-[var(--gbp-muted)]">{t("Actualizado")}: {relativeTime(conns.qbo.lastRefreshed, locale)}</p>}
+          {conns.qbo.lastRefreshed && <p className="mt-1 text-[11px] text-[var(--gbp-muted)]">{t("Actualizado")}: {relativeTime(conns.qbo.lastRefreshed)}</p>}
           {conns.qbo.status === "connected" ? (
             <button
               type="button"
@@ -1639,7 +1614,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
                           {{ en_cola: t("En cola"), capturada: t("Capturada"), mapeada: t("Mapeada"), enviada: t("Enviada") }[pendingConfirm.pipelineStatus] ?? pendingConfirm.pipelineStatus}
                           {" · "}{t("Fuente")}{": "}
                           {{ sync: "Sync", webhook: "Webhook", manual: "Manual" }[pendingConfirm.importSource] ?? pendingConfirm.importSource}
-                          {pendingConfirm.sentAt ? ` · ${t("Enviada")} ${formatQboDate(pendingConfirm.sentAt.slice(0, 10), locale)}` : ""}
+                          {pendingConfirm.sentAt ? ` · ${t("Enviada")} ${formatQboDate(pendingConfirm.sentAt.slice(0, 10))}` : ""}
                         </p>
                         <div className="mt-2 flex gap-1.5">
                           <button
@@ -2058,7 +2033,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
                         className="cursor-pointer border-b border-[var(--gbp-border)] transition hover:bg-[var(--gbp-bg)]"
                         onClick={() => setSelectedInvoiceId(item.entityId)}
                       >
-                        <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{formatQboDate(item.txnDate, locale)}</td>
+                        <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{formatQboDate(item.txnDate)}</td>
                         <td className="px-4 py-3 text-xs font-medium text-[var(--gbp-text)]">{item.docNumber ?? item.entityId.slice(0, 10)}</td>
                         <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{item.entityType}</td>
                         <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{resolveHistoryCustomerName(item)}</td>
@@ -2079,7 +2054,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
                             {pipelineLabels[item.pipelineStatus] ?? item.pipelineStatus}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-xs text-[var(--gbp-muted)]">{importedTime(item.createdAt, locale)}</td>
+                        <td className="px-4 py-3 text-xs text-[var(--gbp-muted)]">{importedTime(item.createdAt)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -2174,8 +2149,8 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
               <tbody>
                 {filteredRuns.map((run) => {
                   const dateObj = new Date(run.startedAt);
-                  const dateLabel = dateObj.toLocaleDateString(locale === "en" ? "en-US" : "es-AR", { day: "2-digit", month: "short" });
-                  const timeLabel = dateObj.toLocaleTimeString(locale === "en" ? "en-US" : "es-AR", { hour: "2-digit", minute: "2-digit" });
+                  const dateLabel = dateObj.toLocaleDateString("en-US", { day: "2-digit", month: "short" });
+                  const timeLabel = dateObj.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
                   return (
                     <tr key={run.id} onClick={() => setSelectedRunId(run.id)}
                       className="cursor-pointer border-b border-[var(--gbp-border)] transition hover:bg-[var(--gbp-bg)]">
@@ -2209,7 +2184,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
             <header className="flex items-start justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
               <div>
                 <h3 className="text-2xl font-bold tracking-tight text-[var(--gbp-text)]">{t("Detalle de Corrida")}</h3>
-                <p className="text-xs text-[var(--gbp-text2)]">{new Date(selectedRun.startedAt).toLocaleString(locale === "en" ? "en-US" : "es-AR")} · {triggerLabel(selectedRun.triggerSource, t)}</p>
+                <p className="text-xs text-[var(--gbp-text2)]">{new Date(selectedRun.startedAt).toLocaleString("en-US")} · {triggerLabel(selectedRun.triggerSource, t)}</p>
               </div>
               <button type="button" onClick={() => setSelectedRunId(null)}
                 className="grid h-8 w-8 place-items-center rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)] transition hover:border-[var(--gbp-accent)] hover:bg-[var(--gbp-accent)] hover:text-white">
@@ -2252,7 +2227,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
                 {selectedRun.errorMessage && (
                   <div className="rounded-xl border-[1.5px] border-[color-mix(in_oklab,var(--gbp-error)_35%,transparent)] bg-[var(--gbp-error-soft)] p-4">
                     <p className="mb-1 text-xs font-bold uppercase tracking-[0.1em] text-[var(--gbp-error)]">{t("Error")}</p>
-                    <p className="break-words text-sm text-[var(--gbp-error)]">{selectedRun.errorMessage}</p>
+                    <p className="break-words text-sm text-[var(--gbp-error)]">{t(selectedRun.errorMessage)}</p>
                   </div>
                 )}
               </div>
@@ -2278,7 +2253,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
                   {selectedUnifiedRow.importSource === "webhook" ? "Webhook" : selectedUnifiedRow.importSource === "manual" ? t("Manual") : "Sync"} · {selectedUnifiedRow.entityType}
                 </p>
                 <h3 className="mt-1 text-lg font-bold text-[var(--gbp-text)]">{selectedUnifiedRow.docNumber ?? selectedUnifiedRow.entityId}</h3>
-                <p className="mt-0.5 text-xs text-[var(--gbp-text2)]">{formatQboDate(selectedUnifiedRow.txnDate, locale)}{selectedUnifiedRow.customerName ? ` · ${selectedUnifiedRow.customerName}` : ""}</p>
+                <p className="mt-0.5 text-xs text-[var(--gbp-text2)]">{formatQboDate(selectedUnifiedRow.txnDate)}{selectedUnifiedRow.customerName ? ` · ${selectedUnifiedRow.customerName}` : ""}</p>
                 {invoiceDetail && invoiceDetail.lines.length > 0 && (
                   <div className="mt-2 flex flex-wrap items-center gap-1">
                     {(["csv", "txt", "json", "pdf"] as const).map((fmt) => (
@@ -2345,9 +2320,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
               {!invoiceDetailLoading && invoiceDetail && invoiceDetail.lines.length > 0 && (
                 <div className="mt-5">
                   <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">
-                    {locale === "en"
-                      ? `Items · ${invoiceDetail.lines.length} line${invoiceDetail.lines.length !== 1 ? "s" : ""}`
-                      : `Ítems · ${invoiceDetail.lines.length} línea${invoiceDetail.lines.length !== 1 ? "s" : ""}`}
+                    Items · {invoiceDetail.lines.length} line{invoiceDetail.lines.length !== 1 ? "s" : ""}
                   </p>
                   <div className="overflow-x-auto rounded-xl border-[1.5px] border-[var(--gbp-border)]">
                     <table className="w-full min-w-[400px] text-xs">
@@ -2407,9 +2380,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
                 <div className="mt-4">
                   <div className="mb-1.5 flex items-center justify-between">
                     <span className="text-[10px] font-bold text-[var(--gbp-muted)]">
-                      {locale === "en"
-                        ? `${csvPreview.rowCount} row${csvPreview.rowCount !== 1 ? "s" : ""} · CSV R365`
-                        : `${csvPreview.rowCount} fila${csvPreview.rowCount !== 1 ? "s" : ""} · CSV R365`}
+                      {csvPreview.rowCount} row{csvPreview.rowCount !== 1 ? "s" : ""} · CSV R365
                     </span>
                     <button
                       type="button"

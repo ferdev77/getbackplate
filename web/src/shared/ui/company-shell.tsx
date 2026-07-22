@@ -122,6 +122,7 @@ type CompanyShellProps = {
   sessionAvatarUrl: string;
   tenantId: string;
   locale?: "es" | "en";
+  integrationEnglishOnly?: boolean;
   settingsSnapshot: SettingsSnapshot;
   availablePlans: Array<{
     id: string;
@@ -198,6 +199,7 @@ export function CompanyShell({
   sessionAvatarUrl,
   tenantId,
   locale,
+  integrationEnglishOnly = false,
   settingsSnapshot,
   availablePlans,
   currentPlanCode,
@@ -788,11 +790,11 @@ export function CompanyShell({
     if (!trialStatus?.endsAt) return null;
     const date = new Date(trialStatus.endsAt);
     if (Number.isNaN(date.getTime())) return null;
-    return new Intl.DateTimeFormat("es-US", {
+    return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "es-US", {
       day: "2-digit",
       month: "short",
     }).format(date);
-  }, [trialStatus?.endsAt]);
+  }, [locale, trialStatus?.endsAt]);
 
   const initials =
     profileName
@@ -1483,7 +1485,7 @@ export function CompanyShell({
               type="button"
               onClick={() => setCollapsed((v) => !v)}
               className={`absolute z-10 grid place-items-center rounded-md ${collapsed ? "left-1/2 top-1 h-7 w-7 -translate-x-1/2" : "right-2 top-2 h-8 w-8"} ${isDarkTheme ? "bg-white/5 text-white/65 hover:bg-white/10 hover:text-white" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"}`}
-              aria-label="Alternar sidebar"
+              aria-label={t("Alternar sidebar")}
             >
               <PanelsLeftRight className="h-4 w-4" />
             </button>
@@ -1494,7 +1496,7 @@ export function CompanyShell({
                   {effectiveCompanyLogoUrl ? (
                     <Image
                       src={effectiveCompanyLogoUrl}
-                      alt={`Logo de ${brandingName}`}
+                      alt={`${t("Logo de")} ${brandingName}`}
                       width={collapsed ? 44 : 330}
                       height={collapsed ? 44 : 106}
                       unoptimized
@@ -1705,16 +1707,16 @@ export function CompanyShell({
               <div className="mt-auto px-4 pb-2 pt-3">
                 <div className={`relative overflow-hidden rounded-xl border px-3 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.16)] ${isDarkTheme ? "border-[var(--gbp-accent)]/45 bg-[linear-gradient(145deg,color-mix(in_oklab,var(--gbp-accent)_18%,transparent),color-mix(in_oklab,var(--gbp-surface)_88%,black))]" : "border-[var(--gbp-accent)]/35 bg-[linear-gradient(145deg,var(--gbp-accent-glow),color-mix(in_oklab,var(--gbp-surface)_95%,white))]"}`}>
                   <div className="absolute -right-6 -top-6 h-16 w-16 rounded-full bg-[var(--gbp-accent)]/20 blur-2xl" aria-hidden="true" />
-                  <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-accent)]"><Sparkles className="h-3 w-3" />Periodo de prueba</p>
+                  <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-accent)]"><Sparkles className="h-3 w-3" />{t("Periodo de prueba")}</p>
                   <p className="mt-1 text-xs font-semibold text-[var(--gbp-text)]">
                     {typeof trialStatus.daysRemaining === "number"
                       ? trialStatus.daysRemaining <= 0
-                        ? "Finaliza hoy"
-                        : `${trialStatus.daysRemaining} dias restantes`
-                      : "Activo"}
+                        ? t("Finaliza hoy")
+                        : `${trialStatus.daysRemaining} ${t("dias restantes")}`
+                      : t("Activo")}
                   </p>
                   {trialEndsLabel ? (
-                    <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">Vence el {trialEndsLabel}</p>
+                    <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">{t("Vence el")} {trialEndsLabel}</p>
                   ) : null}
                 </div>
               </div>
@@ -1730,7 +1732,7 @@ export function CompanyShell({
                   {currentAvatarUrl ? (
                     <Image
                       src={currentAvatarUrl}
-                      alt={`Avatar de ${profileName}`}
+                       alt={`${t("Avatar de")} ${profileName}`}
                       width={32}
                       height={32}
                       unoptimized
@@ -1743,7 +1745,7 @@ export function CompanyShell({
                 <div className="min-w-0">
                    <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{profileName}</p>
                    <p className="truncate text-[11px] text-[var(--gbp-text2)]">{sessionRoleLabel}</p>
-                   <p className="truncate text-[10px] text-[var(--gbp-muted)]">{sessionUserEmail || "Sin email"}</p>
+                   <p className="truncate text-[10px] text-[var(--gbp-muted)]">{sessionUserEmail || t("Sin email")}</p>
                 </div>
               </div>
             ) : null}
@@ -1805,7 +1807,7 @@ export function CompanyShell({
                   effectiveCompanyLogoUrl ? (
                     <Image
                       src={effectiveCompanyLogoUrl}
-                      alt={`Logo de ${brandingName}`}
+                      alt={`${t("Logo de")} ${brandingName}`}
                       width={160}
                       height={36}
                       className="h-[28px] w-auto object-contain object-left"
@@ -1849,7 +1851,7 @@ export function CompanyShell({
                   onClick={() => setLockedViewTab("platform")}
                   className={`rounded-lg px-4 py-2 text-xs font-bold transition ${lockedViewTab === "platform" ? "bg-[var(--gbp-accent)] text-white shadow-sm" : (isDarkTheme ? "text-white/60 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
                 >
-                  Plataforma
+                  {t("Plataforma")}
                 </button>
                 {integrationPlans.length > 0 && (
                   <button
@@ -1873,12 +1875,12 @@ export function CompanyShell({
                       type="button"
                       onClick={() => setPlanBillingCycle("monthly")}
                       className={`rounded-md px-3 py-1.5 transition ${planBillingCycle === "monthly" ? (isDarkTheme ? "bg-white text-[var(--gbp-text)]" : "bg-[var(--gbp-surface)] text-[var(--gbp-text)]") : (isDarkTheme ? "text-white/75 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
-                    >Mensual</button>
+                    >{t("Mensual")}</button>
                     <button
                       type="button"
                       onClick={() => setPlanBillingCycle("yearly")}
                       className={`rounded-md px-3 py-1.5 transition ${planBillingCycle === "yearly" ? "bg-[var(--gbp-success)] text-white" : (isDarkTheme ? "text-white/75 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
-                    >Anual <span className={`text-[9px] ${planBillingCycle === "yearly" ? "text-white/80" : "text-emerald-500"}`}>2 meses gratis</span></button>
+                    >{t("Anual")} <span className={`text-[9px] ${planBillingCycle === "yearly" ? "text-white/80" : "text-emerald-500"}`}>{t("2 meses gratis")}</span></button>
                   </div>
                   <div className="grid gap-3 md:grid-cols-3">
                     {plansForDisplay.map((plan) => {
@@ -1896,7 +1898,7 @@ export function CompanyShell({
                             <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">Recomendado</span>
                           )}
                           <p className="text-sm font-bold">{plan.name}</p>
-                          <p className={`text-2xl font-bold mt-1 mb-3`}>{formatPlanPrice(plan, planBillingCycle)}</p>
+                          <p className={`text-2xl font-bold mt-1 mb-3`}>{formatPlanPrice(plan, planBillingCycle, locale)}</p>
                           <div className={`mb-3 flex flex-col gap-1 text-[10px] ${mutedCls}`}>
                             <span>· {plan.maxUsers ?? "∞"} usuarios</span>
                             <span>· {plan.maxEmployees ?? "∞"} empleados</span>
@@ -1967,20 +1969,20 @@ export function CompanyShell({
                           className={`relative flex flex-col rounded-xl border p-4 transition ${plan.isFeatured || isSelectedFromLanding ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent)]/5" : plan.isEnterprise ? (isDarkTheme ? "border-dashed border-white/20 bg-white/[0.03]" : "border-dashed border-[var(--gbp-border)] bg-transparent") : (isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]")}`}
                         >
                           {plan.isFeatured && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">Popular</span>}
-                          {isSelectedFromLanding && !plan.isFeatured && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">Seleccionado</span>}
-                          {isCurrent && <span className="absolute -top-2.5 right-3 rounded-full bg-emerald-500 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">Actual</span>}
+                          {isSelectedFromLanding && !plan.isFeatured && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">{t("Seleccionado")}</span>}
+                          {isCurrent && <span className="absolute -top-2.5 right-3 rounded-full bg-emerald-500 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">{t("Actual")}</span>}
                           <p className="text-sm font-bold">{plan.name}</p>
                           {plan.description && <p className={`mt-1 mb-2 text-[10px] leading-relaxed ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>{plan.description}</p>}
                           <div className="mb-3">
                             {plan.isEnterprise ? (
                               <>
                                 <span className="text-2xl font-bold">Custom</span>
-                                <p className={`mt-0.5 text-[10px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>a medida</p>
+                                <p className={`mt-0.5 text-[10px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>{t("a medida")}</p>
                               </>
                             ) : (
                               <>
                                 <span className="text-2xl font-bold">${displayPrice.toLocaleString("en-US")}</span>
-                                <span className={`ml-1 text-[11px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>/mes</span>
+                                <span className={`ml-1 text-[11px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>{t("/mes")}</span>
                                 {integrationPlanBillingCycle === "annual" && savings > 0 && <p className="mt-0.5 text-[10px] font-semibold text-emerald-500">{t("Ahorrás")} ${savings.toLocaleString("en-US")}/{t("año")}</p>}
                               </>
                             )}
@@ -2218,7 +2220,7 @@ export function CompanyShell({
                   </div>
                   <div className={`rounded-lg border p-3 ${isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                     <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.08em] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>Language & Time</p>
-                    <div><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Language</span><select value={language} onChange={(event) => setLanguage(event.target.value)} className={`mt-1 w-full rounded-md border px-2 py-1.5 ${isDarkTheme ? "border-white/10 bg-white/5 text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text)]"}`}><option value="es">Español</option><option value="en">English</option></select></div>
+                    <div><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Language</span><select value={integrationEnglishOnly ? "en" : language} disabled={integrationEnglishOnly} onChange={(event) => setLanguage(event.target.value)} className={`mt-1 w-full rounded-md border px-2 py-1.5 disabled:cursor-not-allowed disabled:opacity-60 ${isDarkTheme ? "border-white/10 bg-white/5 text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text)]"}`}>{!integrationEnglishOnly && <option value="es">Español</option>}<option value="en">English</option></select></div>
                     <div className="mt-2"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Date Format</span><select value={dateFormat} onChange={(event) => setDateFormat(event.target.value)} className={`mt-1 w-full rounded-md border px-2 py-1.5 ${isDarkTheme ? "border-white/10 bg-white/5 text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text)]"}`}><option>DD/MM/YYYY</option><option>MM/DD/YYYY</option><option>YYYY-MM-DD</option></select></div>
                     <div className="mt-2"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Time Zone</span><div className={`mt-1 space-y-1 ${isDarkTheme ? "text-white/80" : "text-[var(--gbp-text)]"}`}><label className="flex items-center gap-2"><input type="radio" checked={timezoneMode === "auto"} onChange={() => setTimezoneMode("auto")} />Automatic by location</label><label className="flex items-center gap-2"><input type="radio" checked={timezoneMode === "manual"} onChange={() => setTimezoneMode("manual")} />Manual</label></div></div>
                     {timezoneMode === "manual" ? <select value={timezoneManual} onChange={(event) => setTimezoneManual(event.target.value)} className={`mt-1 w-full rounded-md border px-2 py-1.5 ${isDarkTheme ? "border-white/10 bg-white/5 text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text)]"}`}><option>America/Chicago (CST)</option><option>America/New_York (EST)</option><option>America/Los_Angeles (PST)</option><option>America/Denver (MST)</option><option>Europe/London (GMT)</option><option>Europe/Madrid (CET)</option></select> : null}
@@ -2255,7 +2257,7 @@ export function CompanyShell({
                       </>
                     )}
                   </div>
-                  <button type="button" disabled={busy} onClick={() => saveSettings("preferences", { theme, language, dateFormat, timezoneMode, timezoneManual, analyticsEnabled })} className={`w-full rounded-md px-2 py-2 font-semibold disabled:opacity-60 ${isDarkTheme ? "bg-white text-[var(--gbp-text)]" : "bg-[var(--gbp-text)] text-white"}`}>{t("Guardar preferences")}</button>
+                  <button type="button" disabled={busy} onClick={() => saveSettings("preferences", { theme, language: integrationEnglishOnly ? "en" : language, dateFormat, timezoneMode, timezoneManual, analyticsEnabled })} className={`w-full rounded-md px-2 py-2 font-semibold disabled:opacity-60 ${isDarkTheme ? "bg-white text-[var(--gbp-text)]" : "bg-[var(--gbp-text)] text-white"}`}>{t("Guardar preferences")}</button>
                 </div>
               </div>
             ) : null}
@@ -2395,12 +2397,12 @@ export function CompanyShell({
         <div className="fixed inset-0 z-[1200]" onClick={() => setPlanOpen(false)}>
           <div className={`absolute bottom-[72px] left-3 w-[280px] overflow-hidden rounded-[14px] border bg-[var(--gbp-surface)] shadow-[0_12px_40px_rgba(0,0,0,.38)] ${isDarkTheme ? "border-white/10 text-white" : "border-[var(--gbp-border)] text-[var(--gbp-text)]"}`} onClick={(event) => event.stopPropagation()}>
             <div className={`flex items-center justify-between border-b px-3.5 py-2.5 ${isDarkTheme ? "border-white/10" : "border-[var(--gbp-border)]"}`}>
-              <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--gbp-muted)]">Planes Disponibles</span>
+              <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--gbp-muted)]">{t("Planes Disponibles")}</span>
               <button type="button" onClick={() => setPlanOpen(false)} className={`grid h-[22px] w-[22px] place-items-center rounded-full ${isDarkTheme ? "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"}`}><X className="h-3.5 w-3.5" /></button>
             </div>
 
             <div className="px-3.5 pb-2 pt-2">
-              <p className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">Actual <span className="ml-2 rounded-full bg-[var(--gbp-accent-glow)] px-2 py-[2px] text-[10px] text-[var(--gbp-accent)]">{currentPlanName}</span></p>
+              <p className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">{t("Actual")} <span className="ml-2 rounded-full bg-[var(--gbp-accent-glow)] px-2 py-[2px] text-[10px] text-[var(--gbp-accent)]">{currentPlanName}</span></p>
               <p className={`text-xs ${isDarkTheme ? "text-white/75" : "text-[var(--gbp-text2)]"}`}>{billedTo || "-"} · {billingEmail || "-"}</p>
               <div className={`mt-2 inline-flex rounded-lg border p-1 text-[10px] font-semibold ${isDarkTheme ? "border-white/15 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                 <button
@@ -2408,14 +2410,14 @@ export function CompanyShell({
                   onClick={() => setPlanBillingCycle("monthly")}
                   className={`rounded-md px-2.5 py-1 transition ${planBillingCycle === "monthly" ? (isDarkTheme ? "bg-white text-[var(--gbp-text)]" : "bg-[var(--gbp-surface)] text-[var(--gbp-text)]") : (isDarkTheme ? "text-white/75 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
                 >
-                  Mensual
+                  {t("Mensual")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setPlanBillingCycle("yearly")}
                   className={`rounded-md px-2.5 py-1 transition ${planBillingCycle === "yearly" ? "bg-[var(--gbp-success)] text-white" : (isDarkTheme ? "text-white/75 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
                 >
-                  Anual (2 meses gratis)
+                  {t("Anual")} ({t("2 meses gratis")})
                 </button>
               </div>
             </div>
@@ -2434,13 +2436,13 @@ export function CompanyShell({
                     >
                       <div className="flex items-center justify-between gap-2">
                         <p className={`text-[11px] font-bold uppercase tracking-[0.08em] ${isDarkTheme ? "text-white/80" : "text-[var(--gbp-text)]"}`}>{plan.name}</p>
-                        <span className={`rounded-full px-2 py-[2px] text-[10px] font-semibold ${isDarkTheme ? "bg-white/10 text-white/80" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]"}`}>{formatPlanPrice(plan, planBillingCycle)}</span>
+                        <span className={`rounded-full px-2 py-[2px] text-[10px] font-semibold ${isDarkTheme ? "bg-white/10 text-white/80" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]"}`}>{formatPlanPrice(plan, planBillingCycle, locale)}</span>
                       </div>
-                      <p className={`mt-1 text-[11px] ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-text2)]"}`}>{plan.code.toUpperCase()} · {planBillingCycle === "yearly" ? "Anual" : "Mensual"}{isCurrentPlanCode ? ` · Periodo actual: ${normalizePlanPeriod(billingPeriod) === "yearly" ? "Anual" : "Mensual"}` : ""}</p>
+                      <p className={`mt-1 text-[11px] ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-text2)]"}`}>{plan.code.toUpperCase()} · {t(planBillingCycle === "yearly" ? "Anual" : "Mensual")}{isCurrentPlanCode ? ` · ${t("Periodo actual")}: ${t(normalizePlanPeriod(billingPeriod) === "yearly" ? "Anual" : "Mensual")}` : ""}</p>
                       <div className={`mb-2 mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-text2)]"}`}>
-                        <span>Locaciones: {plan.maxBranches ?? "-"}</span>
-                        <span>Usuarios: {plan.maxUsers ?? "-"}</span>
-                        <span>Empleados: {plan.maxEmployees ?? "-"}</span>
+                        <span>{t("Locaciones")}: {plan.maxBranches ?? "-"}</span>
+                        <span>{t("Usuarios")}: {plan.maxUsers ?? "-"}</span>
+                        <span>{t("Empleados")}: {plan.maxEmployees ?? "-"}</span>
                         <span>Storage MB: {plan.maxStorageMb ?? "-"}</span>
                       </div>
                       <button
@@ -2449,7 +2451,7 @@ export function CompanyShell({
                         onClick={() => openPlanChangeDialog(plan.id)}
                         className={`mt-2 w-full rounded-md border py-1.5 text-[10px] font-semibold transition-colors disabled:opacity-50 ${isDarkTheme ? "border-white/20 bg-white/5 text-white hover:bg-white/10" : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text)] hover:bg-[var(--gbp-surface2)]"}`}
                       >
-                        {busy ? "Procesando..." : isCurrentPlanCode ? "Cambiar periodicidad o mantener" : "Elegir Plan"}
+                        {busy ? t("Procesando...") : isCurrentPlanCode ? t("Cambiar periodicidad o mantener") : t("Elegir Plan")}
                       </button>
                     </div>
                   );
@@ -2496,12 +2498,12 @@ export function CompanyShell({
                 <div className={`rounded-xl border p-4 ${isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                   <p className={`text-[10px] font-bold uppercase tracking-[0.11em] ${isDarkTheme ? "text-white/45" : "text-[var(--gbp-muted)]"}`}>Plan actual</p>
                   <p className={`mt-1 text-lg font-bold ${isDarkTheme ? "text-white" : "text-[var(--gbp-text)]"}`}>{currentPlan?.name ?? currentPlanName}</p>
-                  <p className={`mt-1 text-xs ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-text2)]"}`}>{currentPlan ? formatPlanPrice(currentPlan) : "Precio no definido"}</p>
+                  <p className={`mt-1 text-xs ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-text2)]"}`}>{currentPlan ? formatPlanPrice(currentPlan, undefined, locale) : (locale === "en" ? "Price not defined" : "Precio no definido")}</p>
                 </div>
                 <div className={`rounded-xl border p-4 ${planChangeDirection === "downgrade" ? "border-amber-300/35 bg-amber-500/10" : "border-emerald-300/35 bg-emerald-500/10"}`}>
                   <p className={`text-[10px] font-bold uppercase tracking-[0.11em] ${isDarkTheme ? "text-white/55" : "text-[var(--gbp-muted)]"}`}>Plan destino</p>
                   <p className={`mt-1 text-lg font-bold ${isDarkTheme ? "text-white" : "text-[var(--gbp-text)]"}`}>{planChangeTarget.name}</p>
-                  <p className={`mt-1 text-xs ${isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}`}>{formatPlanPrice(planChangeTarget, planBillingCycle)} · {planBillingCycle === "yearly" ? "Facturacion anual" : "Facturacion mensual"}</p>
+                  <p className={`mt-1 text-xs ${isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}`}>{formatPlanPrice(planChangeTarget, planBillingCycle, locale)} · {locale === "en" ? (planBillingCycle === "yearly" ? "Annual billing" : "Monthly billing") : (planBillingCycle === "yearly" ? "Facturacion anual" : "Facturacion mensual")}</p>
                 </div>
               </div>
 
@@ -2604,7 +2606,7 @@ export function CompanyShell({
                     <div className="mb-1 flex items-center justify-between gap-2">
                       <p className="text-[11px] font-bold text-[var(--gbp-text)]">{addon.name}</p>
                       {isActive && (
-                        <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-500">Activo</span>
+                        <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-500">{t("Activo")}</span>
                       )}
                     </div>
                     {addon.description && (
@@ -2617,7 +2619,7 @@ export function CompanyShell({
                     )}
                     <div className="flex items-center justify-between gap-2">
                       {formattedPrice && (
-                        <p className={`text-[10px] font-semibold ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>{formattedPrice}/mes</p>
+                        <p className={`text-[10px] font-semibold ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>{formattedPrice}{t("/mes")}</p>
                       )}
                       {isTiered ? (
                         <button
@@ -2626,7 +2628,7 @@ export function CompanyShell({
                           onClick={() => { setAddonOpen(false); setIntegrationPlanOpen(addon.integrationPlanType); }}
                           className="ml-auto rounded-lg bg-[var(--gbp-accent)] px-3 py-1.5 text-[10px] font-bold text-white transition hover:opacity-90 disabled:opacity-50"
                         >
-                          {isActive ? "Cambiar plan →" : "Ver planes →"}
+                          {t(isActive ? "Cambiar plan" : "Ver planes")} →
                         </button>
                       ) : (
                         <button
@@ -2722,7 +2724,7 @@ export function CompanyShell({
                     )}
                     {isCurrent && (
                       <span className="absolute -top-2.5 right-3 rounded-full bg-emerald-500 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
-                        Actual
+                        {t("Actual")}
                       </span>
                     )}
                     <p className="mb-1 text-sm font-bold">{plan.name}</p>
@@ -2742,7 +2744,7 @@ export function CompanyShell({
                       ) : (
                         <>
                           <span className="text-2xl font-bold">${displayPrice.toLocaleString("en-US")}</span>
-                          <span className={`ml-1 text-[11px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>/mes</span>
+                          <span className={`ml-1 text-[11px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>{t("/mes")}</span>
                           {integrationPlanBillingCycle === "annual" && savings > 0 && (
                             <p className="mt-0.5 text-[10px] font-semibold text-emerald-500">
                               {t("Ahorrás")} ${savings.toLocaleString("en-US")}/{t("año")}
@@ -2814,7 +2816,7 @@ export function CompanyShell({
 
       {menuOpen ? (
         <div className="fixed inset-0 z-40 flex lg:hidden">
-          <button type="button" className="h-full w-full bg-black/35" onClick={() => setMenuOpen(false)} aria-label="Cerrar menu" />
+          <button type="button" className="h-full w-full bg-black/35" onClick={() => setMenuOpen(false)} aria-label={t("Cerrar menu")} />
           <aside className={`absolute left-0 top-0 flex h-full w-[280px] flex-col border-r ${isDarkTheme ? "border-white/10 text-[var(--gbp-text)]" : "border-black/10 text-[var(--gbp-text)]"}`} style={{ background: palette.sidebarGradient }}>
             <div className={`border-b px-4 py-3 ${isDarkTheme ? "border-white/10" : "border-black/10"}`}>
               {customBrandingEnabled ? (
@@ -2822,7 +2824,7 @@ export function CompanyShell({
                   {effectiveCompanyLogoUrl ? (
                     <Image
                       src={effectiveCompanyLogoUrl}
-                      alt={`Logo de ${brandingName}`}
+                      alt={`${t("Logo de")} ${brandingName}`}
                       width={340}
                       height={108}
                       className="h-[106px] w-[98%] object-contain object-center"
@@ -2897,7 +2899,7 @@ export function CompanyShell({
                   {currentAvatarUrl ? (
                     <Image
                       src={currentAvatarUrl}
-                      alt={`Avatar de ${profileName}`}
+                      alt={`${t("Avatar de")} ${profileName}`}
                       width={36}
                       height={36}
                       className="h-full w-full object-cover"
@@ -2909,7 +2911,7 @@ export function CompanyShell({
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{profileName}</p>
                   <p className="truncate text-[11px] text-[var(--gbp-text2)]">{sessionRoleLabel}</p>
-                  <p className="truncate text-[10px] text-[var(--gbp-muted)]">{sessionUserEmail || "Sin email"}</p>
+                  <p className="truncate text-[10px] text-[var(--gbp-muted)]">{sessionUserEmail || t("Sin email")}</p>
                 </div>
               </div>
 

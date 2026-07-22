@@ -20,12 +20,12 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Dominio inválido" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid domain" }, { status: 400 });
   }
 
   const domain = normalizeCustomDomainInput(parsed.data.domain);
   if (!domain) {
-    return NextResponse.json({ error: "Dominio inválido" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid domain" }, { status: 400 });
   }
 
   const supabase = await createSupabaseServerClient();
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (!existing?.id) {
-    return NextResponse.json({ error: "Dominio no encontrado" }, { status: 404 });
+    return NextResponse.json({ error: "Domain not found" }, { status: 404 });
   }
 
   let status = "pending_dns";
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     dnsTarget = result.dnsTarget;
   } catch (error) {
     status = "error";
-    verificationError = error instanceof Error ? error.message : "Error de verificación";
+    verificationError = error instanceof Error ? error.message : "Verification error";
   }
 
   const nowIso = new Date().toISOString();

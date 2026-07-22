@@ -6,6 +6,7 @@ import {
   normalizePlanPeriod,
   getPlanAmountByCycle,
   formatPlanPrice,
+  resolveCompanyShellLocale,
 } from "../company-shell-utils";
 
 describe("getCatalogCacheKey", () => {
@@ -48,6 +49,34 @@ describe("isActive", () => {
     const spWithTab = new URLSearchParams("tab=users");
     expect(isActive("/app/employees", spWithTab, "/app/employees?tab=users")).toBe(true);
     expect(isActive("/app/employees", new URLSearchParams(), "/app/employees?tab=users")).toBe(false);
+  });
+});
+
+describe("resolveCompanyShellLocale", () => {
+  it("forces English for integration-plan organizations with a saved Spanish preference", () => {
+    expect(resolveCompanyShellLocale({
+      integrationPlanId: "integration-plan-id",
+      preferredLanguage: "es",
+      hasIntegrationModule: true,
+    })).toBe("en");
+  });
+
+  it("preserves normal organization preferences and defaults", () => {
+    expect(resolveCompanyShellLocale({
+      integrationPlanId: null,
+      preferredLanguage: "es",
+      hasIntegrationModule: false,
+    })).toBe("es");
+    expect(resolveCompanyShellLocale({
+      integrationPlanId: null,
+      preferredLanguage: "en",
+      hasIntegrationModule: false,
+    })).toBe("en");
+    expect(resolveCompanyShellLocale({
+      integrationPlanId: null,
+      preferredLanguage: null,
+      hasIntegrationModule: false,
+    })).toBe("es");
   });
 });
 
@@ -107,7 +136,7 @@ describe("getPlanAmountByCycle", () => {
   });
 });
 
-describe("formatPlanPrice", () => {
+  describe("formatPlanPrice", () => {
   it("formatea precio mensual correctamente", () => {
     expect(formatPlanPrice({ priceAmount: 49, billingPeriod: "monthly" }, "monthly")).toBe("$49/mes");
   });
@@ -122,5 +151,11 @@ describe("formatPlanPrice", () => {
 
   it("usa el ciclo del plan si no se especifica ciclo", () => {
     expect(formatPlanPrice({ priceAmount: 100, billingPeriod: "monthly" })).toBe("$100/mes");
+  });
+
+  it("formats plan prices in English for integration organizations", () => {
+    expect(formatPlanPrice({ priceAmount: 49, billingPeriod: "monthly" }, "monthly", "en")).toBe("$49/month");
+    expect(formatPlanPrice({ priceAmount: 490, billingPeriod: "yearly" }, "yearly", "en")).toBe("$490/year");
+    expect(formatPlanPrice({ priceAmount: null, billingPeriod: "monthly" }, undefined, "en")).toBe("Price not defined");
   });
 });

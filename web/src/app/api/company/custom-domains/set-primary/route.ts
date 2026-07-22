@@ -19,12 +19,12 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Dominio inválido" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid domain" }, { status: 400 });
   }
 
   const domain = normalizeCustomDomainInput(parsed.data.domain);
   if (!domain) {
-    return NextResponse.json({ error: "Dominio inválido" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid domain" }, { status: 400 });
   }
 
   const supabase = await createSupabaseServerClient();
@@ -36,11 +36,11 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (!target?.id) {
-    return NextResponse.json({ error: "Dominio no encontrado" }, { status: 404 });
+    return NextResponse.json({ error: "Domain not found" }, { status: 404 });
   }
 
   if (target.status !== "active") {
-    return NextResponse.json({ error: "Solo dominios activos pueden ser principales" }, { status: 400 });
+    return NextResponse.json({ error: "Only active domains can be set as primary" }, { status: 400 });
   }
 
   await supabase

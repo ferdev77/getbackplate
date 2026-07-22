@@ -17,6 +17,7 @@ import { getActiveBranches } from "@/modules/organizations/queries";
 import { requireCompanyAccess } from "@/shared/lib/access";
 import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impersonation";
 import { CompanyShell } from "@/shared/ui/company-shell";
+import { resolveCompanyShellLocale } from "@/shared/ui/company-shell-utils";
 import { FadeIn } from "@/shared/ui/animations";
 import { PushPermissionManager } from "@/shared/ui/push-permission";
 
@@ -140,15 +141,12 @@ export default async function CompanyLayout({
     ...(enabledModuleCodesSet.has("qbo_r365") ? ["qbo_r365"] : []),
   ];
 
-  // El idioma se elige automatico segun el plan (ingles para cuentas con
-  // la integracion QBO/R365 activa, espanol para el resto) salvo que el
-  // usuario ya haya guardado una preferencia explicita desde Ajustes --
-  // `preferences.language` queda null hasta que eso pase (ver migracion
-  // 20260714000002). Misma logica que usan las paginas hijas via
-  // resolveUserLocale (settings, integrations/quickbooks).
-  const resolvedLocale = preferences?.language === "en" || preferences?.language === "es"
-    ? preferences.language
-    : (enabledModuleCodesSet.has("qbo_r365") ? "en" : "es");
+  const integrationEnglishOnly = Boolean(organization?.integration_plan_id);
+  const resolvedLocale = resolveCompanyShellLocale({
+    integrationPlanId: organization?.integration_plan_id,
+    preferredLanguage: preferences?.language,
+    hasIntegrationModule: enabledModuleCodesSet.has("qbo_r365"),
+  });
 
   const roleLabelByCode: Record<string, string> = resolvedLocale === "en"
     ? { company_admin: "Company admin", employee: "Employee" }
@@ -178,6 +176,7 @@ export default async function CompanyLayout({
       sessionAvatarUrl={avatarUrl}
       tenantId={tenant.organizationId}
       locale={resolvedLocale}
+      integrationEnglishOnly={integrationEnglishOnly}
       settingsSnapshot={{
         billingPlan: inferredCurrentPlan?.name ?? orgSettings?.billing_plan ?? (resolvedLocale === "en" ? "No plan" : "Sin plan"),
         billingPeriod: orgSettings?.billing_period ?? inferredCurrentPlan?.billing_period ?? "monthly",
