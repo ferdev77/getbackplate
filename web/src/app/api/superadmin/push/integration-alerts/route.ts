@@ -7,11 +7,11 @@ export async function DELETE() {
   try {
     await requireSuperadmin();
   } catch {
-    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
   const currentUser = await getCurrentUser().catch(() => null);
-  if (!currentUser) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  if (!currentUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const admin = createSupabaseAdminClient();
   const { error } = await admin
@@ -19,7 +19,7 @@ export async function DELETE() {
     .update({ is_active: false, updated_at: new Date().toISOString() })
     .eq("user_id", currentUser.id);
 
-  if (error) return NextResponse.json({ error: "Error desactivando notificaciones" }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Unable to disable notifications" }, { status: 500 });
 
   return NextResponse.json({ ok: true });
 }

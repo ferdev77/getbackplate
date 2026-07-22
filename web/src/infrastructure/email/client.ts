@@ -43,9 +43,9 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
   let result: SendEmailResult;
 
   if (!apiKey) {
-    result = { ok: false, error: "BREVO_API_KEY no configurada" };
+    result = { ok: false, error: "BREVO_API_KEY is not configured" };
   } else if (!senderEmail) {
-    result = { ok: false, error: "BREVO_SENDER_EMAIL/MAIL_FROM no configurado" };
+    result = { ok: false, error: "BREVO_SENDER_EMAIL/MAIL_FROM is not configured" };
   } else {
     try {
       const response = await fetch("https://api.brevo.com/v3/smtp/email", {

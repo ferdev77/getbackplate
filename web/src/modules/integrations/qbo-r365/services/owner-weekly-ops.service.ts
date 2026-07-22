@@ -132,7 +132,7 @@ export async function sendOwnerWeeklyOpsReport(input: {
         .map((email) => email.trim())
         .filter(Boolean);
   if (!recipients.length) {
-    return { sent: false, reason: "OWNER_WEEKLY_REPORT_EMAIL no configurada" };
+    return { sent: false, reason: "OWNER_WEEKLY_REPORT_EMAIL is not configured" };
   }
 
   const admin = createSupabaseAdminClient();

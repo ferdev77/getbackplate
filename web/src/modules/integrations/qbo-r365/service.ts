@@ -1375,7 +1375,7 @@ async function ensureFreshQboToken(input: {
     // cuenta de Intuit, o expiro por 100 dias de inactividad). Guardamos el
     // estado real en vez de dejar la conexion marcada como "connected"
     // mintiendo sobre si las llamadas a la API funcionan.
-    const message = error instanceof Error ? error.message : "No se pudo refrescar el token de QuickBooks";
+    const message = error instanceof Error ? error.message : "Unable to refresh the QuickBooks® Online token.";
     await upsertConnection({
       organizationId: input.organizationId,
       provider: "quickbooks_online",
@@ -1605,7 +1605,7 @@ export async function runQboR365Sync(input: {
         runId,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Error consultando Invoice en QuickBooks";
+      const message = error instanceof Error ? error.message : "Unable to query invoices in QuickBooks® Online.";
       const looksLikeAuthError = /QBO_3100|ApplicationAuthorizationFailed|401|forbidden|unauthorized/i.test(message);
       if (!looksLikeAuthError) {
         throw error;
@@ -1868,7 +1868,7 @@ export async function runQboR365Sync(input: {
       runId,
       level: "info",
       code: "sync_completed",
-      message: dryRun ? "Sync finalizada en modo dry-run" : "Sync finalizada con upload FTP",
+      message: dryRun ? "Sync completed in dry-run mode" : "Sync completed with FTP upload",
       metadata: {
         dry_run: dryRun,
         detected: detectedInvoiceCount,
@@ -2646,7 +2646,7 @@ export async function sendPreparedQboR365Run(input: {
     runId: input.runId,
     level: "info",
     code: "prepared_run_uploaded",
-    message: "Corrida preparada enviada a FTP",
+    message: "Prepared run sent to FTP",
     metadata: {
       uploaded: lines.length,
       file_name: fileName,
@@ -3147,7 +3147,7 @@ export async function sendSingleInvoiceFromHistory(input: {
     runId,
     level: "info",
     code: "single_invoice_sent",
-    message: `Factura ${input.sourceInvoiceId} enviada individualmente a R365`,
+    message: `Invoice ${input.sourceInvoiceId} sent individually to R365`,
     metadata: { source_invoice_id: input.sourceInvoiceId, uploaded: lines.length, file_name: fileName },
   });
 
@@ -3336,7 +3336,7 @@ export async function insertQboWebhookEvents(input: QboWebhookEventInsert[]) {
       organization_id: organizationId,
       status: event.signatureValid ? "captured" : "failed",
       ignore_reason: event.signatureValid ? null : "invalid_signature",
-      last_error: event.signatureValid ? null : "Firma de webhook invalida",
+      last_error: event.signatureValid ? null : "Invalid Intuit webhook signature.",
       processed_at: event.signatureValid ? new Date().toISOString() : new Date().toISOString(),
     }).select("id").single();
     if (error) {
@@ -3398,7 +3398,7 @@ export async function processPendingQboWebhookEvents() {
     processed: 0,
     results: [],
     disabled: true,
-    message: "Procesamiento automatico deshabilitado: modo captura manual activo",
+    message: "Automatic processing is disabled: manual capture mode is active.",
   };
 }
 
@@ -3535,7 +3535,7 @@ async function mapAndSendUnifiedRow(input: {
     });
     return result;
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Error desconocido enviando a R365";
+    const message = err instanceof Error ? err.message : "Unknown error while sending the invoice to R365.";
     await admin
       .from("integration_runs")
       .update({ status: "failed", finished_at: new Date().toISOString(), error_summary: { message } })
@@ -3546,7 +3546,7 @@ async function mapAndSendUnifiedRow(input: {
       runId,
       level: "error",
       code: "invoice_send_failed",
-      message: `Error enviando ${input.entityId} (${input.entityType}) a R365: ${message}`,
+      message: `Error sending ${input.entityId} (${input.entityType}) to R365: ${message}`,
       metadata: { entityId: input.entityId, entityType: input.entityType },
     });
     await notifyIntegrationEvent({
@@ -3683,7 +3683,7 @@ async function mapAndSendUnifiedRowInner(input: {
     runId,
     level: "info",
     code: "invoice_sent",
-    message: `Factura ${input.entityId} (${input.entityType}) enviada a R365 — trigger: ${input.triggerSource}`,
+    message: `Invoice ${input.entityId} (${input.entityType}) sent to R365 — trigger: ${input.triggerSource}`,
     metadata: { fileName, entityId: input.entityId, entityType: input.entityType },
   });
 
@@ -3730,13 +3730,13 @@ async function fetchAndCaptureWebhookInvoice(input: {
     });
 
     if (!raw?.data) {
-      await markIdentificationFailed("QuickBooks no devolvió datos para esta entidad");
+      await markIdentificationFailed("QuickBooks® Online returned no data for this transaction.");
       return;
     }
 
     entity = raw.data as Record<string, unknown>;
   } catch (err) {
-    await markIdentificationFailed(err instanceof Error ? err.message : "Error desconocido identificando el webhook");
+    await markIdentificationFailed(err instanceof Error ? err.message : "Unknown error while identifying the webhook.");
     return;
   }
 
@@ -3815,7 +3815,7 @@ async function fetchAndCaptureWebhookInvoice(input: {
       // La factura queda en 'capturada' — el cron de recovery la reintentará.
       // A diferencia de mapAndSendUnifiedRow, este paso no tenía alerta propia
       // (causa del incidente 2026-07: quedaba en silencio sin notificar a nadie).
-      const message = err instanceof Error ? err.message : "Error desconocido reclamando factura";
+      const message = err instanceof Error ? err.message : "Unknown error while claiming the invoice.";
       console.error("[qbo-webhook-pipeline]", input.entityId, message);
       await notifyIntegrationEvent({
         kind: "send_failed",
@@ -4247,13 +4247,13 @@ export async function backfillFromQboSinceDate(
       runId,
       level: "info",
       code: "backfill_completed",
-      message: `Importación histórica desde ${txnDateFrom}: ${detected} detectadas, ${upserted} capturadas, ${mappedCount} mapeadas`,
+      message: `Historical import since ${txnDateFrom}: ${detected} detected, ${upserted} captured, ${mappedCount} mapped`,
       metadata: { detected, upserted, mappedCount, since: txnDateFrom },
     });
 
     return { upserted };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Error en importación histórica";
+    const message = error instanceof Error ? error.message : "Historical import failed.";
     await admin
       .from("integration_runs")
       .update({
@@ -4562,7 +4562,7 @@ export async function processQboUnifiedQueue(): Promise<{
     } catch (err) {
       // Este paso no tenía alerta propia — causa del incidente 2026-07: el cron
       // corría y fallaba en silencio, sin notificar a nadie, para todas las orgs.
-      const message = err instanceof Error ? err.message : "Error desconocido reclamando factura";
+      const message = err instanceof Error ? err.message : "Unknown error while claiming the invoice.";
       results.push({ unifiedInvoiceId, status: "failed", error: message });
       await notifyIntegrationEvent({
         kind: "send_failed",
@@ -4597,8 +4597,8 @@ export async function processQboUnifiedQueue(): Promise<{
           organizationId,
         });
         if (!raw?.data) {
-          await markIdentificationFailed(row, organizationId, String(row.entity_id), String(row.entity_type), "Entidad no encontrada en QuickBooks");
-          results.push({ unifiedInvoiceId, status: "failed", error: "Entidad no encontrada en QuickBooks" });
+          await markIdentificationFailed(row, organizationId, String(row.entity_id), String(row.entity_type), "QuickBooks® Online transaction not found.");
+          results.push({ unifiedInvoiceId, status: "failed", error: "QuickBooks® Online transaction not found." });
           continue;
         }
         rawEntity = raw.data as QboInvoiceLike;
@@ -4648,7 +4648,7 @@ export async function processQboUnifiedQueue(): Promise<{
         await admin.from("qbo_unified_invoices").delete().eq("id", unifiedInvoiceId);
         // QuickBooks emits events for every emailed transaction, including
         // customers that are intentionally outside the R365 integration.
-        results.push({ unifiedInvoiceId, status: "skipped", error: "Cliente sin sync config" });
+        results.push({ unifiedInvoiceId, status: "skipped", error: "Customer has no synchronization configuration." });
         continue;
       }
 
@@ -4670,7 +4670,7 @@ export async function processQboUnifiedQueue(): Promise<{
       results.push({
         unifiedInvoiceId,
         status: "failed",
-        error: err instanceof Error ? err.message : "error desconocido",
+        error: err instanceof Error ? err.message : "Unknown error.",
       });
     }
   }

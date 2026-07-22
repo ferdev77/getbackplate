@@ -92,5 +92,5 @@ export async function billInvoiceUsageForRenewal(params: {
     .eq("organization_id", organizationId)
     .eq("module_id", moduleRow.id);
 
-  console.info(`[usage-billing] org ${organizationId}: ${sentCount} enviadas, ${allowance} incluidas, billed ${billableCount} × $${unitPrice} = $${(amountCents / 100).toFixed(2)}`);
+  console.info(`[usage-billing] org ${organizationId}: ${sentCount} sent, ${allowance} included, billed ${billableCount} × $${unitPrice} = $${(amountCents / 100).toFixed(2)}`);
 }

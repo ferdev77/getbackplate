@@ -53,17 +53,16 @@ export function IntegrationAlertsCard({ initialEnabled }: { initialEnabled: bool
   return (
     <article className="rounded-[2.5rem] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-sm">
       <h2 className="mb-1 flex items-center gap-2 text-sm font-bold tracking-tight text-[var(--gbp-text)]">
-        <Radio className="h-4 w-4 text-[var(--gbp-accent)]" /> Notificaciones push
+        <Radio className="h-4 w-4 text-[var(--gbp-accent)]" /> Push notifications
       </h2>
       <p className="text-xs text-[var(--gbp-text2)]">
-        Como superadmin recibís automáticamente un push cuando un webhook de QuickBooks® Online → R365 no se pueda identificar,
-        se envíe con éxito, o falle — de cualquier organización. Esto requiere tener las notificaciones push
-        activadas en el navegador.
+        As a superadmin, you automatically receive a push notification whenever a QuickBooks® Online → R365 webhook
+        cannot be identified, is sent successfully, or fails for any organization. Browser notifications must be enabled.
       </p>
 
       <div className="mt-4 flex items-center justify-between rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3">
         <span className={`text-sm font-semibold ${enabled ? "text-emerald-600" : "text-[var(--gbp-text2)]"}`}>
-          {enabled ? "Activadas en este dispositivo" : "Desactivadas en este dispositivo"}
+          {enabled ? "Enabled on this device" : "Disabled on this device"}
         </span>
         {!isBlocked && (
           <button
@@ -77,7 +76,7 @@ export function IntegrationAlertsCard({ initialEnabled }: { initialEnabled: bool
             }`}
           >
             {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-            {enabled ? "Desactivar" : "Activar"}
+            {enabled ? "Disable" : "Enable"}
           </button>
         )}
       </div>
@@ -85,16 +84,15 @@ export function IntegrationAlertsCard({ initialEnabled }: { initialEnabled: bool
       {isBlocked && (
         <div className="mt-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
           <Ban className="mt-0.5 h-4 w-4 shrink-0" />
-          Bloqueaste las notificaciones para este sitio en tu navegador, así que no se puede volver a pedir el
-          permiso desde acá. Activalas manualmente desde la configuración del sitio (ícono de candado en la
-          barra de direcciones → Notificaciones → Permitir) y después recargá la página.
+          You blocked notifications for this site in your browser, so permission cannot be requested again here.
+          Enable them manually in the site settings (lock icon in the address bar → Notifications → Allow), then reload the page.
         </div>
       )}
 
       {!enabled && !isBlocked && (
         <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          Al activar, el navegador va a pedir permiso de notificaciones si todavía no lo diste.
+          When enabled, the browser will request notification permission if you have not already granted it.
         </div>
       )}
     </article>

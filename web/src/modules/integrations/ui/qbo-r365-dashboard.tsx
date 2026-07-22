@@ -1860,7 +1860,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
                   <input
                     required
                     type="text"
-                    placeholder="Ej: Kumori"
+                    placeholder="e.g., Kumori"
                     value={newSyncName}
                     onChange={(e) => setNewSyncName(e.target.value)}
                     className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none"
@@ -1874,7 +1874,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
                   <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">{t("Nombre del proveedor en R365")}</span>
                   <input
                     type="text"
-                    placeholder="Ej: PRODEL DISTRIBUTION INC"
+                    placeholder="e.g., PRODEL DISTRIBUTION INC"
                     value={newSyncVendorName}
                     onChange={(e) => setNewSyncVendorName(e.target.value)}
                     className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none"

@@ -68,7 +68,7 @@ export async function createOrganizationAction(formData: FormData) {
   if (!isValidMode) {
     redirect(
       "/superadmin/organizations?action=create&status=error&message=" +
-        qs("Elegí una configuración válida de plataforma e integración"),
+        qs("Choose a valid platform and integration configuration"),
     );
   }
 
@@ -88,7 +88,7 @@ export async function createOrganizationAction(formData: FormData) {
   if ((planId && !platformPlan) || (integrationPlanId && !integrationPlan)) {
     redirect(
       "/superadmin/organizations?action=create&status=error&message=" +
-        qs("El plan seleccionado no corresponde al tipo de provisioning elegido"),
+        qs("The selected plan does not match the chosen provisioning type"),
     );
   }
 
@@ -384,7 +384,7 @@ export async function deleteOrganizationAction(formData: FormData) {
   } catch (error) {
     redirect(
       `/superadmin/organizations?action=delete&org=${organizationId}&status=error&message=` +
-        qs(error instanceof Error ? `No se pudo revocar QuickBooks: ${error.message}` : "No se pudo revocar QuickBooks"),
+        qs(error instanceof Error ? `Unable to revoke QuickBooks® Online access: ${error.message}` : "Unable to revoke QuickBooks® Online access"),
     );
   }
 

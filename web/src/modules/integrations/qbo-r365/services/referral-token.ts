@@ -8,7 +8,7 @@ type ReferralTokenPayload = {
 function getReferralSecret() {
   const secret = process.env.QBO_REFERRAL_TOKEN_SECRET?.trim();
   if (!secret) {
-    throw new Error("QBO_REFERRAL_TOKEN_SECRET no configurada");
+    throw new Error("QBO_REFERRAL_TOKEN_SECRET is not configured");
   }
   return secret;
 }
@@ -27,14 +27,14 @@ export function createReferralToken(organizationId: string, syncConfigCustomerId
 export function verifyReferralToken(token: string): ReferralTokenPayload {
   const [payloadBase64, signature] = token.split(".");
   if (!payloadBase64 || !signature) {
-    throw new Error("Token de referido invalido");
+    throw new Error("Invalid referral token");
   }
 
   const expected = sign(payloadBase64);
   const expectedBuf = Buffer.from(expected);
   const receivedBuf = Buffer.from(signature);
   if (expectedBuf.length !== receivedBuf.length || !timingSafeEqual(expectedBuf, receivedBuf)) {
-    throw new Error("Token de referido invalido");
+    throw new Error("Invalid referral token");
   }
 
   return JSON.parse(Buffer.from(payloadBase64, "base64url").toString("utf8")) as ReferralTokenPayload;

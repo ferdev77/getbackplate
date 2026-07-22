@@ -9,7 +9,7 @@ type EncryptedPayload = {
 function getRawEncryptionKey() {
   const raw = process.env.INTEGRATIONS_ENCRYPTION_KEY?.trim();
   if (!raw) {
-    throw new Error("INTEGRATIONS_ENCRYPTION_KEY no configurada");
+    throw new Error("INTEGRATIONS_ENCRYPTION_KEY is not configured");
   }
 
   return raw;

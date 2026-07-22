@@ -11,7 +11,7 @@ type OAuthStatePayload = {
 function getStateSecret() {
   const secret = process.env.QBO_OAUTH_STATE_SECRET?.trim();
   if (!secret) {
-    throw new Error("QBO_OAUTH_STATE_SECRET no configurada");
+    throw new Error("QBO_OAUTH_STATE_SECRET is not configured");
   }
   return secret;
 }
@@ -38,7 +38,7 @@ export function createOAuthStateToken(organizationId: string, userId: string, tt
 export function verifyOAuthStateToken(token: string): OAuthStatePayload {
   const [payloadBase64, signature] = token.split(".");
   if (!payloadBase64 || !signature) {
-    throw new Error("State invalido");
+    throw new Error("Invalid OAuth state");
   }
 
   const expected = sign(payloadBase64);
@@ -47,7 +47,7 @@ export function verifyOAuthStateToken(token: string): OAuthStatePayload {
   const expectedBuf = Buffer.from(expected);
   const receivedBuf = Buffer.from(received);
   if (expectedBuf.length !== receivedBuf.length || !timingSafeEqual(expectedBuf, receivedBuf)) {
-    throw new Error("State invalido");
+    throw new Error("Invalid OAuth state");
   }
 
   const payload = JSON.parse(Buffer.from(payloadBase64, "base64url").toString("utf8")) as OAuthStatePayload;
@@ -63,7 +63,7 @@ export function verifyOAuthStateToken(token: string): OAuthStatePayload {
     || payload.exp < now
     || payload.exp - payload.iat > 900
   ) {
-    throw new Error("State expirado");
+    throw new Error("OAuth state has expired");
   }
 
   return payload;

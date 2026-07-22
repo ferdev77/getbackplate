@@ -22,7 +22,7 @@ export async function sendPushToOrg(
     .eq("org_id", orgId)
     .eq("is_active", true);
 
-  if (error) throw new Error(`Error leyendo suscripciones: ${error.message}`);
+  if (error) throw new Error(`Unable to read push subscriptions: ${error.message}`);
   if (!subscriptions?.length) return { sent: 0, expired: 0, failed: 0 };
 
   return _sendToSubscriptions(supabase, subscriptions, payload, {
@@ -46,7 +46,7 @@ export async function sendPushToUsers(
     .in("user_id", userIds)
     .eq("is_active", true);
 
-  if (error) throw new Error(`Error leyendo suscripciones: ${error.message}`);
+  if (error) throw new Error(`Unable to read push subscriptions: ${error.message}`);
   if (!subscriptions?.length) return { sent: 0, expired: 0, failed: 0 };
 
   return _sendToSubscriptions(supabase, subscriptions, payload, options);
@@ -102,7 +102,7 @@ async function _sendToSubscriptions(
       createdBy: options.createdBy ?? null,
     })),
   ).catch((err) =>
-    console.error("[push] logNotificationsBulk falló:", err instanceof Error ? err.message : err),
+    console.error("[push] logNotificationsBulk failed:", err instanceof Error ? err.message : err),
   );
 
   return { sent, expired, failed };

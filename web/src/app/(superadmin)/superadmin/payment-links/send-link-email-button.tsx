@@ -47,7 +47,7 @@ export function SendLinkEmailButton({ orderId, sentTo, action }: Props) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        title={lastSentTo ? `Sent to ${lastSentTo}` : "Enviar por email"}
+        title={lastSentTo ? `Sent to ${lastSentTo}` : "Send by email"}
         className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[10px] font-bold transition ${
           lastSentTo
             ? "border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"

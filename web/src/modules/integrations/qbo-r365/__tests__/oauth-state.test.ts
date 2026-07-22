@@ -18,7 +18,7 @@ describe("QBO OAuth state", () => {
   it("rejects tampered and expired state", () => {
     vi.stubEnv("QBO_OAUTH_STATE_SECRET", "test-secret");
     const valid = createOAuthStateToken("org-1", "user-1");
-    expect(() => verifyOAuthStateToken(`${valid}x`)).toThrow("State invalido");
-    expect(() => verifyOAuthStateToken(createOAuthStateToken("org-1", "user-1", -1))).toThrow("State expirado");
+    expect(() => verifyOAuthStateToken(`${valid}x`)).toThrow("Invalid OAuth state");
+    expect(() => verifyOAuthStateToken(createOAuthStateToken("org-1", "user-1", -1))).toThrow("OAuth state has expired");
   });
 });

@@ -1836,12 +1836,12 @@ export function CompanyShell({
               <h2 className="mt-1 text-xl font-bold">
                 {isIntegrationLandingCheckout
                   ? t("Elegí tu plan de integración QuickBooks")
-                  : billingGate?.reason === "trial_expired" ? "Tu prueba venció — reactivá tu suscripción" : "Elegí tu plan para desbloquear el panel"}
+                  : billingGate?.reason === "trial_expired" ? t("Tu prueba venció — reactivá tu suscripción") : t("Elegí tu plan para desbloquear el panel")}
               </h2>
               <p className={`mt-1.5 text-sm ${isDarkTheme ? "text-white/65" : "text-[var(--gbp-text2)]"}`}>
                 {isIntegrationLandingCheckout
                   ? t("Conectá QuickBooks Online con Restaurant365 y sincronizá facturas automáticamente.")
-                  : "Contratá un plan de plataforma para gestionar tu operación, o un plan de integración para conectar QuickBooks® Online con R365."}
+                  : t("Contratá un plan de plataforma para gestionar tu operación, o un plan de integración para conectar QuickBooks® Online con R365.")}
               </p>
 
               {/* Tab switcher */}
@@ -1868,7 +1868,7 @@ export function CompanyShell({
               {!isIntegrationLandingCheckout && lockedViewTab === "platform" && (
                 <div className="mt-5">
                   <p className={`mb-4 text-xs ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>
-                    Empleados, documentos, checklists y más — todo para gestionar tu operación.
+                    {t("Empleados, documentos, checklists y más — todo para gestionar tu operación.")}
                   </p>
                   <div className={`mb-4 inline-flex rounded-lg border p-1 text-xs font-semibold ${isDarkTheme ? "border-white/15 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                     <button
@@ -1895,19 +1895,19 @@ export function CompanyShell({
                           className={`relative flex flex-col rounded-xl border p-4 transition ${isSuggested ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent)]/5" : (isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]")}`}
                         >
                           {isSuggested && (
-                            <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">Recomendado</span>
+                            <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">{t("Recomendado")}</span>
                           )}
                           <p className="text-sm font-bold">{plan.name}</p>
                           <p className={`text-2xl font-bold mt-1 mb-3`}>{formatPlanPrice(plan, planBillingCycle, locale)}</p>
                           <div className={`mb-3 flex flex-col gap-1 text-[10px] ${mutedCls}`}>
-                            <span>· {plan.maxUsers ?? "∞"} usuarios</span>
-                            <span>· {plan.maxEmployees ?? "∞"} empleados</span>
-                            <span>· {plan.maxBranches ?? "∞"} locaciones</span>
-                            {storageLabel && <span>· {storageLabel} de almacenamiento</span>}
+                            <span>· {plan.maxUsers ?? "∞"} {t("usuarios")}</span>
+                            <span>· {plan.maxEmployees ?? "∞"} {t("empleados")}</span>
+                            <span>· {plan.maxBranches ?? "∞"} {t("locaciones")}</span>
+                            {storageLabel && <span>· {storageLabel} {t("de almacenamiento")}</span>}
                           </div>
                           {planModules.length > 0 && (
                             <div className="mb-4">
-                              <p className={`mb-1.5 text-[9px] font-bold uppercase tracking-wider ${isDarkTheme ? "text-white/30" : "text-[var(--gbp-muted)]"}`}>Módulos incluidos</p>
+                              <p className={`mb-1.5 text-[9px] font-bold uppercase tracking-wider ${isDarkTheme ? "text-white/30" : "text-[var(--gbp-muted)]"}`}>{t("Módulos incluidos")}</p>
                               <div className="flex flex-wrap gap-1">
                                 {planModules.map((m) => (
                                   <span
@@ -1926,7 +1926,7 @@ export function CompanyShell({
                             disabled={busy || !plan.stripePriceId}
                             className={`mt-auto w-full rounded-lg px-3 py-2 text-[11px] font-bold disabled:cursor-not-allowed disabled:opacity-60 transition ${isSuggested ? "bg-[var(--gbp-accent)] text-white hover:opacity-95" : (isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]")}`}
                           >
-                            {busy ? "Redirigiendo..." : "Comenzar trial 30 días"}
+                            {busy ? t("Redirigiendo...") : t("Comenzar trial 30 días")}
                           </button>
                         </article>
                       );
@@ -2637,7 +2637,7 @@ export function CompanyShell({
                           onClick={() => startAddonCheckout(addon.moduleId)}
                           className={`ml-auto rounded-lg px-3 py-1.5 text-[10px] font-bold transition disabled:opacity-50 ${isActive ? (isDarkTheme ? "bg-white/10 text-white/70 hover:bg-white/20" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)]") : "bg-[var(--gbp-accent)] text-white hover:opacity-90"}`}
                         >
-                          {addonBusy === addon.moduleId ? "..." : isActive ? "Gestionar →" : "Contratar →"}
+                          {addonBusy === addon.moduleId ? "..." : isActive ? t("Gestionar →") : t("Contratar →")}
                         </button>
                       )}
                     </div>

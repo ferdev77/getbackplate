@@ -102,7 +102,7 @@ describe("revokeQboToken", () => {
       clientId: "client",
       clientSecret: "secret",
       token: "refresh-token",
-    })).rejects.toThrow("No se pudo revocar");
+    })).rejects.toThrow("Unable to revoke");
   });
 
   it("keeps transient revoke failures visible to strict callers", async () => {
@@ -112,6 +112,6 @@ describe("revokeQboToken", () => {
       clientId: "client",
       clientSecret: "secret",
       token: "refresh-token",
-    })).rejects.toThrow("No se pudo revocar");
+    })).rejects.toThrow("Unable to revoke");
   });
 });

@@ -70,7 +70,7 @@ export async function GET(request: Request) {
       results.push({
         organizationId: org.id,
         organizationName: org.name,
-        error: error instanceof Error ? error.message : "error desconocido",
+        error: error instanceof Error ? error.message : "Unknown error.",
       });
     }
   }

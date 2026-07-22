@@ -18,16 +18,16 @@ const ACTION_META: Record<ActionType, { label: string; icon: React.ElementType; 
     description: "Activa un módulo en la organización al confirmar el pago.",
   },
   add_invoices: {
-    label: "Agregar facturas",
+    label: "Add invoices",
     icon: FileStack,
     color: "emerald",
-    description: "Suma N facturas al balance de la organización (requiere módulo QuickBooks® Online activo).",
+    description: "Adds N invoices to the organization's balance (requires the QuickBooks® Online module).",
   },
   add_slot: {
     label: "Slot + Setup Fee",
     icon: Plug,
     color: "sky",
-    description: "Suma un slot de sync QuickBooks® Online-R365 a la organización al confirmar el pago.",
+    description: "Adds a QuickBooks® Online-R365 sync slot to the organization when payment is confirmed.",
   },
   custom: {
     label: "Cobro personalizado",
@@ -413,7 +413,7 @@ function ItemCard({ idx, item, modules, canRemove, onRemove, onChange }: ItemCar
 
       {item.actionType === "add_invoices" && (
         <SuperadminInputField
-          label="Cantidad de facturas a acreditar"
+          label="Number of invoices to credit"
           name={`invoices_${idx}`}
           type="number"
           min="1"
@@ -427,7 +427,7 @@ function ItemCard({ idx, item, modules, canRemove, onRemove, onChange }: ItemCar
 
       {item.actionType === "add_slot" && (
         <SuperadminInputField
-          label="Cantidad de slots a sumar"
+          label="Number of slots to add"
           name={`slots_${idx}`}
           type="number"
           min="1"

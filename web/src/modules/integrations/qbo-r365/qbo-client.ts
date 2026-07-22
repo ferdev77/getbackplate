@@ -148,7 +148,7 @@ async function fetchToken(
 
   const data = (await response.json().catch(() => ({}))) as Partial<QboTokenResponse> & { error_description?: string };
   if (!response.ok || !data.access_token || !data.refresh_token || !data.expires_in || !data.token_type) {
-    throw new Error(data.error_description || "No se pudo autenticar con QuickBooks® Online");
+    throw new Error(data.error_description || "Unable to authenticate with QuickBooks® Online.");
   }
 
   return data as QboTokenResponse;
@@ -214,7 +214,7 @@ export async function revokeQboToken(input: {
     const data = (await response.json().catch(() => ({}))) as QboFaultError;
     const message = data.message || data.Message || "";
     if (response.status === 400 && /invalid.*token|token.*invalid|already.*revok/i.test(message)) return;
-    throw new Error(message || "No se pudo revocar el acceso en QuickBooks® Online");
+    throw new Error(message || "Unable to revoke QuickBooks® Online access.");
   }
 }
 
@@ -243,7 +243,7 @@ async function queryQboTable<T>(input: {
   const sanitizeCustomerId = (value: string) => {
     const trimmed = value.trim();
     if (!/^[A-Za-z0-9._-]+$/.test(trimmed)) {
-      throw new Error("customerId invalido para consulta QBO");
+      throw new Error("Invalid QuickBooks customer ID.");
     }
     return trimmed;
   };
@@ -252,7 +252,7 @@ async function queryQboTable<T>(input: {
     if (!sinceIso) return "";
     const epoch = Date.parse(sinceIso);
     if (!Number.isFinite(epoch)) {
-      throw new Error("sinceIso invalido para consulta QBO");
+      throw new Error("Invalid synchronization timestamp for the QuickBooks query.");
     }
     const safeSince = new Date(epoch).toISOString().replace(".000", "");
     return `MetaData.LastUpdatedTime >= '${safeSince}'`;
@@ -262,7 +262,7 @@ async function queryQboTable<T>(input: {
     if (!txnDateFrom) return "";
     const safe = txnDateFrom.trim();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(safe)) {
-      throw new Error("txnDateFrom invalido para consulta QBO (debe ser YYYY-MM-DD)");
+      throw new Error("Invalid transaction start date for the QuickBooks query. Use YYYY-MM-DD.");
     }
     return `TxnDate >= '${safe}'`;
   };
@@ -333,9 +333,9 @@ async function queryQboTable<T>(input: {
       const errorCode = String(fault?.code ?? "").trim();
       const detail = (fault?.Detail ?? fault?.Message ?? fault?.detail ?? fault?.message ?? "").trim();
       if (errorCode === "3100") {
-        throw new Error("QBO_3100:La autorizacion de la app con esta company no es valida. Reconecta QuickBooks® Online.");
+        throw new Error("QBO_3100: QuickBooks® Online authorization for this company is no longer valid. Reconnect QuickBooks® Online.");
       }
-      throw new Error(detail || message || `Error consultando ${input.table} en QuickBooks® Online`);
+      throw new Error(detail || message || `Unable to query ${input.table} records in QuickBooks® Online.`);
     }
 
     const queryResponse = payload.QueryResponse ?? payload.queryResponse;
@@ -665,7 +665,7 @@ export async function fetchQboTransactionByDocNumber(input: {
     };
     if (!response.ok) {
       const fault = payload.Fault?.Error?.[0];
-      throw new Error(fault?.Detail ?? fault?.Message ?? `Error consultando ${type} por DocNumber en QuickBooks® Online`);
+      throw new Error(fault?.Detail ?? fault?.Message ?? `Unable to query ${type} by document number in QuickBooks® Online.`);
     }
     const qr = payload.QueryResponse ?? payload.queryResponse;
     const items = (type === "Invoice" ? qr?.Invoice : qr?.CreditMemo) ?? [];
@@ -783,7 +783,7 @@ export async function fetchQboCustomers(input: {
     };
 
     if (!response.ok) {
-      throw new Error("Error consultando clientes en QuickBooks® Online");
+      throw new Error("Unable to query customers in QuickBooks® Online.");
     }
 
     const batch = payload.QueryResponse?.Customer ?? [];

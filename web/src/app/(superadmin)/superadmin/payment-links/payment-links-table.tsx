@@ -17,7 +17,7 @@ const STATUS_CONFIG = {
 
 const ACTION_CONFIG = {
   activate_module: { label: "Activar módulo",  Icon: Zap,       cls: "text-violet-600" },
-  add_invoices:    { label: "Facturas",         Icon: FileStack, cls: "text-emerald-600" },
+  add_invoices:    { label: "Invoices",         Icon: FileStack, cls: "text-emerald-600" },
   add_slot:        { label: "Slot + Setup Fee", Icon: Plug,      cls: "text-sky-600" },
   custom:          { label: "Cobro custom",     Icon: Tag,       cls: "text-amber-600" },
 } as const;
@@ -97,7 +97,7 @@ function ActionCell({ order }: { order: Order }) {
         <p className="mt-0.5 text-[10px] text-muted-foreground">
           {actionPayload.moduleCode != null
             ? String(actionPayload.moduleCode)
-            : `+${String(actionPayload.invoiceCount)} facturas`}
+            : `+${String(actionPayload.invoiceCount)} invoices`}
         </p>
       )}
     </div>
@@ -125,7 +125,7 @@ function ItemsBreakdown({ items, currency }: { items: StoredItem[]; currency: st
                     <span className="text-[10px] text-muted-foreground">· {String(payload.moduleCode)}</span>
                   )}
                   {payload?.invoiceCount != null && (
-                    <span className="text-[10px] text-muted-foreground">· +{String(payload.invoiceCount)} facturas</span>
+                    <span className="text-[10px] text-muted-foreground">· +{String(payload.invoiceCount)} invoices</span>
                   )}
                 </div>
               </div>

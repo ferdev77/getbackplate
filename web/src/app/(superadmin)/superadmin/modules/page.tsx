@@ -157,32 +157,32 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
                   <div className="rounded-2xl border border-dashed border-brand/30 bg-brand/[0.03] p-6">
                     <div className="mb-4 flex items-center gap-2">
                       <ShoppingBag className="h-4 w-4 text-brand" />
-                      <p className="text-sm font-bold text-foreground">Configuración de Add-on</p>
+                      <p className="text-sm font-bold text-foreground">Add-on configuration</p>
                     </div>
                     <form action={updateModuleAddonAction} className="grid gap-4 sm:grid-cols-2 items-end">
                       <input type="hidden" name="module_id" value={module.id} />
-                      <SuperadminInputField label="Nombre visible del Add-on" name="addon_name" defaultValue={module.addon_name ?? ""} placeholder={displayName} />
-                      <SuperadminInputField label="Descripción para el cliente" name="addon_description" defaultValue={module.addon_description ?? ""} className="sm:col-span-1" />
+                    <SuperadminInputField label="Add-on display name" name="addon_name" defaultValue={module.addon_name ?? ""} placeholder={displayName} />
+                    <SuperadminInputField label="Customer-facing description" name="addon_description" defaultValue={module.addon_description ?? ""} className="sm:col-span-1" />
 
                       {/* integration_plan_type: si está seteado, los precios vienen de los planes */}
                       <div className="sm:col-span-2">
                         <label className="block text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1.5">
-                          Tipo de plan de integración (tiered)
+                        Integration plan type (tiered)
                         </label>
                         <input
                           name="integration_plan_type"
                           defaultValue={module.integration_plan_type ?? ""}
-                          placeholder="Ej: qbo_r365 — dejar vacío para precio único"
+                        placeholder="e.g., qbo_r365 — leave blank for a single price"
                           spellCheck={false}
                           className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand/30"
                         />
                         {module.integration_plan_type ? (
                           <p className="mt-1.5 text-xs text-brand">
-                            ✦ Módulo tiered — los precios se gestionan desde{" "}
+                          ✦ Tiered module — prices are managed from{" "}
                             <a href="/superadmin/plans" className="underline font-semibold">
                               /superadmin/plans
                             </a>
-                            , filtrando por plan_type = &quot;{module.integration_plan_type}&quot;
+                          , filtered by plan_type = &quot;{module.integration_plan_type}&quot;
                           </p>
                         ) : (
                           <>

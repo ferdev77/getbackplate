@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 function getVerifierToken() {
   const token = process.env.QBO_WEBHOOK_VERIFIER_TOKEN?.trim() ?? "";
   if (!token) {
-    throw new Error("QBO_WEBHOOK_VERIFIER_TOKEN no esta configurado");
+    throw new Error("QBO_WEBHOOK_VERIFIER_TOKEN is not configured");
   }
   return token;
 }

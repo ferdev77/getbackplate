@@ -287,20 +287,20 @@ export function SuperadminOrganizationsWorkspace({
                 <form action={createOrganizationAction} autoComplete="off" className="space-y-6">
                   <div className="grid gap-4 md:grid-cols-2">
                     <SuperadminInputField label="Organización" name="name" required className="md:col-span-2" />
-                    <SuperadminSelectField label="Tipo de Provisioning" name="creation_mode" value={creationMode} onChange={(event) => setCreationMode(event.target.value as typeof creationMode)} className="md:col-span-2">
-                      <option value="platform">Solo plataforma</option>
-                      <option value="integration">Solo integración QuickBooks® Online</option>
-                      <option value="platform_integration">Plataforma + integración QuickBooks® Online</option>
+                    <SuperadminSelectField label="Provisioning type" name="creation_mode" value={creationMode} onChange={(event) => setCreationMode(event.target.value as typeof creationMode)} className="md:col-span-2">
+                      <option value="platform">Platform only</option>
+                      <option value="integration">QuickBooks® Online integration only</option>
+                      <option value="platform_integration">Platform + QuickBooks® Online integration</option>
                     </SuperadminSelectField>
                     {(creationMode === "platform" || creationMode === "platform_integration") && (
-                      <SuperadminSelectField label="Plan de Plataforma" name="plan_id" defaultValue="" required>
-                        <option value="" disabled>Elegí un plan</option>
+                      <SuperadminSelectField label="Platform plan" name="plan_id" defaultValue="" required>
+                        <option value="" disabled>Choose a plan</option>
                         {plans.filter((p) => p.plan_type === "platform").map((plan) => <option key={plan.id} value={plan.id}>{plan.name} ({plan.code})</option>)}
                       </SuperadminSelectField>
                     )}
                     {(creationMode === "integration" || creationMode === "platform_integration") && (
-                      <SuperadminSelectField label="Plan de Integración" name="integration_plan_id" defaultValue="" required>
-                        <option value="" disabled>Elegí un plan</option>
+                      <SuperadminSelectField label="Integration plan" name="integration_plan_id" defaultValue="" required>
+                        <option value="" disabled>Choose a plan</option>
                         {plans.filter((p) => p.plan_type === "qbo_r365").map((plan) => <option key={plan.id} value={plan.id}>{plan.name} ({plan.code})</option>)}
                       </SuperadminSelectField>
                     )}
@@ -336,7 +336,7 @@ export function SuperadminOrganizationsWorkspace({
                     <div className="mt-4 grid gap-4 sm:grid-cols-2">
                       <SuperadminSelectField label="Estado" name="status" defaultValue={selectedOrg.status} labelBgClassName="bg-[var(--gbp-surface)]"><option value="active">Activo</option><option value="paused">Pausado</option><option value="suspended">Suspendido</option></SuperadminSelectField>
                       <SuperadminSelectField label="Plan Plataforma" name="plan_id" defaultValue={selectedOrg.plan_id ?? ""} labelBgClassName="bg-[var(--gbp-surface)]"><option value="">Sin plan</option>{plans.filter((p) => p.plan_type === "platform").map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</SuperadminSelectField>
-                      <SuperadminSelectField label="Plan Integración" name="integration_plan_id" defaultValue={selectedOrg.integration_plan_id ?? ""} labelBgClassName="bg-[var(--gbp-surface)]"><option value="">Sin plan</option>{plans.filter((p) => p.plan_type === "qbo_r365").map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</SuperadminSelectField>
+                      <SuperadminSelectField label="Integration plan" name="integration_plan_id" defaultValue={selectedOrg.integration_plan_id ?? ""} labelBgClassName="bg-[var(--gbp-surface)]"><option value="">No plan</option>{plans.filter((p) => p.plan_type === "qbo_r365").map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</SuperadminSelectField>
                     </div>
                     <SubmitButton label="Actualizar Organización" pendingLabel="Actualizando..." variant="primary" className="mt-6 w-full rounded-xl px-4 py-3 text-sm font-bold text-white" />
                     {selectedAdmins[0] && selectedAdmins[0].status === "invited" ? (

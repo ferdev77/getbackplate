@@ -74,7 +74,7 @@ export async function GET(request: Request) {
       results.push({
         organizationId: org.id,
         organizationName: org.name,
-        error: error instanceof Error ? error.message : "error desconocido",
+        error: error instanceof Error ? error.message : "Unknown error.",
       });
     }
   }
@@ -83,7 +83,7 @@ export async function GET(request: Request) {
   try {
     ownerReport = await sendOwnerWeeklyOpsReport({ periodStart, periodEnd });
   } catch (error) {
-    ownerReport = { sent: false, reason: error instanceof Error ? error.message : "error desconocido" };
+    ownerReport = { sent: false, reason: error instanceof Error ? error.message : "Unknown error." };
   }
 
   const hasDeliveryFailures = results.some((result) =>
