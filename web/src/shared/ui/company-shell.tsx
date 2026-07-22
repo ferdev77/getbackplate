@@ -33,6 +33,8 @@ import { NotificationBell } from "@/shared/ui/notification-bell";
 import { IntuitIdentityControl } from "@/shared/ui/intuit-identity-control";
 import { createTranslator } from "@/shared/ui/company-shell.i18n";
 
+const billingGateT = createTranslator("en");
+
 // ── Lazy-loaded modals (code-split — only downloaded when opened) ────
 const AnnouncementCreateModal = dynamic(
   () => import("@/shared/ui/announcement-create-modal").then((m) => ({ default: m.AnnouncementCreateModal })),
@@ -1832,16 +1834,16 @@ export function CompanyShell({
             <div className="px-6 py-6 sm:px-8">
 
               {/* Header */}
-              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--gbp-accent)]">{t("Activación requerida")}</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--gbp-accent)]">{billingGateT("Activación requerida")}</p>
               <h2 className="mt-1 text-xl font-bold">
                 {isIntegrationLandingCheckout
-                  ? t("Elegí tu plan de integración QuickBooks")
-                  : billingGate?.reason === "trial_expired" ? t("Tu prueba venció — reactivá tu suscripción") : t("Elegí tu plan para desbloquear el panel")}
+                  ? billingGateT("Elegí tu plan de integración QuickBooks")
+                  : billingGate?.reason === "trial_expired" ? billingGateT("Tu prueba venció — reactivá tu suscripción") : billingGateT("Elegí tu plan para desbloquear el panel")}
               </h2>
               <p className={`mt-1.5 text-sm ${isDarkTheme ? "text-white/65" : "text-[var(--gbp-text2)]"}`}>
                 {isIntegrationLandingCheckout
-                  ? t("Conectá QuickBooks Online con Restaurant365 y sincronizá facturas automáticamente.")
-                  : t("Contratá un plan de plataforma para gestionar tu operación, o un plan de integración para conectar QuickBooks® Online con R365.")}
+                  ? billingGateT("Conectá QuickBooks Online con Restaurant365 y sincronizá facturas automáticamente.")
+                  : billingGateT("Contratá un plan de plataforma para gestionar tu operación, o un plan de integración para conectar QuickBooks® Online con R365.")}
               </p>
 
               {/* Tab switcher */}
@@ -1851,7 +1853,7 @@ export function CompanyShell({
                   onClick={() => setLockedViewTab("platform")}
                   className={`rounded-lg px-4 py-2 text-xs font-bold transition ${lockedViewTab === "platform" ? "bg-[var(--gbp-accent)] text-white shadow-sm" : (isDarkTheme ? "text-white/60 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
                 >
-                  {t("Plataforma")}
+                  {billingGateT("Plataforma")}
                 </button>
                 {integrationPlans.length > 0 && (
                   <button
@@ -1859,7 +1861,7 @@ export function CompanyShell({
                     onClick={() => setLockedViewTab("integration")}
                     className={`rounded-lg px-4 py-2 text-xs font-bold transition ${lockedViewTab === "integration" ? "bg-[var(--gbp-accent)] text-white shadow-sm" : (isDarkTheme ? "text-white/60 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
                   >
-                    {t("Integración QuickBooks")}
+                    {billingGateT("Integración QuickBooks")}
                   </button>
                 )}
               </div>}
@@ -1868,19 +1870,19 @@ export function CompanyShell({
               {!isIntegrationLandingCheckout && lockedViewTab === "platform" && (
                 <div className="mt-5">
                   <p className={`mb-4 text-xs ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>
-                    {t("Empleados, documentos, checklists y más — todo para gestionar tu operación.")}
+                    {billingGateT("Empleados, documentos, checklists y más — todo para gestionar tu operación.")}
                   </p>
                   <div className={`mb-4 inline-flex rounded-lg border p-1 text-xs font-semibold ${isDarkTheme ? "border-white/15 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                     <button
                       type="button"
                       onClick={() => setPlanBillingCycle("monthly")}
                       className={`rounded-md px-3 py-1.5 transition ${planBillingCycle === "monthly" ? (isDarkTheme ? "bg-white text-[var(--gbp-text)]" : "bg-[var(--gbp-surface)] text-[var(--gbp-text)]") : (isDarkTheme ? "text-white/75 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
-                    >{t("Mensual")}</button>
+                    >{billingGateT("Mensual")}</button>
                     <button
                       type="button"
                       onClick={() => setPlanBillingCycle("yearly")}
                       className={`rounded-md px-3 py-1.5 transition ${planBillingCycle === "yearly" ? "bg-[var(--gbp-success)] text-white" : (isDarkTheme ? "text-white/75 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
-                    >{t("Anual")} <span className={`text-[9px] ${planBillingCycle === "yearly" ? "text-white/80" : "text-emerald-500"}`}>{t("2 meses gratis")}</span></button>
+                    >{billingGateT("Anual")} <span className={`text-[9px] ${planBillingCycle === "yearly" ? "text-white/80" : "text-emerald-500"}`}>{billingGateT("2 meses gratis")}</span></button>
                   </div>
                   <div className="grid gap-3 md:grid-cols-3">
                     {plansForDisplay.map((plan) => {
@@ -1895,19 +1897,19 @@ export function CompanyShell({
                           className={`relative flex flex-col rounded-xl border p-4 transition ${isSuggested ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent)]/5" : (isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]")}`}
                         >
                           {isSuggested && (
-                            <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">{t("Recomendado")}</span>
+                            <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">{billingGateT("Recomendado")}</span>
                           )}
                           <p className="text-sm font-bold">{plan.name}</p>
                           <p className={`text-2xl font-bold mt-1 mb-3`}>{formatPlanPrice(plan, planBillingCycle, locale)}</p>
                           <div className={`mb-3 flex flex-col gap-1 text-[10px] ${mutedCls}`}>
-                            <span>· {plan.maxUsers ?? "∞"} {t("usuarios")}</span>
-                            <span>· {plan.maxEmployees ?? "∞"} {t("empleados")}</span>
-                            <span>· {plan.maxBranches ?? "∞"} {t("locaciones")}</span>
-                            {storageLabel && <span>· {storageLabel} {t("de almacenamiento")}</span>}
+                            <span>· {plan.maxUsers ?? "∞"} {billingGateT("usuarios")}</span>
+                            <span>· {plan.maxEmployees ?? "∞"} {billingGateT("empleados")}</span>
+                            <span>· {plan.maxBranches ?? "∞"} {billingGateT("locaciones")}</span>
+                            {storageLabel && <span>· {storageLabel} {billingGateT("de almacenamiento")}</span>}
                           </div>
                           {planModules.length > 0 && (
                             <div className="mb-4">
-                              <p className={`mb-1.5 text-[9px] font-bold uppercase tracking-wider ${isDarkTheme ? "text-white/30" : "text-[var(--gbp-muted)]"}`}>{t("Módulos incluidos")}</p>
+                              <p className={`mb-1.5 text-[9px] font-bold uppercase tracking-wider ${isDarkTheme ? "text-white/30" : "text-[var(--gbp-muted)]"}`}>{billingGateT("Módulos incluidos")}</p>
                               <div className="flex flex-wrap gap-1">
                                 {planModules.map((m) => (
                                   <span
@@ -1926,7 +1928,7 @@ export function CompanyShell({
                             disabled={busy || !plan.stripePriceId}
                             className={`mt-auto w-full rounded-lg px-3 py-2 text-[11px] font-bold disabled:cursor-not-allowed disabled:opacity-60 transition ${isSuggested ? "bg-[var(--gbp-accent)] text-white hover:opacity-95" : (isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]")}`}
                           >
-                            {busy ? t("Redirigiendo...") : t("Comenzar trial 30 días")}
+                            {busy ? billingGateT("Redirigiendo...") : billingGateT("Comenzar trial 30 días")}
                           </button>
                         </article>
                       );
@@ -1939,19 +1941,19 @@ export function CompanyShell({
               {(isIntegrationLandingCheckout || lockedViewTab === "integration") && integrationPlans.length > 0 && (
                 <div className="mt-5">
                   <p className={`mb-4 text-xs ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>
-                    {t("Conectá tu QuickBooks Online con Restaurant365 y sincronizá facturas automáticamente. No requiere un plan de plataforma.")}
+                    {billingGateT("Conectá tu QuickBooks Online con Restaurant365 y sincronizá facturas automáticamente. No requiere un plan de plataforma.")}
                   </p>
                   <div className={`mb-4 inline-flex rounded-lg border p-1 text-xs font-semibold ${isDarkTheme ? "border-white/15 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                     <button
                       type="button"
                       onClick={() => setIntegrationPlanBillingCycle("monthly")}
                       className={`rounded-md px-3 py-1.5 transition ${integrationPlanBillingCycle === "monthly" ? (isDarkTheme ? "bg-white text-[var(--gbp-text)]" : "bg-[var(--gbp-surface)] text-[var(--gbp-text)]") : (isDarkTheme ? "text-white/75 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
-                    >{t("Mensual")}</button>
+                    >{billingGateT("Mensual")}</button>
                     <button
                       type="button"
                       onClick={() => setIntegrationPlanBillingCycle("annual")}
                       className={`rounded-md px-3 py-1.5 transition ${integrationPlanBillingCycle === "annual" ? "bg-[var(--gbp-success)] text-white" : (isDarkTheme ? "text-white/75 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
-                    >{t("Anual")} <span className={`text-[9px] ${integrationPlanBillingCycle === "annual" ? "text-white/80" : "text-emerald-500"}`}>−17%</span></button>
+                    >{billingGateT("Anual")} <span className={`text-[9px] ${integrationPlanBillingCycle === "annual" ? "text-white/80" : "text-emerald-500"}`}>−17%</span></button>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     {integrationPlans.map((plan) => {
@@ -1969,21 +1971,21 @@ export function CompanyShell({
                           className={`relative flex flex-col rounded-xl border p-4 transition ${plan.isFeatured || isSelectedFromLanding ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent)]/5" : plan.isEnterprise ? (isDarkTheme ? "border-dashed border-white/20 bg-white/[0.03]" : "border-dashed border-[var(--gbp-border)] bg-transparent") : (isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]")}`}
                         >
                           {plan.isFeatured && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">Popular</span>}
-                          {isSelectedFromLanding && !plan.isFeatured && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">{t("Seleccionado")}</span>}
-                          {isCurrent && <span className="absolute -top-2.5 right-3 rounded-full bg-emerald-500 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">{t("Actual")}</span>}
+                          {isSelectedFromLanding && !plan.isFeatured && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">{billingGateT("Seleccionado")}</span>}
+                          {isCurrent && <span className="absolute -top-2.5 right-3 rounded-full bg-emerald-500 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">{billingGateT("Actual")}</span>}
                           <p className="text-sm font-bold">{plan.name}</p>
                           {plan.description && <p className={`mt-1 mb-2 text-[10px] leading-relaxed ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>{plan.description}</p>}
                           <div className="mb-3">
                             {plan.isEnterprise ? (
                               <>
                                 <span className="text-2xl font-bold">Custom</span>
-                                <p className={`mt-0.5 text-[10px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>{t("a medida")}</p>
+                                <p className={`mt-0.5 text-[10px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>{billingGateT("a medida")}</p>
                               </>
                             ) : (
                               <>
                                 <span className="text-2xl font-bold">${displayPrice.toLocaleString("en-US")}</span>
-                                <span className={`ml-1 text-[11px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>{t("/mes")}</span>
-                                {integrationPlanBillingCycle === "annual" && savings > 0 && <p className="mt-0.5 text-[10px] font-semibold text-emerald-500">{t("Ahorrás")} ${savings.toLocaleString("en-US")}/{t("año")}</p>}
+                                <span className={`ml-1 text-[11px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>{billingGateT("/mes")}</span>
+                                {integrationPlanBillingCycle === "annual" && savings > 0 && <p className="mt-0.5 text-[10px] font-semibold text-emerald-500">{billingGateT("Ahorrás")} ${savings.toLocaleString("en-US")}/{billingGateT("año")}</p>}
                               </>
                             )}
                           </div>
@@ -2002,7 +2004,7 @@ export function CompanyShell({
                                 readOnly
                               />
                               <span className={isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}>
-                                {t("Setup de configuración inicial")}
+                                {billingGateT("Setup de configuración inicial")}
                                 {integrationPlanBillingCycle === "annual" && plan.setupFeeDiscountPct > 0 ? (
                                   <> · <span className="line-through opacity-50">${plan.setupFeeAmount.toLocaleString("en-US")}</span> <span className="font-semibold text-emerald-500">${(plan.setupFeeAmount * (1 - plan.setupFeeDiscountPct / 100)).toLocaleString("en-US")}</span> <span className="text-emerald-500 text-[9px]">−{plan.setupFeeDiscountPct}%</span></>
                                 ) : (
@@ -2014,7 +2016,7 @@ export function CompanyShell({
                           )}
                           {plan.isEnterprise ? (
                             <a href={`mailto:${plan.ctaEmail ?? "angelo@mkthelp.com"}?subject=QuickBooks%C2%AE Online R365 - ${plan.name} Plan`} className={`mt-auto block w-full rounded-lg px-3 py-2 text-center text-[11px] font-bold transition ${isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]"}`}>
-                              {t("Contactar ventas →")}
+                              {billingGateT("Contactar ventas →")}
                             </a>
                           ) : (
                             <button
@@ -2023,7 +2025,7 @@ export function CompanyShell({
                               onClick={() => startIntegrationPlanCheckout(plan.id, integrationPlanBillingCycle)}
                               className={`mt-auto w-full rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${isCurrent ? (isDarkTheme ? "bg-white/10 text-white/40" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]") : plan.isFeatured ? "bg-[var(--gbp-accent)] text-white hover:opacity-90" : (isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]")}`}
                             >
-                              {isLoading ? t("Redirigiendo...") : isCurrent ? t("Plan actual") : t("Contratar →")}
+                              {isLoading ? billingGateT("Redirigiendo...") : isCurrent ? billingGateT("Plan actual") : billingGateT("Contratar →")}
                             </button>
                           )}
                         </div>
@@ -2036,11 +2038,11 @@ export function CompanyShell({
               {/* Footer */}
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--gbp-border)] pt-4">
                 <p className={`text-xs ${isDarkTheme ? "text-white/60" : "text-[var(--gbp-text2)]"}`}>
-                  {t("El acceso al panel permanece bloqueado hasta confirmar la suscripción en Stripe.")}
+                  {billingGateT("El acceso al panel permanece bloqueado hasta confirmar la suscripción en Stripe.")}
                 </p>
                 <Link prefetch={false} href="/auth/logout" className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-semibold ${isDarkTheme ? "border-white/15 bg-white/5 text-white/80 hover:bg-white/10" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)]"}`}>
                   <LogOut className="h-3.5 w-3.5" />
-                  {t("Cerrar sesión")}
+                  {billingGateT("Cerrar sesión")}
                 </Link>
               </div>
 
