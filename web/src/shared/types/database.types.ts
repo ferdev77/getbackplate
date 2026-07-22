@@ -2409,7 +2409,9 @@ export type Database = {
           contact_phone: string | null
           created_at: string
           id: string
+          last_contacted_at: string | null
           metadata: Json
+          next_follow_up_at: string | null
           notes: string | null
           resolved_at: string | null
           source: string
@@ -2425,7 +2427,9 @@ export type Database = {
           contact_phone?: string | null
           created_at?: string
           id?: string
+          last_contacted_at?: string | null
           metadata?: Json
+          next_follow_up_at?: string | null
           notes?: string | null
           resolved_at?: string | null
           source: string
@@ -2441,13 +2445,39 @@ export type Database = {
           contact_phone?: string | null
           created_at?: string
           id?: string
+          last_contacted_at?: string | null
           metadata?: Json
+          next_follow_up_at?: string | null
           notes?: string | null
           resolved_at?: string | null
           source?: string
           source_record_id?: string | null
           status?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      superadmin_lead_notes: {
+        Row: {
+          author_id: string | null
+          body: string
+          created_at: string
+          id: string
+          lead_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          lead_id: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
         }
         Relationships: []
       }
