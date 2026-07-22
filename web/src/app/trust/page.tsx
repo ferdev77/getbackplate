@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
-import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
+import { IntegrationSiteFooter, IntegrationSiteHeader } from "@/modules/landing/ui/integration-site-chrome";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -40,15 +40,6 @@ const STYLES = `
 .trust-page a:hover{color:var(--accent-dark);}
 .trust-page .mono{font-family:var(--font-mono,'JetBrains Mono',monospace);}
 .trust-page .container{max-width:960px;margin:0 auto;padding:0 24px;}
-
-.trust-page .nav{border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:10;backdrop-filter:saturate(180%) blur(20px);background-color:rgba(255,255,255,.85);}
-.trust-page .nav-inner{display:flex;align-items:center;justify-content:space-between;height:64px;}
-.trust-page .nav-brand{font-weight:700;font-size:18px;color:var(--text);letter-spacing:-.01em;}
-.trust-page .nav-brand-dot{color:var(--accent);}
-.trust-page .nav-links{display:flex;gap:28px;font-size:14px;font-weight:500;}
-.trust-page .nav-links a{color:var(--text-secondary);}
-.trust-page .nav-links a:hover{color:var(--text);}
-.trust-page .nav-links a.active{color:var(--text);}
 
 .trust-page .hero{padding:80px 0 56px;border-bottom:1px solid var(--border);}
 .trust-page .hero-eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono,monospace);font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);margin-bottom:24px;}
@@ -119,15 +110,6 @@ const STYLES = `
 .trust-page .note-callout{border-left:3px solid var(--warning);background:var(--warning-bg);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:14px 16px;font-size:13.5px;color:var(--text);line-height:1.55;}
 .trust-page .note-callout strong{color:var(--warning);}
 
-.trust-page .footer{padding:56px 0 80px;border-top:1px solid var(--border);margin-top:32px;}
-.trust-page .footer-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:40px;margin-bottom:40px;}
-.trust-page .footer-col h4{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:16px;}
-.trust-page .footer-col ul{display:flex;flex-direction:column;gap:10px;}
-.trust-page .footer-col a{color:var(--text-secondary);font-size:14px;font-weight:500;}
-.trust-page .footer-col a:hover{color:var(--text);}
-.trust-page .footer-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:32px;border-top:1px solid var(--border);font-size:13px;color:var(--text-muted);flex-wrap:wrap;gap:12px;}
-.trust-page .footer-bottom strong{color:var(--text-secondary);font-weight:500;}
-
 @media (max-width:768px){
   .trust-page .container{padding:0 20px;}
   .trust-page .hero{padding:56px 0 40px;}
@@ -137,32 +119,17 @@ const STYLES = `
   .trust-page .section{padding:40px 0;}
   .trust-page .section-grid{grid-template-columns:1fr;gap:20px;}
   .trust-page .section-aside{position:static;}
-  .trust-page .footer-grid{grid-template-columns:1fr;gap:32px;}
-  .trust-page .footer-bottom{flex-direction:column;align-items:flex-start;}
   .trust-page .spec-table th{width:45%;}
-  .trust-page .nav-links{gap:18px;}
 }
 `;
 
 export default function TrustCenterPage() {
   return (
-    <div className={`${plusJakartaSans.variable} ${jetbrainsMono.variable} trust-page`}>
-      <style dangerouslySetInnerHTML={{ __html: STYLES }} />
-
-      <nav className="nav">
-        <div className="container nav-inner">
-          <Link href="/" className="nav-brand">
-            GetBackplate<span className="nav-brand-dot">.</span>
-          </Link>
-          <div className="nav-links">
-            <Link href="/legal">Legal</Link>
-            <Link href="/trust" className="active">Trust</Link>
-            <a href="mailto:hello@getbackplate.com">Contact</a>
-          </div>
-        </div>
-      </nav>
-
-      <main>
+    <div className={`${plusJakartaSans.variable} ${jetbrainsMono.variable}`}>
+      <IntegrationSiteHeader />
+      <div className="trust-page">
+        <style dangerouslySetInnerHTML={{ __html: STYLES }} />
+        <main>
         <section className="hero">
           <div className="container">
             <div className="hero-eyebrow">Trust Center</div>
@@ -590,44 +557,9 @@ export default function TrustCenterPage() {
           </div>
         </section>
 
-      </main>
-
-      <footer className="footer">
-        <div className="container">
-          <div className="footer-grid">
-            <div className="footer-col">
-              <h4>Legal</h4>
-              <ul>
-                <li><Link href="/legal/integration/terms">Integration Terms</Link></li>
-                <li><Link href="/legal/integration/privacy">Integration Privacy</Link></li>
-                <li><Link href="/legal/integration/msa">Master Services Agreement</Link></li>
-                <li><Link href="/legal/platform/terms">Platform Terms</Link></li>
-                <li><Link href="/legal/platform/privacy">Platform Privacy</Link></li>
-              </ul>
-            </div>
-            <div className="footer-col">
-              <h4>Trust</h4>
-              <ul>
-                <li><Link href="/trust">Trust Center</Link></li>
-                <li><Link href="/legal/integration/incident-response">Incident Response</Link></li>
-                <li><a href="mailto:security@getbackplate.com">Report a security issue</a></li>
-                <li><Link href="/support">Support and privacy requests</Link></li>
-              </ul>
-            </div>
-            <div className="footer-col">
-              <h4>Company</h4>
-              <ul>
-                <li><Link href="/">GetBackplate</Link></li>
-                <li><a href="mailto:hello@getbackplate.com">Contact</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <div><strong>Backplate Technologies LLC</strong>, d/b/a GetBackplate · {COMPANY_ADDRESS.inline}</div>
-            <div>Last reviewed July 19, 2026</div>
-          </div>
-        </div>
-      </footer>
+        </main>
+      </div>
+      <IntegrationSiteFooter />
     </div>
   );
 }
