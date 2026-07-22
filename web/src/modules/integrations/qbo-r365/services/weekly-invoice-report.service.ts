@@ -4,6 +4,12 @@ import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
 import { buildWeeklyReportHtml } from "./weekly-report-template";
 import { createReferralToken } from "./referral-token";
+import { createQboReportPreferenceToken } from "./report-preference-token";
+import {
+  getOrCreateQboReportSubscription,
+  shouldSendQboReport,
+  type QboReportCadence,
+} from "./report-preferences.service";
 
 // These emails are GetBackplate's own operational communication about the
 // integration it runs — the brand must always read "GetBackplate", never the
@@ -13,11 +19,9 @@ function brandedSubject(subject: string): string {
   return `[${FIXED_SENDER_NAME}] ${subject}`;
 }
 
-function ownerReportCopies(primaryRecipient: string, isPreview: boolean): string[] | undefined {
-  if (isPreview) return undefined;
-
+function ownerReportRecipients(primaryRecipient: string): string[] {
   const primary = primaryRecipient.trim().toLowerCase();
-  const recipients = (process.env.OWNER_WEEKLY_REPORT_EMAIL ?? "")
+  return (process.env.OWNER_WEEKLY_REPORT_EMAIL ?? "")
     .split(",")
     .map((email) => email.trim())
     .filter((email, index, all) =>
@@ -26,7 +30,29 @@ function ownerReportCopies(primaryRecipient: string, isPreview: boolean): string
       all.findIndex((candidate) => candidate.toLowerCase() === email.toLowerCase()) === index,
     );
 
-  return recipients.length ? recipients : undefined;
+}
+
+async function sendInternalOwnerCopies(input: {
+  primaryRecipient: string;
+  organizationId: string;
+  subject: string;
+  text: string;
+  renderHtml: (originalRecipient: string) => string;
+}): Promise<void> {
+  await Promise.allSettled(ownerReportRecipients(input.primaryRecipient).map((to) =>
+    sendTransactionalEmail({
+      to,
+      subject: brandedSubject(`[Internal copy] ${input.subject}`),
+      html: input.renderHtml(input.primaryRecipient),
+      text: `Internal copy. Original recipient: ${input.primaryRecipient}\n\n${input.text}`,
+      senderName: FIXED_SENDER_NAME,
+      notification: {
+        source: "qbo_report_internal_copy",
+        organizationId: input.organizationId,
+        title: `[Internal copy] ${input.subject}`,
+      },
+    }),
+  ));
 }
 
 type BranchInvoiceLine = {
@@ -39,6 +65,7 @@ type BranchReport = {
   syncConfigCustomerId: string;
   branchName: string;
   invoices: BranchInvoiceLine[];
+  hasDeliveredInvoices: boolean;
   resolvedEmail: string | null;
   skipReason: string | null;
 };
@@ -68,7 +95,7 @@ export const WEEKLY_RECURRENCE_NOTICE =
   "You'll receive this report every Monday around 10am your local time.";
 
 export const MONTHLY_RECURRENCE_NOTICE =
-  "You'll receive this report at the close of each billing cycle, when your subscription renews.";
+  "You'll receive this report on the 20th of each month, covering the previous reporting cycle.";
 
 export const FIRST_REPORT_NOTICE =
   "This is a one-time summary of everything delivered since your integration went live. " +
@@ -78,6 +105,13 @@ export const FIRST_ORG_REPORT_NOTICE =
   "This is a summary of everything delivered since your integration went live. " +
   "Going forward, you'll receive this report at the end of each monthly reporting cycle, " +
   "covering all invoices delivered during that period.";
+
+function recurrenceNotice(cadence: QboReportCadence, isHistorical: boolean): string {
+  if (isHistorical) {
+    return cadence === "monthly" ? FIRST_ORG_REPORT_NOTICE : FIRST_REPORT_NOTICE;
+  }
+  return cadence === "monthly" ? MONTHLY_RECURRENCE_NOTICE : WEEKLY_RECURRENCE_NOTICE;
+}
 
 function getAppBaseUrl(): string {
   return (process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://app.getbackplate.com").replace(/\/$/, "");
@@ -92,6 +126,177 @@ function nextUtcDate(isoDate: string): string {
   const date = new Date(`${isoDate}T00:00:00.000Z`);
   date.setUTCDate(date.getUTCDate() + 1);
   return date.toISOString().slice(0, 10);
+}
+
+type ReportRunRow = {
+  id: string;
+  status: "processing" | "completed" | "failed";
+  claimed_at: string | null;
+  attempt_count: number;
+};
+
+type ReportClaim = { id: string; claimedAt: string };
+
+async function claimReportRun(input: {
+  organizationId: string;
+  cadence: QboReportCadence;
+  periodStart: string;
+  periodEnd: string;
+}): Promise<ReportClaim | null> {
+  const admin = createSupabaseAdminClient();
+  const claimedAt = new Date().toISOString();
+  const identity = {
+    organization_id: input.organizationId,
+    report_kind: input.cadence,
+    period_start: input.periodStart,
+    period_end: input.periodEnd,
+  };
+  const { data: inserted, error: insertError } = await admin
+    .from("qbo_weekly_invoice_report_runs")
+    .insert({ ...identity, status: "processing", claimed_at: claimedAt })
+    .select("id")
+    .maybeSingle();
+  if (!insertError && inserted) return { id: inserted.id as string, claimedAt };
+  if (insertError?.code !== "23505") throw new Error(insertError?.message ?? "Report run could not be claimed");
+
+  const { data: existing, error: existingError } = await admin
+    .from("qbo_weekly_invoice_report_runs")
+    .select("id, status, claimed_at, attempt_count")
+    .match(identity)
+    .single();
+  if (existingError || !existing) throw new Error(existingError?.message ?? "Report run not found");
+
+  const row = existing as ReportRunRow;
+  const staleBefore = Date.now() - 15 * 60_000;
+  if (row.status === "completed") return null;
+  if (row.status === "processing" && row.claimed_at && new Date(row.claimed_at).getTime() >= staleBefore) {
+    return null;
+  }
+
+  let retry = admin
+    .from("qbo_weekly_invoice_report_runs")
+    .update({
+      status: "processing",
+      claimed_at: claimedAt,
+      attempt_count: row.attempt_count + 1,
+      last_error: null,
+    })
+    .eq("id", row.id)
+    .eq("status", row.status);
+  retry = row.claimed_at ? retry.eq("claimed_at", row.claimed_at) : retry.is("claimed_at", null);
+  const { data: retried, error: retryError } = await retry.select("id").maybeSingle();
+  if (retryError) throw new Error(retryError.message);
+  const retriedId = retried?.id as string | undefined;
+  if (!retriedId) return null;
+
+  const { error: releaseError } = await admin
+    .from("qbo_report_deliveries")
+    .update({ status: "failed", last_error: "Previous report attempt did not finish" })
+    .eq("run_id", retriedId)
+    .eq("status", "processing");
+  if (releaseError) throw new Error(releaseError.message);
+  return { id: retriedId, claimedAt };
+}
+
+async function finishReportRun(
+  claim: ReportClaim,
+  status: "completed" | "failed",
+  lastError?: string,
+): Promise<void> {
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("qbo_weekly_invoice_report_runs")
+    .update({
+      status,
+      completed_at: status === "completed" ? new Date().toISOString() : null,
+      last_error: lastError?.slice(0, 2000) ?? null,
+    })
+    .eq("id", claim.id)
+    .eq("status", "processing")
+    .eq("claimed_at", claim.claimedAt)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) throw new Error(error?.message ?? "Report run claim expired");
+}
+
+type ReportDeliveryRow = {
+  id: string;
+  status: "processing" | "sent" | "failed";
+  claimed_at: string;
+  attempt_count: number;
+};
+
+async function claimReportDelivery(input: {
+  runId: string;
+  targetType: "organization" | "branch";
+  targetId: string;
+  recipientEmail: string;
+}): Promise<ReportClaim | null> {
+  const admin = createSupabaseAdminClient();
+  const claimedAt = new Date().toISOString();
+  const identity = {
+    run_id: input.runId,
+    target_type: input.targetType,
+    target_id: input.targetId,
+    recipient_email: input.recipientEmail,
+  };
+  const { data: inserted, error: insertError } = await admin
+    .from("qbo_report_deliveries")
+    .insert({ ...identity, claimed_at: claimedAt })
+    .select("id")
+    .maybeSingle();
+  if (!insertError && inserted) return { id: inserted.id as string, claimedAt };
+  if (insertError?.code !== "23505") throw new Error(insertError?.message ?? "Report delivery could not be claimed");
+
+  const { data: existing, error: existingError } = await admin
+    .from("qbo_report_deliveries")
+    .select("id, status, claimed_at, attempt_count")
+    .match(identity)
+    .single();
+  if (existingError || !existing) throw new Error(existingError?.message ?? "Report delivery not found");
+
+  const row = existing as ReportDeliveryRow;
+  const staleBefore = Date.now() - 15 * 60_000;
+  if (row.status === "sent") return null;
+  if (row.status === "processing" && new Date(row.claimed_at).getTime() >= staleBefore) return null;
+
+  const { data: retried, error: retryError } = await admin
+    .from("qbo_report_deliveries")
+    .update({
+      status: "processing",
+      claimed_at: claimedAt,
+      attempt_count: row.attempt_count + 1,
+      last_error: null,
+    })
+    .eq("id", row.id)
+    .eq("status", row.status)
+    .eq("claimed_at", row.claimed_at)
+    .select("id")
+    .maybeSingle();
+  if (retryError) throw new Error(retryError.message);
+  const retriedId = retried?.id as string | undefined;
+  return retriedId ? { id: retriedId, claimedAt } : null;
+}
+
+async function finishReportDelivery(
+  claim: ReportClaim,
+  status: "sent" | "failed",
+  lastError?: string,
+): Promise<void> {
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("qbo_report_deliveries")
+    .update({
+      status,
+      sent_at: status === "sent" ? new Date().toISOString() : null,
+      last_error: lastError?.slice(0, 2000) ?? null,
+    })
+    .eq("id", claim.id)
+    .eq("status", "processing")
+    .eq("claimed_at", claim.claimedAt)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) throw new Error(error?.message ?? "Report delivery claim expired");
 }
 
 // ---------------------------------------------------------------------------
@@ -117,9 +322,22 @@ export async function listQboIntegrationOrganizations(): Promise<Array<{ id: str
   if (plansError) throw new Error(plansError.message);
 
   const qboPlanIds = new Set((plans ?? []).filter((p) => p.plan_type === "qbo_r365").map((p) => p.id));
+  const qboOrgIds = orgs
+    .filter((org) => qboPlanIds.has(org.integration_plan_id as string))
+    .map((org) => org.id as string);
+  if (!qboOrgIds.length) return [];
+
+  const { data: activeConfigs, error: configsError } = await admin
+    .from("qbo_r365_sync_configs")
+    .select("organization_id")
+    .in("organization_id", qboOrgIds)
+    .eq("status", "active");
+  if (configsError) throw new Error(configsError.message);
+
+  const configuredOrgIds = new Set((activeConfigs ?? []).map((config) => config.organization_id as string));
 
   return orgs
-    .filter((org) => qboPlanIds.has(org.integration_plan_id as string))
+    .filter((org) => qboPlanIds.has(org.integration_plan_id as string) && configuredOrgIds.has(org.id as string))
     .map((org) => ({ id: org.id as string, name: org.name as string }));
 }
 
@@ -265,7 +483,8 @@ export async function buildOrgWeeklyReportData(input: {
   const { data: syncConfigs, error: syncConfigsError } = await admin
     .from("qbo_r365_sync_configs")
     .select("id, name")
-    .eq("organization_id", input.organizationId);
+    .eq("organization_id", input.organizationId)
+    .eq("status", "active");
 
   if (syncConfigsError) throw new Error(syncConfigsError.message);
 
@@ -302,6 +521,7 @@ export async function buildOrgWeeklyReportData(input: {
       // mandarle el correo de "sin facturas esta semana"), resolviendo el email
       // de contacto a partir de su factura mas reciente en cualquier momento.
       let emailSourceRawEntity: unknown = invoices?.[0]?.raw_entity ?? null;
+      let hasDeliveredInvoices = Boolean(invoices?.length);
       if (!invoices?.length) {
         const { data: lastEver, error: lastEverError } = await admin
           .from("qbo_unified_invoices")
@@ -315,6 +535,7 @@ export async function buildOrgWeeklyReportData(input: {
           .maybeSingle();
         if (lastEverError) throw new Error(lastEverError.message);
         emailSourceRawEntity = lastEver?.raw_entity ?? null;
+        hasDeliveredInvoices = Boolean(lastEver);
       }
 
       const billEmailRaw = (emailSourceRawEntity as Record<string, unknown> | null)?.["BillEmail"] as
@@ -342,6 +563,7 @@ export async function buildOrgWeeklyReportData(input: {
       branches.push({
         syncConfigCustomerId: customer.id as string,
         branchName: customer.qbo_customer_name,
+        hasDeliveredInvoices,
         invoices: (invoices ?? [])
           .slice()
           .reverse()
@@ -427,10 +649,16 @@ export function buildOrgReportText(data: OrgWeeklyReportData, cadence: "weekly" 
   return { subject, text: lines.join("\n") };
 }
 
-export function buildBranchReportText(data: OrgWeeklyReportData, branch: BranchReport): { subject: string; text: string } {
+export function buildBranchReportText(
+  data: OrgWeeklyReportData,
+  branch: BranchReport,
+  cadence: QboReportCadence = "weekly",
+): { subject: string; text: string } {
+  const cadenceLabel = cadence === "monthly" ? "Monthly" : "Weekly";
+  const cadencePeriod = cadence === "monthly" ? "month" : "week";
   const subject = data.isHistorical
-    ? "Historical invoice delivery summary"
-    : `Weekly invoice delivery summary — ${periodLabel(data)}`;
+    ? `Historical ${cadence} invoice delivery summary`
+    : `${cadenceLabel} invoice delivery summary — ${periodLabel(data)}`;
 
   const lines: string[] = [];
   lines.push(`Hi ${branch.branchName},`);
@@ -438,11 +666,11 @@ export function buildBranchReportText(data: OrgWeeklyReportData, branch: BranchR
   lines.push(
     data.isHistorical
       ? "Here is your first report: a summary of all invoices you received in your FTP through today."
-      : `Here is your weekly report: a summary of invoices you received in your FTP ${periodLabel(data)}.`,
+      : `Here is your ${cadence} report: a summary of invoices you received in your FTP ${periodLabel(data)}.`,
   );
   lines.push("");
   if (!data.isHistorical && branch.invoices.length === 0) {
-    lines.push(`No invoices this week. Your integration is active and monitoring — nothing was issued between ${periodLabel(data)}.`);
+    lines.push(`No invoices this ${cadencePeriod}. Your integration is active and monitoring — nothing was issued between ${periodLabel(data)}.`);
   } else {
     for (const inv of branch.invoices) {
       lines.push(`  • Invoice #${inv.docNumber} — ${formatDate(inv.sentAt)}`);
@@ -463,12 +691,20 @@ export async function sendWeeklyInvoiceReport(input: {
   periodStart: string | null;
   periodEnd: string | null;
   isHistorical: boolean;
+  cadence?: QboReportCadence;
   overrideRecipientEmail?: string;
   recordRun?: boolean;
   sendTo?: "all" | "org" | "branches";
-}): Promise<{ orgEmailsSent: number; branchEmailsSent: number; skippedBranches: number }> {
+}): Promise<{
+  orgEmailsSent: number;
+  branchEmailsSent: number;
+  skippedBranches: number;
+  deliveryFailures: number;
+  skippedAlreadySent?: boolean;
+}> {
   const admin = createSupabaseAdminClient();
   const appBase = getAppBaseUrl();
+  const cadence = input.cadence ?? "weekly";
 
   const { data: org } = await admin.from("organizations").select("name").eq("id", input.organizationId).single();
   const organizationName = org?.name ?? "Your Company";
@@ -486,72 +722,148 @@ export async function sendWeeklyInvoiceReport(input: {
 
   const pLabel = periodLabel(data);
   const sendTo = input.sendTo ?? "all";
-  const orgReport = buildOrgReportText(data, sendTo === "org" ? "monthly" : "weekly");
+  const orgReport = buildOrgReportText(data, cadence);
   const orgRecipient = await getOrgReportRecipient(input.organizationId);
   const orgEmailTarget = input.overrideRecipientEmail ?? orgRecipient.email;
 
   // Org email: link a la landing pública de la integración
   const orgPlatformUrl = `${appBase}/integrations/qbo-r365`;
 
-  const orgRecurrenceNotice = data.isHistorical ? FIRST_ORG_REPORT_NOTICE : MONTHLY_RECURRENCE_NOTICE;
-  const branchRecurrenceNotice = data.isHistorical ? FIRST_REPORT_NOTICE : WEEKLY_RECURRENCE_NOTICE;
+  const reportRecurrenceNotice = recurrenceNotice(cadence, data.isHistorical);
+  const hasDeliveredInvoices = data.groups.some((group) =>
+    group.branches.some((branch) => branch.hasDeliveredInvoices),
+  );
+  if (!hasDeliveredInvoices && !input.overrideRecipientEmail) {
+    return {
+      orgEmailsSent: 0,
+      branchEmailsSent: 0,
+      skippedBranches: data.groups.reduce((total, group) => total + group.branches.length, 0),
+      deliveryFailures: 0,
+    };
+  }
+
+  let runClaim: ReportClaim | null = null;
+  if (input.recordRun && !input.overrideRecipientEmail && input.periodStart && input.periodEnd) {
+    runClaim = await claimReportRun({
+      organizationId: input.organizationId,
+      cadence,
+      periodStart: input.periodStart,
+      periodEnd: input.periodEnd,
+    });
+    if (!runClaim) {
+      return {
+        orgEmailsSent: 0,
+        branchEmailsSent: 0,
+        skippedBranches: 0,
+        deliveryFailures: 0,
+        skippedAlreadySent: true,
+      };
+    }
+  }
+  const runId = runClaim?.id ?? null;
+
+  let deliveryFailures = 0;
+
+  try {
 
   // Org email: un solo mail agregado con todas las facturas, solo si sendTo incluye "org"
   let orgEmailsSent = 0;
   if ((sendTo === "all" || sendTo === "org") && orgEmailTarget) {
-    const allOrgInvoices = data.groups.flatMap((g) =>
-      g.branches.flatMap((b) => b.invoices.map((inv) => ({ ...inv, clientName: b.branchName }))),
-    );
-    const orgSubjectBase = data.isHistorical
-      ? `Historical invoice delivery summary — ${pLabel}`
-      : sendTo === "org"
-        ? `Monthly invoice delivery summary — ${pLabel}`
-        : `Weekly invoice delivery summary — ${pLabel}`;
-    const subject = input.overrideRecipientEmail
-      ? `[test] ${orgSubjectBase}`
-      : orgSubjectBase;
-
-    const html = buildWeeklyReportHtml({
-      recipientName: organizationName,
-      periodLabel: pLabel,
-      invoiceLines: allOrgInvoices,
-      vendorCompany: vendorDisplay.vendorCompany,
-      vendorLogoUrl: vendorDisplay.vendorLogoUrl,
-      vendorPhone: vendorDisplay.vendorPhone,
-      vendorEmail: vendorDisplay.vendorEmail,
-      showReferralCta: false,
-      showClientColumn: true,
-      referralUrl: null,
-      platformUrl: orgPlatformUrl,
-      recurrenceNotice: orgRecurrenceNotice,
-      isFirstReport: data.isHistorical,
-    });
-
-    await sendTransactionalEmail({
-      to: orgEmailTarget,
-      bcc: ownerReportCopies(orgEmailTarget, Boolean(input.overrideRecipientEmail)),
-      subject: brandedSubject(subject),
-      html,
-      text: `${orgReport.text}\n\n${orgRecurrenceNotice}`,
-      senderName: FIXED_SENDER_NAME,
-      notification: {
-        source: "qbo_weekly_invoice_report",
+    let preferencesUrl: string | null = null;
+    let shouldSend = true;
+    if (!input.overrideRecipientEmail) {
+      const subscription = await getOrCreateQboReportSubscription({
         organizationId: input.organizationId,
-        title: orgSubjectBase,
-      },
-    });
-    orgEmailsSent = 1;
+        targetType: "organization",
+        targetId: input.organizationId,
+        recipientEmail: orgEmailTarget,
+        defaultFrequency: "monthly",
+      });
+      shouldSend = shouldSendQboReport(subscription.frequency, cadence);
+      if (shouldSend) {
+        const token = createQboReportPreferenceToken(subscription);
+        preferencesUrl = `${appBase}/email/preferences?token=${encodeURIComponent(token)}&unsub=1`;
+      }
+    }
 
-    if (!input.overrideRecipientEmail && orgRecipient.pushUserIds.length) {
-      await sendPushToUsers(
-        orgRecipient.pushUserIds,
-        { title: orgSubjectBase, body: "Your monthly invoice delivery summary is ready.", url: "/app/integrations/quickbooks" },
-        { source: "qbo_weekly_invoice_report", organizationId: input.organizationId },
+    if (shouldSend) {
+      const deliveryClaim = runId ? await claimReportDelivery({
+        runId,
+        targetType: "organization",
+        targetId: input.organizationId,
+        recipientEmail: orgEmailTarget,
+      }) : null;
+      if (!runId || deliveryClaim) {
+      const allOrgInvoices = data.groups.flatMap((g) =>
+        g.branches.flatMap((b) => b.invoices.map((inv) => ({ ...inv, clientName: b.branchName }))),
       );
+      const orgSubjectBase = data.isHistorical
+        ? `Historical ${cadence} invoice delivery summary — ${pLabel}`
+        : `${cadence === "monthly" ? "Monthly" : "Weekly"} invoice delivery summary — ${pLabel}`;
+      const subject = input.overrideRecipientEmail
+        ? `[test] ${orgSubjectBase}`
+        : orgSubjectBase;
+
+      const renderHtml = (internalCopyRecipient?: string) => buildWeeklyReportHtml({
+        recipientName: organizationName,
+        periodLabel: pLabel,
+        invoiceLines: allOrgInvoices,
+        vendorCompany: vendorDisplay.vendorCompany,
+        vendorLogoUrl: vendorDisplay.vendorLogoUrl,
+        vendorPhone: vendorDisplay.vendorPhone,
+        vendorEmail: vendorDisplay.vendorEmail,
+        showReferralCta: false,
+        showClientColumn: true,
+        referralUrl: null,
+        platformUrl: orgPlatformUrl,
+        recurrenceNotice: reportRecurrenceNotice,
+        isFirstReport: data.isHistorical,
+        cadence,
+        preferencesUrl: internalCopyRecipient ? null : preferencesUrl,
+        internalCopyRecipient,
+      });
+      const primaryText = `${orgReport.text}\n\n${reportRecurrenceNotice}${preferencesUrl ? `\n\nUnsubscribe: ${preferencesUrl}` : ""}`;
+      const result = await sendTransactionalEmail({
+        to: orgEmailTarget,
+        subject: brandedSubject(subject),
+        html: renderHtml(),
+        text: primaryText,
+        senderName: FIXED_SENDER_NAME,
+        notification: {
+          source: "qbo_weekly_invoice_report",
+          organizationId: input.organizationId,
+          title: orgSubjectBase,
+        },
+      });
+      if (result.ok) {
+        if (deliveryClaim) await finishReportDelivery(deliveryClaim, "sent");
+        orgEmailsSent = 1;
+        if (!input.overrideRecipientEmail) {
+          await sendInternalOwnerCopies({
+            primaryRecipient: orgEmailTarget,
+            organizationId: input.organizationId,
+            subject: orgSubjectBase,
+            text: `${orgReport.text}\n\n${reportRecurrenceNotice}`,
+            renderHtml: (originalRecipient) => renderHtml(originalRecipient),
+          });
+        }
+
+        if (!input.overrideRecipientEmail && orgRecipient.pushUserIds.length) {
+          await sendPushToUsers(
+            orgRecipient.pushUserIds,
+            { title: orgSubjectBase, body: `Your ${cadence} invoice delivery summary is ready.`, url: "/app/integrations/quickbooks" },
+            { source: "qbo_weekly_invoice_report", organizationId: input.organizationId },
+          );
+        }
+      } else {
+        if (deliveryClaim) await finishReportDelivery(deliveryClaim, "failed", result.error);
+        deliveryFailures += 1;
+      }
+      }
     }
   }
 
-  // Branch emails: con CTA de referido, solo si sendTo incluye "branches"
+  // Branch emails: one independent report per branch, never grouped/corporate.
   const branchPlatformUrl = `${appBase}/integrations/qbo-r365`;
   let branchEmailsSent = 0;
   let skippedBranches = 0;
@@ -559,18 +871,9 @@ export async function sendWeeklyInvoiceReport(input: {
   if (sendTo === "all" || sendTo === "branches") {
     for (const group of data.groups) {
       for (const branch of group.branches) {
-        // Primer envio historico de una sucursal que nunca tuvo ninguna factura:
-        // no hay nada que reportar todavia, se omite (no aplica el estado "sin
-        // facturas esta semana", que es solo para la cadencia semanal normal).
-        if (branch.invoices.length === 0 && data.isHistorical) {
-          skippedBranches += 1;
-          continue;
-        }
-        // Sucursal que nunca tuvo ninguna factura y no tiene ningun contacto
-        // resuelto: nunca fue parte activa de la integracion, no se le manda
-        // nada ni siquiera en modo de prueba (--override), para no generar
-        // ruido con sucursales configuradas pero jamas activadas.
-        if (branch.invoices.length === 0 && !branch.resolvedEmail) {
+        // Subscription creation deliberately follows these activity/contact
+        // checks so a never-active branch remains untouched.
+        if (!branch.hasDeliveredInvoices) {
           skippedBranches += 1;
           continue;
         }
@@ -580,15 +883,39 @@ export async function sendWeeklyInvoiceReport(input: {
           continue;
         }
 
+        let preferencesUrl: string | null = null;
+        if (!input.overrideRecipientEmail) {
+          const subscription = await getOrCreateQboReportSubscription({
+            organizationId: input.organizationId,
+            targetType: "branch",
+            targetId: branch.syncConfigCustomerId,
+            recipientEmail: branch.resolvedEmail!,
+            defaultFrequency: "weekly",
+          });
+          if (!shouldSendQboReport(subscription.frequency, cadence)) {
+            skippedBranches += 1;
+            continue;
+          }
+          const token = createQboReportPreferenceToken(subscription);
+          preferencesUrl = `${appBase}/email/preferences?token=${encodeURIComponent(token)}&unsub=1`;
+        }
+
+        const deliveryClaim = runId ? await claimReportDelivery({
+          runId,
+          targetType: "branch",
+          targetId: branch.syncConfigCustomerId,
+          recipientEmail: target,
+        }) : null;
+        if (runId && !deliveryClaim) continue;
+
         const referralToken = createReferralToken(input.organizationId, branch.syncConfigCustomerId);
         const referralUrl = `${appBase}/refer/${referralToken}`;
-
-        const branchReport = buildBranchReportText(data, branch);
+        const branchReport = buildBranchReportText(data, branch, cadence);
         const subject = input.overrideRecipientEmail
           ? `[test] ${branchReport.subject}`
           : branchReport.subject;
 
-        const html = buildWeeklyReportHtml({
+        const renderHtml = (internalCopyRecipient?: string) => buildWeeklyReportHtml({
           recipientName: branch.branchName,
           periodLabel: pLabel,
           invoiceLines: branch.invoices,
@@ -599,16 +926,18 @@ export async function sendWeeklyInvoiceReport(input: {
           showReferralCta: true,
           referralUrl,
           platformUrl: branchPlatformUrl,
-          recurrenceNotice: branchRecurrenceNotice,
+          recurrenceNotice: reportRecurrenceNotice,
           isFirstReport: data.isHistorical,
+          cadence,
+          preferencesUrl: internalCopyRecipient ? null : preferencesUrl,
+          internalCopyRecipient,
         });
-
-        await sendTransactionalEmail({
+        const primaryText = `${branchReport.text}\n\n${reportRecurrenceNotice}${preferencesUrl ? `\n\nUnsubscribe: ${preferencesUrl}` : ""}`;
+        const result = await sendTransactionalEmail({
           to: target,
-          bcc: ownerReportCopies(target, Boolean(input.overrideRecipientEmail)),
           subject: brandedSubject(subject),
-          html,
-          text: `${branchReport.text}\n\n${branchRecurrenceNotice}`,
+          html: renderHtml(),
+          text: primaryText,
           senderName: FIXED_SENDER_NAME,
           notification: {
             source: "qbo_weekly_invoice_report",
@@ -616,18 +945,40 @@ export async function sendWeeklyInvoiceReport(input: {
             title: branchReport.subject,
           },
         });
+        if (!result.ok) {
+          if (deliveryClaim) await finishReportDelivery(deliveryClaim, "failed", result.error);
+          deliveryFailures += 1;
+          continue;
+        }
+
+        if (deliveryClaim) await finishReportDelivery(deliveryClaim, "sent");
         branchEmailsSent += 1;
+        if (!input.overrideRecipientEmail) {
+          await sendInternalOwnerCopies({
+            primaryRecipient: target,
+            organizationId: input.organizationId,
+            subject: branchReport.subject,
+            text: `${branchReport.text}\n\n${reportRecurrenceNotice}`,
+            renderHtml: (originalRecipient) => renderHtml(originalRecipient),
+          });
+        }
       }
     }
   }
 
-  if (input.recordRun && !input.overrideRecipientEmail && input.periodStart && input.periodEnd) {
-    await admin.from("qbo_weekly_invoice_report_runs").insert({
-      organization_id: input.organizationId,
-      period_start: input.periodStart,
-      period_end: input.periodEnd,
-    });
-  }
+    if (runClaim) {
+      await finishReportRun(
+        runClaim,
+        deliveryFailures === 0 ? "completed" : "failed",
+        deliveryFailures === 0 ? undefined : `${deliveryFailures} primary report delivery failure(s)`,
+      );
+    }
 
-  return { orgEmailsSent, branchEmailsSent, skippedBranches };
+    return { orgEmailsSent, branchEmailsSent, skippedBranches, deliveryFailures };
+  } catch (error) {
+    if (runClaim) {
+      await finishReportRun(runClaim, "failed", error instanceof Error ? error.message : "Report delivery failed");
+    }
+    throw error;
+  }
 }

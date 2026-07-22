@@ -2,7 +2,7 @@
 
 Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 
-> **Última actualización:** 2026-07-17 (162 migraciones en `supabase/migrations/`; la fila 114 también conserva una copia en `web/supabase/migrations/`) — migración 162 aplicada en DEV y PROD el 2026-07-17
+> **Última actualización:** 2026-07-22 (177 migraciones en `supabase/migrations/`; la fila 114 también conserva una copia en `web/supabase/migrations/`) - migraciones de preferencias de reportes aplicadas en DEV y PROD
 
 ## Todas las migraciones (orden cronológico)
 
@@ -183,6 +183,8 @@ Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 | 173 | `20260720000006_support_request_identity_validation.sql` | Validación DB de membresía Company Admin o impersonación para identidad autenticada de soporte |
 | 174 | `20260720000007_intuit_api_response_logs.sql` | Trazabilidad por respuesta Intuit (`intuit_tid`) con metadata segura y retención operativa |
 | 175 | `20260721000001_qbo_module_english_copy.sql` | Normaliza en inglés el nombre y la descripción pública del módulo de integración QBO-R365 |
+| 176 | `20260721000002_qbo_report_preferences.sql` | Suscripciones durables de reportes QBO por organización/sucursal y destinatario normalizado, con cadencia semanal/mensual/off e historial append-only |
+| 177 | `20260722000002_qbo_report_delivery_reliability.sql` | Claims recuperables por período/destinatario, deduplicación de reintentos y preferencias públicas transaccionales |
 
 ## Convención de naming
 

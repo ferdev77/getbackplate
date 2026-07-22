@@ -2,7 +2,7 @@
 //
 // Uso:
 //   node --env-file=.env.production.local node_modules/tsx/dist/cli.mjs scripts/send-weekly-report-preview.ts \
-//     --org="Prodel" [--override=tucorreo@ejemplo.com] [--historical] [--send-to=all|org|branches] [--record]
+//     --org="Prodel" --override=tucorreo@ejemplo.com [--historical] [--send-to=all|org|branches]
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { sendWeeklyInvoiceReport } from "@/modules/integrations/qbo-r365/services/weekly-invoice-report.service";
@@ -33,7 +33,11 @@ async function main() {
   const sendTo = sendToArg ?? "all";
 
   if (!orgArg) {
-    console.error("Uso: --org=<nombre o id> [--override=<email>]");
+    console.error("Uso: --org=<nombre o id> --override=<email>");
+    process.exit(1);
+  }
+  if (!override) {
+    console.error("--override es obligatorio para evitar envíos y cambios de preferencias en destinatarios reales.");
     process.exit(1);
   }
 
@@ -58,7 +62,7 @@ async function main() {
     periodEnd,
     isHistorical: historical,
     overrideRecipientEmail: override,
-    recordRun: process.argv.includes("--record"),
+    recordRun: false,
     sendTo,
   });
   console.log("  Org emails enviados:", result.orgEmailsSent);

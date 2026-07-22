@@ -104,6 +104,22 @@ const nextConfig: NextConfig = {
         source: "/app/integrations/quickbooks",
         headers: [{ key: "Cache-Control", value: "no-store, no-cache, must-revalidate" }],
       },
+      {
+        source: "/email/preferences",
+        headers: [
+          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
+        ],
+      },
+      {
+        source: "/api/email/preferences",
+        headers: [
+          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
+        ],
+      },
     ];
   },
 

@@ -1,0 +1,82 @@
+.page {
+  --accent: #d4531a;
+  --accent-press: #a23d12;
+  --accent-soft: rgba(212, 83, 26, 0.1);
+  --ink: #16181f;
+  --ink-soft: #33373f;
+  --muted: #6b7280;
+  --faint: #9aa0ab;
+  --field: #f1f2f7;
+  --border: #e7e9f1;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: #f7f8fc;
+  color: var(--ink);
+  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
+}
+
+.wrap { width: 100%; max-width: 480px; }
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 9px; margin: 0 0 14px;
+  color: var(--accent); font-family: var(--font-geist-mono), monospace;
+  font-size: 12px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
+}
+.eyebrow::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+.card {
+  padding: 32px; border: 1px solid var(--border); border-radius: 20px; background: #fff;
+  box-shadow: 0 1px 2px rgba(20,24,40,.03), 0 20px 48px -30px rgba(20,24,40,.24);
+}
+.card h1 { margin: 0 0 8px; font-size: 24px; font-weight: 800; letter-spacing: -.02em; }
+.lede { margin: 0 0 6px; color: var(--muted); font-size: 14.5px; line-height: 1.55; }
+.forWho { margin: 0 0 24px; color: var(--ink-soft); font-size: 13px; }
+.forWho b { font-weight: 700; overflow-wrap: anywhere; }
+.options { padding: 0; margin: 0; border: 0; }
+.option {
+  display: flex; align-items: flex-start; gap: 13px; margin-bottom: 10px; padding: 15px 16px;
+  border: 1px solid var(--border); border-radius: 13px; cursor: pointer; transition: all .14s;
+}
+.option:hover { border-color: #d5d8e3; }
+.selected { border-color: var(--accent); background: var(--accent-soft); }
+.radio {
+  position: relative; width: 20px; height: 20px; margin-top: 1px; flex: 0 0 auto;
+  border: 2px solid #d5d8e3; border-radius: 50%; transition: border-color .14s;
+}
+.selected .radio { border-color: var(--accent); }
+.selected .radio::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--accent); }
+.optionTitle, .optionDescription { display: block; }
+.optionTitle { font-size: 15px; font-weight: 700; }
+.optionDescription { margin-top: 2px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.alwaysOn {
+  display: flex; align-items: flex-start; gap: 10px; margin: 18px 0 24px; padding: 13px 15px;
+  border-radius: 12px; background: var(--field); color: var(--muted); font-size: 12.5px; line-height: 1.5;
+}
+.alwaysOn svg { flex: 0 0 auto; margin-top: 1px; color: var(--faint); }
+.alwaysOn b { color: var(--ink-soft); font-weight: 600; }
+.save {
+  width: 100%; padding: 15px 20px; border: 0; border-radius: 12px; background: var(--accent);
+  color: #fff; cursor: pointer; font: 700 15.5px inherit; transition: background .16s;
+}
+.save:hover:not(:disabled) { background: var(--accent-press); }
+.save:disabled { cursor: wait; opacity: .7; }
+.error { margin: -10px 0 14px; color: #a23d12; font-size: 13px; line-height: 1.45; }
+.saved, .invalid { padding: 6px 4px; text-align: center; }
+.saved .check {
+  display: flex; align-items: center; justify-content: center; width: 52px; height: 52px;
+  margin: 6px auto 16px; border-radius: 50%; background: var(--accent-soft); color: var(--accent);
+}
+.saved h2 { margin: 0 0 8px; font-size: 20px; font-weight: 800; }
+.saved p, .invalid p { max-width: 34ch; margin: 0 auto; color: var(--muted); font-size: 14px; line-height: 1.55; }
+.undo { margin-top: 16px; border: 0; background: none; color: var(--accent); cursor: pointer; font: 600 13px inherit; }
+.footer { margin-top: 22px; color: var(--faint); font-size: 11.5px; line-height: 1.6; text-align: center; }
+.footer a { color: var(--muted); text-decoration: none; }
+.footer a:hover { text-decoration: underline; }
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+@media (max-width: 520px) {
+  .page { align-items: flex-start; padding: 28px 16px; }
+  .card { padding: 24px 20px; border-radius: 17px; }
+  .card h1 { font-size: 22px; }
+}

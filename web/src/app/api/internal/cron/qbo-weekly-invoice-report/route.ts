@@ -37,29 +37,19 @@ export async function GET(request: Request) {
   periodStartDate.setDate(periodStartDate.getDate() - 7); // lunes anterior
   const periodStart = isoDate(periodStartDate);
 
-  const admin = createSupabaseAdminClient();
   const orgs = await listQboIntegrationOrganizations();
+  const admin = createSupabaseAdminClient();
   const results = [];
 
   for (const org of orgs) {
-    const { data: existingRun } = await admin
-      .from("qbo_weekly_invoice_report_runs")
-      .select("id")
-      .eq("organization_id", org.id)
-      .eq("period_start", periodStart)
-      .maybeSingle();
-
-    if (existingRun) {
-      results.push({ organizationId: org.id, organizationName: org.name, skipped: "already_sent" });
-      continue;
-    }
-
     // First run ever for this org: send everything delivered to date instead
     // of just the last 7 days, with a one-time framing notice in the email.
     const { data: anyPriorRun } = await admin
       .from("qbo_weekly_invoice_report_runs")
       .select("id")
       .eq("organization_id", org.id)
+      .eq("report_kind", "weekly")
+      .eq("status", "completed")
       .limit(1)
       .maybeSingle();
     const isFirstRun = !anyPriorRun;
@@ -70,10 +60,16 @@ export async function GET(request: Request) {
         periodStart,
         periodEnd,
         isHistorical: isFirstRun,
+        cadence: "weekly",
         recordRun: true,
-        sendTo: "branches",
+        sendTo: "all",
       });
-      results.push({ organizationId: org.id, organizationName: org.name, isFirstRun, ...result });
+      results.push({
+        organizationId: org.id,
+        organizationName: org.name,
+        isFirstRun,
+        ...(result.skippedAlreadySent ? { skipped: "already_sent" } : result),
+      });
     } catch (error) {
       results.push({
         organizationId: org.id,
@@ -90,5 +86,11 @@ export async function GET(request: Request) {
     ownerReport = { sent: false, reason: error instanceof Error ? error.message : "error desconocido" };
   }
 
-  return NextResponse.json({ ok: true, periodStart, periodEnd, results, ownerReport });
+  const hasDeliveryFailures = results.some((result) =>
+    "error" in result || ("deliveryFailures" in result && result.deliveryFailures > 0),
+  );
+  return NextResponse.json(
+    { ok: !hasDeliveryFailures, periodStart, periodEnd, results, ownerReport },
+    { status: hasDeliveryFailures ? 500 : 200 },
+  );
 }

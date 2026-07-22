@@ -38,25 +38,14 @@ export async function GET(request: Request) {
   const results = [];
 
   for (const org of orgs) {
-    // Dedup: no enviar si ya se mandó el reporte de este período
-    const { data: existingRun } = await admin
-      .from("qbo_weekly_invoice_report_runs")
-      .select("id")
-      .eq("organization_id", org.id)
-      .eq("period_start", periodStart)
-      .eq("period_end", periodEnd)
-      .maybeSingle();
-
-    if (existingRun) {
-      results.push({ organizationId: org.id, organizationName: org.name, skipped: "already_sent" });
-      continue;
-    }
-
-    // Si nunca hubo ningún reporte (ni semanal ni mensual), es el primer envío histórico
+    // Backfilled monthly rows count as prior monthly delivery, preventing an
+    // unexpected historical report after cadence preferences are introduced.
     const { data: anyPriorRun } = await admin
       .from("qbo_weekly_invoice_report_runs")
       .select("id")
       .eq("organization_id", org.id)
+      .eq("report_kind", "monthly")
+      .eq("status", "completed")
       .limit(1)
       .maybeSingle();
     const isFirstRun = !anyPriorRun;
@@ -64,13 +53,19 @@ export async function GET(request: Request) {
     try {
       const result = await sendWeeklyInvoiceReport({
         organizationId: org.id,
-        periodStart: isFirstRun ? null : periodStart,
-        periodEnd: isFirstRun ? null : periodEnd,
+        periodStart,
+        periodEnd,
         isHistorical: isFirstRun,
+        cadence: "monthly",
         recordRun: true,
-        sendTo: "org",
+        sendTo: "all",
       });
-      results.push({ organizationId: org.id, organizationName: org.name, isFirstRun, ...result });
+      results.push({
+        organizationId: org.id,
+        organizationName: org.name,
+        isFirstRun,
+        ...(result.skippedAlreadySent ? { skipped: "already_sent" } : result),
+      });
     } catch (error) {
       results.push({
         organizationId: org.id,
@@ -80,5 +75,11 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, periodStart, periodEnd, results });
+  const hasDeliveryFailures = results.some((result) =>
+    "error" in result || ("deliveryFailures" in result && result.deliveryFailures > 0),
+  );
+  return NextResponse.json(
+    { ok: !hasDeliveryFailures, periodStart, periodEnd, results },
+    { status: hasDeliveryFailures ? 500 : 200 },
+  );
 }

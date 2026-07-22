@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { buildOrgReportText, type OrgWeeklyReportData } from "./weekly-invoice-report.service";
+import {
+  buildBranchReportText,
+  buildOrgReportText,
+  type OrgWeeklyReportData,
+} from "./weekly-invoice-report.service";
 
 const report: OrgWeeklyReportData = {
   organizationId: "org-id",
@@ -18,5 +22,21 @@ describe("buildOrgReportText", () => {
     expect(result.subject).toContain("Monthly invoice delivery summary");
     expect(result.text).toContain("Here is your monthly report");
     expect(result.text).not.toContain("weekly report");
+  });
+
+  it("uses cadence rather than target type for branch wording and zero states", () => {
+    const result = buildBranchReportText(report, {
+      syncConfigCustomerId: "branch-id",
+      branchName: "Downtown",
+      invoices: [],
+      hasDeliveredInvoices: true,
+      resolvedEmail: "downtown@example.com",
+      skipReason: null,
+    }, "monthly");
+
+    expect(result.subject).toContain("Monthly invoice delivery summary");
+    expect(result.text).toContain("Here is your monthly report");
+    expect(result.text).toContain("No invoices this month");
+    expect(result.text).not.toContain("this week");
   });
 });

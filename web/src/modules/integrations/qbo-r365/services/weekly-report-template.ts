@@ -20,6 +20,9 @@ export type WeeklyReportTemplateInput = {
   platformUrl: string;
   recurrenceNotice: string;
   isFirstReport: boolean;
+  cadence: "weekly" | "monthly";
+  preferencesUrl: string | null;
+  internalCopyRecipient?: string;
   /** Muestra una columna inicial con el nombre del cliente/sucursal en cada fila (correo mensual de org). */
   showClientColumn?: boolean;
 };
@@ -33,10 +36,28 @@ function fmtDate(iso: string): string {
   return d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function safeUrl(value: string): string {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? escapeHtml(url.toString()) : "#";
+  } catch {
+    return "#";
+  }
+}
+
 function vendorHeaderBlock(vendorCompany: string, vendorLogoUrl: string | null): string {
   const inner = vendorLogoUrl
-    ? `<img src="${vendorLogoUrl}" alt="${vendorCompany}" width="140" style="display:block;max-width:140px;height:auto;">`
-    : `<span style="font-size:15px;font-weight:700;color:#14151A;letter-spacing:-0.01em;">${vendorCompany}</span>`;
+    ? `<img src="${safeUrl(vendorLogoUrl)}" alt="${escapeHtml(vendorCompany)}" width="140" style="display:block;max-width:140px;height:auto;">`
+    : `<span style="font-size:15px;font-weight:700;color:#14151A;letter-spacing:-0.01em;">${escapeHtml(vendorCompany)}</span>`;
 
   return `
     <tr>
@@ -55,7 +76,7 @@ function clientCell(inv: WeeklyReportInvoiceLine, showClientColumn: boolean, bor
   if (!showClientColumn) return "";
   return `
         <td style="padding:14px 0;font-size:14px;color:#595B66;${borderBottom ? "border-bottom:1px solid #E6E8EE;" : ""}width:22%;">
-          ${inv.clientName ?? "—"}
+          ${escapeHtml(inv.clientName ?? "—")}
         </td>`;
 }
 
@@ -68,7 +89,7 @@ function invoiceRows(lines: WeeklyReportInvoiceLine[], showClientColumn: boolean
       (inv) => `
       <tr>${clientCell(inv, showClientColumn, true)}
         <td style="padding:14px 0;font-size:14px;color:#14151A;font-weight:600;border-bottom:1px solid #E6E8EE;width:${invoiceWidth};">
-          Invoice #${inv.docNumber}
+          Invoice #${escapeHtml(inv.docNumber)}
         </td>
         <td style="padding:14px 0;font-size:14px;color:#595B66;border-bottom:1px solid #E6E8EE;width:${dateWidth};text-align:center;">
           ${fmtDate(inv.sentAt)}
@@ -95,7 +116,7 @@ function referralCtaBlock(referralUrl: string): string {
           <table role="presentation" border="0" cellpadding="0" cellspacing="0">
             <tr>
               <td style="background-color:#D4531A;border-radius:6px;">
-                <a href="${referralUrl}"
+                <a href="${safeUrl(referralUrl)}"
                   style="display:inline-block;padding:11px 20px;color:#FFFFFF;font-size:14px;font-weight:600;text-decoration:none;letter-spacing:0.01em;">
                   Refer a vendor &rarr;
                 </a>
@@ -122,6 +143,27 @@ function supportBlock(): string {
     </table>`;
 }
 
+function internalCopyBanner(recipient: string): string {
+  return `
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"
+      style="margin:0 0 24px 0;">
+      <tr>
+        <td style="background-color:#FFF4CC;border:1px solid #E6C75A;border-radius:8px;padding:14px 16px;font-size:13px;color:#594A12;line-height:1.5;">
+          <strong>Internal copy</strong><br>
+           The original report was sent to ${escapeHtml(recipient)}.
+        </td>
+      </tr>
+    </table>`;
+}
+
+function preferencesBlock(preferencesUrl: string): string {
+  return `
+    <p style="margin:18px 0 0 0;font-size:12px;color:#8A8C95;line-height:1.6;text-align:center;">
+      Don't want these reports?
+       <a href="${safeUrl(preferencesUrl)}" style="color:#D4531A;text-decoration:underline;font-weight:600;">Unsubscribe</a>
+    </p>`;
+}
+
 export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string {
   const {
     recipientName,
@@ -134,17 +176,21 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
     platformUrl,
     recurrenceNotice,
     isFirstReport,
+    cadence,
+    preferencesUrl,
+    internalCopyRecipient,
     showClientColumn = false,
   } = input;
+
+  const cadenceLabel = cadence === "monthly" ? "monthly" : "weekly";
+  const cadencePeriod = cadence === "monthly" ? "month" : "week";
 
   const heroSubtitle = isFirstReport
     ? showReferralCta
       ? `Here's a summary of every invoice you've received automatically in your R365 from ${vendorCompany} since the integration went live.`
       : "Here's a summary of every invoice your integration has delivered automatically to Restaurant365 so far."
-    : showReferralCta
-      ? "Here's your weekly summary of invoices delivered automatically to your Restaurant365."
-      : "Here's your monthly summary of invoices delivered automatically to your Restaurant365.";
-  const metricEyebrow = isFirstReport ? "Delivered so far" : showReferralCta ? "This week" : "This month";
+    : `Here's your ${cadenceLabel} summary of invoices delivered automatically to your Restaurant365.`;
+  const metricEyebrow = isFirstReport ? "Delivered so far" : `This ${cadencePeriod}`;
 
   const totalCount = invoiceLines.length;
   const totalAmount = invoiceLines.reduce((sum, inv) => sum + (inv.totalAmount ?? 0), 0);
@@ -153,10 +199,8 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
     ? `${totalCount} invoice${totalCount === 1 ? "" : "s"} &middot; ${fmt(totalAmount)}`
     : `${totalCount} invoice${totalCount === 1 ? "" : "s"}`;
 
-  // Estado "sin facturas esta semana": solo aplica a correos semanales de
-  // sucursal (showReferralCta) que no son el primer reporte historico.
-  const isZeroState = totalCount === 0 && showReferralCta && !isFirstReport;
-  const metricValueDisplay = isZeroState ? "No invoices this week" : metricValue;
+  const isZeroState = totalCount === 0 && !isFirstReport;
+  const metricValueDisplay = isZeroState ? `No invoices this ${cadencePeriod}` : metricValue;
   const metricCaption = isZeroState
     ? `Your integration is active and monitoring — nothing was issued between ${periodLabel}.`
     : `Delivered without manual entry — ${periodLabel}`;
@@ -169,7 +213,7 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
     ? `
       <tr>${clientCell(invoiceLines[invoiceLines.length - 1], showClientColumn, false)}
         <td style="padding:14px 0;font-size:14px;color:#14151A;font-weight:600;width:${invoiceInvoiceWidth};">
-          Invoice #${invoiceLines[invoiceLines.length - 1].docNumber}
+           Invoice #${escapeHtml(invoiceLines[invoiceLines.length - 1].docNumber)}
         </td>
         <td style="padding:14px 0;font-size:14px;color:#595B66;width:${invoiceDateWidth};text-align:center;">
           ${fmtDate(invoiceLines[invoiceLines.length - 1].sentAt)}
@@ -190,7 +234,7 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<title>Weekly delivery report &middot; GetBackplate</title>
+<title>${cadence === "monthly" ? "Monthly" : "Weekly"} delivery report &middot; GetBackplate</title>
 <style>
   body, table, td, a { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
   table, td { mso-table-lspace:0pt; mso-table-rspace:0pt; }
@@ -215,9 +259,7 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
 <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">
   ${isFirstReport
     ? `Everything delivered to Restaurant365 so far — ${totalCount} invoice${totalCount === 1 ? "" : "s"}.`
-    : showReferralCta
-      ? `Your weekly summary of invoices delivered to Restaurant365 — ${totalCount} invoice${totalCount === 1 ? "" : "s"} this week.`
-      : `Your monthly summary of invoices delivered to Restaurant365 — ${totalCount} invoice${totalCount === 1 ? "" : "s"} this month.`}
+    : `Your ${cadenceLabel} summary of invoices delivered to Restaurant365 — ${totalCount} invoice${totalCount === 1 ? "" : "s"} this ${cadencePeriod}.`}
 </div>
 
 <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#F7F8FC;">
@@ -238,13 +280,15 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
         <tr>
           <td class="stack-padding" style="padding:32px;">
 
+            ${internalCopyRecipient ? internalCopyBanner(internalCopyRecipient) : ""}
+
             <p class="hero-title"
               style="margin:0 0 12px 0;font-size:18px;color:#14151A;font-weight:700;letter-spacing:-0.01em;line-height:1.3;">
-              Hi ${recipientName},
+               Hi ${escapeHtml(recipientName)},
             </p>
 
             <p style="margin:0 0 24px 0;font-size:15px;color:#595B66;line-height:1.6;">
-              ${heroSubtitle}
+               ${escapeHtml(heroSubtitle)}
             </p>
 
             <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"
@@ -259,7 +303,7 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
                     ${metricValueDisplay}
                   </p>
                   <p style="margin:0;font-size:13px;color:#595B66;line-height:1.4;">
-                    ${metricCaption}
+                     ${escapeHtml(metricCaption)}
                   </p>
                 </td>
               </tr>
@@ -279,7 +323,7 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
             }
 
             <p style="margin:0 0 28px 0;font-size:13px;color:#8A8C95;line-height:1.5;">
-              ${recurrenceNotice}
+               ${escapeHtml(recurrenceNotice)}
             </p>
 
             ${supportBlock()}
@@ -312,7 +356,7 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
             <div style="height:1px;background-color:#2A2B33;line-height:1px;font-size:0;margin-bottom:18px;">&nbsp;</div>
 
             <p style="margin:0;font-size:12px;color:#595B66;line-height:1.6;text-align:center;">
-              <a href="${platformUrl}" style="color:#8A8C95;text-decoration:none;font-weight:500;">www.getbackplate.com/integrations</a>
+              <a href="${safeUrl(platformUrl)}" style="color:#8A8C95;text-decoration:none;font-weight:500;">www.getbackplate.com/integrations</a>
               <span style="color:#595B66;padding:0 8px;">&middot;</span>
               <a href="mailto:support@getbackplate.com" style="color:#8A8C95;text-decoration:none;font-weight:500;">support@getbackplate.com</a>
             </p>
@@ -321,6 +365,8 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
               Backplate Technologies LLC, d/b/a GetBackplate<br>
               ${COMPANY_ADDRESS.inline}
             </p>
+
+            ${preferencesUrl ? preferencesBlock(preferencesUrl) : ""}
 
           </td>
         </tr>
