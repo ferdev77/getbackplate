@@ -77,7 +77,7 @@ export default function LegalIndexPage() {
           QuickBooks® Online is a registered trademark of Intuit Inc. Restaurant365 is a trademark of Restaurant365, LLC. Backplate Technologies LLC (&quot;GetBackplate&quot;) is not affiliated with, endorsed by, or sponsored by Intuit Inc. or Restaurant365, LLC.
         </p>
       </main>
-      <IntegrationSiteFooter />
+      <IntegrationSiteFooter legalAddress />
     </div>
   );
 }

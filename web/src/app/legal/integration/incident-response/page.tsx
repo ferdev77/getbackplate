@@ -222,7 +222,7 @@ export default function IncidentResponsePage() {
 
       </div>
 
-      <IntegrationSiteFooter />
+      <IntegrationSiteFooter legalAddress />
 
     </div>
   );

@@ -31,7 +31,7 @@ export function LegalDocLayout({ docLabel, title, subtitle, effective, lastUpdat
         {children}
       </main>
 
-      <IntegrationSiteFooter />
+      <IntegrationSiteFooter legalAddress />
 
     </div>
   );
