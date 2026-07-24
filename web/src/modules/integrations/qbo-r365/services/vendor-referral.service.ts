@@ -1,6 +1,6 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
-import { createLead } from "@/modules/leads/leads.service";
+import { createLead, notifyNewLead } from "@/modules/leads/leads.service";
 import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
 
 export type VendorReferralInput = {
@@ -255,7 +255,7 @@ ${appBase}/integrations/qbo-r365`;
     },
   });
 
-  const { data: referral } = await admin.from("qbo_public_vendor_referrals").insert({
+  const { data: referral, error: referralInsertError } = await admin.from("qbo_public_vendor_referrals").insert({
     referrer_name: input.referrerName,
     referrer_email: input.referrerEmail,
     vendor_company: input.vendorCompany,
@@ -266,19 +266,29 @@ ${appBase}/integrations/qbo-r365`;
     outreach_sent_at: new Date().toISOString(),
   }).select("id").single();
 
-  if (referral) {
-    try {
-      await createLead({
-        source: "public_referral",
-        sourceRecordId: referral.id,
-        contactName: input.vendorContactName,
-        contactEmail: input.vendorEmail,
-        companyName: input.vendorCompany,
-        metadata: { referrerName: input.referrerName, referrerEmail: input.referrerEmail },
-      });
-    } catch (error) {
-      console.error("Failed to persist public referral lead", error);
-    }
+  if (referralInsertError) {
+    throw new Error(`Failed to persist public vendor referral: ${referralInsertError.message}`);
+  }
+
+  try {
+    await createLead({
+      source: "public_referral",
+      sourceRecordId: referral.id,
+      contactName: input.vendorContactName,
+      contactEmail: input.vendorEmail,
+      companyName: input.vendorCompany,
+      metadata: { referrerName: input.referrerName, referrerEmail: input.referrerEmail },
+    });
+    await notifyNewLead({
+      source: "public_referral",
+      contactName: input.vendorContactName,
+      contactEmail: input.vendorEmail,
+      companyName: input.vendorCompany,
+    });
+  } catch (error) {
+    // No-op de creacion de lead: el cron diario de reconciliacion (reconcileOrphanReferralLeads)
+    // reintenta este referral por su source_record_id, asi que no hace falta fallar el request.
+    console.error("Failed to persist public referral lead", error);
   }
 
   // Internal delivery failures must not affect the vendor outreach already sent.
@@ -330,7 +340,7 @@ ${appBase}/integrations/qbo-r365`;
     },
   });
 
-  const { data: referral } = await admin.from("qbo_vendor_referrals").insert({
+  const { data: referral, error: referralInsertError } = await admin.from("qbo_vendor_referrals").insert({
     organization_id: input.organizationId,
     sync_config_customer_id: input.syncConfigCustomerId,
     referrer_branch_name: input.referrerBranchName,
@@ -341,24 +351,34 @@ ${appBase}/integrations/qbo-r365`;
     outreach_sent_at: new Date().toISOString(),
   }).select("id").single();
 
-  if (referral) {
-    try {
-      await createLead({
-        source: "private_referral",
-        sourceRecordId: referral.id,
-        contactName: input.vendorContactName,
-        contactEmail: input.vendorEmail,
-        contactPhone: input.vendorPhone,
-        companyName: input.vendorCompany,
-        metadata: {
-          organizationId: input.organizationId,
-          syncConfigCustomerId: input.syncConfigCustomerId,
-          referrerBranchName: input.referrerBranchName,
-        },
-      });
-    } catch (error) {
-      console.error("Failed to persist private referral lead", error);
-    }
+  if (referralInsertError) {
+    throw new Error(`Failed to persist private vendor referral: ${referralInsertError.message}`);
+  }
+
+  try {
+    await createLead({
+      source: "private_referral",
+      sourceRecordId: referral.id,
+      contactName: input.vendorContactName,
+      contactEmail: input.vendorEmail,
+      contactPhone: input.vendorPhone,
+      companyName: input.vendorCompany,
+      metadata: {
+        organizationId: input.organizationId,
+        syncConfigCustomerId: input.syncConfigCustomerId,
+        referrerBranchName: input.referrerBranchName,
+      },
+    });
+    await notifyNewLead({
+      source: "private_referral",
+      contactName: input.vendorContactName,
+      contactEmail: input.vendorEmail,
+      companyName: input.vendorCompany,
+    });
+  } catch (error) {
+    // No-op de creacion de lead: el cron diario de reconciliacion (reconcileOrphanReferralLeads)
+    // reintenta este referral por su source_record_id, asi que no hace falta fallar el request.
+    console.error("Failed to persist private referral lead", error);
   }
 
   try {

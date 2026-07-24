@@ -7,6 +7,7 @@ import {
   processEmployeeDocumentExpirationReminders,
   processEmployeeDocumentPendingReminders,
 } from "@/modules/employees/services/document-expiration-reminders";
+import { reconcileOrphanReferralLeads } from "@/modules/leads/leads.service";
 
 export const maxDuration = 60; // Attempt to allow up to 60s execution
 
@@ -143,6 +144,15 @@ export async function GET(request: Request) {
       status: intuitResponseLogError ? 500 : 200,
       recordsDeleted: intuitResponseLogCount ?? 0,
       error: intuitResponseLogError?.message ?? null,
+    });
+
+    // 10. Recreate any superadmin_leads row that failed to insert when a vendor
+    // referral was first submitted (createLead upserts, so this is safe to re-run daily).
+    const leadReconciliation = await reconcileOrphanReferralLeads();
+    results.push({
+      task: "reconcileOrphanReferralLeads",
+      status: leadReconciliation.ok ? 200 : 500,
+      ...leadReconciliation,
     });
 
     return NextResponse.json({ ok: true, results });

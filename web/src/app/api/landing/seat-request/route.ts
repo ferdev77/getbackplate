@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
-import { createLead } from "@/modules/leads/leads.service";
+import { createLead, notifyNewLead } from "@/modules/leads/leads.service";
 import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
 
 function getLogoUrl() {
@@ -127,6 +127,8 @@ export async function POST(req: NextRequest) {
     console.error("Failed to persist seat request lead", error);
     return NextResponse.json({ error: "Unable to submit seat request" }, { status: 500 });
   }
+
+  await notifyNewLead({ source: "seat_request", contactName: name, contactEmail: email, companyName: restaurant });
 
   const result = await sendTransactionalEmail({
     to: toEmail,
