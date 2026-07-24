@@ -24,7 +24,7 @@
     },
     {
       "path": "/api/internal/cron/qbo-monthly-org-report",
-      "schedule": "0 16 20 * *"
+      "schedule": "0 13 21 * *"
     }
   ]
 }

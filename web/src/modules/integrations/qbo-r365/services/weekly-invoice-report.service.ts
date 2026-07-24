@@ -95,7 +95,7 @@ export const WEEKLY_RECURRENCE_NOTICE =
   "You'll receive this report every Monday around 10am your local time.";
 
 export const MONTHLY_RECURRENCE_NOTICE =
-  "You'll receive this report on the 20th of each month, covering the previous reporting cycle.";
+  "You'll receive this report at the close of each billing cycle, when your subscription renews.";
 
 export const FIRST_REPORT_NOTICE =
   "This is a one-time summary of everything delivered since your integration went live. " +
@@ -476,6 +476,10 @@ export async function buildOrgWeeklyReportData(input: {
   periodStart: string | null;
   periodEnd: string | null;
   isHistorical: boolean;
+  // Limite exclusivo exacto para la consulta (ej. medianoche en hora de Chicago
+  // del dia siguiente al cierre). Si no se pasa, se calcula con nextUtcDate()
+  // a partir de periodEnd, como antes.
+  periodEndExclusive?: string | null;
 }): Promise<OrgWeeklyReportData> {
   const admin = createSupabaseAdminClient();
   const ownEmails = await getOrgOwnEmailSet(input.organizationId);
@@ -511,7 +515,8 @@ export async function buildOrgWeeklyReportData(input: {
         .order("sent_at", { ascending: false });
 
       if (!input.isHistorical && input.periodStart && input.periodEnd) {
-        invoiceQuery = invoiceQuery.gte("sent_at", input.periodStart).lt("sent_at", nextUtcDate(input.periodEnd));
+        const exclusiveEnd = input.periodEndExclusive ?? nextUtcDate(input.periodEnd);
+        invoiceQuery = invoiceQuery.gte("sent_at", input.periodStart).lt("sent_at", exclusiveEnd);
       }
 
       const { data: invoices, error: invoicesError } = await invoiceQuery;
@@ -695,6 +700,7 @@ export async function sendWeeklyInvoiceReport(input: {
   overrideRecipientEmail?: string;
   recordRun?: boolean;
   sendTo?: "all" | "org" | "branches";
+  periodEndExclusive?: string | null;
 }): Promise<{
   orgEmailsSent: number;
   branchEmailsSent: number;
@@ -716,6 +722,7 @@ export async function sendWeeklyInvoiceReport(input: {
       periodStart: input.periodStart,
       periodEnd: input.periodEnd,
       isHistorical: input.isHistorical,
+      periodEndExclusive: input.periodEndExclusive,
     }),
     getOrgVendorDisplayInfo(input.organizationId),
   ]);
