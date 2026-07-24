@@ -101,7 +101,6 @@ export default function IntegrationPrivacyPage() {
       <ul>
         <li><strong>OAuth tokens</strong> are stored encrypted at rest and cleared from the Service when the QuickBooks® Online connection is disconnected through GetBackplate.</li>
         <li><strong>Operational records</strong> (webhook payloads, job execution records, detailed transformation data, delivery metadata, and error messages) are retained for up to <strong>twelve (12) months</strong>.</li>
-        <li><strong>Fiscal and billing records</strong> (minimum invoice or credit-memo summaries, payment records, and contract acceptance evidence) are retained for up to <strong>seven (7) years</strong> where needed for tax, accounting, dispute, or legal compliance. Raw QuickBooks® payloads are not retained for that seven-year period.</li>
         <li><strong>Generated CSV files</strong> are created in application memory and transmitted directly to the configured destination. GetBackplate does not retain a stored copy of the generated CSV content.</li>
         <li><strong>Account and configuration data</strong> is retained for the duration of your active use of the Service plus a reasonable period thereafter for legal and accounting compliance.</li>
       </ul>

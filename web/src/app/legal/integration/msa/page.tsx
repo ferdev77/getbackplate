@@ -107,7 +107,7 @@ export default function IntegrationMsaPage() {
       <h3><span className="sub-num">7.3</span>Privacy Policy</h3>
       <p>Provider&apos;s collection, use, and storage of Customer Data is further described in its Privacy Policy available at <Link href="/legal/integration/privacy">getbackplate.com/legal/integration/privacy</Link>, as may be updated from time to time.</p>
       <h3><span className="sub-num">7.4</span>Data retention</h3>
-      <p>Provider retains operational processing data, webhook payloads, detailed transformation records, and delivery logs for up to twelve (12) months. Provider retains minimum fiscal records, including invoice or credit-memo summaries, delivery evidence needed for billing, payment records, and contract acceptance records, for up to seven (7) years where required for tax, accounting, dispute, or legal compliance. Generated CSV content is not retained by Provider after transmission.</p>
+      <p>Provider retains operational processing data, webhook payloads, detailed transformation records, and delivery logs for up to twelve (12) months. Fiscal records, billing evidence, and contract acceptance records are retained for as long as required for tax, accounting, dispute, or legal compliance. Generated CSV content is not retained by Provider after transmission.</p>
       <h3><span className="sub-num">7.5</span>Data return and deletion</h3>
       <p>Upon termination, Provider shall, upon Customer&apos;s written request made within thirty (30) days of termination, return or destroy Customer Data within an additional thirty (30) days thereafter, except where retention is required by applicable law or for legitimate business purposes.</p>
       <h3><span className="sub-num">7.6</span>Security</h3>

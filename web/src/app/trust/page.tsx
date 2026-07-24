@@ -372,7 +372,7 @@ export default function TrustCenterPage() {
 
                 <div className="note-callout">
                   <strong>Note on retention:</strong> operational QBO/webhook/run records and raw payloads are automatically
-                  purged after 12 months. Minimum fiscal and billing records are retained for up to seven years.
+                  purged after 12 months. Fiscal and billing records are retained only as long as required for tax, accounting, or legal compliance.
                 </div>
               </div>
             </div>
@@ -514,7 +514,7 @@ export default function TrustCenterPage() {
                     <li><span className="ck-icon" /><span className="ck-text">Role-based access control and a functioning audit log.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Tech E&amp;O and Cyber Liability coverage committed at $1M / $2M USD via our Master Services Agreement.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Privacy Policy and Terms of Service published and versioned for both products.</span></li>
-                    <li><span className="ck-icon" /><span className="ck-text">Retention policy enforced by a scheduled daily job: 12 months for operational integration data and seven years for minimum fiscal and billing records.</span></li>
+                    <li><span className="ck-icon" /><span className="ck-text">Retention policy enforced by a scheduled daily job: 12 months for operational integration data; fiscal and billing records are retained only as long as required for tax, accounting, or legal compliance.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Email-based two-step verification, required for administrative accounts on organizations with the QuickBooks® Online integration active.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Documented Incident Response and Breach Notification Protocol, following the NIST SP 800-61 framework — see our <Link href="/legal/integration/incident-response">Incident Response documentation</Link>.</span></li>
                   </ul>
