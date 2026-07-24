@@ -96,7 +96,9 @@ export async function GET() {
       {
         label: quotaCopy?.label ?? "Invoices Sent",
         value: invoicesIncluded != null
-          ? `${unifiedStats.enviadasThisPeriod} / ${invoicesIncluded}`
+          ? (invoicesIncluded > 0
+              ? `${unifiedStats.enviadasThisPeriod} / ${invoicesIncluded}`
+              : String(unifiedStats.enviadasThisPeriod))
           : String(unifiedStats.enviadas),
         subLabel: quotaCopy?.subLabel ?? "Delivered to R365 via FTP",
         tone: invoicesIncluded != null && unifiedStats.enviadasThisPeriod > invoicesIncluded

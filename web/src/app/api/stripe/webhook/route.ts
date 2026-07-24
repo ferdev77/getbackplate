@@ -413,6 +413,22 @@ export async function POST(req: Request) {
             ? Number(session.metadata.setupFeeAmount)
             : null;
 
+          // Fetch the full subscription to compute the initial billing-cycle end.
+          // Without this, current_period_end stays NULL until the first
+          // customer.subscription.updated event (next renewal), and the dashboard's
+          // "this billing cycle" invoice count silently falls back to a lifetime total.
+          let addonCurrentPeriodEnd: string | null = null;
+          if (addonStripeSubscriptionId) {
+            try {
+              const addonSubscription = await stripe.subscriptions.retrieve(addonStripeSubscriptionId);
+              const addonPeriodStartRaw = addonSubscription.billing_cycle_anchor ?? addonSubscription.start_date;
+              const addonInterval = addonSubscription.items.data[0]?.price?.recurring?.interval ?? null;
+              addonCurrentPeriodEnd = computePeriodEnd(addonPeriodStartRaw, addonInterval, addonSubscription.trial_end);
+            } catch (err) {
+              console.error('[Webhook][addon] Error retrieving subscription for current_period_end:', err);
+            }
+          }
+
           // Upsert the addon subscription record
           const { error: addonErr } = await supabase.from('organization_addons').upsert(
             {
@@ -421,6 +437,7 @@ export async function POST(req: Request) {
               stripe_subscription_id: addonStripeSubscriptionId,
               stripe_customer_id: addonStripeCustomerId,
               status: 'active',
+              ...(addonCurrentPeriodEnd ? { current_period_end: addonCurrentPeriodEnd } : {}),
               ...(integrationPlanId ? { integration_plan_id: integrationPlanId } : {}),
               ...(setupFeePaidMeta ? { setup_fee_paid: true, setup_fee_amount: setupFeeAmountMeta } : {}),
             },
