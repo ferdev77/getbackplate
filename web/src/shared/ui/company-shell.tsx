@@ -32,8 +32,45 @@ import { GetBackplateMark } from "@/shared/ui/getbackplate-mark";
 import { NotificationBell } from "@/shared/ui/notification-bell";
 import { IntuitIdentityControl } from "@/shared/ui/intuit-identity-control";
 import { createTranslator } from "@/shared/ui/company-shell.i18n";
+import { PlanCard, PLAN_CARD_STYLES, type IntegrationPlan } from "@/modules/integrations/ui/integration-plan-card";
 
 const billingGateT = createTranslator("en");
+
+function toIntegrationPlanCardShape(plan: {
+  id: string;
+  name: string;
+  description: string | null;
+  priceAmount: number | null;
+  isFeatured: boolean;
+  isEnterprise: boolean;
+  ctaEmail: string | null;
+  setupFeeAmount: number | null;
+  setupFeeDiscountPct: number;
+  features: unknown;
+}): IntegrationPlan {
+  return {
+    id: plan.id,
+    name: plan.name,
+    description: plan.description,
+    price_amount: plan.priceAmount,
+    currency_code: null,
+    is_featured: plan.isFeatured,
+    is_enterprise: plan.isEnterprise,
+    setup_fee_amount: plan.setupFeeAmount,
+    setup_fee_annual_discount_pct: plan.setupFeeDiscountPct,
+    features: plan.features,
+    cta_text: plan.isEnterprise ? "Contact sales →" : "Subscribe →",
+    cta_email: plan.ctaEmail,
+    sort_order: 0,
+    annual_per_month: null,
+    annual_total: null,
+    has_stripe_prices: true,
+  };
+}
+
+function requestIntegrationSeat(email: string, planName: string) {
+  window.location.href = `mailto:${email || "angelo@mkthelp.com"}?subject=${encodeURIComponent(`QuickBooks® Online R365 - ${planName} Plan`)}`;
+}
 
 // ── Lazy-loaded modals (code-split — only downloaded when opened) ────
 const AnnouncementCreateModal = dynamic(
@@ -254,7 +291,6 @@ export function CompanyShell({
   const [integrationPlanOpen, setIntegrationPlanOpen] = useState<string | null>(null); // stores integrationPlanType
   const [integrationPlanBillingCycle, setIntegrationPlanBillingCycle] = useState<"monthly" | "annual">("monthly");
   const [integrationPlanBusy, setIntegrationPlanBusy] = useState<string | null>(null);
-  const [integrationSetupFeeSelection, setIntegrationSetupFeeSelection] = useState<Record<string, boolean>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(SECTIONS.map((section) => [section.label, false])),
   );
@@ -1939,88 +1975,23 @@ export function CompanyShell({
                       className={`rounded-md px-3 py-1.5 transition ${integrationPlanBillingCycle === "annual" ? "bg-[var(--gbp-success)] text-white" : (isDarkTheme ? "text-white/75 hover:text-white" : "text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]")}`}
                     >{billingGateT("Anual")} <span className={`text-[9px] ${integrationPlanBillingCycle === "annual" ? "text-white/80" : "text-emerald-500"}`}>−17%</span></button>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    {integrationPlans.map((plan) => {
-                      const isCurrent = lockScreenOrgAddon?.integrationPlanId === plan.id;
-                      const isSelectedFromLanding = selectedIntegrationPlanIdFromUrl === plan.id;
-                      const monthly = plan.priceAmount ?? 0;
-                      const annualPerMonth = Math.round((monthly * 10) / 12);
-                      const displayPrice = integrationPlanBillingCycle === "annual" ? annualPerMonth : monthly;
-                      const savings = monthly * 12 - monthly * 10;
-                      const isLoading = integrationPlanBusy === plan.id;
-                      const planFeatures = (plan.features as Array<{ text: string; highlight?: boolean; everything?: boolean; annual_only?: boolean }> | null) ?? [];
-                      return (
-                        <div
+                  <style dangerouslySetInnerHTML={{ __html: PLAN_CARD_STYLES }} />
+                  <div className="int-landing">
+                    <div className="tiers" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+                      {integrationPlans.map((plan) => (
+                        <PlanCard
                           key={plan.id}
-                          className={`relative flex flex-col rounded-xl border p-4 transition ${plan.isFeatured || isSelectedFromLanding ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent)]/5" : plan.isEnterprise ? (isDarkTheme ? "border-dashed border-white/20 bg-white/[0.03]" : "border-dashed border-[var(--gbp-border)] bg-transparent") : (isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]")}`}
-                        >
-                          {plan.isFeatured && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">Popular</span>}
-                          {isSelectedFromLanding && !plan.isFeatured && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">{billingGateT("Seleccionado")}</span>}
-                          {isCurrent && <span className="absolute -top-2.5 right-3 rounded-full bg-emerald-500 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">{billingGateT("Actual")}</span>}
-                          <p className="text-sm font-bold">{plan.name}</p>
-                          {plan.description && <p className={`mt-1 mb-2 text-[10px] leading-relaxed ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>{plan.description}</p>}
-                          <div className="mb-3">
-                            {plan.isEnterprise ? (
-                              <>
-                                <span className="text-2xl font-bold">Custom</span>
-                                <p className={`mt-0.5 text-[10px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>{billingGateT("a medida")}</p>
-                              </>
-                            ) : (
-                              <>
-                                <span className="text-2xl font-bold">${displayPrice.toLocaleString("en-US")}</span>
-                                <span className={`ml-1 text-[11px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>{billingGateT("/mes")}</span>
-                                {integrationPlanBillingCycle === "annual" && savings > 0 && <p className="mt-0.5 text-[10px] font-semibold text-emerald-500">{billingGateT("Ahorrás")} ${savings.toLocaleString("en-US")}/{billingGateT("año")}</p>}
-                              </>
-                            )}
-                          </div>
-                          {planFeatures.filter((f) => !f.annual_only || integrationPlanBillingCycle === "annual").slice(0, 3).map((f, i) => (
-                            <p key={i} className={`mb-1 text-[10px] ${f.highlight ? (isDarkTheme ? "font-semibold text-white/90" : "font-semibold text-[var(--gbp-text)]") : (isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]")}`}>
-                              {f.everything ? "✦ " : "· "}{f.text}
-                            </p>
-                          ))}
-                          {!plan.isEnterprise && !isCurrent && plan.setupFeeAmount != null && (
-                            <div className={`mt-3 flex items-start gap-2 rounded-lg border p-2.5 text-[10px] ${isDarkTheme ? "border-white/20 bg-white/[0.06]" : "border-[var(--gbp-accent)]/30 bg-[var(--gbp-accent-glow)]"}`}>
-                              <input
-                                type="checkbox"
-                                className="mt-px shrink-0 accent-[var(--gbp-accent)]"
-                                checked={integrationSetupFeeSelection[plan.id] ?? searchParams.get("includeSetupFee") !== "0"}
-                                onChange={(event) => setIntegrationSetupFeeSelection((current) => ({
-                                  ...current,
-                                  [plan.id]: event.target.checked,
-                                }))}
-                              />
-                              <span className={isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}>
-                                {billingGateT("Setup de configuración inicial")}
-                                {integrationPlanBillingCycle === "annual" && plan.setupFeeDiscountPct > 0 ? (
-                                  <> · <span className="line-through opacity-50">${plan.setupFeeAmount.toLocaleString("en-US")}</span> <span className="font-semibold text-emerald-500">${(plan.setupFeeAmount * (1 - plan.setupFeeDiscountPct / 100)).toLocaleString("en-US")}</span> <span className="text-emerald-500 text-[9px]">−{plan.setupFeeDiscountPct}%</span></>
-                                ) : (
-                                  <> · <span className="font-semibold">${plan.setupFeeAmount.toLocaleString("en-US")}</span></>
-                                )}
-                                <span className={`ml-1 text-[9px] ${isDarkTheme ? "opacity-40" : "opacity-60"}`}>one-time</span>
-                              </span>
-                            </div>
-                          )}
-                          {plan.isEnterprise ? (
-                            <a href={`mailto:${plan.ctaEmail ?? "angelo@mkthelp.com"}?subject=QuickBooks%C2%AE Online R365 - ${plan.name} Plan`} className={`mt-auto block w-full rounded-lg px-3 py-2 text-center text-[11px] font-bold transition ${isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]"}`}>
-                              {billingGateT("Contactar ventas →")}
-                            </a>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled={isLoading || isCurrent}
-                              onClick={() => startIntegrationPlanCheckout(
-                                plan.id,
-                                integrationPlanBillingCycle,
-                                integrationSetupFeeSelection[plan.id] ?? searchParams.get("includeSetupFee") !== "0",
-                              )}
-                              className={`mt-auto w-full rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${isCurrent ? (isDarkTheme ? "bg-white/10 text-white/40" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]") : plan.isFeatured ? "bg-[var(--gbp-accent)] text-white hover:opacity-90" : (isDarkTheme ? "border border-white/20 bg-white/5 text-white hover:bg-white/10" : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]")}`}
-                            >
-                              {isLoading ? billingGateT("Redirigiendo...") : isCurrent ? billingGateT("Plan actual") : billingGateT("Contratar →")}
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
+                          plan={toIntegrationPlanCardShape(plan)}
+                          isAnnual={integrationPlanBillingCycle === "annual"}
+                          onCheckout={startIntegrationPlanCheckout}
+                          onSeatRequest={requestIntegrationSeat}
+                          checkoutLoading={integrationPlanBusy}
+                          showSetupFeeToggle
+                          isCurrent={lockScreenOrgAddon?.integrationPlanId === plan.id}
+                          isSelected={selectedIntegrationPlanIdFromUrl === plan.id}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
@@ -2683,126 +2654,28 @@ export function CompanyShell({
             </div>
 
             {/* Plan cards */}
-            <div className="grid gap-3 p-5 sm:grid-cols-3">
-              {integrationPlans.map((plan) => {
-                const orgAddon = availableAddons
-                  .filter((a) => a.integrationPlanType === integrationPlanOpen)
-                  .map((a) => organizationAddons.find((oa) => oa.moduleId === a.moduleId))
-                  .find(Boolean);
-                const isCurrent = orgAddon?.integrationPlanId === plan.id;
-                const monthly = plan.priceAmount ?? 0;
-                const annualPerMonth = Math.round((monthly * 10) / 12);
-                const displayPrice = integrationPlanBillingCycle === "annual" ? annualPerMonth : monthly;
-                const savings = monthly * 12 - monthly * 10;
-                const isLoading = integrationPlanBusy === plan.id;
-
-                return (
-                  <div
-                    key={plan.id}
-                    className={`relative rounded-xl border p-4 transition ${
-                      plan.isFeatured
-                        ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent)]/5"
-                        : plan.isEnterprise
-                        ? isDarkTheme ? "border-dashed border-white/20 bg-white/[0.03]" : "border-dashed border-[var(--gbp-border)] bg-transparent"
-                        : isDarkTheme
-                        ? "border-white/10 bg-white/[0.03]"
-                        : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"
-                    }`}
-                  >
-                    {plan.isFeatured && (
-                      <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[var(--gbp-accent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
-                        Popular
-                      </span>
-                    )}
-                    {isCurrent && (
-                      <span className="absolute -top-2.5 right-3 rounded-full bg-emerald-500 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
-                        {t("Actual")}
-                      </span>
-                    )}
-                    <p className="mb-1 text-sm font-bold">{plan.name}</p>
-                    {plan.description && (
-                      <p className={`mb-3 text-[10px] leading-relaxed ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>
-                        {plan.description}
-                      </p>
-                    )}
-                    <div className="mb-3">
-                      {plan.isEnterprise ? (
-                        <>
-                          <span className="text-2xl font-bold">Custom</span>
-                          <p className={`mt-0.5 text-[10px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>
-                            {t("a medida para tu operación")}
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-2xl font-bold">${displayPrice.toLocaleString("en-US")}</span>
-                          <span className={`ml-1 text-[11px] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>{t("/mes")}</span>
-                          {integrationPlanBillingCycle === "annual" && savings > 0 && (
-                            <p className="mt-0.5 text-[10px] font-semibold text-emerald-500">
-                              {t("Ahorrás")} ${savings.toLocaleString("en-US")}/{t("año")}
-                            </p>
-                          )}
-                        </>
-                      )}
-                    </div>
-                    {!plan.isEnterprise && !isCurrent && plan.setupFeeAmount != null && (
-                      <label className={`mb-3 flex items-start gap-2 rounded-lg border p-2.5 text-[10px] transition ${isDarkTheme ? "border-white/20 bg-white/[0.06]" : "border-[var(--gbp-accent)]/30 bg-[var(--gbp-accent-glow)]"}`}>
-                        <input
-                          type="checkbox"
-                          className="mt-px shrink-0 accent-[var(--gbp-accent)]"
-                          checked={integrationSetupFeeSelection[plan.id] ?? searchParams.get("includeSetupFee") !== "0"}
-                          onChange={(event) => setIntegrationSetupFeeSelection((current) => ({
-                            ...current,
-                            [plan.id]: event.target.checked,
-                          }))}
-                        />
-                        <span className={isDarkTheme ? "text-white/70" : "text-[var(--gbp-text2)]"}>
-                          {t("Setup de configuración inicial")}
-                          {integrationPlanBillingCycle === "annual" && plan.setupFeeDiscountPct > 0 ? (
-                            <> · <span className="line-through opacity-50">${plan.setupFeeAmount.toLocaleString("en-US")}</span> <span className="font-semibold text-emerald-500">${(plan.setupFeeAmount * (1 - plan.setupFeeDiscountPct / 100)).toLocaleString("en-US")}</span> <span className="text-emerald-500 text-[9px]">−{plan.setupFeeDiscountPct}%</span></>
-                          ) : (
-                            <> · <span className="font-semibold">${plan.setupFeeAmount.toLocaleString("en-US")}</span></>
-                          )}
-                          <span className={`ml-1 text-[9px] ${isDarkTheme ? "opacity-40" : "opacity-60"}`}>one-time</span>
-                        </span>
-                      </label>
-                    )}
-                    {plan.isEnterprise ? (
-                      <a
-                        href={`mailto:${plan.ctaEmail ?? "angelo@mkthelp.com"}?subject=QuickBooks%C2%AE Online R365 - ${plan.name} Plan`}
-                        className={`block w-full rounded-lg px-3 py-2 text-center text-[11px] font-bold transition ${
-                          isDarkTheme
-                            ? "border border-white/20 bg-white/5 text-white hover:bg-white/10"
-                            : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]"
-                        }`}
-                      >
-                        {t("Contactar ventas →")}
-                      </a>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled={isLoading || isCurrent}
-                        onClick={() => startIntegrationPlanCheckout(
-                          plan.id,
-                          integrationPlanBillingCycle,
-                          integrationSetupFeeSelection[plan.id] ?? searchParams.get("includeSetupFee") !== "0",
-                        )}
-                        className={`w-full rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                          isCurrent
-                            ? isDarkTheme ? "bg-white/10 text-white/40" : "bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]"
-                            : plan.isFeatured
-                            ? "bg-[var(--gbp-accent)] text-white hover:opacity-90"
-                            : isDarkTheme
-                            ? "border border-white/20 bg-white/5 text-white hover:bg-white/10"
-                            : "border border-[var(--gbp-border)] bg-white text-[var(--gbp-text)] hover:bg-[var(--gbp-bg)]"
-                        }`}
-                      >
-                        {isLoading ? t("Procesando…") : isCurrent ? t("Plan actual") : t("Seleccionar →")}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+            <style dangerouslySetInnerHTML={{ __html: PLAN_CARD_STYLES }} />
+            <div className="int-landing">
+              <div className="tiers" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+                {integrationPlans.map((plan) => {
+                  const orgAddon = availableAddons
+                    .filter((a) => a.integrationPlanType === integrationPlanOpen)
+                    .map((a) => organizationAddons.find((oa) => oa.moduleId === a.moduleId))
+                    .find(Boolean);
+                  return (
+                    <PlanCard
+                      key={plan.id}
+                      plan={toIntegrationPlanCardShape(plan)}
+                      isAnnual={integrationPlanBillingCycle === "annual"}
+                      onCheckout={startIntegrationPlanCheckout}
+                      onSeatRequest={requestIntegrationSeat}
+                      checkoutLoading={integrationPlanBusy}
+                      showSetupFeeToggle
+                      isCurrent={orgAddon?.integrationPlanId === plan.id}
+                    />
+                  );
+                })}
+              </div>
             </div>
 
             <p className={`px-5 pb-4 text-[10px] ${isDarkTheme ? "text-white/30" : "text-[var(--gbp-muted)]"}`}>
