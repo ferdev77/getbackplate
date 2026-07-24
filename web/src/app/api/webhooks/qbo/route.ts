@@ -6,7 +6,7 @@ import {
 } from "@/modules/integrations/qbo-r365/qbo-webhook-receipts";
 
 export const runtime = "nodejs";
-export const maxDuration = 10;
+export const maxDuration = 60;
 
 const MAX_QBO_WEBHOOK_BYTES = 1024 * 1024;
 
