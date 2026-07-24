@@ -19,6 +19,7 @@
 }
 
 .wrap { width: 100%; max-width: 480px; }
+.logo { display: block; height: 26px; width: auto; margin: 0 0 20px; }
 .eyebrow {
   display: inline-flex; align-items: center; gap: 9px; margin: 0 0 14px;
   color: var(--accent); font-family: var(--font-geist-mono), monospace;

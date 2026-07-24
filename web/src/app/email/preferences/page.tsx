@@ -30,6 +30,8 @@ export default async function EmailPreferencesPage({
   return (
     <main className={styles.page} lang="en">
       <div className={styles.wrap}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/getbackplate-logo-light.svg" alt="GetBackplate" className={styles.logo} />
         <p className={styles.eyebrow}>Email preferences</p>
         <section className={styles.card}>
           {subscription ? (
