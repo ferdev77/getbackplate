@@ -75,7 +75,7 @@ function vendorHeaderBlock(vendorCompany: string, vendorLogoUrl: string | null):
 function clientCell(inv: WeeklyReportInvoiceLine, showClientColumn: boolean, borderBottom: boolean): string {
   if (!showClientColumn) return "";
   return `
-        <td style="padding:14px 0;font-size:14px;color:#595B66;${borderBottom ? "border-bottom:1px solid #E6E8EE;" : ""}width:22%;">
+        <td class="invoice-cell" style="padding:14px 0;font-size:14px;color:#595B66;${borderBottom ? "border-bottom:1px solid #E6E8EE;" : ""}width:22%;">
           ${escapeHtml(inv.clientName ?? "—")}
         </td>`;
 }
@@ -88,13 +88,13 @@ function invoiceRows(lines: WeeklyReportInvoiceLine[], showClientColumn: boolean
     .map(
       (inv) => `
       <tr>${clientCell(inv, showClientColumn, true)}
-        <td style="padding:14px 0;font-size:14px;color:#14151A;font-weight:600;border-bottom:1px solid #E6E8EE;width:${invoiceWidth};">
+        <td class="invoice-cell" style="padding:14px 0;font-size:14px;color:#14151A;font-weight:600;border-bottom:1px solid #E6E8EE;width:${invoiceWidth};">
           Document #${escapeHtml(inv.docNumber)}
         </td>
-        <td style="padding:14px 0;font-size:14px;color:#595B66;border-bottom:1px solid #E6E8EE;width:${dateWidth};text-align:center;">
+        <td class="invoice-cell" style="padding:14px 0;font-size:14px;color:#595B66;border-bottom:1px solid #E6E8EE;width:${dateWidth};text-align:center;">
           ${fmtDate(inv.sentAt)}
         </td>
-        <td style="padding:14px 0;font-size:14px;color:#14151A;font-weight:600;border-bottom:1px solid #E6E8EE;width:${amountWidth};text-align:right;">
+        <td class="invoice-amount" style="padding:14px 0;font-size:14px;color:#14151A;font-weight:600;border-bottom:1px solid #E6E8EE;width:${amountWidth};text-align:right;">
           ${inv.totalAmount != null ? fmt(inv.totalAmount) : "—"}
         </td>
       </tr>`,
@@ -212,13 +212,13 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
   const lastInvoiceRow = invoiceLines.length
     ? `
       <tr>${clientCell(invoiceLines[invoiceLines.length - 1], showClientColumn, false)}
-        <td style="padding:14px 0;font-size:14px;color:#14151A;font-weight:600;width:${invoiceInvoiceWidth};">
+        <td class="invoice-cell" style="padding:14px 0;font-size:14px;color:#14151A;font-weight:600;width:${invoiceInvoiceWidth};">
            Document #${escapeHtml(invoiceLines[invoiceLines.length - 1].docNumber)}
         </td>
-        <td style="padding:14px 0;font-size:14px;color:#595B66;width:${invoiceDateWidth};text-align:center;">
+        <td class="invoice-cell" style="padding:14px 0;font-size:14px;color:#595B66;width:${invoiceDateWidth};text-align:center;">
           ${fmtDate(invoiceLines[invoiceLines.length - 1].sentAt)}
         </td>
-        <td style="padding:14px 0;font-size:14px;color:#14151A;font-weight:600;width:${invoiceAmountWidth};text-align:right;">
+        <td class="invoice-amount" style="padding:14px 0;font-size:14px;color:#14151A;font-weight:600;width:${invoiceAmountWidth};text-align:right;">
           ${invoiceLines[invoiceLines.length - 1].totalAmount != null ? fmt(invoiceLines[invoiceLines.length - 1].totalAmount!) : "—"}
         </td>
       </tr>`
