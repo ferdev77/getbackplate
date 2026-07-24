@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link2, Search, X, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Plus, Minus, Play, Trash2, Eye, Pencil, ChevronDown, ChevronUp, ChevronsUpDown, Layers } from "lucide-react";
+import { Link2, Search, X, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Plus, Minus, Play, Trash2, Eye, Pencil, ChevronDown, ChevronUp, ChevronsUpDown, Layers, Download } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ConnectToQuickBooksButton } from "@/shared/ui/connect-to-quickbooks-button";
@@ -345,6 +345,9 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
   const [unifiedHistory, setUnifiedHistory] = useState<UnifiedInvoiceRow[]>([]);
   const [unifiedHistoryLoading, setUnifiedHistoryLoading] = useState(false);
   const [unifiedPage, setUnifiedPage] = useState(1);
+  const [historySearch, setHistorySearch] = useState("");
+  const [selectedHistoryIds, setSelectedHistoryIds] = useState<Set<string>>(new Set());
+  const [bulkExporting, setBulkExporting] = useState(false);
   const hasLoadedSyncConfigsRef = useRef(false);
   const invoiceHistorySectionRef = useRef<HTMLElement>(null);
   // Fetch manual por DocNumber
@@ -893,12 +896,20 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
 
   const selectedRun = useMemo(() => data?.runs?.find((r) => r.id === selectedRunId) ?? null, [data, selectedRunId]);
   const sortedUnifiedHistory = useMemo(() => {
-    return [...unifiedHistory].sort((a, b) => {
+    const query = historySearch.trim().toLowerCase();
+    const filtered = query
+      ? unifiedHistory.filter((item) => {
+          const docNumber = (item.docNumber ?? "").toLowerCase();
+          const customerName = resolveHistoryCustomerName(item).toLowerCase();
+          return docNumber.includes(query) || customerName.includes(query);
+        })
+      : unifiedHistory;
+    return [...filtered].sort((a, b) => {
       const aVal = unifiedSort.col === "txnDate" ? (a.txnDate ?? "") : a.createdAt;
       const bVal = unifiedSort.col === "txnDate" ? (b.txnDate ?? "") : b.createdAt;
       return unifiedSort.dir === "desc" ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
     });
-  }, [unifiedHistory, unifiedSort]);
+  }, [unifiedHistory, unifiedSort, historySearch]);
 
   const selectedUnifiedRow = useMemo(
     () => unifiedHistory.find((item) => item.entityId === selectedInvoiceId) ?? null,
@@ -998,19 +1009,17 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
     setPreviewingCsv(false);
   }
 
-  async function handleInvoiceExport(
-    format: "csv" | "json" | "pdf" | "txt",
+  async function buildInvoicePdfDocument(
+    inv: InvoiceDetailData,
     unifiedContext?: { id: string; docNumber: string | null; entityType: string; rawEntity: Record<string, unknown> | null; customerName: string | null },
-  ) {
-    if (!invoiceDetail) return;
-    const inv = invoiceDetail;
+  ): Promise<{ doc: import("jspdf").jsPDF; filename: string }> {
     const safeName = (inv.invoiceNumber ?? inv.sourceInvoiceId).replace(/[^a-zA-Z0-9_-]/g, "_");
     const typeSlug = unifiedContext ? (unifiedContext.entityType === "CreditMemo" ? "CM" : "INV") : null;
     const docSlug = unifiedContext ? (unifiedContext.docNumber ?? unifiedContext.id).replace(/[^a-zA-Z0-9_-]/g, "_") : null;
     const curLabel = formatCurrencyLabel(inv.currency);
     const cur = curLabel ? ` ${curLabel}` : "";
 
-    if (format === "pdf") {
+    {
       const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
         import("jspdf"),
         import("jspdf-autotable"),
@@ -1143,8 +1152,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
         doc.text(inv.grandTotal.toFixed(2) + cur, cmValueX, cmTotY + 26, { align: "right" });
 
         const cmName = unifiedContext && typeSlug && docSlug ? `credit_memo_${docSlug}.pdf` : `credit_memo_${safeName}.pdf`;
-        doc.save(cmName);
-        return;
+        return { doc, filename: cmName };
       }
 
       // ── INVOICE LAYOUT ──
@@ -1296,9 +1304,28 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
       doc.line(90, sigY + 8, 130, sigY + 8);
 
       const invName = unifiedContext && typeSlug && docSlug ? `invoice_${docSlug}.pdf` : `invoice_${safeName}.pdf`;
-      doc.save(invName);
+      return { doc, filename: invName };
+    }
+  }
+
+  async function handleInvoiceExport(
+    format: "csv" | "json" | "pdf" | "txt",
+    unifiedContext?: { id: string; docNumber: string | null; entityType: string; rawEntity: Record<string, unknown> | null; customerName: string | null },
+  ) {
+    if (!invoiceDetail) return;
+    const inv = invoiceDetail;
+
+    if (format === "pdf") {
+      const { doc, filename } = await buildInvoicePdfDocument(inv, unifiedContext);
+      doc.save(filename);
       return;
     }
+
+    const safeName = (inv.invoiceNumber ?? inv.sourceInvoiceId).replace(/[^a-zA-Z0-9_-]/g, "_");
+    const typeSlug = unifiedContext ? (unifiedContext.entityType === "CreditMemo" ? "CM" : "INV") : null;
+    const docSlug = unifiedContext ? (unifiedContext.docNumber ?? unifiedContext.id).replace(/[^a-zA-Z0-9_-]/g, "_") : null;
+    const curLabel = formatCurrencyLabel(inv.currency);
+    const cur = curLabel ? ` ${curLabel}` : "";
 
     let content = "";
     let mime = "";
@@ -1312,7 +1339,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
         });
         const payload = (await response.json().catch(() => ({}))) as { csv?: string; error?: string };
         if (!payload.csv) {
-          toast.error(payload.error ?? t("No se pudo generar el CSV R365"));
+          toast.error(payload.error ?? t("No se pudo generar el ZIP"));
           return;
         }
         content = payload.csv;
@@ -1391,6 +1418,69 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
     }
     link.click();
     URL.revokeObjectURL(url);
+  }
+
+  async function handleBulkPdfZipDownload() {
+    const ids = Array.from(selectedHistoryIds);
+    if (!ids.length) return;
+    setBulkExporting(true);
+    let failedCount = 0;
+    try {
+      const { default: JSZip } = await import("jszip");
+      const zip = new JSZip();
+      const usedNames = new Set<string>();
+
+      for (const entityId of ids) {
+        const row = unifiedHistory.find((item) => item.entityId === entityId);
+        if (!row) { failedCount += 1; continue; }
+        try {
+          const response = await fetch(`/api/company/integrations/qbo-r365/invoice-detail?sourceInvoiceId=${encodeURIComponent(entityId)}`, { cache: "no-store" });
+          const payload = (await response.json().catch(() => ({}))) as { detail?: InvoiceDetailData; error?: string };
+          if (!response.ok || !payload.detail) { failedCount += 1; continue; }
+          const { doc, filename } = await buildInvoicePdfDocument(payload.detail, {
+            id: row.id,
+            docNumber: row.docNumber,
+            entityType: row.entityType,
+            rawEntity: row.rawEntity,
+            customerName: row.customerName,
+          });
+          let finalName = filename;
+          let suffix = 2;
+          while (usedNames.has(finalName)) {
+            finalName = filename.replace(/\.pdf$/, `_${suffix}.pdf`);
+            suffix += 1;
+          }
+          usedNames.add(finalName);
+          zip.file(finalName, doc.output("blob"));
+        } catch {
+          failedCount += 1;
+        }
+      }
+
+      if (usedNames.size === 0) {
+        toast.error(t("No se pudo generar el ZIP"));
+        return;
+      }
+
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `documents-export-${new Date().toISOString().slice(0, 10)}.zip`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      if (failedCount > 0) {
+        toast.info(`${usedNames.size} PDF${usedNames.size === 1 ? "" : "s"} downloaded, ${failedCount} failed.`);
+      } else {
+        toast.success(`${usedNames.size} PDF${usedNames.size === 1 ? "" : "s"} downloaded.`);
+      }
+      setSelectedHistoryIds(new Set());
+    } catch {
+      toast.error(t("No se pudo generar el ZIP"));
+    } finally {
+      setBulkExporting(false);
+    }
   }
 
   const statCards = data?.statCardsByMode?.[mode] ?? data?.statCards ?? [];
@@ -1989,7 +2079,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
 
       {/* ─── Historial Unificado ─── */}
       <section className="mb-6" ref={invoiceHistorySectionRef}>
-        <div className="mb-3 flex items-center gap-3">
+        <div className="mb-3 flex flex-wrap items-center gap-3">
           <h2 className="text-2xl font-bold tracking-tight text-[var(--gbp-text)]">{t("Historial de Facturas")}</h2>
           {syncHistoryFilter && (
             <div className="flex items-center gap-1.5 rounded-full border-[1.5px] border-[var(--gbp-accent)] bg-[color-mix(in_oklab,var(--gbp-accent)_10%,transparent)] pl-3 pr-1.5 py-1">
@@ -2005,11 +2095,53 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
             </div>
           )}
           {unifiedHistoryLoading && <Loader2 className="h-4 w-4 animate-spin text-[var(--gbp-muted)]" />}
+
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            {selectedHistoryIds.size > 0 && (
+              <button
+                type="button"
+                disabled={bulkExporting}
+                onClick={handleBulkPdfZipDownload}
+                className="flex items-center gap-1.5 rounded-lg bg-[var(--gbp-accent)] px-3 py-2 text-xs font-bold text-white transition hover:opacity-90 disabled:opacity-50"
+              >
+                {bulkExporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                {bulkExporting ? t("Generando ZIP...") : `${t("Descargar ZIP")} (${selectedHistoryIds.size})`}
+              </button>
+            )}
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--gbp-muted)]" />
+              <input
+                type="text"
+                value={historySearch}
+                onChange={(event) => { setHistorySearch(event.target.value); setUnifiedPage(1); }}
+                placeholder={t("Buscar por N° de doc o cliente...")}
+                className="rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] py-2 pl-8 pr-3 text-xs text-[var(--gbp-text)] outline-none focus:border-[var(--gbp-accent)]"
+              />
+            </div>
+          </div>
         </div>
         {(() => {
           const PAGE_SIZE = 15;
           const totalPages = Math.max(1, Math.ceil(sortedUnifiedHistory.length / PAGE_SIZE));
           const pageRows = sortedUnifiedHistory.slice((unifiedPage - 1) * PAGE_SIZE, unifiedPage * PAGE_SIZE);
+          const pageRowIds = pageRows.map((item) => item.entityId);
+          const allPageSelected = pageRowIds.length > 0 && pageRowIds.every((id) => selectedHistoryIds.has(id));
+          function toggleSelectPage() {
+            setSelectedHistoryIds((prev) => {
+              const next = new Set(prev);
+              if (allPageSelected) pageRowIds.forEach((id) => next.delete(id));
+              else pageRowIds.forEach((id) => next.add(id));
+              return next;
+            });
+          }
+          function toggleSelectRow(id: string) {
+            setSelectedHistoryIds((prev) => {
+              const next = new Set(prev);
+              if (next.has(id)) next.delete(id);
+              else next.add(id);
+              return next;
+            });
+          }
           function handleUnifiedSort(col: "txnDate" | "createdAt") {
             setUnifiedSort((prev) => prev.col === col ? { col, dir: prev.dir === "desc" ? "asc" : "desc" } : { col, dir: "desc" });
             setUnifiedPage(1);
@@ -2031,6 +2163,15 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
                 <table className="w-full min-w-[860px] border-collapse">
                   <thead>
                     <tr className="border-b border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-left text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">
+                      <th className="w-8 px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={allPageSelected}
+                          onChange={toggleSelectPage}
+                          aria-label={t("Seleccionar todo")}
+                          className="accent-[var(--gbp-accent)]"
+                        />
+                      </th>
                       <th className="cursor-pointer select-none px-4 py-3 hover:text-[var(--gbp-text)]" onClick={() => handleUnifiedSort("txnDate")}>
                         <span className="inline-flex items-center gap-1">{t("Fecha")} <SortIcon col="txnDate" /></span>
                       </th>
@@ -2052,6 +2193,15 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
                         className="cursor-pointer border-b border-[var(--gbp-border)] transition hover:bg-[var(--gbp-bg)]"
                         onClick={() => setSelectedInvoiceId(item.entityId)}
                       >
+                        <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selectedHistoryIds.has(item.entityId)}
+                            onChange={() => toggleSelectRow(item.entityId)}
+                            aria-label={`${t("Seleccionar")} ${item.docNumber ?? item.entityId}`}
+                            className="accent-[var(--gbp-accent)]"
+                          />
+                        </td>
                         <td className="px-4 py-3 text-xs text-[var(--gbp-text)]">{formatQboDate(item.txnDate)}</td>
                         <td className="px-4 py-3 text-xs font-medium text-[var(--gbp-text)]">{item.docNumber ?? item.entityId.slice(0, 10)}</td>
                         <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{item.entityType}</td>
@@ -2080,10 +2230,16 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
                   </tbody>
                 </table>
               </div>
-              {!unifiedHistory.length && !unifiedHistoryLoading && (
+              {!sortedUnifiedHistory.length && !unifiedHistoryLoading && (
                 <EmptyState
                   icon={Search}
-                  title={syncHistoryFilter ? `${t("Sin facturas para")} ${syncHistoryFilter.name}` : t("Sin historial de facturas")}
+                  title={
+                    historySearch.trim()
+                      ? `${t("Sin facturas para")} "${historySearch.trim()}"`
+                      : syncHistoryFilter
+                        ? `${t("Sin facturas para")} ${syncHistoryFilter.name}`
+                        : t("Sin historial de facturas")
+                  }
                   description={t("Las facturas aparecen aquí cuando llegan por webhook o sync.")}
                 />
               )}

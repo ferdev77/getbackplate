@@ -97,6 +97,12 @@ export const QUICKBOOKS_R365_EN: Record<string, string> = {
   "Las facturas aparecen aquí cuando llegan por webhook o sync.": "Documents appear here when they arrive via webhook or sync.",
   Anterior: "Previous",
   Siguiente: "Next",
+  "Buscar por N° de doc o cliente...": "Search by doc # or customer...",
+  "Descargar ZIP": "Download ZIP",
+  "Generando ZIP...": "Generating ZIP...",
+  "Seleccionar todo": "Select all",
+  Seleccionar: "Select",
+  "No se pudo generar el ZIP": "Could not generate the ZIP",
 
   // ── Runs table (developer mode) ─────────────────────────────────
   "Historial de Sincronizaciones": "Sync History",
