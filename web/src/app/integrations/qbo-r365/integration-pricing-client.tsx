@@ -205,10 +205,7 @@ const STYLES = `
 .int-landing .freebadge{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:var(--success-bg);color:var(--success);padding:4px 9px;border-radius:12px;}
 .int-landing .bnote{font-size:12.5px;color:var(--text-muted);}
 
-/* TIERS: .tiers grid width + PlanCard's own styles come from PLAN_CARD_STYLES (shared with the bloqueante) */
-.int-landing .tiers{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:stretch;}
-@media(max-width:940px){.int-landing .tiers{grid-template-columns:repeat(2,1fr);}}
-@media(max-width:560px){.int-landing .tiers{grid-template-columns:1fr;}}
+/* TIERS: .tiers grid + PlanCard's own styles come from PLAN_CARD_STYLES (shared with the bloqueante) */
 
 /* CHECKOUT ERROR */
 .int-landing .checkout-error{background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:12px 20px;color:#B91C1C;font-size:14px;font-weight:500;margin-bottom:24px;}

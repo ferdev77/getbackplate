@@ -1951,7 +1951,7 @@ export function CompanyShell({
                   </div>
                   <style dangerouslySetInnerHTML={{ __html: PLAN_CARD_STYLES }} />
                   <div className="int-landing">
-                    <div className="tiers" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+                    <div className="tiers">
                       {integrationPlans.map((plan) => (
                         <PlanCard
                           key={plan.id}
@@ -2547,7 +2547,7 @@ export function CompanyShell({
       {integrationPlanOpen && integrationPlans.length > 0 ? (
         <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4" onClick={() => setIntegrationPlanOpen(null)}>
           <div
-            className={`w-full max-w-2xl overflow-hidden rounded-2xl border shadow-2xl ${isDarkTheme ? "border-white/10 bg-[#1a1a18] text-white" : "border-[var(--gbp-border)] bg-white text-[var(--gbp-text)]"}`}
+            className={`w-full max-w-4xl overflow-hidden rounded-2xl border shadow-2xl ${isDarkTheme ? "border-white/10 bg-[#1a1a18] text-white" : "border-[var(--gbp-border)] bg-white text-[var(--gbp-text)]"}`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -2587,7 +2587,7 @@ export function CompanyShell({
             {/* Plan cards */}
             <style dangerouslySetInnerHTML={{ __html: PLAN_CARD_STYLES }} />
             <div className="int-landing">
-              <div className="tiers" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+              <div className="tiers">
                 {integrationPlans.map((plan) => {
                   const orgAddon = availableAddons
                     .filter((a) => a.integrationPlanType === integrationPlanOpen)
