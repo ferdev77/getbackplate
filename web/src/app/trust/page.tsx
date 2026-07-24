@@ -487,6 +487,10 @@ export default function TrustCenterPage() {
                     <div className="vendor-name">Anthropic</div>
                     <div className="vendor-purpose">AI features in the Operations Platform, via the Claude API.</div>
                   </div>
+                  <div className="vendor-card">
+                    <div className="vendor-name">Sentry</div>
+                    <div className="vendor-purpose">Application error tracking and log monitoring.</div>
+                  </div>
                 </div>
               </div>
             </div>

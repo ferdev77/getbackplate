@@ -83,6 +83,7 @@ export default function IntegrationPrivacyPage() {
         <li><strong>Vercel Inc.</strong> — application hosting and serverless compute.</li>
         <li><strong>Supabase Inc.</strong> — managed PostgreSQL database for account, fiscal-summary, configuration, and operational records.</li>
         <li><strong>Intuit Inc.</strong> — source platform for invoice data via the Intuit Developer API.</li>
+        <li><strong>Sentry (Functional Software, Inc.)</strong> — application error tracking and log monitoring, subject to Sentry&apos;s own data retention policy.</li>
       </ul>
       <p>These providers are contractually obligated to use the data only to provide their services to us and to maintain appropriate security safeguards.</p>
 
