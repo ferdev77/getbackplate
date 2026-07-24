@@ -89,7 +89,7 @@ function invoiceRows(lines: WeeklyReportInvoiceLine[], showClientColumn: boolean
       (inv) => `
       <tr>${clientCell(inv, showClientColumn, true)}
         <td style="padding:14px 0;font-size:14px;color:#14151A;font-weight:600;border-bottom:1px solid #E6E8EE;width:${invoiceWidth};">
-          Invoice #${escapeHtml(inv.docNumber)}
+          Document #${escapeHtml(inv.docNumber)}
         </td>
         <td style="padding:14px 0;font-size:14px;color:#595B66;border-bottom:1px solid #E6E8EE;width:${dateWidth};text-align:center;">
           ${fmtDate(inv.sentAt)}
@@ -111,7 +111,7 @@ function referralCtaBlock(referralUrl: string): string {
             Other vendors still sending you PDFs?
           </p>
           <p style="margin:0 0 18px 0;font-size:14px;color:#595B66;line-height:1.55;">
-            If they're typing invoices into spreadsheets, we can automate them too.
+            If they're typing documents into spreadsheets, we can automate them too.
           </p>
           <table role="presentation" border="0" cellpadding="0" cellspacing="0">
             <tr>
@@ -187,20 +187,20 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
 
   const heroSubtitle = isFirstReport
     ? showReferralCta
-      ? `Here's a summary of every invoice you've received automatically in your R365 from ${vendorCompany} since the integration went live.`
-      : "Here's a summary of every invoice your integration has delivered automatically to Restaurant365 so far."
-    : `Here's your ${cadenceLabel} summary of invoices delivered automatically to your Restaurant365.`;
+      ? `Here's a summary of every document you've received automatically in your R365 from ${vendorCompany} since the integration went live.`
+      : "Here's a summary of every document your integration has delivered automatically to Restaurant365 so far."
+    : `Here's your ${cadenceLabel} summary of documents delivered automatically to your Restaurant365.`;
   const metricEyebrow = isFirstReport ? "Delivered so far" : `This ${cadencePeriod}`;
 
   const totalCount = invoiceLines.length;
   const totalAmount = invoiceLines.reduce((sum, inv) => sum + (inv.totalAmount ?? 0), 0);
   const hasAmounts = invoiceLines.some((inv) => inv.totalAmount != null);
   const metricValue = hasAmounts
-    ? `${totalCount} invoice${totalCount === 1 ? "" : "s"} &middot; ${fmt(totalAmount)}`
-    : `${totalCount} invoice${totalCount === 1 ? "" : "s"}`;
+    ? `${totalCount} document${totalCount === 1 ? "" : "s"} &middot; ${fmt(totalAmount)}`
+    : `${totalCount} document${totalCount === 1 ? "" : "s"}`;
 
   const isZeroState = totalCount === 0 && !isFirstReport;
-  const metricValueDisplay = isZeroState ? `No invoices this ${cadencePeriod}` : metricValue;
+  const metricValueDisplay = isZeroState ? `No documents this ${cadencePeriod}` : metricValue;
   const metricCaption = isZeroState
     ? `Your integration is active and monitoring — nothing was issued between ${periodLabel}.`
     : `Delivered without manual entry — ${periodLabel}`;
@@ -213,7 +213,7 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
     ? `
       <tr>${clientCell(invoiceLines[invoiceLines.length - 1], showClientColumn, false)}
         <td style="padding:14px 0;font-size:14px;color:#14151A;font-weight:600;width:${invoiceInvoiceWidth};">
-           Invoice #${escapeHtml(invoiceLines[invoiceLines.length - 1].docNumber)}
+           Document #${escapeHtml(invoiceLines[invoiceLines.length - 1].docNumber)}
         </td>
         <td style="padding:14px 0;font-size:14px;color:#595B66;width:${invoiceDateWidth};text-align:center;">
           ${fmtDate(invoiceLines[invoiceLines.length - 1].sentAt)}
@@ -258,8 +258,8 @@ export function buildWeeklyReportHtml(input: WeeklyReportTemplateInput): string 
 
 <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">
   ${isFirstReport
-    ? `Everything delivered to Restaurant365 so far — ${totalCount} invoice${totalCount === 1 ? "" : "s"}.`
-    : `Your ${cadenceLabel} summary of invoices delivered to Restaurant365 — ${totalCount} invoice${totalCount === 1 ? "" : "s"} this ${cadencePeriod}.`}
+    ? `Everything delivered to Restaurant365 so far — ${totalCount} document${totalCount === 1 ? "" : "s"}.`
+    : `Your ${cadenceLabel} summary of documents delivered to Restaurant365 — ${totalCount} document${totalCount === 1 ? "" : "s"} this ${cadencePeriod}.`}
 </div>
 
 <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#F7F8FC;">

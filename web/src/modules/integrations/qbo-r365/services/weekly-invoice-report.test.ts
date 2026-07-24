@@ -19,7 +19,7 @@ describe("buildOrgReportText", () => {
   it("uses monthly wording for organization billing-cycle reports", () => {
     const result = buildOrgReportText(report, "monthly");
 
-    expect(result.subject).toContain("Monthly invoice delivery summary");
+    expect(result.subject).toContain("Monthly document delivery summary");
     expect(result.text).toContain("Here is your monthly report");
     expect(result.text).not.toContain("weekly report");
   });
@@ -34,9 +34,9 @@ describe("buildOrgReportText", () => {
       skipReason: null,
     }, "monthly");
 
-    expect(result.subject).toContain("Monthly invoice delivery summary");
+    expect(result.subject).toContain("Monthly document delivery summary");
     expect(result.text).toContain("Here is your monthly report");
-    expect(result.text).toContain("No invoices this month");
+    expect(result.text).toContain("No documents this month");
     expect(result.text).not.toContain("this week");
   });
 });

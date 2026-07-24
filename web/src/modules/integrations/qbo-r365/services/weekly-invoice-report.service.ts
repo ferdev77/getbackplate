@@ -99,12 +99,12 @@ export const MONTHLY_RECURRENCE_NOTICE =
 
 export const FIRST_REPORT_NOTICE =
   "This is a one-time summary of everything delivered since your integration went live. " +
-  "Starting next Monday, you'll receive this report weekly, covering just that week's invoices.";
+  "Starting next Monday, you'll receive this report weekly, covering just that week's documents.";
 
 export const FIRST_ORG_REPORT_NOTICE =
   "This is a summary of everything delivered since your integration went live. " +
   "Going forward, you'll receive this report at the end of each monthly reporting cycle, " +
-  "covering all invoices delivered during that period.";
+  "covering all documents delivered during that period.";
 
 function recurrenceNotice(cadence: QboReportCadence, isHistorical: boolean): string {
   if (isHistorical) {
@@ -604,14 +604,14 @@ function periodLabel(data: OrgWeeklyReportData): string {
 
 export function buildOrgReportText(data: OrgWeeklyReportData, cadence: "weekly" | "monthly" = "weekly"): { subject: string; text: string } {
   const subject = data.isHistorical
-    ? "Historical invoice delivery summary"
-    : `${cadence === "monthly" ? "Monthly" : "Weekly"} invoice delivery summary — ${periodLabel(data)}`;
+    ? "Historical document delivery summary"
+    : `${cadence === "monthly" ? "Monthly" : "Weekly"} document delivery summary — ${periodLabel(data)}`;
 
   const lines: string[] = [];
   lines.push(
     data.isHistorical
-      ? "Hi! Here is your first report: a summary of all invoices your integration has delivered through today."
-      : `Here is your ${cadence} report: a summary of invoices your integration delivered ${periodLabel(data)}.`,
+      ? "Hi! Here is your first report: a summary of all documents your integration has delivered through today."
+      : `Here is your ${cadence} report: a summary of documents your integration delivered ${periodLabel(data)}.`,
   );
   lines.push("");
 
@@ -625,7 +625,7 @@ export function buildOrgReportText(data: OrgWeeklyReportData, cadence: "weekly" 
       const isSingleBranchGroup = group.branches.length === 1 && group.syncConfigName === branch.branchName;
       const prefix = isSingleBranchGroup ? "  •" : `  • ${branch.branchName} —`;
       for (const inv of branch.invoices) {
-        lines.push(`${prefix} Invoice #${inv.docNumber} — ${formatDate(inv.sentAt)}`);
+        lines.push(`${prefix} Document #${inv.docNumber} — ${formatDate(inv.sentAt)}`);
         total += 1;
       }
       if (branch.skipReason) {
@@ -635,7 +635,7 @@ export function buildOrgReportText(data: OrgWeeklyReportData, cadence: "weekly" 
     lines.push("");
   }
 
-  lines.push(`Total: ${total} invoice${total === 1 ? "" : "s"} delivered.`);
+  lines.push(`Total: ${total} document${total === 1 ? "" : "s"} delivered.`);
 
   if (skipped.length) {
     lines.push("");
@@ -658,23 +658,23 @@ export function buildBranchReportText(
   const cadenceLabel = cadence === "monthly" ? "Monthly" : "Weekly";
   const cadencePeriod = cadence === "monthly" ? "month" : "week";
   const subject = data.isHistorical
-    ? `Historical ${cadence} invoice delivery summary`
-    : `${cadenceLabel} invoice delivery summary — ${periodLabel(data)}`;
+    ? `Historical ${cadence} document delivery summary`
+    : `${cadenceLabel} document delivery summary — ${periodLabel(data)}`;
 
   const lines: string[] = [];
   lines.push(`Hi ${branch.branchName},`);
   lines.push("");
   lines.push(
     data.isHistorical
-      ? "Here is your first report: a summary of all invoices you received in your FTP through today."
-      : `Here is your ${cadence} report: a summary of invoices you received in your FTP ${periodLabel(data)}.`,
+      ? "Here is your first report: a summary of all documents you received in your FTP through today."
+      : `Here is your ${cadence} report: a summary of documents you received in your FTP ${periodLabel(data)}.`,
   );
   lines.push("");
   if (!data.isHistorical && branch.invoices.length === 0) {
-    lines.push(`No invoices this ${cadencePeriod}. Your integration is active and monitoring — nothing was issued between ${periodLabel(data)}.`);
+    lines.push(`No documents this ${cadencePeriod}. Your integration is active and monitoring — nothing was issued between ${periodLabel(data)}.`);
   } else {
     for (const inv of branch.invoices) {
-      lines.push(`  • Invoice #${inv.docNumber} — ${formatDate(inv.sentAt)}`);
+      lines.push(`  • Document #${inv.docNumber} — ${formatDate(inv.sentAt)}`);
     }
   }
 
@@ -801,8 +801,8 @@ export async function sendWeeklyInvoiceReport(input: {
         g.branches.flatMap((b) => b.invoices.map((inv) => ({ ...inv, clientName: b.branchName }))),
       );
       const orgSubjectBase = data.isHistorical
-        ? `Historical ${cadence} invoice delivery summary — ${pLabel}`
-        : `${cadence === "monthly" ? "Monthly" : "Weekly"} invoice delivery summary — ${pLabel}`;
+        ? `Historical ${cadence} document delivery summary — ${pLabel}`
+        : `${cadence === "monthly" ? "Monthly" : "Weekly"} document delivery summary — ${pLabel}`;
       const subject = input.overrideRecipientEmail
         ? `[test] ${orgSubjectBase}`
         : orgSubjectBase;
@@ -854,7 +854,7 @@ export async function sendWeeklyInvoiceReport(input: {
         if (!input.overrideRecipientEmail && orgRecipient.pushUserIds.length) {
           await sendPushToUsers(
             orgRecipient.pushUserIds,
-            { title: orgSubjectBase, body: `Your ${cadence} invoice delivery summary is ready.`, url: "/app/integrations/quickbooks" },
+            { title: orgSubjectBase, body: `Your ${cadence} document delivery summary is ready.`, url: "/app/integrations/quickbooks" },
             { source: "qbo_weekly_invoice_report", organizationId: input.organizationId },
           );
         }

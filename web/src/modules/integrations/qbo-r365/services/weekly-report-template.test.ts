@@ -26,8 +26,8 @@ describe("buildWeeklyReportHtml", () => {
     expect(html).toContain("<title>Monthly delivery report");
     expect(html).toContain("your monthly summary");
     expect(html).toContain("This month");
-    expect(html).toContain("No invoices this month");
-    expect(html).not.toContain("No invoices this week");
+    expect(html).toContain("No documents this month");
+    expect(html).not.toContain("No documents this week");
   });
 
   it("renders an unsubscribe link for a primary report", () => {

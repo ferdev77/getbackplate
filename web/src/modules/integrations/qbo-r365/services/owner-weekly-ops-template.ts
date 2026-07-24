@@ -49,7 +49,7 @@ function attentionBlock(input: OwnerWeeklyOpsTemplateInput): string {
         <td style="padding:3px 0;font-size:14.5px;line-height:1.5;color:#14151A;">
           <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:#D4531A;margin-right:8px;"></span>
           <b>${input.quietLocations} location${input.quietLocations === 1 ? "" : "s"} ${input.quietLocations === 1 ? "has" : "have"} gone quiet.</b>
-          No invoices for 2+ weeks — see the list below.
+          No documents for 2+ weeks — see the list below.
         </td>
       </tr>`);
   }
@@ -59,7 +59,7 @@ function attentionBlock(input: OwnerWeeklyOpsTemplateInput): string {
       <tr>
         <td style="padding:3px 0;font-size:14.5px;line-height:1.5;color:#14151A;">
           <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:#B42318;margin-right:8px;"></span>
-          <b>${input.failed} invoice${input.failed === 1 ? "" : "s"} still stuck</b> after automatic retries — needs manual review.
+          <b>${input.failed} document${input.failed === 1 ? "" : "s"} still stuck</b> after automatic retries — needs manual review.
         </td>
       </tr>`);
   } else {
@@ -142,7 +142,7 @@ function orgSection(org: OwnerOrgSection): string {
             </table>
             <p style="margin:5px 0 0 0;font-size:13px;color:#595B66;">
               <span style="font-family:'Courier New',monospace;">${g.activeLocations}/${g.totalLocations}</span> locations active &middot;
-              <span style="font-family:'Courier New',monospace;">${g.invoicesThisWeek}</span> invoice${g.invoicesThisWeek === 1 ? "" : "s"} this week
+              <span style="font-family:'Courier New',monospace;">${g.invoicesThisWeek}</span> document${g.invoicesThisWeek === 1 ? "" : "s"} this week
             </p>
           </td>
         </tr>`;
@@ -170,7 +170,7 @@ function orgSection(org: OwnerOrgSection): string {
           <tr>
             <td style="font-size:11px;font-weight:700;color:#525866;letter-spacing:0.06em;text-transform:uppercase;">${org.organizationName} total</td>
             <td align="right" style="font-family:'Courier New',monospace;font-size:13.5px;font-weight:600;color:#14151A;">
-              ${org.totalDelivered} invoice${org.totalDelivered === 1 ? "" : "s"} delivered
+              ${org.totalDelivered} document${org.totalDelivered === 1 ? "" : "s"} delivered
             </td>
           </tr>
         </table>

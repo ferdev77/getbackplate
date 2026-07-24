@@ -2,7 +2,7 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { stripe } from "@/infrastructure/stripe/client";
 
 export function formatInvoiceUsageDescription(sentCount: number, allowance: number, billableCount: number, unitPrice: string) {
-  return `Invoices sent to R365 (${sentCount} sent, ${allowance} included, ${billableCount} × $${unitPrice})`;
+  return `Documents sent to R365 (${sentCount} sent, ${allowance} included, ${billableCount} × $${unitPrice})`;
 }
 
 /**

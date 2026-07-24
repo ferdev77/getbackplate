@@ -230,7 +230,7 @@ export async function sendOwnerWeeklyOpsReport(input: {
       to: recipient,
       subject: `[${FIXED_SENDER_NAME}] ${subject}`,
       html,
-      text: `Weekly Operations ${periodLabel}: ${totalDelivered} invoices delivered, ${activeLocations}/${totalLocations} active locations, ${quietLocations} quiet, ${failed} failed after retries.`,
+      text: `Weekly Operations ${periodLabel}: ${totalDelivered} documents delivered, ${activeLocations}/${totalLocations} active locations, ${quietLocations} quiet, ${failed} failed after retries.`,
       senderName: FIXED_SENDER_NAME,
       notification: {
         source: "qbo_owner_weekly_ops_report",

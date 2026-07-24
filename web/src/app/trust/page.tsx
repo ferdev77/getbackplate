@@ -269,7 +269,7 @@ export default function TrustCenterPage() {
                 <table className="spec-table">
                   <tbody>
                     <tr><th>Transport encryption</th><td>TLS enforced for all HTTP traffic, with HSTS (Strict-Transport-Security) on every response</td></tr>
-                    <tr><th>Invoice delivery transport</th><td>FTP or FTPS, according to the destination endpoint configuration; FTPS uses TLS when enabled</td></tr>
+                    <tr><th>Document delivery transport</th><td>FTP or FTPS, according to the destination endpoint configuration; FTPS uses TLS when enabled</td></tr>
                     <tr><th>Credential encryption</th><td>AES-256-GCM, applied at the application layer to OAuth tokens and Restaurant365 delivery credentials before storage</td></tr>
                     <tr><th>Database encryption</th><td>Managed Postgres (Supabase) with encryption at rest on the underlying volume</td></tr>
                     <tr><th>Token refresh</th><td>QuickBooks® Online access tokens are refreshed automatically before they expire; a failed refresh marks the connection as disconnected rather than failing silently</td></tr>
@@ -347,7 +347,7 @@ export default function TrustCenterPage() {
               </aside>
               <div className="section-content">
                 <p>
-                  We collect the minimum data needed to deliver QuickBooks® Online invoices to
+                  We collect the minimum data needed to deliver QuickBooks® Online documents to
                   Restaurant365. Most of what we process is B2B metadata: company names, invoice
                   lines, payment terms. We deliberately avoid sensitive data categories we don&apos;t
                   need.
@@ -477,7 +477,7 @@ export default function TrustCenterPage() {
                   </div>
                   <div className="vendor-card">
                     <div className="vendor-name">Intuit (QuickBooks® Online)</div>
-                    <div className="vendor-purpose">OAuth authorization; source of truth for invoice and customer data.</div>
+                    <div className="vendor-purpose">OAuth authorization; source of truth for document and customer data.</div>
                   </div>
                   <div className="vendor-card">
                     <div className="vendor-name">Restaurant365</div>

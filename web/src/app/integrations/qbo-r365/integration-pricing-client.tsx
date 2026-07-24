@@ -51,7 +51,7 @@ const FAQ_ITEMS: { q: string; a: React.ReactNode }[] = [
     q: "Who pays — the vendor or the restaurant?",
     a: (
       <>
-        The vendor or distributor sending the invoices pays. Your restaurant customers receive invoices into their Restaurant365 at no cost — and if you&apos;re a restaurant, you can{" "}
+        The vendor or distributor sending the documents pays. Your restaurant customers receive documents into their Restaurant365 at no cost — and if you&apos;re a restaurant, you can{" "}
         <Link href="/refer">refer a vendor</Link> to get set up for free.
       </>
     ),
@@ -61,12 +61,12 @@ const FAQ_ITEMS: { q: string; a: React.ReactNode }[] = [
     a: "Nope. And if R365 ever charges a fee to activate your first connection, we cover it on annual plans — one more reason to go annual.",
   },
   {
-    q: "What happens if I go over my monthly invoice limit?",
-    a: "You're never cut off — invoices keep flowing. Extra invoices are simply billed per invoice: $0.99 each on Connect (over 75), $0.79 on Grow (over 250), and $0.59 on Scale (over 1,000). You only ever pay for what you actually send.",
+    q: "What happens if I go over my monthly document limit?",
+    a: "You're never cut off — documents keep flowing. Extra documents are simply billed per document: $0.99 each on Connect (over 75), $0.79 on Grow (over 250), and $0.59 on Scale (over 1,000). You only ever pay for what you actually send.",
   },
   {
-    q: "How fast do invoices arrive in Restaurant365?",
-    a: "Every invoice is picked up automatically the moment you finalize it in QuickBooks Online and delivered to your customer's Restaurant365 on its next import — no manual steps, no waiting on email.",
+    q: "How fast do documents arrive in Restaurant365?",
+    a: "Every document is picked up automatically the moment you finalize it in QuickBooks Online and delivered to your customer's Restaurant365 on its next import — no manual steps, no waiting on email.",
   },
   {
     q: "Do credit memos get delivered too, not just invoices?",
@@ -74,11 +74,11 @@ const FAQ_ITEMS: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "Do I have to change how I use QuickBooks?",
-    a: "No. You keep invoicing in QuickBooks Online exactly as you do today. Once connected, delivery happens in the background on every invoice.",
+    a: "No. You keep invoicing in QuickBooks Online exactly as you do today. Once connected, delivery happens in the background on every document.",
   },
   {
     q: "What's involved in getting set up?",
-    a: "Very little on your end. You authorize QuickBooks Online through its secure connection, and we handle the R365 side of the setup for you. Most vendors are live within 3 business days, and once you're connected, delivery runs automatically on every invoice — there's nothing to maintain.",
+    a: "Very little on your end. You authorize QuickBooks Online through its secure connection, and we handle the R365 side of the setup for you. Most vendors are live within 3 business days, and once you're connected, delivery runs automatically on every document — there's nothing to maintain.",
   },
   {
     q: "Is my QuickBooks data secure?",
@@ -93,7 +93,7 @@ const FAQ_ITEMS: { q: string; a: React.ReactNode }[] = [
     q: "I'm a restaurant — my vendor isn't set up. What do I do?",
     a: (
       <>
-        <Link href="/refer">Refer them</Link> and we&apos;ll reach out and handle the setup so their invoices start landing in your Restaurant365 automatically — at no cost to you.
+        <Link href="/refer">Refer them</Link> and we&apos;ll reach out and handle the setup so their documents start landing in your Restaurant365 automatically — at no cost to you.
       </>
     ),
   },
@@ -535,33 +535,33 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
               <div>
                 <span className="badge">Integrations</span>
                 <h1 className="h1">
-                  Your QuickBooks® Online invoices don&apos;t land in your customers&apos; Restaurant365.{" "}
+                  Your QuickBooks® Online documents don&apos;t land in your customers&apos; Restaurant365.{" "}
                   <span className="fix">We fixed that.</span>
                 </h1>
                 <p className="lead">
-                  Send every invoice from QuickBooks® Online into your customers&apos; Restaurant365 —
+                  Send every document from QuickBooks® Online into your customers&apos; Restaurant365 —
                   automatically, no manual steps. No exports. No email chains. No re-typing.
                 </p>
               </div>
               <div className="module">
                 <div className="tabs">
                   <button className={`tab${activeTab === "send" ? " active" : ""}`} onClick={() => setActiveTab("send")}>
-                    <div className="tt">I send invoices.</div>
+                    <div className="tt">I send documents.</div>
                     <div className="ts">From QuickBooks® Online to Restaurant365</div>
                   </button>
                   <button className={`tab${activeTab === "recv" ? " active" : ""}`} onClick={() => setActiveTab("recv")}>
-                    <div className="tt">I receive invoices.</div>
+                    <div className="tt">I receive documents.</div>
                     <div className="ts">Into my Restaurant365</div>
                   </button>
                 </div>
 
                 <div className={`panel${activeTab === "send" ? " active" : ""}`}>
                   <span className="pill">QuickBooks® Online → R365</span>
-                  <div className="pline">Your restaurant clients are on R365. Your invoices should be too.</div>
+                  <div className="pline">Your restaurant clients are on R365. Your documents should be too.</div>
                   <div className="feed">
                     <div className="feed-h">
                       <span className="dots"><i></i><i></i><i></i></span>
-                      <span className="ftitle">QuickBooks® Online · Invoice sent</span>
+                      <span className="ftitle">QuickBooks® Online · Document sent</span>
                     </div>
                     <div className="inv">
                       <div className="il"><div className="in">INV-1084 · Northside Grill</div><div className="im">$4,218.00 · just now</div></div>
@@ -585,11 +585,11 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
 
                 <div className={`panel${activeTab === "recv" ? " active" : ""}`}>
                   <span className="pill">R365 ← QuickBooks® Online</span>
-                  <div className="pline">Get your vendors&apos; invoices into your Restaurant365 — automatically, no manual entry.</div>
+                  <div className="pline">Get your vendors&apos; documents into your Restaurant365 — automatically, no manual entry.</div>
                   <div className="feed">
                     <div className="feed-h">
                       <span className="dots"><i></i><i></i><i></i></span>
-                      <span className="ftitle">Restaurant365 · Invoice received</span>
+                      <span className="ftitle">Restaurant365 · Document received</span>
                     </div>
                     <div className="inv">
                       <div className="il"><div className="in">Costa Produce Co.</div><div className="im">INV-4471 · $2,090.00</div></div>
@@ -607,7 +607,7 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
                   <div className="refbox">
                     <div className="rt">Know a vendor who bills you?</div>
                     <div className="rd">
-                      Refer them and we&apos;ll set up the integration so their invoices land in your R365
+                      Refer them and we&apos;ll set up the integration so their documents land in your R365
                       automatically — free for you.
                     </div>
                   </div>
@@ -647,7 +647,7 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
                 </span>
                 <h3>Already delivering, every day.</h3>
                 <p>
-                  A South Texas food distributor delivers every invoice to 24 restaurant locations
+                  A South Texas food distributor delivers every document to 24 restaurant locations
                   across 2 brands in Restaurant365 — fully automated, with no manual entry on either
                   side.
                 </p>
@@ -751,9 +751,9 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
             <div className="referband-inner">
               <div>
                 <div className="rb-eyebrow">For restaurants</div>
-                <h3 className="rb-title">Want a vendor to send you invoices this way?</h3>
+                <h3 className="rb-title">Want a vendor to send you documents this way?</h3>
                 <p className="rb-sub">
-                  Refer them and we&apos;ll handle the setup — their invoices land in your Restaurant365
+                  Refer them and we&apos;ll handle the setup — their documents land in your Restaurant365
                   automatically, at no cost to you.
                 </p>
               </div>
@@ -772,7 +772,7 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/getbackplate-logo-footer.svg" alt="GetBackplate" style={{ height: 22, width: "auto" }} />
                 <div className="ftag">
-                  Automated invoice delivery from QuickBooks® Online into your customers&apos;
+                  Automated document delivery from QuickBooks® Online into your customers&apos;
                   Restaurant365 — built for food vendors and distributors.
                 </div>
                 <div className="faddr">

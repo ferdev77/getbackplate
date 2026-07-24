@@ -88,13 +88,13 @@ export async function GET() {
 
     const statCards: StatCard[] = [
       {
-        label: "Imported Invoices",
+        label: "Imported Documents",
         value: String(unifiedStats.total),
         subLabel: "Sync · webhook · manual",
         tone: unifiedStats.total > 0 ? "success" : "muted",
       },
       {
-        label: quotaCopy?.label ?? "Invoices Sent",
+        label: quotaCopy?.label ?? "Documents Sent",
         value: invoicesIncluded != null
           ? (invoicesIncluded > 0
               ? `${unifiedStats.enviadasThisPeriod} / ${invoicesIncluded}`
