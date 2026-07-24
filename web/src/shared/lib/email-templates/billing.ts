@@ -48,11 +48,17 @@ function renderBillingEmail(params: { eyebrow: string; title: string; intro: str
 </table></td></tr></table></body></html>`;
 }
 
-export function planRenewalReminderTemplate({ orgName, renewalDate, amount }: { orgName: string; renewalDate: string; amount: string }) {
+export function planRenewalReminderTemplate({ orgName, renewalDate, amount, lineItems, usageNote }: { orgName: string; renewalDate: string; amount: string; lineItems?: Array<{ description: string; amount: string }>; usageNote?: string }) {
+  const itemRows = lineItems && lineItems.length
+    ? lineItems.map((item) => `<tr><td style="border-top:1px solid #e5e7eb;color:#374151;font-family:Arial,sans-serif;font-size:13px;padding:11px 0;">${escapeHtml(item.description)}</td><td align="right" style="border-top:1px solid #e5e7eb;color:#171311;font-family:Arial,sans-serif;font-size:13px;font-weight:700;padding:11px 0;">${escapeHtml(item.amount)}</td></tr>`).join("")
+    : `<tr><td style="border-top:1px solid #e5e7eb;color:#374151;font-family:Arial,sans-serif;font-size:13px;padding:11px 0;">Subscription renewal</td><td align="right" style="border-top:1px solid #e5e7eb;color:#171311;font-family:Arial,sans-serif;font-size:13px;font-weight:700;padding:11px 0;">${escapeHtml(amount)}</td></tr>`;
+  const usageNoteBlock = usageNote
+    ? `<p style="color:#6b7280;font-family:Arial,sans-serif;font-size:12px;line-height:1.5;margin:14px 0 0;">${escapeHtml(usageNote)}</p>`
+    : "";
   return renderBillingEmail({
     eyebrow: "Upcoming renewal", title: "Your plan renews soon", accent: "#c24a1e",
     intro: `Hello <strong>${escapeHtml(orgName)}</strong>, this is a reminder that your GetBackplate subscription will renew soon.`,
-    body: renderSummaryCard([{ label: "Renewal date", value: renewalDate }, { label: "Renewal amount", value: amount }]),
+    body: `${renderSummaryCard([{ label: "Renewal date", value: renewalDate }])}<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;margin-top:18px;"><tbody>${itemRows}<tr><td style="border-top:1px solid #171311;color:#171311;font-family:Arial,sans-serif;font-size:14px;font-weight:800;padding:14px 0 0;">Renewal amount</td><td align="right" style="border-top:1px solid #171311;color:#171311;font-family:Arial,sans-serif;font-size:15px;font-weight:800;padding:14px 0 0;">${escapeHtml(amount)}</td></tr></tbody></table>${usageNoteBlock}`,
     action: { label: "Manage billing", url: "https://app.getbackplate.com/app/billing/portal-launch" },
     note: "If you need to make a change, please review your subscription before the renewal date.",
   });

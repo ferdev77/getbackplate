@@ -100,9 +100,15 @@ async function sendBillingEmail(params: {
   return result;
 }
 
-export async function sendRenewalReminderEmail(organizationId: string, renewalDate: string, amount: string) {
+export async function sendRenewalReminderEmail(
+  organizationId: string,
+  renewalDate: string,
+  amount: string,
+  lineItems?: Array<{ description: string; amount: string }>,
+  usageNote?: string,
+) {
   const orgName = await getOrganizationName(organizationId);
-  const html = planRenewalReminderTemplate({ orgName, renewalDate, amount });
+  const html = planRenewalReminderTemplate({ orgName, renewalDate, amount, lineItems, usageNote });
   await sendBillingEmail({
     organizationId,
     subject: "Your plan renews soon",

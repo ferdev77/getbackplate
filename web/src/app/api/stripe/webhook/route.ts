@@ -1174,7 +1174,19 @@ export async function POST(req: Request) {
                   renewalDate: new Date(invoice.period_end * 1000).toLocaleDateString('es-US'),
                 };
 
-            await sendRenewalReminderEmail(organizationId, reminderValues.renewalDate, reminderValues.amount);
+            // Lineas reales de la factura de Stripe en este momento (plan + slot
+            // recurrentes) -- el cargo por uso todavia no esta agregado, por eso
+            // avisamos aparte con usageNote cuando es la suscripcion de integracion.
+            const reminderCurrencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: invoice.currency.toUpperCase() });
+            const reminderLineItems = invoice.lines.data.map((line) => ({
+              description: line.description ?? 'Subscription renewal',
+              amount: reminderCurrencyFormatter.format(line.amount / 100),
+            }));
+            const usageNote = integrationAddon
+              ? `This total doesn't include usage charges yet — invoices delivered this billing period are added automatically before your renewal on ${reminderValues.renewalDate}.`
+              : undefined;
+
+            await sendRenewalReminderEmail(organizationId, reminderValues.renewalDate, reminderValues.amount, reminderLineItems, usageNote);
             console.info(`[Webhook] Sent renewal reminder for org ${organizationId}`);
 
             if (upcomingSubscriptionId && integrationAddon) {
