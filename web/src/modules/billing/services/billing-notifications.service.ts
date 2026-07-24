@@ -108,14 +108,14 @@ export async function sendRenewalReminderEmail(organizationId: string, renewalDa
     subject: "Your plan renews soon",
     html,
     type: "renewal_reminder",
-    actionUrl: "/app/billing",
+    actionUrl: "/app/billing/portal-launch",
   });
   void sendPushToOrg(
     organizationId,
     {
       title: "Your plan renews soon",
       body: `${orgName}'s plan renews on ${renewalDate} for ${amount}.`,
-      url: "/app/billing",
+      url: "/app/billing/portal-launch",
     },
     { source: "billing", sourceId: "renewal_reminder", organizationId },
   ).catch(() => {});
@@ -129,14 +129,14 @@ export async function sendPlanChangedEmail(organizationId: string, planName: str
     subject: "Your plan has been updated",
     html,
     type: "plan_changed",
-    actionUrl: "/app/billing",
+    actionUrl: "/app/billing/portal-launch",
   });
   void sendPushToOrg(
     organizationId,
     {
       title: "Your plan has been updated",
       body: `Your new active plan is ${planName}.`,
-      url: "/app/billing",
+      url: "/app/billing/portal-launch",
     },
     { source: "billing", sourceId: "plan_changed", organizationId },
   ).catch(() => {});
@@ -151,14 +151,14 @@ export async function sendPaymentFailedEmail(organizationId: string, retryLink: 
     subject: "Action required: Issue with your payment",
     html,
     type: "payment_failed",
-    actionUrl: "/app/billing",
+    actionUrl: "/app/billing/portal-launch",
   });
   void sendPushToOrg(
     organizationId,
     {
       title: "Issue with your payment",
       body: "There is an issue with your subscription payment. Review your billing details.",
-      url: "/app/billing",
+      url: "/app/billing/portal-launch",
     },
     { source: "billing", sourceId: "payment_failed", organizationId },
   ).catch(() => {});
@@ -218,7 +218,7 @@ export async function sendSuccessfulPaymentEmail(params: {
       fallbackAppUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://getbackplate.com",
     }),
   ]);
-  const billingPortalUrl = `${tenantAppUrl.replace(/\/$/, "")}/app/billing`;
+  const billingPortalUrl = `${tenantAppUrl.replace(/\/$/, "")}/app/billing/portal-launch`;
   const html = successfulPaymentTemplate({
     orgName,
     paymentDate: params.paymentDate,
@@ -235,7 +235,7 @@ export async function sendSuccessfulPaymentEmail(params: {
     subject: `Payment received — ${params.amount}`,
     html,
     type: "successful_payment",
-    actionUrl: params.invoiceUrl ?? "/app/billing",
+    actionUrl: params.invoiceUrl ?? "/app/billing/portal-launch",
   });
 
   if (params.sendPush) {
@@ -244,7 +244,7 @@ export async function sendSuccessfulPaymentEmail(params: {
       {
         title: "Payment received",
         body: `Your payment of ${params.amount} was successful.`,
-        url: params.invoiceUrl ?? "/app/billing",
+        url: params.invoiceUrl ?? "/app/billing/portal-launch",
       },
       { source: "billing", sourceId: "successful_payment", organizationId: params.organizationId },
     ).catch(() => {});

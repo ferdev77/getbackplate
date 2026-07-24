@@ -1197,7 +1197,7 @@ export async function POST(req: Request) {
             }
             // ── END USAGE BILLING ─────────────────────────────────────────────────────
         } else if (event.type === 'invoice.payment_failed') {
-            const retryLink = invoice.hosted_invoice_url || `${process.env.APP_BASE_URL}/app/billing`;
+            const retryLink = invoice.hosted_invoice_url || `${process.env.APP_BASE_URL}/app/billing/portal-launch`;
             
             await sendPaymentFailedEmail(organizationId, retryLink);
             console.info(`[Webhook] Sent payment failed email for org ${organizationId}`);

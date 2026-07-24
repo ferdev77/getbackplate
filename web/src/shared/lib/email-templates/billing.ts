@@ -53,7 +53,7 @@ export function planRenewalReminderTemplate({ orgName, renewalDate, amount }: { 
     eyebrow: "Upcoming renewal", title: "Your plan renews soon", accent: "#c24a1e",
     intro: `Hello <strong>${escapeHtml(orgName)}</strong>, this is a reminder that your GetBackplate subscription will renew soon.`,
     body: renderSummaryCard([{ label: "Renewal date", value: renewalDate }, { label: "Renewal amount", value: amount }]),
-    action: { label: "Manage billing", url: "https://app.getbackplate.com/app/billing" },
+    action: { label: "Manage billing", url: "https://app.getbackplate.com/app/billing/portal-launch" },
     note: "If you need to make a change, please review your subscription before the renewal date.",
   });
 }
@@ -73,7 +73,7 @@ export function planChangedTemplate({ orgName, planName }: { orgName: string; pl
     eyebrow: "Subscription updated", title: "Your plan has been updated", accent: "#059669",
     intro: `Hello <strong>${escapeHtml(orgName)}</strong>, your GetBackplate subscription is now on the plan below.`,
     body: renderSummaryCard([{ label: "Active plan", value: planName }]),
-    action: { label: "View billing", url: "https://app.getbackplate.com/app/billing" },
+    action: { label: "View billing", url: "https://app.getbackplate.com/app/billing/portal-launch" },
   });
 }
 
@@ -110,7 +110,7 @@ function planChangeTemplate(params: PlanChangeTemplateProps) {
     eyebrow: params.direction === "downgrade" ? "Plan downgrade" : "Plan upgrade", title: `Your plan change ${action}`, accent: params.direction === "downgrade" ? "#d97706" : "#059669",
     intro: `Hello <strong>${escapeHtml(params.orgName)}</strong>, a GetBackplate plan change ${action} by <strong>${escapeHtml(params.actorName)}</strong>.`,
     body: `${renderSummaryCard([{ label: "Previous plan", value: params.previousPlanName }, { label: "New plan", value: params.targetPlanName }, { label: "New price", value: params.targetPlanPrice }, { label: params.applied ? "Applied" : "Requested", value: params.changedAt }])}<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;color:#374151;font-family:Arial,sans-serif;font-size:12px;line-height:1.7;margin-top:18px;padding:14px 16px;"><strong style="color:#171311;">New plan limits</strong><br>${params.targetPlanLimits.map((limit) => `${escapeHtml(limit.label)}: ${escapeHtml(limit.value)}`).join("<br>")}</div>${changes.length ? `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;color:#374151;font-family:Arial,sans-serif;font-size:12px;line-height:1.7;margin-top:18px;padding:14px 16px;"><strong style="color:#171311;">Module changes</strong><br>${changes.map(escapeHtml).join("<br>")}</div>` : ""}`,
-    action: { label: "View billing", url: "https://app.getbackplate.com/app/billing" },
+    action: { label: "View billing", url: "https://app.getbackplate.com/app/billing/portal-launch" },
     note: `If you do not recognize this action from ${escapeHtml(params.actorEmail)}, contact GetBackplate Support immediately.`,
   });
 }

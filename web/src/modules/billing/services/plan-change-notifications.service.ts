@@ -268,7 +268,7 @@ export async function sendPlanChangeDecisionEmail(params: {
       source: "plan_change",
       sourceId: "requested",
       organizationId: params.organizationId,
-      actionUrl: "/app/billing",
+      actionUrl: "/app/billing/portal-launch",
       title: `Plan change requested: ${targetPlan.name}`,
     },
   });
@@ -368,7 +368,7 @@ export async function sendPlanChangeAppliedEmail(params: {
       sourceId: "applied",
       organizationId: params.organizationId,
       userId: params.actorUserId ?? undefined,
-      actionUrl: "/app/billing",
+      actionUrl: "/app/billing/portal-launch",
       title: `Plan change applied: ${targetPlan.name}`,
     },
   });
