@@ -67,6 +67,8 @@ async function sendBillingEmail(params: {
   html: string;
   type: "renewal_reminder" | "plan_changed" | "payment_failed" | "subscription_activated" | "successful_payment";
   actionUrl: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
 }) {
   const admin = await getOrganizationAdminEmail(params.organizationId);
   if (!admin) {
@@ -79,6 +81,8 @@ async function sendBillingEmail(params: {
     subject: buildBillingSubject(params.subject),
     html: params.html,
     senderName: BILLING_SENDER_NAME,
+    attachmentUrl: params.attachmentUrl,
+    attachmentName: params.attachmentName,
     notification: {
       source: "billing",
       sourceId: params.type,
@@ -210,6 +214,7 @@ export async function sendSubscriptionActivatedEmail(params: {
 export async function sendSuccessfulPaymentEmail(params: {
   organizationId: string;
   invoiceUrl?: string;
+  invoicePdfUrl?: string;
   invoiceNumber: string;
   amount: string;
   paymentDate: string;
@@ -242,6 +247,8 @@ export async function sendSuccessfulPaymentEmail(params: {
     html,
     type: "successful_payment",
     actionUrl: params.invoiceUrl ?? "/app/billing/portal-launch",
+    attachmentUrl: params.invoicePdfUrl,
+    attachmentName: `Invoice-${params.invoiceNumber}.pdf`,
   });
 
   if (params.sendPush) {

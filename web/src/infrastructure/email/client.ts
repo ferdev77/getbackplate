@@ -18,6 +18,8 @@ type SendEmailInput = {
   text?: string;
   senderName?: string;
   notification: SendEmailNotificationMeta;
+  attachmentUrl?: string;
+  attachmentName?: string;
 };
 
 type SendEmailResult =
@@ -36,6 +38,21 @@ function stripHtml(html: string): string {
 
 const BREVO_TIMEOUT_MS = 20_000;
 
+// Brevo's url-based attachment only accepts links that literally end in a
+// known file extension (e.g. ".pdf") -- Stripe's invoice_pdf links end in
+// "/pdf?s=..." and get rejected. Downloading the bytes ourselves and sending
+// them as base64 content sidesteps that URL-format restriction entirely.
+async function fetchAttachmentAsBase64(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(BREVO_TIMEOUT_MS) });
+    if (!response.ok) return null;
+    const buffer = await response.arrayBuffer();
+    return Buffer.from(buffer).toString("base64");
+  } catch {
+    return null;
+  }
+}
+
 export async function sendTransactionalEmail(input: SendEmailInput): Promise<SendEmailResult> {
   const apiKey = process.env.BREVO_API_KEY?.trim();
   const { senderEmail, senderName } = getSender(input.senderName);
@@ -48,6 +65,10 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
     result = { ok: false, error: "BREVO_SENDER_EMAIL/MAIL_FROM is not configured" };
   } else {
     try {
+      const attachmentContent = input.attachmentUrl
+        ? await fetchAttachmentAsBase64(input.attachmentUrl)
+        : null;
+
       const response = await fetch("https://api.brevo.com/v3/smtp/email", {
         method: "POST",
         headers: {
@@ -61,6 +82,9 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
           subject: input.subject,
           htmlContent: input.html,
           textContent: input.text,
+          attachment: attachmentContent
+            ? [{ content: attachmentContent, name: input.attachmentName ?? "invoice.pdf" }]
+            : undefined,
         }),
         signal: AbortSignal.timeout(BREVO_TIMEOUT_MS),
       });

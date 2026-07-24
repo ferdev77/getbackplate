@@ -1102,6 +1102,7 @@ export async function POST(req: Request) {
           await sendSuccessfulPaymentEmail({
             organizationId,
             invoiceUrl: invoice.hosted_invoice_url ?? undefined,
+            invoicePdfUrl: invoice.invoice_pdf ?? undefined,
             invoiceNumber: invoice.number ?? invoice.id,
             amount,
             paymentDate,
