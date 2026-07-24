@@ -44,7 +44,8 @@ function lifecycleAction(action: string): Exclude<ActionFilter, "all"> | null {
 function eventLabel(log: DeletionAuditLog) {
   if (log.metadata?.system_maintenance === true) {
     const count = typeof log.metadata.records_affected === "number" ? log.metadata.records_affected : 0;
-    return `System deleted ${count.toLocaleString()} old audit ${count === 1 ? "log" : "logs"}`;
+    const noun = typeof log.metadata.task_noun === "string" ? log.metadata.task_noun : "old record";
+    return `System deleted ${count.toLocaleString()} ${noun}${count === 1 ? "" : "s"}`;
   }
   const title = log.metadata?.document_title;
   if (typeof title === "string" && title.trim()) return title.trim();
@@ -139,7 +140,7 @@ function DeletionLog({ logs }: { logs: DeletionAuditLog[] }) {
                 ? log.metadata.entity_name
                 : null;
               return <div key={log.id} className="grid gap-3 px-4 py-4 sm:grid-cols-[minmax(0,1.7fr)_auto_minmax(140px,0.8fr)] sm:items-center">
-                <div className="min-w-0"><p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{eventLabel(log)}</p><p className="mt-1 truncate text-xs text-[var(--gbp-text2)]">{isSystemMaintenance ? "Audit log retention" : log.organization_name ?? historicalOrganization ?? "No organization"} · {log.actor_email ?? "System"}</p></div>
+                <div className="min-w-0"><p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{eventLabel(log)}</p><p className="mt-1 truncate text-xs text-[var(--gbp-text2)]">{isSystemMaintenance ? (typeof log.metadata?.task_label === "string" ? log.metadata.task_label : "System retention") : log.organization_name ?? historicalOrganization ?? "No organization"} · {log.actor_email ?? "System"}</p></div>
                 <div className="flex items-center gap-2"><span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset ${actionStyle(lifecycle)}`}>{lifecycle}</span><span className={`text-xs font-medium ${outcome.color}`}>{outcome.label}</span></div>
                 <div className="text-xs text-[var(--gbp-text2)] sm:text-right"><time dateTime={log.created_at}>{format(new Date(log.created_at), "MMM d, yyyy h:mm a")}</time><p className="mt-1">{isSystemMaintenance ? "Daily cron" : log.action}</p></div>
               </div>;

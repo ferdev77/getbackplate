@@ -42,7 +42,7 @@ export default async function SuperadminTrashPage() {
     .range(0, 4999), supabase
     .from("system_maintenance_logs")
     .select("id, task, status, records_affected, cutoff_at, error_message, ran_at")
-    .eq("task", "audit_logs_retention")
+    .in("task", ["audit_logs_retention", "intuit_data_retention", "intuit_api_response_retention"])
     .gte("ran_at", auditSince)
     .order("ran_at", { ascending: false })
     .limit(500)]);
@@ -76,22 +76,37 @@ export default async function SuperadminTrashPage() {
         },
       } satisfies DeletionAuditLog;
     }),
-    ...(maintenanceLogs ?? []).map((log) => ({
-      id: log.id,
-      action: "audit_logs.retention.purge",
-      entity_id: null,
-      entity_type: "audit_log",
-      created_at: log.ran_at,
-      organization_name: null,
-      actor_email: null,
-      metadata: {
-        outcome: log.status,
-        system_maintenance: true,
-        records_affected: log.records_affected,
-        cutoff_at: log.cutoff_at,
-        error_message: log.error_message,
-      },
-    } satisfies DeletionAuditLog)),
+    ...(maintenanceLogs ?? []).map((log) => {
+      const taskInfo: Record<string, { action: string; entityType: string; label: string; noun: string }> = {
+        audit_logs_retention: { action: "audit_logs.retention.purge", entityType: "audit_log", label: "Audit log retention", noun: "old audit log" },
+        intuit_data_retention: { action: "intuit_data.retention.purge", entityType: "intuit_data", label: "QuickBooks integration data retention", noun: "old QuickBooks integration record" },
+        intuit_api_response_retention: { action: "intuit_api_response.retention.purge", entityType: "intuit_api_response_log", label: "Intuit API response log retention", noun: "old Intuit API response log" },
+      };
+      const info = taskInfo[log.task] ?? {
+        action: `${log.task}.purge`,
+        entityType: log.task,
+        label: log.task.replace(/_/g, " "),
+        noun: "old record",
+      };
+      return {
+        id: log.id,
+        action: info.action,
+        entity_id: null,
+        entity_type: info.entityType,
+        created_at: log.ran_at,
+        organization_name: null,
+        actor_email: null,
+        metadata: {
+          outcome: log.status,
+          system_maintenance: true,
+          records_affected: log.records_affected,
+          cutoff_at: log.cutoff_at,
+          error_message: log.error_message,
+          task_label: info.label,
+          task_noun: info.noun,
+        },
+      } satisfies DeletionAuditLog;
+    }),
   ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   return (
