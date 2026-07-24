@@ -23,18 +23,60 @@ export default async function IntegrationQuickbooksPage() {
 
   {
     const supabase = createSupabaseAdminClient();
-    const { data: orgRow } = await supabase
-      .from("organizations")
-      .select("integration_plan_id, integration_vendor_profile, integration_onboarding_completed_at")
-      .eq("id", tenant.organizationId)
-      .maybeSingle();
+    const [organizationResult, companySettingsResult, identityResult] = await Promise.all([
+      supabase
+        .from("organizations")
+        .select("name, integration_plan_id, integration_onboarding_completed_at, integration_onboarding_skipped_at")
+        .eq("id", tenant.organizationId)
+        .maybeSingle(),
+      supabase
+        .from("organization_settings")
+        .select("contact_name, support_email, support_phone, address, website_url")
+        .eq("organization_id", tenant.organizationId)
+        .maybeSingle(),
+      user
+        ? supabase
+            .from("external_auth_identities")
+            .select("email_at_link, profile")
+            .eq("provider", "intuit")
+            .eq("user_id", user.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+    const orgRow = organizationResult.data;
+    const companySettings = companySettingsResult.data;
 
     const integrationPlanId = (orgRow as Record<string, unknown> | null)?.integration_plan_id as string | null ?? null;
-    vendorProfile = (orgRow as Record<string, unknown> | null)?.integration_vendor_profile as Record<string, string> | null ?? null;
+    const identity = identityResult.data as { email_at_link?: string | null; profile?: Record<string, unknown> | null } | null;
+    const identityProfile = identity?.profile ?? {};
+    const identityAddress = identityProfile.address && typeof identityProfile.address === "object"
+      ? identityProfile.address as Record<string, unknown>
+      : {};
+    const formattedAddress = [
+      identityAddress.streetAddress,
+      identityAddress.locality,
+      identityAddress.region,
+      identityAddress.postalCode,
+      identityAddress.country,
+    ].filter((value): value is string => typeof value === "string" && value.trim().length > 0).join(", ");
+    const identityName = [identityProfile.givenName, identityProfile.familyName]
+      .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      .join(" ");
+    const verifiedEmail = identity?.email_at_link ?? user?.email ?? "";
+    vendorProfile = {
+      company: orgRow?.name || "",
+      contactName: companySettings?.contact_name || String(user?.user_metadata?.full_name ?? "") || identityName,
+      email: companySettings?.support_email || verifiedEmail,
+      phone: companySettings?.support_phone
+        || (identityProfile.phoneNumberVerified === true && typeof identityProfile.phoneNumber === "string" ? identityProfile.phoneNumber : ""),
+      address: companySettings?.address || formattedAddress,
+      website: companySettings?.website_url || "",
+    };
     const onboardingCompletedAt = (orgRow as Record<string, unknown> | null)?.integration_onboarding_completed_at as string | null ?? null;
+    const onboardingSkippedAt = (orgRow as Record<string, unknown> | null)?.integration_onboarding_skipped_at as string | null ?? null;
 
-    // Show onboarding if: has a plan AND never completed onboarding
-    showOnboarding = integrationPlanId != null && onboardingCompletedAt == null;
+    // A dismissed onboarding stays available from the dashboard without reopening on every visit.
+    showOnboarding = integrationPlanId != null && onboardingCompletedAt == null && onboardingSkippedAt == null;
 
     if (integrationPlanId) {
       const [planData, addonData] = await Promise.all([

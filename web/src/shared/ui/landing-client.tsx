@@ -23,7 +23,7 @@ export function LandingNavbar() {
         <div className="hidden md:flex items-center gap-8">
           <Link href="#features" className="text-sm font-medium text-muted-foreground hover:text-brand transition-colors">Funcionalidades</Link>
           <Link href="#pricing" className="text-sm font-medium text-muted-foreground hover:text-brand transition-colors">Planes</Link>
-          <Link href="/auth/login">
+          <Link href="/auth/login?desde=plataforma">
             <AnimatedButton className="rounded-full bg-brand px-6 py-2.5 text-sm font-bold text-white shadow-md hover:bg-brand-dark">
               Ingresar
             </AnimatedButton>
@@ -46,7 +46,7 @@ export function LandingNavbar() {
             <div className="flex flex-col gap-4">
               <Link href="#features" onClick={() => setIsOpen(false)} className="text-lg font-medium">Funcionalidades</Link>
               <Link href="#pricing" onClick={() => setIsOpen(false)} className="text-lg font-medium">Planes</Link>
-              <Link href="/auth/login" onClick={() => setIsOpen(false)} className="w-full text-center rounded-xl bg-brand py-3 font-bold text-white">
+              <Link href="/auth/login?desde=plataforma" onClick={() => setIsOpen(false)} className="w-full text-center rounded-xl bg-brand py-3 font-bold text-white">
                 Ingresar
               </Link>
             </div>

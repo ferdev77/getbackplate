@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { CheckCircle2, ChevronRight, Loader2, Link2, ArrowRight, X, Layers } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { CheckCircle2, ChevronRight, Loader2, Link2, ArrowRight, X, Layers, Minus } from "lucide-react";
 import { toast } from "sonner";
 import { createTranslator } from "@/modules/integrations/ui/qbo-r365.i18n";
 import { ConnectToQuickBooksButton } from "@/shared/ui/connect-to-quickbooks-button";
@@ -23,6 +23,7 @@ type Props = {
   syncConfigsCount: number;
   planName: string;
   onComplete: () => void;
+  onConfigureConnections: () => void;
 };
 
 type Step = "auth" | "vendor" | "slots";
@@ -35,31 +36,43 @@ function useSteps(t: (s: string) => string): { id: Step; label: string }[] {
   ];
 }
 
-function StepIndicator({ current, connected, steps }: { current: Step; connected: boolean; steps: { id: Step; label: string }[] }) {
+function StepIndicator({
+  current,
+  completed,
+  skipped,
+  steps,
+}: {
+  current: Step;
+  completed: Set<Step>;
+  skipped: Set<Step>;
+  steps: { id: Step; label: string }[];
+}) {
   const order: Step[] = ["auth", "vendor", "slots"];
   const currentIdx = order.indexOf(current);
 
   return (
     <div className="flex items-center justify-center gap-0">
       {steps.map((step, i) => {
-        const done = i < currentIdx || (step.id === "auth" && connected && currentIdx > 0);
+        const done = completed.has(step.id);
+        const omitted = skipped.has(step.id) && !done;
         const active = order[currentIdx] === step.id;
         return (
           <div key={step.id} className="flex items-center">
             <div className="flex items-center gap-2">
               <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all ${
                 done    ? "bg-[var(--gbp-success)] text-white" :
+                omitted ? "border-2 border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-muted)]" :
                 active  ? "bg-[var(--gbp-accent)] text-white" :
                           "border-2 border-[var(--gbp-border)] text-[var(--gbp-muted)]"
               }`}>
-                {done ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
+                {done ? <CheckCircle2 className="h-4 w-4" /> : omitted ? <Minus className="h-4 w-4" /> : i + 1}
               </div>
               <span className={`text-xs font-semibold ${active ? "text-foreground" : "text-muted-foreground"}`}>
                 {step.label}
               </span>
             </div>
             {i < steps.length - 1 && (
-              <div className={`mx-3 h-px w-8 ${i < currentIdx ? "bg-[var(--gbp-success)]" : "bg-[var(--gbp-border)]"}`} />
+              <div className={`mx-3 h-px w-8 ${done ? "bg-[var(--gbp-success)]" : "bg-[var(--gbp-border)]"}`} />
             )}
           </div>
         );
@@ -68,22 +81,43 @@ function StepIndicator({ current, connected, steps }: { current: Step; connected
   );
 }
 
-export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorProfile, maxConnections, syncConfigsCount, planName, onComplete }: Props) {
+export function QboR365Onboarding({ qboConnected, vendorProfile, maxConnections, syncConfigsCount, planName, onComplete, onConfigureConnections }: Props) {
   // The integration setup is a QuickBooks-specific workflow and is always English.
   const t = useMemo(() => createTranslator("en"), []);
   const STEPS = useSteps(t);
-  const [step, setStep] = useState<Step>(initialQboConnected ? "vendor" : "auth");
-  const [qboConnected] = useState(initialQboConnected);
+  const [step, setStep] = useState<Step>(qboConnected ? "vendor" : "auth");
   const [oauthLoading, setOauthLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [skipping, setSkipping] = useState(false);
+  const [skippedSteps, setSkippedSteps] = useState<Set<Step>>(new Set());
+  const [vendorComplete, setVendorComplete] = useState(Boolean(
+    vendorProfile?.company?.trim()
+    && vendorProfile?.contactName?.trim()
+    && vendorProfile?.email?.trim(),
+  ));
 
   const [company,     setCompany]     = useState(vendorProfile?.company     ?? "");
   const [contactName, setContactName] = useState(vendorProfile?.contactName ?? "");
-  const [email,       setEmail]       = useState(vendorProfile?.email       ?? "");
+  const [email] = useState(vendorProfile?.email ?? "");
   const [phone,       setPhone]       = useState(vendorProfile?.phone       ?? "");
   const [address,     setAddress]     = useState(vendorProfile?.address     ?? "");
   const [website,     setWebsite]     = useState(vendorProfile?.website     ?? "");
+
+  useEffect(() => {
+    if (qboConnected) {
+      setStep((current) => current === "auth" ? "vendor" : current);
+      setSkippedSteps((current) => {
+        const next = new Set(current);
+        next.delete("auth");
+        return next;
+      });
+    }
+  }, [qboConnected]);
+
+  const completedSteps = new Set<Step>();
+  if (qboConnected) completedSteps.add("auth");
+  if (vendorComplete) completedSteps.add("vendor");
+  if (syncConfigsCount > 0) completedSteps.add("slots");
 
   async function connectQbo() {
     setOauthLoading(true);
@@ -98,7 +132,7 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
     }
   }
 
-  async function updateOnboarding(input: { vendorProfile?: VendorProfile; complete?: boolean }, busySetter: (value: boolean) => void) {
+  async function updateOnboarding(input: { vendorProfile?: VendorProfile; complete?: boolean; skip?: boolean }, busySetter: (value: boolean) => void) {
     busySetter(true);
     try {
       const res = await fetch("/api/company/integrations/qbo-r365/complete-onboarding", {
@@ -117,18 +151,47 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
   }
 
   async function saveVendorAndContinue() {
+    if (!company.trim() || !contactName.trim() || !email.trim()) {
+      toast.error(t("Completá compañía, nombre de contacto y email."));
+      return;
+    }
     const saved = await updateOnboarding(
       { vendorProfile: { company, contactName, email, phone, address, website } },
       setSaving,
     );
-    if (saved) setStep("slots");
+    if (saved) {
+      setVendorComplete(true);
+      setSkippedSteps((current) => {
+        const next = new Set(current);
+        next.delete("vendor");
+        return next;
+      });
+      setStep("slots");
+    }
   }
 
   async function finishOnboarding() {
+    if (syncConfigsCount === 0) {
+      onComplete();
+      onConfigureConnections();
+      return;
+    }
     const completed = await updateOnboarding({ complete: true }, setSkipping);
     if (!completed) return;
     toast.success(t("¡Onboarding completado! Ya podés gestionar tus conexiones."));
     onComplete();
+  }
+
+  async function skipOnboarding() {
+    const skipped = await updateOnboarding({ skip: true }, setSkipping);
+    if (!skipped) return;
+    toast.info(t("Podés completar la configuración más tarde desde Integraciones."));
+    onComplete();
+  }
+
+  function skipStep(current: Step, next: Step) {
+    setSkippedSteps((steps) => new Set(steps).add(current));
+    setStep(next);
   }
 
   const inputCls = "w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-[var(--gbp-accent)] focus:outline-none focus:ring-2 focus:ring-[color:color-mix(in_oklab,var(--gbp-accent)_15%,transparent)] transition";
@@ -149,14 +212,14 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
             </div>
             <button
               type="button"
-              onClick={() => void finishOnboarding()}
+              onClick={() => void skipOnboarding()}
               className="rounded-xl p-2 text-muted-foreground transition hover:bg-muted"
               title={t("Configurar más tarde")}
             >
               <X className="h-4 w-4" />
             </button>
           </div>
-          <StepIndicator current={step} connected={qboConnected} steps={STEPS} />
+          <StepIndicator current={step} completed={completedSteps} skipped={skippedSteps} steps={STEPS} />
         </div>
 
         {/* Body */}
@@ -211,7 +274,7 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
                 </div>
                 <div>
                   <label className={labelCls}>Email</label>
-                  <input className={inputCls} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="ops@company.com" />
+                  <input className={`${inputCls} cursor-not-allowed opacity-75`} type="email" value={email} readOnly aria-readonly="true" />
                 </div>
                 <div>
                   <label className={labelCls}>{t("Teléfono")}</label>
@@ -278,7 +341,7 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
         <div className="flex items-center justify-between border-t border-[var(--gbp-border)] px-8 py-5">
           <button
             type="button"
-            onClick={() => void finishOnboarding()}
+            onClick={() => void skipOnboarding()}
             disabled={saving || skipping}
             className="text-sm text-muted-foreground transition hover:text-foreground disabled:opacity-50"
           >
@@ -311,7 +374,7 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
                 {!qboConnected && (
                   <button
                     type="button"
-                    onClick={() => setStep("vendor")}
+                    onClick={() => skipStep("auth", "vendor")}
                     className="rounded-xl border border-[var(--gbp-border)] px-5 py-2.5 text-sm font-bold text-muted-foreground transition hover:bg-muted"
                   >
                     {t("Omitir por ahora")}
@@ -332,7 +395,7 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
               <>
                 <button
                   type="button"
-                  onClick={() => setStep("slots")}
+                  onClick={() => skipStep("vendor", "slots")}
                   disabled={saving}
                   className="rounded-xl border border-[var(--gbp-border)] px-5 py-2.5 text-sm font-bold text-muted-foreground transition hover:bg-muted disabled:opacity-50"
                 >
@@ -357,7 +420,7 @@ export function QboR365Onboarding({ qboConnected: initialQboConnected, vendorPro
                 disabled={skipping}
                 className="inline-flex items-center gap-2 rounded-xl bg-[var(--gbp-accent)] px-6 py-2.5 text-sm font-bold text-white shadow-[var(--gbp-shadow-accent)] transition hover:opacity-90 disabled:opacity-60"
               >
-                {skipping ? <><Loader2 className="h-4 w-4 animate-spin" /> {t("Guardando...")}</> : <>{t("Finalizar")} <ArrowRight className="h-4 w-4" /></>}
+                {skipping ? <><Loader2 className="h-4 w-4 animate-spin" /> {t("Guardando...")}</> : <>{syncConfigsCount > 0 ? t("Finalizar") : t("Configurar primera conexión")} <ArrowRight className="h-4 w-4" /></>}
               </button>
             )}
           </div>

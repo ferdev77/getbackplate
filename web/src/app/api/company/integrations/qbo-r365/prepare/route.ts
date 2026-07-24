@@ -3,7 +3,7 @@ import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { prepareQboR365Batch } from "@/modules/integrations/qbo-r365/service";
 
 export async function POST() {
-  const access = await assertCompanyAdminModuleApi("settings");
+  const access = await assertCompanyAdminModuleApi("qbo_r365");
   if (!access.ok) {
     return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }

@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 let supabaseHostname: string | null = null;
+let publicAppHostname: string | null = null;
 
 if (supabaseUrl) {
   try {
@@ -12,7 +13,16 @@ if (supabaseUrl) {
   }
 }
 
+if (process.env.NEXT_PUBLIC_APP_URL) {
+  try {
+    publicAppHostname = new URL(process.env.NEXT_PUBLIC_APP_URL).hostname;
+  } catch {
+    publicAppHostname = null;
+  }
+}
+
 const nextConfig: NextConfig = {
+  allowedDevOrigins: publicAppHostname ? [publicAppHostname] : [],
   async headers() {
     const supabaseHost = supabaseHostname ?? "*.supabase.co";
 

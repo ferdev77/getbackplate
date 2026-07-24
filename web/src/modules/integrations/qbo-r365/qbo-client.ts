@@ -7,11 +7,16 @@ import {
 const QBO_AUTHORIZE_URL = "https://appcenter.intuit.com/connect/oauth2";
 const QBO_TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer";
 const QBO_REVOKE_URL = "https://developer.api.intuit.com/v2/oauth2/tokens/revoke";
-const QBO_API_BASE_URL = "https://quickbooks.api.intuit.com";
+const QBO_REQUEST_TIMEOUT_MS = 20_000;
+const QBO_API_BASE_URL = process.env.QBO_API_BASE_URL?.trim()
+  || (process.env.QBO_ENVIRONMENT === "sandbox"
+    ? "https://sandbox-quickbooks.api.intuit.com"
+    : "https://quickbooks.api.intuit.com");
 
 type QboRequestContext = {
   organizationId?: string | null;
   runId?: string | null;
+  deadlineEpochMs?: number;
 };
 
 type ExchangeTokenInput = QboRequestContext & {
@@ -65,6 +70,7 @@ export type QboInvoiceLike = {
   PONumber?: string;
   SalesTermRef?: { value?: string; name?: string };
   PrivateNote?: string;
+  EmailStatus?: string;
   MetaData?: {
     LastUpdatedTime?: string;
   };
@@ -89,6 +95,31 @@ type QueryResponse<T> = {
 
 type QboFaultError = { message?: string; detail?: string; code?: string; Message?: string; Detail?: string };
 
+export class QboAuthorizationError extends Error {
+  readonly revoked: boolean;
+
+  constructor(message: string, options: { revoked?: boolean } = {}) {
+    super(message);
+    this.name = "QboAuthorizationError";
+    this.revoked = options.revoked ?? false;
+  }
+}
+
+function qboFaultCode(payload: unknown) {
+  if (!payload || typeof payload !== "object") return "";
+  const record = payload as {
+    Fault?: { Error?: QboFaultError[] };
+    fault?: { error?: QboFaultError[] };
+  };
+  return String(record.Fault?.Error?.[0]?.code ?? record.fault?.error?.[0]?.code ?? "").trim();
+}
+
+function throwIfQboAuthorizationFailed(response: Response, payload: unknown) {
+  if (response.status === 401 || qboFaultCode(payload) === "3100") {
+    throw new QboAuthorizationError("QuickBooks authorization is no longer valid. Reconnect QuickBooks® Online.");
+  }
+}
+
 function basicAuth(clientId: string, clientSecret: string) {
   return Buffer.from(`${clientId}:${clientSecret}`, "utf8").toString("base64");
 }
@@ -108,7 +139,10 @@ export async function fetchWithIntuitTelemetry(
   recorder: IntuitTelemetryRecorder = recordIntuitApiResponse,
 ) {
   const startedAt = performance.now();
-  const response = await fetch(url, init);
+  const response = await fetch(url, {
+    ...init,
+    signal: init.signal ?? AbortSignal.timeout(QBO_REQUEST_TIMEOUT_MS),
+  });
   try {
     await recorder({
       ...metadata,
@@ -146,8 +180,17 @@ async function fetchToken(
     ...context,
   });
 
-  const data = (await response.json().catch(() => ({}))) as Partial<QboTokenResponse> & { error_description?: string };
+  const data = (await response.json().catch(() => ({}))) as Partial<QboTokenResponse> & {
+    error?: string;
+    error_description?: string;
+  };
   if (!response.ok || !data.access_token || !data.refresh_token || !data.expires_in || !data.token_type) {
+    if (operation === "oauth.refresh_token" && data.error === "invalid_grant") {
+      throw new QboAuthorizationError(
+        data.error_description || "QuickBooks access was revoked. Reconnect QuickBooks® Online.",
+        { revoked: true },
+      );
+    }
     throw new Error(data.error_description || "Unable to authenticate with QuickBooks® Online.");
   }
 
@@ -211,10 +254,45 @@ export async function revokeQboToken(input: {
   });
 
   if (!response.ok) {
-    const data = (await response.json().catch(() => ({}))) as QboFaultError;
-    const message = data.message || data.Message || "";
+    const data = (await response.json().catch(() => ({}))) as QboFaultError & {
+      error?: string;
+      error_description?: string;
+    };
+    const message = data.message || data.Message || data.error_description || data.error || "";
     if (response.status === 400 && /invalid.*token|token.*invalid|already.*revok/i.test(message)) return;
     throw new Error(message || "Unable to revoke QuickBooks® Online access.");
+  }
+}
+
+export async function fetchQboCompanyInfo(input: {
+  accessToken: string;
+  realmId: string;
+} & QboRequestContext) {
+  const encodedRealmId = encodeURIComponent(input.realmId);
+  const response = await fetchWithIntuitTelemetry(
+    `${QBO_API_BASE_URL}/v3/company/${encodedRealmId}/companyinfo/${encodedRealmId}?minorversion=75`,
+    {
+      headers: {
+        Authorization: `Bearer ${input.accessToken}`,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    },
+    {
+      operation: "accounting.get_company_info",
+      endpoint: "/v3/company/:realmId/companyinfo/:realmId",
+      organizationId: input.organizationId,
+      runId: input.runId,
+      realmId: input.realmId,
+    },
+  );
+  const payload = (await response.json().catch(() => ({}))) as {
+    CompanyInfo?: { Id?: string };
+    Fault?: { Error?: QboFaultError[] };
+  };
+  throwIfQboAuthorizationFailed(response, payload);
+  if (!response.ok || !payload.CompanyInfo) {
+    throw new Error("QuickBooks did not confirm the selected company.");
   }
 }
 
@@ -273,6 +351,10 @@ async function queryQboTable<T>(input: {
   }) => payload.Fault?.Error?.[0] ?? payload.fault?.error?.[0];
 
   const doRequest = async (baseUrl: string, query: string) => {
+    const remainingMs = input.deadlineEpochMs
+      ? input.deadlineEpochMs - Date.now()
+      : QBO_REQUEST_TIMEOUT_MS;
+    if (remainingMs <= 0) throw new Error("QBO request deadline reached.");
     const response = await fetchWithIntuitTelemetry(
       `${baseUrl}/v3/company/${input.realmId}/query?minorversion=75`,
       {
@@ -284,6 +366,7 @@ async function queryQboTable<T>(input: {
         },
         body: query,
         cache: "no-store",
+        signal: AbortSignal.timeout(Math.max(1, Math.min(QBO_REQUEST_TIMEOUT_MS, remainingMs))),
       }, {
         operation: `accounting.query_${input.table.toLowerCase()}`,
         endpoint: "/v3/company/{realmId}/query",
@@ -327,6 +410,7 @@ async function queryQboTable<T>(input: {
     const query = `select * from ${input.table}${where} startposition ${startPosition} maxresults ${pageSize}`;
 
     const { response, payload, fault } = await doRequest(QBO_API_BASE_URL, query);
+    throwIfQboAuthorizationFailed(response, payload);
     const message = (fault?.Detail ?? fault?.Message ?? fault?.detail ?? fault?.message ?? "").trim();
 
     if (!response.ok) {
@@ -390,6 +474,7 @@ export async function fetchQboSalesTransactions(input: {
     txnDateFrom: input.txnDateFrom,
     organizationId: input.organizationId,
     runId: input.runId,
+    deadlineEpochMs: input.deadlineEpochMs,
   });
   const salesReceiptQuery = input.skipSalesReceipts
     ? Promise.resolve([] as QboInvoiceLike[])
@@ -402,6 +487,7 @@ export async function fetchQboSalesTransactions(input: {
         txnDateFrom: input.txnDateFrom,
         organizationId: input.organizationId,
         runId: input.runId,
+        deadlineEpochMs: input.deadlineEpochMs,
       });
   const creditMemoQuery = queryQboTable<QboInvoiceLike>({
     accessToken: input.accessToken,
@@ -412,6 +498,7 @@ export async function fetchQboSalesTransactions(input: {
     txnDateFrom: input.txnDateFrom,
     organizationId: input.organizationId,
     runId: input.runId,
+    deadlineEpochMs: input.deadlineEpochMs,
   });
   const [invoices, salesReceipts, creditMemos] = await Promise.all([invoiceQuery, salesReceiptQuery, creditMemoQuery]);
 
@@ -446,6 +533,9 @@ export async function fetchQboRawTransaction(input: {
   realmId: string;
   invoiceId: string;
 } & QboRequestContext): Promise<{ type: string; data: unknown } | null> {
+  if (!/^[A-Za-z0-9_-]{1,100}$/.test(input.invoiceId)) {
+    throw new Error("Invalid QuickBooks entity ID.");
+  }
   const types = ["Invoice", "SalesReceipt", "CreditMemo"] as const;
   for (const type of types) {
     const query = `select * from ${type} where Id = '${input.invoiceId}'`;
@@ -469,6 +559,7 @@ export async function fetchQboRawTransaction(input: {
       },
     );
     const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+    throwIfQboAuthorizationFailed(response, payload);
     const qr = (payload.QueryResponse ?? payload.queryResponse) as Record<string, unknown> | undefined;
     const items = (qr?.[type] ?? []) as unknown[];
     if (items.length > 0) {
@@ -496,6 +587,9 @@ export async function fetchQboCrudoTransaction(input: {
     matchedCount: number;
   }>;
 }> {
+  if (!/^[A-Za-z0-9_-]{1,100}$/.test(input.invoiceId)) {
+    throw new Error("Invalid QuickBooks entity ID.");
+  }
   const types = ["Invoice", "SalesReceipt", "CreditMemo"] as const;
   const attempts: Array<{
     type: string;
@@ -533,6 +627,7 @@ export async function fetchQboCrudoTransaction(input: {
     );
 
     const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+    throwIfQboAuthorizationFailed(response, payload);
     const qr = (payload.QueryResponse ?? payload.queryResponse) as Record<string, unknown> | undefined;
     const items = (qr?.[type] ?? []) as unknown[];
 
@@ -605,6 +700,7 @@ export async function fetchQboItemSkus(input: {
     const payload = (await response.json().catch(() => ({}))) as {
       QueryResponse?: { Item?: Array<{ Id?: string; Sku?: string; Name?: string }> };
     };
+    throwIfQboAuthorizationFailed(response, payload);
 
     if (!response.ok) break;
 
@@ -663,6 +759,7 @@ export async function fetchQboTransactionByDocNumber(input: {
     const payload = (await response.json().catch(() => ({}))) as QueryResponse<QboInvoiceLike> & {
       Fault?: { Error?: QboFaultError[] };
     };
+    throwIfQboAuthorizationFailed(response, payload);
     if (!response.ok) {
       const fault = payload.Fault?.Error?.[0];
       throw new Error(fault?.Detail ?? fault?.Message ?? `Unable to query ${type} by document number in QuickBooks® Online.`);
@@ -715,8 +812,9 @@ export async function fetchQboCustomerById(input: {
       runId: input.runId,
     },
   );
-  if (!response.ok) return null;
   const payload = (await response.json().catch(() => null)) as { Customer?: Record<string, unknown> } | null;
+  throwIfQboAuthorizationFailed(response, payload);
+  if (!response.ok) return null;
   const c = payload?.Customer;
   if (!c || typeof c.Id !== "string" || typeof c.DisplayName !== "string") return null;
 
@@ -781,6 +879,7 @@ export async function fetchQboCustomers(input: {
     const payload = (await response.json().catch(() => ({}))) as {
       QueryResponse?: { Customer?: RawCustomer[] };
     };
+    throwIfQboAuthorizationFailed(response, payload);
 
     if (!response.ok) {
       throw new Error("Unable to query customers in QuickBooks® Online.");

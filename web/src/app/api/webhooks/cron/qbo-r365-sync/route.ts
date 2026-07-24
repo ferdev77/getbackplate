@@ -16,7 +16,13 @@
  *   - mapeada   → reintento de FTP send
  */
 import { NextResponse } from "next/server";
-import { processQboUnifiedQueue } from "@/modules/integrations/qbo-r365/service";
+import {
+  processPendingQboDisconnects,
+  processQboUnifiedQueue,
+  reconcileQboChangedTransactions,
+} from "@/modules/integrations/qbo-r365/service";
+
+export const maxDuration = 300;
 
 export async function GET(request: Request) {
   return processCron(request);
@@ -39,8 +45,12 @@ async function processCron(request: Request) {
   }
 
   try {
-    const result = await processQboUnifiedQueue();
-    return NextResponse.json({ success: true, ...result }, { status: 200 });
+    const [disconnects, reconciliation] = await Promise.all([
+      processPendingQboDisconnects(),
+      reconcileQboChangedTransactions(5, 60_000),
+    ]);
+    const queue = await processQboUnifiedQueue();
+    return NextResponse.json({ success: true, disconnects, reconciliation, queue }, { status: 200 });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Internal Server Error" },

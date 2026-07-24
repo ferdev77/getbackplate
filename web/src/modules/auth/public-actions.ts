@@ -28,6 +28,7 @@ export async function registerPublicAction(formData: FormData) {
     const planIdParam = String(formData.get("planId") ?? "").trim();
     const integrationPlanIdParam = String(formData.get("integrationPlanId") ?? "").trim();
     const billingPeriodParam = String(formData.get("billingPeriod") ?? "").trim();
+    const includeSetupFee = String(formData.get("includeSetupFee") ?? "1") !== "0";
     const normalizedBillingPeriod =
       billingPeriodParam === "yearly" || billingPeriodParam === "annual" ? "yearly" : "monthly";
     
@@ -182,7 +183,7 @@ export async function registerPublicAction(formData: FormData) {
     // 6. Continue the selected checkout flow after the new session is established.
     if (integrationPlanIdParam) {
       const integrationPeriod = billingPeriodParam === "annual" ? "annual" : "monthly";
-      redirect(`/app/dashboard?welcome=true&selectIntegrationPlanId=${encodeURIComponent(integrationPlanIdParam)}&billingPeriod=${integrationPeriod}`);
+      redirect(`/app/dashboard?welcome=true&selectIntegrationPlanId=${encodeURIComponent(integrationPlanIdParam)}&billingPeriod=${integrationPeriod}&includeSetupFee=${includeSetupFee ? "1" : "0"}`);
     }
 
     if (planIdParam) {

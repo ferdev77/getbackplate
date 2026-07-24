@@ -104,6 +104,9 @@ export async function proxy(request: NextRequest) {
   // Rate limit API and auth routes
   const path = request.nextUrl.pathname;
   const method = request.method.toUpperCase();
+  if (path === "/api/webhooks/qbo" && method === "POST") {
+    return NextResponse.next();
+  }
 
   const authType = request.nextUrl.searchParams.get("type");
   const isSupportedAuthType =
@@ -136,7 +139,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(callbackUrl);
   }
 
-  const shouldRateLimit = path.startsWith("/api/") || (path.startsWith("/auth/") && method !== "GET");
+  const shouldRateLimit = path.startsWith("/api/")
+    || (path.startsWith("/auth/") && method !== "GET")
+    || path === "/integrations/qbo-r365/disconnected";
 
   if (ratelimit && shouldRateLimit) {
     const forwardedFor = request.headers.get("x-forwarded-for");

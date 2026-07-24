@@ -6,7 +6,7 @@ import { syncConfigUpdateSchema } from "@/modules/integrations/qbo-r365/types";
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_req: Request, { params }: Params) {
-  const access = await assertCompanyAdminModuleApi("settings");
+  const access = await assertCompanyAdminModuleApi("qbo_r365");
   if (!access.ok) {
     return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }
@@ -26,7 +26,7 @@ export async function GET(_req: Request, { params }: Params) {
 }
 
 export async function PUT(request: Request, { params }: Params) {
-  const access = await assertCompanyAdminModuleApi("settings");
+  const access = await assertCompanyAdminModuleApi("qbo_r365");
   if (!access.ok) {
     return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }
@@ -50,7 +50,7 @@ export async function PUT(request: Request, { params }: Params) {
 }
 
 export async function DELETE(_req: Request, { params }: Params) {
-  const access = await assertCompanyAdminModuleApi("settings");
+  const access = await assertCompanyAdminModuleApi("qbo_r365");
   if (!access.ok) {
     return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }

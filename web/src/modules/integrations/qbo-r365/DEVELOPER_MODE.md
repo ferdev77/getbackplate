@@ -57,7 +57,7 @@ Estos cuatro parámetros determinan exactamente qué datos trae la API de QuickB
 |---|---|---|
 | **Cliente QBO** | `qbo_r365_sync_configs.qbo_customer_id` | Agrega `WHERE CustomerRef = 'X'` — filtra facturas por cliente |
 | **Lookback** | `qbo_r365_sync_configs.lookback_hours` | Agrega `WHERE MetaData.LastUpdatedTime >= 'X'` — ventana de tiempo |
-| **Sandbox** | `integration_connections.config.useSandbox` | Cambia el endpoint base (`sandbox-quickbooks.api.intuit.com` vs `quickbooks.api.intuit.com`) |
+| **Sandbox** | `QBO_ENVIRONMENT=sandbox` o `QBO_API_BASE_URL` | Cambia el endpoint base (`sandbox-quickbooks.api.intuit.com` vs `quickbooks.api.intuit.com`) |
 | **RealmId** | `integration_connections.config.realmId` | Identifica la empresa en QBO (se obtiene en el OAuth callback) |
 
 > Si `lookback_hours = 0` o se ejecuta con `ignoreLookback = true`, se traen **todas** las

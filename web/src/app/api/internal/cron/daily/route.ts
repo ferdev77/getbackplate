@@ -146,6 +146,22 @@ export async function GET(request: Request) {
       error: intuitResponseLogError?.message ?? null,
     });
 
+    const [
+      { count: receiptCount, error: receiptError },
+      { count: reconciliationCount, error: reconciliationError },
+      { count: oauthAttemptCount, error: oauthAttemptError },
+    ] = await Promise.all([
+      admin.from("qbo_webhook_receipts").delete({ count: "exact" }).lt("received_at", operationalCutoff.toISOString()),
+      admin.from("qbo_cdc_reconciliation_runs").delete({ count: "exact" }).lt("created_at", operationalCutoff.toISOString()),
+      admin.from("qbo_oauth_attempts").delete({ count: "exact" }).lt("expires_at", operationalCutoff.toISOString()),
+    ]);
+    results.push({
+      task: "purgeQboReliabilityLogs",
+      status: receiptError || reconciliationError || oauthAttemptError ? 500 : 200,
+      recordsDeleted: (receiptCount ?? 0) + (reconciliationCount ?? 0) + (oauthAttemptCount ?? 0),
+      error: receiptError?.message ?? reconciliationError?.message ?? oauthAttemptError?.message ?? null,
+    });
+
     // 10. Recreate any superadmin_leads row that failed to insert when a vendor
     // referral was first submitted (createLead upserts, so this is safe to re-run daily).
     const leadReconciliation = await reconcileOrphanReferralLeads();

@@ -3,7 +3,7 @@ import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { listQboWebhookEvents, processPendingQboWebhookEvents } from "@/modules/integrations/qbo-r365/service";
 
 export async function GET(request: Request) {
-  const access = await assertCompanyAdminModuleApi("settings");
+  const access = await assertCompanyAdminModuleApi("qbo_r365");
   if (!access.ok) return NextResponse.json({ error: "Access denied." }, { status: access.status });
 
   const url = new URL(request.url);
@@ -13,7 +13,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const access = await assertCompanyAdminModuleApi("settings");
+  const access = await assertCompanyAdminModuleApi("qbo_r365");
   if (!access.ok) return NextResponse.json({ error: "Access denied." }, { status: access.status });
 
   await request.json().catch(() => ({}));

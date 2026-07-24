@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { processPendingQboWebhookEvents } from "@/modules/integrations/qbo-r365/service";
+import { processPendingQboDisconnects } from "@/modules/integrations/qbo-r365/service";
+import { drainPendingQboWebhookReceipts } from "@/modules/integrations/qbo-r365/qbo-webhook-receipts";
+
+export const maxDuration = 60;
 
 export async function GET(request: Request) {
   return handle(request);
@@ -19,6 +22,9 @@ async function handle(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const result = await processPendingQboWebhookEvents();
-  return NextResponse.json(result, { status: 200 });
+  const [receipts, disconnects] = await Promise.all([
+    drainPendingQboWebhookReceipts(),
+    processPendingQboDisconnects(),
+  ]);
+  return NextResponse.json({ receipts, disconnects }, { status: 200 });
 }

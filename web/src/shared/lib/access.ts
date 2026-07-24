@@ -62,6 +62,39 @@ function buildChangePasswordRedirect(nextPath: string) {
   return `/auth/change-password?reason=first_login&next=${encodeURIComponent(nextPath)}`;
 }
 
+export function resolveMembershipLandingPath({
+  memberships,
+  preferredOrganizationId,
+  isSuperadmin,
+}: {
+  memberships: MembershipContext[];
+  preferredOrganizationId?: string | null;
+  isSuperadmin: boolean;
+}) {
+  if (isSuperadmin) return "/superadmin/dashboard";
+
+  const organizationCount = new Set(memberships.map((membership) => membership.organizationId)).size;
+  const preferredMemberships = preferredOrganizationId
+    ? memberships.filter((membership) => membership.organizationId === preferredOrganizationId)
+    : [];
+
+  if ((!preferredOrganizationId || preferredMemberships.length === 0) && organizationCount > 1) {
+    return "/auth/select-organization";
+  }
+
+  const candidates = preferredMemberships.length > 0 ? preferredMemberships : memberships;
+  if (candidates.some((membership) => membership.roleCode === "company_admin")) {
+    return "/app/dashboard";
+  }
+  if (candidates.some((membership) => membership.roleCode === "employee")) {
+    return "/portal/home";
+  }
+
+  return "/auth/login?error=" + encodeURIComponent(
+    "Your account does not have assigned access to an organization.",
+  );
+}
+
 type TenantModuleApiAccessResult =
   | {
       ok: true;
@@ -699,10 +732,11 @@ export async function requireCompanyAccess() {
       requiredRole: "company_admin",
       pathHint: "/app/*",
     });
-    redirect(
-      "/portal/home?status=error&message=" +
-        encodeURIComponent("Your account does not have access to the company dashboard."),
-    );
+    redirect(resolveMembershipLandingPath({
+      memberships: context.memberships,
+      preferredOrganizationId: context.preferredOrganizationId,
+      isSuperadmin,
+    }));
   }
 
   // La verificacion en dos pasos ya se resuelve durante el login (ver
@@ -771,18 +805,9 @@ export async function requireEmployeeAccess() {
         } satisfies MembershipContext;
       }
 
-      await logAccessDeniedEvent({
-        area: "employee",
-        reasonCode: AUDIT_REASON_CODES.MISSING_EMPLOYEE_ROLE,
-        organizationId: preferredOrganizationId,
-        branchId: ctx.branch_id ?? null,
-        requiredRole: "employee",
-        pathHint: "/portal/*",
-      });
-      redirect(
-        "/app/dashboard?status=error&message=" +
-          encodeURIComponent("Your account does not have access to the employee portal."),
-      );
+      if (ctx.has_membership && ctx.role_code === "company_admin") {
+        redirect("/app/dashboard");
+      }
     }
   }
 
@@ -813,10 +838,11 @@ async function requireEmployeeAccessFallback(userId: string) {
       requiredRole: "employee",
       pathHint: "/portal/*",
     });
-    redirect(
-      "/app/dashboard?status=error&message=" +
-        encodeURIComponent("Your account does not have access to the employee portal."),
-    );
+    redirect(resolveMembershipLandingPath({
+      memberships: context.memberships,
+      preferredOrganizationId: context.preferredOrganizationId,
+      isSuperadmin,
+    }));
   }
 
   return employeeMembership;

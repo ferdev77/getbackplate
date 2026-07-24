@@ -8,10 +8,12 @@ function getVerifierToken() {
   return token;
 }
 
-export function verifyQboWebhookSignature(rawBody: string, receivedSignature: string | null) {
+export function verifyQboWebhookSignature(rawBody: string | Uint8Array, receivedSignature: string | null) {
   if (!receivedSignature) return false;
   const token = getVerifierToken();
-  const expected = createHmac("sha256", token).update(rawBody, "utf8").digest("base64");
+  const expected = createHmac("sha256", token)
+    .update(typeof rawBody === "string" ? Buffer.from(rawBody, "utf8") : rawBody)
+    .digest("base64");
 
   const expectedBuffer = Buffer.from(expected, "utf8");
   const receivedBuffer = Buffer.from(receivedSignature.trim(), "utf8");

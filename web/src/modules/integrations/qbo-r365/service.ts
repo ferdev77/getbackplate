@@ -1,4 +1,5 @@
 import { after } from "next/server";
+import { createHash, randomUUID } from "crypto";
 import { Client as FtpClient } from "basic-ftp";
 import { Readable } from "stream";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
@@ -7,10 +8,10 @@ import { logAuditEvent } from "@/shared/lib/audit";
 import { getCanonicalAppUrl } from "@/shared/lib/app-url";
 import { decryptJsonPayload, encryptJsonPayload, hashQboRealmId } from "@/modules/integrations/qbo-r365/crypto";
 import { createOAuthStateToken } from "@/modules/integrations/qbo-r365/oauth-state";
-import { shouldApplyQboAppDisconnect } from "@/modules/integrations/qbo-r365/lifecycle";
 import {
   buildQboAuthorizeUrl,
   exchangeQboOAuthCode,
+  fetchQboCompanyInfo,
   fetchQboCustomerById,
   fetchQboCrudoTransaction,
   fetchQboCustomers,
@@ -18,6 +19,7 @@ import {
   fetchQboRawTransaction,
   fetchQboSalesTransactions,
   fetchQboTransactionByDocNumber,
+  QboAuthorizationError,
   refreshQboAccessToken,
   revokeQboToken,
   type QboCustomer,
@@ -45,10 +47,21 @@ type ConnectionRow = {
   secrets_iv: string | null;
   secrets_tag: string | null;
   realm_id_hash: string | null;
+  qbo_authorization_version: number;
+  qbo_disconnect_state: "none" | "portal_pending" | "app_pending" | "portal_review" | "app_review";
+  qbo_disconnect_requested_at: string | null;
+  qbo_disconnect_next_attempt_at: string | null;
+  qbo_disconnect_last_attempt_at: string | null;
+  qbo_disconnect_attempts: number;
+  qbo_disconnect_last_error_code: string | null;
+  qbo_oauth_claim_id: string | null;
+  qbo_oauth_claimed_at: string | null;
   connected_at: string | null;
   last_error: string | null;
   updated_at: string;
 };
+
+const CONNECTION_SELECT = "id, organization_id, provider, status, config, secrets_ciphertext, secrets_iv, secrets_tag, realm_id_hash, qbo_authorization_version, qbo_disconnect_state, qbo_disconnect_requested_at, qbo_disconnect_next_attempt_at, qbo_disconnect_last_attempt_at, qbo_disconnect_attempts, qbo_disconnect_last_error_code, qbo_oauth_claim_id, qbo_oauth_claimed_at, connected_at, last_error, updated_at";
 
 export class QboRealmOwnershipError extends Error {
   constructor() {
@@ -132,7 +145,7 @@ async function getConnection(organizationId: string, provider: IntegrationProvid
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin
     .from("integration_connections")
-    .select("id, organization_id, provider, status, config, secrets_ciphertext, secrets_iv, secrets_tag, realm_id_hash, connected_at, last_error, updated_at")
+    .select(CONNECTION_SELECT)
     .eq("organization_id", organizationId)
     .eq("provider", provider)
     .maybeSingle();
@@ -457,6 +470,7 @@ export async function removeCustomerFromSyncConfig(
 ): Promise<void> {
   const admin = createSupabaseAdminClient();
 
+  await getSyncConfigRow(organizationId, syncConfigId);
   const current = await getSyncConfigCustomers(syncConfigId);
   if (current.length <= 1) {
     throw new Error("The only customer cannot be removed from this synchronization. Delete the synchronization if you no longer need it.");
@@ -473,60 +487,38 @@ export async function removeCustomerFromSyncConfig(
 }
 
 export async function listQboCustomers(organizationId: string): Promise<QboCustomer[]> {
-  const qboConnection = await getConnection(organizationId, "quickbooks_online");
-  if (!qboConnection || qboConnection.status !== "connected") {
-    throw new Error("QuickBooks® Online is not connected.");
-  }
-
-  const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
-
-  return fetchQboCustomers({
-    accessToken: qboAuth.accessToken,
-    realmId: qboAuth.realmId,
-    organizationId,
-  });
+  return withQboAuthorizationRetry({ organizationId }, (qboAuth) => fetchQboCustomers({
+      accessToken: qboAuth.accessToken,
+      realmId: qboAuth.realmId,
+      organizationId,
+    }));
 }
 
 export async function getQboCustomerById(organizationId: string, customerId: string): Promise<QboCustomer | null> {
-  const qboConnection = await getConnection(organizationId, "quickbooks_online");
-  if (!qboConnection || qboConnection.status !== "connected") {
-    throw new Error("QuickBooks® Online is not connected.");
-  }
-  const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
-  return fetchQboCustomerById({
+  return withQboAuthorizationRetry({ organizationId }, (qboAuth) => fetchQboCustomerById({
     accessToken: qboAuth.accessToken,
     realmId: qboAuth.realmId,
     customerId,
     organizationId,
-  });
+  }));
 }
 
 export async function fetchRawQboInvoice(organizationId: string, invoiceId: string) {
-  const qboConnection = await getConnection(organizationId, "quickbooks_online");
-  if (!qboConnection || qboConnection.status !== "connected") {
-    throw new Error("QuickBooks® Online is not connected.");
-  }
-  const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
-  return fetchQboRawTransaction({
+  return withQboAuthorizationRetry({ organizationId }, (qboAuth) => fetchQboRawTransaction({
     accessToken: qboAuth.accessToken,
     realmId: qboAuth.realmId,
     invoiceId,
     organizationId,
-  });
+  }));
 }
 
 export async function fetchCrudoQboInvoice(organizationId: string, invoiceId: string, syncConfigId?: string | null) {
-  const qboConnection = await getConnection(organizationId, "quickbooks_online");
-  if (!qboConnection || qboConnection.status !== "connected") {
-    throw new Error("QuickBooks® Online is not connected.");
-  }
-  const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
-  const transactionCrudo = await fetchQboCrudoTransaction({
+  const transactionCrudo = await withQboAuthorizationRetry({ organizationId }, (qboAuth) => fetchQboCrudoTransaction({
     accessToken: qboAuth.accessToken,
     realmId: qboAuth.realmId,
     invoiceId,
     organizationId,
-  });
+  }));
 
   let syncCustomer: {
     id: string;
@@ -555,12 +547,7 @@ export async function fetchCrudoQboInvoice(organizationId: string, invoiceId: st
 
     const qboCustomerId = typeof syncConfig?.qbo_customer_id === "string" ? syncConfig.qbo_customer_id : null;
     if (qboCustomerId) {
-      syncCustomer = await fetchQboCustomerById({
-        accessToken: qboAuth.accessToken,
-        realmId: qboAuth.realmId,
-        customerId: qboCustomerId,
-        organizationId,
-      });
+      syncCustomer = await getQboCustomerById(organizationId, qboCustomerId);
     }
   }
 
@@ -575,12 +562,7 @@ export async function fetchCrudoQboInvoice(organizationId: string, invoiceId: st
   const invoiceCustomerId = typeof customerRef.value === "string" ? customerRef.value : null;
 
   if (invoiceCustomerId) {
-    invoiceCustomer = await fetchQboCustomerById({
-      accessToken: qboAuth.accessToken,
-      realmId: qboAuth.realmId,
-      customerId: invoiceCustomerId,
-      organizationId,
-    });
+    invoiceCustomer = await getQboCustomerById(organizationId, invoiceCustomerId);
   }
 
   return {
@@ -1006,6 +988,7 @@ export async function getQboR365Snapshot(
     },
     qbo: {
       status: qboConnection?.status ?? "disconnected",
+      disconnectState: qboConnection?.qbo_disconnect_state ?? "none",
       hasClientId: globalQbo.ready,
       hasClientSecret: globalQbo.ready,
       clientId: options?.includeSensitive && globalQbo.clientId ? globalQbo.clientId : null,
@@ -1106,6 +1089,7 @@ export async function upsertQboR365Config(input: {
 export async function buildQboOAuthStartUrl(input: {
   organizationId: string;
   actorId: string;
+  returnOrigin: string;
 }) {
   const globalQbo = getGlobalQboOAuthConfig();
   if (!globalQbo.ready) {
@@ -1113,11 +1097,102 @@ export async function buildQboOAuthStartUrl(input: {
   }
 
   const state = createOAuthStateToken(input.organizationId, input.actorId);
+  const admin = createSupabaseAdminClient();
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+  const stateHash = createHash("sha256").update(state).digest("hex");
+  const { error } = await admin.from("qbo_oauth_attempts").insert({
+    state_hash: stateHash,
+    organization_id: input.organizationId,
+    user_id: input.actorId,
+    return_origin: input.returnOrigin,
+    expires_at: expiresAt,
+  });
+  if (error) throw new Error(error.message);
   return buildQboAuthorizeUrl({
     clientId: globalQbo.clientId,
     redirectUri: globalQbo.redirectUri,
     state,
   });
+}
+
+export async function assertQboOAuthAttemptAuthorized(input: {
+  organizationId: string;
+  userId: string;
+}) {
+  const admin = createSupabaseAdminClient();
+  const { data: membership, error: membershipError } = await admin
+    .from("memberships")
+    .select("id, roles!inner(code)")
+    .eq("organization_id", input.organizationId)
+    .eq("user_id", input.userId)
+    .eq("status", "active")
+    .eq("roles.code", "company_admin")
+    .maybeSingle();
+  if (membershipError) throw new Error(membershipError.message);
+  if (!membership) {
+    const now = new Date().toISOString();
+    const [{ data: superadmin, error: superadminError }, { data: impersonation, error: impersonationError }] = await Promise.all([
+      admin.from("superadmin_users")
+        .select("user_id")
+        .eq("user_id", input.userId)
+        .maybeSingle(),
+      admin.from("superadmin_impersonation_sessions")
+        .select("id")
+        .eq("superadmin_user_id", input.userId)
+        .eq("organization_id", input.organizationId)
+        .is("revoked_at", null)
+        .gt("expires_at", now)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    if (superadminError) throw new Error(superadminError.message);
+    if (impersonationError) throw new Error(impersonationError.message);
+    if (!superadmin || !impersonation) throw new Error("OAuth authorization is no longer valid.");
+  }
+
+  const { data: moduleEnabled, error: moduleError } = await admin.rpc("is_module_enabled", {
+    org_id: input.organizationId,
+    module_code: "qbo_r365",
+  });
+  if (moduleError) throw new Error(moduleError.message);
+  if (moduleEnabled !== true) throw new Error("OAuth authorization is no longer valid.");
+}
+
+export async function consumeQboOAuthAttempt(input: {
+  state: string;
+  organizationId: string;
+  userId: string;
+}) {
+  const admin = createSupabaseAdminClient();
+  const stateHash = createHash("sha256").update(input.state).digest("hex");
+  const now = new Date().toISOString();
+  const { data, error } = await admin.from("qbo_oauth_attempts")
+    .update({ status: "processing", consumed_at: now, updated_at: now })
+    .eq("state_hash", stateHash)
+    .eq("organization_id", input.organizationId)
+    .eq("user_id", input.userId)
+    .eq("status", "started")
+    .is("consumed_at", null)
+    .gt("expires_at", now)
+    .select("id, return_origin")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("OAuth authorization is invalid or expired.");
+  return { id: String(data.id), returnOrigin: String(data.return_origin) };
+}
+
+export async function finishQboOAuthAttempt(
+  id: string,
+  status: "completed" | "failed",
+  failureCode?: string,
+) {
+  const admin = createSupabaseAdminClient();
+  await admin.from("qbo_oauth_attempts").update({
+    status,
+    failure_code: failureCode ?? null,
+    updated_at: new Date().toISOString(),
+  }).eq("id", id).eq("status", "processing");
 }
 
 async function storeQboConnectionToken(input: {
@@ -1135,7 +1210,7 @@ async function storeQboConnectionToken(input: {
 
   const connection = await getConnection(input.organizationId, "quickbooks_online");
   const config = (connection?.config ?? {}) as Record<string, unknown>;
-  if (config.disconnectInProgress === true) {
+  if (config.disconnectInProgress === true || ["app_pending", "app_review"].includes(connection?.qbo_disconnect_state ?? "")) {
     throw new Error("QuickBooks is currently being disconnected. Please try again.");
   }
   const currentSecrets = parseConnectionSecrets<QboStoredSecrets>(connection);
@@ -1166,6 +1241,15 @@ async function storeQboConnectionToken(input: {
       secrets_iv: encrypted.iv,
       secrets_tag: encrypted.tag,
       realm_id_hash: realmIdHash,
+      qbo_authorization_version: Number(connection.qbo_authorization_version ?? 0) + 1,
+      qbo_disconnect_state: "none",
+      qbo_disconnect_requested_at: null,
+      qbo_disconnect_next_attempt_at: null,
+      qbo_disconnect_last_attempt_at: null,
+      qbo_disconnect_attempts: 0,
+      qbo_disconnect_last_error_code: null,
+      qbo_oauth_claim_id: null,
+      qbo_oauth_claimed_at: null,
       connected_at: new Date().toISOString(),
       last_error: null,
       updated_by: input.actorId,
@@ -1184,6 +1268,14 @@ async function storeQboConnectionToken(input: {
       connectedAt: new Date().toISOString(),
       lastError: null,
     });
+    const createdConnection = await getConnection(input.organizationId, "quickbooks_online");
+    if (createdConnection) {
+      const admin = createSupabaseAdminClient();
+      await admin.from("integration_connections").update({
+        qbo_authorization_version: 1,
+        qbo_disconnect_state: "none",
+      }).eq("id", createdConnection.id);
+    }
   }
 
   await logAuditEvent({
@@ -1224,6 +1316,12 @@ export async function completeQboOAuthCallback(input: {
     organizationId: input.organizationId,
   });
 
+  await fetchQboCompanyInfo({
+    accessToken: token.access_token,
+    realmId: input.realmId,
+    organizationId: input.organizationId,
+  });
+
   try {
     await storeQboConnectionToken({
       organizationId: input.organizationId,
@@ -1246,11 +1344,9 @@ export async function disconnectQboConnection(input: {
   organizationId: string;
   actorId: string | null;
   requireRemoteRevocation?: boolean;
-}) {
-  const globalQbo = getGlobalQboOAuthConfig();
-  let revokeError: string | null = null;
+}): Promise<{ state: "disconnected" | "pending" | "review_required"; retryAt?: string }> {
   const connection = await getConnection(input.organizationId, "quickbooks_online");
-  if (!connection) return;
+  if (!connection) return { state: "disconnected" };
 
   const hasStoredState = Boolean(
     connection.realm_id_hash
@@ -1260,54 +1356,53 @@ export async function disconnectQboConnection(input: {
     || connection.connected_at
     || Object.keys(connection.config ?? {}).length,
   );
-  if (connection.status === "disconnected" && !hasStoredState) return;
-
-  let secrets: QboStoredSecrets | null = null;
-  try {
-    secrets = parseConnectionSecrets<QboStoredSecrets>(connection);
-  } catch (error) {
-    revokeError = error instanceof Error ? error.message : "Could not decrypt QuickBooks credentials.";
-    if (input.requireRemoteRevocation) throw new Error(revokeError);
-  }
+  if (connection.status === "disconnected" && !hasStoredState) return { state: "disconnected" };
 
   const admin = createSupabaseAdminClient();
-  let claimedConnection = connection;
-  if (connection.config?.disconnectInProgress !== true) {
+  let pendingConnection = connection;
+  if (connection.qbo_disconnect_state !== "app_pending") {
+    const now = new Date().toISOString();
     const { data, error } = await admin.from("integration_connections").update({
       status: "error",
-      config: { ...(connection.config ?? {}), disconnectInProgress: true },
+      qbo_disconnect_state: "app_pending",
+      qbo_disconnect_requested_at: now,
+      qbo_disconnect_next_attempt_at: now,
+      qbo_disconnect_attempts: 0,
+      qbo_disconnect_last_error_code: null,
       last_error: "QuickBooks disconnect in progress.",
       updated_by: input.actorId,
     }).eq("id", connection.id).eq("updated_at", connection.updated_at)
-      .select("id, organization_id, provider, status, config, secrets_ciphertext, secrets_iv, secrets_tag, realm_id_hash, connected_at, last_error, updated_at")
+      .select(CONNECTION_SELECT)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!data) throw new Error("QuickBooks changed while it was being disconnected. Please try again.");
-    claimedConnection = data as ConnectionRow;
+    pendingConnection = data as ConnectionRow;
+    await logAuditEvent({
+      action: "integration.qbo_r365.qbo.disconnect_requested",
+      entityType: "integration",
+      organizationId: input.organizationId,
+      actorId: input.actorId,
+      eventDomain: "settings",
+      outcome: "success",
+      severity: "medium",
+      metadata: { source: "app" },
+    });
   }
 
-  const token = secrets?.refreshToken ?? secrets?.accessToken;
-  if (token) {
-    if (!globalQbo.ready) {
-      revokeError = "QuickBooks OAuth is not configured globally.";
-      if (input.requireRemoteRevocation) throw new Error(revokeError);
-    } else {
-      try {
-        await revokeQboToken({
-          clientId: globalQbo.clientId,
-          clientSecret: globalQbo.clientSecret,
-          token,
-          organizationId: input.organizationId,
-        });
-      } catch (error) {
-        revokeError = error instanceof Error ? error.message : "Could not revoke the token in Intuit.";
-        if (input.requireRemoteRevocation) throw new Error(revokeError);
-      }
-    }
-  } else if (input.requireRemoteRevocation && (connection.status !== "disconnected" || connection.realm_id_hash)) {
-    throw new Error("The QuickBooks connection has no token available to revoke.");
+  const result = await processOnePendingQboDisconnect(pendingConnection);
+  if (input.requireRemoteRevocation && result.state !== "disconnected") {
+    throw new Error("QuickBooks revocation is pending and must complete before continuing.");
   }
+  return result;
+}
 
+async function clearConfirmedQboConnection(input: {
+  connection: ConnectionRow;
+  actorId?: string | null;
+  source: "app_revoke" | "portal_invalid_grant" | "oauth_refresh_invalid_grant";
+  message?: string | null;
+}) {
+  const admin = createSupabaseAdminClient();
   const { data: cleared, error: clearError } = await admin.from("integration_connections").update({
     status: "disconnected",
     config: {},
@@ -1315,22 +1410,48 @@ export async function disconnectQboConnection(input: {
     secrets_iv: null,
     secrets_tag: null,
     realm_id_hash: null,
+    qbo_disconnect_state: "none",
+    qbo_disconnect_requested_at: null,
+    qbo_disconnect_next_attempt_at: null,
+    qbo_disconnect_last_attempt_at: new Date().toISOString(),
+    qbo_disconnect_attempts: 0,
+    qbo_disconnect_last_error_code: null,
+    qbo_oauth_claim_id: null,
+    qbo_oauth_claimed_at: null,
     connected_at: null,
-    last_error: null,
-    updated_by: input.actorId,
-  }).eq("id", claimedConnection.id).eq("updated_at", claimedConnection.updated_at).select("id").maybeSingle();
+    last_error: input.message ?? null,
+    updated_by: input.actorId ?? null,
+  }).eq("id", input.connection.id)
+    .eq("updated_at", input.connection.updated_at)
+    .eq("qbo_authorization_version", input.connection.qbo_authorization_version)
+    .select("id")
+    .maybeSingle();
   if (clearError) throw new Error(clearError.message);
-  if (!cleared) throw new Error("QuickBooks changed while it was being disconnected. Please try again.");
+  if (!cleared) return false;
 
   await logAuditEvent({
     action: "integration.qbo_r365.qbo.disconnected",
     entityType: "integration",
-    organizationId: input.organizationId,
-    actorId: input.actorId,
+    organizationId: input.connection.organization_id,
+    actorId: input.actorId ?? null,
     eventDomain: "settings",
     outcome: "success",
     severity: "medium",
-    metadata: revokeError ? { revoke_error: revokeError } : {},
+    metadata: { source: input.source },
+  });
+  return true;
+}
+
+async function clearRevokedQboConnection(input: {
+  connection: ConnectionRow;
+  actorId?: string | null;
+  message: string;
+}) {
+  await clearConfirmedQboConnection({
+    connection: input.connection,
+    actorId: input.actorId,
+    source: "oauth_refresh_invalid_grant",
+    message: input.message,
   });
 }
 
@@ -1371,18 +1492,14 @@ async function ensureFreshQboToken(input: {
       organizationId: input.organizationId,
     });
   } catch (error) {
-    // El refresh token ya no sirve (el usuario revoco el acceso desde su
-    // cuenta de Intuit, o expiro por 100 dias de inactividad). Guardamos el
-    // estado real en vez de dejar la conexion marcada como "connected"
-    // mintiendo sobre si las llamadas a la API funcionan.
     const message = error instanceof Error ? error.message : "Unable to refresh the QuickBooks® Online token.";
-    await upsertConnection({
-      organizationId: input.organizationId,
-      provider: "quickbooks_online",
-      actorId: input.actorId,
-      status: "error",
-      lastError: message,
-    });
+    if (error instanceof QboAuthorizationError && error.revoked) {
+      await clearRevokedQboConnection({
+        connection: input.qboConnection,
+        actorId: input.actorId,
+        message,
+      });
+    }
     throw error;
   }
 
@@ -1400,22 +1517,79 @@ async function ensureFreshQboToken(input: {
   const { realmId: _staleRealmId, ...configWithoutRealmId } = config;
   void _staleRealmId;
 
-  await upsertConnection({
-    organizationId: input.organizationId,
-    provider: "quickbooks_online",
-    actorId: input.actorId,
+  const encrypted = encryptJsonPayload(nextSecrets);
+  const admin = createSupabaseAdminClient();
+  const { data: refreshedConnection, error: updateError } = await admin.from("integration_connections").update({
     status: "connected",
     config: configWithoutRealmId,
-    secretPayload: nextSecrets,
-    realmIdHash: hashQboRealmId(realmId),
-    lastError: null,
-  });
+    secrets_ciphertext: encrypted.ciphertext,
+    secrets_iv: encrypted.iv,
+    secrets_tag: encrypted.tag,
+    realm_id_hash: hashQboRealmId(realmId),
+    last_error: null,
+    updated_by: input.actorId ?? null,
+  }).eq("id", input.qboConnection.id)
+    .eq("updated_at", input.qboConnection.updated_at)
+    .eq("qbo_authorization_version", input.qboConnection.qbo_authorization_version)
+    .select("id")
+    .maybeSingle();
+  if (updateError) throw new Error(updateError.message);
+  if (!refreshedConnection) {
+    const latestConnection = await getConnection(input.organizationId, "quickbooks_online");
+    const latestSecrets = parseConnectionSecrets<QboStoredSecrets>(latestConnection);
+    if (
+      latestConnection?.status === "connected"
+      && latestConnection.qbo_authorization_version === input.qboConnection.qbo_authorization_version
+      && latestSecrets?.accessToken
+      && latestSecrets.accessToken !== secrets.accessToken
+    ) {
+      return {
+        accessToken: latestSecrets.accessToken,
+        realmId: latestSecrets.realmId ?? realmId,
+        secrets: latestSecrets,
+      };
+    }
+    throw new Error("QuickBooks credentials changed during refresh. Please retry.");
+  }
 
   return {
     accessToken: nextSecrets.accessToken ?? refreshed.access_token,
     realmId,
     secrets: nextSecrets,
   };
+}
+
+async function withQboAuthorizationRetry<T>(
+  input: { organizationId: string; actorId?: string | null },
+  operation: (auth: { accessToken: string; realmId: string }) => Promise<T>,
+) {
+  const qboConnection = await getConnection(input.organizationId, "quickbooks_online");
+  if (!qboConnection || qboConnection.status !== "connected") {
+    throw new Error("QuickBooks® Online is not connected.");
+  }
+
+  let qboAuth = await ensureFreshQboToken({
+    organizationId: input.organizationId,
+    actorId: input.actorId,
+    qboConnection,
+  });
+  try {
+    return await operation(qboAuth);
+  } catch (error) {
+    if (!(error instanceof QboAuthorizationError)) throw error;
+  }
+
+  const latestConnection = await getConnection(input.organizationId, "quickbooks_online");
+  if (!latestConnection || latestConnection.status !== "connected") {
+    throw new Error("QuickBooks® Online is not connected.");
+  }
+  qboAuth = await ensureFreshQboToken({
+    organizationId: input.organizationId,
+    actorId: input.actorId,
+    qboConnection: latestConnection,
+    forceRefresh: true,
+  });
+  return operation(qboAuth);
 }
 
 async function listDedupeKeys(organizationId: string, keys: string[]) {
@@ -1606,15 +1780,20 @@ export async function runQboR365Sync(input: {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to query invoices in QuickBooks® Online.";
-      const looksLikeAuthError = /QBO_3100|ApplicationAuthorizationFailed|401|forbidden|unauthorized/i.test(message);
+      const looksLikeAuthError = error instanceof QboAuthorizationError
+        || /QBO_3100|ApplicationAuthorizationFailed|401|forbidden|unauthorized/i.test(message);
       if (!looksLikeAuthError) {
         throw error;
       }
 
+      const latestConnection = await getConnection(input.organizationId, "quickbooks_online");
+      if (!latestConnection || latestConnection.status !== "connected") {
+        throw new Error("QuickBooks® Online is not connected.");
+      }
       qboAuth = await ensureFreshQboToken({
         organizationId: input.organizationId,
         actorId,
-        qboConnection,
+        qboConnection: latestConnection,
         forceRefresh: true,
       });
 
@@ -3188,7 +3367,7 @@ export type QboWebhookEventRow = {
   entity_id: string;
   operation: string;
   last_updated_at: string | null;
-  status: "captured" | "imported_manual" | "ignored" | "failed";
+  status: "captured" | "processed" | "imported_manual" | "ignored" | "failed";
   ignore_reason: string | null;
   attempts: number;
   organization_id: string | null;
@@ -3207,25 +3386,26 @@ export type QboWebhookEventRow = {
 async function getQboConnectionByRealmId(
   realmId: string,
   statuses: Array<ConnectionRow["status"]> = ["connected"],
+  allowLegacyFallback = true,
 ): Promise<ConnectionRow | null> {
   const admin = createSupabaseAdminClient();
   const normalizedRealmId = realmId.trim();
   const realmIdHash = hashQboRealmId(normalizedRealmId);
-  const select = "id, organization_id, provider, status, config, secrets_ciphertext, secrets_iv, secrets_tag, realm_id_hash, connected_at, last_error, updated_at";
   const { data: hashedRow, error: hashError } = await admin
     .from("integration_connections")
-    .select(select)
+    .select(CONNECTION_SELECT)
     .eq("provider", "quickbooks_online")
     .eq("realm_id_hash", realmIdHash)
     .in("status", statuses)
     .maybeSingle();
   if (hashError) throw new Error(hashError.message);
   if (hashedRow) return hashedRow as ConnectionRow;
+  if (!allowLegacyFallback) return null;
 
   // Rollout fallback for rows that predate the deterministic blind index.
   const { data, error } = await admin
     .from("integration_connections")
-    .select(select)
+    .select(CONNECTION_SELECT)
     .eq("provider", "quickbooks_online")
     .is("realm_id_hash", null)
     .in("status", statuses);
@@ -3264,49 +3444,245 @@ async function getOrganizationIdByRealmId(
   return connection?.organization_id ?? null;
 }
 
-async function handleQboAppDisconnect(event: QboWebhookEventInsert) {
-  if (!event.signatureValid || event.entity !== "AppDisconnect") return;
+const QBO_DISCONNECT_RETRY_DELAYS_MS = [60_000, 5 * 60_000, 30 * 60_000, 2 * 60 * 60_000, 6 * 60 * 60_000, 24 * 60 * 60_000];
 
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const connection = await getQboConnectionByRealmId(event.realmId, ["connected", "error"]);
-    if (!connection) return;
-    if (!shouldApplyQboAppDisconnect(connection.connected_at, event.lastUpdatedAt)) return;
+function qboDisconnectRetryAt(attempts: number) {
+  const delay = QBO_DISCONNECT_RETRY_DELAYS_MS[Math.min(attempts, QBO_DISCONNECT_RETRY_DELAYS_MS.length - 1)];
+  return new Date(Date.now() + delay).toISOString();
+}
 
-    const admin = createSupabaseAdminClient();
-    const { data, error } = await admin
-      .from("integration_connections")
-      .update({
-        status: "disconnected",
-        config: {},
-        secrets_ciphertext: null,
-        secrets_iv: null,
-        secrets_tag: null,
-        realm_id_hash: null,
-        connected_at: null,
-        last_error: null,
-        updated_by: null,
-      })
-      .eq("id", connection.id)
-      .eq("updated_at", connection.updated_at)
-      .select("id")
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!data) continue;
+function qboDisconnectErrorCode(error: unknown) {
+  if (error instanceof QboAuthorizationError && error.revoked) return "invalid_grant";
+  if (error instanceof DOMException && error.name === "TimeoutError") return "timeout";
+  const message = error instanceof Error ? error.message : "unknown";
+  if (/429|rate.?limit/i.test(message)) return "rate_limited";
+  if (/50[0-9]|temporar|unavailable/i.test(message)) return "upstream_unavailable";
+  return "verification_failed";
+}
 
+async function scheduleQboDisconnectRetry(connection: ConnectionRow, errorCode: string) {
+  const admin = createSupabaseAdminClient();
+  const attempts = Number(connection.qbo_disconnect_attempts ?? 0) + 1;
+  const isApp = connection.qbo_disconnect_state === "app_pending";
+  const review = attempts >= 8;
+  const state = review
+    ? (isApp ? "app_review" : "portal_review")
+    : connection.qbo_disconnect_state;
+  const retryAt = review ? null : qboDisconnectRetryAt(attempts - 1);
+  const { data, error } = await admin.from("integration_connections").update({
+    qbo_disconnect_state: state,
+    qbo_disconnect_attempts: attempts,
+    qbo_disconnect_last_attempt_at: new Date().toISOString(),
+    qbo_disconnect_next_attempt_at: retryAt,
+    qbo_disconnect_last_error_code: errorCode,
+    qbo_oauth_claim_id: null,
+    qbo_oauth_claimed_at: null,
+    last_error: review
+      ? "QuickBooks disconnect requires administrator review."
+      : "QuickBooks disconnect verification is pending.",
+  }).eq("id", connection.id)
+    .eq("updated_at", connection.updated_at)
+    .eq("qbo_authorization_version", connection.qbo_authorization_version)
+    .eq("qbo_oauth_claim_id", connection.qbo_oauth_claim_id)
+    .select("qbo_disconnect_state, qbo_disconnect_next_attempt_at")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return { state: "pending" as const, retryAt: retryAt ?? undefined };
+  if (review) {
     await logAuditEvent({
-      action: "integration.qbo_r365.qbo.disconnected",
+      action: "integration.qbo_r365.qbo.disconnect_review_required",
       entityType: "integration",
       organizationId: connection.organization_id,
       actorId: null,
       eventDomain: "settings",
-      outcome: "success",
-      severity: "medium",
-      metadata: { source: "intuit_app_disconnect", realm_id_hash: hashQboRealmId(event.realmId) },
+      outcome: "error",
+      severity: "high",
+      reasonCode: errorCode,
+      metadata: { source: isApp ? "app" : "portal", attempts },
     });
-    return;
+    return { state: "review_required" as const };
+  }
+  return { state: "pending" as const, retryAt: retryAt ?? undefined };
+}
+
+async function claimQboDisconnect(connection: ConnectionRow) {
+  const admin = createSupabaseAdminClient();
+  const claimId = randomUUID();
+  const staleAt = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  const { data, error } = await admin.from("integration_connections").update({
+    qbo_oauth_claim_id: claimId,
+    qbo_oauth_claimed_at: new Date().toISOString(),
+  }).eq("id", connection.id)
+    .eq("updated_at", connection.updated_at)
+    .eq("qbo_authorization_version", connection.qbo_authorization_version)
+    .in("qbo_disconnect_state", ["portal_pending", "app_pending"])
+    .or(`qbo_oauth_claimed_at.is.null,qbo_oauth_claimed_at.lt.${staleAt}`)
+    .select(CONNECTION_SELECT)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? data as ConnectionRow : null;
+}
+
+async function processOnePendingQboDisconnect(connection: ConnectionRow): Promise<{
+  state: "disconnected" | "pending" | "review_required";
+  retryAt?: string;
+}> {
+  const claimed = await claimQboDisconnect(connection);
+  if (!claimed) return { state: "pending", retryAt: connection.qbo_disconnect_next_attempt_at ?? undefined };
+
+  let secrets: QboStoredSecrets | null;
+  try {
+    secrets = parseConnectionSecrets<QboStoredSecrets>(claimed);
+  } catch {
+    return scheduleQboDisconnectRetry(claimed, "credentials_unreadable");
   }
 
-  throw new Error("QuickBooks changed while processing AppDisconnect. Intuit should retry the webhook.");
+  const globalQbo = getGlobalQboOAuthConfig();
+  if (!globalQbo.ready || !secrets?.refreshToken) {
+    return scheduleQboDisconnectRetry(claimed, "credentials_unavailable");
+  }
+
+  if (claimed.qbo_disconnect_state === "app_pending") {
+    try {
+      await revokeQboToken({
+        clientId: globalQbo.clientId,
+        clientSecret: globalQbo.clientSecret,
+        token: secrets.refreshToken,
+        organizationId: claimed.organization_id,
+      });
+      const cleared = await clearConfirmedQboConnection({
+        connection: claimed,
+        source: "app_revoke",
+      });
+      return cleared ? { state: "disconnected" } : { state: "pending" };
+    } catch (error) {
+      return scheduleQboDisconnectRetry(claimed, qboDisconnectErrorCode(error));
+    }
+  }
+
+  try {
+    const refreshed = await refreshQboAccessToken({
+      clientId: globalQbo.clientId,
+      clientSecret: globalQbo.clientSecret,
+      refreshToken: secrets.refreshToken,
+      organizationId: claimed.organization_id,
+    });
+    const attempts = Number(claimed.qbo_disconnect_attempts ?? 0) + 1;
+    const verifiedStillActive = attempts >= 3;
+    const nextSecrets: QboStoredSecrets = {
+      ...secrets,
+      accessToken: refreshed.access_token,
+      refreshToken: refreshed.refresh_token,
+      tokenType: refreshed.token_type,
+      expiresAtEpochSec: Math.floor(Date.now() / 1000) + refreshed.expires_in,
+    };
+    const encrypted = encryptJsonPayload(nextSecrets);
+    const admin = createSupabaseAdminClient();
+    const { data, error } = await admin.from("integration_connections").update({
+      status: "connected",
+      secrets_ciphertext: encrypted.ciphertext,
+      secrets_iv: encrypted.iv,
+      secrets_tag: encrypted.tag,
+      qbo_disconnect_state: verifiedStillActive ? "none" : "portal_pending",
+      qbo_disconnect_attempts: attempts,
+      qbo_disconnect_last_attempt_at: new Date().toISOString(),
+      qbo_disconnect_next_attempt_at: verifiedStillActive ? null : qboDisconnectRetryAt(attempts - 1),
+      qbo_disconnect_last_error_code: verifiedStillActive ? null : "authorization_still_active",
+      qbo_oauth_claim_id: null,
+      qbo_oauth_claimed_at: null,
+      last_error: null,
+    }).eq("id", claimed.id)
+      .eq("updated_at", claimed.updated_at)
+      .eq("qbo_authorization_version", claimed.qbo_authorization_version)
+      .eq("qbo_oauth_claim_id", claimed.qbo_oauth_claim_id)
+      .select("id, qbo_disconnect_next_attempt_at")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) return { state: "pending" };
+    if (verifiedStillActive) {
+      await logAuditEvent({
+        action: "integration.qbo_r365.qbo.disconnect_verification_rejected",
+        entityType: "integration",
+        organizationId: claimed.organization_id,
+        actorId: null,
+        eventDomain: "settings",
+        outcome: "success",
+        severity: "medium",
+        metadata: { source: "portal", attempts },
+      });
+      return { state: "pending" };
+    }
+    return { state: "pending", retryAt: String(data.qbo_disconnect_next_attempt_at) };
+  } catch (error) {
+    if (error instanceof QboAuthorizationError && error.revoked) {
+      const cleared = await clearConfirmedQboConnection({
+        connection: claimed,
+        source: "portal_invalid_grant",
+        message: error.message,
+      });
+      return cleared ? { state: "disconnected" } : { state: "pending" };
+    }
+    return scheduleQboDisconnectRetry(claimed, qboDisconnectErrorCode(error));
+  }
+}
+
+export async function queueQboPortalDisconnect(realmId: string) {
+  const normalized = realmId.trim();
+  if (!/^\d{1,32}$/.test(normalized)) return false;
+  const connection = await getQboConnectionByRealmId(normalized, ["connected", "error"], false);
+  if (!connection) return false;
+  if (["app_pending", "app_review"].includes(connection.qbo_disconnect_state)) return true;
+  if (connection.qbo_disconnect_state === "portal_pending") return true;
+
+  const admin = createSupabaseAdminClient();
+  const now = new Date().toISOString();
+  const { data, error } = await admin.from("integration_connections").update({
+    qbo_disconnect_state: "portal_pending",
+    qbo_disconnect_requested_at: now,
+    qbo_disconnect_next_attempt_at: now,
+    qbo_disconnect_attempts: 0,
+    qbo_disconnect_last_error_code: null,
+  }).eq("id", connection.id)
+    .eq("updated_at", connection.updated_at)
+    .eq("qbo_authorization_version", connection.qbo_authorization_version)
+    .eq("qbo_disconnect_state", "none")
+    .select("id")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return true;
+  await logAuditEvent({
+    action: "integration.qbo_r365.qbo.disconnect_redirect_received",
+    entityType: "integration",
+    organizationId: connection.organization_id,
+    actorId: null,
+    eventDomain: "settings",
+    outcome: "success",
+    severity: "medium",
+    metadata: { source: "intuit_disconnect_url", realm_id_hash: hashQboRealmId(normalized) },
+  });
+  return true;
+}
+
+export async function processPendingQboDisconnects(limit = 25) {
+  const admin = createSupabaseAdminClient();
+  const now = new Date().toISOString();
+  const { data, error } = await admin.from("integration_connections")
+    .select(CONNECTION_SELECT)
+    .eq("provider", "quickbooks_online")
+    .in("qbo_disconnect_state", ["portal_pending", "app_pending"])
+    .lte("qbo_disconnect_next_attempt_at", now)
+    .order("qbo_disconnect_next_attempt_at", { ascending: true })
+    .limit(Math.max(1, Math.min(limit, 100)));
+  if (error) throw new Error(error.message);
+  const results = [];
+  for (const row of data ?? []) {
+    try {
+      results.push({ id: String(row.id), ...(await processOnePendingQboDisconnect(row as ConnectionRow)) });
+    } catch (processError) {
+      results.push({ id: String(row.id), state: "pending" as const, error: qboDisconnectErrorCode(processError) });
+    }
+  }
+  return { processed: results.length, results };
 }
 
 export async function insertQboWebhookEvents(input: QboWebhookEventInsert[]) {
@@ -3316,9 +3692,25 @@ export async function insertQboWebhookEvents(input: QboWebhookEventInsert[]) {
   let duplicates = 0;
 
   for (const event of input) {
-    const lookupStatuses: Array<ConnectionRow["status"]> = event.entity === "AppDisconnect"
-      ? ["connected", "error"]
-      : ["connected"];
+    if (event.intuitEventId) {
+      const { data: existingEvent, error: dedupeError } = await admin
+        .from("qbo_webhook_events")
+        .select("id")
+        .eq("intuit_event_id", event.intuitEventId)
+        .eq("realm_id", event.realmId)
+        .eq("entity", event.entity)
+        .eq("entity_id", event.entityId)
+        .eq("operation", event.operation)
+        .limit(1)
+        .maybeSingle();
+      if (dedupeError) throw new Error(dedupeError.message);
+      if (existingEvent) {
+        duplicates += 1;
+        continue;
+      }
+    }
+
+    const lookupStatuses: Array<ConnectionRow["status"]> = ["connected"];
     const organizationId = event.signatureValid
       ? await getOrganizationIdByRealmId(event.realmId, lookupStatuses).catch(() => null)
       : null;
@@ -3337,23 +3729,20 @@ export async function insertQboWebhookEvents(input: QboWebhookEventInsert[]) {
       status: event.signatureValid ? "captured" : "failed",
       ignore_reason: event.signatureValid ? null : "invalid_signature",
       last_error: event.signatureValid ? null : "Invalid Intuit webhook signature.",
-      processed_at: event.signatureValid ? new Date().toISOString() : new Date().toISOString(),
+      processed_at: event.signatureValid ? null : new Date().toISOString(),
     }).select("id").single();
     if (error) {
       if (error.code === "23505") {
         duplicates += 1;
-        await handleQboAppDisconnect(event);
         continue;
       }
       throw new Error(error.message);
     }
     inserted += 1;
 
-    await handleQboAppDisconnect(event);
-
     // Si la firma es válida, la org fue identificada y es Invoice/CreditMemo:
     // insertar en tabla unificada como 'en_cola' y disparar fetch en background
-    const isActionable = event.signatureValid && organizationId &&
+    const isActionable = event.signatureValid && organizationId && event.operation === "Emailed" &&
       (event.entity === "Invoice" || event.entity === "CreditMemo");
     if (isActionable && insertedRow?.id) {
       const webhookEventId = insertedRow.id as string;
@@ -3381,10 +3770,12 @@ export async function insertQboWebhookEvents(input: QboWebhookEventInsert[]) {
       try {
         const appUrl = getCanonicalAppUrl();
         if (cronSecret) {
-          void fetch(`${appUrl}/api/webhooks/cron/qbo-r365-sync`, {
-            method: "POST",
-            headers: { authorization: `Bearer ${cronSecret}` },
-          }).catch(() => { /* no bloquear si el self-trigger falla */ });
+          after(async () => {
+            await fetch(`${appUrl}/api/webhooks/cron/qbo-r365-sync`, {
+              method: "POST",
+              headers: { authorization: `Bearer ${cronSecret}` },
+            }).catch(() => undefined);
+          });
         }
       } catch { /* NEXT_PUBLIC_APP_URL no configurado — se omite el self-trigger */ }
     }
@@ -3715,19 +4106,12 @@ async function fetchAndCaptureWebhookInvoice(input: {
 
   let entity: Record<string, unknown>;
   try {
-    const qboConnection = await getConnection(input.organizationId, "quickbooks_online");
-    if (!qboConnection || qboConnection.status !== "connected") {
-      await markIdentificationFailed("La conexión a QuickBooks no está activa para esta organización");
-      return;
-    }
-
-    const qboAuth = await ensureFreshQboToken({ organizationId: input.organizationId, actorId: null, qboConnection });
-    const raw = await fetchQboRawTransaction({
+    const raw = await withQboAuthorizationRetry({ organizationId: input.organizationId }, (qboAuth) => fetchQboRawTransaction({
       accessToken: qboAuth.accessToken,
       realmId: qboAuth.realmId,
       invoiceId: input.entityId,
       organizationId: input.organizationId,
-    });
+    }));
 
     if (!raw?.data) {
       await markIdentificationFailed("QuickBooks® Online returned no data for this transaction.");
@@ -3795,7 +4179,7 @@ async function fetchAndCaptureWebhookInvoice(input: {
     .maybeSingle();
 
   await admin.from("qbo_webhook_events").update({
-    status: "imported_manual",
+    status: "processed",
     fetched_entity: entity,
     imported_at: nowIso,
     last_error: null,
@@ -3856,7 +4240,7 @@ export type UnifiedInvoiceRow = {
   webhookEventId: string | null;
   entityId: string;
   entityType: "Invoice" | "CreditMemo";
-  importSource: "sync" | "webhook" | "manual";
+  importSource: "sync" | "webhook" | "manual" | "reconciliation";
   pipelineStatus: "en_cola" | "capturada" | "mapeada" | "enviada";
   docNumber: string | null;
   txnDate: string | null;
@@ -4096,7 +4480,7 @@ export async function listUnifiedHistory(
     webhookEventId: row.webhook_event_id ? String(row.webhook_event_id) : null,
     entityId: String(row.entity_id),
     entityType: row.entity_type as "Invoice" | "CreditMemo",
-    importSource: row.import_source as "sync" | "webhook" | "manual",
+    importSource: row.import_source as "sync" | "webhook" | "manual" | "reconciliation",
     pipelineStatus: row.pipeline_status as "en_cola" | "capturada" | "mapeada" | "enviada",
     docNumber: row.doc_number ? String(row.doc_number) : null,
     txnDate: row.txn_date ? String(row.txn_date) : null,
@@ -4414,6 +4798,7 @@ export async function backfillSyncConfigToUnified(
     .from("qbo_r365_sync_configs")
     .select("qbo_customer_name")
     .eq("id", syncConfigId)
+    .eq("organization_id", organizationId)
     .single();
   if (configError) throw new Error(configError.message);
   const qboCustomerName = (configRow?.qbo_customer_name as string | null) ?? null;
@@ -4494,6 +4879,315 @@ type QueueResult = {
   error?: string;
 };
 
+export async function reconcileQboChangedTransactions(limit = 10, runtimeBudgetMs = 180_000) {
+  const admin = createSupabaseAdminClient();
+  const deadline = Date.now() + Math.max(10_000, Math.min(runtimeBudgetMs, 240_000));
+  const reconciliationDate = new Date().toISOString().slice(0, 10);
+  const targetLimit = Math.max(1, Math.min(limit, 50));
+  const { data: todaysRuns, error: todaysRunsError } = await admin
+    .from("qbo_cdc_reconciliation_runs")
+    .select("organization_id, status, claimed_at")
+    .eq("reconciliation_date", reconciliationDate);
+  if (todaysRunsError) throw new Error(todaysRunsError.message);
+  const recentClaimCutoff = Date.now() - 15 * 60 * 1000;
+  const unavailableOrganizations = new Set((todaysRuns ?? []).filter((run) => (
+    run.status === "completed"
+    || run.status === "failed"
+    || (run.status === "running" && run.claimed_at && new Date(run.claimed_at).getTime() > recentClaimCutoff)
+  )).map((run) => String(run.organization_id)));
+
+  const activeSyncOrganizations = new Set<string>();
+  const pageSize = 500;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data: page, error: configError } = await admin
+      .from("qbo_r365_sync_configs")
+      .select("organization_id")
+      .eq("status", "active")
+      .order("organization_id", { ascending: true })
+      .order("id", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (configError) throw new Error(configError.message);
+    for (const row of page ?? []) activeSyncOrganizations.add(String(row.organization_id));
+    if ((page?.length ?? 0) < pageSize) break;
+  }
+
+  const { data: qboModule, error: moduleError } = await admin
+    .from("module_catalog")
+    .select("id")
+    .eq("code", "qbo_r365")
+    .maybeSingle();
+  if (moduleError) throw new Error(moduleError.message);
+  if (!qboModule) return { processed: 0, results: [] };
+
+  const entitledOrganizations = new Set<string>();
+  for (let offset = 0; ; offset += pageSize) {
+    const { data: page, error } = await admin
+      .from("organization_modules")
+      .select("organization_id")
+      .eq("module_id", qboModule.id)
+      .eq("is_enabled", true)
+      .order("organization_id", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (error) throw new Error(error.message);
+    for (const row of page ?? []) entitledOrganizations.add(String(row.organization_id));
+    if ((page?.length ?? 0) < pageSize) break;
+  }
+
+  const enabledOrganizations = new Set<string>();
+  for (let offset = 0; ; offset += pageSize) {
+    const { data: page, error } = await admin
+      .from("integration_settings")
+      .select("organization_id")
+      .eq("is_enabled", true)
+      .order("organization_id", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (error) throw new Error(error.message);
+    for (const row of page ?? []) enabledOrganizations.add(String(row.organization_id));
+    if ((page?.length ?? 0) < pageSize) break;
+  }
+
+  const connectedOrganizations = new Set<string>();
+  for (let offset = 0; ; offset += pageSize) {
+    const { data: page, error: connectionError } = await admin
+      .from("integration_connections")
+      .select("organization_id")
+      .eq("provider", "quickbooks_online")
+      .eq("status", "connected")
+      .order("organization_id", { ascending: true })
+      .order("id", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (connectionError) throw new Error(connectionError.message);
+    for (const row of page ?? []) {
+      connectedOrganizations.add(String(row.organization_id));
+    }
+    if ((page?.length ?? 0) < pageSize) break;
+  }
+
+  const latestAttemptByOrganization = new Map<string, string>();
+  const historyFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  for (let offset = 0; ; offset += pageSize) {
+    const { data: page, error } = await admin
+      .from("qbo_cdc_reconciliation_runs")
+      .select("organization_id, created_at")
+      .gte("reconciliation_date", historyFrom)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (error) throw new Error(error.message);
+    for (const row of page ?? []) {
+      const organizationId = String(row.organization_id);
+      if (!latestAttemptByOrganization.has(organizationId)) {
+        latestAttemptByOrganization.set(organizationId, String(row.created_at));
+      }
+    }
+    if ((page?.length ?? 0) < pageSize) break;
+  }
+
+  const organizationIds = [...connectedOrganizations]
+    .filter((organizationId) => (
+      activeSyncOrganizations.has(organizationId)
+      && entitledOrganizations.has(organizationId)
+      && enabledOrganizations.has(organizationId)
+      && !unavailableOrganizations.has(organizationId)
+    ))
+    .sort((left, right) => {
+      const leftAttempt = latestAttemptByOrganization.get(left) ?? "";
+      const rightAttempt = latestAttemptByOrganization.get(right) ?? "";
+      return leftAttempt.localeCompare(rightAttempt) || left.localeCompare(right);
+    })
+    .slice(0, targetLimit);
+
+  const results: Array<{ organizationId: string; status: "completed" | "failed" | "skipped"; discovered?: number; enqueued?: number; error?: string }> = [];
+
+  for (const organizationId of organizationIds) {
+    if (Date.now() >= deadline) break;
+    const { data: existingRun } = await admin.from("qbo_cdc_reconciliation_runs")
+      .select("id, status, claimed_at, attempts")
+      .eq("organization_id", organizationId)
+      .eq("reconciliation_date", reconciliationDate)
+      .maybeSingle();
+    if (existingRun?.status === "completed") {
+      results.push({ organizationId, status: "skipped" });
+      continue;
+    }
+
+    const configRows: Array<{ id: string }> = [];
+    for (let offset = 0; ; offset += pageSize) {
+      const { data: page, error: configError } = await admin
+        .from("qbo_r365_sync_configs")
+        .select("id")
+        .eq("organization_id", organizationId)
+        .eq("status", "active")
+        .order("id", { ascending: true })
+        .range(offset, offset + pageSize - 1);
+      if (configError) throw new Error(configError.message);
+      configRows.push(...(page ?? []).map((row) => ({ id: String(row.id) })));
+      if ((page?.length ?? 0) < pageSize) break;
+    }
+    if (configRows.length === 0) {
+      results.push({ organizationId, status: "skipped" });
+      continue;
+    }
+    if (existingRun?.status === "running" && existingRun.claimed_at
+      && new Date(existingRun.claimed_at).getTime() > Date.now() - 15 * 60 * 1000) {
+      results.push({ organizationId, status: "skipped" });
+      continue;
+    }
+
+    const { data: previousRun } = await admin.from("qbo_cdc_reconciliation_runs")
+      .select("window_to")
+      .eq("organization_id", organizationId)
+      .eq("status", "completed")
+      .order("window_to", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const windowTo = new Date();
+    const previousWindowTo = previousRun?.window_to ? new Date(String(previousRun.window_to)) : null;
+    const windowFrom = previousWindowTo && !Number.isNaN(previousWindowTo.getTime())
+      ? new Date(previousWindowTo.getTime() - 10 * 60 * 1000)
+      : new Date(windowTo.getTime() - 48 * 60 * 60 * 1000);
+
+    const runPayload = {
+      organization_id: organizationId,
+      reconciliation_date: reconciliationDate,
+      window_from: windowFrom.toISOString(),
+      window_to: windowTo.toISOString(),
+      status: "running",
+      claimed_at: new Date().toISOString(),
+      attempts: 1,
+      last_error: null,
+    };
+    let runId = existingRun?.id ? String(existingRun.id) : "";
+    if (runId) {
+      let claimQuery = admin.from("qbo_cdc_reconciliation_runs").update({
+        ...runPayload,
+        attempts: Number(existingRun?.attempts ?? 0) + 1,
+      }).eq("id", runId).eq("status", String(existingRun?.status));
+      claimQuery = existingRun?.claimed_at
+        ? claimQuery.eq("claimed_at", existingRun.claimed_at)
+        : claimQuery.is("claimed_at", null);
+      const { data: claimed, error: claimError } = await claimQuery.select("id").maybeSingle();
+      if (claimError) {
+        results.push({ organizationId, status: "failed", error: claimError.message });
+        continue;
+      }
+      if (!claimed) {
+        results.push({ organizationId, status: "skipped" });
+        continue;
+      }
+    } else {
+      const { data: insertedRun, error: runError } = await admin.from("qbo_cdc_reconciliation_runs")
+        .insert(runPayload).select("id").single();
+      if (runError || !insertedRun) {
+        results.push({ organizationId, status: "failed", error: runError?.message ?? "Unable to create reconciliation run." });
+        continue;
+      }
+      runId = String(insertedRun.id);
+    }
+
+    let discovered = 0;
+    let enqueued = 0;
+    try {
+      const customerToSyncConfig = new Map<string, string>();
+      const configIds = configRows.map((row) => row.id);
+      for (let offset = 0; offset < configIds.length; offset += 100) {
+        const { data: customerRows, error: customerError } = await admin
+          .from("qbo_r365_sync_config_customers")
+          .select("sync_config_id, qbo_customer_id")
+          .eq("organization_id", organizationId)
+          .in("sync_config_id", configIds.slice(offset, offset + 100));
+        if (customerError) throw new Error(customerError.message);
+        for (const row of customerRows ?? []) {
+          const customerId = String(row.qbo_customer_id);
+          if (!customerToSyncConfig.has(customerId)) {
+            customerToSyncConfig.set(customerId, String(row.sync_config_id));
+          }
+        }
+      }
+
+      if (customerToSyncConfig.size > 0) {
+        if (Date.now() >= deadline) throw new Error("QBO reconciliation runtime budget reached.");
+        const changed = await withQboAuthorizationRetry({ organizationId }, (auth) => fetchQboSalesTransactions({
+          accessToken: auth.accessToken,
+          realmId: auth.realmId,
+          sinceIso: windowFrom.toISOString(),
+          skipSalesReceipts: true,
+          organizationId,
+          deadlineEpochMs: deadline,
+        }));
+        const candidates = [
+          ...changed.invoices.map((data) => ({ type: "Invoice" as const, data })),
+          ...changed.creditMemos.map((data) => ({ type: "CreditMemo" as const, data })),
+        ].filter((item) => item.data.Id && item.data.EmailStatus === "EmailSent");
+
+        for (const { type, data } of candidates) {
+          const entityId = String(data.Id);
+          const customerId = data.CustomerRef?.value ? String(data.CustomerRef.value) : "";
+          const syncConfigId = customerToSyncConfig.get(customerId);
+          if (!syncConfigId) continue;
+          discovered += 1;
+          const { data: existing } = await admin.from("qbo_unified_invoices")
+            .select("id")
+            .eq("organization_id", organizationId)
+            .eq("entity_id", entityId)
+            .eq("entity_type", type)
+            .maybeSingle();
+          if (existing) continue;
+          const { error: insertError } = await admin.from("qbo_unified_invoices").insert({
+            organization_id: organizationId,
+            sync_config_id: syncConfigId,
+            entity_id: entityId,
+            entity_type: type,
+            import_source: "reconciliation",
+            pipeline_status: "capturada",
+            raw_entity: data,
+            fetched_at: new Date().toISOString(),
+            doc_number: data.DocNumber ?? null,
+            txn_date: data.TxnDate ?? null,
+            due_date: data.DueDate ?? null,
+            total_amount: data.TotalAmt ?? null,
+            currency: data.CurrencyRef?.value ?? null,
+            customer_name: data.CustomerRef?.name ?? null,
+          });
+          if (insertError && insertError.code !== "23505") throw new Error(insertError.message);
+          if (!insertError) enqueued += 1;
+        }
+      }
+
+      const { data: completedRun, error: completionError } = await admin.from("qbo_cdc_reconciliation_runs").update({
+        status: "completed",
+        discovered,
+        eligible: discovered,
+        enqueued,
+        finished_at: new Date().toISOString(),
+        claimed_at: null,
+      }).eq("id", runId)
+        .eq("status", "running")
+        .eq("claimed_at", runPayload.claimed_at)
+        .select("id")
+        .maybeSingle();
+      if (completionError) throw new Error(completionError.message);
+      if (!completedRun) throw new Error("QBO reconciliation claim changed before completion.");
+      results.push({ organizationId, status: "completed", discovered, enqueued });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "QBO reconciliation failed.";
+      const { error: failureUpdateError } = await admin.from("qbo_cdc_reconciliation_runs").update({
+        status: "failed",
+        discovered,
+        enqueued,
+        claimed_at: null,
+        last_error: message.slice(0, 500),
+      }).eq("id", runId)
+        .eq("status", "running")
+        .eq("claimed_at", runPayload.claimed_at);
+      const reportedError = failureUpdateError ? `${message}; ${failureUpdateError.message}` : message;
+      results.push({ organizationId, status: "failed", discovered, enqueued, error: reportedError });
+    }
+  }
+
+  return { processed: results.length, results };
+}
+
 /**
  * Procesa la cola de facturas atascadas en el pipeline unificado.
  * Usado exclusivamente por el cron diario como mecanismo de recovery.
@@ -4530,7 +5224,7 @@ export async function processQboUnifiedQueue(): Promise<{
     .from("qbo_unified_invoices")
     .select("id, organization_id, entity_id, entity_type, raw_entity, sync_config_id, pipeline_status, webhook_event_id")
     .in("pipeline_status", ["en_cola", "capturada", "mapeada"])
-    .eq("import_source", "webhook")
+    .in("import_source", ["webhook", "reconciliation"])
     .limit(100);
 
   if (error) throw new Error(error.message);
@@ -4583,19 +5277,12 @@ export async function processQboUnifiedQueue(): Promise<{
 
       // Para en_cola o sin raw_entity: re-fetch desde QBO
       if (row.pipeline_status === "en_cola" || !rawEntity) {
-        const qboConnection = await getConnection(organizationId, "quickbooks_online");
-        if (!qboConnection || qboConnection.status !== "connected") {
-          await markIdentificationFailed(row, organizationId, String(row.entity_id), String(row.entity_type), "QuickBooks no conectado");
-          results.push({ unifiedInvoiceId, status: "failed", error: "QuickBooks no conectado" });
-          continue;
-        }
-        const qboAuth = await ensureFreshQboToken({ organizationId, actorId: null, qboConnection });
-        const raw = await fetchQboRawTransaction({
+        const raw = await withQboAuthorizationRetry({ organizationId }, (qboAuth) => fetchQboRawTransaction({
           accessToken: qboAuth.accessToken,
           realmId: qboAuth.realmId,
           invoiceId: String(row.entity_id),
           organizationId,
-        });
+        }));
         if (!raw?.data) {
           await markIdentificationFailed(row, organizationId, String(row.entity_id), String(row.entity_type), "QuickBooks® Online transaction not found.");
           results.push({ unifiedInvoiceId, status: "failed", error: "QuickBooks® Online transaction not found." });
@@ -4664,6 +5351,14 @@ export async function processQboUnifiedQueue(): Promise<{
         actorId: null,
         triggerSource: "retry",
       });
+
+      if (row.webhook_event_id) {
+        await admin.from("qbo_webhook_events").update({
+          status: "processed",
+          processed_at: new Date().toISOString(),
+          last_error: null,
+        }).eq("id", row.webhook_event_id);
+      }
 
       results.push({ unifiedInvoiceId, status: "completed" });
     } catch (err) {

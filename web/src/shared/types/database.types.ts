@@ -1771,6 +1771,7 @@ export type Database = {
       organization_settings: {
         Row: {
           accent_color: string | null
+          address: string | null
           billed_to: string | null
           billing_email: string | null
           billing_period: string | null
@@ -1781,6 +1782,7 @@ export type Database = {
           company_logo_dark_url: string | null
           company_logo_path: string | null
           company_logo_url: string | null
+          contact_name: string | null
           created_at: string
           dashboard_note: string | null
           feedback_whatsapp: string | null
@@ -1797,6 +1799,7 @@ export type Database = {
         }
         Insert: {
           accent_color?: string | null
+          address?: string | null
           billed_to?: string | null
           billing_email?: string | null
           billing_period?: string | null
@@ -1807,6 +1810,7 @@ export type Database = {
           company_logo_dark_url?: string | null
           company_logo_path?: string | null
           company_logo_url?: string | null
+          contact_name?: string | null
           created_at?: string
           dashboard_note?: string | null
           feedback_whatsapp?: string | null
@@ -1823,6 +1827,7 @@ export type Database = {
         }
         Update: {
           accent_color?: string | null
+          address?: string | null
           billed_to?: string | null
           billing_email?: string | null
           billing_period?: string | null
@@ -1833,6 +1838,7 @@ export type Database = {
           company_logo_dark_url?: string | null
           company_logo_path?: string | null
           company_logo_url?: string | null
+          contact_name?: string | null
           created_at?: string
           dashboard_note?: string | null
           feedback_whatsapp?: string | null

@@ -351,7 +351,7 @@ async function getOrgVendorDisplayInfo(organizationId: string): Promise<OrgVendo
   const [{ data: orgRow }, { data: settings }] = await Promise.all([
     admin
       .from("organizations")
-      .select("name, integration_vendor_profile")
+      .select("name")
       .eq("id", organizationId)
       .maybeSingle(),
     admin
@@ -361,9 +361,7 @@ async function getOrgVendorDisplayInfo(organizationId: string): Promise<OrgVendo
       .maybeSingle(),
   ]);
 
-  const profile = (orgRow?.integration_vendor_profile ?? {}) as Record<string, string | undefined>;
   const vendorCompany =
-    (typeof profile.company === "string" && profile.company.trim()) ||
     (typeof orgRow?.name === "string" && orgRow.name.trim()) ||
     "Your Vendor";
 
@@ -371,12 +369,10 @@ async function getOrgVendorDisplayInfo(organizationId: string): Promise<OrgVendo
     (typeof settings?.company_logo_url === "string" && settings.company_logo_url.trim()) || null;
 
   const vendorPhone =
-    (typeof profile.phone === "string" && profile.phone.trim()) ||
     (typeof settings?.support_phone === "string" && settings.support_phone.trim()) ||
     null;
 
   const vendorEmail =
-    (typeof profile.email === "string" && profile.email.trim()) ||
     (typeof settings?.support_email === "string" && settings.support_email.trim()) ||
     null;
 

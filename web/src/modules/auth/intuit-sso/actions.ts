@@ -28,7 +28,11 @@ export async function completeIntuitRegistrationAction(formData: FormData) {
   const accepted = formData.get("legalAccepted") === "on";
   const integrationPlanId = String(formData.get("integrationPlanId") ?? "").trim();
   const billingPeriod = String(formData.get("billingPeriod") ?? "") === "annual" ? "annual" : "monthly";
-  const preserved: Record<string, string> = integrationPlanId ? { integrationPlanId, billingPeriod } : {};
+  const billingTrack = formData.get("billingTrack") === "platform" ? "platform" : "integration";
+  const includeSetupFee = formData.get("includeSetupFee") !== "0";
+  const preserved: Record<string, string> = integrationPlanId
+    ? { integrationPlanId, billingPeriod, billingTrack: "integration", includeSetupFee: includeSetupFee ? "1" : "0" }
+    : { billingTrack };
 
   if (!companyName || !fullName || !accepted) {
     redirect(completeUrl("Complete the company details and accept the legal terms.", preserved));
@@ -96,7 +100,7 @@ export async function completeIntuitRegistrationAction(formData: FormData) {
   await setActiveOrganizationIdCookie(organizationId);
 
   if (integrationPlanId) {
-    redirect(`/app/dashboard?welcome=true&selectIntegrationPlanId=${encodeURIComponent(integrationPlanId)}&billingPeriod=${billingPeriod}`);
+    redirect(`/app/dashboard?welcome=true&selectIntegrationPlanId=${encodeURIComponent(integrationPlanId)}&billingPeriod=${billingPeriod}&includeSetupFee=${includeSetupFee ? "1" : "0"}`);
   }
-  redirect("/app/dashboard?welcome=true");
+  redirect(`/app/dashboard?welcome=true&billingTrack=${billingTrack}`);
 }

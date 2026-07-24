@@ -40,7 +40,13 @@ async function run() {
         to_regclass('public.integration_runs') as integration_runs,
         to_regclass('public.integration_run_items') as integration_run_items,
         to_regclass('public.integration_outbox_files') as integration_outbox_files,
-        to_regclass('public.integration_audit_logs') as integration_audit_logs
+        to_regclass('public.integration_audit_logs') as integration_audit_logs,
+        to_regclass('public.qbo_oauth_attempts') as qbo_oauth_attempts,
+        to_regclass('public.qbo_webhook_receipts') as qbo_webhook_receipts,
+        to_regclass('public.qbo_cdc_reconciliation_runs') as qbo_cdc_reconciliation_runs,
+        to_regclass('public.qbo_webhook_events') as qbo_webhook_events,
+        to_regclass('public.qbo_unified_invoices') as qbo_unified_invoices,
+        to_regclass('public.intuit_api_response_logs') as intuit_api_response_logs
       `,
     );
 
@@ -61,7 +67,8 @@ async function run() {
 
     const qboConnection = await client.query(
       `
-      select status, config, realm_id_hash, (secrets_ciphertext is not null) as has_secrets
+      select status, config, realm_id_hash, qbo_disconnect_state,
+             (secrets_ciphertext is not null and secrets_iv is not null and secrets_tag is not null) as has_secrets
       from public.integration_connections
       where organization_id = $1 and provider = 'quickbooks_online'
       limit 1
@@ -82,20 +89,63 @@ async function run() {
     const qboRow = qboConnection.rows[0] ?? null;
     const ftpRow = ftpConnection.rows[0] ?? null;
 
+    const migrationResult = await client.query(
+      "select count(*)::int as total from supabase_migrations.schema_migrations where version = '20260722000001'",
+    );
+    const queueResult = await client.query(`
+        select
+          count(*) filter (where status in ('pending', 'failed'))::int as pending_receipts,
+          count(*) filter (where status = 'processing' and claimed_at < now() - interval '15 minutes')::int as stale_receipts
+        from public.qbo_webhook_receipts
+      `);
+    const writePolicyResult = await client.query(`
+        select count(*)::int as total
+        from pg_policies
+        where schemaname = 'public'
+          and tablename in (
+            'integration_connections', 'qbo_webhook_events', 'qbo_unified_invoices',
+            'integration_runs', 'integration_run_items', 'integration_outbox_files',
+            'integration_audit_logs'
+          )
+          and roles @> array['authenticated']::name[]
+          and cmd <> 'SELECT'
+      `);
+
+    const requiredEnv = {
+      QBO_CLIENT_ID: process.env.QBO_CLIENT_ID,
+      QBO_CLIENT_SECRET: process.env.QBO_CLIENT_SECRET,
+      QBO_REDIRECT_URI: process.env.QBO_REDIRECT_URI,
+      QBO_OAUTH_STATE_SECRET: process.env.QBO_OAUTH_STATE_SECRET,
+      QBO_WEBHOOK_VERIFIER_TOKEN: process.env.QBO_WEBHOOK_VERIFIER_TOKEN,
+      INTUIT_SSO_REDIRECT_URI: process.env.INTUIT_SSO_REDIRECT_URI,
+      INTEGRATIONS_ENCRYPTION_KEY: process.env.INTEGRATIONS_ENCRYPTION_KEY,
+      CRON_SECRET: process.env.CRON_SECRET,
+      APP_URL: process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL,
+    };
+    const missingEnv = Object.entries(requiredEnv).filter(([, value]) => !value).map(([key]) => key);
+
     const summary = {
       organization: `${org.name} (${org.id})`,
       migration_tables_present: missingTables.length === 0,
       missing_tables: missingTables,
+      migration_20260722000001_applied: migrationResult.rows[0]?.total === 1,
+      missing_required_env: missingEnv,
       env_integrations_encryption_key: Boolean(process.env.INTEGRATIONS_ENCRYPTION_KEY),
       env_qbo_oauth_state_secret: Boolean(process.env.QBO_OAUTH_STATE_SECRET),
       has_settings_row: Boolean(settingsResult.rows[0]),
       qbo_connection_configured: Boolean(qboRow),
       qbo_connection_status: qboRow?.status ?? null,
+      qbo_disconnect_state: qboRow?.qbo_disconnect_state ?? null,
       qbo_has_secrets_blob: Boolean(qboRow?.has_secrets),
       qbo_has_global_client_id: Boolean(process.env.QBO_CLIENT_ID),
       qbo_has_global_client_secret: Boolean(process.env.QBO_CLIENT_SECRET),
       qbo_has_global_redirect_uri: Boolean(process.env.QBO_REDIRECT_URI),
       qbo_has_realm_ownership_hash: Boolean(qboRow?.realm_id_hash),
+      qbo_environment: process.env.QBO_ENVIRONMENT || (process.env.QBO_API_BASE_URL ? "custom" : "production(default)"),
+      intuit_identity_environment: process.env.INTUIT_ENVIRONMENT === "sandbox" ? "sandbox" : "production",
+      webhook_pending_receipts: queueResult.rows[0]?.pending_receipts ?? 0,
+      webhook_stale_receipts: queueResult.rows[0]?.stale_receipts ?? 0,
+      authenticated_operational_write_policies: writePolicyResult.rows[0]?.total ?? 0,
       r365_ftp_configured: Boolean(ftpRow),
       r365_ftp_status: ftpRow?.status ?? null,
       r365_ftp_has_secrets_blob: Boolean(ftpRow?.has_secrets),
@@ -108,6 +158,18 @@ async function run() {
 
     if (missingTables.length > 0) {
       throw new Error(`Faltan tablas de integracion: ${missingTables.join(", ")}`);
+    }
+    if (missingEnv.length > 0) {
+      throw new Error(`Faltan variables requeridas: ${missingEnv.join(", ")}`);
+    }
+    if (migrationResult.rows[0]?.total !== 1) {
+      throw new Error("La migracion 20260722000001 no esta aplicada exactamente una vez.");
+    }
+    if ((writePolicyResult.rows[0]?.total ?? 0) > 0) {
+      throw new Error("Hay politicas de escritura authenticated sobre tablas operativas QBO.");
+    }
+    if ((queueResult.rows[0]?.stale_receipts ?? 0) > 0) {
+      throw new Error("Hay recibos de webhook trabados en processing por mas de 15 minutos.");
     }
 
     console.log("OK: readiness base QBO/R365 verificada.");

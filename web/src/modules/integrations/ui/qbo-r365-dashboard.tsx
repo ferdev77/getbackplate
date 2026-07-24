@@ -22,7 +22,7 @@ type StatCard = {
     overageRate: number | null;
   };
 };
-type ConnectionInfo = { status: string; realmId?: string | null; host?: string | null; lastRefreshed?: string | null };
+type ConnectionInfo = { status: string; disconnectState?: string; realmId?: string | null; host?: string | null; lastRefreshed?: string | null };
 type RunRow = {
   id: string; startedAt: string; completedAt: string | null; status: string; triggerSource: string;
   invoicesDetected: number; invoicesUploaded: number; invoicesSkipped: number; invoicesFailed: number;
@@ -118,7 +118,7 @@ type UnifiedInvoiceRow = {
   id: string;
   entityId: string;
   entityType: "Invoice" | "CreditMemo";
-  importSource: "sync" | "webhook" | "manual";
+  importSource: "sync" | "webhook" | "manual" | "reconciliation";
   pipelineStatus: "en_cola" | "capturada" | "mapeada" | "enviada";
   docNumber: string | null;
   txnDate: string | null;
@@ -664,6 +664,11 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
       setNewSyncFtpHost(""); setNewSyncFtpUser(""); setNewSyncFtpPass(""); setShowNewSyncFtpPass(false);
       setNewSyncBackfillEnabled(false); setNewSyncBackfillFromDate("");
       setRefreshKey((p) => p + 1);
+      await fetch("/api/company/integrations/qbo-r365/complete-onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ complete: true }),
+      });
     } catch (error) {
       toast.error(t("No se pudo crear"), { description: error instanceof Error ? error.message : t("Error") });
     }
@@ -950,11 +955,15 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
         method: "POST",
         cache: "no-store",
       });
-      const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; state?: "disconnected" | "pending" | "review_required"; error?: string };
       if (!response.ok || !payload.ok) {
         throw new Error(payload.error || t("No se pudo desconectar QuickBooks"));
       }
-      toast.success(t("QuickBooks desconectado"));
+      if (payload.state === "disconnected") {
+        toast.success(t("QuickBooks desconectado"));
+      } else {
+        toast.info("QuickBooks disconnect is pending confirmation from Intuit.");
+      }
       setShowDisconnectConfirmation(false);
       window.location.reload();
     } catch (error) {
@@ -1386,6 +1395,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
 
   const statCards = data?.statCardsByMode?.[mode] ?? data?.statCards ?? [];
   const conns = data?.connections ?? { qbo: { status: "disconnected" }, ftp: { status: "disconnected" } };
+  const qboDisconnectPending = Boolean(conns.qbo.disconnectState && conns.qbo.disconnectState !== "none");
 
   return (
     <main className={className}>
@@ -1399,6 +1409,11 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
           syncConfigsCount={syncConfigs.length}
           planName={planName}
           onComplete={() => { setOnboardingVisible(false); }}
+          onConfigureConnections={() => {
+            setEditingSyncConfigId(null);
+            setNewSyncVendorName(syncConfigs.find((config) => config.r365VendorName)?.r365VendorName ?? "");
+            setIsCreateSyncOpen(true);
+          }}
         />
       )}
 
@@ -1470,7 +1485,11 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
           </div>
           {conns.qbo.realmId && <p className="mt-2 text-xs text-[var(--gbp-text2)]">Realm: {String(conns.qbo.realmId).slice(0, 12)}...</p>}
           {conns.qbo.lastRefreshed && <p className="mt-1 text-[11px] text-[var(--gbp-muted)]">{t("Actualizado")}: {relativeTime(conns.qbo.lastRefreshed)}</p>}
-          {conns.qbo.status === "connected" ? (
+          {qboDisconnectPending ? (
+            <div className="mt-auto inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-amber-300 bg-amber-50 px-3 py-1.5 text-[11px] font-semibold text-amber-800">
+              <Clock className="h-3.5 w-3.5" /> Disconnect pending confirmation
+            </div>
+          ) : conns.qbo.status === "connected" ? (
             <button
               type="button"
               disabled={oauthDisconnecting}
@@ -1613,7 +1632,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
                           {t("Estado")}{": "}
                           {{ en_cola: t("En cola"), capturada: t("Capturada"), mapeada: t("Mapeada"), enviada: t("Enviada") }[pendingConfirm.pipelineStatus] ?? pendingConfirm.pipelineStatus}
                           {" · "}{t("Fuente")}{": "}
-                          {{ sync: "Sync", webhook: "Webhook", manual: "Manual" }[pendingConfirm.importSource] ?? pendingConfirm.importSource}
+                          {{ sync: "Sync", webhook: "Webhook", manual: "Manual", reconciliation: "Reconciliation" }[pendingConfirm.importSource] ?? pendingConfirm.importSource}
                           {pendingConfirm.sentAt ? ` · ${t("Enviada")} ${formatQboDate(pendingConfirm.sentAt.slice(0, 10))}` : ""}
                         </p>
                         <div className="mt-2 flex gap-1.5">
@@ -2042,10 +2061,11 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
                           <td className="px-4 py-3">
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
                               item.importSource === "webhook" ? "bg-purple-50 text-purple-600"
+                              : item.importSource === "reconciliation" ? "bg-blue-50 text-blue-600"
                               : item.importSource === "manual" ? "bg-amber-50 text-amber-600"
                               : "bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"
                             }`}>
-                              {item.importSource === "webhook" ? "Webhook" : item.importSource === "manual" ? t("Manual") : "Sync"}
+                              {item.importSource === "webhook" ? "Webhook" : item.importSource === "reconciliation" ? "Reconciliation" : item.importSource === "manual" ? t("Manual") : "Sync"}
                             </span>
                           </td>
                         )}
@@ -2250,7 +2270,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
             <header className="flex items-start justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">
-                  {selectedUnifiedRow.importSource === "webhook" ? "Webhook" : selectedUnifiedRow.importSource === "manual" ? t("Manual") : "Sync"} · {selectedUnifiedRow.entityType}
+                  {selectedUnifiedRow.importSource === "webhook" ? "Webhook" : selectedUnifiedRow.importSource === "reconciliation" ? "Reconciliation" : selectedUnifiedRow.importSource === "manual" ? t("Manual") : "Sync"} · {selectedUnifiedRow.entityType}
                 </p>
                 <h3 className="mt-1 text-lg font-bold text-[var(--gbp-text)]">{selectedUnifiedRow.docNumber ?? selectedUnifiedRow.entityId}</h3>
                 <p className="mt-0.5 text-xs text-[var(--gbp-text2)]">{formatQboDate(selectedUnifiedRow.txnDate)}{selectedUnifiedRow.customerName ? ` · ${selectedUnifiedRow.customerName}` : ""}</p>

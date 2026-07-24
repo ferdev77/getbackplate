@@ -10,7 +10,7 @@ import { removeCustomerFromSyncConfig } from "@/modules/integrations/qbo-r365/se
 type Params = { params: Promise<{ id: string; customerId: string }> };
 
 export async function DELETE(_req: Request, { params }: Params) {
-  const access = await assertCompanyAdminModuleApi("settings");
+  const access = await assertCompanyAdminModuleApi("qbo_r365");
   if (!access.ok) {
     return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }

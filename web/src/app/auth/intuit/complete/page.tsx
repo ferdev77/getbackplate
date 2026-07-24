@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Complete registration | GetBackplate
 export default async function CompleteIntuitRegistrationPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; integrationPlanId?: string; billingPeriod?: string }>;
+  searchParams: Promise<{ error?: string; integrationPlanId?: string; billingPeriod?: string; billingTrack?: string; includeSetupFee?: string }>;
 }) {
   const params = await searchParams;
   const supabase = await createSupabaseServerClient();
@@ -30,6 +30,8 @@ export default async function CompleteIntuitRegistrationPage({
         <form action={completeIntuitRegistrationAction} className="space-y-4">
           {params.integrationPlanId ? <input type="hidden" name="integrationPlanId" value={params.integrationPlanId} /> : null}
           {params.billingPeriod ? <input type="hidden" name="billingPeriod" value={params.billingPeriod} /> : null}
+          {params.billingTrack ? <input type="hidden" name="billingTrack" value={params.billingTrack} /> : null}
+          {params.includeSetupFee ? <input type="hidden" name="includeSetupFee" value={params.includeSetupFee} /> : null}
           <div>
             <label htmlFor="companyName" className="mb-1 block text-sm font-medium">Company name</label>
             <input id="companyName" name="companyName" required className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none ring-brand/20 focus:ring-2" />

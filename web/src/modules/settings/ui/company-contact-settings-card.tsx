@@ -8,8 +8,10 @@ import { createTranslator } from "./settings.i18n";
 type CompanyContactSettingsCardProps = {
   locale?: "es" | "en";
   organizationName: string;
+  contactName: string;
   supportEmail: string;
   supportPhone: string;
+  address: string;
   feedbackWhatsapp: string;
   websiteUrl: string;
   companyLogoUrl: string;
@@ -21,8 +23,10 @@ type CompanyContactSettingsCardProps = {
 export function CompanyContactSettingsCard({
   locale,
   organizationName,
+  contactName,
   supportEmail,
   supportPhone,
+  address,
   feedbackWhatsapp,
   websiteUrl,
   companyLogoUrl,
@@ -36,8 +40,10 @@ export function CompanyContactSettingsCard({
   const [isSaving, setIsSaving] = useState(false);
   const [savedPulse, setSavedPulse] = useState(false);
   const [notice, setNotice] = useState<{ tone: "success" | "error"; message: string } | null>(null);
-  const [emailValue, setEmailValue] = useState(supportEmail);
+  const [organizationNameValue, setOrganizationNameValue] = useState(organizationName);
+  const [contactNameValue, setContactNameValue] = useState(contactName);
   const [phoneValue, setPhoneValue] = useState(supportPhone);
+  const [addressValue, setAddressValue] = useState(address);
   const [whatsappValue, setWhatsappValue] = useState(feedbackWhatsapp);
   const [websiteValue, setWebsiteValue] = useState(websiteUrl);
   const [lightLogoUrl, setLightLogoUrl] = useState(companyLogoUrl);
@@ -55,8 +61,10 @@ export function CompanyContactSettingsCard({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        supportEmail: emailValue,
+        organizationName: organizationNameValue,
+        contactName: contactNameValue,
         supportPhone: phoneValue,
+        address: addressValue,
         feedbackWhatsapp: whatsappValue,
         websiteUrl: websiteValue,
       }),
@@ -119,7 +127,6 @@ export function CompanyContactSettingsCard({
       <p className="mb-3 inline-flex items-center gap-1 text-xs font-semibold tracking-[0.1em] text-[var(--gbp-text2)] uppercase">
         <Settings2 className="h-3.5 w-3.5" /> {t("Datos de la empresa")}
       </p>
-      <p className="mb-1 text-base font-semibold text-[var(--gbp-text)]">{organizationName}</p>
       <p className="text-sm text-[var(--gbp-text2)]">{t("Canales de contacto visibles para la operación diaria.")}</p>
 
       {customBrandingEnabled ? (
@@ -211,14 +218,48 @@ export function CompanyContactSettingsCard({
       )}
 
       <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={(event) => event.preventDefault()}>
+        <label className="grid gap-1 text-xs font-semibold text-[var(--gbp-text2)] sm:col-span-2">
+          {t("Empresa")}
+          <input
+            name="organization_name"
+            value={organizationNameValue}
+            onChange={(event) => setOrganizationNameValue(event.target.value)}
+            disabled={!isEditing || isSaving}
+            required
+            className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] disabled:cursor-not-allowed disabled:bg-[var(--gbp-bg)] disabled:text-[var(--gbp-muted)]"
+          />
+        </label>
+        <label className="grid gap-1 text-xs font-semibold text-[var(--gbp-text2)]">
+          {t("Nombre de contacto")}
+          <input
+            name="contact_name"
+            value={contactNameValue}
+            onChange={(event) => setContactNameValue(event.target.value)}
+            placeholder={locale === "en" ? "First Last" : "Nombre Apellido"}
+            disabled={!isEditing || isSaving}
+            className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] disabled:cursor-not-allowed disabled:bg-[var(--gbp-bg)] disabled:text-[var(--gbp-muted)]"
+          />
+        </label>
         <label className="grid gap-1 text-xs font-semibold text-[var(--gbp-text2)]">
           Email
           <input
             name="support_email"
             type="email"
-            value={emailValue}
-            onChange={(event) => setEmailValue(event.target.value)}
+            value={supportEmail}
             placeholder={locale === "en" ? "company@domain.com" : "empresa@dominio.com"}
+            readOnly
+            aria-readonly="true"
+            disabled
+            className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] disabled:cursor-not-allowed disabled:bg-[var(--gbp-bg)] disabled:text-[var(--gbp-muted)]"
+          />
+        </label>
+        <label className="grid gap-1 text-xs font-semibold text-[var(--gbp-text2)] sm:col-span-2">
+          {t("Dirección")}
+          <input
+            name="address"
+            value={addressValue}
+            onChange={(event) => setAddressValue(event.target.value)}
+            placeholder={locale === "en" ? "Street, City, State" : "Calle, Ciudad, Estado"}
             disabled={!isEditing || isSaving}
             className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] disabled:cursor-not-allowed disabled:bg-[var(--gbp-bg)] disabled:text-[var(--gbp-muted)]"
           />

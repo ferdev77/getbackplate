@@ -42,3 +42,19 @@ export function resolveCanonicalAppUrl(appUrl?: string | null): string {
 
   return getCanonicalAppUrl();
 }
+
+export function getRequestOrigin(request: Request): string {
+  const requestUrl = new URL(request.url);
+  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+  const host = forwardedHost || request.headers.get("host")?.trim();
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const protocol = forwardedProto === "http" || forwardedProto === "https"
+    ? forwardedProto
+    : requestUrl.protocol.replace(":", "");
+
+  if (host && /^[a-z0-9.-]+(?::\d{1,5})?$/i.test(host)) {
+    return new URL(`${protocol}://${host}`).origin;
+  }
+
+  return requestUrl.origin;
+}

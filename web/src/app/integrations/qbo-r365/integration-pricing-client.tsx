@@ -112,7 +112,7 @@ function PlanCard({
 }: {
   plan: IntegrationPlan;
   isAnnual: boolean;
-  onCheckout: (planId: string, period: "monthly" | "annual") => void;
+  onCheckout: (planId: string, period: "monthly" | "annual", includeSetupFee: boolean) => void;
   onSeatRequest: (email: string, planName: string) => void;
   checkoutLoading: string | null;
 }) {
@@ -130,6 +130,7 @@ function PlanCard({
   const isFeatured = plan.is_featured;
   const isEnterprise = plan.is_enterprise;
   const isLoading = checkoutLoading === plan.id;
+  const [includeSetupFee, setIncludeSetupFee] = useState(true);
 
   const setupAmount = plan.setup_fee_amount;
   const setupText = setupAmount != null ? `$${formatPrice(setupAmount)}` : "Negotiated";
@@ -143,7 +144,7 @@ function PlanCard({
       onSeatRequest(plan.cta_email ?? "", plan.name);
       return;
     }
-    onCheckout(plan.id, isAnnual ? "annual" : "monthly");
+    onCheckout(plan.id, isAnnual ? "annual" : "monthly", includeSetupFee);
   }
 
   const ctaLabel = plan.cta_text ?? (isEnterprise ? "Talk to Sales →" : "Get Started →");
@@ -176,7 +177,15 @@ function PlanCard({
       )}
 
       <div className="setup">
-        <div className="setup-row">
+        <label className="setup-row">
+          {!isEnterprise && setupAmount != null ? (
+            <input
+              type="checkbox"
+              checked={includeSetupFee}
+              onChange={(event) => setIncludeSetupFee(event.target.checked)}
+              aria-label={`Include setup fee for ${plan.name}`}
+            />
+          ) : null}
           <span className="tsetup-lab">Setup fee</span>
           {isAnnual && annualSetupAmount != null ? (
             <span className="tsetup-amt">
@@ -186,7 +195,7 @@ function PlanCard({
           ) : (
             <span className="tsetup-amt">{setupText}</span>
           )}
-        </div>
+        </label>
       </div>
 
       <ul className="feat">
@@ -459,18 +468,22 @@ export function IntegrationPricingClient({ plans }: { plans: IntegrationPlan[] }
     });
   }
 
-  async function handleCheckout(planId: string, period: "monthly" | "annual") {
+  async function handleCheckout(
+    planId: string,
+    period: "monthly" | "annual",
+    includeSetupFee: boolean,
+  ) {
     setCheckoutLoading(planId);
     setCheckoutError(null);
     try {
       const res = await fetch("/api/stripe/checkout-integration", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId, billingPeriod: period }),
+        body: JSON.stringify({ planId, billingPeriod: period, includeSetupFee }),
       });
 
       if (res.status === 401) {
-        window.location.href = `/auth/register?integrationPlanId=${encodeURIComponent(planId)}&billingPeriod=${period}`;
+        window.location.href = `/auth/register?integrationPlanId=${encodeURIComponent(planId)}&billingPeriod=${period}&includeSetupFee=${includeSetupFee ? "1" : "0"}`;
         return;
       }
 

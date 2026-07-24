@@ -15,6 +15,14 @@
       "schedule": "0 0,4,10,12,14,16,18,20,21,22 * * *"
     },
     {
+      "path": "/api/webhooks/cron/qbo-webhook-process",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/internal/cron/qbo-cdc-reconcile",
+      "schedule": "30 6 * * *"
+    },
+    {
       "path": "/api/internal/cron/push-scheduled-send",
       "schedule": "0 * * * *"
     },

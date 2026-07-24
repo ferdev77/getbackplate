@@ -52,10 +52,12 @@ export async function POST(request: Request) {
     const payload = (await request.json()) as {
       planId?: string;
       billingPeriod?: string;
+      includeSetupFee?: boolean;
     };
 
     const planId = typeof payload.planId === "string" ? payload.planId.trim() : "";
     const period: BillingPeriod = payload.billingPeriod === "annual" ? "annual" : "monthly";
+    const includeSetupFee = payload.includeSetupFee !== false;
 
     if (!planId) {
       return NextResponse.json({ error: "Missing planId" }, { status: 400 });
@@ -131,7 +133,9 @@ export async function POST(request: Request) {
 
     // Setup is a one-time charge. Existing subscriptions are not charged again,
     // including legacy subscriptions created before setup tracking was added.
-    const shouldChargeSetupFee = !existingAddon?.setup_fee_paid && !existingAddon?.stripe_subscription_id;
+    const shouldChargeSetupFee = includeSetupFee
+      && !existingAddon?.setup_fee_paid
+      && !existingAddon?.stripe_subscription_id;
     const rawSetupFee = (plan as Record<string, unknown>).setup_fee_amount as number | null ?? null;
     const discountPct = (plan as Record<string, unknown>).setup_fee_annual_discount_pct as number ?? 25;
     const setupFeeAmountCents = shouldChargeSetupFee
@@ -148,6 +152,7 @@ export async function POST(request: Request) {
       integrationPlanCode: planCode,
       billingPeriod: period,
       setupFeePaid: setupFeeAmountCents > 0 ? "true" : "false",
+      setupFeeIncluded: includeSetupFee ? "true" : "false",
       setupFeeAmount: String(setupFeeAmountCents),
       ...legalConsentMetadata(),
     };
@@ -207,6 +212,9 @@ export async function POST(request: Request) {
 
     const appUrl =
       process.env.NEXT_PUBLIC_APP_URL ?? "https://app.getbackplate.com";
+    const automaticTaxEnabled = process.env.STRIPE_AUTOMATIC_TAX_ENABLED
+      ? process.env.STRIPE_AUTOMATIC_TAX_ENABLED === "true"
+      : !process.env.STRIPE_SECRET_KEY?.startsWith("sk_test_");
 
     const planName = typeof (plan as Record<string, unknown>).name === "string"
       ? (plan as Record<string, unknown>).name as string
@@ -237,7 +245,7 @@ export async function POST(request: Request) {
       success_url: `${appUrl}/app/integrations/quickbooks?integration_upgraded=1`,
       cancel_url: `${appUrl}/integrations/qbo-r365`,
       tax_id_collection: { enabled: true },
-      automatic_tax: { enabled: true },
+      automatic_tax: { enabled: automaticTaxEnabled },
       metadata: sharedMeta,
       subscription_data: { metadata: sharedMeta },
       ...buildTermsConsentParams("integration"),

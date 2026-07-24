@@ -6,6 +6,7 @@ import { SlideUp } from "@/shared/ui/animations";
 import { ThemeAwareGetBackplateLogo } from "@/shared/ui/theme-aware-getbackplate-logo";
 import { PasswordInput } from "@/shared/ui/password-input";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
+import { IntuitSignInButton } from "@/shared/ui/intuit-sign-in-button";
 
 export const metadata: Metadata = {
   title: "Create account | GetBackplate",
@@ -18,6 +19,7 @@ type RegisterPageProps = {
     planId?: string;
     integrationPlanId?: string;
     billingPeriod?: string;
+    includeSetupFee?: string;
   }>;
 };
 
@@ -27,10 +29,15 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
   const planId = params.planId;
   const integrationPlanId = params.integrationPlanId;
   const billingPeriod = params.billingPeriod;
+  const includeSetupFee = params.includeSetupFee;
   const completeParams = new URLSearchParams();
   if (integrationPlanId) completeParams.set("integrationPlanId", integrationPlanId);
   if (billingPeriod) completeParams.set("billingPeriod", billingPeriod);
+  if (includeSetupFee) completeParams.set("includeSetupFee", includeSetupFee);
   const intuitReturnTo = `/auth/intuit/complete${completeParams.size ? `?${completeParams.toString()}` : ""}`;
+  const loginHref = integrationPlanId
+    ? "/auth/login?desde=integracion"
+    : planId ? "/auth/login?desde=plataforma" : "/auth/login";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-6 py-10">
@@ -55,9 +62,9 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
 
           {integrationPlanId ? (
             <>
-              <a href={`/api/auth/intuit/start?returnTo=${encodeURIComponent(intuitReturnTo)}`} className="mb-4 flex w-full items-center justify-center rounded-lg border border-line bg-white px-3 py-2.5 text-sm font-semibold transition hover:bg-neutral-50">
-                Continue with Intuit
-              </a>
+              <div className="mb-4 flex justify-center">
+                <IntuitSignInButton href={`/api/auth/intuit/start?returnTo=${encodeURIComponent(intuitReturnTo)}`} />
+              </div>
               <p className="-mt-2 mb-4 text-center text-[11px] text-neutral-500">Identity only. You will connect QuickBooks after checkout.</p>
               <div className="mb-4 flex items-center gap-3 text-xs text-neutral-400"><span className="h-px flex-1 bg-line" />or use email<span className="h-px flex-1 bg-line" /></div>
             </>
@@ -69,6 +76,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
             {planId && <input type="hidden" name="planId" value={planId} />}
             {integrationPlanId && <input type="hidden" name="integrationPlanId" value={integrationPlanId} />}
             {billingPeriod && <input type="hidden" name="billingPeriod" value={billingPeriod} />}
+            {includeSetupFee && <input type="hidden" name="includeSetupFee" value={includeSetupFee} />}
 
             <div>
               <label htmlFor="companyName" className="mb-1 block text-sm font-medium">
@@ -138,7 +146,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
 
           <div className="mt-6 text-center text-sm text-neutral-600">
             Already have an account?{" "}
-            <Link href="/auth/login" className="font-semibold text-brand hover:underline">
+            <Link href={loginHref} className="font-semibold text-brand hover:underline">
               Sign in here
             </Link>
           </div>

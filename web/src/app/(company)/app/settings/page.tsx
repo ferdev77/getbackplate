@@ -18,7 +18,6 @@ import {
 import { InlineBranchForm } from "@/modules/settings/ui/inline-branch-form";
 import { InlineDepartmentForm } from "@/modules/settings/ui/inline-department-form";
 import { CompanyContactSettingsCard } from "@/modules/settings/ui/company-contact-settings-card";
-import { IntegrationVendorProfileSettingsCard } from "@/modules/settings/ui/integration-vendor-profile-settings-card";
 import { CustomDomainSettingsCard } from "@/modules/settings/ui/custom-domain-settings-card";
 import { BranchList } from "@/modules/settings/ui/branch-list";
 import { ReorderableDepartmentList } from "@/modules/settings/ui/reorderable-department-list";
@@ -76,7 +75,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
     isModuleEnabledForOrganization(tenant.organizationId, "custom_branding"),
     supabase
       .from("organizations")
-      .select("name, plan_id, integration_plan_id, integration_vendor_profile, plans(name)")
+      .select("name, plan_id, integration_plan_id")
       .eq("id", tenant.organizationId)
       .maybeSingle(),
   ]);
@@ -86,14 +85,14 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
   const t = createTranslator(locale);
 
   const [
-    { data: orgSettingsWithWebsite, error: orgSettingsWithWebsiteError },
+    { data: orgSettings },
     { data: brandingSettings },
     { data: customDomains },
   ] = await Promise.all([
     supabase
       .from("organization_settings")
       .select(
-        "support_email, support_phone, feedback_whatsapp, website_url",
+        "contact_name, support_email, support_phone, address, feedback_whatsapp, website_url",
       )
       .eq("organization_id", tenant.organizationId)
       .maybeSingle(),
@@ -179,27 +178,6 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
   const activeDepartments = departmentsData.filter((row) => row.is_active).length;
   const activePositions = positionsData.filter((row) => row.is_active).length;
 
-  const orgSettingsMissingWebsiteColumn =
-    Boolean(orgSettingsWithWebsiteError?.message) &&
-    Boolean(orgSettingsWithWebsiteError?.message?.includes("website_url")) &&
-    Boolean(orgSettingsWithWebsiteError?.message?.toLowerCase().includes("column"));
-
-  const { data: orgSettingsFallback } = orgSettingsMissingWebsiteColumn
-    ? await supabase
-        .from("organization_settings")
-        .select("support_email, support_phone, feedback_whatsapp, dashboard_note")
-        .eq("organization_id", tenant.organizationId)
-        .maybeSingle()
-    : { data: null };
-
-  const orgSettings = orgSettingsMissingWebsiteColumn
-    ? {
-        ...(orgSettingsFallback ?? {}),
-        website_url: orgSettingsFallback?.dashboard_note ?? "",
-      }
-    : (orgSettingsWithWebsite ?? { website_url: "" });
-  const integrationOrganization = organization as Record<string, unknown> | null;
-
   const positionsByDepartment: Record<string, PositionRow[]> = {};
   for (const position of positionsData) {
     const list = positionsByDepartment[position.department_id] ?? [];
@@ -248,8 +226,10 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
         <CompanyContactSettingsCard
           locale={locale}
           organizationName={organization?.name ?? t("Empresa")}
+          contactName={orgSettings?.contact_name ?? ""}
           supportEmail={orgSettings?.support_email ?? ""}
           supportPhone={orgSettings?.support_phone ?? ""}
+          address={orgSettings?.address ?? ""}
           feedbackWhatsapp={orgSettings?.feedback_whatsapp ?? ""}
           websiteUrl={orgSettings?.website_url ?? ""}
           companyLogoUrl={brandingSettings?.company_logo_url ?? ""}
@@ -257,7 +237,6 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
           companyFaviconUrl={brandingSettings?.company_favicon_url ?? ""}
           customBrandingEnabled={customBrandingEnabled}
         />
-        {Boolean(integrationOrganization?.integration_plan_id) && <IntegrationVendorProfileSettingsCard initialProfile={integrationOrganization?.integration_vendor_profile as Record<string, string> | null} />}
         <CustomDomainSettingsCard
           locale={locale}
           enabled={customBrandingEnabled}

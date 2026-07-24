@@ -180,7 +180,7 @@ export async function sendOwnerWeeklyOpsReport(input: {
       .select("id", { count: "exact", head: true })
       .in("organization_id", orgs.map((org) => org.id))
       .in("pipeline_status", ["en_cola", "capturada", "mapeada"])
-      .eq("import_source", "webhook");
+      .in("import_source", ["webhook", "reconciliation"]);
     if (stuckError) throw new Error(stuckError.message);
     failed = count ?? 0;
   }

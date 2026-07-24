@@ -21,7 +21,7 @@ type StatCard = {
 
 export async function GET() {
   try {
-    const access = await assertCompanyAdminModuleApi("settings");
+    const access = await assertCompanyAdminModuleApi("qbo_r365");
     if (!access.ok) {
       return NextResponse.json({ error: "Access denied." }, { status: access.status });
     }
@@ -149,6 +149,7 @@ export async function GET() {
       connections: {
         qbo: {
           status: snapshot.qbo.status,
+          disconnectState: snapshot.qbo.disconnectState,
           realmId: snapshot.qbo.realmId,
           lastRefreshed: null,
         },

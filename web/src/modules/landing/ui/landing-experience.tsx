@@ -572,7 +572,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
               </button>
             </div>
 
-            <Link href="/auth/login" className="hidden rounded-md border border-[var(--gbp-border2)] px-3 py-1.5 text-[13px] font-semibold text-[var(--gbp-text)] hover:bg-[var(--gbp-surface2)] md:inline-flex">{copy.nav.login}</Link>
+            <Link href="/auth/login?desde=plataforma" className="hidden rounded-md border border-[var(--gbp-border2)] px-3 py-1.5 text-[13px] font-semibold text-[var(--gbp-text)] hover:bg-[var(--gbp-surface2)] md:inline-flex">{copy.nav.login}</Link>
             <button
               type="button"
               onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })}
@@ -601,7 +601,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
               <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="rounded-md px-3 py-2.5 text-[14px] font-medium text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">{copy.nav.pricing}</a>
               <a href="#integrations" onClick={() => setMobileMenuOpen(false)} className="rounded-md px-3 py-2.5 text-[14px] font-medium text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">{copy.nav.integrations}</a>
               <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="rounded-md px-3 py-2.5 text-[14px] font-medium text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">{copy.nav.faq}</a>
-              <Link href="/auth/login" onClick={() => setMobileMenuOpen(false)} className="rounded-md px-3 py-2.5 text-[14px] font-medium text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">{copy.nav.login}</Link>
+              <Link href="/auth/login?desde=plataforma" onClick={() => setMobileMenuOpen(false)} className="rounded-md px-3 py-2.5 text-[14px] font-medium text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">{copy.nav.login}</Link>
             </nav>
             <div className="mt-2 flex items-center justify-between border-t border-[var(--gbp-border)] px-3 pt-3">
               <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">

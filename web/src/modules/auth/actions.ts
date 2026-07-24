@@ -33,13 +33,22 @@ function getEmailDomain(email: string) {
   return parts.length === 2 ? parts[1]?.toLowerCase() ?? null : null;
 }
 
-function buildLoginPath(options?: { error?: string; organizationIdHint?: string | null }) {
+function buildLoginPath(options?: {
+  error?: string;
+  organizationIdHint?: string | null;
+  billingTrack?: "platform" | "integration";
+}) {
   const search = new URLSearchParams();
   if (options?.error) {
     search.set("error", options.error);
   }
   if (options?.organizationIdHint) {
     search.set("org", options.organizationIdHint);
+  }
+  if (options?.billingTrack === "integration") {
+    search.set("desde", "integracion");
+  } else if (options?.billingTrack === "platform") {
+    search.set("desde", "plataforma");
   }
   const query = search.toString();
   return query ? `/auth/login?${query}` : "/auth/login";
@@ -97,6 +106,8 @@ export async function loginWithPasswordAction(formData: FormData) {
     const organizationHint = normalizeOrganizationId(
       String(formData.get("organization_id_hint") ?? ""),
     );
+    const billingTrack = formData.get("billing_track") === "integration" ? "integration" : "platform";
+    const companyDashboardPath = `/app/dashboard?billingTrack=${billingTrack}`;
     const organizationIdHint = await resolveOrganizationIdFromAuthHint(organizationHint);
     const emailDomain = getEmailDomain(email);
 
@@ -110,7 +121,7 @@ export async function loginWithPasswordAction(formData: FormData) {
           email_domain: emailDomain,
         },
       });
-      redirect(buildLoginPath({ error: "Enter your email and password.", organizationIdHint: organizationHint }));
+      redirect(buildLoginPath({ error: "Enter your email and password.", organizationIdHint: organizationHint, billingTrack }));
     }
 
     const supabase = await createSupabaseServerClient();
@@ -131,7 +142,7 @@ export async function loginWithPasswordAction(formData: FormData) {
           provider: "password",
         },
       });
-      redirect(buildLoginPath({ error: getFriendlyAuthErrorMessage(error), organizationIdHint: organizationHint }));
+      redirect(buildLoginPath({ error: getFriendlyAuthErrorMessage(error), organizationIdHint: organizationHint, billingTrack }));
     }
 
     const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -146,7 +157,7 @@ export async function loginWithPasswordAction(formData: FormData) {
           email_domain: emailDomain,
         },
       });
-      redirect(buildLoginPath({ error: "Your session could not be validated.", organizationIdHint: organizationHint }));
+      redirect(buildLoginPath({ error: "Your session could not be validated.", organizationIdHint: organizationHint, billingTrack }));
     }
 
     await clearMfaVerifiedCookie();
@@ -160,7 +171,7 @@ export async function loginWithPasswordAction(formData: FormData) {
       .maybeSingle();
 
     if (Boolean((authData.user.user_metadata as Record<string, unknown> | undefined)?.force_password_change)) {
-      const nextAfterPassword = superadminRow?.user_id ? "/superadmin/dashboard" : "/app/dashboard";
+      const nextAfterPassword = superadminRow?.user_id ? "/superadmin/dashboard" : companyDashboardPath;
       const orgQuery = organizationHint ? `&org=${encodeURIComponent(organizationHint)}` : "";
       redirect(`/auth/change-password?reason=first_login&next=${encodeURIComponent(nextAfterPassword)}${orgQuery}`);
     }
@@ -307,7 +318,7 @@ export async function loginWithPasswordAction(formData: FormData) {
               severity: "high",
               metadata: { error: challenge.error },
             });
-            redirect(buildLoginPath({ error: challenge.error, organizationIdHint: organizationHint }));
+            redirect(buildLoginPath({ error: challenge.error, organizationIdHint: organizationHint, billingTrack }));
           }
 
           await logAuthEvent({
@@ -318,7 +329,7 @@ export async function loginWithPasswordAction(formData: FormData) {
             metadata: { provider: "password" },
           });
 
-          redirect(`/auth/verify-mfa?next=${encodeURIComponent("/app/dashboard")}`);
+          redirect(`/auth/verify-mfa?next=${encodeURIComponent(companyDashboardPath)}`);
         }
       }
 
@@ -328,11 +339,11 @@ export async function loginWithPasswordAction(formData: FormData) {
         organizationId: resolvedOrganizationId,
         severity: "low",
         metadata: {
-          landing: "/app/dashboard",
+          landing: companyDashboardPath,
           provider: "password",
         },
       });
-      redirect("/app/dashboard");
+      redirect(companyDashboardPath);
     }
 
     if (roleCodesInResolvedOrganization.has("employee")) {
@@ -355,13 +366,13 @@ export async function loginWithPasswordAction(formData: FormData) {
       organizationId: resolvedOrganizationId,
       severity: "low",
       metadata: {
-        landing: "/app/dashboard",
+        landing: companyDashboardPath,
         provider: "password",
         reason: "fallback_role_routing",
       },
     });
 
-    redirect("/app/dashboard");
+    redirect(companyDashboardPath);
   } catch (error) {
     if (isRedirectError(error)) {
       throw error;
@@ -383,6 +394,7 @@ export async function loginWithPasswordAction(formData: FormData) {
         organizationIdHint: normalizeOrganizationId(
           String(formData.get("organization_id_hint") ?? ""),
         ),
+        billingTrack: formData.get("billing_track") === "integration" ? "integration" : "platform",
       }),
     );
   }

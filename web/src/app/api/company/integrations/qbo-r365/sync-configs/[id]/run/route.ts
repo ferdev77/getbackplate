@@ -5,7 +5,7 @@ import { runQboR365Sync } from "@/modules/integrations/qbo-r365/service";
 type Params = { params: Promise<{ id: string }> };
 
 export async function POST(_req: Request, { params }: Params) {
-  const access = await assertCompanyAdminModuleApi("settings");
+  const access = await assertCompanyAdminModuleApi("qbo_r365");
   if (!access.ok) {
     return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }

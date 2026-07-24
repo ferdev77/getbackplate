@@ -8,7 +8,7 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
-  const access = await assertCompanyAdminModuleApi("settings");
+  const access = await assertCompanyAdminModuleApi("qbo_r365");
   if (!access.ok) {
     return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }

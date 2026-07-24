@@ -32,7 +32,7 @@ function toTxt(rows: Array<Record<string, unknown>>) {
 }
 
 export async function GET(request: Request) {
-  const access = await assertCompanyAdminModuleApi("settings");
+  const access = await assertCompanyAdminModuleApi("qbo_r365");
   if (!access.ok) {
     return NextResponse.json({ error: "Access denied." }, { status: access.status });
   }

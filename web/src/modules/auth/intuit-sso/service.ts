@@ -25,6 +25,12 @@ function hash(value: string) {
   return createHash("sha256").update(value).digest("hex");
 }
 
+export function validateIntuitNonceClaim(nonce: string | null, expectedHash: string) {
+  if (nonce === null) return "omitted" as const;
+  if (hash(nonce) === expectedHash) return "matched" as const;
+  throw new IntuitSsoError("nonce_mismatch", "Intuit identity nonce does not match.");
+}
+
 function getConfig() {
   const clientId = process.env.QBO_CLIENT_ID?.trim() ?? "";
   const clientSecret = process.env.QBO_CLIENT_SECRET?.trim() ?? "";
@@ -111,6 +117,15 @@ async function resolveRedirect(userId: string, fallback: string) {
     : fallback;
 }
 
+function registrationCompletionPath(returnTo: string) {
+  if (returnTo.startsWith("/auth/intuit/complete")) return returnTo;
+  const parsed = new URL(returnTo, "https://app.getbackplate.com");
+  const billingTrack = parsed.searchParams.get("billingTrack");
+  return billingTrack === "integration" || billingTrack === "platform"
+    ? `/auth/intuit/complete?billingTrack=${billingTrack}`
+    : "/auth/intuit/complete";
+}
+
 export async function completeIntuitSso(input: {
   code: string;
   state: string;
@@ -119,6 +134,7 @@ export async function completeIntuitSso(input: {
 }) {
   const config = getConfig();
   const admin = createSupabaseAdminClient();
+  let matchedExistingUserId: string | null = null;
   const { data: attempts, error: consumeError } = await admin.rpc("consume_external_auth_attempt", {
     p_provider: "intuit",
     p_state_hash: hash(input.state),
@@ -137,23 +153,23 @@ export async function completeIntuitSso(input: {
 
   try {
     const token = await exchangeIntuitIdentityCode({ ...config, code: input.code });
-    const unverified = JSON.parse(Buffer.from(token.idToken.split(".")[1] ?? "", "base64url").toString("utf8")) as {
-      nonce?: unknown;
-    };
-    if (typeof unverified.nonce !== "string" || hash(unverified.nonce) !== attempt.nonce_hash) {
-      throw new IntuitSsoError("nonce_mismatch", "Intuit identity nonce does not match.");
-    }
     const identityToken = await verifyIntuitIdToken({
       idToken: token.idToken,
       clientId: config.clientId,
-      nonce: unverified.nonce,
     });
+    const nonceClaim = validateIntuitNonceClaim(identityToken.nonce, attempt.nonce_hash);
     const userInfo = await fetchIntuitIdentity(token.accessToken, config.environment);
     const email = userInfo.email?.trim().toLowerCase();
     if (userInfo.sub !== identityToken.subject || !email || userInfo.emailVerified !== true) {
       throw new IntuitSsoError("identity_mismatch", "Intuit did not return a matching verified identity.");
     }
-    const profile = { givenName: userInfo.givenName ?? null, familyName: userInfo.familyName ?? null };
+    const profile = {
+      givenName: userInfo.givenName ?? null,
+      familyName: userInfo.familyName ?? null,
+      phoneNumber: userInfo.phoneNumber ?? null,
+      phoneNumberVerified: userInfo.phoneNumberVerified ?? false,
+      address: userInfo.address ?? null,
+    };
 
     if (attempt.mode === "link") {
       if (!attempt.target_user_id || input.authenticatedUserId !== attempt.target_user_id) {
@@ -177,7 +193,7 @@ export async function completeIntuitSso(input: {
         actorId: attempt.target_user_id,
         eventDomain: "auth",
         outcome: "success",
-        metadata: { provider: "intuit" },
+        metadata: { provider: "intuit", nonce_claim: nonceClaim },
       });
       return { redirectPath: attempt.return_to, linked: true };
     }
@@ -208,6 +224,7 @@ export async function completeIntuitSso(input: {
     } else {
       const existingUser = await findAuthUserByEmail(email);
       if (existingUser) {
+        matchedExistingUserId = existingUser.id;
         const pending = existingUser.app_metadata?.intuit_sso_pending as { issuer?: string; subject?: string } | undefined;
         if (pending?.issuer === identityToken.issuer && pending.subject === identityToken.subject) {
           userId = existingUser.id;
@@ -274,11 +291,11 @@ export async function completeIntuitSso(input: {
       actorId: userId,
       eventDomain: "auth",
       outcome: "success",
-      metadata: { provider: "intuit", is_registration: isNewUser },
+      metadata: { provider: "intuit", is_registration: isNewUser, nonce_claim: nonceClaim },
     });
     return {
       redirectPath: isNewUser
-        ? (attempt.return_to.startsWith("/auth/intuit/complete") ? attempt.return_to : "/auth/intuit/complete")
+        ? registrationCompletionPath(attempt.return_to)
         : await resolveRedirect(userId, attempt.return_to),
       linked: false,
     };
@@ -294,7 +311,10 @@ export async function completeIntuitSso(input: {
       outcome: "error",
       severity: "high",
       reasonCode: error instanceof IntuitSsoError ? error.code : "unexpected",
-      metadata: { provider: "intuit" },
+      metadata: {
+        provider: "intuit",
+        matched_existing_user_id: matchedExistingUserId,
+      },
     });
     throw error;
   }

@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
+import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 
 const requestSchema = z.object({
-  supportEmail: z.string().trim().max(150).optional(),
+  organizationName: z.string().trim().min(1).max(160).optional(),
+  contactName: z.string().trim().max(160).optional(),
   supportPhone: z.string().trim().max(60).optional(),
+  address: z.string().trim().max(300).optional(),
   feedbackWhatsapp: z.string().trim().max(60).optional(),
   websiteUrl: z.string().trim().max(200).optional(),
 });
@@ -35,21 +39,50 @@ export async function POST(request: Request) {
   }
 
   const payload = parsed.data;
-  const supportEmail = (payload.supportEmail ?? "").trim() || null;
+  const contactName = (payload.contactName ?? "").trim() || null;
   const supportPhone = (payload.supportPhone ?? "").trim() || null;
+  const address = (payload.address ?? "").trim() || null;
   const feedbackWhatsapp = (payload.feedbackWhatsapp ?? "").trim() || null;
   const websiteUrl = normalizeWebsiteUrl((payload.websiteUrl ?? "").trim() || null);
 
-  if (supportEmail && !/^\S+@\S+\.\S+$/.test(supportEmail)) {
-    return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
+  const supabase = await createSupabaseServerClient();
+  const admin = createSupabaseAdminClient();
+  const [{ data: existingSettings }, identity, authUser] = await Promise.all([
+    supabase
+      .from("organization_settings")
+      .select("support_email")
+      .eq("organization_id", moduleAccess.tenant.organizationId)
+      .maybeSingle(),
+    admin
+      .from("external_auth_identities")
+      .select("email_at_link")
+      .eq("provider", "intuit")
+      .eq("user_id", moduleAccess.userId)
+      .maybeSingle(),
+    admin.auth.admin.getUserById(moduleAccess.userId),
+  ]);
+  const supportEmail = existingSettings?.support_email?.trim()
+    || identity.data?.email_at_link?.trim()
+    || authUser.data.user?.email?.trim()
+    || null;
+
+  if (payload.organizationName) {
+    const { error: organizationError } = await admin
+      .from("organizations")
+      .update({ name: payload.organizationName })
+      .eq("id", moduleAccess.tenant.organizationId);
+    if (organizationError) {
+      return NextResponse.json({ error: `Unable to save: ${organizationError.message}` }, { status: 400 });
+    }
   }
 
-  const supabase = await createSupabaseServerClient();
   const { error } = await supabase.from("organization_settings").upsert(
     {
       organization_id: moduleAccess.tenant.organizationId,
+      contact_name: contactName,
       support_email: supportEmail,
       support_phone: supportPhone,
+      address,
       feedback_whatsapp: feedbackWhatsapp,
       website_url: websiteUrl,
       updated_by: moduleAccess.userId,
@@ -58,9 +91,6 @@ export async function POST(request: Request) {
   );
 
   if (error) {
-    const missingWebsiteColumn =
-      error.message.includes("website_url") && error.message.toLowerCase().includes("column");
-
     await logAuditEvent({
       action: "settings.update",
       entityType: "organization_settings",
@@ -69,34 +99,8 @@ export async function POST(request: Request) {
       eventDomain: "settings",
       outcome: "error",
       severity: "medium",
-      metadata: { error: error.message, missing_website_column: missingWebsiteColumn },
+      metadata: { error: error.message },
     });
-
-    if (missingWebsiteColumn) {
-      const { error: fallbackError } = await supabase.from("organization_settings").upsert(
-        {
-          organization_id: moduleAccess.tenant.organizationId,
-          support_email: supportEmail,
-          support_phone: supportPhone,
-          feedback_whatsapp: feedbackWhatsapp,
-          dashboard_note: websiteUrl,
-          updated_by: moduleAccess.userId,
-        },
-        { onConflict: "organization_id" },
-      );
-
-      if (fallbackError) {
-        return NextResponse.json(
-          {
-            error: `Unable to save: ${fallbackError.message}`,
-          },
-          { status: 400 },
-        );
-      }
-
-      return NextResponse.json({ ok: true, websiteStorageFallback: "dashboard_note" });
-    }
-
     return NextResponse.json({ error: `Unable to save: ${error.message}` }, { status: 400 });
   }
 
@@ -109,12 +113,17 @@ export async function POST(request: Request) {
     outcome: "success",
     severity: "high",
     metadata: {
+      organizationName: payload.organizationName,
+      contactName,
       supportEmail,
       supportPhone,
+      address,
       feedbackWhatsapp,
       websiteUrl,
     },
   });
 
+  revalidatePath("/app/settings");
+  revalidatePath("/app/integrations/quickbooks");
   return NextResponse.json({ ok: true });
 }

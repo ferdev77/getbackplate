@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
+import { IntuitSignInButton } from "@/shared/ui/intuit-sign-in-button";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -101,38 +102,25 @@ export default function IntegrationDisconnectedPage() {
               marginBottom: 20,
             }}
           >
-            QuickBooks® Online disconnected.
+            QuickBooks® Online disconnect received.
           </h1>
 
           <p style={{ fontSize: 18, color: "#595B66", lineHeight: 1.6, marginBottom: 12 }}>
-            The connection between GetBackplate and your QuickBooks® Online account has been{" "}
-            <strong style={{ color: "#14151A" }}>disconnected</strong>.
+            QuickBooks sent GetBackplate a disconnect notification. We are securely confirming that
+            the authorization was revoked.
           </p>
 
           <p style={{ fontSize: 15, color: "#8A8C95", lineHeight: 1.6, marginBottom: 40 }}>
-            Automatic Restaurant365 syncs are paused until you reconnect your account. To
-            reconnect, sign in to GetBackplate, go to Integrations → QuickBooks® Online, and select
-            &ldquo;Connect QuickBooks® Online&rdquo;.
+            Sign in to review the connection status. If the disconnect completed, you can reconnect
+            from Integrations → QuickBooks® Online.
           </p>
 
-          <a
-            href="/auth/login"
-            style={{
-              display: "inline-block",
-              padding: "13px 28px",
-              borderRadius: 100,
-              background: "#14151A",
-              color: "#F7F8FC",
-              border: "1.5px solid #14151A",
-              fontWeight: 700,
-              fontSize: 14,
-              textDecoration: "none",
-              transition: "all 0.2s ease",
-              fontFamily: "inherit",
-            }}
-          >
-            Sign in to reconnect
-          </a>
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <IntuitSignInButton href="/api/auth/intuit/start?returnTo=%2Fapp%2Fintegrations%2Fquickbooks" />
+          </div>
+          <p style={{ marginTop: 14, fontSize: 13 }}>
+            <a href="/auth/login?desde=integracion" style={{ color: "#595B66" }}>Or sign in with your GetBackplate password</a>
+          </p>
         </div>
       </main>
       <footer style={{ padding: "20px 32px", borderTop: "1px solid #E6E8EE", color: "#8A8C95", fontSize: 12, textAlign: "center" }}>
