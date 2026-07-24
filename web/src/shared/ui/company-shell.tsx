@@ -11,7 +11,6 @@ import {
   Loader2,
   LifeBuoy,
   LogOut,
-  MessageSquarePlus,
   MapPin,
   PanelsLeftRight,
   Settings,
@@ -266,7 +265,6 @@ export function CompanyShell({
   const [collapsed, setCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsView, setSettingsView] = useState<"main" | "profile" | "billing" | "preferences">("main");
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [checklistModalOpen, setChecklistModalOpen] = useState(false);
   const [checklistModalLoading, setChecklistModalLoading] = useState(false);
   const [checklistModalCatalog, setChecklistModalCatalog] = useState<ChecklistModalCatalog | null>(null);
@@ -412,9 +410,6 @@ export function CompanyShell({
   const [timezoneManual, setTimezoneManual] = useState(settingsSnapshot.timezoneManual);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(settingsSnapshot.analyticsEnabled);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(settingsSnapshot.twoFactorEnabled);
-  const [fbType, setFbType] = useState<"bug" | "idea">("bug");
-  const [fbTitle, setFbTitle] = useState("");
-  const [fbMessage, setFbMessage] = useState("");
   const [stoppingImpersonation, setStoppingImpersonation] = useState(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const billingToastHandledRef = useRef(false);
@@ -937,31 +932,6 @@ export function CompanyShell({
     setBusy(true);
     router.push("/app/billing/portal-launch");
     setTimeout(() => setBusy(false), 2500);
-  }
-
-  async function sendFeedback() {
-    setBusy(true);
-    try {
-      const response = await fetch("/api/company/feedback", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          feedbackType: fbType,
-          title: fbTitle,
-          message: fbMessage,
-          pagePath: pathname,
-        }),
-      });
-      if (!response.ok) throw new Error("Could not send feedback.");
-      setFbTitle("");
-      setFbMessage("");
-      setFeedbackOpen(false);
-      toast.success("Feedback sent successfully.");
-    } catch {
-      toast.error("Could not send feedback.");
-    } finally {
-      setBusy(false);
-    }
   }
 
   const ensureAnnouncementModalCatalog = useCallback(async (options?: { force?: boolean }) => {
@@ -1801,11 +1771,15 @@ export function CompanyShell({
                  <Settings className="h-4 w-4" />
                  <TooltipLabel label={t("Configuración")} />
                </button>
-               <button type="button" onClick={() => setFeedbackOpen(true)} className={`group relative inline-flex items-center justify-center rounded-md border text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "h-9 w-9" : "h-9 flex-1"}`}>
-                 <MessageSquarePlus className="h-4 w-4" />
-                 <TooltipLabel label={t("Feedback")} />
-               </button>
              </div>
+             <Link
+               prefetch={false}
+               href="/support"
+               className={`mt-1.5 flex h-9 items-center justify-center gap-1.5 rounded-md border text-xs font-semibold transition ${isDarkTheme ? "border-white/15 bg-white/5 text-[var(--gbp-text2)] hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "w-9" : "w-full"}`}
+             >
+               <LifeBuoy className="h-3.5 w-3.5 shrink-0" />
+               {!collapsed && t("Ir a soporte y privacidad")}
+             </Link>
           </div>
         </aside>
 
@@ -2230,49 +2204,6 @@ export function CompanyShell({
 
       {enabledModuleSet.has("ai_assistant") ? (
         <FloatingAiAssistant currentPlanCode={currentPlanCode} userName={sessionUserName} tenantId={tenantId} userKey={sessionUserEmail} />
-      ) : null}
-
-      {feedbackOpen ? (
-        <div className="fixed inset-0 z-[1200] grid place-items-center bg-black/45 p-4" onClick={() => setFeedbackOpen(false)}>
-          <div className="w-full max-w-[480px] rounded-2xl bg-white shadow-[0_24px_70px_rgba(0,0,0,.18)]" onClick={(event) => event.stopPropagation()}>
-            <div className="relative p-6 pb-2">
-              <button type="button" onClick={() => setFeedbackOpen(false)} className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"><X className="h-4 w-4" /></button>
-              <p className="font-serif text-lg font-bold text-[var(--gbp-text)]">Feedback</p>
-              <p className="text-sm text-[var(--gbp-muted)]">{t("iAyudanos a mejorar!")}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-2 px-6 pb-4">
-              <button type="button" onClick={() => setFbType("bug")} className={`rounded-[10px] border-[1.5px] px-3 py-2 text-sm font-semibold ${fbType === "bug" ? "bg-[var(--gbp-error-soft)]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"}`} style={fbType === "bug" ? { borderColor: palette.accent, color: palette.accent } : undefined}>{t("Reportar problema")}</button>
-              <button type="button" onClick={() => setFbType("idea")} className={`rounded-[10px] border-[1.5px] px-3 py-2 text-sm font-semibold ${fbType === "idea" ? "border-[var(--gbp-accent)]/35 bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-[var(--gbp-text2)]"}`}>{t("Nueva idea / integracion")}</button>
-            </div>
-            <div className="px-6 pb-6">
-              <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">{t("Titulo del mensaje")}</label>
-              <input value={fbTitle} onChange={(event) => setFbTitle(event.target.value)} className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]" placeholder={t("Resume el problema o idea en una linea...")} />
-              <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">{t("Descripcion detallada")}</label>
-              <textarea value={fbMessage} onChange={(event) => setFbMessage(event.target.value)} rows={4} className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]" placeholder={t("Cuentanos con detalle...")} />
-              <button type="button" disabled={busy || !fbTitle.trim() || !fbMessage.trim()} onClick={sendFeedback} className="mt-4 flex w-full items-center justify-center gap-2 flex-row rounded-lg px-3 py-2.5 text-sm font-bold text-white disabled:opacity-60" style={{ background: palette.accent }}>
-                {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                {busy ? t("Enviando msj...") : t("Enviar mensaje")}
-              </button>
-              {enabledModuleSet.has("qbo_r365") ? (
-                <div className="mt-5 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] p-4">
-                  <div className="flex items-start gap-3">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]">
-                      <LifeBuoy className="h-4 w-4" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-[var(--gbp-text)]">{t("Soporte de integracion y privacidad")}</p>
-                      <p className="mt-1 text-xs leading-relaxed text-[var(--gbp-text2)]">{t("Solicita soporte tecnico, acceso, exportacion, correccion o eliminacion de datos con un numero de seguimiento.")}</p>
-                    </div>
-                  </div>
-                  <Link href="/support" className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2.5 text-sm font-bold text-[var(--gbp-text)] transition hover:border-[var(--gbp-accent)] hover:text-[var(--gbp-accent)]">
-                    <LifeBuoy className="h-4 w-4" />
-                    {t("Ir a soporte y privacidad")}
-                  </Link>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </div>
       ) : null}
 
       {announcementModalOpen ? (
@@ -2807,18 +2738,16 @@ export function CompanyShell({
                   <Settings className="h-4 w-4" />
                   <TooltipLabel label={t("Configuración")} />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    setFeedbackOpen(true);
-                  }}
-                  className={`group/tooltip relative inline-flex flex-1 items-center justify-center rounded-md border h-10 text-[var(--gbp-text2)] transition ${isDarkTheme ? "border-white/15 bg-white/5 hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 hover:bg-black/10 hover:text-[var(--gbp-text)]"}`}
-                >
-                  <MessageSquarePlus className="h-4 w-4" />
-                  <TooltipLabel label={t("Feedback")} />
-                </button>
               </div>
+              <Link
+                prefetch={false}
+                href="/support"
+                onClick={() => setMenuOpen(false)}
+                className={`mt-1.5 flex h-10 w-full items-center justify-center gap-1.5 rounded-md border text-xs font-semibold transition ${isDarkTheme ? "border-white/15 bg-white/5 text-[var(--gbp-text2)] hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 text-[var(--gbp-text2)] hover:bg-black/10 hover:text-[var(--gbp-text)]"}`}
+              >
+                <LifeBuoy className="h-3.5 w-3.5 shrink-0" />
+                {t("Ir a soporte y privacidad")}
+              </Link>
               {canInstall && (
                 <button
                   type="button"

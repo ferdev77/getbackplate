@@ -17,11 +17,26 @@ export function SupportForm({
     const formElement = event.currentTarget;
     setStatus({ kind: "sending" });
     const form = new FormData(formElement);
-    const response = await fetch("/api/support-requests", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(Object.fromEntries(form.entries())),
-    }).catch(() => null);
+    const requestType = String(form.get("requestType") ?? "");
+    const details = String(form.get("details") ?? "");
+
+    const isFeedback = requestType === "problem" || requestType === "idea";
+    const response = isFeedback
+      ? await fetch("/api/company/feedback", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            feedbackType: requestType === "problem" ? "bug" : "idea",
+            title: requestType === "problem" ? "Report a problem" : "New idea",
+            message: details,
+            pagePath: "/support",
+          }),
+        }).catch(() => null)
+      : await fetch("/api/support-requests", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(Object.fromEntries(form.entries())),
+        }).catch(() => null);
     const result = response ? await response.json().catch(() => ({})) as { error?: string; reference?: string } : {};
 
     if (!response?.ok) {
@@ -30,7 +45,9 @@ export function SupportForm({
     }
 
     formElement.reset();
-    setStatus({ kind: "success", message: result.reference ? `Request received. Reference: ${result.reference}` : "Request received." });
+    setStatus(isFeedback
+      ? { kind: "success", message: "Thanks — your feedback was received." }
+      : { kind: "success", message: result.reference ? `Request received. Reference: ${result.reference}` : "Request received." });
   }
 
   const inputClass = "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-950 outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-100";
@@ -64,6 +81,8 @@ export function SupportForm({
             <option value="correction">Data correction</option>
             <option value="export">Data export</option>
             <option value="deletion">Data deletion</option>
+            {identity && <option value="problem">Report a problem</option>}
+            {identity && <option value="idea">New idea</option>}
           </select>
         </label>
         <label className="text-sm font-semibold text-slate-800">Name
