@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import type { AuthenticatedSupportIdentity } from "@/modules/support/support-request";
 
 export function SupportForm({
@@ -11,6 +11,22 @@ export function SupportForm({
   identityBlocked: boolean;
 }) {
   const [status, setStatus] = useState<{ kind: "idle" | "sending" | "success" | "error"; message?: string }>({ kind: "idle" });
+  const returnToRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    // Only auto-return to a page on our own origin — never redirect off-site.
+    if (document.referrer && document.referrer.startsWith(window.location.origin)) {
+      returnToRef.current = document.referrer;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (status.kind !== "success" || !returnToRef.current) return;
+    const timer = setTimeout(() => {
+      window.location.href = returnToRef.current!;
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [status.kind]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,9 +61,10 @@ export function SupportForm({
     }
 
     formElement.reset();
+    const returning = returnToRef.current ? " Taking you back…" : "";
     setStatus(isFeedback
-      ? { kind: "success", message: "Thanks — your feedback was received." }
-      : { kind: "success", message: result.reference ? `Request received. Reference: ${result.reference}` : "Request received." });
+      ? { kind: "success", message: `Thanks — your feedback was received.${returning}` }
+      : { kind: "success", message: `${result.reference ? `Request received. Reference: ${result.reference}.` : "Request received."}${returning}` });
   }
 
   const inputClass = "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-950 outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-100";
